@@ -106,9 +106,7 @@ class Item(_TreeItemBase):
             val_len = len(serialized_item["values"])
         except TypeError:
             return False
-        if val_len != len(self.value_models):
-            return False
-        return True
+        return val_len == len(self.value_models)
 
     def apply_serialized_data(self, serialized_item: dict):
         for value_model, value in zip(self.value_models, serialized_item["values"]):

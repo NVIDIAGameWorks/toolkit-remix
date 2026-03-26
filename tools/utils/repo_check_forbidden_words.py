@@ -53,7 +53,7 @@ def setup_repo_tool(parser, config):
                     for forbidden_word in forbidden_words:
                         if forbidden_word in line:
                             to_print += (
-                                f"File \"file:///{Path(all_file).absolute().as_posix()}\", line {i+1} contains "
+                                f"File \"file:///{Path(all_file).absolute().as_posix()}\", line {i + 1} contains "
                                 f"forbidden word: {forbidden_word}. Please remove it.\n"
                             )
                             bad_files.append(all_file)

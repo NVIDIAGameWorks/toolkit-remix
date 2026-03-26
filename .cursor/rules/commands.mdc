@@ -1,0 +1,6 @@
+---
+description: Auto-dispatch agent commands for known operations
+alwaysApply: true
+---
+
+@.agents/rules/commands.md

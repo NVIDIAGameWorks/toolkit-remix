@@ -139,7 +139,7 @@ class ToolMaterialCore:
         if not edit_layer.anonymous:
             final_path = omni.client.make_relative_url(edit_layer.realPath, new_mat_ref_path)
         with omni.kit.undo.group():
-            for mat, _ in material_dict.items():
+            for mat in material_dict:
                 refs_and_layers = omni.usd.get_composed_references_from_prim(mat.GetPrim())
                 for ref, layer in refs_and_layers:
                     new_ref = Sdf.Reference(assetPath=final_path, primPath=default_ref_prim.GetPath())
@@ -215,9 +215,7 @@ class ToolMaterialCore:
         material_prims = ToolMaterialCore.get_materials_from_prim_paths(prim_paths, context_name=context_name)
         shaders = [ToolMaterialCore.get_shader_from_material(material_prim) for material_prim in material_prims]
 
-        for prim in prims:
-            if prim.IsValid() and prim.IsA(UsdShade.Shader):
-                shaders.append(UsdShade.Shader(prim))
+        shaders.extend(UsdShade.Shader(prim) for prim in prims if prim.IsValid() and prim.IsA(UsdShade.Shader))
 
         carb.log_info(f"Convert selection Materials to use: {mdl_file_name}")
         carb.log_verbose(str(shaders))

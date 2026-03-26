@@ -13,9 +13,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific governing permissions and
 * limitations under the License.
-"""
 
-"""
 Run ruff format using the same ruff installation as repo_lint.
 
 Temporary: Remove this when repo_format is updated to support ruff.

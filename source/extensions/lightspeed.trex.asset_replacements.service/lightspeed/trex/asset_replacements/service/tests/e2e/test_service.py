@@ -299,6 +299,19 @@ class TestAssetReplacementsService(AsyncTestCase):
             ).lower(),
         )
 
+    async def test_get_material_textures_without_stage_returns_422(self):
+        # Arrange: close the stage so no project is loaded
+        self.assertTrue(self.context.can_close_stage(), "Stage must be closable for this test")
+        await self.context.close_stage_async()
+
+        # Act
+        response = await send_request(
+            "GET", f"{self.service.prefix}/%2FRootNode%2FLooks%2Fmat_BC868CE5A075ABB1/textures", raw_response=True
+        )
+
+        # Assert: expect a validation error, not an unhandled server crash
+        self.assertEqual(response.status_code, 422, msg=response.json())
+
     async def test_get_asset_file_paths_returns_expected_response(self):
         # Arrange
         expected_relative_path = str(Path("meshes") / "mesh_CED45075A077A49A.usda")

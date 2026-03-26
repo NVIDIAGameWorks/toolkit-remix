@@ -30,7 +30,7 @@ path = "${test_root}"
 # Run all test
 include = ["tests-lightspeed.*${shell_ext}", "tests-omni.flux.*${shell_ext}"]
 exclude = []
-"platform:linux-x86_64".include = [  # we only test pip archive for linux
+"platform:linux-x86_64".include = [# we only test pip archive for linux
     "tests-omni.flux.pip_archive${shell_ext}",
 ]
 "platform:linux-x86_64".exclude = []
@@ -39,7 +39,7 @@ args = [
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
     "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
     "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
-    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--", # Every parameter after will be passed directly to each extension tests as parameters
     "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
@@ -63,7 +63,7 @@ args = [
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
     "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
     "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
-    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--", # Every parameter after will be passed directly to each extension tests as parameters
     "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
@@ -79,7 +79,7 @@ include = [
     "tests-omni.flux.*${shell_ext}",
 ]
 exclude = []
-"platform:linux-x86_64".include = [  # we only test pip archive for linux
+"platform:linux-x86_64".include = [# we only test pip archive for linux
     "tests-omni.flux.pip_archive${shell_ext}",
 ]
 "platform:linux-x86_64".exclude = []
@@ -89,7 +89,7 @@ args = [
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
     "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
     "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
-    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--", # Every parameter after will be passed directly to each extension tests as parameters
     "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
@@ -111,7 +111,7 @@ args = [
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
     "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
     "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
-    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--", # Every parameter after will be passed directly to each extension tests as parameters
     "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
@@ -133,7 +133,7 @@ args = [
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
     "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
     "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
-    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--", # Every parameter after will be passed directly to each extension tests as parameters
     "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
@@ -155,7 +155,7 @@ args = [
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
     "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
     "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
-    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--", # Every parameter after will be passed directly to each extension tests as parameters
     "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
@@ -177,7 +177,7 @@ args = [
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
     "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
     "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
-    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--", # Every parameter after will be passed directly to each extension tests as parameters
     "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
@@ -191,19 +191,19 @@ path = "${test_root}"
 [[repo_test.suites.lss_e2e_a2s.group]]
 include = [
     "tests-lightspeed.[a-s]*${shell_ext}",
-    "tests-lightspeed.trex.[a-p]*${shell_ext}",  # trex is so common, we have to split it
+    "tests-lightspeed.trex.[a-p]*${shell_ext}", # trex is so common, we have to split it
 ]
 exclude = []
 "platform:linux-x86_64".include = []  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
-    "-n", "default",  # skip startup tests for e2e, they will run in unit
+    "-n", "default", # skip startup tests for e2e, they will run in unit
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
     "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
     "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
-    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--", # Every parameter after will be passed directly to each extension tests as parameters
     "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
@@ -224,13 +224,13 @@ exclude = []
 ]  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
-    "-n", "default",  # skip startup tests for e2e, they will run in unit
+    "-n", "default", # skip startup tests for e2e, they will run in unit
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
     "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
     "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
-    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--", # Every parameter after will be passed directly to each extension tests as parameters
     "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
@@ -249,18 +249,18 @@ serial = [
     "tests-lightspeed.trex.viewports.shared.widget${shell_ext}",
 ]
 exclude = [
-    "tests-lightspeed.trex.[a-p]*${shell_ext}",  # trex is so common, we have to split it (these are run in a2s above)
+    "tests-lightspeed.trex.[a-p]*${shell_ext}", # trex is so common, we have to split it (these are run in a2s above)
 ]
 "platform:linux-x86_64".include = []  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
-    "-n", "default",  # skip startup tests for e2e, they will run in unit
+    "-n", "default", # skip startup tests for e2e, they will run in unit
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='lightspeed.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
     "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
     "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
-    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--", # Every parameter after will be passed directly to each extension tests as parameters
     "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
@@ -281,13 +281,13 @@ exclude = []
 ]  # we only test pip archive for linux
 "platform:linux-x86_64".exclude = []
 args = [
-    "-n", "default",  # skip startup tests for e2e, they will run in unit
+    "-n", "default", # skip startup tests for e2e, they will run in unit
     "--portable", "--portable-root", "${root}/portable",
     "--/exts/omni.kit.test/runTestsFilter='omni.flux.*.tests.e2e.*'",
     "--/exts/omni.kit.test/testExtCodeChangeAnalyzerEnabled=False",
     "--/exts/omni.kit.test/testExtRetryStrategy='retry-on-failure'",
     "--/exts/omni.kit.test/testExtMaxTestRunCount=3",
-    "--",  # Every parameter after will be passed directly to each extension tests as parameters
+    "--", # Every parameter after will be passed directly to each extension tests as parameters
     "--/exts/omni.kit.registry.nucleus/accounts/0/read=svc-kit-extension-viewer:Trgkyw25PB6SFLV9MaACfp",
     "--no-window",
 ]
@@ -353,13 +353,12 @@ release.files_exclude = [
 pre_build."platform:windows-x86_64".commands = [
     # Install pywin32 to the python environment directly (not through pip_flux.toml site packages or it will break)
     ["${root}/_build/${platform}/${config}/kit/python/python${exe_ext}", "-m", "pip", "install", "pywin32"],
-
     # Regenerate Pyright config from VSCode settings dynamic extraPaths
-	["${root}/_build/${platform}/${config}/kit/python/python${exe_ext}", "${root}/tools/utils/update_pyright_from_settings.py"],
-
+    ["${root}/_build/${platform}/${config}/kit/python/python${exe_ext}", "${root}/tools/utils/update_pyright_from_settings.py"],
+    # Regenerate PyCharm source roots from source/extensions
+    ["${root}/_build/${platform}/${config}/kit/python/python${exe_ext}", "${root}/tools/utils/update_pycharm_sources.py"],
     # Generate the stubgen config file
     ["${root}/repo${shell_ext}", "stubgen", "-c", "${config}"],
-
     # Generate a shortcut to run the Mass Ingestion CLI in LSS
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/lightspeed.app.trex.validation_cli_generator.kit", "--no-window", "--/app/extensions/excluded/0='omni.kit.splash' --/app/extensions/excluded/1='omni.kit.window.splash' --/app/settings/persistent=0 --/app/settings/loadUserConfig=0 --/structuredLog/enable=0 --/app/hangDetector/enabled=0 --/crashreporter/skipOldDumpUpload=1 --/app/content/emptyStageOnStart=1", "--/app/file/ignoreUnsavedOnExit=1", "--/app/fastShutdown=1", "--/app/quitAfter=10", "--exec", "${root}/tools/custom/generate_mass_cli.py"],
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/omni.flux.app.service.documentation_cli_generator.kit", "--no-window", "--exec", "${root}/tools/custom/generate_app.py -id omni.flux.service.documentation -n omni.flux.app.service.documentation.cli"],
@@ -368,11 +367,11 @@ pre_build."platform:windows-x86_64".commands = [
 # Standard pre-build commands
 pre_build.commands = [
     # Regenerate Pyright config from VSCode settings dynamic extraPaths
-	["${root}/_build/${platform}/${config}/kit/python/python${exe_ext}", "${root}/tools/utils/update_pyright_from_settings.py"],
-
+    ["${root}/_build/${platform}/${config}/kit/python/python${exe_ext}", "${root}/tools/utils/update_pyright_from_settings.py"],
+    # Regenerate PyCharm source roots from source/extensions
+    ["${root}/_build/${platform}/${config}/kit/python/python${exe_ext}", "${root}/tools/utils/update_pycharm_sources.py"],
     # Generate the stubgen config file
     ["${root}/repo${shell_ext}", "stubgen", "-c", "${config}"],
-
     # Generate a shortcut to run the Mass Ingestion CLI in LSS
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/lightspeed.app.trex.validation_cli_generator.kit", "--no-window", "--/app/extensions/excluded/0='omni.kit.splash' --/app/extensions/excluded/1='omni.kit.window.splash' --/app/settings/persistent=0 --/app/settings/loadUserConfig=0 --/structuredLog/enable=0 --/app/hangDetector/enabled=0 --/crashreporter/skipOldDumpUpload=1 --/app/content/emptyStageOnStart=1", "--/app/file/ignoreUnsavedOnExit=1", "--/app/fastShutdown=1", "--/app/quitAfter=10", "--exec", "${root}/tools/custom/generate_mass_cli.py"],
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/omni.flux.app.service.documentation_cli_generator.kit", "--no-window", "--exec", "${root}/tools/custom/generate_app.py -id omni.flux.service.documentation -n omni.flux.app.service.documentation.cli"],
@@ -606,14 +605,14 @@ autodoc.mock_imports = [
     "pydantic",
     "pygit2",
     "pyperclip",
-    "omni.graph.tools",  # uses carb.tokens.get_tokens_interface() at module level
-    "omni.graph.ui",  # uses carb.tokens.get_tokens_interface() at module level
-    "omni.graph.widget",  # uses carb.tokens.get_tokens_interface() at module level
-    "omni.graph.window.core",  # uses carb.tokens.get_tokens_interface() at module level
-    "omni.kit.manipulator",  # uses omni.kit.get_app() at module level
-    "omni.kit.viewport.menubar.camera",  # uses carb.tokens.get_tokens_interface() at module level
-    "omni.kit.viewport.menubar.render",  # uses carb.tokens.get_tokens_interface() at module level
-    "lightspeed.trex.app.style",  # uses carb.settings.get_settings() at module level
+    "omni.graph.tools", # uses carb.tokens.get_tokens_interface() at module level
+    "omni.graph.ui", # uses carb.tokens.get_tokens_interface() at module level
+    "omni.graph.widget", # uses carb.tokens.get_tokens_interface() at module level
+    "omni.graph.window.core", # uses carb.tokens.get_tokens_interface() at module level
+    "omni.kit.manipulator", # uses omni.kit.get_app() at module level
+    "omni.kit.viewport.menubar.camera", # uses carb.tokens.get_tokens_interface() at module level
+    "omni.kit.viewport.menubar.render", # uses carb.tokens.get_tokens_interface() at module level
+    "lightspeed.trex.app.style", # uses carb.settings.get_settings() at module level
 ]
 
 autodoc.pydantic_model_show_json_error_strategy = "coerce"
@@ -649,16 +648,16 @@ sphinx_exclude_patterns = [
     ####################################################################################################################
     # Documentation generation failures
     ####################################################################################################################
-    "source/extensions/lightspeed.event.generate_thumbnail*",  # Carb interface is not available
-    "source/extensions/lightspeed.trex.app.resources*",  # Carb interface is not available
-    "source/extensions/lightspeed.trex.app.style*",  # Carb interface is not available
-    "source/extensions/lightspeed.trex.control.ingestcraft*",  # Carb interface is not available
-    "source/extensions/lightspeed.trex.control.stagecraft*",  # Carb interface is not available
-    "source/extensions/lightspeed.trex.layout.*",  # Carb interface is not available
-    "source/extensions/lightspeed.trex.stage_manager.plugin.widget.usd*",  # Carb interface is not available
-    "source/extensions/lightspeed.trex.viewports.shared.*",  # Carb interface is not available
-    "source/extensions/lightspeed.trex.viewports.ingestcraft.bundle*",  # Carb interface is not available
-    "source/extensions/lightspeed.trex.viewports.stagecraft.bundle*",  # Carb interface is not available
+    "source/extensions/lightspeed.event.generate_thumbnail*", # Carb interface is not available
+    "source/extensions/lightspeed.trex.app.resources*", # Carb interface is not available
+    "source/extensions/lightspeed.trex.app.style*", # Carb interface is not available
+    "source/extensions/lightspeed.trex.control.ingestcraft*", # Carb interface is not available
+    "source/extensions/lightspeed.trex.control.stagecraft*", # Carb interface is not available
+    "source/extensions/lightspeed.trex.layout.*", # Carb interface is not available
+    "source/extensions/lightspeed.trex.stage_manager.plugin.widget.usd*", # Carb interface is not available
+    "source/extensions/lightspeed.trex.viewports.shared.*", # Carb interface is not available
+    "source/extensions/lightspeed.trex.viewports.ingestcraft.bundle*", # Carb interface is not available
+    "source/extensions/lightspeed.trex.viewports.stagecraft.bundle*", # Carb interface is not available
     ####################################################################################################################
     # Ignore directories
     ####################################################################################################################
@@ -668,20 +667,35 @@ sphinx_exclude_patterns = [
     "include",
     "portable",
     "tools",
-    "SECURITY.md",
-    "VERSION.md",
     "**/omni-core-materials-LICENSE.md",
+    ####################################################################################################################
+    # AI agent configuration — not documentation
+    ####################################################################################################################
+    ".agents",
+    ".claude",
+    ".clinerules",
     ".cursor",
+    ".windsurf",
+    ".github/copilot-instructions.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
     ####################################################################################################################
-    # Development READMEs
+    # Developer docs — binary assets and GitHub-only navigation pages
     ####################################################################################################################
-    "docs_dev/*",
+    "docs_dev/data/*",
+    "docs_dev/README.md",
+    ####################################################################################################################
+    # Excluded docs
+    ####################################################################################################################
+    "SECURITY.md",
     "VERSION.md",
     ".github/workflows/cla/*",
 ]
 
 redirects = [
-    { path = "docs/contributing.html", target = "docs/contributing/api.html" },
+    { path = "docs/contributing.html", target = "docs_dev/index.html" },
+    { path = "docs/contributing/api.html", target = "docs_dev/index.html" },
     { path = "docs/howto/learning-overview.html", target = "docs/gettingstarted/learning-runtimesetup.html" },
     { path = "docs/howto/learning-properties.html", target = "docs/howto/learning-toolkit.html" },
     { path = "docs/howto/learning-runtimesetup.html", target = "docs/gettingstarted/learning-runtimesetup.html" },
@@ -713,6 +727,7 @@ files.include = ["**"]
 files.exclude = [
     ".eggs/*",
     ".git/*",
+    ".idea/*",
     ".teamcity/*",
     ".venv/*",
     ".vscode/*",
@@ -737,6 +752,7 @@ files.include = ["**/*.py"]
 files.exclude = [
     ".eggs/*",
     ".git/*",
+    ".idea/*",
     ".teamcity/*",
     ".venv/*",
     ".vscode/*",
@@ -771,6 +787,7 @@ files.include = ["**/*.py"]
 files.exclude = [
     ".eggs/*",
     ".git/*",
+    ".idea/*",
     ".teamcity/*",
     ".venv/*",
     ".vscode/*",

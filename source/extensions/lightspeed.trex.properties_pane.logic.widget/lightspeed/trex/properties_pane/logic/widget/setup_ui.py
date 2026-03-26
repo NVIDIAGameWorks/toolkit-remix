@@ -570,10 +570,10 @@ class LogicPropertyWidget:
                         default_value = str(default_value)
 
                     extended_type = attr.get_extended_type()
-                    is_flexible_type = extended_type in (
+                    is_flexible_type = extended_type in {
                         og.ExtendedAttributeType.EXTENDED_ATTR_TYPE_UNION,
                         og.ExtendedAttributeType.EXTENDED_ATTR_TYPE_ANY,
-                    )
+                    }
                     if is_flexible_type:
                         read_only = True
                         if is_input:
@@ -622,14 +622,10 @@ class LogicPropertyWidget:
                 attr_item.parent = group_items[group_name]
 
             # Add groups to items in the specified order
-            for group_name in LOGIC_ATTR_GROUP_ORDER:
-                if group_name in group_items:
-                    items.append(group_items[group_name])
+            items.extend(group_items[group_name] for group_name in LOGIC_ATTR_GROUP_ORDER if group_name in group_items)
 
             # Add any remaining groups not in the predefined order (for future extensibility)
-            for group_name, group in group_items.items():
-                if group_name not in LOGIC_ATTR_GROUP_ORDER:
-                    items.append(group)
+            items.extend(group for group_name, group in group_items.items() if group_name not in LOGIC_ATTR_GROUP_ORDER)
 
         self._property_model.set_prim_paths(valid_paths)
         self._property_model.set_items(items)

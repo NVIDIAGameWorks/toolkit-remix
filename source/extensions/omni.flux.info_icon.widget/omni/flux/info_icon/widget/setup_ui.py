@@ -181,10 +181,10 @@ class TooltipWidget:
             self._tooltip_window.position_x = size[0] / dpi_scale - self._tooltip_window.width - 8
             # Override bottom of the screen, shift above icon
             if self._tooltip_window.height > size[1] / dpi_scale - self._tooltip_window.position_y - 8:
-                self._tooltip_window.position_y = self._tooltip_window.position_y - 72
+                self._tooltip_window.position_y -= 72
             # Otherwise shift under the icon
             else:
-                self._tooltip_window.position_y = self._tooltip_window.position_y + 16
+                self._tooltip_window.position_y += 16
 
     def destroy(self):
         if self.__info_hovered_task:

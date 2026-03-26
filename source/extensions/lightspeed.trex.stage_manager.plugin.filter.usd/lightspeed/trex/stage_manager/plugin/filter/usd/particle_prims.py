@@ -28,8 +28,8 @@ if TYPE_CHECKING:
 
 
 class ParticleSystemsFilterPlugin(_ToggleableUSDFilterPlugin):
-    display_name: str = Field(default="Particle Systems", exclude=True)
-    tooltip: str = Field(default="Filter out particle systems", exclude=True)
+    display_name: str = Field(default="Particle System Prims", exclude=True)
+    tooltip: str = Field(default="Filter for particle systems", exclude=True)
 
     def _filter_predicate(self, prim: Usd.Prim) -> bool:
         return prim.HasAPI(_PARTICLE_SCHEMA_NAME)

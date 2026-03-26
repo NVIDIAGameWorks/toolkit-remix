@@ -160,6 +160,23 @@ class TextureImporter(_ContextBaseUSD):
         self._file_list_field_type_changed_sub = None
         self._file_list_field = None
 
+    @property
+    def visible(self) -> bool:
+        """Whether the file list widget is visible (e.g. only the active tab's list accepts drops in mass UI)."""
+        if self._file_list_field is not None:
+            return self._file_list_field.visible
+        return False
+
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        if self._file_list_field is not None:
+            self._file_list_field.visible = value
+
+    def handle_drop(self, event: Any) -> None:
+        """Forward a drop event to the texture list. Used by drop-aware tab pages in mass widget."""
+        if self._file_list_field is not None:
+            self._file_list_field.on_drag_drop_external(event)
+
     @omni.usd.handle_exception
     async def _check(self, schema_data: Data, parent_context: _SetupDataTypeVar) -> tuple[bool, str]:
         """
@@ -360,9 +377,9 @@ class TextureImporter(_ContextBaseUSD):
                 )
                 self._file_list_field = _TextureImportListWidget(
                     allow_empty_input_files_list=schema_data.allow_empty_input_files_list,
-                    enable_drop=True,
                     drop_filter_fn=__filter_drop,
                 )
+                self._file_list_field.visible = True
                 _InfoIconWidget(
                     "The list of texture files to import.\n\n"
                     "The end of the filename determines the file type.\n\n"

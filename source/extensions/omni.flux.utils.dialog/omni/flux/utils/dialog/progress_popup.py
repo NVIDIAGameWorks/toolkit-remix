@@ -125,7 +125,7 @@ class ProgressPopup:
         )
 
         if self._modal:
-            self._popup.flags = self._popup.flags | ui.WINDOW_FLAGS_MODAL
+            self._popup.flags |= ui.WINDOW_FLAGS_MODAL
 
         with self._popup.frame:
             with ui.VStack(height=0):

@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.5]
+### Fixed
+- Detect missing textures from every authoring layer via per-spec file checks, merged with `UsdUtils` unresolved paths during packaging collect.
+
+## [2.0.4]
+### Changed
+- Applied new lint rules
+
 ## [2.0.3]
 ### Changed
 - Modernize python style and enable more ruff checks

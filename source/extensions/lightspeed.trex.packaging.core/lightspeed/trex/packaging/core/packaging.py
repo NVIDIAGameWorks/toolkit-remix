@@ -20,10 +20,10 @@ from __future__ import annotations
 import re
 import uuid
 from asyncio import ensure_future
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 from typing import Any
-from collections.abc import Callable
 
 import carb
 import omni.client
@@ -38,6 +38,7 @@ from lightspeed.layer_manager.core import LSS_LAYER_MOD_DEPENDENCIES as _LSS_LAY
 from lightspeed.layer_manager.core import LSS_LAYER_MOD_NAME as _LSS_LAYER_MOD_NAME
 from lightspeed.layer_manager.core import LSS_LAYER_MOD_NOTES as _LSS_LAYER_MOD_NOTES
 from lightspeed.layer_manager.core import LSS_LAYER_MOD_VERSION as _LSS_LAYER_MOD_VERSION
+from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -48,6 +49,9 @@ from omni.kit.usd.layers import LayerUtils as _LayerUtils
 from pxr import Sdf, Usd, UsdUtils
 
 from .items import ModPackagingSchema as _ModPackagingSchema
+
+# Aligned with omni.flux.asset_importer.core.data_models.constants.SUPPORTED_TEXTURE_EXTENSIONS
+_PACKAGING_TEXTURE_SUFFIXES = frozenset(suffix.lower() for suffix in (_SUPPORTED_TEXTURE_EXTENSIONS))
 
 
 class PackagingCore:
@@ -319,13 +323,14 @@ class PackagingCore:
 
         all_layers, all_assets, unresolved_paths = UsdUtils.ComputeAllDependencies(temp_root_layer.identifier)
 
-        if unresolved_paths:
-            self._packaging_new_stage("Resolving invalid references...", len(list(stage.TraverseAll())))
-            invalid_assets = set(await self._get_unresolved_assets_prim_paths(stage, unresolved_paths)).difference(
-                ignored_errors or []
-            )
-            if invalid_assets:
-                return errors, list(invalid_assets)
+        stage_prims = list(stage.TraverseAll())
+        self._packaging_new_stage("Resolving invalid references...", len(stage_prims))
+
+        invalid_assets = self._collect_invalid_packaging_assets(stage_prims, unresolved_paths)
+
+        invalid_assets.difference_update(ignored_errors or [])
+        if invalid_assets:
+            return errors, list(invalid_assets)
 
         self._packaging_new_stage("Creating temporary layers...", len(all_layers))
 
@@ -451,31 +456,77 @@ class PackagingCore:
 
         return errors, failed_assets
 
-    @omni.usd.handle_exception
-    async def _get_unresolved_assets_prim_paths(
-        self, stage: Usd.Stage, unresolved_paths: list[str]
-    ) -> list[tuple[str, str, str]]:
-        result = []
+    @staticmethod
+    def _normalize_packaging_absolute_path(absolute_path: str) -> str:
+        """Normalize dependency / disk paths for stable set comparisons (posix format)."""
+        return Path(absolute_path).as_posix()
 
-        for prim in stage.TraverseAll():
-            prim_stack = prim.GetPrimStack()
-            for prim_spec in prim_stack:
-                for ref in prim_spec.referenceList.GetAddedOrExplicitItems():
-                    resolved_path = prim_spec.layer.ComputeAbsolutePath(ref.assetPath)
-                    if resolved_path in unresolved_paths:
-                        result.append((prim_spec.layer.identifier, str(prim_spec.path), resolved_path))
+    def _collect_invalid_packaging_assets(
+        self,
+        stage_prims: list[Usd.Prim],
+        unresolved_paths: list[str],
+        *,
+        include_missing_authored_textures: bool = True,
+    ) -> set[tuple[str, str, str]]:
+        """
+        Scan stage prims once for packaging failures: missing authored textures (optional) and/or
+        prim references and per-spec asset attributes matching ``unresolved_paths`` (when non-empty).
+        """
+        unresolved_set = (
+            {self._normalize_packaging_absolute_path(p) for p in unresolved_paths} if unresolved_paths else None
+        )
+        result: set[tuple[str, str, str]] = set()
+
+        for prim in stage_prims:
+            if self._cancel_token:
+                return result
+
+            if unresolved_set:
+                prim_stack = prim.GetPrimStack()
+                for prim_spec in prim_stack:
+                    for ref in prim_spec.referenceList.GetAddedOrExplicitItems():
+                        resolved_path = self._normalize_packaging_absolute_path(
+                            prim_spec.layer.ComputeAbsolutePath(ref.assetPath)
+                        )
+                        if resolved_path in unresolved_set:
+                            result.add((prim_spec.layer.identifier, str(prim_spec.path), resolved_path))
+
             for prop in prim.GetAttributes():
                 if not isinstance(prop.Get(), Sdf.AssetPath):
                     continue
                 property_stack = prop.GetPropertyStack(Usd.TimeCode.Default())
                 for prop_spec in property_stack:
                     prop_layer = prop_spec.layer
-                    resolved_path = prop_layer.ComputeAbsolutePath(prop.Get().path)
-                    if resolved_path in unresolved_paths:
-                        result.append((prop_layer.identifier, str(prop.GetPath()), resolved_path))
+                    authored_value = prop_spec.default
+                    if not isinstance(authored_value, Sdf.AssetPath) or not authored_value.path:
+                        continue
+                    abs_path = self._normalize_packaging_absolute_path(
+                        prop_layer.ComputeAbsolutePath(authored_value.path)
+                    )
+                    if include_missing_authored_textures and self._is_missing_packaging_texture_path(abs_path):
+                        result.add((prop_layer.identifier, str(prop.GetPath()), abs_path))
+                    if unresolved_set and abs_path in unresolved_set:
+                        result.add((prop_layer.identifier, str(prop.GetPath()), abs_path))
+
             self.current_count += 1
 
         return result
+
+    def _is_missing_packaging_texture_path(self, absolute_path: str) -> bool:
+        """True if ``absolute_path`` looks like a packaging texture and the file is not present."""
+        absolute_url = _OmniUrl(absolute_path)
+        if absolute_url.suffix.lower() not in _PACKAGING_TEXTURE_SUFFIXES:
+            return False
+        return not absolute_url.exists
+
+    @omni.usd.handle_exception
+    async def _get_unresolved_assets_prim_paths(
+        self, stage: Usd.Stage, unresolved_paths: list[str]
+    ) -> list[tuple[str, str, str]]:
+        prims = list(stage.TraverseAll())
+        return list(
+            self._collect_invalid_packaging_assets(prims, unresolved_paths, include_missing_authored_textures=False)
+        )
 
     def _get_original_path(self, temp_layer_path: str) -> str | None:
         original_name = self._temp_files.get(_OmniUrl(temp_layer_path).path)

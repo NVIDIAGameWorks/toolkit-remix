@@ -109,8 +109,7 @@ class ExistingModsPage(_WizardPage):
 
         result, entries = client.list(str(mods_directory))
         if result == client.Result.OK:
-            for entry in entries:
-                mod_dirs.append(Path(mods_directory) / entry.relative_path)
+            mod_dirs = [Path(mods_directory) / entry.relative_path for entry in entries]
 
         for mod_dir in mod_dirs:
             result, entries = client.list(str(mod_dir))

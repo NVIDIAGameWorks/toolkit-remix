@@ -122,9 +122,8 @@ class ServiceBase(PluginBase, abc.ABC):
                     validation_value = value
                 # Dynamically create an instance of the model and validate the input
                 # Pass the kwargs as context to the model_validate method
-                model = base_model.model_validate({field_name: validation_value}, context=kwargs)
+                return base_model.model_validate({field_name: validation_value}, context=kwargs)
                 # Return the model rather than the input string
-                return model
             except (ValueError, ValidationError) as e:
                 # Handle validation errors
                 ServiceBase.raise_error(422, e)

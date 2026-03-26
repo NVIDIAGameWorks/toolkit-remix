@@ -2,6 +2,18 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.7]
+### Changed
+- File drop events are now received from the centralized drop router instead of subscribing directly to the window drop stream
+
+## [2.6.6]
+### Fixed
+- In mass-ingestion (e.g. IngestCraft), drag-and-drop now adds files only to the visible tab (Model(s) or Material(s)), not to both lists.
+
+## [2.6.5]
+### Changed
+- Applied new lint rules
+
 ## [2.6.4]
 ### Changed
 - Modernize python style and enable more ruff checks

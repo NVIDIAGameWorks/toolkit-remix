@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Created 1.4.1-0 build
 
 ### Changed
@@ -20,18 +21,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Created 1.3.6-2 build
-- REMIX-4838: Added Instance Group and Mesh Group filter plugins to the Stage Manager and added headers to the Additional Filters menu
-- REMIX-4722: Added `ScrollingTreeWidget` - a reusable widget for scrollable tree views with correct item iteration order
+- Set app version to 1.3.6-2 to fix docs
+- REMIX-4838: Added Instance Group and Mesh Group filter plugins to the Stage Manager and added headers to the
+  Additional Filters menu
+- REMIX-4722: Added `ScrollingTreeWidget` - a reusable widget for scrollable tree views with correct item iteration
+  order
 - REMIX-4418: Added a nickname attribute to the selection tree widget and the Stage Manager
 - REMIX-4795: Added a new documentation page for Remix Logic
 - REMIX-4920: Added tree item recycling to preserve expansion states across Stage Manager refreshes
 - REMIX-4854: OGN node attributes now show correct slider bounds and step in the Remix Logic properties panel (from OGN metadata and USDAttributeItem limits)
 - REMIX-4809: `elide_path` utility and `ElideModes` enum for truncating path strings with configurable ellipsis placement
+- REMIX-5012: Added hard-bound clamping on slider delegates and new FloatField/IntField delegates with one-sided clamp support for partially-bounded OGN attributes
+- Added Claude Code agent hooks (completion gates, memory promotion) and updated rules, commands, and dev docs
+- REMIX-3540: Added Stage Manager support for deleting capture-originating prims and selective restore options (restore original asset vs. restore captured reference only)
 
 ### Changed
+
 - REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State
 - REMIX-4241: Rewrote the lightspeed.trex.logic.ogn extension to source node files from target-deps/omni_core_materials.
-- REMIX-4722: Refactored Stage Manager to use the new `ScrollingTreeWidget` component, decoupling scroll-frame logic for reuse
+- REMIX-4722: Refactored Stage Manager to use the new `ScrollingTreeWidget` component, decoupling scroll-frame logic for
+  reuse
 - Excluded the python scripts from the package to avoid distributing binary files.
 - REMIX-4891: Migrated to ruff for formatting/linting, modernized codebase, and added pre-commit hooks.
 - Add `create_venv.bat` to create a virtual environment for development.
@@ -40,10 +49,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modernized python format style for 3.10
 - Update hdremix and omni_core_materials to ext-d6ebf58-main
 - REMIX-4809: Logic graph deletion in the properties panel now shows a confirmation dialog before executing
+- REMIX-4904: Updated filter predicates to be layered and added a type enum for filter categories
+- REMIX-5009: Improved AI Agents Setup for various tasks & Reworked Dev Docs
+- REMIX-5009: Improve Linter Setup to be More Aggressive
+- REMIX-1088: All numeric property fields now use drag-to-scrub widgets (FloatDrag/IntDrag) including transforms and camera speed
+- REMIX-3540: Renamed override context menu labels from "Delete" to "Revert" for clearer user intent
 
 ### Fixed
+- REMIX-4347: Fixed Scan Folder for Ingestion showing invalid file types (e.g. .mdl) alongside valid formats
+- REMIX-3187, REMIX-2383: Fixed selection tree expanded items (lights group, xform nodes) collapsing after a prim or reference deletion
 - REMIX-4810: Fixed ComboBox dropdown becoming see-through when the header item is hovered
-- Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters menu sorting
+- Added a frame wait for Stage Manager refresh to ensure all items are properly populated and updated Additional Filters
+  menu sorting
 - Fixed MeshPrimsFilterPlugin to exclude lights in the filter
 - Fixed broken symlinks detection and updated symlink check
 - REMIX-4722: Fixed stage manager issue where viewport selection was not being framed in the Skeleton Treeview
@@ -55,15 +72,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Downgraded "repo_format" and updated "repo_lint" to publicly available versions
 - REMIX-4809: Fixed Stage Manager not refreshing when prims are deleted via the Logic Remix property panel
 - Fixed nickname behavior and added NicknameField with a dot indicator
+- REMIX-5030: Fixed selection being cleared after creating a new light, and stage manager expansion states being lost on refresh
+- REMIX-4903: Fixed node connection validation breaking after deleting a node in the Logic Graph Editor
+- REMIX-5078: Fixed Stage Manager delete button failing on prims defined in replacement sublayers (ancestral prims)
+- REMIX-5078: Fixed Stage Manager delete and restore buttons not working when an instanced prim is selected
+- REMIX-5078: Fixed Stage Manager crash from accessing expired prims after delete or restore operations
+- REMIX-4938: Fixed Stage Manager filter tooltips not being displayed
+- REMIX-3411: Fixed texture file picker accepting unsupported file extensions; invalid selections now show a prompt listing valid texture formats
+- REMIX-5095: Fixed mass-ingestion (e.g. IngestCraft) so drag-and-drop adds files only to the visible tab (Model(s) or Material(s)), not to both lists.
+- Fixed offline build fallback in repoman incorrectly pulling local platform-specific packman manifests, breaking builds outside VPN
+- REMIX-4992: Fixed non-project USDA files being accepted as valid project files when opened outside of a STAGE_CRAFT context
+- REMIX-4188: Fixed inconsistent error when trying to ingest a texture
+- REMIX-5113: Fixed Stage Manager filter reset functionality not resetting the filter category
+- REMIX-5112: Fixed OS drag-and-drop not working on Ingest Craft tabs by adding centralized drop routing to the active tab
+- REMIX-4575: Fixed Stage Manager losing multiselection after clicking an action icon (visibility, focus-in-viewport, custom tags) — action now applies to the union of selected items and the clicked item without modifying the USD selection
+- REMIX-4478: Fixed IndexError when dragging files with unsupported extensions onto the Material Properties panel
+- REMIX-5047: Fix for packaging for missing textures in weaker sublayers masked by stronger layer
+- REMIX-4424: Fixed AttributeError in REST API asset replacement validators when no stage is loaded
 
 ### Removed
 
 ## [1.3.6-2]
 
 ### Added
+
 - Created 1.3.6-0 build
 
 ### Changed
+
 - Update github releases to match main and release branches
 - Fix branch names to fit repoman syntax in Github Actions
 - Excluded the python scripts from the package to avoid distributing binary files.
@@ -72,13 +108,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.6-0]
 
 ### Added
+
 - Created 1.3.4-0 build
 
 ### Changed
+
 - Update hdremix and omni_core_materials to ext-eb34ad8-release-v1-3
 - Update remix_runtime to remix-1.3.6
 
 ### Fixed
+
 - Fixed broken symlinks detection and updated symlink check
 - Added a frame wait for Stage Manager refresh to ensure all items are properly populated
 - REMIX-4722: Fixed stage manager issue where viewport selection was not being framed in the Skeleton Treeview
@@ -86,6 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.4-0]
 
 ### Added
+
 - Created 1.3.3-0 build
 - REMIX-4848: Added the ability to double click on a graph in the edit graph dialog to open the graph
 - REMIX-4848: Added missing hotkey for the help menu item to the Remix Logic Graph Editor
@@ -94,9 +134,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4839: Prevent components with token types from allowing incorrect connections
 
 ### Changed
+
 - REMIX-4786: Changed the "Delete/Restore" StageManager action to use layer-based logic driven by the EditTarget State
 
 ### Fixed
+
 - Fixed virtual attribute default values being overwritten during initialization
 - REMIX-4855: Fixed target picker path filtering to include mesh_HASH and light_HASH prims, not just their children
 - REMIX-4844: Fixed layer tree widget not expanding layer by default
@@ -108,6 +150,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.3-0]
 
 ### Added
+
 - Created 1.3.0 build
 - REMIX-4792: Added a badge to the Additional Filters button to show the number of modified filters
 - REMIX-4813: Added Logic Graph sidebar button for quick layout switching with dedicated Logic Graph layout
@@ -117,6 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4824: Added a backdrop rename popup to the Remix Logic Graph Editor
 
 ### Changed
+
 - REMIX-4812: OV Property Window is no longer accessible via the Windows/Property sub menu button
 - REMIX-4715, REMIX-4826: Improved Edit Graph dialog with tree-based selection UI and disabled compound graphs
 - REMIX-4818: FilePicker now supports automatic conversion to relative paths for USD edit target compliance
@@ -127,6 +171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update hdremix and omni_core_materials to ext-f6fe773-release-v1-3
 
 ### Fixed
+
 - REMIX-4804: Fixed Remix Logic Graph Creation Logic Inconstancy Across Editor, Property Panel, and Right Click Menus
 - Cleanup Github runners before packaging Toolkit
 - REMIX-4815: Fixed default values, tooltips, and flexible type handling in the Remix Logic properties panel
@@ -134,6 +179,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0]
 
 ### Added
+
 - Created 1.2.4 build
 - Added release notes for 1.2
 - REMIX-4260: Added search field to the Stage Manager
@@ -156,6 +202,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4774: Added select all, select none, and delete selection actions & hotkeys to the Remix Logic Graph Editor
 
 ### Changed
+
 - Update hdremix and omni_core_materials to ext-822f7b6-main
 - Changed modding tabs to a vertical layout, consistent with Ingestion and AI Tools tabs
 - Modernize typing and minor cleanup in omni.flux.utils.* extensions
@@ -175,6 +222,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4855: Replaced StagePrimPickerItem Button with Label to use TreeView's built-in hover/selection styling
 
 ### Fixed
+
 - Improved Pyright configuration by generating a list of search paths
 - REMIX-4721: Fixed workspace layout loading issues and tab bar persistence on window operations
 - REMIX-4000: Added a check to use the project directory if no capture directory is found
@@ -186,12 +234,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4766: Added input validation to ensure a valid graph prim name is provided for new graphs
 
 ### Removed
+
 - Removed Waypoint support based on deprecated kit sample waypoint extension
 - REMIX-4599: Removed old overarching layout widgets prior to using flexible Kit UI Workspace windows.
 
 ## [1.2.4]
 
 ### Added
+
 - Created 1.1.0 build
 - Added release notes for 1.1.0
 - REMIX-4380: Added new extension to load our custom USD schemas such as `RemixParticleSystem`
@@ -202,10 +252,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a `cleanup` pattern to the stage manager context and listener plugins
 - REMIX-4381: Added a viewport gizmo for particle prims
 - REMIX-4288: Adding the Properties Editor panel for Particle Systems.
-- REMIX-4539: Added a particle system action icon in the Stage Manager + Button in the properties to create particle systems
+- REMIX-4539: Added a particle system action icon in the Stage Manager + Button in the properties to create particle
+  systems
 - Added documentation for the particle system
 
 ### Changed
+
 - Changed GH actions commit message to commit title and non interruptible Gitlab releases
 - Updated dependabot config to update dependencies as a group
 - Bumped contributor-assistant github CI module from 2.3.2 to 2.5.1 (to fix CLA Assistant github actions)
@@ -221,6 +273,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update remix_runtime to remix-1.2.4
 
 ### Fixed
+
 - REMIX-4259: Fixed "Reset to Default" button not working for certain attributes in the Properties Panel.
 - REMIX-4311: Fix for flaky viewport test by hardening hdremix initialization
 - Increased delays for material property tests
@@ -243,6 +296,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0]
 
 ### Added
+
 - Created 1.0.0 build
 - Added release notes for 1.0.0
 - Added tests for REST API endpoints
@@ -255,6 +309,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Langflow-specific documentation
 
 ### Changed
+
 - Improved the documentation layout and contents
 - Fixed changelog formatting
 - Tweaked release notes
@@ -275,6 +330,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the GH actions commit message to the actual commit message in the source
 
 ### Fixed
+
 - Fixed tests for the `omni.flux.validator.mass.widget` extension
 - Fixed `get_texture_material_inputs` API endpoint for Kit 106.5
 - Fixed `is_valid_texture_prim` API validator for Kit 106.5
@@ -306,7 +362,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issues found in ComfyUI
 - REMIX-4248: Fixed AI Tools drag and drop validation
 - REMIX-3651: Artifacts handling by publish jobs
-- REMIX-4204: Just opened projects now show in the home page when closed via "Close Project" button without an app restart.
+- REMIX-4204: Just opened projects now show in the home page when closed via "Close Project" button without an app
+  restart.
 - REMIX-4337: Fixed machine ID generation to be unique and deterministic.
 - REMIX-4333: Fixed MCP server crash when port is already in use
 - REMIX-4348: Fixed Material Property Widget to account for instance prims
@@ -314,12 +371,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4253: Fixed crash when previewing normal maps (or any non-RGBA textures)
 
 ### Removed
+
 - Cleaned up legacy code and unused files
 - Cleaned up hdremix bootstrap extension
 
 ## [1.0.0]
 
 ### Added
+
 - Created 2024.5.1 build
 - REMIX-3399: Added Sentry metrics for unique users and app elapsed time
 - fixed permissions after moving gitlab CI files
@@ -348,6 +407,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added "Show Install Directory" entry to the home screen
 
 ### Changed
+
 - Updated hdremix to dd92d0f
 - REMIX-3640: Use Async Threaded Processing for Filtering of the Stage Manager items
 - Stage Manager: Add set_context_name() as a way to refresh plugins before building tree.
@@ -386,6 +446,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated runtime to 1.0.0
 
 ### Fixed
+
 - REMIX-2350: Updating capture window behavior to avoid it hanging on other tabs
 - Fixed CI Agent tags
 - Fixed Flaky tests
@@ -411,6 +472,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2024.5.1]
 
 ### Added
+
 - Create 2024.4.1 build
 - REMIX-2988: Added manual CI test to measure app startup times
 - REMIX-3401: Added Centralized Generic factory
@@ -450,6 +512,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3537: Added a "Focus in Viewport" widget plugin for Stage Manager
 
 ### Changed
+
 - Updated runtime to 0.6.0
 - Updated hdremix to a1863ffe
 - Updated hdremix to e57c4c6
@@ -461,6 +524,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `IsCapture` Widget & Filter to the `AllPrims` interaction in the Stage Manager
 
 ### Fixed
+
 - REMIX-3401: Fixed hot-reload by allowing reuse of validators
 - REMIX-3058: Fixed material file path tooltips and copy menus
 - Fixed changelog checker with type casting to support semantic versioning
@@ -485,29 +549,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2024.4.1]
 
 ### Added
+
 - Create 2024.4.0-RC.6 build
 
 ## [2024.4.0-RC.6]
 
 ### Added
+
 - Create 2024.4.0-RC.5 build
 - REST API Documentation
 
 ### Changed
+
 - Update runtime to 0.5.4
 
 ### Fixed
+
 - Fix `AllTextures` plugin
 
 ## [2024.4.0-RC.5]
 
 ### Added
+
 - Create 2024.4.0-RC.4 build
 
 ### Changed
+
 - Update to `remix-0.5.3`
 
 ### Fixed
+
 - Fixed AI Tools by settings the internal pip archive import order
 - REMIX-3058: Fixed material file path tooltips and copy menus
 - Fixed changelog checker with type casting to support semantic versioning
@@ -515,15 +586,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2024.4.0-RC.4]
 
 ### Added
+
 - Create 2024.4.0-RC.3 build
 - REMIX-2783: Added light manipulator for CylinderLight
 
 ### Changed
+
 - Updated repo tools + added public version of repo lint
 - REMIX-3071: Refactor shutdown event to cleanup 2 way dependency
 - Disable HDRemix bootstrap
 
 ### Fixed
+
 - Fixed layer validation for new layer
 - Fixed layer validation
 - Fixed Open Project microservice endpoint + Added tests for service
@@ -532,15 +606,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2024.4.0-RC.3]
 
 ### Added
+
 - Create 2024.4.0-RC.2 build
 - REMIX-2593: Added a centralized TreeWidget with additional logic
 - REMIX-3075: Added a layer type check in validation
 - REMIX-2874: Added a scan folder dialog for importing
 
 ### Changed
+
 - REMIX-2593: Changed the LayerTree widget to work with multiselect
 
 ### Fixed
+
 - REMIX-3076: Added trailing slash to end of dirname when double-clicking in file dialog
 - Fix manipulator that was giving wrong data
 - Re-add event that was mistakenly removed
@@ -549,6 +626,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2024.4.0-RC.2]
 
 ### Added
+
 - REMIX-2879: Added `USDC_USE_PREAD` environment variable to enable overriding opened deps
 - REMIX-2489: Fixed and improved asset replacement and overwriting capabilities for referenced assets
 - REMIX-2603: Added dialog to set remix categories
@@ -560,6 +638,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Detect broken layers when creating a new one
 
 ### Changed
+
 - Rename branch to `main`
 - REMIX-2967: Changed CI tool to check changes to extensions are properly updated
 - REMIX-2871: Remove parent prim override if there are no changed attrs
@@ -570,6 +649,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move the job "publish in the launcher" into the Gitlab publish pipeline
 
 ### Fixed
+
 - REMIX-3078: Fixed texture preview window overlapping
 - REMIX-3079: Fixed texture preview windows showing the incorrect texture
 - Fixed the hotkey test so that it can handle developer mode
@@ -581,11 +661,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multiple fixes for Checkmarx
 
 ### Removed
+
 - REMIX-3152: Removed the delete and duplicate button icons for asset reference light items in the selection tree
 
 ## [2024.4.0-RC.1]
 
 ### Added
+
 - REMIX-2674: Adding a check for similar textures and auto-populating texture fields
 - Add repo tool to delete `Unreleased` section from the changelog
 - REMIX-2779, REMIX-2780, REMIX-2781: Add light manipulators for RectLight, DistantLight and DiskLight
@@ -593,12 +675,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add packman publish stage for scheduled job(s)
 - Added lightweight kit app for HdRemix image testing: lightspeed.hdremix.test-0.0.0
 - Don't publish in the launcher for scheduled pipeline(s)
-- REMIX-2137, REMIX-2138, REMIX-2139, REMIX-2142, REMIX-2842: Added microservices for the "Modding" & "Ingestion" sub-apps
+- REMIX-2137, REMIX-2138, REMIX-2139, REMIX-2142, REMIX-2842: Added microservices for the "Modding" & "Ingestion"
+  sub-apps
 - REMIX-2880: Merged Flux extensions for OSS release
 - C function binding to set RtxOption directly into the Remix Renderer
 - REMIX-3096: Added a right-click copy menu for selection tree items
 
 ### Changed
+
 - REMIX-2880: Change to hide things for security
 - REMIX-2722: Reduced default light intensities
 - REMIX-2876: Update to Kit Kernel 106
@@ -610,6 +694,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2880: Update to latest public Kit SDK
 
 ### Fixed
+
 - REMIX-2872: Made the non-ingested asset message more descriptive
 - Fixed release notes version to release version
 - Fixed documentation URL for release notes
@@ -622,21 +707,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2024.3.1]
 
 ### Changed
+
 - Update runtime build to 0.5.1
 
 ## [2024.3.0]
 
 ### Added
+
 - REMIX-1248: Cursor now visibly changes over vertical bar
 - Add a test video in the doc
 
 ### Changed
+
 - REMIX-1248: Cursor now visibly changes over scroll bars
 - REMIX-3008: for now, because of REMIX-3008, disable drag and drop
 - Update to remix-0.5.0
 - Update `remix-releasenote.md`
 
 ### Fixed
+
 - REMIX-2723: Fixed file browser search bar
 - REMIX-3002: Fix when the process executor is run from a Kit that is in a folder with a space
 - REMIX-1090: Fixed capture list popup height math
@@ -644,6 +733,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2024.3.0-RC.3]
 
 ### Changed
+
 - REMIX-2674: Adding a check for similar textures and auto-populating texture fields on value change
 - Updated drag and drop regex to be case-insensitive and multi-texture dialog
 - Create a release note in the documentation
@@ -652,6 +742,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2997: Improve Check Plugins load speed on startup
 
 ### Fixed
+
 - REMIX-2820: Fix project wizard and file picker close
 - Fix property editor crash for unknowns widget builders
 - Start `lightspeed.event.capture_persp_to_persp` before the global event
@@ -663,6 +754,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2024.3.0-RC.2]
 
 ### Added
+
 - REMIX-1596: Create waypoint for game camera on start
 - Ray Reconstruction to the renderer
 - Gitlab auto release pipeline
@@ -670,10 +762,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2589: Add a way to customize property widgets per-attribute
 
 ### Changed
+
 - Correcting shutdown function for waypoint extension
 - REMIX-2791: Replace a variety of float widgets with sliders
 
 ### Fixed
+
 - REMIX-2731: Fix AI tools failing for captured DDSs
 
 ## [2024.3.0-RC.1]
@@ -684,7 +778,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2734: Unselect all objects with ESC
 - REMIX-1596: Drag and drop textures from filebrowser
 - REMIX-2667: Added the CHANGELOG.md file and CI check for it
-- REMIX-2492: Added a save prompt that shows up if the project has been modified when closing the app to prevent lost work
+- REMIX-2492: Added a save prompt that shows up if the project has been modified when closing the app to prevent lost
+  work
 - REMIX-2830: Attribute pinning and properties panel clearing
 - REMIX-2620, REMIX-2636: Add capture list refresh button and fix invisible path
 - REMIX-1924: Enabling waypoints in Remix
@@ -695,9 +790,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ray Reconstruction to the renderer
 
 ### Changed
-- REMIX-2692: Ingestion has the option to use an external process to run, which doesn't slow down the main app. Enabled by default.
+
+- REMIX-2692: Ingestion has the option to use an external process to run, which doesn't slow down the main app. Enabled
+  by default.
 - REMIX-2866: Moved tests into 'e2e' or 'unit' subdirectories
-- REMIX-1081: Improved UX for going from an open project to saved one by consolidating 2 dialogs into 1 with Save, Save As, Don't Save, Cancel options.
+- REMIX-1081: Improved UX for going from an open project to saved one by consolidating 2 dialogs into 1 with Save, Save
+  As, Don't Save, Cancel options.
 - REMIX-2875: HdRemix extension to be more independent from other extensions
 - REMIX-2722: Update light default value extensions
 - REMIX-2751: Create symlink(s) during project creation
@@ -707,15 +805,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2869: Run the e2e tests, the unit tests, and the doc build in parallel
 
 ### Fixed
+
 - REMIX-2707: Fix issue with material properties changing groups after overrides are deleted
 - REMIX-2715: Fix various issues with the ColorField
 - REMIX-2866: Corrected imports in several test directories
 - REMIX-1090: Capture list header adjustment
 
-
 ## [2024.2.1]
 
 ### Added:
+
 - REMIX-2541: Expose Inference Mode UI for AI Texture Tool
 - REMIX-2526: AI Texture accept jpeg
 - REMIX-119: Automatically switch to the mod layer when a wrong layer is set as an edit target
@@ -727,13 +826,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-114: Save Authoring Layer on Set
 
 ### Fixed:
+
 - REMIX-2669: Fix slowdown on project creation + light optimization
 - REMIX-2521: Adding check for Windows reserved words
 - REMIX-2709: Fix capture window dpi
 - REMIX-1542 REMIX-1693: don't lose focus of widgets when modifying properties
-- REMIX-2419 REMIX-2736: Handle 'f' key press anywhere on layout or ingestion tab. Handle 'Ctrl+S', etc. key presses on all tabs
+- REMIX-2419 REMIX-2736: Handle 'f' key press anywhere on layout or ingestion tab. Handle 'Ctrl+S', etc. key presses on
+  all tabs
 - REMIX-2719: Choose the same GPU for DXVK, as the one in Hydra Engine
 - REMIX-2722: Adjust default light intensity (first pass. Will do more ajustements)
 - REMIX-2642: Spelling / Wording / Grammar corrections in the Annotations for the Input File Path
-- REMIX-2654, REMIX-2661: AI Tools don't run on 20-series GPUs. AI Tools don't get cleaned out of memory after inference is done.
+- REMIX-2654, REMIX-2661: AI Tools don't run on 20-series GPUs. AI Tools don't get cleaned out of memory after inference
+  is done.
 - [HDRemix] Fix scale not affecting lights

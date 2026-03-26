@@ -139,7 +139,7 @@ def _fallback_builder(item) -> None:
     mapping.tf_gf_vec4d,
 )
 def _floating_point_builder(item) -> list[ui.Widget]:
-    builder = DefaultField(ui.FloatField, identifier=_generate_identifier(item))
+    builder = DefaultField(ui.FloatDrag, identifier=_generate_identifier(item))
     return builder(item)
 
 
@@ -157,7 +157,7 @@ def _floating_point_builder(item) -> list[ui.Widget]:
     mapping.tf_gf_vec4h,
 )
 def _integer_builder(item) -> list[ui.Widget]:
-    builder = DefaultField(ui.IntField, identifier=_generate_identifier(item))
+    builder = DefaultField(ui.IntDrag, identifier=_generate_identifier(item))
     return builder(item)
 
 

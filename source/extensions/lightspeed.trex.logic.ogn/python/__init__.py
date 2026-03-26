@@ -17,7 +17,7 @@
 
 # There is no public API to this module.
 
-__all__ = ["PublicExtension"]
+__all__ = []
 
 # This import must be present in all extensions to ensure they start up and shut down properly.
 # The import is done with renaming to avoid making this internal class part of the public API.

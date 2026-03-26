@@ -17,6 +17,7 @@
 
 import asyncio
 import sys
+import tempfile
 from pathlib import Path
 from unittest.mock import Mock, PropertyMock, call, patch
 
@@ -34,7 +35,7 @@ from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.material_converter.utils import MaterialConverterUtils
 from omni.kit.usd.collect.omni_client_wrapper import OmniClientWrapper
 from omni.kit.usd.layers import LayerUtils
-from pxr import Sdf, UsdUtils
+from pxr import Sdf, Usd, UsdUtils
 
 
 class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
@@ -888,7 +889,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         with (
             patch.object(PackagingCore, "_get_original_path") as get_original_mock,
             patch.object(PackagingCore, "_make_temp_layer") as make_temp_mock,
-            patch.object(PackagingCore, "_get_unresolved_assets_prim_paths") as get_unresolved_mock,
+            patch.object(PackagingCore, "_collect_invalid_packaging_assets") as collect_invalid_mock,
             patch.object(Sdf.Layer, "FindOrOpen") as find_open_mock,
             patch.object(UsdUtils, "ComputeAllDependencies") as compute_dependencies_mock,
             patch.object(UsdUtils, "ModifyAssetPaths") as modify_assets_mock,
@@ -929,7 +930,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
             if sys.version_info.minor > 7:
                 make_temp_mock.side_effect = layer_1_temp_path_mock
-                get_unresolved_mock.return_value = unresolved_deps
+                collect_invalid_mock.return_value = unresolved_deps
                 delete_folder_mock.return_value = None
                 create_folder_mock.return_value = None
                 copy_mock.return_value = None
@@ -938,9 +939,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 make_temp_future.set_result(layer_1_temp_path_mock)
                 make_temp_mock.side_effect = [make_temp_future]
 
-                set_future = asyncio.Future()
-                set_future.set_result(unresolved_deps)
-                get_unresolved_mock.return_value = set_future
+                collect_invalid_mock.return_value = unresolved_deps
 
                 none_future = asyncio.Future()
                 none_future.set_result(None)
@@ -949,7 +948,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 copy_mock.return_value = none_future
 
             # Act
-            errors, unresolved_assets = await packaging_core._collect(
+            _errors, unresolved_assets = await packaging_core._collect(
                 stage_mock,
                 root_layer_mock,
                 existing_temps_mock,
@@ -1061,3 +1060,143 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
         if update_dependencies:
             self.assertEqual(call(dependency_mock, metadataOnly=True), open_anonymous_mock.call_args)
+
+    async def test_get_unresolved_assets_detects_missing_texture_masked_by_valid_stronger_sublayer(self):
+        """
+        When a stronger sublayer authors a valid texture and a weaker sublayer authors a missing
+        texture for the same attribute, the weaker layer's broken path must still be detected.
+        """
+        packaging_core = PackagingCore()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp = Path(tmp_dir)
+
+            # A dummy file that "exists" — the stronger layer will point to this
+            (tmp / "valid_texture.a.rtex.dds").touch()
+            # missing_texture intentionally NOT created
+            missing_texture_posix = (tmp / "missing_texture.a.rtex.dds").as_posix()
+
+            # --- Build weaker layer ------------------------------------------------
+            weaker_layer = Sdf.Layer.CreateNew(str(tmp / "weaker.usda"))
+            with Sdf.ChangeBlock():
+                shader_spec = Sdf.CreatePrimInLayer(weaker_layer, "/RootNode/Looks/mat_001/Shader")
+                shader_spec.specifier = Sdf.SpecifierOver
+                attr_spec = Sdf.AttributeSpec(shader_spec, "inputs:diffuse_texture", Sdf.ValueTypeNames.Asset)
+                attr_spec.default = Sdf.AssetPath("./missing_texture.a.rtex.dds")
+            weaker_layer.Save()
+
+            # --- Build stronger layer ----------------------------------------------
+            stronger_layer = Sdf.Layer.CreateNew(str(tmp / "stronger.usda"))
+            with Sdf.ChangeBlock():
+                shader_spec = Sdf.CreatePrimInLayer(stronger_layer, "/RootNode/Looks/mat_001/Shader")
+                shader_spec.specifier = Sdf.SpecifierOver
+                attr_spec = Sdf.AttributeSpec(shader_spec, "inputs:diffuse_texture", Sdf.ValueTypeNames.Asset)
+                attr_spec.default = Sdf.AssetPath("./valid_texture.a.rtex.dds")
+                stronger_layer.subLayerPaths.append("./weaker.usda")
+            stronger_layer.Save()
+
+            # --- Open composed stage -----------------------------------------------
+            stage = Usd.Stage.Open(stronger_layer.identifier)
+
+            # unresolved_paths uses forward-slash strings, matching UsdUtils.ComputeAllDependencies
+            # and Sdf.Layer.ComputeAbsolutePath output on all platforms
+            unresolved_paths = [missing_texture_posix]
+
+            # Act
+            result = list(
+                packaging_core._collect_invalid_packaging_assets(
+                    list(stage.TraverseAll()),
+                    unresolved_paths,
+                    include_missing_authored_textures=False,
+                )
+            )
+            stage = None  # release file handles before TemporaryDirectory cleanup (Windows)
+
+            # Assert: weaker layer's broken reference must be in the result.
+            # (assertions are inside the `with` block so layer identifiers remain valid)
+            self.assertEqual(1, len(result), msg=f"Expected 1 result but got: {result}")
+            layer_id, prim_path, resolved_path = result[0]
+            self.assertEqual(weaker_layer.identifier, layer_id)
+            self.assertEqual("/RootNode/Looks/mat_001/Shader.inputs:diffuse_texture", prim_path)
+            self.assertEqual(missing_texture_posix, resolved_path)
+
+    async def test_get_unresolved_assets_detects_missing_textures_in_both_sublayers(self):
+        """
+        When both the stronger and weaker sublayer author a missing texture on the same
+        attribute, both layer entries must be reported.
+        """
+        packaging_core = PackagingCore()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp = Path(tmp_dir)
+            # Neither file exists
+            missing_a_posix = (tmp / "missing_a.a.rtex.dds").as_posix()
+            missing_b_posix = (tmp / "missing_b.a.rtex.dds").as_posix()
+
+            weaker_layer = Sdf.Layer.CreateNew(str(tmp / "weaker.usda"))
+            with Sdf.ChangeBlock():
+                spec = Sdf.CreatePrimInLayer(weaker_layer, "/RootNode/Looks/mat_001/Shader")
+                spec.specifier = Sdf.SpecifierOver
+                a = Sdf.AttributeSpec(spec, "inputs:diffuse_texture", Sdf.ValueTypeNames.Asset)
+                a.default = Sdf.AssetPath("./missing_b.a.rtex.dds")
+            weaker_layer.Save()
+
+            stronger_layer = Sdf.Layer.CreateNew(str(tmp / "stronger.usda"))
+            with Sdf.ChangeBlock():
+                spec = Sdf.CreatePrimInLayer(stronger_layer, "/RootNode/Looks/mat_001/Shader")
+                spec.specifier = Sdf.SpecifierOver
+                a = Sdf.AttributeSpec(spec, "inputs:diffuse_texture", Sdf.ValueTypeNames.Asset)
+                a.default = Sdf.AssetPath("./missing_a.a.rtex.dds")
+                stronger_layer.subLayerPaths.append("./weaker.usda")
+            stronger_layer.Save()
+
+            stage = Usd.Stage.Open(stronger_layer.identifier)
+            unresolved_paths = [missing_a_posix, missing_b_posix]
+
+            result = list(
+                packaging_core._collect_invalid_packaging_assets(
+                    list(stage.TraverseAll()),
+                    unresolved_paths,
+                    include_missing_authored_textures=False,
+                )
+            )
+            stage = None  # release file handles before TemporaryDirectory cleanup (Windows)
+
+            # Assertions inside the `with` block while layer identifiers are still valid
+            attr_path = "/RootNode/Looks/mat_001/Shader.inputs:diffuse_texture"
+            self.assertEqual(2, len(result), msg=f"Expected 2 results but got: {result}")
+            layer_ids = {r[0] for r in result}
+            self.assertIn(stronger_layer.identifier, layer_ids)
+            self.assertIn(weaker_layer.identifier, layer_ids)
+            for _, prim_path, _ in result:
+                self.assertEqual(attr_path, prim_path)
+
+    def test_collect_missing_authored_textures_detects_missing_file_without_dependency_scan(self):
+        """
+        Missing texture opinions are reported from per-spec existence checks even when
+        UsdUtils.ComputeAllDependencies would not list the path.
+        """
+        packaging_core = PackagingCore()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp = Path(tmp_dir)
+            layer = Sdf.Layer.CreateNew(str(tmp / "layer.usda"))
+            with Sdf.ChangeBlock():
+                shader_spec = Sdf.CreatePrimInLayer(layer, "/RootNode/Looks/mat_001/Shader")
+                shader_spec.specifier = Sdf.SpecifierOver
+                attr_spec = Sdf.AttributeSpec(shader_spec, "inputs:diffuse_texture", Sdf.ValueTypeNames.Asset)
+                attr_spec.default = Sdf.AssetPath("./not_created.a.rtex.dds")
+            layer.Save()
+
+            stage = Usd.Stage.Open(layer.identifier)
+            prims = list(stage.TraverseAll())
+            missing_posix = (tmp / "not_created.a.rtex.dds").as_posix()
+
+            result = packaging_core._collect_invalid_packaging_assets(prims, [], include_missing_authored_textures=True)
+            stage = None
+
+            self.assertEqual(1, len(result))
+            layer_id, prop_path, abs_path = next(iter(result))
+            self.assertEqual(layer.identifier, layer_id)
+            self.assertEqual("/RootNode/Looks/mat_001/Shader.inputs:diffuse_texture", prop_path)
+            self.assertEqual(missing_posix, abs_path)

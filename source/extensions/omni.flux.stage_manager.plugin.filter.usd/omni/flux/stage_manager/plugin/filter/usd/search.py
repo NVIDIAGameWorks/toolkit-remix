@@ -29,7 +29,10 @@ class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
     # TODO StageManager: Build proper plugin
 
     display_name: str = Field(default="Search", exclude=True)
-    tooltip: str = Field(default="Search through the list of prims", exclude=True)
+    tooltip: str = Field(
+        default="Search through the list of prims. Supports Regex (I.e: Special characters like ., *, +, etc.)",
+        exclude=True,
+    )
     search_term: str = Field(default="", exclude=False)
 
     _end_edit_sub: _EventSubscription | None = PrivateAttr(default=None)
@@ -37,27 +40,31 @@ class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
     def filter_predicate(self, item: _StageManagerItem) -> bool:
         if not self.search_term:
             return True
-        name = item.data.GetPath().name
 
-        # Regex search with case-insensitive flag
+        prim_name = item.data.GetPath().name
+        nickname_attr = item.data.GetAttribute("nickname")
+        nickname = None
+        if nickname_attr.IsValid() and nickname_attr.HasValue():
+            nickname = str(nickname_attr.Get())
+        strings_to_search = [prim_name]
+        if nickname is not None:
+            strings_to_search.append(nickname)
+
         try:
-            match = re.search(self.search_term, name, re.IGNORECASE)
+            return any(re.search(self.search_term, s, re.IGNORECASE) for s in strings_to_search)
         except re.error:
-            # If the search term is not a valid regex, set the match to None
-            match = None
-        return match is not None
+            return False
 
     def _on_edit(self, model):
         self.search_term = model.get_value_as_string()
         self._filter_items_changed()
 
     def build_ui(self):
-        with ui.HStack(height=0):
+        with ui.HStack(height=ui.Pixel(24)):
             ui.Label("Search:", width=ui.Pixel(56))
             search_field = ui.StringField(
                 width=ui.Pixel(160),
                 height=ui.Pixel(24),
                 identifier="search_field",
-                tooltip="Search using regex. Special characters like ., *, +, etc. will be treated as regex characters",
             )
             self._end_edit_sub = search_field.model.subscribe_end_edit_fn(self._on_edit)

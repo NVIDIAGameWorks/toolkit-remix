@@ -2,6 +2,19 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [4.2.7]
+### Changed
+- Updated internal import paths for prim utilities
+
+## [4.2.6]
+### Changed
+- Added a delay to ensure the shader is fully composed
+
+## [4.2.5]
+### Changed
+- Applied new lint rules
+
 ## [4.2.4]
 ### Changed
 - Modernize python style and enable more ruff checks

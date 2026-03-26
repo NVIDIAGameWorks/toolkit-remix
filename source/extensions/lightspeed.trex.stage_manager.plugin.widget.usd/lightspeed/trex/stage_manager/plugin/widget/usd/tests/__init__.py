@@ -17,5 +17,10 @@
 
 from .e2e.test_action_delete_restore import TestDeleteRestoreActionWidgetPlugin
 from .e2e.test_widget import TestStageManagerPluginWidget
+from .unit.test_focus_in_viewport import TestFocusInViewportActionWidgetPlugin
 
-__all__ = ["TestDeleteRestoreActionWidgetPlugin", "TestStageManagerPluginWidget"]
+__all__ = [
+    "TestDeleteRestoreActionWidgetPlugin",
+    "TestFocusInViewportActionWidgetPlugin",
+    "TestStageManagerPluginWidget",
+]

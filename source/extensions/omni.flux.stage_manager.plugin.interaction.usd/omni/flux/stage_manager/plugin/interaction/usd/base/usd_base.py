@@ -26,8 +26,8 @@ from omni.flux.stage_manager.factory import StageManagerTreeItem as _StageManage
 from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugin as _StageManagerInteractionPlugin
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
-from omni.flux.utils.common.utils import get_omni_prims as _get_omni_prims
-from omni.flux.utils.common.utils import get_proto_from_prim as _get_proto_from_prim
+from omni.flux.utils.common.prims import get_omni_prims as _get_omni_prims
+from omni.flux.utils.common.prims import get_proto_from_prim as _get_proto_from_prim
 from pxr import Sdf, Usd
 from pydantic import BaseModel, Field, PrivateAttr
 
@@ -167,7 +167,10 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         task_cancelled = (
             self._tree_selection_task is None or self._tree_selection_task.cancelled() or not self._is_active
         )
-        if task_cancelled or matching_items is None:
+        # NOTE: `not matching_items` covers both None and empty list; the original
+        # `is None` check let empty lists through, which set the tree selection
+        # to [] after a prim was deleted and its items were no longer on stage.
+        if task_cancelled or not matching_items:
             return
 
         # Lock to prevent _on_selection_changed from setting _ignore_selection_update
@@ -182,6 +185,8 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         return omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()
 
     def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
+        super()._on_selection_changed(items)  # updates model.selection before USD sync
+
         if self._selection_update_lock or not self.synchronize_selection:
             return
 
@@ -200,7 +205,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         Args:
             event_type: The `LayerEventType` object containing the layer event type.
         """
-        if event_type in [_layers.LayerEventType.MUTENESS_STATE_CHANGED, _layers.LayerEventType.SUBLAYERS_CHANGED]:
+        if event_type in {_layers.LayerEventType.MUTENESS_STATE_CHANGED, _layers.LayerEventType.SUBLAYERS_CHANGED}:
             self._queue_update()
 
     def _on_stage_event_occurred(self, event_type: omni.usd.StageEventType):
@@ -354,7 +359,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             for field_name, field_info in filter_obj.model_fields.items():
                 # Skip standard or excluded fields
                 if (
-                    field_name in ["display_name", "tooltip", "enabled"]
+                    field_name in {"display_name", "tooltip", "enabled"}
                     or field_name.startswith("_")
                     or field_info.exclude is True
                 ):

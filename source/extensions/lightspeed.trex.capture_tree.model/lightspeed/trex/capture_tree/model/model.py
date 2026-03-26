@@ -125,9 +125,9 @@ class CaptureTreeModel(ui.AbstractItemModel):
         self._fetch_task = asyncio.ensure_future(self.__fetch_progress(items))
 
     def __on_stage_event(self, event):
-        if event.type in [int(usd.StageEventType.CLOSING), int(usd.StageEventType.CLOSED)]:
+        if event.type in {int(usd.StageEventType.CLOSING), int(usd.StageEventType.CLOSED)}:
             self.cancel_tasks()
-        if event.type in [int(usd.StageEventType.OPENED), int(usd.StageEventType.CLOSED)]:
+        if event.type in {int(usd.StageEventType.OPENED), int(usd.StageEventType.CLOSED)}:
             self.__on_stage_opened_or_closed()
 
     def __on_layer_event(self, event):

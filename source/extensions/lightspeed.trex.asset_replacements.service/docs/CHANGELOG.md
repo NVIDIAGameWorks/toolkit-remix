@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.4]
+### Fixed
+- Fixed AttributeError when calling the Get Material Textures endpoint with no project loaded
+
 ## [2.0.3]
 ### Changed
 - Modernize python style and enable more ruff checks

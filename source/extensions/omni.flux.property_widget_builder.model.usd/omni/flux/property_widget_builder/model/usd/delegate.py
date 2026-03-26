@@ -350,7 +350,7 @@ class USDDelegate(_Delegate):
                             value_model.stage, include_session_layers=True, include_anonymous_layers=False
                         )
                     )
-            delete_all_overrides_label = "Delete all overrides"
+            delete_all_overrides_label = "Revert all modifications"
             if not enabled:
                 delete_all_overrides_label += " [DISABLED FOR THIS ATTR]"
             top_menu_item = ui.MenuItem(
@@ -358,7 +358,7 @@ class USDDelegate(_Delegate):
                 triggered_fn=functools.partial(self._delete_overrides, item),
             )
             top_menu_item.enabled = enabled
-            with ui.MenuItemCollection("Delete override from"):
+            with ui.MenuItemCollection("Revert all modifications from"):
                 for stack_item in property_stack:
                     if stack_item.layer.identifier in sub_layers:
                         # If the layer is locked, we should not delete overrides on it

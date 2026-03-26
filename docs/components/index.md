@@ -1,4 +1,4 @@
-# RTX Remix Component Documentation
+# Remix Logic Component
 
 This documentation provides detailed information about all available components in the RTX Remix graph system.
 

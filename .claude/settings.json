@@ -1,0 +1,79 @@
+{
+    "permissions": {
+        "ask": [
+            "Bash(rm -rf *)",
+            "Bash(git reset --hard*)",
+            "Bash(git clean -f*)",
+            "Bash(git checkout .)",
+            "Bash(git push*--force*)",
+            "Bash(git push*-f*)",
+            "Bash(git branch -D*)",
+            "Bash(*curl*|*sh*)",
+            "Bash(*wget*|*sh*)"
+        ]
+    },
+    "hooks": {
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash .claude/hooks/run_packman_python.sh .claude/hooks/completion_gates_check.py"
+                    },
+                    {
+                        "type": "command",
+                        "command": "bash .claude/hooks/run_packman_python.sh .claude/hooks/memory_promotion_check.py"
+                    }
+                ]
+            }
+        ],
+        "PreToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "You are a safety reviewer for shell commands. Evaluate whether this Bash command is a git command, and if so, whether the intent matches the action and the arguments are correct. Context: $ARGUMENTS\n\nRespond with {\"ok\": true} if this is not a git command or if the git command looks correct and intentional, or {\"ok\": false, \"reason\": \"explanation of the concern\"} if the git command seems dangerous, incorrect, or doesn't match the apparent intent."
+                    }
+                ]
+            }
+        ],
+        "SubagentStop": [
+            {
+                "matcher": "unit-test-writer",
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "You are evaluating whether a unit-test-writer subagent should stop. Review the conversation to check if the subagent ran the tests it wrote using the project's test runner with a filter flag (-f) to target just the new tests, and whether those tests passed. Context: $ARGUMENTS\n\nRespond with {\"ok\": true} if the subagent ran its new tests and they passed, or {\"ok\": false, \"reason\": \"Run the tests you wrote using the test bat with -f to filter to your new tests. Fix any failures before finishing.\"} if tests were not run or had failures."
+                    }
+                ]
+            },
+            {
+                "matcher": "e2e-test-writer",
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "You are evaluating whether an e2e-test-writer subagent should stop. Review the conversation to check if the subagent ran the tests it wrote using the project's test runner with a filter flag (-f) to target just the new tests, and whether those tests passed. Context: $ARGUMENTS\n\nRespond with {\"ok\": true} if the subagent ran its new tests and they passed, or {\"ok\": false, \"reason\": \"Run the tests you wrote using the test bat with -f to filter to your new tests. Fix any failures before finishing.\"} if tests were not run or had failures."
+                    }
+                ]
+            },
+            {
+                "matcher": "reviewer",
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "You are evaluating whether a code-reviewer subagent should stop. Review the conversation to check if the subagent ran: (1) the format script with --check flag, and (2) the lint script with 'all' argument, using the platform-appropriate variant (.bat on Windows, .sh on Unix). Context: $ARGUMENTS\n\nRespond with {\"ok\": true} if both format and lint checks were run, or {\"ok\": false, \"reason\": \"Before finishing your review, run the format script (with --check) and the lint script (with 'all' argument). Report any format or lint errors found as part of your review findings.\"} if either check was not run."
+                    }
+                ]
+            }
+        ]
+    },
+    "env": {
+        "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "80"
+    },
+    "enableAllProjectMcpServers": true,
+    "enabledPlugins": {
+        "superpowers@claude-plugins-official": true
+    },
+    "outputStyle": "Explanatory"
+}

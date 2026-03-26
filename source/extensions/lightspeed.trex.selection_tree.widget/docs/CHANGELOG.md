@@ -1,6 +1,18 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.6]
+### Changed
+- Renamed restore tooltip from "Restore the original asset" to "Revert all modifications"
+
+## [1.9.5]
+### Changed
+- Applied new lint rules
+
+## [1.9.4]
+### Fixed
+- REMIX-3187, REMIX-2383: Fixed expanded tree items (lights group, xform nodes) collapsing after a prim or reference deletion
+
 ## [1.9.3]
 ### Changed
 - Changed to use the NicknameField matching the Stage Manager

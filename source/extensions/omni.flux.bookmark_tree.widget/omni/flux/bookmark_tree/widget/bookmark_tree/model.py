@@ -329,7 +329,7 @@ class BookmarkCollectionModel(ui.AbstractItemModel):
 
         children = []
         for item in items:
-            children = children + self.get_item_children(item, True)
+            children += self.get_item_children(item, True)
         return items + children
 
     def get_item_value_model_count(self, item: ItemBase) -> int:

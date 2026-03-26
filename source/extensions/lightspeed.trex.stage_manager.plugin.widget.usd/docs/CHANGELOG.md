@@ -1,6 +1,26 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.0]
+### Added
+- Added `DELETECAPTURE` action type for deleting capture-originating meshes and lights by removing their capture reference arc
+- Added a context menu on the Restore action icon with selective restore options: restore original asset or restore only the captured asset reference
+
+## [2.6.6]
+### Fixed
+- Fixed `focus_in_viewport` action widget losing multiselection by removing the `_item_clicked` call and injecting pre-computed union paths into the viewport framing payload
+
+## [2.6.5]
+### Fixed
+- Fixed delete failing on ancestral prims that are defined in replacement sublayers
+- Fixed delete and restore not working on instanced prims by resolving to the prototype
+- Fixed composition-only prims incorrectly showing an active delete icon instead of a disabled restore icon
+- Fixed Stage Manager crash from expired prim access after delete or restore operations
+
+## [2.6.4]
+### Changed
+- Applied new lint rules
+
 ## [2.6.3]
 ### Added
 - Updated the nickname toggle action to be global and have a dynamic splitter

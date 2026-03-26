@@ -1,6 +1,32 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [2.7.4]
+### Changed
+- Updated internal import paths for prim utilities
+
+## [2.7.3]
+### Fixed
+- Fixed Stage Manager filter reset functionality not resetting the filter category
+### Added
+- Added unit tests for AdditionalFilterPlugin
+
+## [2.7.2]
+### Changed
+- Updated tooltip for all toggleable filter plugins to be on the HStack
+- Updated tooltips for toggleable filter plugins better match their functionality
+
+## [2.7.1]
+### Changed
+- Applied new lint rules
+
+## [2.7.0]
+### Added
+- Added `GeometryPrimsFilterPlugin`
+- Updated `AdditionalFilterPlugin` to use enum for filter categories
+- Include nickname in the search filter
+
 ## [2.6.4]
 ### Changed
 - Modernize python style and enable more ruff checks

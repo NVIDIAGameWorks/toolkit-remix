@@ -2,6 +2,23 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.11.0]
+### Changed
+- REMIX-1088: `FloatField` and `IntField` delegates now use `ui.FloatDrag` / `ui.IntDrag` widgets, enabling drag-to-scrub on all unbounded numeric fields
+
+## [1.10.0]
+### Added
+- REMIX-3411: Added `_validate_selection` and `_on_validation_failed` overridable hook methods to `FilePicker` for subclass-driven file selection validation
+
+## [1.9.1]
+### Changed
+- Applied new lint rules
+
+## [1.9.0]
+### Added
+- REMIX-5012: `FloatField` and `IntField` delegates with optional min/max clamping for partially-bounded attributes
+- REMIX-5012: Hard-bound clamping support on slider delegates (`hard_min_value` / `hard_max_value`)
+
 ## [1.8.0]
 ### Added
 - Added `AbstractSliderField` base class with shared min/max/step handling, undo grouping (begin_edit/end_edit), and abstract `build_drag_widget()` for slider UI

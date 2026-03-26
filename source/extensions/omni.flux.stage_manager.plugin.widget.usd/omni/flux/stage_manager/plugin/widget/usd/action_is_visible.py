@@ -20,7 +20,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import omni.kit.commands
-from omni import ui, usd
+from omni import ui
 from pxr import Usd, UsdGeom
 
 from .base import StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin
@@ -63,18 +63,15 @@ class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
         if button != 0 or not enabled:
             return
 
-        # TODO StageManager: We change the selection after the selection.
-        #  Ideally we don't change the selection after the action is performed to keep multi-selections.
-
-        self._item_clicked(button, True, model, item)
-
+        # item.data is always non-None here: build_icon_ui sets enabled = item.data and UsdGeom.Imageable(item.data),
+        # so enabled=True implies item.data is truthy and the early-exit guard above has already fired if not.
         target_value = (
             UsdGeom.Imageable(item.data).ComputeVisibility(Usd.TimeCode.Default()) == UsdGeom.Tokens.invisible
         )
 
         omni.kit.commands.execute(
             "SetVisibilitySelectedPrims",
-            selected_paths=usd.get_context(self._context_name).get_selection().get_selected_prim_paths(),
+            selected_paths=self._get_action_paths(model, item),
             value=target_value,
             context_name=self._context_name,
         )

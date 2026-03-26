@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from lightspeed.common.constants import ROOTNODE_MESHES as _ROOTNODE_MESHES
+from omni.flux.stage_manager.factory.plugins.filter_plugin import FilterCategory as _FilterCategory
 from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 from pydantic import Field
 
@@ -35,7 +36,8 @@ class MeshGroupFilterPlugin(_ToggleableUSDFilterPlugin):
     """
 
     display_name: str = Field(default="Mesh Group", exclude=True)
-    tooltip: str = Field(default="Filter out mesh group", exclude=True)
+    tooltip: str = Field(default="Filter for mesh group", exclude=True)
+    filter_category: _FilterCategory = Field(default=_FilterCategory.GROUP, exclude=True)
 
     def _filter_predicate(self, prim: Usd.Prim) -> bool:
         return str(prim.GetPath()).startswith(_ROOTNODE_MESHES)

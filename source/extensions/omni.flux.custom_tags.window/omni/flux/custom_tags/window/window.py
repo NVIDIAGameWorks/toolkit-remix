@@ -279,7 +279,10 @@ class EditCustomTagsWindow:
             # Only Edit the tag if the name changed
             if item.original_item.title != new_tag_name:
                 self._action_queue.append(
-                    (ActionType.EDIT, (item.original_item.path, self._core.get_tag_name(tag_path)))
+                    (
+                        ActionType.EDIT,
+                        (item.original_item.path, self._core.get_tag_name(tag_path)),
+                    )
                 )
         else:
             self._action_queue.append((ActionType.CREATE, self._core.get_tag_name(tag_path)))

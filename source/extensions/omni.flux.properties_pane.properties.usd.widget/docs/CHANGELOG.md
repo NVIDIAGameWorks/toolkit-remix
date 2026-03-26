@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.11.4]
+### Changed
+- REMIX-1088: Updated test selectors for FloatDrag widgets
+
 ## [2.11.3]
 ### Changed
 - Modernize python style and enable more ruff checks

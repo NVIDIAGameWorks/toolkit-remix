@@ -114,10 +114,10 @@ class ProjectSetupPane(WorkspaceWidget):
 
     def __on_stage_event(self, event):
         """Stage event callback - subscription destroyed when window invisible."""
-        if event.type in [
+        if event.type in {
             int(omni.usd.StageEventType.CLOSED),
             int(omni.usd.StageEventType.OPENED),
-        ]:
+        }:
             self.__on_event()
 
     def __on_event(self):
@@ -340,9 +340,11 @@ class ProjectSetupPane(WorkspaceWidget):
         self._set_mod_file_field(current_file)
         self._destroy_mod_properties()
 
-        items = []
-        for attr in [attr for attr in dir(omni.client.ListEntry) if not attr.startswith("_")]:
-            items.append(_FileAttributeItem(current_file, attr, display_attr_name=attr.replace("_", " ").capitalize()))
+        items = [
+            _FileAttributeItem(current_file, attr, display_attr_name=attr.replace("_", " ").capitalize())
+            for attr in dir(omni.client.ListEntry)
+            if not attr.startswith("_")
+        ]
 
         self._mod_details_model = _FileModel(current_file)
         self._mod_details_model.set_items(items)

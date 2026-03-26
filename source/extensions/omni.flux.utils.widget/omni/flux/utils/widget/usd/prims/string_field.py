@@ -22,11 +22,11 @@ from typing import Any
 
 import carb.settings
 import omni.ui as ui
-from omni.flux.utils.common.utils import get_proto_from_prim
+from omni.flux.utils.common.prims import get_proto_from_prim
 from omni.flux.utils.widget.resources import get_fonts
 from pxr import Sdf, Usd
 
-__all__ = ["UsdPrimNameField", "GLOBAL_SHOW_NICKNAMES_SETTING"]
+__all__ = ["GLOBAL_SHOW_NICKNAMES_SETTING", "UsdPrimNameField"]
 
 
 FIELD_READ_ONLY_STYLE_NO_NICKNAME = {
@@ -313,11 +313,7 @@ class UsdPrimNameField:
         if new_value == self.original_display_name:
             return False
 
-        # Check prim validity
-        if not self._prim.IsValid():
-            return False
-
-        return True
+        return self._prim.IsValid()
 
     def save_nickname(self, new_value: str) -> bool:
         """

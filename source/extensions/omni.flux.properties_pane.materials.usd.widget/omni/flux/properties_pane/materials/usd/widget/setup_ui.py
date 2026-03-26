@@ -252,8 +252,8 @@ class MaterialPropertyWidget:
                     attribute_paths = [attr_.GetPath() for attr_ in attributes]
 
                     shader_prim, placeholder = prims_and_placeholders[0]
-                    attr_name = placeholder.GetName()
-                    display_attr_names = [attr_name]
+                    resolved_attr_name = placeholder.GetName()
+                    display_attr_names = [resolved_attr_name]
 
                     display_name = placeholder.GetMetadata(Sdf.PropertySpec.DisplayNameKey)
                     if display_name:

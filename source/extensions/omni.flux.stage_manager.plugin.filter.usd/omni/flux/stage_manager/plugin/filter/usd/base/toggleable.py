@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 
 from omni import ui
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
+from omni.flux.stage_manager.factory.plugins.filter_plugin import FilterCategory as _FilterCategory
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import Field, PrivateAttr
 
@@ -34,6 +35,7 @@ if TYPE_CHECKING:
 class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
     filter_active: bool = Field(default=True)
     include_results: bool = Field(default=True, description="Include or exclude prims")
+    filter_category: _FilterCategory = Field(default=_FilterCategory.PRIMS)
 
     _checkbox: ui.CheckBox | None = PrivateAttr(default=None)
     _value_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
@@ -52,13 +54,12 @@ class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
         return result if self.include_results else not result
 
     def build_ui(self):
-        with ui.VStack(width=0, spacing=ui.Pixel(4)):
+        # Single HStack to match combo box filter row height (no VStack/Spacers)
+        with ui.HStack(height=0, spacing=ui.Pixel(8), tooltip=self.tooltip):
             ui.Spacer(width=0)
-            with ui.HStack(height=0, spacing=ui.Pixel(8)):
-                ui.Label(self.display_name, width=ui.Pixel(self._LABEL_WIDTH), alignment=ui.Alignment.RIGHT_CENTER)
-                ui.Spacer(width=0)
-                self._checkbox = ui.CheckBox()
+            ui.Label(self.display_name, width=ui.Pixel(self._LABEL_WIDTH), alignment=ui.Alignment.RIGHT_CENTER)
             ui.Spacer(width=0)
+            self._checkbox = ui.CheckBox()
 
         self._checkbox.model.set_value(self.filter_active)
         self._value_changed_sub = self._checkbox.model.subscribe_value_changed_fn(self._on_checkbox_toggled)

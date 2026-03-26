@@ -25,7 +25,11 @@
 
 from .event import Event, EventSubscription
 from .serialize import Converter, Serializer
-from .utils import async_wrap, deferred_destroy_tasks, get_omni_prims, reset_default_attrs
+from .utils import (
+    async_wrap,
+    deferred_destroy_tasks,
+    reset_default_attrs,
+)
 
 __all__ = [
     "Converter",
@@ -34,6 +38,5 @@ __all__ = [
     "Serializer",
     "async_wrap",
     "deferred_destroy_tasks",
-    "get_omni_prims",
     "reset_default_attrs",
 ]

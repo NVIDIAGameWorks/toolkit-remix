@@ -111,13 +111,13 @@ class ForcePrimvarToVertexInterpolation(_CheckBaseUSD):
             # the mesh is empty?
             return False
         normals_interp = mesh.GetNormalsInterpolation()
-        if normals_interp in (UsdGeom.Tokens.faceVarying, UsdGeom.Tokens.varying):
+        if normals_interp in {UsdGeom.Tokens.faceVarying, UsdGeom.Tokens.varying}:
             return False
 
         primvar_api = UsdGeom.PrimvarsAPI(prim)
         for primvar in primvar_api.GetPrimvars():
             interpolation = primvar.GetInterpolation()
-            if interpolation in (UsdGeom.Tokens.faceVarying, UsdGeom.Tokens.varying):
+            if interpolation in {UsdGeom.Tokens.faceVarying, UsdGeom.Tokens.varying}:
                 return False
         return True
 

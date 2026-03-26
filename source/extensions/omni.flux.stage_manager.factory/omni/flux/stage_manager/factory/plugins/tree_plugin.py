@@ -44,6 +44,7 @@ from pydantic import Field
 
 from ..utils import StageManagerUtils as _StageManagerUtils
 from .base import StageManagerPluginBase as _StageManagerPluginBase
+from .filter_plugin import StageManagerFilterPlugin as _StageManagerFilterPlugin
 
 if TYPE_CHECKING:
     from pxr import Usd
@@ -189,6 +190,8 @@ class StageManagerTreeItem(_TreeItemBase):
 
     def build_widget(self):
         """Build the UsdPrimNameField widget for this item."""
+        if not self._data or not self._data.IsValid():
+            return
         with ui.HStack(spacing=0, height=0):
             self._nickname_field = _UsdPrimNameField(
                 prim=self._data,
@@ -197,17 +200,14 @@ class StageManagerTreeItem(_TreeItemBase):
                 show_display_name_ancestor=bool(self._display_name_ancestor),
             )
 
-    def is_prim_editable(self, prim: "Usd.Prim") -> bool:
+    def is_prim_editable(self, prim: Usd.Prim) -> bool:
         """
         Determine if the prim is editable.
         """
         if not prim or not prim.IsValid():
             return False
 
-        if not self.parent or not self.parent.parent:
-            return False
-
-        return True
+        return bool(self.parent and self.parent.parent)
 
     def __eq__(self, other):
         if isinstance(other, StageManagerTreeItem):
@@ -230,9 +230,11 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
 
         self._context_items: list[_StageManagerItem] = []
         self._user_filter_predicates: list[Callable[[_StageManagerItem], bool]] = []
+        self._user_filter_plugins: list[_StageManagerFilterPlugin] = []
         self._context_predicates: list[Callable[[_StageManagerItem], bool]] = []
         self._column_count = 0
         self._max_workers = None
+        self._selection: list[StageManagerTreeItem] = []
 
     @property
     @abc.abstractmethod
@@ -246,6 +248,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
                 "_context_predicates": None,
                 "_column_count": None,
                 "_max_workers": None,
+                "_selection": None,
             }
         )
         return default_attr
@@ -256,6 +259,22 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Get a dictionary of item hashes and items
         """
         return {hash(item): item for item in self.iter_items_children()}
+
+    @property
+    def selection(self) -> list[StageManagerTreeItem]:
+        """The tree items currently selected in the UI."""
+        return list(self._selection)
+
+    def set_selection(self, items: Iterable[StageManagerTreeItem]):
+        """
+        Store the currently selected tree items.
+
+        A copy of ``items`` is stored; mutating the original list after calling
+        this method has no effect on the stored selection.
+
+        Called by the interaction plugin whenever the tree selection changes.
+        """
+        self._selection = list(items)
 
     @usd.handle_exception
     async def get_context_items(self) -> list[_StageManagerItem]:
@@ -271,11 +290,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             name="Refresh Stage Manager",
             custom_sampling_context={"sample_rate_override": 0.25},
         ) as transaction:
-            filtered_items = await _StageManagerUtils.filter_items(
-                self._context_items,
-                self._user_filter_predicates,
-                max_workers=self._max_workers,
-            )
+            filtered_items = _StageManagerUtils.filter_items_by_category(self._context_items, self._user_filter_plugins)
 
             transaction.set_data("input_items_count", len(self._context_items))
             transaction.set_data("output_items_count", len(filtered_items))
@@ -319,6 +334,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         for item in filtered_items:
             item.tree_item = None
 
+        self.set_selection([])
         self._items = self._build_items(filtered_items)
 
         self._item_changed(None)
@@ -342,11 +358,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Returns:
             List of items matching the predicate
         """
-        results = []
-        for item in self.iter_items_children():
-            if predicate(item):
-                results.append(item)
-        return results
+        return [item for item in self.iter_items_children() if predicate(item)]
 
     @usd.handle_exception
     async def find_items_async(
@@ -388,6 +400,18 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Clear the filter predicates to apply to the items during filtering
         """
         self._user_filter_predicates.clear()
+
+    def add_user_filter_plugins(self, value: list[_StageManagerFilterPlugin]):
+        """
+        Extend the filter plugins to apply to the items during filtering
+        """
+        self._user_filter_plugins.extend(value)
+
+    def clear_user_filter_plugins(self):
+        """
+        Clear the filter plugins to apply to the items during filtering
+        """
+        self._user_filter_plugins.clear()
 
     def add_context_predicates(self, value: list[Callable[[_StageManagerItem], bool]]):
         """

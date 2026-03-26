@@ -93,10 +93,10 @@ class USDPropertyWidget(_PropertyWidget):
 
     def __on_layer_event_listener(self, event):
         payload = _layers.get_layer_event_payload(event)
-        if payload.event_type not in [
+        if payload.event_type not in {
             _layers.LayerEventType.MUTENESS_STATE_CHANGED,
             _layers.LayerEventType.SUBLAYERS_CHANGED,
-        ]:
+        }:
             return
         self._on_refresh_widget()
 

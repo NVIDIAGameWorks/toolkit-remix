@@ -73,9 +73,9 @@ def generate_image_from_text(
     if max_width != 0 and size[0] > max_width and multiline_if_max_width:
         width_of_line = 0
         for i, token in enumerate(text.split()):
-            token += " "
-            left, top, _, _ = font.getbbox(token)
-            token_width = font.getlength(token)
+            padded_token = token + " "
+            left, top, _, _ = font.getbbox(padded_token)
+            token_width = font.getlength(padded_token)
             offset_value = (left, top)
             if i == 0 and remove_offset and rotation is None:
                 final_off_y += offset_value[1]

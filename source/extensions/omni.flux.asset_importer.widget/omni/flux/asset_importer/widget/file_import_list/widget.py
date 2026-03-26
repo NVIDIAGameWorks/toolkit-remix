@@ -23,7 +23,6 @@ from collections.abc import Callable
 
 import carb
 import carb.events
-import omni.appwindow
 from omni import kit, ui, usd
 from omni.flux.asset_importer.core import destroy_scanner_dialog as _destroy_scanner_dialog
 from omni.flux.asset_importer.core import scan_folder as _scan_folder
@@ -53,7 +52,6 @@ class FileImportListWidget:
         model: FileImportListModel = None,
         delegate: FileImportListDelegate = None,
         allow_empty_input_files_list: bool = False,
-        enable_drop: bool = False,
         drop_filter_fn: Callable[[list[str]], list[str]] = None,
         drop_callback: Callable[[list[str]], Any] = None,
     ):
@@ -64,7 +62,6 @@ class FileImportListWidget:
             model: model that will feed this widget
             delegate: custom delegate (that should not be initialized)
             allow_empty_input_files_list: allow to show nothing
-            enable_drop: enable handling of drop or not
             drop_filter_fn: function that will filter what we drop
             drop_callback: function that will called when items are dropped
         """
@@ -104,20 +101,26 @@ class FileImportListWidget:
         self.__root_frame = ui.Frame()
         self.__create_ui()
 
-        if enable_drop:
-            app_window = omni.appwindow.get_default_app_window()
-            self._dropsub = app_window.get_window_drop_event_stream().create_subscription_to_pop(
-                self._on_drag_drop_external, name="ExternalDragDrop event", order=0
-            )
         # Will be set to False during validation failure
         self._allow_drop = True
 
         _setup_scanner_dialog(callback={"file_import": [self._model.add_items]})
 
-    def _on_drag_drop_external(self, event: carb.events.IEvent):
+    def on_drag_drop_external(self, event: carb.events.IEvent) -> None:
+        """
+        Entry point for external file drops (e.g. from a drop-aware tab page).
+        Called by context plugins (e.g. AssetImporter.handle_drop) when the
+        OS drop is routed to this widget's tab. Expects event.payload with "paths".
+        """
+        if self.__root_frame is None or not self.__root_frame.visible:
+            return
+
         async def do_drag_drop():
             if not self._allow_drop:
                 # In validation failure dialog; don't allow more drops.
+                return
+            if self.__root_frame is None or not self.__root_frame.visible:
+                # Switched tabs before the async ran; don't add to this list.
                 return
 
             paths = event.payload.get("paths", ())
@@ -142,9 +145,19 @@ class FileImportListWidget:
                 self.__drop_callback(paths)
             self._model.add_items(paths)
 
-        if not self.__root_frame.enabled:
-            return
         asyncio.ensure_future(do_drag_drop())
+
+    @property
+    def visible(self) -> bool:
+        """Whether the root frame is visible (e.g. only the active tab's list should accept drops)."""
+        if self.__root_frame is not None:
+            return self.__root_frame.visible
+        return False
+
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        if self.__root_frame is not None:
+            self.__root_frame.visible = value
 
     @property
     def model(self) -> FileImportListModel:

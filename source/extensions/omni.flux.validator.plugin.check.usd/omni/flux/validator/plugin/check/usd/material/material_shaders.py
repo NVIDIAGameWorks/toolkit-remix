@@ -85,7 +85,7 @@ class MaterialShaders(_CheckBaseUSD):
         @classmethod
         def valid_subidentifier(cls, v: OrderedDict[str, str]) -> OrderedDict[str, str]:
             library_subidentifiers = [u.stem for u in _MaterialConverterUtils.get_material_library_shader_urls()]
-            for key, _ in v.items():
+            for key in v:
                 if key not in library_subidentifiers:
                     raise ValueError(
                         f"The subidentifier ({key}) does not exist in the material library. If using non-default"
@@ -98,7 +98,7 @@ class MaterialShaders(_CheckBaseUSD):
         @field_validator("shader_subidentifiers", mode="before")
         @classmethod
         def supported_shader_output(cls, v: OrderedDict[str, str]) -> OrderedDict[str, str]:
-            for key, _ in v.items():
+            for key in v:
                 if key not in [s.value for s in _SupportedShaderOutputs]:
                     raise ValueError(
                         f"The shader ({key}) is not currently a supported output shader. "
@@ -145,6 +145,9 @@ class MaterialShaders(_CheckBaseUSD):
             stage = usd.get_context(context_plugin_data).get_stage()
             root_identifier = stage.GetRootLayer().identifier
 
+            # Adding a delay to ensure the shader is fully composed
+            for _ in range(10):
+                await omni.kit.app.get_app().next_update_async()
             for p in selector_plugin_data:
                 prim = stage.GetPrimAtPath(p.GetPath())
 
@@ -294,6 +297,7 @@ class MaterialShaders(_CheckBaseUSD):
     @usd.handle_exception
     async def _get_material_shader_subidentifier(self, prim: Usd.Prim) -> str | None:
         shader_prim = usd.get_shader_from_material(prim, get_prim=True)
+
         subid_list = await omni.kit.material.library.get_subidentifier_from_material(
             shader_prim, lambda x: x, use_functions=False
         )

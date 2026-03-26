@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.4.1]
+### Changed
+- Updated tooltip for filter plugins to be on the HStack
+
+## [2.4.0]
+### Added
+- Added filter categories to the filter plugins
+
 ## [2.3.3]
 ### Changed
 - Modernize python style and enable more ruff checks

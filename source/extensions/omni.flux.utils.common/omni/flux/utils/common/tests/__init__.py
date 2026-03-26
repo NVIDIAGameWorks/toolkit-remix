@@ -17,9 +17,21 @@
 
 from .unit.test_decorators import TestLimitRecursion
 from .unit.test_layer_utils import TestLayerUtils
+from .unit.test_mouse import TestGetMousePosition, TestIsPointInsideWidget
 from .unit.test_omni_url import TestOmniUrl
+from .unit.test_os_drop_router import TestWidgetDropRouter
 from .unit.test_path_utils import TestPathUtils
 from .unit.test_serialize import TestSerializer
 from .unit.test_symlink import TestSymlink
 
-__all__ = ["TestLayerUtils", "TestLimitRecursion", "TestOmniUrl", "TestPathUtils", "TestSerializer", "TestSymlink"]
+__all__ = [
+    "TestGetMousePosition",
+    "TestIsPointInsideWidget",
+    "TestLayerUtils",
+    "TestLimitRecursion",
+    "TestOmniUrl",
+    "TestPathUtils",
+    "TestSerializer",
+    "TestSymlink",
+    "TestWidgetDropRouter",
+]

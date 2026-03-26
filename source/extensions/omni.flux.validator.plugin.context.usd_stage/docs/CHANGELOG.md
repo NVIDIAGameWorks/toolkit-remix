@@ -2,6 +2,18 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.7]
+### Added
+- `handle_drop` on `TextureImporter` and `AssetImporter` to forward OS file drops from tab pages to list widgets
+
+## [3.1.6]
+### Fixed
+- Asset and Texture importer tabs in mass-ingestion now receive dropped files only when their tab is visible.
+
+## [3.1.5]
+### Changed
+- Applied new lint rules
+
 ## [3.1.4]
 ### Changed
 - Modernize python style and enable more ruff checks

@@ -77,17 +77,17 @@ class EventValidateProjectCore(_ILSSEvent):
         self._layer_event_sub = None
 
     def __on_stage_event(self, event):
-        if event.type in [int(omni.usd.StageEventType.OPENED), int(omni.usd.StageEventType.SAVED)]:
+        if event.type in {int(omni.usd.StageEventType.OPENED), int(omni.usd.StageEventType.SAVED)}:
             self.__validate_project()
 
     def __on_layer_event(self, event):
         payload = _layers.get_layer_event_payload(event)
-        if payload.event_type in [
+        if payload.event_type in {
             _layers.LayerEventType.LOCK_STATE_CHANGED,
             _layers.LayerEventType.MUTENESS_SCOPE_CHANGED,
             _layers.LayerEventType.MUTENESS_STATE_CHANGED,
             _layers.LayerEventType.SUBLAYERS_CHANGED,
-        ]:
+        }:
             self.__validate_project()
 
     def __show_message(self, message):

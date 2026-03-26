@@ -1,0 +1,8 @@
+---
+description: SPDX Apache-2.0 license header requirement for all Python files
+alwaysApply: false
+globs:
+  - "*.py"
+---
+
+@.agents/rules/license.md

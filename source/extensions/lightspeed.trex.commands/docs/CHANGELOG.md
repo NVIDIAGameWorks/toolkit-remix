@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Added
+- Added `ClearReferenceListEditsCommand` for undoable clearing of reference list edits on a specific layer and prim spec
+
+## [1.2.3]
+### Changed
+- Applied new lint rules
+
 ## [1.2.2]
 ### Changed
 - Modernize python style and enable more ruff checks

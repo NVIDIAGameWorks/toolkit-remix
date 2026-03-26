@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,36 @@
 * limitations under the License.
 """
 
-__all__ = ("TestAbstractSliderField", "TestColorField", "TestFloatSliderField", "TestIntSliderField")
+__all__ = (
+    "TestAbstractSliderField",
+    "TestAbstractSliderFieldUnit",
+    "TestAbstractValueField",
+    "TestAbstractValueFieldUnit",
+    "TestColorField",
+    "TestFloatField",
+    "TestFloatFieldUnit",
+    "TestFloatSliderField",
+    "TestFloatSliderFieldUnit",
+    "TestIntField",
+    "TestIntFieldUnit",
+    "TestIntSliderField",
+    "TestIntSliderFieldUnit",
+)
 
-from .e2e import TestAbstractSliderField, TestColorField, TestFloatSliderField, TestIntSliderField
+from .e2e import (
+    TestAbstractSliderField,
+    TestAbstractValueField,
+    TestColorField,
+    TestFloatField,
+    TestFloatSliderField,
+    TestIntField,
+    TestIntSliderField,
+)
+from .unit import (
+    TestAbstractSliderFieldUnit,
+    TestAbstractValueFieldUnit,
+    TestFloatFieldUnit,
+    TestFloatSliderFieldUnit,
+    TestIntFieldUnit,
+    TestIntSliderFieldUnit,
+)

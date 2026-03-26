@@ -136,5 +136,5 @@ caption: Contributing to RTX Remix
 hidden: true
 ---
 docs/contributing/contributing-overview
-docs/contributing/api
+docs_dev/index
 ```

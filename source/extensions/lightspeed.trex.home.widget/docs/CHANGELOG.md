@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.4]
+### Fixed
+- Fixed extension failing to load due to stale `lightspeed.trex.contexts` dependency (REMIX-4992)
+
+## [1.8.3]
+### Changed
+- Applied new lint rules
+
 ## [1.8.2]
 ### Changed
 - Modernize python style and enable more ruff checks

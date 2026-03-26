@@ -22,48 +22,6 @@ from collections.abc import Callable
 import omni.kit.app
 import omni.usd
 from carb import log_warn as _log_warn
-from pxr import Sdf, Usd
-
-
-def get_proto_from_prim(prim: Usd.Prim) -> Usd.Prim:
-    """Resolve a prim to its composition source (prototype) via PrimIndex.
-
-    For prims composed via references (e.g. instances referencing a prototype),
-    returns the source prim by following the first composition arc. Falls back
-    to the input prim if no composition children exist.
-
-    Args:
-        prim: The USD prim to resolve.
-
-    Returns:
-        The prototype prim if one exists, otherwise the input prim.
-    """
-    prim_index = prim.GetPrimIndex()
-    root_node = prim_index.rootNode
-    if root_node and root_node.children:
-        proto_path = root_node.children[0].path
-        stage = prim.GetStage()
-        proto_prim = stage.GetPrimAtPath(proto_path)
-        if proto_prim and proto_prim.IsValid():
-            return proto_prim
-    return prim
-
-
-def get_omni_prims() -> set[Sdf.Path]:
-    """
-    Get default reserved prims used by Omniverse Kit
-
-    Returns:
-        The default prims
-    """
-    return {
-        Sdf.Path("/OmniverseKit_Persp"),
-        Sdf.Path("/OmniverseKit_Front"),
-        Sdf.Path("/OmniverseKit_Top"),
-        Sdf.Path("/OmniverseKit_Right"),
-        Sdf.Path("/OmniKit_Viewport_LightRig"),
-        Sdf.Path("/Render"),
-    }
 
 
 def async_wrap(func) -> Callable:
@@ -99,10 +57,20 @@ async def deferred_destroy_tasks(tasks: list[asyncio.Task]):
                 await omni.kit.app.get_app().next_update_async()
                 if not task:
                     break
-        task = None
 
 
 def reset_default_attrs(obj):
+    """Reset an object's attributes to their declared defaults, destroying old values.
+
+    Looks for a ``_default_attr``, ``default_attr``, or ``_default_attrs`` dict
+    on *obj* that maps attribute names to their default values.  For each entry
+    the current value is retrieved; if it (or its elements, for list/dict/tuple
+    values) has a ``destroy()`` method it is called before the attribute is
+    overwritten with the default.
+
+    Args:
+        obj: Any object that carries one of the recognised default-attr dicts.
+    """
     default_attr = getattr(obj, "_default_attr", None)
     if not default_attr:
         default_attr = getattr(obj, "default_attr", None)

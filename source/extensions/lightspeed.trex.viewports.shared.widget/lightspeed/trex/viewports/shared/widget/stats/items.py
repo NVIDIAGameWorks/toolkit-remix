@@ -117,13 +117,12 @@ class ViewportStatistic:
             return
 
         # If the number of stats has gotten less, need to rebuild it all
-        index, n_stats = 0, len(stats)
+        n_stats = len(stats)
         if n_stats < len(self.__labels):
             self._destroy_labels()
 
-        for txt in stats:
+        for index, txt in enumerate(stats):
             self.set_text(txt, index)
-            index = index + 1
 
     def skip_update(self, update_info: dict):
         return False
@@ -338,7 +337,7 @@ class ViewportProgress(ViewportStatistic):
             self.__last_accumulated = 0
             self.__total_elapsed = 0
         elif (self.__last_accumulated < total) or (no_limit is not None and total <= no_limit):
-            self.__total_elapsed = self.__total_elapsed + update_info["elapsed_time"]
+            self.__total_elapsed += update_info["elapsed_time"]
         self.__last_accumulated = accumulated
         return [f"{label}: {accumulated}/{total} spp : {self.__total_elapsed:.{decimal_places}f} sec"]
 
@@ -523,7 +522,7 @@ class ViewportSpeed(ViewportStatisticFading):
 
     def __init__(self, viewport_api, **kwargs):
         self.__carb_subs: Sequence[carb.settings.SubscriptionId] = None
-        self.__cam_speed_entry: ui.FloatField | None = None
+        self.__cam_speed_entry: ui.FloatDrag | None = None
         self.__cam_speed_model_sub: carb.Subscription | None = None
         self.__viewport_id: str = str(viewport_api.id)
         self.__root_frame: ui.Frame | None = None
@@ -642,8 +641,12 @@ class ViewportSpeed(ViewportStatisticFading):
                         clicked_fn=self.__toggle_cam_speed_info,
                     )
                     ui.Label("Camera Speed:", style_type_name_override="ViewportStats", name="Label")
-                    self.__cam_speed_entry = ui.FloatField(
-                        style_type_name_override="ViewportStats", name="FloatField", width=55
+                    self.__cam_speed_entry = ui.FloatDrag(
+                        style_type_name_override="ViewportStats",
+                        name="FloatField",
+                        width=55,
+                        step=0.1,
+                        min=0.0,
                     )
                     ui.Spacer()
 

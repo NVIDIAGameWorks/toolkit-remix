@@ -19,6 +19,7 @@ import carb
 from omni import ui
 from omni.flux.stage_manager.core import get_instance as _get_stage_manager_core_instance
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
+from omni.flux.stage_manager.factory.plugins.filter_plugin import FilterCategory as _FilterCategory
 from omni.kit.widget.options_menu.popup_menu import AbstractPopupMenu, PopupMenuDelegate, PopupMenuItemDelegate
 from pydantic import Field, PrivateAttr
 
@@ -27,6 +28,13 @@ from .base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 
 EXCLUDE_FILTERS = ["AdditionalFilterPlugin", "SearchFilterPlugin"]
 
+# Section titles for each FilterCategory in the additional filters popup
+_FILTER_CATEGORY_TITLES = {
+    _FilterCategory.OTHER: "Multi-Option Filters",
+    _FilterCategory.PRIMS: "Prim Filters",
+    _FilterCategory.GROUP: "Group Filters",
+}
+
 
 class AdditionalFiltersPopupMenuItemDelegate(PopupMenuItemDelegate):
     def __init__(self, filter_obj: _StageManagerUSDFilterPlugin, value: dict, on_filter_changed_fn=None):
@@ -34,7 +42,7 @@ class AdditionalFiltersPopupMenuItemDelegate(PopupMenuItemDelegate):
         self.filter_obj = filter_obj
         self.text = filter_obj.display_name
         self.filter_active = value.get("filter_active", False)
-        self.filter_type = value.get("filter_type", "other")
+        self.filter_category = getattr(filter_obj, "filter_category", _FilterCategory.OTHER)
         self._on_filter_changed_fn = on_filter_changed_fn
         self._filter_changed_sub = None
         self._container = None
@@ -79,36 +87,36 @@ class AdditionalFiltersPopupMenu(AbstractPopupMenu):
         self.filters = filters
 
     def build_menu_items(self):
-        with ui.VStack(width=0, spacing=ui.Pixel(4)):
+        with ui.HStack(spacing=ui.Pixel(8)):
             ui.Spacer(width=0)
-            with ui.HStack():
-                ui.Spacer(width=4)
-                ui.Label("Multi-Option Filters", name="PropertiesPaneSectionTitle")
-            for item in self._delegate.items:
-                if item.filter_type == "other":
-                    item.build_item()
-            with ui.HStack():
-                ui.Spacer(width=4)
-                ui.Label("Prim Filters", name="PropertiesPaneSectionTitle")
-            for item in self._delegate.items:
-                if item.filter_type == "prims":
-                    item.build_item()
-            with ui.HStack():
-                ui.Spacer(width=4)
-                ui.Label("Group Filters", name="PropertiesPaneSectionTitle")
-            for item in self._delegate.items:
-                if item.filter_type == "group":
-                    item.build_item()
+            with ui.VStack():
+                ui.Spacer()
+                for category in _FilterCategory:
+                    items = self._delegate.items[category]
+                    if not items:
+                        continue
+                    with ui.HStack():
+                        ui.Spacer(width=4)
+                        ui.Label(_FILTER_CATEGORY_TITLES[category], name="PropertiesPaneSectionTitle")
+                    ui.Spacer(height=ui.Pixel(8))
+                    for item in items:
+                        item.build_item()
+                        if category != _FilterCategory.OTHER:
+                            ui.Spacer(height=ui.Pixel(4))
+                    ui.Spacer(height=ui.Pixel(4))
 
 
 class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
     def __init__(self, filters: list[_StageManagerUSDFilterPlugin], on_filter_changed_fn=None):
         super().__init__()
         self.filters = filters
-        self.items = []
+        self._on_filter_changed_fn = on_filter_changed_fn
+        self.items = {category: [] for category in _FilterCategory}
         for result in filters:
-            item = AdditionalFiltersPopupMenuItemDelegate(result[0], result[1], on_filter_changed_fn)
-            self.items.append(item)
+            filter_obj, value = result[0], result[1]
+            item = AdditionalFiltersPopupMenuItemDelegate(filter_obj, value, on_filter_changed_fn)
+            category = getattr(filter_obj, "filter_category", _FilterCategory.OTHER)
+            self.items[category].append(item)
 
     def build_title(self, item: ui.MenuItem):
         super().build_title(item)
@@ -116,31 +124,36 @@ class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
 
     def on_reset_all(self):
         """Reset all filter items to their default values."""
-        for item in self.items:
-            filter_obj = item.filter_obj
+        for category_items in self.items.values():
+            for item in category_items:
+                filter_obj = item.filter_obj
 
-            # Reset all field values
-            if isinstance(filter_obj, _ToggleableUSDFilterPlugin):
-                filter_obj.filter_active = False
-                item.filter_active = False
+                # Reset toggle state
+                if isinstance(filter_obj, _ToggleableUSDFilterPlugin):
+                    filter_obj.filter_active = False
+                    item.filter_active = False
 
-            for field_name, field_info in filter_obj.model_fields.items():
-                if field_name in ["display_name", "tooltip", "enabled", "filter_active"]:
-                    continue
-                # Skip private or excluded fields
-                if field_name.startswith("_") or field_info.exclude:
-                    continue
+                # Reset all field values and rebuild this item's UI
+                for field_name, field_info in filter_obj.model_fields.items():
+                    if field_name in {"display_name", "tooltip", "enabled", "filter_active"}:
+                        continue
+                    # Skip private or excluded fields
+                    if field_name.startswith("_") or field_info.exclude:
+                        continue
 
-                default_value = field_info.default
-                # Handle default_factory if present
-                if default_value is None and field_info.default_factory:
-                    default_value = field_info.default_factory()
+                    default_value = field_info.default
+                    # Handle default_factory if present
+                    if default_value is None and field_info.default_factory:
+                        default_value = field_info.default_factory()
 
-                setattr(filter_obj, field_name, default_value)
+                    setattr(filter_obj, field_name, default_value)
 
-            # Rebuild UI with reset values
-            item.build_item()
-            filter_obj.refresh_filter_items()
+                # Rebuild item UI with reset values and refresh filter
+                item.build_item()
+                filter_obj.refresh_filter_items()
+
+        if self._on_filter_changed_fn:
+            self._on_filter_changed_fn()
 
 
 class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
@@ -183,7 +196,7 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
         """
         is_modified = False
         for field_name, field_info in filter_obj.model_fields.items():
-            if field_name in ["display_name", "tooltip", "enabled"]:
+            if field_name in {"display_name", "tooltip", "enabled"}:
                 continue
             # Skip private or excluded fields
             if field_name.startswith("_") or field_info.exclude:
@@ -236,12 +249,6 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
                     value = {}
                     if isinstance(filter_plugin, _ToggleableUSDFilterPlugin):
                         value = {"filter_active": filter_plugin.filter_active}
-                    if "Group" in filter_plugin.display_name:
-                        value["filter_type"] = "group"
-                    elif "Prims" in filter_plugin.display_name or filter_plugin.name.endswith("Systems"):
-                        value["filter_type"] = "prims"
-                    else:
-                        value["filter_type"] = "other"
                     additional_filters.append([filter_plugin, value])
                 elif not isinstance(filter_plugin, _StageManagerUSDFilterPlugin):
                     carb.log_error(
@@ -250,6 +257,17 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
         except AttributeError as e:
             carb.log_error(f"Error getting active interaction plugin: {e}")
 
+        # Sort by FilterCategory (OTHER, PRIMS, GROUP) then by display_name
+        category_order = {c: i for i, c in enumerate(_FilterCategory)}
+        additional_filters.sort(
+            key=lambda x: (
+                category_order.get(
+                    getattr(x[0], "filter_category", _FilterCategory.OTHER),
+                    len(category_order),
+                ),
+                x[0].display_name,
+            )
+        )
         return additional_filters
 
     def _on_filter_changed(self):

@@ -87,8 +87,7 @@ def is_mouse_button_down(button=carb.input.MouseInput.LEFT_BUTTON) -> bool:
     iinput = carb.input.acquire_input_interface()
     app_window = omni.appwindow.get_default_app_window()
     mouse = app_window.get_mouse()
-    is_down = iinput.get_mouse_value(mouse, button)
-    return is_down
+    return iinput.get_mouse_value(mouse, button)
 
 
 def set_thickness(shapes: list[sc.AbstractShape], thickness: float):
@@ -274,7 +273,9 @@ class AbstractLightManipulator(sc.Manipulator):
 
     def _on_model_updated(self, item: sc.AbstractManipulatorItem):
         """Handle light subclass specific updates"""
-        if item in (self.model.intensity,):
+        if item in {
+            self.model.intensity,
+        }:
             # if intensity changed, update shape xform
             self.build_shape_xform()
 
@@ -398,7 +399,7 @@ class RectLightManipulator(AbstractLightManipulator):
         ]
 
     def _on_model_updated(self, item: sc.AbstractManipulatorItem):
-        if item in (self.model.width, self.model.height, self.model.intensity):
+        if item in {self.model.width, self.model.height, self.model.intensity}:
             # if width, height or intensity changed, update shape xform
             self.build_shape_xform()
 
@@ -503,7 +504,7 @@ class DiskLightManipulator(AbstractLightManipulator):
         ]
 
     def _on_model_updated(self, item: sc.AbstractManipulatorItem):
-        if item in (self.model.radius, self.model.intensity):
+        if item in {self.model.radius, self.model.intensity}:
             # if width, height or intensity changed, update shape xform
             self.build_shape_xform()
 
@@ -690,9 +691,13 @@ class SphereLightManipulator(IntensityMixinFor3DManipulators, AbstractLightManip
 
     def _on_model_updated(self, item: sc.AbstractManipulatorItem):
         """Handle light subclass specific updates"""
-        if item in (self.model.radius,):
+        if item in {
+            self.model.radius,
+        }:
             self.build_shape_xform()
-        if item in (self.model.intensity,):
+        if item in {
+            self.model.intensity,
+        }:
             self.build_intensity_xform()
 
 
@@ -768,7 +773,9 @@ class CylinderLightManipulator(IntensityMixinFor3DManipulators, AbstractLightMan
 
     def _on_model_updated(self, item: sc.AbstractManipulatorItem):
         """Handle light subclass specific updates"""
-        if item in (self.model.radius, self.model.length):
+        if item in {self.model.radius, self.model.length}:
             self.build_shape_xform()
-        if item in (self.model.intensity,):
+        if item in {
+            self.model.intensity,
+        }:
             self.build_intensity_xform()

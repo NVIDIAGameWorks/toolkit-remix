@@ -1,6 +1,26 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.11.0]
+### Added
+- REMIX-4575: Added `selection` property and `set_selection` method to `StageManagerTreeModel` to store live tree selection state in the model
+
+## [4.10.2]
+### Fixed
+- REMIX-5078: Fixed crash when building tree item widgets with expired prims after delete or restore
+
+## [4.10.1]
+### Changed
+- Applied new lint rules
+
+## [4.10.0]
+### Added
+- Added `filter_items_by_category` method to layer filter predicates
+
+## [4.9.3]
+### Changed
+- Removed unnecessary string-quoted type annotation
+
 ## [4.9.2]
 ### Changed
 - Using a shared string field for the nickname in the Stage Manager

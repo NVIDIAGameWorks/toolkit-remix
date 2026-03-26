@@ -17,7 +17,7 @@
 
 from typing import TYPE_CHECKING
 
-from omni.flux.utils.common import get_omni_prims as _get_omni_prims
+from omni.flux.utils.common.prims import get_omni_prims as _get_omni_prims
 from pydantic import Field
 
 from .base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 class OmniPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Omniverse Prims", exclude=True)
-    tooltip: str = Field(default="Filter out Omniverse prims", exclude=True)
+    tooltip: str = Field(default="Filter for Omniverse prims", exclude=True)
 
     def _filter_predicate(self, prim: "Usd.Prim") -> bool:
         return prim.GetPath() in _get_omni_prims()

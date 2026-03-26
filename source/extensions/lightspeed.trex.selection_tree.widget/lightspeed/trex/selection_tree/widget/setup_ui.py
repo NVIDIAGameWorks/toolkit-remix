@@ -84,11 +84,15 @@ class SetupUI:
             "_previous_tree_selection": None,
             "_instance_selection": None,
             "_previous_instance_selection": None,
+            "_pre_rebuild_expanded_paths": None,
+            "_user_expanded_paths": None,
+            "_is_internal_rebuild": None,
             "_current_tree_pressed_input": None,
             "_sub_tree_delegate_delete_ref": None,
             "_sub_tree_delegate_duplicate_ref": None,
             "_sub_tree_delegate_reset_ref": None,
             "_sub_tree_delegate_delete_prim": None,
+            "_sub_tree_delegate_item_expanded": None,
             "_light_creator_window": None,
             "_light_creator_widget": None,
             "_fake_frame_for_scroll": None,
@@ -109,6 +113,9 @@ class SetupUI:
         self._previous_tree_selection: list[_AnyItemType] = []
         self._instance_selection: list[_ItemInstance | _ItemInstancesGroup] = []
         self._previous_instance_selection: list[_ItemInstance | _ItemInstancesGroup] = []
+        self._pre_rebuild_expanded_paths: set[str] = set()
+        self._user_expanded_paths: set[str] = set()
+        self._is_internal_rebuild: bool = False
 
         self._current_tree_pressed_input = None
 
@@ -119,6 +126,7 @@ class SetupUI:
             self._on_duplicate_reference
         )
         self._sub_tree_delegate_duplicate_prim = self._tree_delegate.subscribe_duplicate_prim(self._on_duplicate_prim)
+        self._sub_tree_delegate_item_expanded = self._tree_delegate.subscribe_item_expanded(self._on_item_expanded)
 
         self.__on_tree_model_emptied = _Event()
         self.__create_ui()
@@ -246,6 +254,17 @@ class SetupUI:
     def refresh(self):
         self._tree_model.refresh()
 
+    def _on_item_expanded(self, item: _AnyItemType, expanded: bool):
+        key = self._tree_delegate.get_item_expansion_key(item)
+        if key is None:
+            return
+        if expanded:
+            self._pre_rebuild_expanded_paths.add(key)
+            self._user_expanded_paths.add(key)
+        else:
+            self._pre_rebuild_expanded_paths.discard(key)
+            self._user_expanded_paths.discard(key)
+
     def _on_duplicate_reference(self, item: _ItemReferenceFile):
         abs_path = omni.client.normalize_url(item.layer.ComputeAbsolutePath(item.path))
         self._add_new_ref_mesh(item, abs_path)
@@ -294,16 +313,20 @@ class SetupUI:
                     [item_prim.path for item_prim in item_prims], instance_paths
                 )
 
+        self._is_internal_rebuild = True
         with omni.kit.undo.group(), self._tree_model.refresh_only_at_the_end():
             self._core.delete_prim([item.path])
 
             stage = self._context.get_stage()
-            to_select = []
-            for path_str in to_select_path_str:
-                prim = stage.GetPrimAtPath(path_str)
-                if not prim.IsValid():
-                    continue
-                to_select.append(path_str)
+            to_select = [path_str for path_str in to_select_path_str if stage.GetPrimAtPath(path_str).IsValid()]
+
+            # If nothing valid was found to select (e.g. light prims have no instances),
+            # fall back to the root asset so the model stays populated and
+            # _pre_rebuild_expanded_paths is not wiped by the pruning step in __deferred_expand.
+            if not to_select:
+                root_asset = self._tree_model.get_root_asset_item(item)
+                if root_asset:
+                    to_select = [root_asset.path]
 
             if self._core.get_selected_prim_paths() == to_select:
                 # we force the refresh of the tree
@@ -370,6 +393,7 @@ class SetupUI:
         # filter out any invalid prim path
         to_select = [prim_path for prim_path in to_select if stage.GetPrimAtPath(prim_path).IsValid()]
 
+        self._is_internal_rebuild = True
         with omni.kit.undo.group(), self._tree_model.refresh_only_at_the_end():
             self._core.select_prim_paths(to_select, current_selection=current_selection)
             self._core.remove_reference(stage, item.prim.GetPath(), item.ref, item.layer)
@@ -405,9 +429,7 @@ class SetupUI:
         prototypes_stage_selected_paths = self._core.get_corresponding_prototype_prims_from_path(stage_selection)
         item_prims = all_items_by_types.get(_ItemPrim, [])
         item_group_instances = all_items_by_types.get(_ItemInstancesGroup, [])
-        for item in item_prims:
-            if item.path in prototypes_stage_selected_paths:
-                selection.append(item)
+        selection.extend(item for item in item_prims if item.path in prototypes_stage_selected_paths)
 
         # we select the instance in the tree
         for item in all_items_by_types.get(_ItemInstance, []):
@@ -422,9 +444,7 @@ class SetupUI:
         regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         for stage_selection_path in stage_selection:
             if regex_sub_light_pattern.match(stage_selection_path):
-                for item in item_prims:
-                    if item.path == stage_selection_path:
-                        selection.append(item)
+                selection.extend(item for item in item_prims if item.path == stage_selection_path)
             # but if this is a light, we select the group instance because a light doesn't have instances
             if regex_light_pattern.match(stage_selection_path):
                 selection.extend(item_group_instances)
@@ -438,10 +458,10 @@ class SetupUI:
             if isinstance(selection[-1], _ItemPrim):
                 to_add = False
             if to_add:
-                for item in self._previous_tree_selection:
-                    # we grab all reference file mesh
-                    if isinstance(item, _ItemReferenceFile):
-                        ref_file_items.append(item)
+                # we grab all reference file mesh
+                ref_file_items = [
+                    item for item in self._previous_tree_selection if isinstance(item, _ItemReferenceFile)
+                ]
             # if the size of ref is the same, we select the previous ref
             if ref_file_items and current_ref_mesh_file:  # noqa: SIM102
                 # same len ref as before, so we grab the previous selected index
@@ -449,8 +469,7 @@ class SetupUI:
                     len(current_ref_mesh_file) == ref_file_items[0].size_ref_index
                     and current_ref_mesh_file[0].prim == ref_file_items[0].prim
                 ):
-                    for ref_file_item in ref_file_items:
-                        selection.append(current_ref_mesh_file[ref_file_item.ref_index])
+                    selection.extend(current_ref_mesh_file[ref_file_item.ref_index] for ref_file_item in ref_file_items)
 
         # we select the corresponding prim instance
         self._ignore_select_prototype = True
@@ -690,9 +709,11 @@ class SetupUI:
 
         # if all lights are selected within light group, select the light group item itself
         all_light_groups: list[_ItemLiveLightGroup] = all_items_by_types.get(_ItemLiveLightGroup, [])
-        for light_group in all_light_groups:
-            if all(light_prim_item in items for light_prim_item in light_group.lights):
-                items.append(light_group)
+        items.extend(
+            light_group
+            for light_group in all_light_groups
+            if all(light_prim_item in items for light_prim_item in light_group.lights)
+        )
 
         all_item_instance_groups: list[_ItemInstancesGroup] = all_items_by_types.get(_ItemInstancesGroup, [])
         for instance_group in all_item_instance_groups:
@@ -714,14 +735,12 @@ class SetupUI:
                 prim_paths = [str(item.prim.GetPath()) for item in selected_instance_lights]
 
             # we swap all the item prim path with the current selected item instances
-            to_select_paths = []
-            for path in prim_paths:
-                for instance_item in self._instance_selection:
-                    if isinstance(instance_item, _ItemInstance):
-                        to_select_path = re.sub(
-                            constants.REGEX_MESH_TO_INSTANCE_SUB, str(instance_item.prim.GetPath()), path
-                        )
-                        to_select_paths.append(to_select_path)
+            to_select_paths = [
+                re.sub(constants.REGEX_MESH_TO_INSTANCE_SUB, str(instance_item.prim.GetPath()), path)
+                for path in prim_paths
+                for instance_item in self._instance_selection
+                if isinstance(instance_item, _ItemInstance)
+            ]
 
             # If we have a ref selected, add the path of the ref
             to_select_paths.extend([str(selected_ref.prim.GetPath()) for selected_ref in selected_ref_file_items])
@@ -897,11 +916,27 @@ class SetupUI:
                 carb.log_info("No reference set")
 
     @omni.usd.handle_exception
-    async def __deferred_expand(self, selection: list[_AnyItemType]):
+    async def __deferred_expand(self, selection: list[_AnyItemType]) -> list[_AnyItemType]:
+        """Expand tree items that should be visible after a model rebuild.
+
+        Expands ``_ItemAsset`` nodes unconditionally, all ancestors of the current
+        selection, and any items whose stable path key is present in
+        ``_pre_rebuild_expanded_paths``.
+
+        Returns the ordered list of items that are visible after expansion.
+        """
         if self._tree_view is None:
             return []
         if self._tree_model is None:
             return []
+
+        # On a regular selection-driven rebuild, reset the persistence set to only
+        # what the user explicitly expanded via the caret icon.  Deletion-driven
+        # rebuilds (flag set by _on_delete_prim / _on_delete_reference) must keep
+        # the existing set so that expansion state survives deletions.
+        if not self._is_internal_rebuild:
+            self._pre_rebuild_expanded_paths = set(self._user_expanded_paths)
+        self._is_internal_rebuild = False
 
         def get_items_to_expand(items):
             for sel in items:
@@ -914,11 +949,24 @@ class SetupUI:
 
         def set_expanded(items):
             for item_ in items:
-                # _ItemAsset is always expanded
-                if item_ not in items_to_expand and not isinstance(item_, _ItemAsset):
+                # _ItemAsset is always expanded; selection ancestors are always expanded;
+                # items whose key is already in _pre_rebuild_expanded_paths are restored.
+                item_key = self._tree_delegate.get_item_expansion_key(item_)
+                should_expand = (
+                    isinstance(item_, _ItemAsset)
+                    or item_ in items_to_expand
+                    or (item_key is not None and item_key in self._pre_rebuild_expanded_paths)
+                )
+                if not should_expand:
                     continue
                 self._tree_view.set_expanded(item_, True, False)
                 all_visible_items.add(item_)
+                # Record every expansion so it survives future rebuilds even when the
+                # selection changes (e.g. when a selected prim is deleted and the
+                # ancestor path can no longer restore this item).
+                # _ItemAsset is always-expand and needs no explicit tracking.
+                if item_key is not None:
+                    self._pre_rebuild_expanded_paths.add(item_key)
                 children = self._tree_model.get_item_children(item_)
                 all_visible_items.update(children)
                 set_expanded(children)
@@ -926,8 +974,7 @@ class SetupUI:
         await omni.kit.app.get_app().next_update_async()  # for tests...
         set_expanded(self._tree_model.get_item_children(None))
 
-        result = [item for item in self._tree_model.get_all_items() if item in all_visible_items]
-        return result
+        return [item for item in self._tree_model.get_all_items() if item in all_visible_items]
 
     def _on_slide_x_changed(self, x):
         size_manip = self._manip_frame.computed_width / 100 * self.SIZE_PERCENT_MANIPULATOR_WIDTH

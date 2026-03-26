@@ -1,6 +1,26 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.15.3]
+### Changed
+- REMIX-4575: `_on_selection_changed` now updates the tree model selection before synchronizing to the USD selection
+
+## [2.15.2]
+### Changed
+- Updated internal import paths for prim utilities
+
+## [2.15.1]
+### Changed
+- Applied new lint rules
+
+## [2.15.0]
+### Added
+- Added `GeometryPrimsFilterPlugin` to the interactions plugins
+
+## [2.14.1]
+### Fixed
+- Fixed selection being cleared after creating a new light
+
 ## [2.14.0]
 ### Added
 - Added nickname attribute changes to the interaction plugin to only refresh if there are new paths changes

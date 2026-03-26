@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.0]
+### Changed
+- REMIX-1088: Camera speed entry now uses `ui.FloatDrag` with drag-to-scrub support (step 0.1, min 0.0)
+
+## [1.6.5]
+### Changed
+- Applied new lint rules
+
 ## [1.6.4]
 ### Changed
 - Modernize python style and enable more ruff checks

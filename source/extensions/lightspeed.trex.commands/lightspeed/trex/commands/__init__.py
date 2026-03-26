@@ -15,11 +15,12 @@
 * limitations under the License.
 """
 
-from .custom_commands import SetPrimTypeName
+from .custom_commands import ClearReferenceListEditsCommand, SetPrimTypeName
 from .extension import LightspeedCommandsExtension
 from .particle import CreateParticleSystemCommand, RemoveParticleSystemCommand
 
 __all__ = [
+    "ClearReferenceListEditsCommand",
     "CreateParticleSystemCommand",
     "LightspeedCommandsExtension",
     "RemoveParticleSystemCommand",

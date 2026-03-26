@@ -2,6 +2,29 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.26.1]
+### Changed
+- Renamed override context menu labels from "Delete" to "Revert" for clearer user intent
+
+## [2.26.0]
+### Changed
+- REMIX-1088: Default float and int field builders now use `ui.FloatDrag` / `ui.IntDrag`, enabling drag-to-scrub on all numeric property fields including transforms
+
+## [2.25.0]
+### Fixed
+- REMIX-3411: Fixed `FileTexturePicker` accepting files with unsupported extensions; unsupported selections now show a prompt dialog listing valid texture formats
+
+## [2.24.1]
+### Changed
+- Applied new lint rules
+
+## [2.24.0]
+### Added
+- REMIX-5012: USD float/int field delegates for attributes with partial bounds (only min or only max)
+
+### Changed
+- REMIX-5012: Bounds resolution now supports partial and hard bounds, routing fully-bounded attributes to sliders and partially-bounded attributes to input fields
+
 ## [2.23.0]
 ### Added
 - Added `ui_metadata` dict parameter to `USDAttributeItem` for passing OGN-sourced UI hints (hard_min, soft_min, hard_max, soft_max, ui_step) to slider and other UI delegates
