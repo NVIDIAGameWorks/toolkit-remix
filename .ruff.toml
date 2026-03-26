@@ -149,6 +149,8 @@ extend-immutable-calls = [
 # Test __init__.py files re-export test classes for Kit test runner discovery
 "*/tests/**/__init__.py" = ["F401"]
 "*/tests/__init__.py" = ["F401"]
+# Sphinx config has late imports and shadows `copyright` by design
+"conf.py" = ["A001", "E402"]
 
 [lint.flake8-unused-arguments]
 # Ignore *args and **kwargs - these are intentionally unused in many interfaces

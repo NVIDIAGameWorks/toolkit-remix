@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.1]
+### Changed
+- Minor cleanup and better highlighting for color gradient field
+
+## [1.12.0]
+### Added
+- Added `ColorGradientField` delegate for editing color gradient attributes via a popup gradient editor
+
 ## [1.11.0]
 ### Changed
 - REMIX-1088: `FloatField` and `IntField` delegates now use `ui.FloatDrag` / `ui.IntDrag` widgets, enabling drag-to-scrub on all unbounded numeric fields

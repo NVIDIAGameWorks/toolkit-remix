@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from .color_gradient import GRADIENT_PRESETS
+from .color_gradient import ColorGradientWidget
 from .search import SearchExtension
 
-__all__ = ["SearchExtension"]
+__all__ = ["GRADIENT_PRESETS", "ColorGradientWidget", "SearchExtension"]

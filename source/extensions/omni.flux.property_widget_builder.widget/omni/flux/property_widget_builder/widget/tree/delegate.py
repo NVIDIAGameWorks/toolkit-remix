@@ -16,9 +16,11 @@
 """
 
 __all__ = (
+    "ClaimResult",
     "Delegate",
     "FieldBuilder",
     "FieldBuilderList",
+    "claim_each",
 )
 
 import abc
@@ -42,13 +44,39 @@ if TYPE_CHECKING:
 
 
 @dataclasses.dataclass
-class FieldBuilder:
-    """
-    A FieldBuilder simply connects a method used to "claim" the widget building of an item and a callable responsible
-    for creating the widgets.
+class ClaimResult:
+    """Return value from a builder's ``claim_func``.
+
+    ``primary`` items stay visible and are built by this builder.
+    ``companions`` are hidden (they belong to the same logical group but should not
+    render their own row in the property panel).
     """
 
-    claim_func: Callable[[Item], bool]
+    primary: list[Item] = dataclasses.field(default_factory=list)
+    companions: list[Item] = dataclasses.field(default_factory=list)
+
+    @property
+    def all_claimed(self) -> list[Item]:
+        return self.primary + self.companions
+
+
+def claim_each(predicate: Callable[[Item], bool]) -> Callable[[list[Item]], ClaimResult]:
+    """Wrap a per-item predicate into a ``claim_func`` (each match is primary, no companions)."""
+    return lambda items: ClaimResult(primary=[i for i in items if predicate(i)])
+
+
+@dataclasses.dataclass
+class FieldBuilder:
+    """
+    Connects a claim strategy with a widget build callable.
+
+    ``claim_func`` receives the full list of unclaimed items and returns a
+    :class:`ClaimResult` indicating which items this builder claims as primary (visible)
+    and which as companions (hidden).  Use :func:`claim_each` to wrap a simple per-item
+    predicate.  ``build_func`` builds the widget for each primary item.
+    """
+
+    claim_func: Callable[[list[Item]], ClaimResult]
     build_func: Callable[[Item], ui.Widget | list[ui.Widget] | None]
 
 
@@ -57,15 +85,16 @@ class FieldBuilderList(list[FieldBuilder]):
     A simple list of FieldBuilder with some helper methods to assist in constructing FieldBuilder instances.
     """
 
-    def register_build(self, claim_func: Callable[[Item], bool]):
+    def register_build(self, predicate: Callable[[Item], bool]):
         """
-        Decorator for simplifying the construction of a FieldBuilder wrapping a build method with a claim callable.
+        Decorator for simplifying the construction of a FieldBuilder wrapping a per-item predicate
+        with a build method.
         """
 
         def _deco(
             build_func: Callable[[Item], ui.Widget | list[ui.Widget] | None],
         ) -> Callable[[Item], ui.Widget | list[ui.Widget] | None]:
-            self.append(FieldBuilder(claim_func=claim_func, build_func=build_func))
+            self.append(FieldBuilder(claim_func=claim_each(predicate), build_func=build_func))
             return build_func
 
         return _deco
@@ -84,6 +113,7 @@ class Delegate(_TreeDelegateBase):
         self._right_aligned_labels = right_aligned_labels
 
         self._name_widgets = {}
+        self._builder_map: dict[int, FieldBuilder] = {}
         self._subscriptions: list[carb.Subscription] = []
 
         # This is populated during a right click event within `_show_menu`. We store this Menu instance to avoid it
@@ -99,6 +129,7 @@ class Delegate(_TreeDelegateBase):
                 "field_builders": None,
                 "_right_aligned_labels": None,
                 "_name_widgets": None,
+                "_builder_map": None,
                 "_subscriptions": None,
                 "_context_menu": None,
             }
@@ -112,6 +143,7 @@ class Delegate(_TreeDelegateBase):
         This method is called when the parent widget is hidden.
         """
         self._name_widgets.clear()
+        self._builder_map.clear()
         self._subscriptions.clear()
         self._selection.clear()
         self._context_menu = None
@@ -130,20 +162,50 @@ class Delegate(_TreeDelegateBase):
         """
         return [
             FieldBuilder(
-                claim_func=lambda _: True,
+                claim_func=claim_each(lambda _: True),
                 build_func=DefaultField(ui.StringField),
             ),
         ]
+
+    def resolve_claims(self, model: "Model") -> None:
+        """
+        Run claim resolution across all items in the model.
+
+        Iterates builders in ``reversed(field_builders)`` order (highest priority first).
+        Each builder's ``claim_func`` receives the current list of unclaimed items and
+        returns a :class:`ClaimResult`.  Companion items are hidden; primary items are
+        mapped to their builder; all claimed items are removed from the unclaimed pool.
+        """
+        all_items = model.get_all_items(include_hidden=True)
+        for item in all_items:
+            item.hidden = False
+        self._builder_map.clear()
+
+        unclaimed = list(all_items)
+        for builder in reversed(self.field_builders):
+            result = builder.claim_func(unclaimed)
+            if isinstance(result, bool):
+                print(
+                    f"[pwb.delegate] resolve_claims builder returned bool: claim_func={builder.claim_func!r} build_func={builder.build_func!r}"
+                )
+            if not result.all_claimed:
+                continue
+            for item in result.primary:
+                self._builder_map[id(item)] = builder
+            for item in result.companions:
+                item.hidden = True
+            claimed_ids = {id(item) for item in result.all_claimed}
+            unclaimed = [item for item in unclaimed if id(item) not in claimed_ids]
 
     def get_widget_builder(
         self, item, default: Callable[[Item], ui.Widget | list[ui.Widget] | None] = None
     ) -> Callable[[Item], ui.Widget | list[ui.Widget] | None]:
         """
-        Get a callable that will build widget(s) for the provided `item`.
+        Get the build callable for the provided ``item`` from the stored claim mapping.
         """
-        for field_builder in reversed(self.field_builders):
-            if field_builder.claim_func(item):
-                return field_builder.build_func
+        builder = self._builder_map.get(id(item))
+        if builder is not None:
+            return builder.build_func
         if default is None:
             raise ValueError(f"No custom field builder found for {item}")
         return default

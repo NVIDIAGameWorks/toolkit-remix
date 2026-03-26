@@ -2,6 +2,16 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.1]
+### Changed
+- Simplified `ColorGradientWidget` marker layout and drag handling
+- Improved outside-click dismissal reliability for gradient popup
+
+## [1.27.0]
+### Added
+- New `ColorGradientWidget` with gradient editor popup, draggable keyframe markers, colour picker, and gradient presets
+- Marker drag area expands dynamically when the popup window is resized taller, giving a larger grab target without overlapping the edit row
+
 ## [1.26.2]
 ### Changed
 - Updated internal import paths for prim utilities
