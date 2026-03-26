@@ -17,7 +17,9 @@
 
 __all__ = (
     "ALL_FIELD_BUILDERS",
+    "CURVE_FIELD_BUILDERS",
     "DEFAULT_FIELD_BUILDERS",
+    "GRADIENT_FIELD_BUILDERS",
     "LIGHT_FIELD_BUILDERS",
     "MATERIAL_FIELD_BUILDERS",
     "OGN_FIELD_BUILDERS",
@@ -27,12 +29,16 @@ __all__ = (
 
 from .aperture_pbr import MATERIAL_FIELD_BUILDERS
 from .base import DEFAULT_FIELD_BUILDERS, USDBuilderList
+from .curve import CURVE_FIELD_BUILDERS
+from .gradient import GRADIENT_FIELD_BUILDERS
 from .lights import LIGHT_FIELD_BUILDERS
 from .ogn import OGN_FIELD_BUILDERS
 
-# Note these are added in a specific order.
+# Composed in order; the delegate uses reversed() so last here is tried first.
 ALL_FIELD_BUILDERS = []
 ALL_FIELD_BUILDERS.extend(DEFAULT_FIELD_BUILDERS)
 ALL_FIELD_BUILDERS.extend(LIGHT_FIELD_BUILDERS)
 ALL_FIELD_BUILDERS.extend(MATERIAL_FIELD_BUILDERS)
 ALL_FIELD_BUILDERS.extend(OGN_FIELD_BUILDERS)
+ALL_FIELD_BUILDERS.extend(GRADIENT_FIELD_BUILDERS)
+ALL_FIELD_BUILDERS.extend(CURVE_FIELD_BUILDERS)

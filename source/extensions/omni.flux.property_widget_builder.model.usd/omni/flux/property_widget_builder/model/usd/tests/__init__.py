@@ -15,16 +15,27 @@
 * limitations under the License.
 """
 
+from .unit.test_delegate_alignment import TestDelegateAlignment
 from .unit.test_file_texture_picker import TestFileTexturePicker
 from .unit.test_relationship_item import TestUSDRelationshipItem
 from .unit.test_relationship_utils import TestRelationshipUtils
 from .unit.test_relationship_value_model import TestUsdRelationshipValueModel
 from .unit.test_usd_attribute_item_bounds import TestUSDAttributeItemBounds
 
+from .e2e.test_gradient_command import (
+    TestGradientEditorUndo,
+    TestSetGradientPrimvarsCommand,
+    TestUsdGradientWidgetLifecycle,
+)
+
 __all__ = [
+    "TestDelegateAlignment",
     "TestFileTexturePicker",
+    "TestGradientEditorUndo",
     "TestRelationshipUtils",
+    "TestSetGradientPrimvarsCommand",
     "TestUSDAttributeItemBounds",
     "TestUSDRelationshipItem",
+    "TestUsdGradientWidgetLifecycle",
     "TestUsdRelationshipValueModel",
 ]

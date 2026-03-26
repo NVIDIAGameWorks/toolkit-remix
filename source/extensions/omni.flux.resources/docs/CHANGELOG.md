@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.3]
+### Added
+- Gradient keyframe marker SVG icon
+
+## [2.1.2]
+### Added
+- Icons for the Curve Editor widget.
+
 ## [2.1.1]
 ## Fixed
 - Fixed Test assets to large to work without LFS

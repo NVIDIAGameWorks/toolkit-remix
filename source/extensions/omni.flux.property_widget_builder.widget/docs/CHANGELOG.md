@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.11.0]
+### Added
+- Edit group item support for multi-attribute grouped field builders (e.g. curve editor buttons)
+- Delegate now routes `USDAttributeEditGroupItem` through edit-group-specific field builders
+
 ## [2.10.5]
 ### Changed
 - Applied new lint rules

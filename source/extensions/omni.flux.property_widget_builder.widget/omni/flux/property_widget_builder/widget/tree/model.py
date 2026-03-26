@@ -22,9 +22,11 @@ __all__ = (
 )
 
 import abc
+import asyncio
 import typing
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
+import omni.kit.app
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 
@@ -45,6 +47,21 @@ class Item(_TreeItemBase):
 
         self._name_models: list[ItemModelBase] = []
         self._value_models: list[ItemModelBase] = []
+        self._hidden: bool = False
+        self._on_hidden_changed: Callable[[], None] | None = None
+
+    @property
+    def hidden(self) -> bool:
+        """Whether this item is excluded from the TreeView."""
+        return self._hidden
+
+    @hidden.setter
+    def hidden(self, value: bool):
+        if value == self._hidden:
+            return
+        self._hidden = value
+        if self._on_hidden_changed:
+            self._on_hidden_changed()
 
     @property
     @abc.abstractmethod
@@ -54,6 +71,8 @@ class Item(_TreeItemBase):
             {
                 "_name_models": None,
                 "_value_models": None,
+                "_hidden": None,
+                "_on_hidden_changed": None,
             }
         )
         return default_attr
@@ -151,10 +170,25 @@ class ItemGroup(Item):
 class Model(_TreeModelBase[_TreeItemBase]):
     """Model for the treeview that will show a list of item(s)"""
 
+    def __init__(self):
+        super().__init__()
+        self._hidden_refresh_task = None
+
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
+
+    def _schedule_refresh_from_hidden(self):
+        """Schedule a single ``_item_changed(None)`` on the next frame (debounced)."""
+        if self._hidden_refresh_task is not None and not self._hidden_refresh_task.done():
+            return
+
+        async def _do_refresh():
+            await omni.kit.app.get_app().next_update_async()
+            self._item_changed(None)
+
+        self._hidden_refresh_task = asyncio.ensure_future(_do_refresh())
 
     def set_items(self, items: list[Item]):
         """
@@ -164,6 +198,13 @@ class Model(_TreeModelBase[_TreeItemBase]):
             items: the items to show
         """
         self._items = items
+        stack = list(items)
+        while stack:
+            item = stack.pop()
+            if hasattr(item, "_on_hidden_changed"):
+                item._on_hidden_changed = self._schedule_refresh_from_hidden  # noqa: SLF001
+            if getattr(item, "children", None):
+                stack.extend(item.children)
         self.refresh()
 
     def refresh(self):
@@ -172,10 +213,13 @@ class Model(_TreeModelBase[_TreeItemBase]):
             item.refresh()
         self._item_changed(None)
 
-    def get_all_items(self):
+    def get_all_items(self, include_hidden: bool = False):
         def _get_children(items):
-            result = list(items)
+            result = []
             for item in items:
+                if not include_hidden and getattr(item, "hidden", False):
+                    continue
+                result.append(item)
                 if item.children:
                     result.extend(_get_children(item.children))
             return result
@@ -187,8 +231,10 @@ class Model(_TreeModelBase[_TreeItemBase]):
     def get_item_children(self, item: Item | None) -> list[Item]:
         """Returns all the children when the widget asks it."""
         if item is None:
-            return self._items
-        return item.children
+            children = self._items
+        else:
+            children = item.children
+        return [c for c in children if not getattr(c, "hidden", False)]
 
     def get_item_value_model_count(self, item: Item):
         """The number of columns"""

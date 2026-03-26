@@ -548,8 +548,10 @@ current_dict.update(
         "Image::EditTagDisabled": {"image_url": _get_icons("tag-edit"), "color": _WHITE_30},
         "Image::EditTag:hovered": {"image_url": _get_icons("tag-edit"), "color": _WHITE_80},
         "Image::ArrowLeft": {"image_url": _get_icons("arrow-left"), "color": _WHITE_60},
+        "Image::ArrowLeft:disabled": {"image_url": _get_icons("arrow-left"), "color": _WHITE_30},
         "Image::ArrowLeft:hovered": {"image_url": _get_icons("arrow-left"), "color": _WHITE_80},
         "Image::ArrowRight": {"image_url": _get_icons("arrow-right"), "color": _WHITE_60},
+        "Image::ArrowRight:disabled": {"image_url": _get_icons("arrow-right"), "color": _WHITE_30},
         "Image::ArrowRight:hovered": {"image_url": _get_icons("arrow-right"), "color": _WHITE_80},
         "Image::Filter": {"image_url": _get_icons("filter"), "color": _WHITE_60},
         "Image::Filter:hovered": {"image_url": _get_icons("filter"), "color": _WHITE_80},
@@ -844,6 +846,15 @@ current_dict.update(
         "Rectangle::ColorsWidgetSeparator": {
             "background_color": _WHITE_10,
             "border_width": 0,
+        },
+        "Rectangle::ColorGradientBarOverlay": {
+            "background_color": 0x00000000,
+            "border_width": 1,
+            "border_radius": 5,
+            "border_color": _WHITE_20,
+        },
+        "ImageWithProvider::ColorGradientBar": {
+            "border_radius": 5,
         },
         "FloatSliderField": {
             "draw_mode": ui.SliderDrawMode.FILLED,

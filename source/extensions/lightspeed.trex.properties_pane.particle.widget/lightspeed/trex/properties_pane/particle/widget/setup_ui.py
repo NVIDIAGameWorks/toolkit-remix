@@ -25,6 +25,7 @@ import omni.usd
 from lightspeed.common.constants import PARTICLE_PRIMVAR_PREFIX, PARTICLE_SCHEMA_NAME
 from lightspeed.trex.schemas.utils import get_schema_prim as _get_schema_prim
 from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
+from omni.flux.property_widget_builder.model.usd import USDAttributeEditGroupItem as _USDAttributeEditGroupItem
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.property_widget_builder.model.usd import USDAttrListItem as _USDAttrListItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
@@ -38,7 +39,10 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from pxr import Sdf, Usd
 
+from .particle_edit_groups import PARTICLE_CURVE_LOOKUP as _PARTICLE_CURVE_LOOKUP
+from .particle_edit_groups import PARTICLE_EDIT_GROUPS as _PARTICLE_EDIT_GROUPS
 from .particle_lookup_table import get_particle_lookup_table as _get_particle_lookup_table
+
 
 PARTICLE_ATTR_GROUP_ORDER = ("Spawn", "Target", "Visual", "Collision", "Simulation")
 PARTICLE_ATTR_GROUP_FALLBACK = "General"
@@ -305,10 +309,31 @@ class ParticleSystemPropertyWidget:
                         read_only=False,
                     )
 
+                # Tag items belonging to edit groups
+                curve_id = self._extract_curve_id(attr_name)
+                if curve_id and curve_id in _PARTICLE_CURVE_LOOKUP:
+                    _, layout, path = _PARTICLE_CURVE_LOOKUP[curve_id]
+                    attr_item.edit_group_layout = layout
+                    attr_item.edit_group_path = path
+
                 # Collect items by group (but don't add to items list yet)
                 if group_name not in group_items:
                     group_items[group_name] = _ItemGroup(group_name)
                 attr_item.parent = group_items[group_name]
+
+            # Create edit group outlet buttons in their specified accessor groups
+            if valid_paths:
+                prim_path = str(valid_paths[0])
+                for group in _PARTICLE_EDIT_GROUPS.values():
+                    for accessor_group in group.get("accessor_groups", []):
+                        if accessor_group not in group_items:
+                            group_items[accessor_group] = _ItemGroup(accessor_group)
+                        outlet = _USDAttributeEditGroupItem(
+                            edit_group_layout=group,
+                            context_name=self._context_name,
+                            prim_path=prim_path,
+                        )
+                        outlet.parent = group_items[accessor_group]
 
             # Add groups to items in the specified order
             items.extend(
@@ -331,6 +356,27 @@ class ParticleSystemPropertyWidget:
         self._update_create_button_state()
 
         self._refresh_done()
+
+    @staticmethod
+    def _extract_curve_id(attr_name: str) -> str | None:
+        """Strip the curve suffix (e.g. :values, :times) from an attribute name.
+
+        Returns the curve_id prefix, or None if the attr is not a curve suffix.
+        """
+        parts = attr_name.rsplit(":", 1)
+        if len(parts) == 2 and parts[1] in {
+            "times",
+            "values",
+            "inTangentTimes",
+            "inTangentValues",
+            "inTangentTypes",
+            "outTangentTimes",
+            "outTangentValues",
+            "outTangentTypes",
+            "tangentBrokens",
+        }:
+            return parts[0]
+        return None
 
     def _sort_particle_attributes(self, attr_names: list[str]) -> list[str]:
         # Find all min/max pairs dynamically

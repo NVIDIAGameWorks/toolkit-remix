@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.11.5]
+### Fixed
+- Fixed a just now failing test where a tickbox was being rebuild while the test kept an old reference to it
+
 ## [2.11.4]
 ### Changed
 - REMIX-1088: Updated test selectors for FloatDrag widgets

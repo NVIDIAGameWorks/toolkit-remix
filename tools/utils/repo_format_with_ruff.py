@@ -37,6 +37,35 @@ from omni.repo.lint import vendor_directory  # noqa: E402
 from omni.repo.man.guidelines import is_windows  # noqa: E402
 
 
+def _get_changed_python_files(target_branch="origin/main"):
+    """Get Python files changed between merge-base and HEAD."""
+    merge_base = subprocess.run(
+        ["git", "merge-base", "HEAD", target_branch],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+    if merge_base.returncode != 0:
+        print("Warning: could not determine merge-base, falling back to HEAD~1")
+        base = "HEAD~1"
+    else:
+        base = merge_base.stdout.strip()
+
+    diff = subprocess.run(
+        ["git", "diff", "--name-only", "--diff-filter=ACMR", base, "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+    files = [
+        os.path.join(REPO_ROOT, f)
+        for f in diff.stdout.strip().splitlines()
+        if f.endswith(".py") and os.path.isfile(os.path.join(REPO_ROOT, f))
+    ]
+    print(f"Found {len(files)} changed Python file(s)")
+    return files
+
+
 def main():
     ruff_bin_path = str(Path(vendor_directory, "bin", "ruff"))
     if is_windows():
@@ -54,24 +83,77 @@ def main():
     if os.path.exists(config_file):
         args.extend(["--config", config_file])
 
-    # Process arguments: convert --verify to --check, detect if path was provided
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print("Extra options (handled before ruff):")
+        print("  --changed              Format only Python files changed in this MR")
+        print("  --target-branch BRANCH Target branch for --changed (default: origin/main)")
+        print("  --verify               Check formatting without modifying files")
+        print()
+
     has_path = False
-    for arg in sys.argv[1:]:
+    use_changed = False
+    target_branch = "origin/main"
+    argv = sys.argv[1:]
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
         if arg == "--verify":
             args.append("--check")
+        elif arg == "--changed":
+            use_changed = True
+        elif arg == "--target-branch" and i + 1 < len(argv):
+            i += 1
+            target_branch = argv[i]
         elif not arg.startswith("-"):
             args.append(arg)
             has_path = True
         else:
             args.append(arg)
+        i += 1
 
-    # Always add default path if no path was explicitly provided
+    if use_changed and not has_path:
+        changed_files = _get_changed_python_files(target_branch)
+        if not changed_files:
+            print("No changed Python files found.")
+            sys.exit(0)
+        args.extend(changed_files)
+        has_path = True
+
     if not has_path:
         args.append(default_path)
 
     print(f"Running: {' '.join(args)}")
     result = subprocess.run(args)
     sys.exit(result.returncode)
+
+
+def _get_changed_python_files(target_branch="origin/main"):
+    """Get Python files changed between merge-base and HEAD."""
+    merge_base = subprocess.run(
+        ["git", "merge-base", "HEAD", target_branch],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+    if merge_base.returncode != 0:
+        print("Warning: could not determine merge-base, falling back to HEAD~1")
+        base = "HEAD~1"
+    else:
+        base = merge_base.stdout.strip()
+
+    diff = subprocess.run(
+        ["git", "diff", "--name-only", "--diff-filter=ACMR", base, "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+    files = [
+        os.path.join(REPO_ROOT, f)
+        for f in diff.stdout.strip().splitlines()
+        if f.endswith(".py") and os.path.isfile(os.path.join(REPO_ROOT, f))
+    ]
+    print(f"Found {len(files)} changed Python file(s)")
+    return files
 
 
 if __name__ == "__main__":
