@@ -125,6 +125,9 @@ class PropertyWidget:
         self._expansion_state[item.name_models[0].get_value_as_string()] = value
 
     def _on_item_changed(self, model, item):
+        if item is None:
+            self._delegate.resolve_claims(model)
+            self._tree_view.dirty_widgets()
         self._update_expansion_state_deferred()
         if item is not None:
             items = [item]

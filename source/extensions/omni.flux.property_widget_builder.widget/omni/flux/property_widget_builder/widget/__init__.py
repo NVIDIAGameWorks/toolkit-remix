@@ -16,6 +16,7 @@
 """
 
 __all__ = [
+    "ClaimResult",
     "Delegate",
     "FieldBuilder",
     "FieldBuilderList",
@@ -27,11 +28,12 @@ __all__ = [
     "Model",
     "PropertyWidget",
     "Serializable",
+    "claim_each",
     "clipboard",
 ]
 
 from .property_widget_builder import PropertyWidget
 from .tree import clipboard
-from .tree.delegate import Delegate, FieldBuilder, FieldBuilderList
+from .tree.delegate import ClaimResult, Delegate, FieldBuilder, FieldBuilderList, claim_each
 from .tree.item_model import ItemModel, ItemModelBase, ItemValueModel, Serializable
 from .tree.model import Item, ItemGroup, Model

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.7]
+### Fixed
+- Minor lint fix
+
 ## [2.1.6]
 ### Fixed
 - REMIX-4575: Fixed action widgets (`action_is_visible`, `custom_tags_list`) losing multiselection by reading the tree model selection to determine which paths the action applies to

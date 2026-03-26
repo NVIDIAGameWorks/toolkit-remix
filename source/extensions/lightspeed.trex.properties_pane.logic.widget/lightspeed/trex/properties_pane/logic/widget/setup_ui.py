@@ -51,7 +51,7 @@ from omni.flux.property_widget_builder.model.usd import (
 )
 from omni.flux.property_widget_builder.model.usd.field_builders.ogn import is_ogn_node_attr
 from omni.flux.property_widget_builder.model.usd.utils import is_property_relationship
-from omni.flux.property_widget_builder.widget import FieldBuilder, ItemGroup
+from omni.flux.property_widget_builder.widget import FieldBuilder, ItemGroup, claim_each
 from omni.flux.utils.common import Event, EventSubscription
 from omni.flux.utils.common.icons import get_prim_type_icons as _get_prim_type_icons
 from pxr import Sdf, Usd
@@ -74,7 +74,7 @@ def _is_const_asset_path_value(item) -> bool:
 
 # Field builder for ConstAssetPath.value - uses FilePicker instead of string field
 CONST_ASSET_PATH_FIELD_BUILDER = FieldBuilder(
-    claim_func=_is_const_asset_path_value,
+    claim_func=claim_each(_is_const_asset_path_value),
     build_func=FilePicker(use_relative_paths=True).build_ui,
 )
 

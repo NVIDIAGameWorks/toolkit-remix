@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.11.0"
+version = "1.12.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -38,11 +38,12 @@ icon = "data/images/icon.png"
 
 [[python.module]]
 name = "omni.flux.property_widget_builder.delegates"
-
 [[test]]
 dependencies = [
     "omni.flux.tests.dependencies",
+    "omni.flux.property_widget_builder.model.usd",
 ]
+
 
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",

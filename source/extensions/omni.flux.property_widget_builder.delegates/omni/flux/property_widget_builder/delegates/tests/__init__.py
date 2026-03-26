@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,8 @@ __all__ = (
     "TestAbstractValueField",
     "TestAbstractValueFieldUnit",
     "TestColorField",
+    "TestColorGradientDelegateIntegration",
+    "TestColorGradientField",
     "TestFloatField",
     "TestFloatFieldUnit",
     "TestFloatSliderField",
@@ -35,6 +37,8 @@ from .e2e import (
     TestAbstractSliderField,
     TestAbstractValueField,
     TestColorField,
+    TestColorGradientDelegateIntegration,
+    TestColorGradientField,
     TestFloatField,
     TestFloatSliderField,
     TestIntField,

@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5012: Added hard-bound clamping on slider delegates and new FloatField/IntField delegates with one-sided clamp support for partially-bounded OGN attributes
 - Added Claude Code agent hooks (completion gates, memory promotion) and updated rules, commands, and dev docs
 - REMIX-3540: Added Stage Manager support for deleting capture-originating prims and selective restore options (restore original asset vs. restore captured reference only)
+- REMIX-5003: Added a color gradient widget for editing particle color over time
+- REMIX-4880: Adding a generic fcurve editor
+- REMIX-5002: Integrating the Curve Editor and Gradient Widget in the Particles Property Panel
+- Updated particle system documentation for the Advanced Particle VFX features
 
 ### Changed
 

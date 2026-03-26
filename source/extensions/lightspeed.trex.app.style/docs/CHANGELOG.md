@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.22.1]
+### Added
+- Added disabled state styles for `ArrowLeft` and `ArrowRight` image icons
+
+## [1.22.0]
+### Added
+- Added `Rectangle::ColorGradientBarOverlay` and `ImageWithProvider::ColorGradientBar` styles for the `ColorGradientWidget`
 
 ## [1.21.4]
 ### Changed
