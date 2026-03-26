@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Added
+- Particle curve edit groups configuration for size, velocity, and rotation speed animations
+- Module-level curve lookup table for mapping primvar attributes to edit groups
+
+### Changed
+- Particle property panel now routes animatable curve attributes through edit-group-aware field builders
+
 ## [1.2.5]
 ### Changed
 - Applied new lint rules

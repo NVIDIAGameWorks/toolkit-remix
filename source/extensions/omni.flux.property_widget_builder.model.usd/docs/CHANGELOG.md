@@ -2,6 +2,20 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.28.0]
+### Added
+- `UsdColorGradientWidget` RAII subclass with automatic USD listener management on popup open/close
+- Per-curve bounds reading from USD schema `customData.limits` for curve editor
+- E2E tests for gradient command undo/redo with simulated UI interactions
+- Curve editor field builders now read per-attribute time and value bounds from USD schema
+
+### Fixed
+- Gradient undo now produces a single undo entry per drag instead of duplicates
+
+## [2.27.0]
+### Added
+- Added color gradient field builder that wires `ColorGradientField` to USD `:values`/`:times` attribute pairs with undo grouping
+
 ## [2.26.1]
 ### Changed
 - Renamed override context menu labels from "Delete" to "Revert" for clearer user intent

@@ -19,6 +19,8 @@ __all__ = (
     "TestAbstractSliderField",
     "TestAbstractValueField",
     "TestColorField",
+    "TestColorGradientDelegateIntegration",
+    "TestColorGradientField",
     "TestFloatField",
     "TestFloatSliderField",
     "TestIntField",
@@ -27,6 +29,8 @@ __all__ = (
 
 from .test_abstract_slider import TestAbstractSliderField
 from .test_abstract_value_field import TestAbstractValueField
+from .test_color_gradient import TestColorGradientField
+from .test_color_gradient_integration import TestColorGradientDelegateIntegration
 from .test_float_field import TestFloatField
 from .test_float_slider import TestFloatSliderField
 from .test_float_value import TestColorField

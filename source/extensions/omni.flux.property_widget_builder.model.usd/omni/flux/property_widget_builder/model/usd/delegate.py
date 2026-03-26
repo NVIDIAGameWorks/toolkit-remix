@@ -138,6 +138,8 @@ class USDDelegate(_Delegate):
     ):
         widgets = None
         has_override = any(v.is_overriden for v in item.value_models)
+        is_default = all(v.is_default for v in item.value_models)
+        is_mixed = any(v.is_mixed for v in item.value_models)
 
         row = self._rows.get(id(item))
         if row is None:
@@ -180,42 +182,72 @@ class USDDelegate(_Delegate):
             with ui.ZStack(
                 mouse_hovered_fn=lambda hovered: self._on_item_hovered(hovered, id(item)),
             ):
-                with ui.VStack():
-                    ui.Spacer()
-                    row.override_background_widgets.append(
-                        ui.Rectangle(
-                            name="OverrideBackground",
-                            height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE + 2),
-                            visible=has_override,
-                            style_type_name_override="OverrideBackground",
-                        )
+                row.override_background_widgets.append(
+                    ui.Rectangle(
+                        name="OverrideBackground",
+                        visible=has_override,
+                        style_type_name_override="OverrideBackground",
                     )
-                    ui.Spacer()
-                with ui.HStack():
-                    if column_id == 0:
-                        if not isinstance(item, _ItemGroup):
-                            with ui.HStack(width=0):
-                                if has_override:
-                                    tooltip = (
-                                        "The displayed value has overrides.\n\n"
-                                        "Click to view and manage the overrides."
-                                    )  # fmt: skip
-                                else:
-                                    tooltip = "When highlighted, the displayed value has overrides."
-                                row.more_widget = ui.Image(
-                                    "",
-                                    name="More" if has_override else "MoreForceDisabled",
-                                    tooltip=tooltip,
-                                    mouse_released_fn=lambda x, y, b, m: self._show_override_menu(model, item, b),
-                                    width=ui.Pixel(16),
-                                )
-                                ui.Spacer(width=ui.Pixel(8))
-                        widgets = NameField()(item, right_aligned=self._right_aligned_labels)
-                    if column_id == 1 and item.value_models:
-                        # NOTE: the _fallback_builder registered below makes it so that this method never fails to
-                        # return a builder. No need to provide a default.
-                        builder = self.get_widget_builder(item)
-                        widgets = builder(item)
+                )
+                if column_id == 0:
+                    outer = ui.VStack()
+                    with outer:
+                        with ui.HStack(height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE)):
+                            if not isinstance(item, _ItemGroup):
+                                with ui.HStack(width=0):
+                                    ui.Spacer(width=ui.Pixel(4))
+                                    with ui.VStack():
+                                        ui.Spacer()
+                                        row.mixed_indicator_widget = ui.Image(
+                                            "",
+                                            name="Mixed" if is_mixed else "MixedForceDisabled",
+                                            height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
+                                            width=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
+                                            tooltip=(
+                                                "Multiple values are selected.\n\nHover over value widget to see them."
+                                                if is_mixed
+                                                else "When highlighted, multiple values are selected."
+                                            ),
+                                        )
+                                        ui.Spacer()
+                                    ui.Spacer(width=ui.Pixel(4))
+                                    row.default_indicator_widget = ui.Circle(
+                                        style_type_name_override=(
+                                            "OverrideIndicatorForceDisabled" if is_default else "OverrideIndicator"
+                                        ),
+                                        tooltip=(
+                                            "When highlighted, the displayed value is not the default USD value."
+                                            if is_default
+                                            else (
+                                                "The displayed value is not the default USD value.\n\n"
+                                                "Click to reset the attribute to the default USD value."
+                                            )
+                                        ),
+                                        width=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
+                                        mouse_released_fn=lambda x, y, b, m: self._on_reset_item(b, item),
+                                    )
+                                    ui.Spacer(width=ui.Pixel(4))
+                                    if has_override:
+                                        override_tooltip = (
+                                            "The displayed value has overrides.\n\n"
+                                            "Click to view and manage the overrides."
+                                        )
+                                    else:
+                                        override_tooltip = "When highlighted, the displayed value has overrides."
+                                    row.more_widget = ui.Image(
+                                        "",
+                                        name="More" if has_override else "MoreForceDisabled",
+                                        tooltip=override_tooltip,
+                                        mouse_released_fn=lambda x, y, b, m: self._show_override_menu(model, item, b),
+                                        width=ui.Pixel(16),
+                                    )
+                                    ui.Spacer(width=ui.Pixel(8))
+                            NameField()(item, right_aligned=self._right_aligned_labels)
+                        ui.Spacer()
+                    widgets = [outer]
+                elif column_id == 1 and item.value_models:
+                    builder = self.get_widget_builder(item)
+                    widgets = builder(item)
 
         if widgets:
             row.attribute_widgets.extend(widgets)
@@ -238,61 +270,22 @@ class USDDelegate(_Delegate):
         self._rows[id(item)] = row
 
         has_override = any(v.is_overriden for v in item.value_models)
-        is_default = all(v.is_default for v in item.value_models)
-        is_mixed = any(v.is_mixed for v in item.value_models)
 
-        with ui.ZStack(mouse_hovered_fn=lambda hovered: self._on_item_hovered(hovered, id(item))):
-            with ui.VStack():
-                ui.Spacer()
-                row.override_background_widgets.append(
-                    ui.Rectangle(
-                        name="OverrideBackground",
-                        height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE + 2),
-                        visible=has_override,
-                        style_type_name_override="OverrideBackground",
-                    )
+        with ui.ZStack(
+            mouse_hovered_fn=lambda hovered: self._on_item_hovered(hovered, id(item)),
+        ):
+            row.override_background_widgets.append(
+                ui.Rectangle(
+                    name="OverrideBackground",
+                    visible=has_override,
+                    style_type_name_override="OverrideBackground",
                 )
-                ui.Spacer()
-            with ui.HStack(width=16 * (level + 2), height=self.DEFAULT_IMAGE_ICON_SIZE):
-                if model.can_item_have_children(item):
+            )
+            if model.can_item_have_children(item):
+                with ui.HStack(width=16 * (level + 2), height=self.DEFAULT_IMAGE_ICON_SIZE):
+                    ui.Spacer()
                     with ui.Frame(mouse_released_fn=lambda x, y, b, m: self._item_expanded(b, item, not expanded)):
                         super()._build_branch(model, item, column_id, level, expanded)
-                else:
-                    # Z Stack is used to reserve the space
-                    with ui.ZStack(width=ui.Pixel((self.DEFAULT_IMAGE_ICON_SIZE / 2) + 8)):
-                        with ui.HStack():
-                            ui.Spacer(width=ui.Pixel(8))
-                            with ui.VStack():
-                                ui.Spacer(height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 4))
-                                row.mixed_indicator_widget = ui.Image(
-                                    "",
-                                    name="Mixed" if is_mixed else "MixedForceDisabled",
-                                    height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
-                                    width=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
-                                    tooltip=(
-                                        "Multiple values are selected.\n\nHover over value widget to see them."
-                                        if is_mixed
-                                        else "When highlighted, multiple values are selected."
-                                    ),
-                                )
-                    with ui.ZStack(width=ui.Pixel((self.DEFAULT_IMAGE_ICON_SIZE / 2) + 16)):
-                        with ui.HStack():
-                            ui.Spacer(width=ui.Pixel(8))
-                            if is_default:
-                                tooltip = "When highlighted, the displayed value is not the default USD value."
-                            else:
-                                tooltip = (
-                                    "The displayed value is not the default USD value.\n\n"
-                                    "Click to reset the attribute to the default USD value."
-                                )
-                            row.default_indicator_widget = ui.Circle(
-                                style_type_name_override=(
-                                    "OverrideIndicatorForceDisabled" if is_default else "OverrideIndicator"
-                                ),
-                                tooltip=tooltip,
-                                width=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
-                                mouse_released_fn=lambda x, y, b, m: self._on_reset_item(b, item),
-                            )
 
     def _delete_overrides(self, item, layer=None):
         """
