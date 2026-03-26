@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Created 1.4.1-0 build
+- Created 1.4.2-0 build
 
 ### Changed
 
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-## [1.4.1-0]
+## [1.4.2-0]
 
 ### Added
 - Created 1.3.6-2 build
