@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.8]
+### Changed
+- Updated particle property panel integration for curve editor edit groups
+
 ## [1.3.7]
 ### Changed
 - Applied new lint rules

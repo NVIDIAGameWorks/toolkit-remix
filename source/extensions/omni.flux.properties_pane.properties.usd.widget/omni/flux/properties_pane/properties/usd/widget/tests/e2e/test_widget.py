@@ -103,9 +103,15 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         self.assertEqual(double_sided_widget.widget.model.get_value_as_bool(), True)
 
         # Act: toggle bool widget
-        self.assertEqual(double_sided_widget.widget.checked, True)  # returns False!
+        self.assertEqual(double_sided_widget.widget.checked, True)
         await omni.kit.ui_test.emulate_mouse_move(double_sided_widget.position + omni.kit.ui_test.Vec2(3, 3))
         await omni.kit.ui_test.emulate_mouse_click()
+
+        # Re-query — the property panel rebuilds widgets on USD change
+        double_sided_widget = ui_test.find(
+            f"{_window.title}//Frame/**/CheckBox[*].identifier=='/Xform/Cube.doubleSided,/Xform/Cube2.doubleSided'"
+        )
+        self.assertIsNotNone(double_sided_widget, "CheckBox should still exist after click")
         self.assertEqual(double_sided_widget.widget.checked, False)
 
         # we check that the value of the UI element changed

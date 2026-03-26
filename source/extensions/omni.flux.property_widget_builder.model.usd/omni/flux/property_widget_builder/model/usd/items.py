@@ -35,6 +35,8 @@ from omni.kit.window.popup_dialog import MessageDialog as _MessageDialog
 from pxr import Sdf, UsdGeom
 
 from .item_model.attr_list_model_value import UsdListModelAttrValueModel as _UsdListModelAttrValueModel
+from .item_model.edit_group_name import EditGroupNameModel as _EditGroupNameModel
+from .item_model.edit_group_value import EditGroupValueModel as _EditGroupValueModel
 from .item_model.attr_list_model_value import VirtualUsdListModelAttrValueModel as _VirtualUsdListModelAttrValueModel
 from .item_model.attr_name import UsdAttributeNameModel as _UsdAttributeNameModel
 from .item_model.attr_value import UsdAttributeValueModel as _UsdAttributeValueModel
@@ -74,6 +76,9 @@ class _BaseUSDAttributeItem(_Item):
         self._attribute_paths = attribute_paths
         self._name_models = []
         self._value_models = []
+
+        self.edit_group_layout: dict | None = None
+        self.edit_group_path: str | None = None
 
         self.__on_override_removed = _Event()
 
@@ -1001,6 +1006,38 @@ class USDRelationshipItem(_BaseUSDAttributeItem):
                 read_only=read_only,
             )
         ]
+
+    @property
+    def element_count(self) -> int:
+        return 1
+
+
+class USDAttributeEditGroupItem(_Item):
+    """Accessor outlet for a group of curve attributes.
+
+    Not backed by a USD attribute. The consumer places it in an ItemGroup
+    to show a button that opens the curve editor in multi-curve mode.
+
+    Args:
+        edit_group_layout: Panel-level layout dict (shared instance with tagged items).
+        context_name: USD context name.
+        prim_path: Prim path the curves live on.
+    """
+
+    def __init__(self, edit_group_layout: dict, context_name: str, prim_path: str):
+        super().__init__()
+        self.edit_group_layout = edit_group_layout
+        self.context_name = context_name
+        self.prim_path = prim_path
+
+        display = edit_group_layout.get("display_name", "Curves")
+        tooltip = edit_group_layout.get("tooltip", "")
+        self._name_models = [_EditGroupNameModel(display, tooltip)]
+        self._value_models = [_EditGroupValueModel()]
+
+    @property
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr
 
     @property
     def element_count(self) -> int:

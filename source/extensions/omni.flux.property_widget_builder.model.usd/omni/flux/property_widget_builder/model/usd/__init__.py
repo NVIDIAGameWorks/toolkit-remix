@@ -23,6 +23,7 @@ __all__ = [
     "FileTexturePicker",
     "USDAttrListItem",
     "USDAttributeDef",
+    "USDAttributeEditGroupItem",
     "USDAttributeItem",
     "USDAttributeItemStub",
     "USDAttributeXformItem",
@@ -50,6 +51,7 @@ from .field_builders import USDBuilderList
 from .item_delegates import ComboboxField, FileTexturePicker, USDFloatSliderField, USDIntSliderField
 from .items import (
     USDAttributeDef,
+    USDAttributeEditGroupItem,
     USDAttributeItem,
     USDAttributeItemStub,
     USDAttributeXformItem,

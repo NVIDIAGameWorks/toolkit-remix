@@ -18,4 +18,4 @@
 from .unit.test_action_is_visible import TestIsVisibleActionWidgetPlugin
 from .unit.test_custom_tags_list import TestCustomTagsWidgetPlugin
 
-__all__ = ["TestIsVisibleActionWidgetPlugin", "TestCustomTagsWidgetPlugin"]
+__all__ = ["TestCustomTagsWidgetPlugin", "TestIsVisibleActionWidgetPlugin"]

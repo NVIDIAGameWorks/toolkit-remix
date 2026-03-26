@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.26.2"
+version = "1.27.1"
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
 
@@ -34,6 +34,7 @@ icon = "data/images/icon.png"
 "omni.appwindow" = {}
 "omni.client" = {}
 "omni.flux.info_icon.widget" = {}
+"omni.flux.resources" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.pip_archive" = {}
 "omni.kit.search_core" = {}
