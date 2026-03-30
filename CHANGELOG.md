@@ -7,12 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
 ### Added
 - Created 1.4.1-0 build
 
 ### Changed
 
 ### Fixed
+- GLAB publishing using the new cli utility
 
 ### Removed
 
