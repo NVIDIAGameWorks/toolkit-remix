@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
 ### Added
 
 - Created 1.3.6-2 build
@@ -49,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3540: Renamed override context menu labels from "Delete" to "Revert" for clearer user intent
 
 ### Fixed
+- GLAB publishing using the new cli utility
 - REMIX-4347: Fixed Scan Folder for Ingestion showing invalid file types (e.g. .mdl) alongside valid formats
 - REMIX-3187, REMIX-2383: Fixed selection tree expanded items (lights group, xform nodes) collapsing after a prim or reference deletion
 - REMIX-4810: Fixed ComboBox dropdown becoming see-through when the header item is hovered
