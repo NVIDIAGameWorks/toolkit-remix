@@ -30,6 +30,7 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
 from lightspeed.trex.utils.common.prim_utils import get_reference_file_paths as _get_reference_file_paths
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
@@ -571,12 +572,9 @@ class ListModel(ui.AbstractItemModel):
 
         # Fallback to regex-based instance-to-prototype substitution for USD structures
         # where PrimIndex composition arc resolution fails (e.g., certain Composer exports)
-        prototype_path = constants.COMPILED_REGEX_INSTANCE_TO_MESH_SUB.sub(
-            rf"{constants.MESH_PATH}\2", str(prim.GetPath())
-        )
-        prototype_prim = self.stage.GetPrimAtPath(prototype_path)
-        if prototype_prim.IsValid():
-            return prototype_path
+        prototype_prim = _get_prototype(prim)
+        if prototype_prim is not None:
+            return str(prototype_prim.GetPath())
 
         return None
 
