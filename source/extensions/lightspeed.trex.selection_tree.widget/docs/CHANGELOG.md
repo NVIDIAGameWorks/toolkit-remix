@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.7]
+### Fixed
+- Fixed selection panel showing no hierarchy or properties for certain imported USD assets by adding regex-based prototype resolution fallback
+
 ## [1.9.6]
 ### Changed
 - Renamed restore tooltip from "Restore the original asset" to "Revert all modifications"
