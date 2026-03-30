@@ -30,6 +30,7 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
 from lightspeed.trex.utils.common.prim_utils import get_reference_file_paths as _get_reference_file_paths
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
@@ -564,13 +565,18 @@ class ListModel(ui.AbstractItemModel):
         prim = self.stage.GetPrimAtPath(path)
         if not prim.IsValid():
             return None
+
         root_node = prim.GetPrimIndex().rootNode
-        if not root_node:
-            return None
-        children = root_node.children
-        if not children:
-            return None
-        return str(children[0].path)
+        if root_node and root_node.children:
+            return str(root_node.children[0].path)
+
+        # Fallback to regex-based instance-to-prototype substitution for USD structures
+        # where PrimIndex composition arc resolution fails (e.g., certain Composer exports)
+        prototype_prim = _get_prototype(prim)
+        if prototype_prim is not None:
+            return str(prototype_prim.GetPath())
+
+        return None
 
     @staticmethod
     def __get_reference_prims(prims) -> dict[Usd.Prim, list[Sdf.Path]]:
