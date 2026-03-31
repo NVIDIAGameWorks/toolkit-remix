@@ -1,0 +1,35 @@
+[package]
+version = "1.0.0"
+authors = ["nvidia"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["event", "autosave", "save", "manager"]
+title = "Lightspeed Event Auto-Save"
+description = "Extension that periodically saves all dirty layers in the active project"
+category = "internal"
+
+[ui]
+name = "Lightspeed Event Auto-Save"
+
+[dependencies]
+"lightspeed.events_manager" = {}
+"lightspeed.layer_manager.core" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.notification_manager" = {}
+"omni.kit.usd.layers" = {}
+"omni.kit.widget.settings" = {}
+"omni.kit.window.preferences" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.event.autosave"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
