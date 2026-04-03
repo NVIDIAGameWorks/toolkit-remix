@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.16.0]
+### Added
+- Added `DeleteRestoreActionWidgetPlugin` to `AllLightsInteractionPlugin` so lights can be deleted and restored from the Stage Manager lights tab
+
+### Removed
+- Removed `GeometryPrimsFilterPlugin` from `AllPrimsInteractionPlugin.compatible_filters` and from `AllTagsInteractionPlugin.compatible_widgets`
+
 ## [2.15.3]
 ### Changed
 - REMIX-4575: `_on_selection_changed` now updates the tree model selection before synchronizing to the USD selection

@@ -138,6 +138,9 @@
             "name": "AllMeshesInteractionPlugin",
             "filters": [
                 {
+                    "name": "IsCaptureFilterPlugin"
+                },
+                {
                     "name": "SearchFilterPlugin"
                 },
                 {
@@ -377,6 +380,9 @@
             },
             "filters": [
                 {
+                    "name": "IsCaptureFilterPlugin"
+                },
+                {
                     "name": "SearchFilterPlugin"
                 },
                 {
@@ -458,6 +464,9 @@
                         },
                         {
                             "name": "AssignCategoryActionWidgetPlugin"
+                        },
+                        {
+                            "name": "DeleteRestoreActionWidgetPlugin"
                         },
                         {
                             "name": "NicknameToggleActionWidgetPlugin"

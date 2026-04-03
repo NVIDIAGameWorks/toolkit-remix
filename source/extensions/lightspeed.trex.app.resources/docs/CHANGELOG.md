@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.5]
+### Changed
+- Updated Stage Manager schema to use the lightspeed-specific `GeometryPrimsFilterPlugin` for the All Prims interaction
+
 ## [1.27.4]
 ### Changed
 - Updated interactions to refresh on nickname change

@@ -2,6 +2,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [2.8.0]
+### Removed
+- Removed `GeometryPrimsFilterPlugin` — a Lightspeed-specific implementation now owns this plugin name in the `StageManagerFactory`
+
 ## [2.7.4]
 ### Changed
 - Updated internal import paths for prim utilities
