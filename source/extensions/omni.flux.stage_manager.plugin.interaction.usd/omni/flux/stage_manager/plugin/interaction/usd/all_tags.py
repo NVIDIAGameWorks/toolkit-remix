@@ -50,7 +50,6 @@ class AllTagsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "CustomTagsWidgetPlugin",
             "DeleteRestoreActionWidgetPlugin",
             "FocusInViewportActionWidgetPlugin",
-            "GeometryPrimsFilterPlugin",
             "IsCaptureStateWidgetPlugin",
             "IsCategoryHiddenStateWidgetPlugin",
             "IsVisibleActionWidgetPlugin",

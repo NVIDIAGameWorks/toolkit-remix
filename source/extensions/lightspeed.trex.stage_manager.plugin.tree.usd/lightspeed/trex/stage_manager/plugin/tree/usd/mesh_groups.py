@@ -20,6 +20,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from lightspeed.common import constants
+from lightspeed.trex.utils.common.prim_utils import is_empty_mesh_prim as _is_empty_mesh_prim
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
 from lightspeed.trex.utils.common.prim_utils import is_mesh_prototype as _is_mesh_prototype
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
@@ -67,7 +68,9 @@ class MeshGroupsModel(_VirtualGroupsModel):
     def _build_items(self, items: Iterable[_StageManagerItem]) -> list[MeshGroupsItem] | None:
         tree_items = {}
 
-        # Create mesh group items as parents and create instance list
+        # Create mesh group items as parents and create instance list.
+        # _is_mesh_prototype and _is_empty_mesh_prim are mutually exclusive so both
+        # branches can safely share a single pass over items.
         instance_items = []
         for item in items:
             if _is_instance(item.data):
@@ -77,11 +80,18 @@ class MeshGroupsModel(_VirtualGroupsModel):
                 # Display name should be the mesh_HASH prim instead of "mesh", otherwise keep the original name
                 item_path = item.data.GetPath()
                 display_name = item_path.GetParentPath().name if item_path.name == "mesh" else item_path.name
-
-                tree_items[str(item.data.GetPath())] = self._build_item(
+                tree_items[str(item_path)] = self._build_item(
                     display_name,
                     item.data,
-                    tooltip=str(item.data.GetPath()),
+                    tooltip=str(item_path),
+                    is_virtual=True,
+                )
+            elif _is_empty_mesh_prim(item.data):
+                item_path = str(item.data.GetPath())
+                tree_items[item_path] = self._build_item(
+                    item.data.GetPath().name,
+                    item.data,
+                    tooltip=item_path,
                     is_virtual=True,
                 )
 

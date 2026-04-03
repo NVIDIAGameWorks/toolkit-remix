@@ -15,20 +15,10 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING
+from .unit.test_geometry_prims_filter import TestGeometryPrimsFilterUnit
+from .unit.test_is_capture_filter import TestIsCaptureFilterUnit
 
-from pxr import UsdGeom
-from pydantic import Field
-
-from .base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
-
-if TYPE_CHECKING:
-    from pxr import Usd
-
-
-class GeometryPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
-    display_name: str = Field(default="Geometry Prims", exclude=True)
-    tooltip: str = Field(default="Filter for geometry prims", exclude=True)
-
-    def _filter_predicate(self, prim: "Usd.Prim") -> bool:
-        return prim.IsA(UsdGeom.Mesh)
+__all__ = [
+    "TestGeometryPrimsFilterUnit",
+    "TestIsCaptureFilterUnit",
+]
