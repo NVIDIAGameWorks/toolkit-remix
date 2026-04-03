@@ -21,7 +21,6 @@ import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 
 from .additional_filters import AdditionalFilterPlugin as _AdditionalFilterPlugin
-from .geometry_prims import GeometryPrimsFilterPlugin as _GeometryPrimsFilterPlugin
 from .ignore_prims import IgnorePrimsFilterPlugin as _IgnorePrimsFilterPlugin
 from .light_prims import LightPrimsFilterPlugin as _LightPrimsFilterPlugin
 from .material_prims import MaterialPrimsFilterPlugin as _MaterialPrimsFilterPlugin
@@ -34,7 +33,6 @@ from .visible_prims import VisiblePrimsFilterPlugin as _VisiblePrimsFilterPlugin
 class StageManagerUSDFilterPluginsExtension(omni.ext.IExt):
     _PLUGINS = [
         _AdditionalFilterPlugin,
-        _GeometryPrimsFilterPlugin,
         _IgnorePrimsFilterPlugin,
         _LightPrimsFilterPlugin,
         _MaterialPrimsFilterPlugin,

@@ -62,55 +62,6 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         self._layer_manager = LayerManagerCore(self._context_name)
         self._restore_context_menu: ui.Menu | None = None
 
-    def _is_ghost_prim(self, prim: Usd.Prim) -> bool:
-        """Detect a ghost prim — a valid, typeless instance child whose prototype was deleted.
-
-        A ghost appears when a capture reference is removed from a prototype
-        but the capture layer still holds an ``over`` spec for the corresponding
-        instance child.  Only instance children can become ghosts; the prototype
-        must no longer exist for the prim to qualify.
-        """
-        if not prim_utils.is_instance(prim):
-            return False
-
-        if prim_utils.get_prototype(prim) is not None:
-            return False
-
-        return prim.IsValid() and not prim.GetTypeName()
-
-    def _has_replacement_ref_edits(self, prim: Usd.Prim, rep_layers: set[Sdf.Layer]) -> bool:
-        """Check whether any replacement layer has reference list edits for this prim.
-
-        Detects edits such as an explicitly emptied reference list (from a
-        delete-capture operation) or any added/deleted/prepended/appended
-        reference entries.  Instance prims are resolved to their prototype
-        before inspecting layers.
-
-        Returns ``False`` for bare ``over`` specs with no reference opinions,
-        such as those left behind by Kit undo operations.
-
-        Args:
-            prim: The USD prim to inspect.
-            rep_layers: Replacement layers to search for reference list edits.
-        """
-        proto = prim_utils.get_prototype(prim)
-        if proto is not None and proto is not prim:
-            prim = proto
-        path = prim.GetPath()
-        for layer in rep_layers:
-            prim_spec = layer.GetPrimAtPath(path)
-            if prim_spec:
-                ref_list = prim_spec.referenceList
-                if (
-                    ref_list.isExplicit
-                    or ref_list.addedItems
-                    or ref_list.deletedItems
-                    or ref_list.prependedItems
-                    or ref_list.appendedItems
-                ):
-                    return True
-        return False
-
     def _get_prim_action_type(self, prim: Usd.Prim) -> ActionType:
         """Classify a prim into an action type that determines its icon and callback.
 
@@ -141,14 +92,14 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
 
         rep_layers = self._layer_manager.get_replacement_layers()
         if self._core.prim_is_from_a_capture_reference(prim):
-            if self._is_ghost_prim(prim):
+            if prim_utils.is_ghost_prim(prim):
                 return self.ActionType.RESTOREGHOST
 
-            _, refs = self._find_prim_with_references(prim)
+            _, refs = prim_utils.find_prim_with_references(prim)
             if refs:
                 return self.ActionType.DELETECAPTURE
 
-            if self._has_replacement_ref_edits(prim, rep_layers):
+            if prim_utils.has_replacement_ref_edits(prim, rep_layers):
                 return self.ActionType.RESTORE
 
             return self.ActionType.RESTOREDISABLED
@@ -323,35 +274,6 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
             if ancestral_paths:
                 self._delete_ancestral_prims(ancestral_paths, rep_layers)
 
-    @staticmethod
-    def _find_prim_with_references(
-        prim: Usd.Prim,
-    ) -> tuple[Usd.Prim, list[tuple[Usd.Prim, Sdf.Reference, Sdf.Layer, int]]]:
-        """Walk up the prim hierarchy to find the nearest ancestor that holds references.
-
-        At each level the prim itself is checked first.  If it has no references
-        and is an instance, its prototype is checked as a fallback so that
-        callers operating on instance paths can discover prototype-owned refs.
-
-        Returns the prim that owns the references and its reference items, or
-        the original prim with an empty list if no references are found.
-        """
-        current = prim
-        while current and current.IsValid() and current.GetPath() != Sdf.Path("/"):
-            ref_items, _ = prim_utils.get_reference_file_paths(current)
-
-            if not ref_items:
-                proto = prim_utils.get_prototype(current)
-                if proto is not None and proto != current:
-                    ref_items, _ = prim_utils.get_reference_file_paths(proto)
-                    if ref_items:
-                        return proto, ref_items
-
-            if ref_items:
-                return current, ref_items
-            current = current.GetParent()
-        return prim, []
-
     def _delete_capture_prim_cb(self) -> None:
         """Remove the capture reference arc for all selected DELETECAPTURE prims.
 
@@ -369,7 +291,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
                 prim = stage.GetPrimAtPath(path)
                 if not prim or not prim.IsValid():
                     continue
-                _, ref_items = self._find_prim_with_references(prim)
+                _, ref_items = prim_utils.find_prim_with_references(prim)
                 for ref_prim, ref, layer, _ in ref_items:
                     if layer in rep_layers:
                         continue
@@ -435,6 +357,9 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
                     self._core.remove_prim_reference_overrides(target)
 
     def __del__(self):
+        if self._layer_manager is not None:
+            self._layer_manager.destroy()
+            self._layer_manager = None
         if self._restore_context_menu is not None:
             self._restore_context_menu.destroy()
             self._restore_context_menu = None
