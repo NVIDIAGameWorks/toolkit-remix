@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.1]
+### Changed
+- Refactored `DeleteRestoreActionWidgetPlugin` to use shared prim detection utilities from `lightspeed.trex.utils.common`
+
 ## [2.7.0]
 ### Added
 - Added `DELETECAPTURE` action type for deleting capture-originating meshes and lights by removing their capture reference arc
