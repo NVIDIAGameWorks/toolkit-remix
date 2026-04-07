@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.11.1]
+### Changed
+- REMIX-5117: Updated test imports to use renamed `FloatDragField` delegate (was `FloatSliderField`)
+
 ## [2.11.0]
 ### Added
 - Edit group item support for multi-attribute grouped field builders (e.g. curve editor buttons)

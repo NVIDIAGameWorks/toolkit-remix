@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.29.0]
+### Changed
+- REMIX-5117: Consolidated `USDFloatField`/`USDIntField` and `USDFloatSliderField`/`USDIntSliderField` into a single `USDFloatDragField`/`USDIntDragField` with unified bounds handling
+- REMIX-5117: Simplified OGN builder routing -- removed fully-bounded vs. unbounded bifurcation; all float/int OGN attributes now use `USDFloatDragField`/`USDIntDragField`
+- REMIX-5117: Removed `USDFloatField`, `USDIntField` (internal-only, replaced by `USDFloatDragField`/`USDIntDragField`)
+
 ## [2.28.0]
 ### Added
 - `UsdColorGradientWidget` RAII subclass with automatic USD listener management on popup open/close
