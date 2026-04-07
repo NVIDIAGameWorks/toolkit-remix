@@ -23,8 +23,7 @@ from omni.flux.property_widget_builder.widget import Item
 from omni.flux.stage_prim_picker.widget import StagePrimPickerField
 
 from ..mapping import FLOAT_TYPES, INT_TYPES
-from ..item_delegates.field import USDFloatField, USDIntField
-from ..item_delegates.slider import USDFloatSliderField, USDIntSliderField
+from ..item_delegates.drag import USDFloatDragField, USDIntDragField
 from ..items import USDAttributeItem, USDRelationshipItem
 from ..utils import get_type_name as _get_type_name
 from .base import USDBuilderList
@@ -46,10 +45,8 @@ def is_ogn_node_attr(item: Item, node_type: str, attr_name: str) -> bool:
         return False
     if not item.attribute_paths:
         return False
-    # Check attribute name matches
     if not any(path.name == attr_name for path in item.attribute_paths):
         return False
-    # Check node type via OmniGraph (NodeType.get_node_type() returns the type name string)
     prim_path = str(item.attribute_paths[0].GetPrimPath())
     node = og.get_node_by_path(prim_path)
     return node is not None and node.get_node_type().get_node_type() == node_type
@@ -63,47 +60,8 @@ def _is_ogn_item(item: Item) -> bool:
     return og.get_node_by_path(prim_path) is not None
 
 
-def _is_fully_bounded(item: Item) -> bool:
-    """Check if a USDAttributeItem has both min and max bounds defined."""
-    if not isinstance(item, USDAttributeItem):
-        return False
-    bounds = item.get_min_max_bounds()
-    if bounds is None:
-        return False
-    min_val, max_val, _, _ = bounds
-    return min_val is not None and max_val is not None
-
-
-def _is_bounded_float(item: Item) -> bool:
-    """Check if item is a float type with both min and max bounds defined."""
-    if not _is_fully_bounded(item):
-        return False
-    try:
-        metadata = item.value_models[0].metadata
-    except (IndexError, AttributeError):
-        return False
-    return _get_type_name(metadata) in FLOAT_TYPES
-
-
-def _is_bounded_int(item: Item) -> bool:
-    """Check if item is an int type with both min and max bounds defined."""
-    if not _is_fully_bounded(item):
-        return False
-    try:
-        metadata = item.value_models[0].metadata
-    except (IndexError, AttributeError):
-        return False
-    return _get_type_name(metadata) in INT_TYPES
-
-
 def _is_float_type(item: Item) -> bool:
-    """Check if item is a float-typed OGN attribute not handled by a slider.
-
-    Only matches OmniGraph node attributes.  Fully-bounded items are
-    excluded because they are routed to ``USDFloatSliderField`` instead.
-    """
-    if _is_fully_bounded(item):
-        return False
+    """Check if item is a float-typed OGN attribute."""
     if not _is_ogn_item(item):
         return False
     try:
@@ -114,13 +72,7 @@ def _is_float_type(item: Item) -> bool:
 
 
 def _is_int_type(item: Item) -> bool:
-    """Check if item is an int-typed OGN attribute not handled by a slider.
-
-    Only matches OmniGraph node attributes.  Fully-bounded items are
-    excluded because they are routed to ``USDIntSliderField`` instead.
-    """
-    if _is_fully_bounded(item):
-        return False
+    """Check if item is an int-typed OGN attribute."""
     if not _is_ogn_item(item):
         return False
     try:
@@ -138,28 +90,16 @@ OGN_FIELD_BUILDERS.append_builder_by_attr_name(
 )
 
 
-@OGN_FIELD_BUILDERS.register_build(_is_bounded_float)
-def _bounded_float_builder(item):
-    """Build a float slider for attributes with min/max bounds defined."""
-    return USDFloatSliderField().build_ui(item)
-
-
-@OGN_FIELD_BUILDERS.register_build(_is_bounded_int)
-def _bounded_int_builder(item):
-    """Build an int slider for attributes with min/max bounds defined."""
-    return USDIntSliderField().build_ui(item)
-
-
 @OGN_FIELD_BUILDERS.register_build(_is_float_type)
-def _float_field_builder(item):
-    """Build a float field for non-slider float attributes (clamped when bounds exist)."""
-    return USDFloatField().build_ui(item)
+def _float_builder(item):
+    """Build a float drag for OGN float attributes (bounds applied from metadata)."""
+    return USDFloatDragField().build_ui(item)
 
 
 @OGN_FIELD_BUILDERS.register_build(_is_int_type)
-def _int_field_builder(item):
-    """Build an int field for non-slider int attributes (clamped when bounds exist)."""
-    return USDIntField().build_ui(item)
+def _int_builder(item):
+    """Build an int drag for OGN int attributes (bounds applied from metadata)."""
+    return USDIntDragField().build_ui(item)
 
 
 @OGN_FIELD_BUILDERS.register_build(lambda item: isinstance(item, USDRelationshipItem))

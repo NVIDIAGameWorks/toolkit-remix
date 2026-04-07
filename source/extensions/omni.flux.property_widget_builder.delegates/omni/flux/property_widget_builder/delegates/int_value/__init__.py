@@ -15,8 +15,10 @@
 * limitations under the License.
 """
 
-__all__ = ("BytesToHuman", "IntField", "IntSliderField")
+__all__ = (
+    "BytesToHuman",
+    "IntDragField",
+)
 
 from .bytes_to_human_read import BytesToHuman
-from .field import IntField
-from .slider import IntSliderField
+from .drag import IntDragField

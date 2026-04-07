@@ -16,17 +16,11 @@
 """
 
 __all__ = (
-    "TestAbstractSliderFieldUnit",
-    "TestAbstractValueFieldUnit",
-    "TestFloatFieldUnit",
-    "TestFloatSliderFieldUnit",
-    "TestIntFieldUnit",
-    "TestIntSliderFieldUnit",
+    "TestAbstractDragFieldUnit",
+    "TestFloatDragFieldUnit",
+    "TestIntDragFieldUnit",
 )
 
-from .test_abstract_slider import TestAbstractSliderFieldUnit
-from .test_abstract_value_field import TestAbstractValueFieldUnit
-from .test_float_field import TestFloatFieldUnit
-from .test_float_slider import TestFloatSliderFieldUnit
-from .test_int_field import TestIntFieldUnit
-from .test_int_slider import TestIntSliderFieldUnit
+from .test_abstract_drag import TestAbstractDragFieldUnit
+from .test_float_drag import TestFloatDragFieldUnit
+from .test_int_drag import TestIntDragFieldUnit
