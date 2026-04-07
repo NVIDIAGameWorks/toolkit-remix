@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.13.0]
+### Changed
+- REMIX-5117: Consolidated `AbstractValueField` and `AbstractSliderField` into a single `AbstractDragField` base class with optional min/max bounds and independent hard-bound clamping
+- REMIX-5117: Renamed `FloatSliderField` to `FloatDragField` and `IntSliderField` to `IntDragField`; both now accept optional (None) min/max for unbounded drag fields
+- REMIX-5117: Removed `AbstractValueField`, `FloatField`, and `IntField` (internal-only, replaced by `AbstractDragField` / `FloatDragField` / `IntDragField`)
+
 ## [1.12.1]
 ### Changed
 - Minor cleanup and better highlighting for color gradient field

@@ -856,7 +856,7 @@ current_dict.update(
         "ImageWithProvider::ColorGradientBar": {
             "border_radius": 5,
         },
-        "FloatSliderField": {
+        "DragField": {
             "draw_mode": ui.SliderDrawMode.FILLED,
             "background_color": _GREY_50,
             "secondary_color": _BLUE_SEMI_SELECTED,
@@ -865,7 +865,7 @@ current_dict.update(
             "border_color": _WHITE_20,
             "font_size": 14,
         },
-        "FloatSliderFieldSelected": {
+        "DragFieldSelected": {
             "draw_mode": ui.SliderDrawMode.FILLED,
             "background_color": _GREY_50,
             "secondary_color": _BLUE_SELECTED,
@@ -874,7 +874,7 @@ current_dict.update(
             "border_color": _WHITE_40,
             "font_size": 14,
         },
-        "FloatSliderFieldMixed": {
+        "DragFieldMixed": {
             "draw_mode": ui.SliderDrawMode.FILLED,
             "background_color": _GREY_50,
             "secondary_color": _PALE_ORANGE_60,
@@ -883,7 +883,7 @@ current_dict.update(
             "border_color": _WHITE_20,
             "font_size": 14,
         },
-        "FloatSliderFieldRead": {
+        "DragFieldRead": {
             "draw_mode": ui.SliderDrawMode.FILLED,
             "background_color": _GREY_70,
             "secondary_color": _BLUE_SEMI_SELECTED,
@@ -892,7 +892,7 @@ current_dict.update(
             "border_color": _WHITE_20,
             "font_size": 14,
         },
-        "FloatSliderFieldReadMixed": {
+        "DragFieldReadMixed": {
             "draw_mode": ui.SliderDrawMode.FILLED,
             "background_color": _GREY_70,
             "secondary_color": _PALE_ORANGE_40,
@@ -901,7 +901,7 @@ current_dict.update(
             "border_color": _WHITE_20,
             "font_size": 14,
         },
-        "FloatSliderFieldSelectedMixed": {
+        "DragFieldSelectedMixed": {
             "draw_mode": ui.SliderDrawMode.FILLED,
             "background_color": _GREY_50,
             "secondary_color": _PALE_ORANGE_60,
