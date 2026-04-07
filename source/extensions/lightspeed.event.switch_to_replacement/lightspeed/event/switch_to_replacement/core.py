@@ -118,12 +118,12 @@ class SwitchToReplacementCore(_ILSSEvent):
                 submods.extend(child_submods)
             return sublayers, submods
 
-        layer_replacement = self._layer_manager.get_layer(LayerType.replacement)
+        layer_replacement = self._layer_manager.get_layer_of_type(LayerType.replacement)
         # we only save stage that have a replacement layer
         if not layer_replacement:
             # this can be ok when the user works on asset(s)
             # checking is there is a capture layer. If there is one, we need a replacement layer. If not, we don't care
-            layer_capture = self._layer_manager.get_layer(LayerType.capture)
+            layer_capture = self._layer_manager.get_layer_of_type(LayerType.capture)
             if layer_capture:
                 self.__show_message("Can't find the mod layer in the current stage")
                 return

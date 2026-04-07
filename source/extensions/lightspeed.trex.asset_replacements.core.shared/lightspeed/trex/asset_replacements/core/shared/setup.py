@@ -473,7 +473,7 @@ class Setup:
                     remove_prim_specs_recursive(sublayer, prim_spec_paths)
 
         # Get the root-level replacement layer
-        replacement_layer = self._layer_manager.get_layer(_LayerType.replacement)
+        replacement_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
         if not replacement_layer:
             return
 
@@ -501,7 +501,7 @@ class Setup:
         this method preserves attribute opinions, relationships, and metadata
         while clearing reference list edits.
         """
-        replacement_layer = self._layer_manager.get_layer(_LayerType.replacement)
+        replacement_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
         if not replacement_layer:
             return
 

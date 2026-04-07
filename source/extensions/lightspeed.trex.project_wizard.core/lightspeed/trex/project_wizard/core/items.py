@@ -116,12 +116,7 @@ class ProjectWizardSchema(BaseModel):
             raise ValueError(f"The path '{str(v)}' is not a USD file")
         # If we are opening a project:
         if values.get(ProjectWizardKeys.EXISTING_PROJECT.value, False):
-            # Always validate the layer type regardless of current context.
-            # _LayerManagerCore() uses the default USD context (omni.usd.get_context("")),
-            # but is_valid_layer_type only performs static file I/O via Sdf.Layer.FindOrOpen
-            # and does not depend on any active stage.
-            layer_manager = _LayerManagerCore()
-            valid = layer_manager.is_valid_layer_type(str(v), _LayerType.workfile)
+            valid = _LayerManagerCore.is_valid_layer_type(str(v), _LayerType.workfile)
             if not valid:
                 raise ValueError(
                     f"'{Path(str(v)).name}' is not a valid Remix project file. "

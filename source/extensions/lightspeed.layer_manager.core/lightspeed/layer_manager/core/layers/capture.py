@@ -25,12 +25,33 @@ from .i_layer import ILayer
 
 
 class CaptureLayer(ILayer):
+    """Layer type representing a Remix game capture (read-only game asset data)."""
+
     @property
     def layer_type(self) -> LayerType:
         return LayerType.capture
 
     def get_textures(self, texture_attribute):
-        layer = self.get_sdf_layer()
+        """
+        Collect texture asset paths for all materials in the capture layer that carry
+        the given shader attribute.
+
+        Opens the capture layer as its own ``Usd.Stage`` (isolated from the main stage)
+        and walks every child prim under ``ROOTNODE_LOOKS``, gathering those whose
+        ``SHADER`` child exposes ``texture_attribute``.
+
+        Args:
+            texture_attribute: The name of the ``UsdShade.Shader`` attribute to read
+                (e.g. ``inputs:diffuse_texture``).
+
+        Returns:
+            A 3-tuple of equal-length lists:
+            - ``collected_prim_paths``: ``Sdf.Path`` of each matching material prim.
+            - ``collected_asset_absolute_paths``: Resolved absolute path of each texture.
+            - ``collected_asset_relative_paths``: Path relative to the capture layer's
+              directory.
+        """
+        layer = self._get_sdf_layer()
         if not layer:
             return [], [], []
         capture_stage = Usd.Stage.Open(layer.realPath)
@@ -53,7 +74,23 @@ class CaptureLayer(ILayer):
         return collected_prim_paths, collected_asset_absolute_paths, collected_asset_relative_paths
 
     def get_textures_by_prim_paths(self, prim_paths, texture_attribute):
-        layer = self.get_sdf_layer()
+        """
+        Collect texture asset paths for a specific set of material prim paths.
+
+        Like ``get_textures``, but instead of walking all materials, only the prims
+        listed in ``prim_paths`` are queried.
+
+        Args:
+            prim_paths: Iterable of ``Sdf.Path`` (or path strings) for the material
+                prims to query.
+            texture_attribute: The name of the ``UsdShade.Shader`` attribute to read.
+
+        Returns:
+            A 2-tuple of equal-length lists:
+            - Resolved absolute paths of each found texture.
+            - Paths relative to the capture layer's directory.
+        """
+        layer = self._get_sdf_layer()
         capture_stage = Usd.Stage.Open(layer.realPath)
         collected_prim_paths = []
         collected_asset_absolute_paths = []

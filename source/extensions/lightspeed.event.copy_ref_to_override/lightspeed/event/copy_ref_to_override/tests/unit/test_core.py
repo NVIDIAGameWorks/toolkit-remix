@@ -20,6 +20,7 @@ import tempfile
 
 import omni.kit.app
 import omni.usd
+from lightspeed.event.copy_ref_to_override.core import CopyRefToPrimCore
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core.data_models import LayerType as _LayerType
 from omni.kit.test import AsyncTestCase
@@ -171,4 +172,44 @@ class TestCore(AsyncTestCase):
             self.assertEqual(
                 layer_replacement.subLayerPaths[:3],
                 [layer_random_01.identifier, layer_random_02.identifier, layer_random_03.identifier],
+            )
+
+    async def test_move_capture_baker_at_bottom_calls_get_layer_replacement_at_most_once(self):
+        """Verify that __move_capture_baker_at_bottom fetches the replacement layer at most once.
+
+        After the cache optimisation the replacement_layer parameter is supplied by the caller
+        (__create_capture_package_layer), so the method should NOT call get_layer(LayerType.replacement)
+        when a layer is already provided.
+        """
+        context = omni.usd.get_context()
+        async with make_temp_directory(context) as temp_dir:
+            stage, layer_replacement, _ = await self.__create_stage_and_layers(temp_dir=temp_dir)
+
+            core = CopyRefToPrimCore()
+
+            get_layer_call_counts = {"replacement": 0}
+            original_get_layer = core._layer_manager.get_layer_of_type
+
+            def counting_get_layer(layer_type, *args, **kwargs):
+                if layer_type == _LayerType.replacement:
+                    get_layer_call_counts["replacement"] += 1
+                return original_get_layer(layer_type, *args, **kwargs)
+
+            core._layer_manager.get_layer_of_type = counting_get_layer
+
+            # Call __move_capture_baker_at_bottom with the replacement_layer already provided.
+            # After the fix, this should not call get_layer(LayerType.replacement) at all.
+            core._CopyRefToPrimCore__move_capture_baker_at_bottom(replacement_layer=layer_replacement)
+
+            core._layer_manager.get_layer_of_type = original_get_layer
+            core.destroy()
+
+            self.assertLessEqual(
+                get_layer_call_counts["replacement"],
+                0,
+                msg=(
+                    f"get_layer(LayerType.replacement) was called "
+                    f"{get_layer_call_counts['replacement']} time(s) inside __move_capture_baker_at_bottom "
+                    f"even though replacement_layer was already supplied; expected 0"
+                ),
             )

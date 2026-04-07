@@ -23,12 +23,35 @@ from .i_layer import ILayer
 
 
 class AutoUpscaleLayer(ILayer):
+    """Layer type representing the Remix auto-upscale output layer."""
+
     @property
     def layer_type(self) -> LayerType:
         return LayerType.autoupscale
 
     def set_texture_attributes(self, texture_attribute, prim_paths, output_asset_relative_paths):
-        layer = self.get_sdf_layer()
+        """
+        Write upscaled texture asset paths back into the autoupscale layer.
+
+        Opens the autoupscale layer as a standalone ``Usd.Stage``, creates the
+        required ``ROOTNODE`` / ``ROOTNODE_LOOKS`` hierarchy if absent, and for each
+        prim path in ``prim_paths`` defines a ``UsdShade.Material`` + ``UsdShade.Shader``
+        prim with ``texture_attribute`` set to the corresponding upscaled asset path.
+        Color space is set to ``sRGB`` for diffuse attributes and ``raw`` for all others.
+
+        Args:
+            texture_attribute: Name of the shader attribute to write
+                (e.g. ``inputs:diffuse_texture``).
+            prim_paths: List of ``Sdf.Path`` values identifying the material prims to
+                create/update.
+            output_asset_relative_paths: List of relative asset paths (one per prim) for
+                the upscaled texture files.  Must be the same length as ``prim_paths``.
+
+        Raises:
+            RuntimeError: If ``prim_paths`` and ``output_asset_relative_paths`` have
+                different lengths.
+        """
+        layer = self._get_sdf_layer()
         auto_stage = Usd.Stage.Open(layer.realPath)
         auto_stage.DefinePrim(constants.ROOTNODE)
         auto_stage.DefinePrim(constants.ROOTNODE_LOOKS, constants.SCOPE)

@@ -151,8 +151,8 @@ class Setup:
             self._context.set_pending_edit(False)
             callback()
 
-        layer_capture = self._layer_manager.get_layer(_LayerType.capture)
-        layer_replacement = self._layer_manager.get_layer(_LayerType.replacement)
+        layer_capture = self._layer_manager.get_layer_of_type(_LayerType.capture)
+        layer_replacement = self._layer_manager.get_layer_of_type(_LayerType.replacement)
         if layer_capture and layer_replacement and self._context.has_pending_edit():
             # A project is open and has unsaved edits:
             _TrexMessageDialog(

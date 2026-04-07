@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.6]
+### Changed
+- Update call sites to use renamed `LayerManagerCore` API: `get_layer_of_type()` and `get_layers_of_type()` (was `get_layer()` / `get_layers()`)
+
+## [1.8.5]
+### Changed
+- Call `LayerManagerCore.is_valid_layer_type()` directly as a static method; remove local throwaway `LayerManagerCore` instantiation in validation path
+
 ## [1.8.4]
 ### Changed
 - Applied new lint rules

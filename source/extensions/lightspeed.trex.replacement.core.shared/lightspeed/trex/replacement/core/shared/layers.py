@@ -38,11 +38,11 @@ class AssetReplacementLayersCore:
 
     @property
     def _layer_replacement(self) -> Sdf.Layer | None:
-        return self._layer_manager.get_layer(_LayerType.replacement)
+        return self._layer_manager.get_layer_of_type(_LayerType.replacement)
 
     @property
     def _layer_capture(self) -> Sdf.Layer | None:
-        return self._layer_manager.get_layer(_LayerType.capture)
+        return self._layer_manager.get_layer_of_type(_LayerType.capture)
 
     @property
     def _layer_root(self) -> Sdf.Layer | None:

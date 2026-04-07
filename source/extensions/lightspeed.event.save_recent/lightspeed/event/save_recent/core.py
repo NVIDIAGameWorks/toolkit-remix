@@ -56,12 +56,12 @@ class EventSaveRecentCore(_ILSSEvent):
 
     def __on_save_event(self, event):
         if event.type in {int(omni.usd.StageEventType.SAVED), int(omni.usd.StageEventType.OPENED)}:
-            layer_capture = self.__layer_manager.get_layer(LayerType.capture)
+            layer_capture = self.__layer_manager.get_layer_of_type(LayerType.capture)
             # we only save stage that have a capture layer
             if not layer_capture:
                 carb.log_verbose("Can't find the capture layer in the current stage")
                 return
-            layer_replacement = self.__layer_manager.get_layer(LayerType.replacement)
+            layer_replacement = self.__layer_manager.get_layer_of_type(LayerType.replacement)
             # we only save stage that have a replacement layer
             if not layer_replacement:
                 carb.log_verbose("Can't find the replacement layer in the current stage")
