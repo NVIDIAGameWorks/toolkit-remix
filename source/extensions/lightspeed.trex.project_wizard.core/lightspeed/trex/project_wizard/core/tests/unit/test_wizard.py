@@ -187,7 +187,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual(0, mock.path_chmod_mock.call_count)
         self.assertEqual(0, mock.save_custom_data_mock.call_count)
         self.assertEqual(0, mock.layer_manager_mock.save_layer.call_count)
-        self.assertEqual(0, mock.layer_manager_mock.create_new_sublayer.call_count)
+        self.assertEqual(0, mock.layer_manager_mock.create_layer.call_count)
         self.assertEqual(0, mock.replacement_core_mock.import_replacement_layer.call_count)
         self.assertEqual(0, mock.capture_core_mock.import_capture_layer.call_count)
 
@@ -252,7 +252,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual(None, value)
         self.assertEqual(call(f'mklink /J "{deps_dir}" "{remix_dir}"', shell=True), mock.check_call_mock.call_args)
 
-    async def test_create_project_layer_should_create_new_sublayer_open_stage_and_return_layer_and_stage(self):
+    async def test_create_project_layer_should_create_layer_open_stage_and_return_layer_and_stage(self):
         # Arrange
         project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
 
@@ -261,7 +261,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         stage_mock = Mock()
         context_stage_mock = Mock()
 
-        create_sublayer_mock = core_mock.create_new_sublayer
+        create_layer_mock = core_mock.create_layer
 
         open_stage_mock = context_mock.open_stage_async
         future = asyncio.Future()
@@ -274,12 +274,12 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         stage = await self.core._create_project_layer(project_file, core_mock, context_mock, stage_mock, False)
 
         # Assert
-        self.assertEqual(1, create_sublayer_mock.call_count)
+        self.assertEqual(1, create_layer_mock.call_count)
         self.assertEqual(1, open_stage_mock.call_count)
 
-        args, kwargs = create_sublayer_mock.call_args
-        self.assertEqual((LayerType.workfile, str(project_file)), args)
-        self.assertEqual({"do_undo": False}, kwargs)
+        args, kwargs = create_layer_mock.call_args
+        self.assertEqual((str(project_file),), args)
+        self.assertEqual({"layer_type": LayerType.workfile, "set_edit_target": True, "do_undo": False}, kwargs)
 
         self.assertEqual(call(str(project_file)), open_stage_mock.call_args)
 
@@ -447,7 +447,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         # Arrange
 
         with WizardMockContext() as mock:
-            save_mock = mock.layer_manager_mock.save_layer
+            save_mock = mock.layer_manager_mock.save_layer_of_type
 
             # Act
             await self.core._save_project_layer(mock.layer_manager_mock, False)

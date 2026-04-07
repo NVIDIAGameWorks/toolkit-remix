@@ -169,7 +169,7 @@ class TestCore(AsyncTestCase):
 
             # remove the capture, camera should not change
             translate_values = self.__get_camera_translate_from_stage(context)
-            layer_manager.remove_layer(_LayerType.capture)
+            layer_manager.remove_layers_of_type(_LayerType.capture)
             await omni.kit.app.get_app().next_update_async()
             translate_values1 = self.__get_camera_translate_from_stage(context)
 

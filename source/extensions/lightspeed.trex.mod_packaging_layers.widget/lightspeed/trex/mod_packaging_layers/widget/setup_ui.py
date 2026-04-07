@@ -102,7 +102,7 @@ class ModPackagingLayersWidget:
 
     def _update_model_item_package_status(self, *_):
         # Get the root mod layer
-        replacement_layer = self._layer_core.get_layer(_LayerType.replacement)
+        replacement_layer = self._layer_core.get_layer_of_type(_LayerType.replacement)
         if not replacement_layer:
             return
 

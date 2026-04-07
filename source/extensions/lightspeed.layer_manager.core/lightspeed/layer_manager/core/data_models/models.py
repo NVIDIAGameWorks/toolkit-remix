@@ -182,7 +182,16 @@ class SaveLayerPathParamModel(BaseServiceModel):
 
 class GetLayersQueryModel(BaseServiceModel):
     """
-    Query model that modifies the behavior when getting layers.
+    Query parameters that filter which layers are returned by a get-layers request.
+
+    ``layer_types`` narrows results to specific ``LayerType`` values.  Including
+    ``None`` in the set matches layers that carry no ``lightspeed_layer_type`` tag
+    (i.e. untyped sublayers).  Leave ``layer_types`` as ``None`` to return all layers
+    regardless of type.
+
+    ``layer_count`` caps how many layers are returned per type entry in
+    ``layer_types``, which is useful when you only need to know whether at least one
+    layer of a given type exists.  Use ``-1`` (the default) to return all matches.
     """
 
     layer_types: set[LayerType | None] | None = Field(default=None, description="The type of layer to get")
@@ -223,7 +232,22 @@ class LayerTypeResponseModel(BaseServiceModel):
 
 class CreateLayerRequestModel(BaseServiceModel):
     """
-    Request model for creating a layer.
+    Request model for adding a new USD sublayer to the stage.
+
+    Supports two modes controlled by ``create_or_insert``:
+
+    - **Create** (``True``, default): a new USD file is written to ``layer_path``,
+      which must not already exist on disk.
+    - **Insert** (``False``): an existing USD file at ``layer_path`` is inserted as a
+      sublayer without overwriting its content.
+
+    Validation (applied at model construction time):
+
+    - ``layer_path`` must point to a ``.usd``/``.usda``/``.usdc`` file.
+    - In create mode the path must not already exist; in insert mode it must.
+    - If ``parent_layer_id`` is supplied it must be in the currently loaded project and
+      must not be excluded from receiving sublayers.
+    - ``sublayer_position`` must be ``-1`` (append) or a non-negative integer.
     """
 
     layer_path: Path = Field(description="The path to the layer to create")

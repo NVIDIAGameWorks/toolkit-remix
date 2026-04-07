@@ -109,7 +109,7 @@ class ModPackagingDetailsWidget:
             self._details_field = ui.StringField(multiline=True, height=ui.Pixel(90), identifier="details_field")
 
     def _update_default_values(self):
-        replacement_layer = self._layer_manager.get_layer(_LayerType.replacement)
+        replacement_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
 
         # Update default mod name
         if _LSS_LAYER_MOD_NAME in replacement_layer.customLayerData:

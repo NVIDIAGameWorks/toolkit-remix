@@ -20,17 +20,24 @@ from __future__ import annotations
 import abc
 
 import omni.kit.commands
-import omni.kit.undo
 import omni.usd
-import six
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from pxr import Sdf
 
 from ..data_models import LayerType, LayerTypeKeys
 
 
-@six.add_metaclass(abc.ABCMeta)
-class ILayer:
+class ILayer(abc.ABC):
+    """
+    Abstract base class for Remix layer type objects.
+
+    Each concrete subclass represents one Remix layer type (capture, replacement,
+    autoupscale, etc.) and is responsible for locating and managing the
+    USD sublayer that carries that type's ``lightspeed_layer_type`` customLayerData tag.
+
+    Instances hold a reference to the owning ``LayerManagerCore`` (``_core``) and an
+    optional dict of extra customLayerData to stamp onto newly created sublayers.
+    """
+
     def __init__(self, core):
         self._default_attr = {}
         for attr, value in self.default_attr.items():
@@ -46,16 +53,39 @@ class ILayer:
     @property
     @abc.abstractmethod
     def layer_type(self) -> LayerType:
+        """The Remix ``LayerType`` enum value that identifies this layer."""
         pass
 
     def set_custom_layer_data(self, value: dict[str, str]):
-        """Custom layer data to be saved"""
+        """
+        Store extra customLayerData entries to be merged into the layer on creation.
+
+        Args:
+            value: Key/value pairs to add to ``Sdf.Layer.customLayerData`` when
+                ``LayerManagerCore._set_custom_layer_type_data_with_identifier`` is called.
+                The ``lightspeed_layer_type`` key is always written automatically; entries
+                here supplement it.
+        """
         self.__custom_layer_data = value
 
     def get_custom_layer_data(self):
+        """
+        Return the extra customLayerData dict previously set via ``set_custom_layer_data``.
+
+        Returns:
+            The stored dict, or ``None`` if ``set_custom_layer_data`` has not been called.
+        """
         return self.__custom_layer_data
 
-    def flatten_sublayers(self, delete_sublayer_files: bool = True):
+    def _flatten_sublayers(self, delete_sublayer_files: bool = True):
+        """
+        Flatten the entire stage layer stack into the root layer and optionally delete the
+        now-redundant sublayer files from disk.
+
+        Args:
+            delete_sublayer_files: When ``True`` (default), every sublayer file that is not
+                the root layer is deleted via ``omni.client.delete`` after flattening.
+        """
         usd_context = omni.usd.get_context(self._core.context_name or "")
         stage = usd_context.get_stage()
         root_layer = stage.GetRootLayer()
@@ -67,52 +97,15 @@ class ILayer:
                     continue
                 omni.client.delete(layer.realPath)
 
-    def create_sublayer(
-        self,
-        path: str = None,
-        sublayer_create_position: int = 0,
-        parent_layer: Sdf.Layer | None = None,
-        do_undo: bool = True,
-        replace_existing: bool = True,
-    ):
-        if do_undo:
-            omni.kit.undo.begin_group()
-        if replace_existing:
-            need_new_layer = self._core.get_layer(self.layer_type)
-            if need_new_layer is not None:
-                self._core.remove_layer(self.layer_type, do_undo=False)
-        usd_context = omni.usd.get_context(self._core.context_name or "")
-        stage = usd_context.get_stage()
-        if not parent_layer:
-            parent_layer = stage.GetRootLayer()
-        current_layers = stage.GetLayerStack()
-        success, _ = omni.kit.commands.execute(
-            "CreateOrInsertSublayer",
-            layer_identifier=parent_layer.identifier,
-            sublayer_position=sublayer_create_position,
-            new_layer_path=path if path else "",
-            transfer_root_content=False,
-            create_or_insert=True,
-            usd_context=self._core.context_name or "",
-        )
-        if not success:
-            return None
+    def _get_sdf_layer(self):
+        """
+        Find and return the ``Sdf.Layer`` in the current stage that carries this
+        layer type's ``lightspeed_layer_type`` tag.
 
-        # Add the desired metadata:
-        layers = stage.GetLayerStack()
-        new_layers = list(set(layers) - set(current_layers))
-        layer = sorted(new_layers, key=lambda x: x.GetDisplayName())[0]
-        custom_layer_data = layer.customLayerData
-        custom_layer_data.update({LayerTypeKeys.layer_type.value: self.layer_type.value})
-        if self.__custom_layer_data:
-            custom_layer_data.update(self.__custom_layer_data)
-        layer.customLayerData = custom_layer_data
-        layer.Save()
-        if do_undo:
-            omni.kit.undo.end_group()
-        return layer
-
-    def get_sdf_layer(self):
+        Returns:
+            The matching ``Sdf.Layer``, or ``None`` if the stage is not open or no
+            layer with the expected type tag is present in the layer stack.
+        """
         usd_context = omni.usd.get_context(self._core.context_name or "")
         stage = usd_context.get_stage()
         if stage is None:

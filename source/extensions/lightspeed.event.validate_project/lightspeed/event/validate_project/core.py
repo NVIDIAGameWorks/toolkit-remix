@@ -102,17 +102,17 @@ class EventValidateProjectCore(_ILSSEvent):
         carb.log_warn(message)
 
     def __validate_project(self):
-        project_layer = self.__layer_manager.get_layer(LayerType.workfile)
+        project_layer = self.__layer_manager.get_layer_of_type(LayerType.workfile)
         if not project_layer:
             carb.log_warn("Could not validate project. No project layer was found.")
             return
 
-        capture_layer = self.__layer_manager.get_layer(LayerType.capture)
+        capture_layer = self.__layer_manager.get_layer_of_type(LayerType.capture)
         if not capture_layer:
             carb.log_warn("Could not validate project. No capture layer was found.")
             return
 
-        mod_layer = self.__layer_manager.get_layer(LayerType.replacement)
+        mod_layer = self.__layer_manager.get_layer_of_type(LayerType.replacement)
         if not mod_layer:
             carb.log_warn("Could not validate project. No mod layer was found.")
             return
