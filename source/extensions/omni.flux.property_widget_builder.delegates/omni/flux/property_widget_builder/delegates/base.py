@@ -154,7 +154,14 @@ class AbstractDragField(AbstractField):
         omni.kit.undo.begin_group()
 
     def end_edit(self, model) -> None:
-        """End the undo group for drag edit, clamping to hard bounds."""
+        """End the undo group for drag edit, clamping to hard bounds.
+
+        Note: when a user **types** a value, the ``pre_set_value`` callback (registered in
+        :meth:`build_ui`) has already clamped the value before it reached USD, so
+        ``_clamp_to_hard_bounds`` here is a no-op for typed input.  This call exists to
+        catch the **drag** path, where the widget may land slightly outside the hard bounds
+        due to floating-point rounding at the end of a drag gesture.
+        """
         self._clamp_to_hard_bounds(model)
         omni.kit.undo.end_group()
 
@@ -183,6 +190,35 @@ class AbstractDragField(AbstractField):
         """
         raise NotImplementedError
 
+    @staticmethod
+    def _make_hard_clamp_fn(hard_min, hard_max):
+        """Return a ``pre_set_value`` callback that clamps scalar values to ``[hard_min, hard_max]``.
+
+        Args:
+            hard_min: Lower clamp bound, or ``None`` for no lower limit.
+            hard_max: Upper clamp bound, or ``None`` for no upper limit.
+
+        Note: ``omni.ui`` drag widgets only honour ``min``/``max`` for mouse-drag input.
+        When a user types a value directly, the widget bypasses those limits and calls
+        ``model.set_value()`` immediately with the raw typed value.  The ``pre_set_value``
+        callback registered here intercepts the value *before* it is written to USD,
+        so out-of-range typed values are clamped before any downstream system can react.
+        """
+
+        def _clamp(set_fn, val):
+            if isinstance(val, (int, float)):
+                clamped = val
+                if hard_min is not None and clamped < hard_min:
+                    clamped = hard_min
+                if hard_max is not None and clamped > hard_max:
+                    clamped = hard_max
+                # Preserve the original value type (int vs float) so the model
+                # receives the same type it would have without clamping.
+                val = type(val)(clamped)
+            set_fn(val)
+
+        return _clamp
+
     def build_ui(self, item, **kwargs) -> list[ui.Widget]:  # PLW0221
         """Build drag widgets for each element of the item, with undo grouping and tooltips."""
         self._subs.clear()
@@ -192,6 +228,11 @@ class AbstractDragField(AbstractField):
                 value_model = item.value_models[i]
                 self._subs.append(value_model.subscribe_begin_edit_fn(self.begin_edit))
                 self._subs.append(value_model.subscribe_end_edit_fn(self.end_edit))
+
+                if self.hard_min_value is not None or self.hard_max_value is not None:
+                    value_model.set_callback_pre_set_value(
+                        self._make_hard_clamp_fn(self.hard_min_value, self.hard_max_value)
+                    )
 
                 ui.Spacer(width=ui.Pixel(_PER_ELEMENT_SPACER_WIDTH))
                 with ui.VStack():
