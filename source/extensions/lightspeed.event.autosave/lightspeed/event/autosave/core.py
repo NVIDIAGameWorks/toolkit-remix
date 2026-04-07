@@ -19,7 +19,6 @@ import asyncio
 
 import carb
 import omni.kit.notification_manager as _nm
-import omni.kit.usd.layers as _layers
 import omni.usd
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
@@ -121,12 +120,12 @@ class AutoSaveCore(_ILSSEvent):
             return
 
         # Guard: only save when a valid project (capture + replacement layers) is loaded
-        layer_capture = self._layer_manager.get_layer(_LayerType.capture)
+        layer_capture = self._layer_manager.get_layer_of_type(_LayerType.capture)
         if not layer_capture:
             carb.log_verbose("[autosave] No capture layer found, skipping auto-save")
             return
 
-        layer_replacement = self._layer_manager.get_layer(_LayerType.replacement)
+        layer_replacement = self._layer_manager.get_layer_of_type(_LayerType.replacement)
         if not layer_replacement:
             carb.log_verbose("[autosave] No replacement layer found, skipping auto-save")
             return

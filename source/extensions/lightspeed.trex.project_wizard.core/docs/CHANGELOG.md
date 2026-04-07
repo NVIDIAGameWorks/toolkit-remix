@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [2.0.7]
+### Changed
+- Update test to use renamed `LayerManagerCore.save_layer_of_type()` (was `save_layer`)
+- Migrate `create_new_sublayer()` call to `create_layer()` in wizard project creation
+- Call `LayerManagerCore.is_valid_layer_type()` directly as a static method; remove throwaway `LayerManagerCore()` instantiation
+- Update `LayerManagerCore` call site to use renamed API: `save_layer_of_type`
+
 ## [2.0.6]
 ### Fixed
 - Fixed non-project USDA files being accepted as valid project files when opened outside of a STAGE_CRAFT context (REMIX-4922)

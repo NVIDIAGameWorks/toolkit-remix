@@ -68,7 +68,7 @@ class CopyRefToPrimCore(_ILSSEvent):
         )
 
     def __create_capture_package_layer(self):
-        replacement_layer = self._layer_manager.get_layer(_LayerType.replacement)
+        replacement_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
         if not replacement_layer:
             carb.log_verbose("CopyRefToPrimCore: Mod layer doesn't exist!")
             return None
@@ -80,29 +80,32 @@ class CopyRefToPrimCore(_ILSSEvent):
         find_capture_package_layer = Sdf.Layer.FindOrOpen(layer_path)
 
         # check if the layer is in the current stage, or it is but doesn't exist (user error?)
-        capture_baker_layer = self._layer_manager.get_layer(_LayerType.capture_baker)
+        capture_baker_layer = self._layer_manager.get_layer_of_type(_LayerType.capture_baker)
         if not capture_baker_layer or (capture_baker_layer and not find_capture_package_layer):
             if find_capture_package_layer:
-                capture_baker_layer = self._layer_manager.insert_sublayer(
+                capture_baker_layer = self._layer_manager.create_layer(
                     layer_path,
-                    _LayerType.capture_baker,
-                    set_as_edit_target=False,
-                    parent_layer=replacement_layer,
+                    layer_type=_LayerType.capture_baker,
+                    create_or_insert=False,
+                    set_edit_target=False,
+                    parent_layer_identifier=replacement_layer.identifier,
+                    sublayer_position=-1,
                     do_undo=False,
                 )
                 carb.log_info(f"CopyRefToPrimCore: inserted layer {layer_path}")
             else:
-                capture_baker_layer = self._layer_manager.create_new_sublayer(
-                    _LayerType.capture_baker,
-                    path=layer_path,
-                    set_as_edit_target=False,
-                    parent_layer=replacement_layer,
+                capture_baker_layer = self._layer_manager.create_layer(
+                    layer_path,
+                    layer_type=_LayerType.capture_baker,
+                    create_or_insert=True,
+                    set_edit_target=False,
+                    parent_layer_identifier=replacement_layer.identifier,
                     replace_existing=False,
                     do_undo=False,
                 )
                 carb.log_info(f"CopyRefToPrimCore: created layer {layer_path}")
-            self._layer_manager.mute_layer(_LayerType.capture_baker, do_undo=False)
-            self._layer_manager.lock_layer(_LayerType.capture_baker, do_undo=False)
+            self._layer_manager.mute_layers_of_type(_LayerType.capture_baker, do_undo=False)
+            self._layer_manager.lock_layers_of_type(_LayerType.capture_baker, do_undo=False)
 
             # Update custom data for the Capture Baker
             custom_layer_data = capture_baker_layer.customLayerData
@@ -118,16 +121,17 @@ class CopyRefToPrimCore(_ILSSEvent):
             capture_baker_layer = find_capture_package_layer
             capture_baker_layer.Reload()
         # be sure to mute
-        self._layer_manager.mute_layer(_LayerType.capture_baker, do_undo=False)
-        self.__move_capture_baker_at_bottom()
+        self._layer_manager.mute_layers_of_type(_LayerType.capture_baker, do_undo=False)
+        self.__move_capture_baker_at_bottom(replacement_layer=replacement_layer)
         return capture_baker_layer
 
-    def __move_capture_baker_at_bottom(self):
-        replacement_layer = self._layer_manager.get_layer(_LayerType.replacement)
+    def __move_capture_baker_at_bottom(self, replacement_layer=None):
+        if replacement_layer is None:
+            replacement_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
         if not replacement_layer:
             carb.log_verbose("CopyRefToPrimCore: Mod layer doesn't exist!")
             return
-        capture_baker_layer = self._layer_manager.get_layer(_LayerType.capture_baker)
+        capture_baker_layer = self._layer_manager.get_layer_of_type(_LayerType.capture_baker)
         if not capture_baker_layer:
             carb.log_verbose("CopyRefToPrimCore: Capture baker layer doesn't exist!")
             return
@@ -389,15 +393,16 @@ class CopyRefToPrimCore(_ILSSEvent):
 
     # @omni.usd.handle_exception
     # async def __do_process_layer(self, stage):
-    def __do_process_layer(self, stage):
+    def __do_process_layer(self, stage, replacements_layer=None):
         if not stage:
             return
         # if there is no replacement layer, there is nothing to do
-        replacements_layer = self._layer_manager.get_layer(_LayerType.replacement)
+        if replacements_layer is None:
+            replacements_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
         if not replacements_layer:
             return
         # if there is no capture layer, there is nothing to do
-        current_capture_layer = self._layer_manager.get_layer(_LayerType.capture)
+        current_capture_layer = self._layer_manager.get_layer_of_type(_LayerType.capture)
         if not current_capture_layer:
             return
         # get all replacement layers that the user works on.
@@ -413,15 +418,15 @@ class CopyRefToPrimCore(_ILSSEvent):
 
         # we save the layer
         carb.log_info(f"Bake references into {capture_package_layer.realPath}")
-        self._layer_manager.save_layer(_LayerType.capture_baker, show_checkpoint_error=False)
+        self._layer_manager.save_layer_of_type(_LayerType.capture_baker, show_checkpoint_error=False)
 
-    def __process_layer(self, stage: Usd.Stage = None):
+    def __process_layer(self, stage: Usd.Stage = None, replacements_layer=None):
         if stage is None:
             stage = self._context.get_stage()
         # each time we save a layer part of the replacement layer, we process the whole
         # replacement layer + capture_baker. We do that as a whole process because we want to be sure that if an user
         # edit the capture_baker layer externally, we are still cleaning up and processing the whole thing nicely
-        self.__do_process_layer(stage)
+        self.__do_process_layer(stage, replacements_layer=replacements_layer)
 
     @_ignore_function_decorator(attrs=["_ignore_on_event"])
     def __on_layer_event(self, event):
@@ -431,7 +436,7 @@ class CopyRefToPrimCore(_ILSSEvent):
         if payload.event_type == _layers.LayerEventType.DIRTY_STATE_CHANGED:
             dirty_sublayers = _layers.get_layers_state().get_dirty_layer_identifiers()
 
-            replacements_layer = self._layer_manager.get_layer(_LayerType.replacement)
+            replacements_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
             if not replacements_layer:
                 return
             # get all replacement layers that the user works on.
@@ -447,7 +452,9 @@ class CopyRefToPrimCore(_ILSSEvent):
             intersection = set(dirty_sublayers).intersection(payload.identifiers_or_spec_paths)
             if not intersection:
                 with omni.kit.undo.group():
-                    self.__process_layer()
+                    # Pass the already-resolved replacement layer to avoid a redundant get_layer() call
+                    # inside __do_process_layer.
+                    self.__process_layer(replacements_layer=replacements_layer)
 
         if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
             self.__move_capture_baker_at_bottom()

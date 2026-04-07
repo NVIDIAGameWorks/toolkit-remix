@@ -22,7 +22,26 @@ from .i_layer import ILayer
 
 
 class CaptureBakerLayer(ILayer):
+    """
+    Layer type representing the Remix capture-baker scratch layer.
+
+    This layer is fully locked down via its customLayerData: all edit operations
+    (add child, edit target, lock, move, mute, and remove) are excluded by default
+    so the user cannot accidentally modify it through normal layer-manager actions.
+    """
+
     def get_custom_layer_data(self):
+        """
+        Return the customLayerData dict for the capture-baker layer.
+
+        Overrides the base ``ILayer`` implementation to return a hard-coded dict that
+        includes both the ``lightspeed_layer_type`` tag and a ``EXCLUDE_*`` block that
+        disables all interactive layer operations for this layer type.
+
+        Returns:
+            A dict with ``lightspeed_layer_type`` set to ``LayerType.capture_baker`` and
+            every ``LayerCustomData.EXCLUDE_*`` flag set to ``True``.
+        """
         return {
             LayerTypeKeys.layer_type.value: self.layer_type.value,
             _LayerCustomData.ROOT.value: {

@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.5]
+### Changed
+- Update tests to include `target_layer` kwarg in `replace_textures` call assertions
+- Remove unused `MagicMock` import from `test_model`
+
 ## [1.1.4]
 ### Fixed
 - Pass the packaging error row's target layer into texture replace/remove so edits apply on the correct sublayer.

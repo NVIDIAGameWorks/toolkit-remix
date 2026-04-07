@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.5]
+### Changed
+- Update call sites to use renamed `LayerManagerCore` API: `get_layer_of_type()` and `get_layers_of_type()` (was `get_layer()` / `get_layers()`)
+
+## [1.4.4]
+### Changed
+- Update test to use renamed `LayerManagerCore.remove_layers_of_type()` (was `remove_layer` with a `LayerType`)
+
 ## [1.4.3]
 ### Changed
 - Modernize python style and enable more ruff checks

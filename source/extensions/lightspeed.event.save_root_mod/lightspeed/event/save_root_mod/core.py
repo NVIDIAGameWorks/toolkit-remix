@@ -62,7 +62,7 @@ class EventSaveRootModCore(_ILSSEvent):
         if payload.event_type != _layers.LayerEventType.DIRTY_STATE_CHANGED:
             return
 
-        replacement_layer = self.__layer_manager.get_layer(LayerType.replacement)
+        replacement_layer = self.__layer_manager.get_layer_of_type(LayerType.replacement)
         # If there is no replacement layer there's nothing to save
         if not replacement_layer:
             carb.log_verbose("EventSaveRootModCore: Mod layer doesn't exist!")

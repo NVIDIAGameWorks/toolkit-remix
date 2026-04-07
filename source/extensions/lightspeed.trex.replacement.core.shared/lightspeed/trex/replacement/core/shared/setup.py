@@ -41,7 +41,7 @@ class Setup:
         self._layer_manager = _LayerManagerCore(context_name=context_name)
 
     def get_layer(self):
-        return self._layer_manager.get_layer(LayerType.replacement)
+        return self._layer_manager.get_layer_of_type(LayerType.replacement)
 
     @staticmethod
     def is_path_valid(path: str, existing_file: bool = True) -> bool:
@@ -77,21 +77,22 @@ class Setup:
         replace_existing: bool = True,
         sublayer_position: int = -1,
     ):
-        capture_layer = self._layer_manager.get_layer(LayerType.capture)
+        capture_layer = self._layer_manager.get_layer_of_type(LayerType.capture)
         if not capture_layer:
             carb.log_error("A capture layer must be imported in the stage before a replacement layer can be imported.")
             return
 
         if replace_existing:
-            self._layer_manager.remove_layer(LayerType.replacement)
+            self._layer_manager.remove_layers_of_type(LayerType.replacement)
 
         if use_existing_layer:
             carb.log_info(f"Importing mod layer {path}")
-            replacement_layer = self._layer_manager.insert_sublayer(
+            replacement_layer = self._layer_manager.create_layer(
                 path,
-                LayerType.replacement,
-                set_as_edit_target=set_edit_target,
-                sublayer_insert_position=sublayer_position,
+                layer_type=LayerType.replacement,
+                create_or_insert=False,
+                set_edit_target=set_edit_target,
+                sublayer_position=sublayer_position,
             )
             carb.log_info("Ok")
         else:
@@ -99,12 +100,13 @@ class Setup:
             existing_layer = Sdf.Layer.FindOrOpen(path)
             if existing_layer:
                 existing_layer.Clear()
-            replacement_layer = self._layer_manager.create_new_sublayer(
-                LayerType.replacement,
-                path=path,
-                set_as_edit_target=set_edit_target,
+            replacement_layer = self._layer_manager.create_layer(
+                path,
+                layer_type=LayerType.replacement,
+                create_or_insert=True,
+                set_edit_target=set_edit_target,
                 replace_existing=replace_existing,
-                sublayer_create_position=sublayer_position,
+                sublayer_position=sublayer_position,
             )
             carb.log_info("Ok")
 

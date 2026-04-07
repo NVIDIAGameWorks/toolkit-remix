@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.8]
+### Changed
+- Update test setup to use renamed `LayerManagerCore.set_edit_target_layer_of_type()` (was `set_edit_target_layer`)
+
 ## [1.9.7]
 ### Fixed
 - Fixed selection panel showing no hierarchy or properties for certain imported USD assets by adding regex-based prototype resolution fallback

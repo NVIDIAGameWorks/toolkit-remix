@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.9]
+### Changed
+- Update call sites to use renamed `LayerManagerCore` API: `get_layer_of_type()` and `get_layers_of_type()` (was `get_layer()` / `get_layers()`)
+
+## [1.3.8]
+### Changed
+- Migrate `insert_sublayer()` call to `create_layer()` in capture layer import
+- Update `LayerManagerCore` call sites to use renamed API: `remove_layers_of_type`, `lock_layers_of_type`
+
 ## [1.3.7]
 ### Changed
 - Applied new lint rules
