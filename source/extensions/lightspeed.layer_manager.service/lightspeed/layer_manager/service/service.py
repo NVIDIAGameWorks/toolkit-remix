@@ -102,7 +102,7 @@ class LayerManagerService(ServiceBase):
             ),
         ) -> LayerStackResponseModel:
             try:
-                return self.__layer_core.get_sublayers_with_data_models(
+                return LayerManagerCore.get_sublayers_with_data_models(
                     layer_id,
                     GetLayersQueryModel(layer_types=self.__get_layer_types(layer_types)),
                 )
@@ -113,7 +113,16 @@ class LayerManagerService(ServiceBase):
         async def create_layer(
             body: ServiceBase.inject_hidden_fields(CreateLayerRequestModel, context_name=context_name),
         ) -> str:
-            return self.__layer_core.create_layer_with_data_model(body) or "OK"
+            self.__layer_core.create_layer(
+                body.layer_path,
+                layer_type=body.layer_type,
+                set_edit_target=body.set_edit_target,
+                sublayer_position=body.sublayer_position,
+                parent_layer_identifier=body.parent_layer_id,
+                create_or_insert=body.create_or_insert,
+                replace_existing=body.replace_existing,
+            )
+            return "OK"
 
         @self.router.delete(
             path="/{layer_id:path}",
@@ -128,7 +137,8 @@ class LayerManagerService(ServiceBase):
                 context_name=context_name,
             ),
         ) -> str:
-            return self.__layer_core.remove_layer_with_data_model(layer_id, body) or "OK"
+            self.__layer_core.remove_layer(layer_id.layer_id, body.parent_layer_id)
+            return "OK"
 
         @self.router.put(
             path="/{layer_id:path}/move",
@@ -141,7 +151,13 @@ class LayerManagerService(ServiceBase):
                 MoveLayerPathParamModel, description="Layer identifier for the layer to move", context_name=context_name
             ),
         ) -> str:
-            return self.__layer_core.move_layer_with_data_model(layer_id, body) or "OK"
+            self.__layer_core.move_layer(
+                layer_id.layer_id,
+                body.current_parent_layer_id,
+                new_parent_layer_identifier=body.new_parent_layer_id,
+                layer_index=body.layer_index,
+            )
+            return "OK"
 
         @self.router.put(
             path="/{layer_id:path}/lock",
@@ -156,7 +172,8 @@ class LayerManagerService(ServiceBase):
                 context_name=context_name,
             ),
         ) -> str:
-            return self.__layer_core.lock_layer_with_data_model(layer_id, body) or "OK"
+            self.__layer_core.lock_layer(layer_id.layer_id, body.value)
+            return "OK"
 
         @self.router.put(
             path="/{layer_id:path}/mute",
@@ -171,7 +188,8 @@ class LayerManagerService(ServiceBase):
                 context_name=context_name,
             ),
         ) -> str:
-            return self.__layer_core.mute_layer_with_data_model(layer_id, body) or "OK"
+            self.__layer_core.mute_layer(layer_id.layer_id, body.value)
+            return "OK"
 
         @self.router.post(
             path="/{layer_id:path}/save",
@@ -183,7 +201,8 @@ class LayerManagerService(ServiceBase):
                 SaveLayerPathParamModel, description="Layer identifier for the layer to save", context_name=context_name
             ),
         ) -> str:
-            return self.__layer_core.save_layer_with_data_model(layer_id) or "OK"
+            LayerManagerCore.save_layer(layer_id.layer_id)
+            return "OK"
 
         @self.router.get(
             path="/target",
@@ -192,7 +211,7 @@ class LayerManagerService(ServiceBase):
             response_model=LayerResponseModel,
         )
         async def get_edit_target_layer() -> LayerResponseModel:
-            return self.__layer_core.get_edit_target_with_data_model()
+            return LayerResponseModel(layer_id=self.__layer_core.get_edit_target().identifier)
 
         @self.router.put(
             path="/target/{layer_id:path}",
@@ -206,7 +225,8 @@ class LayerManagerService(ServiceBase):
                 context_name=context_name,
             ),
         ) -> str:
-            return self.__layer_core.set_edit_target_with_data_model(layer_id) or "OK"
+            self.__layer_core.set_edit_target(layer_id.layer_id)
+            return "OK"
 
         @self.router.get(
             path="/types",

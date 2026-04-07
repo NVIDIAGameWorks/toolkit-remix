@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.1]
+### Changed
+- Update call sites to use renamed `LayerManagerCore` API: `get_layer_of_type()` and `get_layers_of_type()` (was `get_layer()` / `get_layers()`)
+
 ## [3.2.0]
 ### Added
 - Added `remove_prim_reference_overrides` method for selectively removing only reference arc overrides while preserving attribute opinions

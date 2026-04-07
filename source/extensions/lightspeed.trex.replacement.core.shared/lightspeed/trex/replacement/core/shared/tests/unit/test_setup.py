@@ -182,7 +182,9 @@ class TestSetup(omni.kit.test.AsyncTestCase):
     async def test_get_replaced_hashes_from_path(self):
         stage, layer_replacement, _layer_sub_replacement = await self.__create_setup_01()
         layer_manager = _LayerManagerCore()
-        self.assertEqual(layer_manager.get_layer(_LayerType.replacement).identifier, layer_replacement.identifier)
+        self.assertEqual(
+            layer_manager.get_layer_of_type(_LayerType.replacement).identifier, layer_replacement.identifier
+        )
 
         # create another replacement layer
         replacement_01_path = f"{self.temp_dir.name}/replacement_01.usd"
@@ -193,7 +195,7 @@ class TestSetup(omni.kit.test.AsyncTestCase):
 
         # grab the new layer
         layer_manager = _LayerManagerCore()
-        layer = layer_manager.get_layer(_LayerType.replacement)
+        layer = layer_manager.get_layer_of_type(_LayerType.replacement)
 
         with Usd.EditContext(stage, layer):
             mesh_base_path = "/RootNode/meshes/mesh_BAC90CAA733B0850"
@@ -208,7 +210,9 @@ class TestSetup(omni.kit.test.AsyncTestCase):
     async def test_get_replaced_hashes_layer_deleted(self):
         _stage, layer_replacement, layer_sub_replacement = await self.__create_setup_01()
         layer_manager = _LayerManagerCore()
-        self.assertEqual(layer_manager.get_layer(_LayerType.replacement).identifier, layer_replacement.identifier)
+        self.assertEqual(
+            layer_manager.get_layer_of_type(_LayerType.replacement).identifier, layer_replacement.identifier
+        )
 
         # create another replacement layer
         replacement_01_path = f"{self.temp_dir.name}/sub_replacement_01.usd"
@@ -364,7 +368,9 @@ class TestSetup(omni.kit.test.AsyncTestCase):
     async def test_import_replacement_layer_default(self):
         _stage, layer_replacement, _layer_sub_replacement = await self.__create_setup_01()
         layer_manager = _LayerManagerCore()
-        self.assertEqual(layer_manager.get_layer(_LayerType.replacement).identifier, layer_replacement.identifier)
+        self.assertEqual(
+            layer_manager.get_layer_of_type(_LayerType.replacement).identifier, layer_replacement.identifier
+        )
 
         # create another replacement layer
         replacement_01_path = f"{self.temp_dir.name}/replacement_01.usd"
@@ -374,7 +380,8 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         core.import_replacement_layer(stage_replacement_01.GetRootLayer().realPath)
 
         self.assertEqual(
-            layer_manager.get_layer(_LayerType.replacement).identifier, stage_replacement_01.GetRootLayer().identifier
+            layer_manager.get_layer_of_type(_LayerType.replacement).identifier,
+            stage_replacement_01.GetRootLayer().identifier,
         )
 
         context = omni.usd.get_context()
@@ -383,7 +390,9 @@ class TestSetup(omni.kit.test.AsyncTestCase):
     async def test_import_replacement_layer_no_capture(self):
         _stage, layer_replacement, _layer_sub_replacement = await self.__create_setup_01()
         layer_manager = _LayerManagerCore()
-        self.assertEqual(layer_manager.get_layer(_LayerType.replacement).identifier, layer_replacement.identifier)
+        self.assertEqual(
+            layer_manager.get_layer_of_type(_LayerType.replacement).identifier, layer_replacement.identifier
+        )
 
         # create another replacement layer
         replacement_01_path = f"{self.temp_dir.name}/replacement_01.usd"
@@ -391,13 +400,16 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         # import it
         core = _ReplacementCore("")
 
-        with patch.object(core._layer_manager, "get_layer") as mock_get_layer, patch("carb.log_error"):
+        with patch.object(core._layer_manager, "get_layer_of_type") as mock_get_layer, patch("carb.log_error"):
             mock_get_layer.return_value = False
             core.import_replacement_layer(stage_replacement_01.GetRootLayer().realPath)
         self.assertNotEqual(
-            layer_manager.get_layer(_LayerType.replacement).identifier, stage_replacement_01.GetRootLayer().identifier
+            layer_manager.get_layer_of_type(_LayerType.replacement).identifier,
+            stage_replacement_01.GetRootLayer().identifier,
         )
-        self.assertEqual(layer_manager.get_layer(_LayerType.replacement).identifier, layer_replacement.identifier)
+        self.assertEqual(
+            layer_manager.get_layer_of_type(_LayerType.replacement).identifier, layer_replacement.identifier
+        )
 
         context = omni.usd.get_context()
         await context.close_stage_async()
@@ -405,7 +417,9 @@ class TestSetup(omni.kit.test.AsyncTestCase):
     async def test_import_replacement_layer_create(self):
         _stage, layer_replacement, _layer_sub_replacement = await self.__create_setup_01()
         layer_manager = _LayerManagerCore()
-        self.assertEqual(layer_manager.get_layer(_LayerType.replacement).identifier, layer_replacement.identifier)
+        self.assertEqual(
+            layer_manager.get_layer_of_type(_LayerType.replacement).identifier, layer_replacement.identifier
+        )
 
         # create another replacement layer
         replacement_01_path = f"{self.temp_dir.name}/replacement_01.usd"
@@ -417,7 +431,7 @@ class TestSetup(omni.kit.test.AsyncTestCase):
 
         self.assertTrue(Path(replacement_01_path).exists())
         self.assertEqual(
-            Path(layer_manager.get_layer(_LayerType.replacement).realPath).as_posix(),
+            Path(layer_manager.get_layer_of_type(_LayerType.replacement).realPath).as_posix(),
             Path(replacement_01_path).as_posix(),
         )
 
@@ -427,7 +441,9 @@ class TestSetup(omni.kit.test.AsyncTestCase):
     async def test_import_replacement_layer_create_existing(self):
         _stage, layer_replacement, _layer_sub_replacement = await self.__create_setup_01()
         layer_manager = _LayerManagerCore()
-        self.assertEqual(layer_manager.get_layer(_LayerType.replacement).identifier, layer_replacement.identifier)
+        self.assertEqual(
+            layer_manager.get_layer_of_type(_LayerType.replacement).identifier, layer_replacement.identifier
+        )
 
         # create another replacement layer
         replacement_01_path = f"{self.temp_dir.name}/replacement_01.usd"
@@ -441,7 +457,7 @@ class TestSetup(omni.kit.test.AsyncTestCase):
 
         self.assertTrue(Path(replacement_01_path).exists())
         self.assertEqual(
-            Path(layer_manager.get_layer(_LayerType.replacement).realPath).as_posix(),
+            Path(layer_manager.get_layer_of_type(_LayerType.replacement).realPath).as_posix(),
             Path(replacement_01_path).resolve().as_posix(),
         )
 

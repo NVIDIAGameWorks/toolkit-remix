@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.5]
+### Changed
+- Update test setup to use renamed `LayerManagerCore.set_edit_target_layer_of_type()` (was `set_edit_target_layer`)
+
 ## [2.1.4]
 ### Fixed
 - Fixed IndexError when dragging files with unsupported extensions onto the Material Properties panel

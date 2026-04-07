@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5009: Improve Linter Setup to be More Aggressive
 - REMIX-1088: All numeric property fields now use drag-to-scrub widgets (FloatDrag/IntDrag) including transforms and camera speed
 - REMIX-3540: Renamed override context menu labels from "Delete" to "Revert" for clearer user intent
-- REMIX-5117: Consolidated `AbstractValueField` / `AbstractSliderField` into a single `AbstractDragField` hierarchy with optional bounds and independent hard-bound clamping; renamed all `*SliderField` classes/styles to `*DragField` and simplified OGN builder routing
+- REMIX-5120: Layer Manager restructure and cleanup
 
 ### Fixed
 - GLAB publishing using the new cli utility

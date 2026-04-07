@@ -21,7 +21,25 @@ from .i_layer import ILayer
 
 
 class ReplacementLayer(ILayer):
+    """
+    Layer type representing a Remix mod replacement layer.
+
+    Extends ``ILayer`` to enforce that ``LSS_LAYER_GAME_NAME`` is always present in
+    the customLayerData, which is required for the replacement layer to be associated
+    with a specific game capture.
+    """
+
     def set_custom_layer_data(self, value: dict[str, str]):
+        """
+        Store extra customLayerData for the replacement layer.
+
+        Raises ValueError if ``LSS_LAYER_GAME_NAME`` is not present in ``value``,
+        since every replacement layer must be linked to a game name.
+
+        Args:
+            value: Key/value pairs to add to ``Sdf.Layer.customLayerData``.  Must
+                contain the ``LSS_LAYER_GAME_NAME`` key.
+        """
         if LSS_LAYER_GAME_NAME not in value:
             raise ValueError(f"{LSS_LAYER_GAME_NAME} need to be set")
 

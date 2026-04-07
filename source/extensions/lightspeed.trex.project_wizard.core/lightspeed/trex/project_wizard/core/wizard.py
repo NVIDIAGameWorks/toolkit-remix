@@ -334,7 +334,9 @@ class ProjectWizardCore:
         if dry_run:
             return stage
 
-        layer_manager.create_new_sublayer(_LayerType.workfile, str(project_file), do_undo=False)
+        layer_manager.create_layer(
+            str(project_file), layer_type=_LayerType.workfile, set_edit_target=True, do_undo=False
+        )
         result, _ = await context.open_stage_async(str(project_file))
 
         return context.get_stage() if result else None
@@ -414,7 +416,7 @@ class ProjectWizardCore:
         if dry_run:
             return
 
-        layer_manager.save_layer(_LayerType.workfile)
+        layer_manager.save_layer_of_type(_LayerType.workfile)
 
     async def _check_symlinks_exist(self, model, project_directory, deps_directory, dry_run):
         """

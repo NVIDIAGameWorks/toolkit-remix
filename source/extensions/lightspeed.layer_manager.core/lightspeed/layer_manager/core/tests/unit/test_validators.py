@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import inspect
 from contextlib import nullcontext
 
 import omni.usd
@@ -346,3 +347,56 @@ class TestLayerManagerValidators(AsyncTestCase):
 
                     actual_layers = [v.identifier for v in value]
                     self.assertListEqual(actual_layers, expected_layers)
+
+    async def test_pure_validators_are_staticmethods(self):
+        # Verify that methods which receive all inputs as parameters and never reference cls
+        # are decorated @staticmethod rather than @classmethod.
+        pure_validators = [
+            "is_project_layer",
+            "is_valid_index",
+            "layer_is_in_project",
+            "can_create_layer",
+            "get_layers_of_type",
+        ]
+        for name in pure_validators:
+            with self.subTest(method=name):
+                self.assertIsInstance(
+                    inspect.getattr_static(LayerManagerValidators, name),
+                    staticmethod,
+                    f"{name} should be @staticmethod (it never references cls)",
+                )
+
+    async def test_iter_sublayer_tree_yields_all_valid_layers(self):
+        """iter_sublayer_tree should yield root + all valid sublayers in DFS order."""
+        root = Sdf.Layer.CreateAnonymous()
+        child = Sdf.Layer.CreateAnonymous()
+        grandchild = Sdf.Layer.CreateAnonymous()
+        root.subLayerPaths.append(child.identifier)
+        child.subLayerPaths.append(grandchild.identifier)
+        layers = list(LayerManagerValidators.iter_sublayer_tree(root))
+        self.assertEqual(layers, [root, child, grandchild])
+
+    async def test_iter_sublayer_tree_skips_broken_paths(self):
+        """iter_sublayer_tree should silently skip sublayer paths that cannot be resolved."""
+        root = Sdf.Layer.CreateAnonymous()
+        child = Sdf.Layer.CreateAnonymous()
+        root.subLayerPaths.append(child.identifier)
+        root.subLayerPaths.append("/nonexistent/layer.usd")
+        # Should not raise and should yield only the two resolvable layers.
+        layers = list(LayerManagerValidators.iter_sublayer_tree(root))
+        self.assertEqual(len(layers), 2)
+        self.assertIn(root, layers)
+        self.assertIn(child, layers)
+
+    async def test_iter_sublayer_tree_handles_cycles(self):
+        """iter_sublayer_tree should not recurse infinitely when layers reference each other."""
+        layer_a = Sdf.Layer.CreateAnonymous()
+        layer_b = Sdf.Layer.CreateAnonymous()
+        layer_a.subLayerPaths.append(layer_b.identifier)
+        # Simulate a cycle: B references A
+        layer_b.subLayerPaths.append(layer_a.identifier)
+        # Should terminate and yield each layer exactly once.
+        layers = list(LayerManagerValidators.iter_sublayer_tree(layer_a))
+        self.assertEqual(len(layers), 2)
+        self.assertIn(layer_a, layers)
+        self.assertIn(layer_b, layers)
