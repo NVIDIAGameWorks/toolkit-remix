@@ -27,6 +27,7 @@ class MockValueModel(ui.AbstractValueModel):
         super().__init__()
         self._value = value
         self._read_only = read_only
+        self._pre_set_callback = None
 
     @property
     def read_only(self) -> bool:
@@ -41,9 +42,28 @@ class MockValueModel(ui.AbstractValueModel):
     def get_value_as_int(self) -> int:
         return int(self._value)
 
+    def set_callback_pre_set_value(self, callback):
+        """Mirror the real ItemModelBase pre_set_value hook used by AbstractDragField."""
+        self._pre_set_callback = callback
+
     def set_value(self, value):
-        self._value = value
-        self._value_changed()
+        """Set the model value, routing through the ``pre_set_value`` callback when registered.
+
+        If a callback has been registered via :meth:`set_callback_pre_set_value`, the callback
+        receives a ``_do_set`` closure (the actual writer) and the incoming value; the callback
+        is responsible for calling ``_do_set`` with the (optionally clamped) value.
+        If no callback is registered the value is written directly.
+        """
+        if self._pre_set_callback is not None:
+
+            def _do_set(v):
+                self._value = v
+                self._value_changed()
+
+            self._pre_set_callback(_do_set, value)
+        else:
+            self._value = value
+            self._value_changed()
 
     def get_tool_tip(self):
         return None

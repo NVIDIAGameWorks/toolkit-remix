@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.0]
+### Fixed
+- `AbstractDragField` now registers a `pre_set_value` callback to clamp typed numeric input to hard bounds before the value is written to USD, preventing crashes in synchronous downstream systems (e.g. particle allocators)
+
+### Changed
+- `IntDragField` and `FloatDragField` now forward `identifier` to the underlying `ui.IntDrag`/`ui.FloatDrag` widget for test automation support
+- Updated `MockValueModel` in test helpers to implement the `set_callback_pre_set_value` interface so e2e hard-bound clamping tests exercise the full clamp path
+
 ## [1.13.0]
 ### Changed
 - REMIX-5117: Consolidated `AbstractValueField` and `AbstractSliderField` into a single `AbstractDragField` base class with optional min/max bounds and independent hard-bound clamping

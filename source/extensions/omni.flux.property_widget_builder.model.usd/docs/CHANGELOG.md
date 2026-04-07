@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.30.0]
+### Changed
+- Default integer and float field builders now use `USDIntDragField`/`USDFloatDragField` so that `ui_metadata` bounds defined on `USDAttributeItem` (including hard limits) are wired to drag widgets; this affects **all** float/int USD attributes across all property panels — any attribute with `customData.range` or `customData.limits` in its schema will now have hard-bound clamping applied to typed input
+
 ## [2.29.0]
 ### Changed
 - REMIX-5117: Consolidated `USDFloatField`/`USDIntField` and `USDFloatSliderField`/`USDIntSliderField` into a single `USDFloatDragField`/`USDIntDragField` with unified bounds handling

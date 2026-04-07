@@ -89,6 +89,7 @@ class IntDragField(AbstractDragField):
             "model": model,
             "style_type_name_override": style_type_name_override,
             "read_only": read_only,
+            "identifier": self.identifier or "",
         }
         if min_val is not None:
             kwargs["min"] = min_val

@@ -39,6 +39,7 @@ from pxr import Gf, Sdf, Vt
 
 from .. import mapping
 from ..item_delegates.combobox_delegate import ComboboxField
+from ..item_delegates.drag import USDFloatDragField, USDIntDragField
 from ..item_delegates.file_texture_picker import FileTexturePicker
 from ..items import USDAttributeItem as _USDAttributeItem
 from ..items import USDAttrListItem as _USDAttrListItem
@@ -144,7 +145,7 @@ def _fallback_builder(item) -> None:
     mapping.tf_gf_vec4d,
 )
 def _floating_point_builder(item) -> list[ui.Widget]:
-    builder = DefaultField(ui.FloatDrag, identifier=_generate_identifier(item))
+    builder = USDFloatDragField(identifier=_generate_identifier(item))
     return builder(item)
 
 
@@ -162,7 +163,7 @@ def _floating_point_builder(item) -> list[ui.Widget]:
     mapping.tf_gf_vec4h,
 )
 def _integer_builder(item) -> list[ui.Widget]:
-    builder = DefaultField(ui.IntDrag, identifier=_generate_identifier(item))
+    builder = USDIntDragField(identifier=_generate_identifier(item))
     return builder(item)
 
 
