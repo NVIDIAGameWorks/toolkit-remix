@@ -17,7 +17,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import omni.kit.app
 from omni.kit.test import AsyncTestCase
 
 from lightspeed.event.autosave.core import (
