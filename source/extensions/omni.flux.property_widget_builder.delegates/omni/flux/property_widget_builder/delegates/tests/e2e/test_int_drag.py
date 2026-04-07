@@ -15,32 +15,56 @@
 * limitations under the License.
 """
 
-__all__ = ("TestIntField",)
+__all__ = ("TestIntDragField",)
 
 import uuid
 
 import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
-from omni.flux.property_widget_builder.delegates.int_value.field import IntField
+from omni.flux.property_widget_builder.delegates.int_value.drag import IntDragField
 
 from .mocks import MockItem
 
 
-class TestIntField(omni.kit.test.AsyncTestCase):
-    """E2E tests for IntField widget rendering."""
+class TestIntDragField(omni.kit.test.AsyncTestCase):
+    """E2E tests for IntDragField widget rendering."""
 
-    async def test_build_ui_creates_int_field_widget(self):
+    async def test_build_drag_widget_creates_int_drag(self):
         """build_ui should produce ui.IntDrag widgets."""
         window = ui.Window(
-            f"TestIntField_{str(uuid.uuid1())}",
+            f"TestIntDrag_{str(uuid.uuid1())}",
             height=200,
             width=400,
             position_x=0,
             position_y=0,
         )
         item = MockItem(values=[25])
-        field = IntField()
+        field = IntDragField(min_value=0, max_value=100)
+
+        with window.frame:
+            widgets = field.build_ui(item)
+
+        await omni.kit.ui_test.human_delay(human_delay_speed=1)
+
+        self.assertEqual(len(widgets), 1)
+        self.assertIsInstance(widgets[0], ui.IntDrag)
+
+        for w in widgets:
+            w.destroy()
+        window.destroy()
+
+    async def test_build_unbounded_creates_int_drag(self):
+        """build_ui with no bounds should still produce a ui.IntDrag."""
+        window = ui.Window(
+            f"TestIntDrag_{str(uuid.uuid1())}",
+            height=200,
+            width=400,
+            position_x=0,
+            position_y=0,
+        )
+        item = MockItem(values=[25])
+        field = IntDragField()
 
         with window.frame:
             widgets = field.build_ui(item)

@@ -16,23 +16,17 @@
 """
 
 __all__ = (
-    "TestAbstractSliderField",
-    "TestAbstractValueField",
+    "TestAbstractDragField",
     "TestColorField",
     "TestColorGradientDelegateIntegration",
     "TestColorGradientField",
-    "TestFloatField",
-    "TestFloatSliderField",
-    "TestIntField",
-    "TestIntSliderField",
+    "TestFloatDragField",
+    "TestIntDragField",
 )
 
-from .test_abstract_slider import TestAbstractSliderField
-from .test_abstract_value_field import TestAbstractValueField
+from .test_abstract_drag import TestAbstractDragField
 from .test_color_gradient import TestColorGradientField
 from .test_color_gradient_integration import TestColorGradientDelegateIntegration
-from .test_float_field import TestFloatField
-from .test_float_slider import TestFloatSliderField
+from .test_float_drag import TestFloatDragField
 from .test_float_value import TestColorField
-from .test_int_field import TestIntField
-from .test_int_slider import TestIntSliderField
+from .test_int_drag import TestIntDragField

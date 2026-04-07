@@ -6,7 +6,7 @@ import carb.input
 import omni.kit.clipboard
 import omni.kit.test
 import omni.kit.ui_test
-from omni.flux.property_widget_builder.delegates import FloatSliderField
+from omni.flux.property_widget_builder.delegates import FloatDragField
 from omni.flux.property_widget_builder.widget import FieldBuilderList, Item, ItemGroup
 
 from ...ui_components import AsyncTestPropertyWidget, TestItem
@@ -103,7 +103,7 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
 
         @field_builders.register_build(lambda _: True)
         def build(item):
-            builder = FloatSliderField(min_value, max_value)
+            builder = FloatDragField(min_value, max_value)
             return builder(item)
 
         async with AsyncTestPropertyWidget() as helper:

@@ -18,7 +18,7 @@
 __all__ = ("MATERIAL_FIELD_BUILDERS",)
 
 
-from ..item_delegates.slider import USDFloatSliderField
+from ..item_delegates.drag import USDFloatDragField
 from .base import USDBuilderList
 
 MATERIAL_FIELD_BUILDERS = USDBuilderList()
@@ -27,21 +27,19 @@ MATERIAL_FIELD_BUILDERS = USDBuilderList()
 # These values should override the min/max range from the USD metadata. The min/max values provided are the
 # fallback/defaults if no metadata can be found.
 
-MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:opacity_constant", USDFloatSliderField(0.0, 1.0))
+MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:opacity_constant", USDFloatDragField(0.0, 1.0))
+MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:reflection_roughness_constant", USDFloatDragField(0.0, 1.0))
+MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:metallic_constant", USDFloatDragField(0.0, 1.0))
 MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name(
-    "inputs:reflection_roughness_constant", USDFloatSliderField(0.0, 1.0)
+    "inputs:thin_film_thickness_constant", USDFloatDragField(0.0010000000474974513, 1500.0)
 )
-MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:metallic_constant", USDFloatSliderField(0.0, 1.0))
+MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:emissive_intensity", USDFloatDragField(0.0, 65504.0))
+MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:displace_in", USDFloatDragField(0.0, 2.0))
+MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:displace_out", USDFloatDragField(0.0, 2.0))
 MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name(
-    "inputs:thin_film_thickness_constant", USDFloatSliderField(0.0010000000474974513, 1500.0)
-)
-MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:emissive_intensity", USDFloatSliderField(0.0, 65504.0))
-MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:displace_in", USDFloatSliderField(0.0, 2.0))
-MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:displace_out", USDFloatSliderField(0.0, 2.0))
-MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name(
-    "inputs:subsurface_measurement_distance", USDFloatSliderField(0.0, 16.0)
+    "inputs:subsurface_measurement_distance", USDFloatDragField(0.0, 16.0)
 )
 MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name(
-    "inputs:subsurface_volumetric_anisotropy", USDFloatSliderField(-0.9900000095367432, 0.9900000095367432)
+    "inputs:subsurface_volumetric_anisotropy", USDFloatDragField(-0.9900000095367432, 0.9900000095367432)
 )
-MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:subsurface_radius_scale", USDFloatSliderField(0.0, 16.0))
+MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name("inputs:subsurface_radius_scale", USDFloatDragField(0.0, 16.0))
