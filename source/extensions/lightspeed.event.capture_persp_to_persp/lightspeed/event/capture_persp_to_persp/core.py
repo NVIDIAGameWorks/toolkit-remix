@@ -67,7 +67,7 @@ class EventCapturePerspToPerspCore(_ILSSEvent):
     def _set_perspective_camera(self):
         """Setup the session camera to match the capture camera"""
         stage = self._context.get_stage()
-        capture_layer = self._layer_manager.get_layer(_LayerType.capture)
+        capture_layer = self._layer_manager.get_layer_of_type(_LayerType.capture)
         if capture_layer is None:
             carb.log_warn("Can't find a capture layer, won't be setting up the default camera to match game")
             return

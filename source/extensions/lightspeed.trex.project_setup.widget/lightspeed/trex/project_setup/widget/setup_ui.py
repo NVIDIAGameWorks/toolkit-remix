@@ -213,8 +213,7 @@ class ProjectSetupPane(WorkspaceWidget):
             return False
 
         if existing_file:
-            layer_manager = _LayerManagerCore(self._context_name)
-            valid = layer_manager.is_valid_layer_type(str(Path(dirname, filename)), _LayerType.replacement)
+            valid = _LayerManagerCore.is_valid_layer_type(str(Path(dirname, filename)), _LayerType.replacement)
             if not valid:
                 self._validation_error_msg = (
                     f"Existing mod file is not the correct type, {_LayerType.replacement.value}."
@@ -282,7 +281,7 @@ class ProjectSetupPane(WorkspaceWidget):
     def _update_mod_name_field(self):
         if not self._mod_name_field:
             return
-        replacement_layer = self._layer_manager.get_layer(_LayerType.replacement)
+        replacement_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
         if not replacement_layer:
             self._mod_name_field.model.set_value("")
             self._last_valid_name = ""
@@ -315,7 +314,7 @@ class ProjectSetupPane(WorkspaceWidget):
     def _on_name_field_end_edit(self, model):
         if self._update_name_valid():
             new_name = model.get_value_as_string().strip()
-            replacement_layer = self._layer_manager.get_layer(_LayerType.replacement)
+            replacement_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
             if replacement_layer:
                 custom_data = replacement_layer.customLayerData
                 custom_data[_LSS_LAYER_MOD_NAME] = new_name

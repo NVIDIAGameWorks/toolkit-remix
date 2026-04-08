@@ -535,7 +535,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
             return False
 
         # Check if the layer is already used
-        all_layers = layer_manager.get_layers(layer_type=None)
+        all_layers = layer_manager.get_layers_of_type(layer_type=None)
         if sublayer in all_layers:
             self._layer_validation_error_msg = f"Layer {path.name} is already loaded."
             return False

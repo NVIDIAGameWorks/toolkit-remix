@@ -264,7 +264,6 @@ class PointMousePicker:
             viewport_api_request_query_hdremix(
                 carb.Uint2(*pixel),
                 callback=self._point_picked_fn,
-                query_name=f"{__name__}.mouse-point-query",
                 request_query_type=RemixRequestQueryType.PATH_AND_WORLDPOS,
             )
             return True
