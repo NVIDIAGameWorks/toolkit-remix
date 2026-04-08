@@ -19,6 +19,7 @@ import asyncio
 
 import carb
 import omni.kit.notification_manager as _nm
+import omni.kit.usd.layers as _layers
 import omni.usd
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
