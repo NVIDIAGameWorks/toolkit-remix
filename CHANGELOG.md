@@ -89,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4424: Fixed AttributeError in REST API asset replacement validators when no stage is loaded
 - Fixed selection panel showing no hierarchy or properties for certain imported USD assets by adding regex-based prototype resolution fallback
 - REMIX-5209: Fixed crash when typing out-of-range values (e.g. negative Max Particles) in the particle editor by reading schema-defined limits and clamping typed input before it reaches USD
+- REMIX-5242: Fixed open recent project regression — app no longer hangs during load, loading indicator is restored, and post-open capture layer validation warnings are shown correctly
 
 ### Removed
 
