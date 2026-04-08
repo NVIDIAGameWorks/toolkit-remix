@@ -237,7 +237,7 @@ class PackagingPane(_WorkspaceWidget):
                     {
                         "context_name": self._MOD_PACKAGING_CONTEXT,
                         "mod_layer_paths": [
-                            layer.realPath for layer in self._layer_manager.get_layers(_LayerType.replacement)
+                            layer.realPath for layer in self._layer_manager.get_layers_of_type(_LayerType.replacement)
                         ],
                         "selected_layer_paths": self._package_layers_widget.packaged_layers,
                         "output_directory": self._package_output_widget.output_path,

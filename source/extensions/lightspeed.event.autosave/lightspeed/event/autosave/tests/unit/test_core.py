@@ -17,7 +17,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import omni.kit.app
 from omni.kit.test import AsyncTestCase
 
 from lightspeed.event.autosave.core import (
@@ -42,7 +41,7 @@ class TestAutoSaveCore(AsyncTestCase):
         self._mock_layer.anonymous = False
 
         self._layer_manager = MagicMock()
-        self._layer_manager.get_layer.return_value = MagicMock()  # non-None → guard passes
+        self._layer_manager.get_layer_of_type.return_value = MagicMock()  # non-None → guard passes
 
         self._context = MagicMock()
         self._context.get_stage.return_value = MagicMock()
@@ -108,7 +107,7 @@ class TestAutoSaveCore(AsyncTestCase):
     async def test_autosave_skips_without_project_layers(self):
         """_do_autosave does nothing when the capture or replacement layer is missing."""
         core = self._make_core()
-        self._layer_manager.get_layer.return_value = None  # guard fails
+        self._layer_manager.get_layer_of_type.return_value = None  # guard fails
 
         with (
             patch("lightspeed.event.autosave.core.carb.settings.get_settings", return_value=self._settings),

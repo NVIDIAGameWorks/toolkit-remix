@@ -51,7 +51,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
         # be sure that the replacement layer is the target layer
         layer_manager = _LayerManagerCore()
-        layer_manager.set_edit_target_layer(_LayerType.replacement)
+        layer_manager.set_edit_target_layer_of_type(_LayerType.replacement)
 
     # After running each test
     async def tearDown(self):

@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5009: Improve Linter Setup to be More Aggressive
 - REMIX-1088: All numeric property fields now use drag-to-scrub widgets (FloatDrag/IntDrag) including transforms and camera speed
 - REMIX-3540: Renamed override context menu labels from "Delete" to "Revert" for clearer user intent
-- REMIX-5117: Consolidated `AbstractValueField` / `AbstractSliderField` into a single `AbstractDragField` hierarchy with optional bounds and independent hard-bound clamping; renamed all `*SliderField` classes/styles to `*DragField` and simplified OGN builder routing
+- REMIX-5120: Layer Manager restructure and cleanup
 
 ### Fixed
 - GLAB publishing using the new cli utility
@@ -90,6 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed selection panel showing no hierarchy or properties for certain imported USD assets by adding regex-based prototype resolution fallback
 - REMIX-5209: Fixed crash when typing out-of-range values (e.g. negative Max Particles) in the particle editor by reading schema-defined limits and clamping typed input before it reaches USD
 - Fixed crash in Stage Manager window resize callback when content widget is uninitialized after a monitor resolution change
+- REMIX-5242: Fixed open recent project regression — app no longer hangs during load, loading indicator is restored, and post-open capture layer validation warnings are shown correctly
+- REMIX-5188: Fixed teleport tool keyword error
 
 ### Removed
 

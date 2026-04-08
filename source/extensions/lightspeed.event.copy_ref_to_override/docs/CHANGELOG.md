@@ -1,6 +1,16 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.6]
+### Changed
+- Update call sites to use renamed `LayerManagerCore` API: `get_layer_of_type()` and `get_layers_of_type()` (was `get_layer()` / `get_layers()`)
+
+## [1.3.5]
+### Changed
+- Migrate `insert_sublayer()` and `create_new_sublayer()` calls to `create_layer()`
+- Pass already-resolved `replacement_layer` through `__process_layer` → `__do_process_layer` to eliminate a redundant `get_layer()` call per layer-save event
+- Update `LayerManagerCore` call sites to use renamed API: `mute_layers_of_type`, `lock_layers_of_type`, `save_layer_of_type`
+
 ## [1.3.4]
 ### Changed
 - Applied new lint rules

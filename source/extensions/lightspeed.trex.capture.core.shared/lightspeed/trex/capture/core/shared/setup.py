@@ -49,7 +49,7 @@ class Setup:
         )
 
     def get_layer(self):
-        return self._layer_manager.get_layer(LayerType.capture)
+        return self._layer_manager.get_layer_of_type(LayerType.capture)
 
     def __copy_metadata_from_stage_to_stage(self, stage_source, stage_destination):
         # copy over layer-meta-data from capture layer
@@ -102,7 +102,7 @@ class Setup:
 
     def __on_load_event(self, event):
         if event.type in {int(omni.usd.StageEventType.OPENED)}:
-            capture_layer = self._layer_manager.get_layer(LayerType.capture)
+            capture_layer = self._layer_manager.get_layer_of_type(LayerType.capture)
             if not capture_layer:
                 return
             root_layer = self._context.get_stage().GetRootLayer()
@@ -122,12 +122,10 @@ class Setup:
         self.__copy_metadata_from_stage_to_stage(capture_stage, stage)
 
         # delete existing one if exists
-        self._layer_manager.remove_layer(LayerType.capture)
+        self._layer_manager.remove_layers_of_type(LayerType.capture)
         # add the capture layer
-        self._layer_manager.insert_sublayer(
-            path, LayerType.capture, add_custom_layer_data=False, set_as_edit_target=False
-        )
-        self._layer_manager.lock_layer(LayerType.capture)
+        self._layer_manager.create_layer(path, create_or_insert=False, set_edit_target=False, sublayer_position=-1)
+        self._layer_manager.lock_layers_of_type(LayerType.capture)
         _get_event_manager_instance().call_global_custom_event(constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value)
 
     def set_directory(self, path: str):

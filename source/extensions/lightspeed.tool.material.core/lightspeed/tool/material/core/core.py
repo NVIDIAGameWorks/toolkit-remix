@@ -40,7 +40,7 @@ class ToolMaterialCore:
         material_usd_dir = current_path.joinpath("data", "material_usd")
 
         layer_manager = LayerManagerCore()
-        replacement_layer = layer_manager.get_layer(LayerType.replacement)
+        replacement_layer = layer_manager.get_layer_of_type(LayerType.replacement)
         if not replacement_layer:
             return []
         dst_dir = Path(replacement_layer.identifier).parent.joinpath(constants.MATERIALS_FOLDER)

@@ -16,25 +16,33 @@
 """
 
 import contextlib
+import inspect
+import os
 import pathlib
 import re
+import tempfile
 from types import NoneType
-from unittest.mock import Mock, call, patch
+from unittest.mock import AsyncMock, Mock, call, patch
 
 import omni.usd
-from lightspeed.common.constants import REMIX_CAPTURE_FOLDER, REMIX_FOLDER
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType, LayerTypeKeys
-from lightspeed.layer_manager.core.data_models import LayerManagerValidators
+from lightspeed.layer_manager.core.data_models import (
+    GetLayerPathParamModel,
+    GetLayersQueryModel,
+    LayerManagerValidators,
+)
+from lightspeed.layer_manager.core.layers import capture as _capture_module
 from lightspeed.layer_manager.core.layers.autoupscale import AutoUpscaleLayer
 from lightspeed.layer_manager.core.layers.capture import CaptureLayer
 from lightspeed.layer_manager.core.layers.capture_baker import CaptureBakerLayer
+from lightspeed.layer_manager.core.layers.i_layer import ILayer
 from lightspeed.layer_manager.core.layers.replacement import ReplacementLayer
 from lightspeed.layer_manager.core.layers.workfile import WorkfileLayer
 from omni.flux.layer_tree.usd.core import LayerCustomData
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.tests.context_managers import open_test_project
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import get_test_data_path, open_stage
+from omni.kit.test_suite.helpers import get_test_data_path
 from omni.kit.usd.layers import LayerUtils
 from pxr import Sdf, Usd
 
@@ -71,7 +79,7 @@ class TestLayerManagerCore(AsyncTestCase):
             self.assertFalse(edit_target_layer.expired)
             self.assertEqual(edit_target_layer.identifier, mod_layer.identifier)
 
-    async def test_set_edit_target_with_identifier_should_set_edit_target(self):
+    async def test_set_edit_target_should_set_edit_target(self):
         # Arrange
         async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
             stage = self.context.get_stage()
@@ -84,7 +92,7 @@ class TestLayerManagerCore(AsyncTestCase):
             mod_identifier = (OmniUrl(project_url.parent_url) / "mod.usda").path
 
             # Act
-            self.layer_manager.set_edit_target_with_identifier(mod_identifier)
+            self.layer_manager.set_edit_target(mod_identifier)
 
             # Assert
             edit_target_layer = stage.GetEditTarget().GetLayer()
@@ -93,20 +101,20 @@ class TestLayerManagerCore(AsyncTestCase):
             self.assertFalse(edit_target_layer.expired)
             self.assertEqual(edit_target_layer.identifier, mod_identifier)
 
-    async def test_move_layer_with_identifier_no_parent_layer_should_raise_value_error(self):
+    async def test_move_layer_no_parent_layer_should_raise_value_error(self):
         # Arrange
         parent_identifier = r"C:\parent.test"
 
         # Act
         with self.assertRaises(ValueError) as cm:
-            self.layer_manager.move_layer_with_identifier(
+            self.layer_manager.move_layer(
                 r"C:\test.test", parent_identifier, new_parent_layer_identifier=r"C:\new_parent.test", layer_index=-1
             )
 
         # Assert
-        self.assertEqual(str(cm.exception), f'Can\'t find the parent layer with identifier "{parent_identifier}".')
+        self.assertEqual(str(cm.exception), f'Can\'t find the layer with identifier "{parent_identifier}".')
 
-    async def test_move_layer_with_identifier_should_move_sublayer(self):
+    async def test_move_layer_should_move_sublayer(self):
         # Arrange
         for change_parent in [True, False]:
             with self.subTest(name=f"change_parent_{change_parent}"):
@@ -120,15 +128,13 @@ class TestLayerManagerCore(AsyncTestCase):
 
                     # Act
                     if change_parent:
-                        self.layer_manager.move_layer_with_identifier(
+                        self.layer_manager.move_layer(
                             sublayer_child_01_identifier,
                             sublayer_identifier,
                             new_parent_layer_identifier=mod_identifier,
                         )
                     else:
-                        self.layer_manager.move_layer_with_identifier(
-                            sublayer_child_01_identifier, sublayer_identifier, layer_index=-1
-                        )
+                        self.layer_manager.move_layer(sublayer_child_01_identifier, sublayer_identifier, layer_index=-1)
 
                     # Assert
                     if change_parent:
@@ -149,7 +155,7 @@ class TestLayerManagerCore(AsyncTestCase):
                             ["./sublayer_child_02.usda", "./sublayer_child_01.usda"],
                         )
 
-    async def test_remove_layer_with_identifier_should_remove_sublayer(self):
+    async def test_remove_layer_should_remove_sublayer(self):
         # Arrange
         async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
             mod_identifier = (OmniUrl(project_url.parent_url) / "mod.usda").path
@@ -158,12 +164,12 @@ class TestLayerManagerCore(AsyncTestCase):
             mod_layer = Sdf.Layer.FindOrOpen(mod_identifier)
 
             # Act
-            self.layer_manager.remove_layer_with_identifier(sublayer_identifier, mod_identifier)
+            self.layer_manager.remove_layer(sublayer_identifier, mod_identifier)
 
             # Assert
             self.assertListEqual([str(layer) for layer in mod_layer.subLayerPaths], ["./mod_capture_baker.usda"])
 
-    async def test_mute_layer_with_identifier_should_mute_layer(self):
+    async def test_mute_layer_should_mute_layer(self):
         # Arrange
         for mute_layer in [True, False]:
             with self.subTest(name=f"mute_layer_{mute_layer}"):
@@ -179,12 +185,12 @@ class TestLayerManagerCore(AsyncTestCase):
                         stage.MuteLayer(sublayer_identifier)
 
                     # Act
-                    self.layer_manager.mute_layer_with_identifier(sublayer_identifier, mute_layer)
+                    self.layer_manager.mute_layer(sublayer_identifier, mute_layer)
 
                     # Assert
                     self.assertEqual(stage.IsLayerMuted(sublayer_identifier), mute_layer)
 
-    async def test_lock_layer_with_identifier_should_lock_layer(self):
+    async def test_lock_layer_should_lock_layer(self):
         # Arrange
         for lock_layer in [True, False]:
             with self.subTest(name=f"lock_layer_{lock_layer}"):
@@ -194,16 +200,14 @@ class TestLayerManagerCore(AsyncTestCase):
                     project_layer.customLayerData["omni_layer"]["locked"]["./sublayer.usda"] = not lock_layer
 
                     # Act
-                    self.layer_manager.lock_layer_with_identifier(
-                        (OmniUrl(project_url.parent_url) / "sublayer.usda").path, lock_layer
-                    )
+                    self.layer_manager.lock_layer((OmniUrl(project_url.parent_url) / "sublayer.usda").path, lock_layer)
 
                     # Assert
                     self.assertEqual(
                         project_layer.customLayerData["omni_layer"]["locked"]["./sublayer.usda"], lock_layer
                     )
 
-    async def test_save_layer_with_identifier_no_layer_should_raise_value_error(self):
+    async def test_save_layer_no_layer_should_raise_value_error(self):
         # Arrange
         for force_save in [True, False]:
             with self.subTest(name=f"force_save_{force_save}"):
@@ -211,12 +215,12 @@ class TestLayerManagerCore(AsyncTestCase):
 
                 # Act
                 with self.assertRaises(ValueError) as cm:
-                    self.layer_manager.save_layer_with_identifier(layer_identifier, force=force_save)
+                    LayerManagerCore.save_layer(layer_identifier, force=force_save)
 
                 # Assert
                 self.assertEqual(str(cm.exception), f'Can\'t find the layer with identifier "{layer_identifier}".')
 
-    async def test_save_layer_with_identifier_should_save_layer(self):
+    async def test_save_layer_should_save_layer(self):
         # Arrange
         for force_save in [True, False]:
             with self.subTest(name=f"force_save_{force_save}"):
@@ -226,7 +230,7 @@ class TestLayerManagerCore(AsyncTestCase):
                         find_mock.return_value = layer_mock
 
                         # Act
-                        self.layer_manager.save_layer_with_identifier(project_url.path, force=force_save)
+                        LayerManagerCore.save_layer(project_url.path, force=force_save)
 
                         # Assert
                         self.assertEqual(1, find_mock.call_count)
@@ -235,18 +239,30 @@ class TestLayerManagerCore(AsyncTestCase):
                         self.assertEqual(1, layer_mock.Save.call_count)
                         self.assertEqual(call(force=force_save), layer_mock.Save.call_args)
 
-    async def test_set_custom_layer_type_data_with_identifier_no_layer_should_raise_value_error(self):
+    async def test_get_layer_or_raise_missing_layer_raises(self):
+        with self.assertRaises(ValueError):
+            LayerManagerCore._get_layer_or_raise("/nonexistent/layer.usda")
+
+    async def test_get_layer_or_raise_valid_layer_returns_layer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "test.usda").replace("\\", "/")
+            layer = Sdf.Layer.CreateNew(path)
+            result = LayerManagerCore._get_layer_or_raise(path)
+            self.assertIsNotNone(result)
+            self.assertEqual(result.identifier, layer.identifier)
+
+    async def test__set_custom_layer_type_data_with_identifier_no_layer_should_raise_value_error(self):
         # Arrange
         layer_identifier = r"C:\test.test"
 
         # Act
         with self.assertRaises(ValueError) as cm:
-            self.layer_manager.set_custom_layer_type_data_with_identifier(layer_identifier, LayerType.capture_baker)
+            self.layer_manager._set_custom_layer_type_data_with_identifier(layer_identifier, LayerType.capture_baker)
 
         # Assert
         self.assertEqual(str(cm.exception), f'Can\'t find the layer with identifier "{layer_identifier}".')
 
-    async def test_set_custom_layer_type_data_with_identifier_should_set_and_return_layer_type_custom_data(self):
+    async def test__set_custom_layer_type_data_with_identifier_should_set_and_return_layer_type_custom_data(self):
         # Arrange
         expected_custom_data = {
             LayerType.autoupscale: {
@@ -279,7 +295,7 @@ class TestLayerManagerCore(AsyncTestCase):
                 async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
                     with patch.object(Sdf.Layer, "Save") as save_mock:
                         # Act
-                        custom_layer_data = self.layer_manager.set_custom_layer_type_data_with_identifier(
+                        custom_layer_data = self.layer_manager._set_custom_layer_type_data_with_identifier(
                             project_url.path, layer_type
                         )
 
@@ -338,6 +354,46 @@ class TestLayerManagerCore(AsyncTestCase):
                                             layer_type,
                                         )
 
+    async def test_create_layer_does_not_reopen_new_layer(self):
+        """create_layer() must pass the already-opened layer to _set_custom_layer_type_data_with_identifier.
+
+        Before the fix, _set_custom_layer_type_data_with_identifier called Sdf.Layer.FindOrOpen
+        internally, causing a redundant open of the newly created layer.  After the fix the caller
+        passes an already-open Sdf.Layer via the `layer` keyword argument so FindOrOpen is skipped.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            new_path = str(pathlib.Path(temp_dir) / "new_layer.usda").replace("\\", "/")
+
+            # Pre-create the layer file so FindOrOpen can open it after the command mock
+            pre_created = Sdf.Layer.CreateNew(new_path)
+            pre_created.Save()
+
+            received_layer_kwargs = []
+            original_set = LayerManagerCore._set_custom_layer_type_data_with_identifier
+
+            def spy_set(self_inner, layer_identifier, layer_type, **kwargs):
+                received_layer_kwargs.append(kwargs.get("layer"))
+                return original_set(self_inner, layer_identifier, layer_type, **kwargs)
+
+            with (
+                patch.object(LayerManagerCore, "_set_custom_layer_type_data_with_identifier", spy_set),
+                patch("omni.kit.commands.execute", return_value=(True, new_path)) as mock_execute,
+            ):
+                self.layer_manager.create_layer(new_path, layer_type=LayerType.replacement, replace_existing=False)
+
+            # Verify the command was called (sanity check)
+            mock_execute.assert_called_once()
+
+            # After the fix, create_layer must pass a pre-opened Sdf.Layer object (not None)
+            self.assertEqual(
+                len(received_layer_kwargs),
+                1,
+                "Expected _set_custom_layer_type_data_with_identifier to be called once",
+            )
+            passed_layer = received_layer_kwargs[0]
+            self.assertIsNotNone(passed_layer, "Expected a pre-opened Sdf.Layer to be passed, got None")
+            self.assertIsInstance(passed_layer, Sdf.Layer, f"Expected Sdf.Layer instance, got {type(passed_layer)}")
+
     async def test_broken_layers_stack_should_return_correct_value(self):
         # Arrange
         async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
@@ -386,7 +442,7 @@ class TestLayerManagerCore(AsyncTestCase):
             # Assert 2
             self.assertEqual([str(sublayer) for sublayer in root_layer.subLayerPaths], ["./mod.usda", "./capture.usda"])
 
-    async def test_layer_type_in_stack_should_return_correct_value(self):
+    async def test__layer_type_in_stack_should_return_correct_value(self):
         # Arrange
         async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
             base_path = OmniUrl(project_url.parent_url)
@@ -412,7 +468,7 @@ class TestLayerManagerCore(AsyncTestCase):
                     name=f"layer_identifier_{layer_path.stem}_type_{layer_type.value}_value_{is_in_stack}"
                 ):
                     # Act
-                    value = self.layer_manager.layer_type_in_stack(layer_path.path, layer_type)
+                    value = self.layer_manager._layer_type_in_stack(layer_path.path, layer_type)
 
                     # Assert
                     self.assertEqual(value, is_in_stack)
@@ -428,14 +484,14 @@ class TestLayerManagerCore(AsyncTestCase):
         self.assertIsNotNone(layer)
         self.assertTrue(layer.anonymous)
 
-    async def test_save_layer_should_save_layer_with_type(self):
+    async def test_save_layer_of_type_should_save_layer_with_type(self):
         # Arrange
         async with open_test_project("usd/full_project/full_project.usda", __name__):
             root_layer = self.context.get_stage().GetRootLayer()
             Sdf.CreatePrimInLayer(root_layer, "RootNode/TestPrim")
 
             # Act
-            self.layer_manager.save_layer(LayerType.workfile, show_checkpoint_error=False)
+            self.layer_manager.save_layer_of_type(LayerType.workfile, show_checkpoint_error=False)
 
             # Assert
             self.assertFalse(root_layer.dirty)
@@ -491,7 +547,7 @@ class TestLayerManagerCore(AsyncTestCase):
                             mock.return_value = mock_value
 
                             # Act
-                            val = self.layer_manager.get_layers(
+                            val = self.layer_manager.get_layers_of_type(
                                 layer_type, max_results=max_results, find_muted_layers=find_muted
                             )
 
@@ -514,7 +570,7 @@ class TestLayerManagerCore(AsyncTestCase):
             for find_muted_layers in [True, False]:
                 with self.subTest(name=f"muted_{find_muted_layers}"):
                     # Act
-                    value = self.layer_manager.get_layer(LayerType.capture, find_muted_layers=find_muted_layers)
+                    value = self.layer_manager.get_layer_of_type(LayerType.capture, find_muted_layers=find_muted_layers)
 
                     # Assert
                     if find_muted_layers:
@@ -592,7 +648,7 @@ class TestLayerManagerCore(AsyncTestCase):
         # Assert
         self.assertEqual(data, "capture_baker")
 
-    async def test_set_edit_target_layer_should_set_layer_as_edit_target(self):
+    async def test_set_edit_target_layer_of_type_should_set_layer_as_edit_target(self):
         # Arrange
         for force_identifier in [True, False]:
             for find_layer_type in [True, False]:
@@ -608,7 +664,7 @@ class TestLayerManagerCore(AsyncTestCase):
                         )
 
                         # Act
-                        self.layer_manager.set_edit_target_layer(
+                        self.layer_manager.set_edit_target_layer_of_type(
                             LayerType.replacement, force_layer_identifier=force_layer_identifier
                         )
 
@@ -624,7 +680,7 @@ class TestLayerManagerCore(AsyncTestCase):
 
                         self.assertEqual(actual_edit_target, expected_edit_target)
 
-    async def test_lock_layer_should_lock_all_layers_of_type(self):
+    async def test_lock_layers_of_type_should_lock_all_layers_of_type(self):
         # Arrange
         for expected_value in [True, False]:
             for find_layer_type in [True, False]:
@@ -642,7 +698,7 @@ class TestLayerManagerCore(AsyncTestCase):
                             )
 
                         # Act
-                        self.layer_manager.lock_layer(LayerType.replacement, value=expected_value)
+                        self.layer_manager.lock_layers_of_type(LayerType.replacement, value=expected_value)
 
                         # Assert
                         if find_layer_type:
@@ -650,7 +706,7 @@ class TestLayerManagerCore(AsyncTestCase):
                         else:
                             self.assertEqual(omni.usd.is_layer_locked(self.context, project_url), False)
 
-    async def test_mute_layer_should_mute_all_layers_of_type(self):
+    async def test_mute_layers_of_type_should_mute_all_layers_of_type(self):
         # Arrange
         for expected_value in [True, False]:
             for find_layer_type in [True, False]:
@@ -669,7 +725,7 @@ class TestLayerManagerCore(AsyncTestCase):
                                 self.context.get_stage().MuteLayer(layer_identifier)
 
                         # Act
-                        self.layer_manager.mute_layer(LayerType.replacement, value=expected_value)
+                        self.layer_manager.mute_layers_of_type(LayerType.replacement, value=expected_value)
 
                         # Assert
                         if find_layer_type:
@@ -677,7 +733,7 @@ class TestLayerManagerCore(AsyncTestCase):
                         else:
                             self.assertEqual(self.context.get_stage().IsLayerMuted(project_url.path), False)
 
-    async def test_remove_layer_should_remove_all_layers_of_type(self):
+    async def test_remove_layers_of_type_should_remove_all_layers_of_type(self):
         # Arrange
         for find_layer_type in [True, False]:
             with self.subTest(name=f"find_layer_type_{find_layer_type}"):
@@ -686,7 +742,7 @@ class TestLayerManagerCore(AsyncTestCase):
                 )
                 async with open_test_project(test_project_url, __name__) as project_url:
                     # Act
-                    self.layer_manager.remove_layer(LayerType.replacement)
+                    self.layer_manager.remove_layers_of_type(LayerType.replacement)
 
                     # Assert
                     layer = Sdf.Layer.FindOrOpen(project_url.path)
@@ -710,38 +766,6 @@ class TestLayerManagerCore(AsyncTestCase):
                     self.assertEqual(
                         value, "Portal with RTX - Direct3D 9" if has_metadata and find_layer else "Unknown game"
                     )
-
-    async def test_game_current_game_capture_folder_capture_should_return_game_name_and_capture_directory(self):
-        # Arrange
-        for has_capture in [True, False]:
-            for in_rtx_remix in [True, False]:
-                with self.subTest(name=f"has_capture_{has_capture}_in_rtx_remix_{in_rtx_remix}"):
-                    test_project_url = (
-                        "usd/full_project/full_project.usda" if has_capture else "usd/import_layer/import_layer.usda"
-                    )
-                    async with open_test_project(test_project_url, __name__) as project_url:
-                        capture_url = None
-                        if in_rtx_remix:
-                            # Create a rtx-remix/captures directory and copy the temp project there.
-                            capture_url = (
-                                OmniUrl(OmniUrl(project_url.parent_url).parent_url)
-                                / REMIX_FOLDER
-                                / REMIX_CAPTURE_FOLDER
-                            )
-                            await omni.client.copy_async(project_url.parent_url, capture_url.path)
-                            await open_stage((capture_url / project_url.name).path)
-
-                        # Act
-                        name_value, dir_value = self.layer_manager.game_current_game_capture_folder(show_error=False)
-
-                        # Assert
-                        self.assertEqual(
-                            name_value, "Portal with RTX - Direct3D 9" if has_capture and in_rtx_remix else None
-                        )
-                        self.assertEqual(
-                            OmniUrl(dir_value).path if dir_value else dir_value,
-                            capture_url.path if has_capture and in_rtx_remix else None,
-                        )
 
     async def test_get_layer_hashes_no_comp_arcs_should_return_hashes_and_prim_paths(self):
         # Arrange
@@ -768,6 +792,40 @@ class TestLayerManagerCore(AsyncTestCase):
 
                 # Assert
                 self.assertDictEqual(value, expected_hashes)
+
+    async def test_is_valid_layer_type_nonexistent_file_returns_false(self):
+        # Arrange / Act
+        result = LayerManagerCore.is_valid_layer_type(r"C:\nonexistent.usda", LayerType.workfile)
+
+        # Assert
+        self.assertFalse(result)
+
+    async def test_is_valid_layer_type_wrong_type_returns_false(self):
+        # The project root layer is a workfile — passing replacement should return False
+        async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
+            # Arrange / Act
+            result = LayerManagerCore.is_valid_layer_type(project_url.path, LayerType.replacement)
+
+            # Assert
+            self.assertFalse(result)
+
+    async def test_is_valid_layer_type_correct_type_returns_true(self):
+        # The project root layer is a workfile type
+        async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
+            # Arrange / Act
+            result = LayerManagerCore.is_valid_layer_type(project_url.path, LayerType.workfile)
+
+            # Assert
+            self.assertTrue(result)
+
+    async def test_is_valid_layer_type_none_type_accepts_any_valid_remix_layer(self):
+        # When layer_type=None, any recognised Remix LayerType should be accepted
+        async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
+            # Arrange / Act — pass None explicitly (the default)
+            result = LayerManagerCore.is_valid_layer_type(project_url.path, layer_type=None)
+
+            # Assert — the project layer has a valid Remix type (workfile), so True
+            self.assertTrue(result)
 
     async def __run_create_layer(
         self,
@@ -805,9 +863,9 @@ class TestLayerManagerCore(AsyncTestCase):
                 layer_type = None
 
             with (
-                patch.object(LayerManagerCore, "layer_type_in_stack") as layer_type_in_stack_mock,
-                patch.object(LayerManagerCore, "set_edit_target_with_identifier") as set_edit_target_mock,
-                patch.object(LayerManagerCore, "set_custom_layer_type_data_with_identifier") as set_custom_data_mock,
+                patch.object(LayerManagerCore, "_layer_type_in_stack") as _layer_type_in_stack_mock,
+                patch.object(LayerManagerCore, "set_edit_target") as set_edit_target_mock,
+                patch.object(LayerManagerCore, "_set_custom_layer_type_data_with_identifier") as set_custom_data_mock,
             ):
                 if should_raise:
                     set_custom_data_mock.side_effect = ValueError()
@@ -823,7 +881,7 @@ class TestLayerManagerCore(AsyncTestCase):
                     else:
                         create_will_fail = layer_type in {LayerType.workfile}
 
-                layer_type_in_stack_mock.return_value = create_will_fail
+                _layer_type_in_stack_mock.return_value = create_will_fail
 
                 # Act
                 with (
@@ -864,6 +922,10 @@ class TestLayerManagerCore(AsyncTestCase):
                         case LayerType.capture:
                             expected_sublayers = ["./mod.usda"]
 
+            # Replace any "parent/../dir" with "dir" and any "dir/./" with "dir/"
+            # CreateOrInsertSublayer normalizes the returned path, so error messages use the resolved form.
+            resolved_path = re.sub(r"(/[^/]+/\.\./)|(\./)|(//+)", "/", layer_path)
+
             # If creating a layer was supposed to raise a value error, make sure it was the correct error
             if create_will_fail:
                 self.assertEqual(str(cm.exception), "Can't replace a layer of the same type as the parent layer.")
@@ -877,11 +939,8 @@ class TestLayerManagerCore(AsyncTestCase):
                     self.assertEqual(
                         str(cm.exception),
                         f"Unable to update the created layer's metadata. "
-                        f'Can\'t find the layer with identifier "{layer_path}".',
+                        f'Can\'t find the layer with identifier "{resolved_path}".',
                     )
-
-            # Replace any "parent/../dir" with "dir" and any "dir/./" with "dir/"
-            resolved_path = re.sub(r"(/[^/]+/\.\./)|(\./)|(//+)", "/", layer_path)
 
             self.assertEqual(1 if set_edit_target and not create_will_fail else 0, set_edit_target_mock.call_count)
             if set_edit_target and not create_will_fail:
@@ -889,7 +948,10 @@ class TestLayerManagerCore(AsyncTestCase):
 
             self.assertEqual(1 if set_layer_type and not create_will_fail else 0, set_custom_data_mock.call_count)
             if set_layer_type and not create_will_fail:
-                self.assertEqual(call(resolved_path, layer_type), set_custom_data_mock.call_args)
+                # Verify the positional args; the `layer` kwarg carries a pre-opened Sdf.Layer
+                # which is an instance we cannot predict, so only check positional args here.
+                self.assertEqual((resolved_path, layer_type), set_custom_data_mock.call_args.args)
+                self.assertIn("layer", set_custom_data_mock.call_args.kwargs)
 
     async def test_get_replacement_layers_should_return_all_sublayers_in_hierarchy(
         self,
@@ -919,3 +981,150 @@ class TestLayerManagerCore(AsyncTestCase):
             # Assert
             self.assertEqual(result, expected_layers)
             self.assertEqual(len(result), 5)
+
+    async def test_get_layer_hashes_no_comp_arcs_is_staticmethod(self):
+        # Verify the method never uses self and is correctly decorated @staticmethod.
+        self.assertIsInstance(
+            inspect.getattr_static(LayerManagerCore, "get_layer_hashes_no_comp_arcs"),
+            staticmethod,
+            "get_layer_hashes_no_comp_arcs should be @staticmethod (it never references self)",
+        )
+
+    async def test_get_sdf_layer_is_private(self):
+        # Verify get_sdf_layer has been renamed to _get_sdf_layer on ILayer.
+        self.assertFalse(
+            hasattr(ILayer, "get_sdf_layer"),
+            "get_sdf_layer should no longer exist as a public method on ILayer",
+        )
+        self.assertIsNotNone(
+            inspect.getattr_static(ILayer, "_get_sdf_layer", None),
+            "_get_sdf_layer should exist on ILayer",
+        )
+
+    async def test_flatten_sublayers_is_private(self):
+        # Verify flatten_sublayers has been renamed to _flatten_sublayers on ILayer.
+        self.assertFalse(
+            hasattr(ILayer, "flatten_sublayers"),
+            "flatten_sublayers should no longer exist as a public method on ILayer",
+        )
+        self.assertIsNotNone(
+            inspect.getattr_static(ILayer, "_flatten_sublayers", None),
+            "_flatten_sublayers should exist on ILayer",
+        )
+
+    async def test_set_custom_layer_type_data_with_identifier_is_private(self):
+        # Verify set_custom_layer_type_data_with_identifier has been renamed to the _ prefixed form.
+        self.assertFalse(
+            hasattr(LayerManagerCore, "set_custom_layer_type_data_with_identifier"),
+            "set_custom_layer_type_data_with_identifier should no longer exist as a public method",
+        )
+        self.assertIsNotNone(
+            inspect.getattr_static(LayerManagerCore, "_set_custom_layer_type_data_with_identifier", None),
+            "_set_custom_layer_type_data_with_identifier should exist on LayerManagerCore",
+        )
+
+    async def test_layer_type_in_stack_is_private(self):
+        # Verify layer_type_in_stack has been renamed to _layer_type_in_stack on LayerManagerCore.
+        self.assertFalse(
+            hasattr(LayerManagerCore, "layer_type_in_stack"),
+            "layer_type_in_stack should no longer exist as a public method",
+        )
+        self.assertIsNotNone(
+            inspect.getattr_static(LayerManagerCore, "_layer_type_in_stack", None),
+            "_layer_type_in_stack should exist on LayerManagerCore",
+        )
+
+    async def test_open_stage_uses_context_open_stage(self):
+        # open_stage() must schedule context.open_stage_async() (not the blocking
+        # open_stage or omni.kit.window.file) so the call is non-blocking.
+        new_path = "/test/new_project.usda"
+
+        real_ctx = self.layer_manager._LayerManagerCore__context
+        stage = real_ctx.get_stage()
+        if stage:
+            expected_prev = stage.GetRootLayer().identifier
+            if "anon" in expected_prev:
+                expected_prev = None
+        else:
+            expected_prev = None
+
+        mock_ctx = Mock()
+        mock_ctx.get_stage.return_value = stage
+        mock_ctx.open_stage_async = AsyncMock()
+        with patch.object(self.layer_manager, "_LayerManagerCore__context", mock_ctx):
+            result = self.layer_manager.open_stage(new_path)
+
+        mock_ctx.open_stage_async.assert_called_once_with(new_path)
+        self.assertEqual(expected_prev, result)
+
+    async def test_open_stage_calls_optional_callback(self):
+        # open_stage() must invoke the callback argument when provided.
+        callback_mock = Mock()
+
+        mock_ctx = Mock()
+        mock_ctx.get_stage.return_value = None
+        mock_ctx.open_stage_async = AsyncMock()
+        with patch.object(self.layer_manager, "_LayerManagerCore__context", mock_ctx):
+            self.layer_manager.open_stage("/test/path.usda", callback=callback_mock)
+
+        callback_mock.assert_called_once()
+
+    async def test_get_sublayers_with_data_models_no_layer_raises(self):
+        # Arrange
+        # Use model_construct() to bypass the context_name validator (not under test here).
+        params = GetLayerPathParamModel.model_construct(layer_id=pathlib.Path(r"C:\nonexistent.usda"))
+        query = GetLayersQueryModel()
+
+        # Act / Assert
+        with self.assertRaises(ValueError) as cm:
+            LayerManagerCore.get_sublayers_with_data_models(params, query)
+
+        self.assertIn("cannot be opened", str(cm.exception))
+
+    async def test_get_sublayers_with_data_models_returns_children(self):
+        # Arrange
+        async with open_test_project("usd/full_project/full_project.usda", __name__) as project_url:
+            # Use model_construct() to bypass the context_name validator (not under test here).
+            params = GetLayerPathParamModel.model_construct(layer_id=pathlib.Path(project_url.path))
+            query = GetLayersQueryModel()
+
+            # Act
+            result = LayerManagerCore.get_sublayers_with_data_models(params, query)
+
+            # Assert — the root project layer has known sublayers
+            self.assertIsNotNone(result)
+            self.assertIsInstance(result.layers, list)
+
+    def test_lazy_layer_instances_not_created_at_init(self):
+        """ILayer instances should not be constructed until first accessed."""
+        with patch.object(_capture_module.CaptureLayer, "__init__", return_value=None) as mock_init:
+            _core = LayerManagerCore()
+            mock_init.assert_not_called()
+
+    def test_bulk_methods_renamed_to_of_type(self):
+        self.assertTrue(hasattr(LayerManagerCore, "mute_layers_of_type"))
+        self.assertTrue(hasattr(LayerManagerCore, "lock_layers_of_type"))
+        self.assertTrue(hasattr(LayerManagerCore, "remove_layers_of_type"))
+        self.assertTrue(hasattr(LayerManagerCore, "save_layer_of_type"))
+        self.assertTrue(hasattr(LayerManagerCore, "set_edit_target_layer_of_type"))
+
+    def test_identifier_methods_have_short_names(self):
+        sig = inspect.signature(LayerManagerCore.mute_layer)
+        self.assertIn("layer_identifier", sig.parameters)
+
+    def test_thin_wrappers_removed_from_core(self):
+        """These thin *_with_data_model wrapper methods should no longer exist on LayerManagerCore."""
+        removed = [
+            "create_layer_with_data_model",
+            "set_edit_target_with_data_model",
+            "move_layer_with_data_model",
+            "remove_layer_with_data_model",
+            "mute_layer_with_data_model",
+            "lock_layer_with_data_model",
+            "save_layer_with_data_model",
+        ]
+        for method_name in removed:
+            self.assertFalse(
+                hasattr(LayerManagerCore, method_name),
+                f"Expected {method_name} to be removed from LayerManagerCore",
+            )
