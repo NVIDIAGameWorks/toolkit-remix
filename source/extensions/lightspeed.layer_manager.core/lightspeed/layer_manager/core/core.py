@@ -16,6 +16,7 @@
 """
 
 import re
+from asyncio import ensure_future
 from collections.abc import Callable
 from contextlib import nullcontext
 from pathlib import Path
@@ -841,11 +842,16 @@ class LayerManagerCore:
 
     def open_stage(self, layer_identifier: str, callback: Callable[[], None] = None) -> str:
         """
-        Open a USD stage by file path using the USD context.
+        Schedule a USD stage open by file path using the USD context.
+
+        The open is dispatched asynchronously via ``ensure_future`` so the
+        call returns immediately and the stage may not yet be open when this
+        method returns or when ``callback`` fires.
 
         Args:
             layer_identifier: The file path or URL of the stage to open.
-            callback: Optional callable invoked immediately after the open call.
+            callback: Optional callable invoked immediately after scheduling
+                the open (i.e. before the stage has finished loading).
 
         Returns:
             The identifier of the previously-open root layer, or None if no
@@ -859,7 +865,8 @@ class LayerManagerCore:
         else:
             prev_stage_root_layer_identifier = None
 
-        self.__context.open_stage(layer_identifier)
+        ensure_future(self.__context.open_stage_async(layer_identifier))
+
         if callback:
             callback()
 

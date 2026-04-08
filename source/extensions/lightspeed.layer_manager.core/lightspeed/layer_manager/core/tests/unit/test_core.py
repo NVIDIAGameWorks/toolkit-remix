@@ -22,7 +22,7 @@ import pathlib
 import re
 import tempfile
 from types import NoneType
-from unittest.mock import Mock, call, patch
+from unittest.mock import AsyncMock, Mock, call, patch
 
 import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType, LayerTypeKeys
@@ -1035,7 +1035,8 @@ class TestLayerManagerCore(AsyncTestCase):
         )
 
     async def test_open_stage_uses_context_open_stage(self):
-        # open_stage() must delegate to context.open_stage(), not omni.kit.window.file.
+        # open_stage() must schedule context.open_stage_async() (not the blocking
+        # open_stage or omni.kit.window.file) so the call is non-blocking.
         new_path = "/test/new_project.usda"
 
         real_ctx = self.layer_manager._LayerManagerCore__context
@@ -1049,10 +1050,11 @@ class TestLayerManagerCore(AsyncTestCase):
 
         mock_ctx = Mock()
         mock_ctx.get_stage.return_value = stage
+        mock_ctx.open_stage_async = AsyncMock()
         with patch.object(self.layer_manager, "_LayerManagerCore__context", mock_ctx):
             result = self.layer_manager.open_stage(new_path)
 
-        mock_ctx.open_stage.assert_called_once_with(new_path)
+        mock_ctx.open_stage_async.assert_called_once_with(new_path)
         self.assertEqual(expected_prev, result)
 
     async def test_open_stage_calls_optional_callback(self):
@@ -1061,6 +1063,7 @@ class TestLayerManagerCore(AsyncTestCase):
 
         mock_ctx = Mock()
         mock_ctx.get_stage.return_value = None
+        mock_ctx.open_stage_async = AsyncMock()
         with patch.object(self.layer_manager, "_LayerManagerCore__context", mock_ctx):
             self.layer_manager.open_stage("/test/path.usda", callback=callback_mock)
 

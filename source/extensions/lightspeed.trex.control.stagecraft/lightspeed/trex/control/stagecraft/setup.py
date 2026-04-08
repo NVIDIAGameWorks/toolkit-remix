@@ -24,6 +24,7 @@ from collections.abc import Callable
 import carb
 import lightspeed.trex.sidebar as sidebar
 import omni.kit.app
+import omni.kit.window.file
 import omni.ui
 import omni.usd
 from lightspeed.common.constants import GlobalEventNames
@@ -63,7 +64,6 @@ class Setup:
             "_sub_import_replacement_layer": None,
             "_sub_open_workfile": None,
             "_layer_manager": None,
-            "_previous_root_layer_identifier": None,
             "_sub_menu_workfile_save": None,
             "_sub_menu_workfile_save_as": None,
             "_sub_menu_workfile_undo": None,
@@ -84,7 +84,6 @@ class Setup:
         self._context_name = _TrexContexts.STAGE_CRAFT.value
         self._context = _trex_contexts_instance().get_usd_context(_TrexContexts.STAGE_CRAFT)
         self._layer_manager = _LayerManagerCore(context_name=_TrexContexts.STAGE_CRAFT.value)
-        self._previous_root_layer_identifier = None
         self._menu_workfile_instance = _get_menu_workfile_instance()
         self._stage_core_setup = _StageCoreSetup(self._context_name)
         self._capture_core_setup = _CaptureCoreSetup(self._context_name)
@@ -228,11 +227,9 @@ class Setup:
         self._update_modding_button_state()
 
     def _on_open_workfile(self, path):
-        return self.prompt_if_unsaved_project(
-            lambda: self.__open_stage_and_save_previous_identifier(path), "changing project"
-        )
+        return self.prompt_if_unsaved_project(lambda: self.__open_stage_and_load_layout(path), "changing project")
 
-    def __open_stage_and_save_previous_identifier(self, path):
+    def __open_stage_and_load_layout(self, path):
         if not _ProjectWizardSchema.is_project_file_valid(
             Path(path), {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
         ) or not _ProjectWizardSchema.are_project_symlinks_valid(Path(path)):
@@ -240,7 +237,7 @@ class Setup:
             wizard.set_payload({_ProjectWizardKeys.PROJECT_FILE.value: Path(path)})
             wizard.show_project_wizard(reset_page=True)
             return
-        self._previous_root_layer_identifier = self._layer_manager.open_stage(path)
+        omni.kit.window.file.open_stage(path)
         load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
 
     def _on_save_as(self, on_save_done: Callable[[bool, str], None] = None):
