@@ -90,9 +90,8 @@ class JointItem(_TreeItemBase):
         index: int,
         options: list[str],
         remapped_index: int = None,
-        children: list[_TreeItemBase] = None,
     ):
-        super().__init__(children=children)
+        super().__init__()
         self._name = name
         self._index = index
         if remapped_index is None:
@@ -105,13 +104,6 @@ class JointItem(_TreeItemBase):
         default_attr = super().default_attr
         default_attr.update({"_name_model": None, "_remap_options": None})
         return default_attr
-
-    def add_child(self, child: _TreeItemBase):
-        self._children.append(child)
-
-    @property
-    def children(self) -> list[_TreeItemBase]:
-        return self._children
 
     @property
     def can_have_children(self) -> bool:

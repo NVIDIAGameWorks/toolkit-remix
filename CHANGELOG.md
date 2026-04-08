@@ -92,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed crash in Stage Manager window resize callback when content widget is uninitialized after a monitor resolution change
 - REMIX-5242: Fixed open recent project regression — app no longer hangs during load, loading indicator is restored, and post-open capture layer validation warnings are shown correctly
 - REMIX-5188: Fixed teleport tool keyword error
+- REMIX-5241: Fixed `TypeError` crash when opening the skeleton remapping window due to `JointItem` using an outdated `TreeItemBase` API
 
 ### Removed
 
