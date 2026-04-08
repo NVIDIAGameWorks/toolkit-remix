@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1]
+### Fixed
+- REMIX-5241: Fixed `TypeError` crash when opening the skeleton remapping window caused by `JointItem` passing unsupported `children` kwarg to `TreeItemBase.__init__`
+
 ## [1.2.0]
 ### Changed
 - Replaced `add_child()` calls with direct `parent` property assignment for tree item hierarchy
