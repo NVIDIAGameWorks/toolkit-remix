@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [1.7.1]
+### Changed
+- Removed unused `query_name` parameter from `viewport_api_request_query_hdremix` call
+
 ## [1.7.0]
 ### Changed
 - REMIX-1088: Camera speed entry now uses `ui.FloatDrag` with drag-to-scrub support (step 0.1, min 0.0)
