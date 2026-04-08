@@ -40,4 +40,6 @@ class StageManagerWindow(_WorkspaceWindowBase):
         return _StageManagerWidget()
 
     def _on_window_resized(self, value: float):
-        self._content.resize_tabs()
+        if self._content:
+            self._content.resize_tabs()
+        super()._on_window_resized(value)

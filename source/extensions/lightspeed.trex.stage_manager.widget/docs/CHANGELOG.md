@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.5]
+### Fixed
+- Fixed crash in `_on_window_resized` when content widget is uninitialized after a monitor resolution change
+- Restored base class resize handling via `super()` call
+
 ## [1.3.4]
 ### Changed
 - Modernize python style and enable more ruff checks
