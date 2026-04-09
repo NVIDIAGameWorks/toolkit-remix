@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5209: Fixed crash when typing out-of-range values (e.g. negative Max Particles) in the particle editor by reading schema-defined limits and clamping typed input before it reaches USD
 - REMIX-5188: Fixed teleport tool keyword error
 - REMIX-5241: Fixed `TypeError` crash when opening the skeleton remapping window due to `JointItem` using an outdated `TreeItemBase` API
+- REMIX-5210: Fixed significant viewport FPS drop when dragging float/int property sliders by throttling USD writes to once per frame during drag interactions
 
 ### Removed
 

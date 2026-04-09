@@ -2,7 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [2.30.0]
+## [2.31.0]
+### Fixed
+- REMIX-5210: Fixed significant viewport FPS drop when dragging float/int sliders in the property panel by throttling USD writes to at most once per application frame during a drag interaction
+
+## [2.30.1]
 ### Changed
 - Default integer and float field builders now use `USDIntDragField`/`USDFloatDragField` so that `ui_metadata` bounds defined on `USDAttributeItem` (including hard limits) are wired to drag widgets; this affects **all** float/int USD attributes across all property panels — any attribute with `customData.range` or `customData.limits` in its schema will now have hard-bound clamping applied to typed input
 
