@@ -93,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5242: Fixed open recent project regression — app no longer hangs during load, loading indicator is restored, and post-open capture layer validation warnings are shown correctly
 - REMIX-5188: Fixed teleport tool keyword error
 - REMIX-5241: Fixed `TypeError` crash when opening the skeleton remapping window due to `JointItem` using an outdated `TreeItemBase` API
+- REMIX-5210: Fixed significant viewport FPS drop when dragging float/int property sliders by throttling USD writes to once per frame during drag interactions
 
 ### Removed
 
