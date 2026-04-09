@@ -16,6 +16,7 @@
 """
 
 from .test_delegate_alignment import TestDelegateAlignment
+from .test_drag_write_throttling import TestDragWriteThrottling
 from .test_file_texture_picker import TestFileTexturePicker
 from .test_relationship_item import TestUSDRelationshipItem
 from .test_relationship_utils import TestRelationshipUtils
@@ -24,6 +25,7 @@ from .test_usd_attribute_item_bounds import TestUSDAttributeItemBounds
 
 __all__ = [
     "TestDelegateAlignment",
+    "TestDragWriteThrottling",
     "TestFileTexturePicker",
     "TestRelationshipUtils",
     "TestUSDAttributeItemBounds",
