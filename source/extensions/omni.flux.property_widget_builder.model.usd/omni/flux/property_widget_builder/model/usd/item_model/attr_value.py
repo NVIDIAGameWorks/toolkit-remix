@@ -16,12 +16,14 @@
 """
 
 import abc
+import asyncio
 import copy
 from typing import Any
 from collections.abc import Callable
 
 import carb
 import omni.client
+import omni.kit.app
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
@@ -103,6 +105,8 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         self._summary_limit = 25  # max amount of values to display in a tooltip
         self._ignore_refresh = False
         self._attributes: list[Usd.Attribute] = None
+        self._is_batch_editing = False
+        self._pending_batch_write_task = None
 
     def init_attributes(self):
         # cache the attributes
@@ -337,28 +341,79 @@ class UsdAttributeBase(_Serializable, abc.ABC):
 
         self._set_internal_value(new_value)
 
+        if self._is_batch_editing:
+            # Throttle: cancel any previous pending write and schedule one for the next frame
+            if self._pending_batch_write_task is not None:
+                self._pending_batch_write_task.cancel()
+            self._pending_batch_write_task = asyncio.ensure_future(self._deferred_batch_write())
+            self._on_dirty()
+            return True
+
         if not self._stage:
             return False
 
-        need_refresh = False
+        if self._write_value_to_usd():
+            self.refresh()
+            return True
+        # value was not changed, but we do want to refresh the delegate
+        self._on_dirty()
+        return False
+
+    def _write_value_to_usd(self) -> bool:
+        """Write the current in-memory value to USD for all attribute paths.
+
+        Returns True if at least one attribute was updated, False otherwise.
+        """
+        if not self._stage:
+            return False
+        wrote_any = False
         for attribute_path in self._attribute_paths:
             prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
             if prim.IsValid():
                 attr = prim.GetAttribute(attribute_path.name)
                 if not attr.IsValid() and not self._is_virtual:
                     continue
-                current_value = self._get_attribute_value(attr)
-                if current_value != self._value:
-                    need_refresh = True
+                if self._get_attribute_value(attr) != self._value:
+                    wrote_any = True
                     self._ignore_refresh = True
                     self._set_attribute_value(attr, self._value)
                     self._ignore_refresh = False
-        if need_refresh:
+        return wrote_any
+
+    @omni.usd.handle_exception
+    async def _deferred_batch_write(self):
+        """Write the current in-memory value to USD once per application frame during a batch edit."""
+        await omni.kit.app.get_app().next_update_async()
+        self._pending_batch_write_task = None
+        if not self._is_batch_editing or not self._stage:
+            return
+        if self._write_value_to_usd():
             self.refresh()
-            return True
-        # value was not changed, but we do want to refresh the delegate
-        self._on_dirty()
-        return False
+
+    def begin_batch_edit(self):
+        """Mark the start of a batch edit — subsequent _set_value calls are throttled to once per frame."""
+        self._is_batch_editing = True
+
+    def end_batch_edit(self):
+        """Mark the end of a batch edit — cancel any pending deferred write and flush the final value synchronously."""
+        try:
+            if self._pending_batch_write_task is not None:
+                self._pending_batch_write_task.cancel()
+                self._pending_batch_write_task = None
+                if self._write_value_to_usd():
+                    self.refresh()
+        finally:
+            self._is_batch_editing = False
+
+    def __del__(self):
+        """Cancel any pending batch write task on deletion.
+
+        Subclasses that define their own ``__del__`` must call ``super().__del__()``
+        to ensure the pending task is cancelled and does not write stale values.
+        """
+        if self._pending_batch_write_task is not None:
+            self._pending_batch_write_task.cancel()
+            self._pending_batch_write_task = None
 
 
 class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
@@ -457,6 +512,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
                 self.set_value(default_value)
 
     def begin_edit(self):
+        self.begin_batch_edit()
         super().begin_edit()
         # In the case where widget A is currently editing, then user clicks directly
         # on Widget B to start editing, B's begin_edit will come through before A's end_edit.
@@ -466,6 +522,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             self._value_changed()
 
     def end_edit(self):
+        self.end_batch_edit()
         # we set back to the USD value
         if self._has_wrong_value and self._read_value_from_usd():
             self._value_changed()
