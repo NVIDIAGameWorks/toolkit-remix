@@ -167,6 +167,7 @@ class ProjectWizardCore:
             self._on_run_progress(30)
 
             if model.existing_project:
+                self._destroy_context()
                 self._log_info(f"Project is ready: {model.project_file}")
                 self._on_run_progress(100)
                 self._on_run_finished(True)

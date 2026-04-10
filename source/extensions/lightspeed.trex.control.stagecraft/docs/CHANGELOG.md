@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.0]
+### Added
+- REMIX-5202: Automatically open repair wizard when a project is loaded with a missing capture file
+
 ## [1.6.7]
 ### Fixed
 - REMIX-5242: Restore async open recent project flow — call `omni.kit.window.file.open_stage()` at the UI call site to show the loading indicator and avoid blocking the main thread

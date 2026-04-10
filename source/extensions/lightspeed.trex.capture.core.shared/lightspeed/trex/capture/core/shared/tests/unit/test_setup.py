@@ -15,8 +15,8 @@
 * limitations under the License.
 """
 
-import omni.client
 import omni.kit.test
+import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup

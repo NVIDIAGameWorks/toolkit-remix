@@ -29,6 +29,8 @@ import omni.ui
 import omni.usd
 from lightspeed.common.constants import GlobalEventNames
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
+from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
+from lightspeed.common.constants import REMIX_DEPENDENCIES_FOLDER as _REMIX_DEPENDENCIES_FOLDER
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
@@ -271,11 +273,46 @@ class Setup:
 
     def _on_stage_event(self, event):
         if event.type in {int(omni.usd.StageEventType.OPENED), int(omni.usd.StageEventType.CLOSING)}:
-            asyncio.ensure_future(self._update_modding_button_state_deferred())
+            asyncio.ensure_future(self._update_modding_button_state_deferred(event.type))
 
-    async def _update_modding_button_state_deferred(self):
+    async def _update_modding_button_state_deferred(self, event_type: int):
         await omni.kit.app.get_app().next_update_async()
         self._update_modding_button_state()
+        if event_type == int(omni.usd.StageEventType.OPENED):
+            self._check_capture_on_open()
+
+    def _check_capture_on_open(self):
+        """Open the project wizard when a project is loaded with a missing capture layer."""
+        project_layer = self._layer_manager.get_layer_of_type(_LayerType.workfile)
+        capture_layer = self._layer_manager.get_layer_of_type(_LayerType.capture)
+        if not project_layer or capture_layer:
+            return
+        project_path = Path(project_layer.realPath)
+        deps_directory = (project_path.parent / _REMIX_DEPENDENCIES_FOLDER).resolve()
+        wizard = _get_wizard_instance(_WizardTypes.OPEN, self._context_name)
+        payload = {_ProjectWizardKeys.PROJECT_FILE.value: project_path}
+        if deps_directory.exists():
+            payload[_ProjectWizardKeys.REMIX_DIRECTORY.value] = deps_directory
+        wizard.set_payload(payload)
+        wizard.show_capture_picker = True
+        self._sub_wizard_completed = wizard.subscribe_wizard_completed(self._on_capture_repair_completed)
+        wizard.show_project_wizard(reset_page=True)
+
+    def _on_capture_repair_completed(self, payload):
+        """Import the user-selected capture layer into the already-open stage."""
+        capture_file = payload.get(_ProjectWizardKeys.CAPTURE_FILE.value)
+        if not capture_file:
+            return
+        project_file = payload.get(_ProjectWizardKeys.PROJECT_FILE.value)
+        if not project_file:
+            return
+        capture_path = (
+            Path(str(project_file)).parent
+            / _REMIX_DEPENDENCIES_FOLDER
+            / _REMIX_CAPTURE_FOLDER
+            / Path(str(capture_file)).name
+        )
+        self._capture_core_setup.import_capture_layer(str(capture_path))
 
     def _update_modding_button_state(self):
         if not self.__sub_sidebar_items:

@@ -19,6 +19,7 @@ import abc
 import asyncio
 from enum import Enum
 from functools import partial
+from pathlib import Path
 
 import carb.settings
 import omni.kit.app
@@ -127,9 +128,22 @@ class ProjectWizardBase(abc.ABC):
             ).show()
             return
 
-        omni.kit.window.file.open_stage(str(payload.get(_ProjectWizardKeys.PROJECT_FILE.value, "")))
+        project_file = payload.get(_ProjectWizardKeys.PROJECT_FILE.value, "")
+        if not self._is_stage_already_open(project_file):
+            omni.kit.window.file.open_stage(str(project_file))
 
-        self.__on_wizard_completed()
+        self.__on_wizard_completed(payload)
+
+    @staticmethod
+    def _is_stage_already_open(project_file) -> bool:
+        """Return True when the default USD context already has this project loaded."""
+        stage = usd.get_context().get_stage()
+        if not stage:
+            return False
+        root_layer = stage.GetRootLayer()
+        if not root_layer or root_layer.anonymous:
+            return False
+        return Path(root_layer.realPath).resolve() == Path(str(project_file)).resolve()
 
     def create_wizard_window(self):
         self._wizard_window = _WizardWindow(
@@ -209,6 +223,7 @@ class OpenProjectWizardWindow(ProjectWizardBase):
         super().__init__(context_name=context_name, width=width, height=height)
 
         self._start_page_instance = None
+        self._show_capture_picker = False
 
     @property
     def _default_attrs(self) -> dict[str, None]:
@@ -216,11 +231,22 @@ class OpenProjectWizardWindow(ProjectWizardBase):
         default_attrs.update(
             {
                 "_start_page_instance": None,
+                "_show_capture_picker": None,
                 "_file_picker_opened_sub": None,
                 "_file_picker_closed_sub": None,
             }
         )
         return default_attrs
+
+    @property
+    def show_capture_picker(self) -> bool:
+        return self._show_capture_picker
+
+    @show_capture_picker.setter
+    def show_capture_picker(self, value: bool) -> None:
+        self._show_capture_picker = value
+        if isinstance(self._start_page_instance, _SetupPage):
+            self._start_page_instance.show_capture_picker = value
 
     @property
     def _start_page(self) -> _WizardPage:
@@ -232,6 +258,7 @@ class OpenProjectWizardWindow(ProjectWizardBase):
         if self._payload and self._payload.get(_ProjectWizardKeys.PROJECT_FILE.value, None):
             self._start_page_instance = _SetupPage(context_name=self._context_name, previous_page=None)
             self._start_page_instance.open_or_create = True
+            self._start_page_instance.show_capture_picker = self._show_capture_picker
             self._start_page_instance.payload = self._payload
         else:
             self._start_page_instance = _WizardOpenProjectPage(context_name=self._context_name)
