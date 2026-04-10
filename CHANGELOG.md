@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - GLAB publishing using the new cli utility
+- Fixed selection panel showing no hierarchy or properties for certain imported USD assets by adding regex-based prototype resolution fallback
 
 ### Removed
 
@@ -62,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3540: Renamed override context menu labels from "Delete" to "Revert" for clearer user intent
 
 ### Fixed
+
 - REMIX-4347: Fixed Scan Folder for Ingestion showing invalid file types (e.g. .mdl) alongside valid formats
 - REMIX-3187, REMIX-2383: Fixed selection tree expanded items (lights group, xform nodes) collapsing after a prim or reference deletion
 - REMIX-4810: Fixed ComboBox dropdown becoming see-through when the header item is hovered
