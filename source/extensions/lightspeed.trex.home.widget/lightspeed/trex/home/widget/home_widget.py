@@ -503,7 +503,7 @@ class HomePageWidget(_WorkspaceWidget):
             load_layout(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
 
     def _invoke_mod_setup_wizard(self, wizard_type: _WizardTypes, project_path: str | None = None):
-        def on_load_project():
+        def on_load_project(_payload=None):
             load_layout(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
             self._sub_wizard_completed = None
 

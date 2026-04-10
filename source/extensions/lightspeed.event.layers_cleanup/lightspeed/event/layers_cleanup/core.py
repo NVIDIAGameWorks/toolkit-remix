@@ -15,12 +15,15 @@
 * limitations under the License.
 """
 
+from pathlib import PurePosixPath
+
 import carb
 import omni.client
 import omni.kit.app
 import omni.kit.notification_manager as _nm
 import omni.kit.usd.layers as _layers
 import omni.usd
+from lightspeed.common import constants as _constants
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -87,12 +90,23 @@ class EventLayersCleanupCore(_ILSSEvent):
         broken_stack = self._layer_manager.broken_layers_stack()
         all_invalid_paths = []
         for parent_broken_layer, broken_layer_path in broken_stack:
-            all_invalid_paths.extend(
-                self._layer_manager.remove_broken_layer(parent_broken_layer.identifier, broken_layer_path)
-            )
+            removed = self._layer_manager.remove_broken_layer(parent_broken_layer.identifier, broken_layer_path)
+            # Capture layers are handled silently: validate_project removes the reference and
+            # control.stagecraft opens the repair wizard, so notifying here is redundant.
+            if not self.__is_capture_layer_path(broken_layer_path):
+                all_invalid_paths.extend(removed)
 
         if all_invalid_paths:
             self._post_notification(all_invalid_paths)
+
+    @staticmethod
+    def __is_capture_layer_path(path: str) -> bool:
+        """Return True when the path follows the ./deps/captures/<file> convention."""
+        p = PurePosixPath(path.replace("\\", "/"))
+        return (
+            p.parent.name == _constants.REMIX_CAPTURE_FOLDER
+            and p.parent.parent.name == _constants.REMIX_DEPENDENCIES_FOLDER
+        )
 
     def _post_notification(self, invalid_paths: list[str]):
         if not invalid_paths:

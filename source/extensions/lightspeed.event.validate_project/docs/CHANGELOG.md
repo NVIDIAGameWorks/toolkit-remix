@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.4]
+### Changed
+- REMIX-5202: Clarify notification message when an invalid capture reference is removed to indicate no files on disk are affected
+
 ## [1.1.3]
 ### Changed
 - Updated LayerManagerCore calls

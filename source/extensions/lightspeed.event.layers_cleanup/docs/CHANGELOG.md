@@ -1,5 +1,9 @@
-﻿# Changelog
+# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [2.2.4]
+### Fixed
+- REMIX-5202: Suppress viewport warning for missing capture layers; they are handled by the repair wizard
 
 ## [2.2.3]
 ### Changed

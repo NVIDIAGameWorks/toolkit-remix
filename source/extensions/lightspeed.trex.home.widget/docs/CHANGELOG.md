@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.5]
+### Fixed
+- REMIX-5202: Accept payload argument in wizard completion callback
+
 ## [1.8.4]
 ### Fixed
 - Fixed extension failing to load due to stale `lightspeed.trex.contexts` dependency (REMIX-4992)
