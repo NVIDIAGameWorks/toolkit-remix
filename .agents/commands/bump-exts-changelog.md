@@ -57,3 +57,11 @@ Append it as the **last item** of the appropriate heading (Added, Changed, Fixed
 Never insert at the top of a section — always append after the last existing entry.
 If `<ticket>` is set, prefix the line with it: `<ticket>: <one-liner summary>`. Otherwise write the summary without a
 prefix.
+
+## Gotchas
+
+- **`list_changed_exts.py` may report 0 bumps needed even when bumps are required.** This happens when a prior commit on the branch already touched the `CHANGELOG.md` or `extension.toml`. Always cross-check with `git diff origin/<base>..HEAD --name-only -- source/extensions/` to confirm which extensions actually changed.
+
+- **One version bump per MR, not per commit.** Each MR bumps an extension's version exactly once. If the version was already bumped by a prior commit on this branch, append new changelog entries to that existing `## [X.Y.Z]` section — do not create another new version. Only create a new `## [X.Y.Z]` section if no bump has happened yet on this branch.
+
+- **Lint may auto-fix files in unrelated extensions.** When `lint_code.bat all` runs it checks the entire repo and may fix files outside the extension you are targeting. Before staging those fixes, assess if they belong in the current MR scope — if unrelated, handle them in a separate MR.
