@@ -156,7 +156,8 @@ class EventValidateProjectCore(_ILSSEvent):
                 self.__show_message(
                     f'The current capture layer does not exist in: "{expected_relative_path}".\n\n'
                     f'The captures should be located within the linked "{REMIX_FOLDER}" directory.\n\n'
-                    f"Removing the capture layer from the project."
+                    f"The project reference to the missing capture file was removed. "
+                    f"No files on disk were affected."
                 )
                 del project_layer.subLayerPaths[-1]
 

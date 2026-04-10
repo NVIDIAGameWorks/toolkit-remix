@@ -2,6 +2,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [2.1.0]
+### Added
+- REMIX-5202: Import capture layer when opening an existing project with a capture file selected in the wizard
+
 ## [2.0.7]
 ### Changed
 - Update test to use renamed `LayerManagerCore.save_layer_of_type()` (was `save_layer`)

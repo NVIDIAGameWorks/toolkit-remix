@@ -16,5 +16,6 @@
 """
 
 from .e2e import TestHotkeys, TestStageManagerPropertiesInteraction
+from .unit.test_check_capture_on_open import TestCheckCaptureOnOpen
 
-__all__ = ["TestHotkeys", "TestStageManagerPropertiesInteraction"]
+__all__ = ["TestCheckCaptureOnOpen", "TestHotkeys", "TestStageManagerPropertiesInteraction"]

@@ -56,6 +56,7 @@ class SetupPage(_WizardPage):
                 "_capture_model": None,
                 "_capture_delegate": None,
                 "_open_or_create": None,
+                "_show_capture_picker": None,
                 "_project_path_valid": None,
                 "_remix_path_valid": None,
                 "_capture_selected": None,
@@ -78,6 +79,7 @@ class SetupPage(_WizardPage):
         self._capture_delegate = _CaptureTreeDelegate(preview_on_hover=False)
 
         self._open_or_create = True
+        self._show_capture_picker = False
 
         self._project_path_valid = False
         self._remix_path_valid = False
@@ -113,6 +115,15 @@ class SetupPage(_WizardPage):
         self._done_text = "Open" if self.open_or_create else "Create"
 
         self.payload = {_ProjectWizardKeys.EXISTING_PROJECT.value: value}
+
+    @property
+    def show_capture_picker(self) -> bool:
+        """Whether the capture picker is visible. Always True for create; opt-in for open."""
+        return self._show_capture_picker or not self._open_or_create
+
+    @show_capture_picker.setter
+    def show_capture_picker(self, value: bool) -> None:
+        self._show_capture_picker = value
 
     def __validate_project_path(self, project_path: str):
         validation_error = None
@@ -189,7 +200,7 @@ class SetupPage(_WizardPage):
         self.__update_validity(capture_selected=bool(self.payload.get(_ProjectWizardKeys.CAPTURE_FILE.value, False)))
 
     def __enable_capture_picker(self, enable: bool):
-        if self.open_or_create:
+        if not self.show_capture_picker:
             return
 
         if self._capture_background:
@@ -309,7 +320,7 @@ class SetupPage(_WizardPage):
                 alignment=ui.Alignment.CENTER,
             )
 
-            if not self.open_or_create:
+            if self.show_capture_picker:
                 ui.Label(
                     "Choose a capture from the list if applicable.",
                     name="WizardDescription",
@@ -376,7 +387,7 @@ class SetupPage(_WizardPage):
                     self._on_file_picker_closed
                 )
 
-            if not self.open_or_create:
+            if self.show_capture_picker:
                 ui.Spacer(height=ui.Pixel(16), width=0)
                 ui.Rectangle(height=ui.Pixel(1), name="WizardSeparator")
                 ui.Spacer(height=ui.Pixel(24), width=0)
