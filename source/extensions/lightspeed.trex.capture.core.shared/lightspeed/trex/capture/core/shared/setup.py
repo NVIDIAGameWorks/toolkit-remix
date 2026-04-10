@@ -101,10 +101,17 @@ class Setup:
         callback(result)
 
     def __on_load_event(self, event):
-        if event.type in {int(omni.usd.StageEventType.OPENED)}:
-            capture_layer = self._layer_manager.get_layer_of_type(LayerType.capture)
-            if not capture_layer:
-                return
+        if event.type not in {int(omni.usd.StageEventType.OPENED)}:
+            return
+
+        capture_layer = self._layer_manager.get_layer_of_type(LayerType.capture)
+        if capture_layer:
+            # Preserve the capture directory from the active capture layer so it remains available
+            # even if the layer is later removed (e.g. by validate_project cleanup).
+            # Use realPath for on-disk layers; fall back to identifier for anonymous/in-memory layers.
+            layer_path = capture_layer.realPath or capture_layer.identifier
+            self.__directory = omni.client.normalize_url(layer_path).rsplit("/", 1)[0]
+
             root_layer = self._context.get_stage().GetRootLayer()
             if not root_layer:
                 return
@@ -113,6 +120,16 @@ class Setup:
             _get_event_manager_instance().call_global_custom_event(
                 constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value
             )
+        else:
+            # Capture layer may have already been removed by validate_project.
+            # Derive the expected captures directory from the project structure so the capture
+            # tab can still list available files if the user cancels the repair wizard.
+            project_layer = self._layer_manager.get_layer_of_type(LayerType.workfile)
+            if project_layer:
+                project_dir = Path(omni.client.normalize_url(project_layer.realPath)).parent
+                captures_dir = project_dir / constants.REMIX_DEPENDENCIES_FOLDER / constants.REMIX_CAPTURE_FOLDER
+                if self.is_path_valid(str(captures_dir)):
+                    self.__directory = str(captures_dir)
 
     def import_capture_layer(self, path: str):
         carb.log_info(f"Import capture layer {path}")
@@ -123,8 +140,15 @@ class Setup:
 
         # delete existing one if exists
         self._layer_manager.remove_layers_of_type(LayerType.capture)
-        # add the capture layer
-        self._layer_manager.create_layer(path, create_or_insert=False, set_edit_target=False, sublayer_position=-1)
+        # add the capture layer (layer_type left as None -- the capture file already
+        # carries its own lightspeed_layer_type metadata and should not be re-saved)
+        self._layer_manager.create_layer(
+            path,
+            create_or_insert=False,
+            set_edit_target=False,
+            replace_existing=False,
+            sublayer_position=-1,
+        )
         self._layer_manager.lock_layers_of_type(LayerType.capture)
         _get_event_manager_instance().call_global_custom_event(constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value)
 

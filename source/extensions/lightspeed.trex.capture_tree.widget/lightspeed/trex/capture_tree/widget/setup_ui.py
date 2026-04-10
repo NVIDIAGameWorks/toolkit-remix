@@ -391,8 +391,9 @@ class CaptureWidget(WorkspaceWidget):
         capture_layer = self._core_capture.get_layer()
 
         if capture_layer is None or self.__ignore_current_capture_layer:
-            # grab from the field
             value = self._capture_dir_field.model.get_value_as_string()
+            if not value.strip():
+                value = self._core_capture.get_directory() or ""
             self.__ignore_current_capture_layer = False
         else:
             value = os.path.dirname(omni.client.normalize_url(capture_layer.realPath))

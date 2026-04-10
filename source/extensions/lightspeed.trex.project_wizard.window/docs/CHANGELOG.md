@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0]
+### Changed
+- REMIX-5202: Skip redundant open_stage when project is already loaded and Pass payload through subscribe_wizard_completed to callers
+
 ## [2.1.7]
 ### Changed
 - Modernize python style and enable more ruff checks
