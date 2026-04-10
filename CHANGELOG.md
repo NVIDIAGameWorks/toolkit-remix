@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GLAB publishing using the new cli utility
 - Fixed selection panel showing no hierarchy or properties for certain imported USD assets by adding regex-based prototype resolution fallback
 - REMIX-5209: Fixed crash when typing out-of-range values (e.g. negative Max Particles) in the particle editor by reading schema-defined limits and clamping typed input before it reaches USD
+- REMIX-5188: Fixed teleport tool keyword error
 
 ### Removed
 
