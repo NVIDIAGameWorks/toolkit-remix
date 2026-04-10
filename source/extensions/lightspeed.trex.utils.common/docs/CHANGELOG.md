@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.0]
+### Added
+- Added `is_ghost_prim`, `find_prim_with_references`, and `has_replacement_ref_edits` shared prim detection utilities
+- Added `is_empty_mesh_prim` utility to detect `mesh_HASH` prims whose capture reference has been removed
+
 ## [2.2.3]
 ### Changed
 - Applied new lint rules

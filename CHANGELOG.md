@@ -14,7 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- REMIX-3542: Added "Deleted" reference type to the Stage Manager Capture Reference filter, a lightspeed-specific Geometry Prims filter to keep deleted meshes visible, and shared prim detection utilities in `lightspeed.trex.utils.common`
+
 ### Fixed
+
 - GLAB publishing using the new cli utility
 - Fixed selection panel showing no hierarchy or properties for certain imported USD assets by adding regex-based prototype resolution fallback
 

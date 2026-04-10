@@ -15,37 +15,40 @@
 * limitations under the License.
 """
 
-import carb
-import carb.settings
-import omni.ext
-from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
+__all__ = ["LightspeedStageManagerUSDFilterPluginsExtension"]
 
-from .instance_group import InstanceGroupFilterPlugin as _InstanceGroupFilterPlugin
-from .is_capture import IsCaptureFilterPlugin as _IsCaptureFilterPlugin
-from .is_category import IsCategoryFilterPlugin as _IsCategoryFilterPlugin
-from .is_logic_graph import RemixLogicPrimsFilterPlugin as _RemixLogicPrimsFilterPlugin
-from .mesh_group import MeshGroupFilterPlugin as _MeshGroupFilterPlugin
-from .mesh_prims import MeshPrimsFilterPlugin as _MeshPrimsFilterPlugin
-from .particle_prims import ParticleSystemsFilterPlugin as _ParticleSystemsFilterPlugin
+import carb
+import omni.ext
+from omni.flux.stage_manager.factory import get_instance
+
+from .geometry_prims import GeometryPrimsFilterPlugin
+from .instance_group import InstanceGroupFilterPlugin
+from .is_capture import IsCaptureFilterPlugin
+from .is_category import IsCategoryFilterPlugin
+from .is_logic_graph import RemixLogicPrimsFilterPlugin
+from .mesh_group import MeshGroupFilterPlugin
+from .mesh_prims import MeshPrimsFilterPlugin
+from .particle_prims import ParticleSystemsFilterPlugin
 
 
 class LightspeedStageManagerUSDFilterPluginsExtension(omni.ext.IExt):
     _PLUGINS = [
-        _IsCaptureFilterPlugin,
-        _IsCategoryFilterPlugin,
-        _InstanceGroupFilterPlugin,
-        _MeshGroupFilterPlugin,
-        _MeshPrimsFilterPlugin,
-        _ParticleSystemsFilterPlugin,
-        _RemixLogicPrimsFilterPlugin,
+        IsCaptureFilterPlugin,
+        IsCategoryFilterPlugin,
+        InstanceGroupFilterPlugin,
+        GeometryPrimsFilterPlugin,
+        MeshGroupFilterPlugin,
+        MeshPrimsFilterPlugin,
+        ParticleSystemsFilterPlugin,
+        RemixLogicPrimsFilterPlugin,
     ]
 
     def on_startup(self, _):
         carb.log_info("[lightspeed.trex.stage_manager.plugin.filter.usd] Startup")
 
-        _get_factory_instance().register_plugins(self._PLUGINS)
+        get_instance().register_plugins(self._PLUGINS)
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.stage_manager.plugin.filter.usd] Shutdown")
 
-        _get_factory_instance().unregister_plugins(self._PLUGINS)
+        get_instance().unregister_plugins(self._PLUGINS)

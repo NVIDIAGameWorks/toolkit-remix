@@ -15,7 +15,20 @@
 * limitations under the License.
 """
 
-from .test_prim_utils import TestGetPrototype
+from .test_prim_utils import (
+    TestFindPrimWithReferences,
+    TestGetPrototype,
+    TestHasReplacementRefEdits,
+    TestIsEmptyMeshPrim,
+    TestIsGhostPrim,
+)
 from .test_user_utils import TestUserUtils
 
-__all__ = ["TestGetPrototype", "TestUserUtils"]
+__all__ = [
+    "TestFindPrimWithReferences",
+    "TestGetPrototype",
+    "TestHasReplacementRefEdits",
+    "TestIsEmptyMeshPrim",
+    "TestIsGhostPrim",
+    "TestUserUtils",
+]

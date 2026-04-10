@@ -20,11 +20,15 @@ from __future__ import annotations
 __all__ = [
     "PrimTypes",
     "filter_prims_paths",
+    "find_prim_with_references",
     "get_children_prims",
     "get_extended_selection",
     "get_prim_paths",
     "get_prototype",
     "get_reference_file_paths",
+    "has_replacement_ref_edits",
+    "is_empty_mesh_prim",
+    "is_ghost_prim",
     "is_in_light_group",
     "is_in_mesh_group",
     "is_instance",
@@ -264,6 +268,20 @@ def is_mesh_asset(prim: Usd.Prim) -> bool:
     return bool(re.match(constants.REGEX_MESH_PATH, str(prim.GetPath())))
 
 
+def is_empty_mesh_prim(prim: Usd.Prim) -> bool:
+    """Return whether *prim* is a mesh asset whose capture reference has been removed.
+
+    A mesh_HASH prim whose reference is still active will have at least one
+    child with a ``Mesh`` or ``GeomSubset`` schema.  When the reference is
+    deleted those children disappear, leaving only the ``Xform`` shell.
+    """
+    if not prim:
+        return False
+    if not re.match(constants.REGEX_MESH_PATH, str(prim.GetPath())):
+        return False
+    return all(not (child.IsA(UsdGeom.Mesh) or child.IsA(UsdGeom.Subset)) for child in prim.GetChildren())
+
+
 def is_light_asset(prim: Usd.Prim) -> bool:
     """
     Returns:
@@ -467,3 +485,85 @@ def get_prototype(prim: Usd.Prim) -> Usd.Prim | None:
         return None
 
     return prototype_prim
+
+
+def is_ghost_prim(prim: Usd.Prim) -> bool:
+    """Detect a ghost prim -- a valid, typeless instance child whose prototype was deleted.
+
+    A ghost appears when a capture reference is removed from a prototype
+    but the capture layer still holds an ``over`` spec for the corresponding
+    instance child.  Only instance children can become ghosts; the prototype
+    must no longer exist for the prim to qualify.
+    """
+    if not is_instance(prim):
+        return False
+    if get_prototype(prim) is not None:
+        return False
+    return prim.IsValid() and not prim.GetTypeName()
+
+
+def find_prim_with_references(
+    prim: Usd.Prim,
+) -> tuple[Usd.Prim, list[tuple[Usd.Prim, Sdf.Reference, Sdf.Layer, int]]]:
+    """Walk up the prim hierarchy to find the nearest ancestor that holds references.
+
+    At each level the prim itself is checked first.  If it has no references
+    and is an instance, its prototype is checked as a fallback so that
+    callers operating on instance paths can discover prototype-owned refs.
+
+    Returns the prim that owns the references and its reference items, or
+    the original prim with an empty list if no references are found.
+    """
+    if not prim:
+        return prim, []
+    current = prim
+    while current and current.IsValid() and current.GetPath() != Sdf.Path("/"):
+        ref_items, _ = get_reference_file_paths(current)
+
+        if not ref_items:
+            proto = get_prototype(current)
+            if proto is not None and proto != current:
+                ref_items, _ = get_reference_file_paths(proto)
+                if ref_items:
+                    return proto, ref_items
+
+        if ref_items:
+            return current, ref_items
+        current = current.GetParent()
+    return prim, []
+
+
+def has_replacement_ref_edits(prim: Usd.Prim, rep_layers: set[Sdf.Layer]) -> bool:
+    """Check whether any replacement layer has reference-list edits for *prim*.
+
+    Detects edits such as an explicitly emptied reference list (from a
+    delete-capture operation) or any added/deleted/prepended/appended
+    reference entries.  Instance prims are resolved to their prototype
+    before inspecting layers.
+
+    Returns ``False`` for bare ``over`` specs with no reference opinions,
+    such as those left behind by Kit undo operations.
+
+    Args:
+        prim: The USD prim to inspect.
+        rep_layers: Replacement layers to search for reference list edits.
+    """
+    if not prim:
+        return False
+    proto = get_prototype(prim)
+    if proto is not None and proto is not prim:
+        prim = proto
+    path = prim.GetPath()
+    for layer in rep_layers:
+        prim_spec = layer.GetPrimAtPath(path)
+        if prim_spec:
+            ref_list = prim_spec.referenceList
+            if (
+                ref_list.isExplicit
+                or ref_list.addedItems
+                or ref_list.deletedItems
+                or ref_list.prependedItems
+                or ref_list.appendedItems
+            ):
+                return True
+    return False

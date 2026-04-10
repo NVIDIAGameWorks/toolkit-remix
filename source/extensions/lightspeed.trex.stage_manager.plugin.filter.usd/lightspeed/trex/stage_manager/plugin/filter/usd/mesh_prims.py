@@ -17,19 +17,22 @@
 
 from __future__ import annotations
 
+__all__ = ["MeshPrimsFilterPlugin"]
+
 from typing import TYPE_CHECKING
 
-from lightspeed.trex.utils.common.prim_utils import is_in_light_group as _is_in_light_group
-from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
-from lightspeed.trex.utils.common.prim_utils import is_mesh_prototype as _is_mesh_prototype
-from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
+from lightspeed.trex.utils.common.prim_utils import is_empty_mesh_prim
+from lightspeed.trex.utils.common.prim_utils import is_in_light_group
+from lightspeed.trex.utils.common.prim_utils import is_instance
+from lightspeed.trex.utils.common.prim_utils import is_mesh_prototype
+from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin
 from pydantic import Field
 
 if TYPE_CHECKING:
     from pxr import Usd
 
 
-class MeshPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
+class MeshPrimsFilterPlugin(ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Mesh Prims", exclude=True)
     tooltip: str = Field(default="Filter for mesh prims", exclude=True)
 
@@ -38,6 +41,8 @@ class MeshPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
     )
 
     def _filter_predicate(self, prim: Usd.Prim) -> bool:
-        return _is_mesh_prototype(prim) or (
-            self.include_instances and _is_instance(prim) and not _is_in_light_group(prim)
+        return (
+            is_mesh_prototype(prim)
+            or is_empty_mesh_prim(prim)
+            or (self.include_instances and is_instance(prim) and not is_in_light_group(prim))
         )
