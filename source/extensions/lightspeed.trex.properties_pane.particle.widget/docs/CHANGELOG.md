@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.1]
+### Fixed
+- Particle attribute fields now read `customData.limits` from the USD schema and pass min/max bounds to the property widget, preventing crashes when out-of-range values are typed into numeric fields
+
 ## [1.3.0]
 ### Added
 - Particle curve edit groups configuration for size, velocity, and rotation speed animations

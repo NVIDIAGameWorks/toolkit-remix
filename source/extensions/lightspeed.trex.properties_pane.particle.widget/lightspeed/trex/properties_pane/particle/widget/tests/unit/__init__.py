@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,8 +14,3 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
-
-from .e2e.test_schema_discovery import TestSchemaDiscovery
-from .unit.test_extract_ui_metadata import TestExtractUiMetadataFromSchema
-
-__all__ = ["TestExtractUiMetadataFromSchema", "TestSchemaDiscovery"]
