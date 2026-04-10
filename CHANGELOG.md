@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - REMIX-3542: Added "Deleted" reference type to the Stage Manager Capture Reference filter, a lightspeed-specific Geometry Prims filter to keep deleted meshes visible, and shared prim detection utilities in `lightspeed.trex.utils.common`
+- REMIX-5117: Consolidated `AbstractValueField` / `AbstractSliderField` into a single `AbstractDragField` hierarchy with optional bounds and independent hard-bound clamping; renamed all `*SliderField` classes/styles to `*DragField` and simplified OGN builder routing
 
 ### Fixed
 

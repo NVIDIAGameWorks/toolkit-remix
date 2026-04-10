@@ -15,32 +15,56 @@
 * limitations under the License.
 """
 
-__all__ = ("TestFloatField",)
+__all__ = ("TestFloatDragField",)
 
 import uuid
 
 import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
-from omni.flux.property_widget_builder.delegates.float_value.field import FloatField
+from omni.flux.property_widget_builder.delegates.float_value.drag import FloatDragField
 
 from .mocks import MockItem
 
 
-class TestFloatField(omni.kit.test.AsyncTestCase):
-    """E2E tests for FloatField widget rendering."""
+class TestFloatDragField(omni.kit.test.AsyncTestCase):
+    """E2E tests for FloatDragField widget rendering."""
 
-    async def test_build_ui_creates_float_field_widget(self):
+    async def test_build_drag_widget_creates_float_drag(self):
         """build_ui should produce ui.FloatDrag widgets."""
         window = ui.Window(
-            f"TestFloatField_{str(uuid.uuid1())}",
+            f"TestFloatDrag_{str(uuid.uuid1())}",
             height=200,
             width=400,
             position_x=0,
             position_y=0,
         )
         item = MockItem(values=[25.0])
-        field = FloatField()
+        field = FloatDragField(min_value=0.0, max_value=100.0)
+
+        with window.frame:
+            widgets = field.build_ui(item)
+
+        await omni.kit.ui_test.human_delay(human_delay_speed=1)
+
+        self.assertEqual(len(widgets), 1)
+        self.assertIsInstance(widgets[0], ui.FloatDrag)
+
+        for w in widgets:
+            w.destroy()
+        window.destroy()
+
+    async def test_build_unbounded_creates_float_drag(self):
+        """build_ui with no bounds should still produce a ui.FloatDrag."""
+        window = ui.Window(
+            f"TestFloatDrag_{str(uuid.uuid1())}",
+            height=200,
+            width=400,
+            position_x=0,
+            position_y=0,
+        )
+        item = MockItem(values=[25.0])
+        field = FloatDragField()
 
         with window.frame:
             widgets = field.build_ui(item)

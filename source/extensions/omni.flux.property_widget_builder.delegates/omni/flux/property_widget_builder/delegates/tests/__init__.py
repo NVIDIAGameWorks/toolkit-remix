@@ -16,39 +16,27 @@
 """
 
 __all__ = (
-    "TestAbstractSliderField",
-    "TestAbstractSliderFieldUnit",
-    "TestAbstractValueField",
-    "TestAbstractValueFieldUnit",
+    "TestAbstractDragField",
+    "TestAbstractDragFieldUnit",
     "TestColorField",
     "TestColorGradientDelegateIntegration",
     "TestColorGradientField",
-    "TestFloatField",
-    "TestFloatFieldUnit",
-    "TestFloatSliderField",
-    "TestFloatSliderFieldUnit",
-    "TestIntField",
-    "TestIntFieldUnit",
-    "TestIntSliderField",
-    "TestIntSliderFieldUnit",
+    "TestFloatDragField",
+    "TestFloatDragFieldUnit",
+    "TestIntDragField",
+    "TestIntDragFieldUnit",
 )
 
 from .e2e import (
-    TestAbstractSliderField,
-    TestAbstractValueField,
+    TestAbstractDragField,
     TestColorField,
     TestColorGradientDelegateIntegration,
     TestColorGradientField,
-    TestFloatField,
-    TestFloatSliderField,
-    TestIntField,
-    TestIntSliderField,
+    TestFloatDragField,
+    TestIntDragField,
 )
 from .unit import (
-    TestAbstractSliderFieldUnit,
-    TestAbstractValueFieldUnit,
-    TestFloatFieldUnit,
-    TestFloatSliderFieldUnit,
-    TestIntFieldUnit,
-    TestIntSliderFieldUnit,
+    TestAbstractDragFieldUnit,
+    TestFloatDragFieldUnit,
+    TestIntDragFieldUnit,
 )
