@@ -16,14 +16,12 @@
 """
 
 import abc
-import asyncio
 import copy
 from typing import Any
 from collections.abc import Callable
 
 import carb
 import omni.client
-import omni.kit.app
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
@@ -106,7 +104,6 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         self._ignore_refresh = False
         self._attributes: list[Usd.Attribute] = None
         self._is_batch_editing = False
-        self._pending_batch_write_task = None
 
     def init_attributes(self):
         # cache the attributes
@@ -181,6 +178,14 @@ class UsdAttributeBase(_Serializable, abc.ABC):
     def is_mixed(self):
         """Tell us if the model is "mixed". Meaning that the value has multiple values from multiple USD prims"""
         return self._is_mixed
+
+    @property
+    def supports_batch_edit(self) -> bool:
+        return True
+
+    @property
+    def is_batch_editing(self) -> bool:
+        return self._is_batch_editing
 
     def get_tool_tip(self):
         """Get the tooltip that best represents the current value"""
@@ -342,10 +347,6 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         self._set_internal_value(new_value)
 
         if self._is_batch_editing:
-            # Throttle: cancel any previous pending write and schedule one for the next frame
-            if self._pending_batch_write_task is not None:
-                self._pending_batch_write_task.cancel()
-            self._pending_batch_write_task = asyncio.ensure_future(self._deferred_batch_write())
             self._on_dirty()
             return True
 
@@ -380,40 +381,21 @@ class UsdAttributeBase(_Serializable, abc.ABC):
                     self._ignore_refresh = False
         return wrote_any
 
-    @omni.usd.handle_exception
-    async def _deferred_batch_write(self):
-        """Write the current in-memory value to USD once per application frame during a batch edit."""
-        await omni.kit.app.get_app().next_update_async()
-        self._pending_batch_write_task = None
-        if not self._is_batch_editing or not self._stage:
-            return
-        if self._write_value_to_usd():
-            self.refresh()
-
     def begin_batch_edit(self):
-        """Mark the start of a batch edit — subsequent _set_value calls are throttled to once per frame."""
+        """Start a drag batch so intermediate values stay in memory until release."""
         self._is_batch_editing = True
+        omni.kit.undo.begin_group()
 
     def end_batch_edit(self):
-        """Mark the end of a batch edit — cancel any pending deferred write and flush the final value synchronously."""
+        """Flush the final drag value to USD and close the undo group."""
         try:
-            if self._pending_batch_write_task is not None:
-                self._pending_batch_write_task.cancel()
-                self._pending_batch_write_task = None
-                if self._write_value_to_usd():
-                    self.refresh()
+            if not self._stage:
+                return
+            if self._write_value_to_usd():
+                self.refresh()
         finally:
             self._is_batch_editing = False
-
-    def __del__(self):
-        """Cancel any pending batch write task on deletion.
-
-        Subclasses that define their own ``__del__`` must call ``super().__del__()``
-        to ensure the pending task is cancelled and does not write stale values.
-        """
-        if self._pending_batch_write_task is not None:
-            self._pending_batch_write_task.cancel()
-            self._pending_batch_write_task = None
+            omni.kit.undo.end_group()
 
 
 class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
@@ -512,7 +494,6 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
                 self.set_value(default_value)
 
     def begin_edit(self):
-        self.begin_batch_edit()
         super().begin_edit()
         # In the case where widget A is currently editing, then user clicks directly
         # on Widget B to start editing, B's begin_edit will come through before A's end_edit.
@@ -522,7 +503,8 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             self._value_changed()
 
     def end_edit(self):
-        self.end_batch_edit()
+        if self.is_batch_editing:
+            self.end_batch_edit()
         # we set back to the USD value
         if self._has_wrong_value and self._read_value_from_usd():
             self._value_changed()

@@ -73,15 +73,22 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         )
         self.assertEqual(len(property_branches), 3)
 
-        # Set the value of the cube
-        usd_context = omni.usd.get_context()
+        # Set the value of the cube and wait for the listener-driven rebuild.
+        usd_context = omni.usd.get_context(_CONTEXT_NAME)
         stage = usd_context.get_stage()
         prim = stage.GetPrimAtPath("/Xform/Cube")
         xf_tr = prim.GetAttribute("xformOp:translate")
         xf_tr.Set(Gf.Vec3d(123456789.0, 0.0, 0.0))
+        await omni.kit.ui_test.wait_n_updates(5)
+
+        # Re-query because the property panel rebuilds widgets on USD change.
+        property_branches = ui_test.find_all(
+            f"{_window.title}//Frame/**/FloatDrag[*].identifier=='/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
+        )
+        self.assertEqual(len(property_branches), 3)
 
         # we check that the value of the UI element changed
-        self.assertEqual(property_branches[0].widget.model.get_value_as_int(), 123456789.0)
+        self.assertAlmostEqual(property_branches[0].widget.model.get_value_as_float(), 123456789.0, places=5)
 
         await self.__destroy(_window, _widget)
 
@@ -107,7 +114,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         await omni.kit.ui_test.emulate_mouse_move(double_sided_widget.position + omni.kit.ui_test.Vec2(3, 3))
         await omni.kit.ui_test.emulate_mouse_click()
 
-        # Re-query — the property panel rebuilds widgets on USD change
+        # Re-query because the property panel rebuilds widgets after the USD write.
         double_sided_widget = ui_test.find(
             f"{_window.title}//Frame/**/CheckBox[*].identifier=='/Xform/Cube.doubleSided,/Xform/Cube2.doubleSided'"
         )
@@ -119,7 +126,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         self.assertEqual(double_sided_widget.widget.model.get_value_as_bool(), False)
         self.assertEqual(double_sided_widget.widget.model.is_mixed, False)
         # and that both cubes now have the correct value
-        usd_context = omni.usd.get_context()
+        usd_context = omni.usd.get_context(_CONTEXT_NAME)
         stage = usd_context.get_stage()
         for prim_path in ("/Xform/Cube", "/Xform/Cube2"):
             prim = stage.GetPrimAtPath(prim_path)
@@ -152,15 +159,157 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
         await omni.kit.ui_test.wait_n_updates(5)
 
+        # Re-query because the property row may be rebuilt after the edit commits.
+        property_branches = ui_test.find_all(
+            f"{_window.title}//Frame/**/FloatDrag[*].identifier=='/Xform/Cube.xformOp:translate,"
+            f"/Xform/Cube2.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate,"
+            f"/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate'"
+        )
+        self.assertEqual(len(property_branches), 3)
+
         # we check that the value of the UI element changed
-        self.assertEqual(property_branches[0].widget.model.get_value_as_float(), 2.2)
-        self.assertEqual(translate_x_widget.widget.model.is_mixed, False)
+        self.assertAlmostEqual(property_branches[0].widget.model.get_value_as_float(), 2.2, places=5)
+        self.assertEqual(property_branches[0].widget.model.is_mixed, False)
         # and that both cubes now have the correct value
-        usd_context = omni.usd.get_context()
+        usd_context = omni.usd.get_context(_CONTEXT_NAME)
         stage = usd_context.get_stage()
         for prim_path in ("/Xform/Cube", "/Xform/Cube2"):
             prim = stage.GetPrimAtPath(prim_path)
             xf_tr = prim.GetAttribute("xformOp:translate")
             self.assertEqual(xf_tr.Get(), Gf.Vec3d(2.2, 0.0, 0.0))
+
+        await self.__destroy(_window, _widget)
+
+    async def test_undo_reverts_typed_value_and_refreshes_ui(self):
+        """Typing a value then undoing or redoing should keep USD and the UI in sync."""
+        # Build the property panel and wait for the float fields to appear.
+        _window, _widget = await self.__setup_widget()
+        _widget.refresh(["/Xform/Cube"])
+        await omni.kit.ui_test.wait_n_updates(15)
+
+        selector = (
+            f"{_window.title}//Frame/**/FloatDrag[*].identifier=="
+            f"'/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
+        )
+        widgets = ui_test.find_all(selector)
+        self.assertEqual(len(widgets), 3)
+
+        # Capture the original USD value so undo can be validated against the real source of truth.
+        usd_context = omni.usd.get_context(_CONTEXT_NAME)
+        stage = usd_context.get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        original_value = prim.GetAttribute("xformOp:translate").Get()
+
+        # Type a new value, commit it, then undo it from the global undo stack.
+        await widgets[0].double_click()
+        await ui_test.human_delay()
+        await omni.kit.ui_test.emulate_char_press("99.5")
+        await ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
+        await ui_test.human_delay()
+        omni.kit.undo.undo()
+        await ui_test.human_delay()
+
+        # Re-query because undo can rebuild the property row while the model refreshes.
+        self.assertEqual(prim.GetAttribute("xformOp:translate").Get(), original_value)
+        widgets = ui_test.find_all(selector)
+        self.assertGreater(len(widgets), 0)
+        self.assertAlmostEqual(widgets[0].widget.model.get_value_as_float(), original_value[0], places=5)
+
+        # Redo should restore the typed value in both USD and the rebuilt property row.
+        omni.kit.undo.redo()
+        await ui_test.human_delay()
+        widgets = ui_test.find_all(selector)
+        self.assertGreater(len(widgets), 0)
+        self.assertAlmostEqual(prim.GetAttribute("xformOp:translate").Get()[0], 99.5, places=5)
+        self.assertAlmostEqual(widgets[0].widget.model.get_value_as_float(), 99.5, places=5)
+
+        await self.__destroy(_window, _widget)
+
+    async def test_undo_reverts_bool_toggle_and_refreshes_ui(self):
+        """Toggling a checkbox then undoing should revert both USD and the UI."""
+        # Build the property panel and locate the checkbox bound to doubleSided.
+        _window, _widget = await self.__setup_widget()
+        _widget.refresh(["/Xform/Cube"])
+        await omni.kit.ui_test.wait_n_updates(15)
+
+        selector = f"{_window.title}//Frame/**/CheckBox[*].identifier=='/Xform/Cube.doubleSided'"
+        checkbox = ui_test.find(selector)
+        self.assertIsNotNone(checkbox)
+
+        # Capture the original USD value so the undo path can be checked against it.
+        usd_context = omni.usd.get_context(_CONTEXT_NAME)
+        stage = usd_context.get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        original_value = prim.GetAttribute("doubleSided").Get()
+
+        # Click the checkbox, then undo so both USD and the rebuilt UI must roll back together.
+        await omni.kit.ui_test.emulate_mouse_move(checkbox.position + omni.kit.ui_test.Vec2(3, 3))
+        await ui_test.human_delay()
+        await omni.kit.ui_test.emulate_mouse_click()
+        await ui_test.human_delay()
+
+        # The click path should still write through immediately before any undo happens.
+        checkbox = ui_test.find(selector)
+        self.assertIsNotNone(checkbox)
+        self.assertNotEqual(checkbox.widget.checked, original_value)
+        self.assertNotEqual(prim.GetAttribute("doubleSided").Get(), original_value)
+
+        omni.kit.undo.undo()
+        await ui_test.human_delay()
+
+        # Re-query because checkbox widgets are recreated when the panel refreshes.
+        checkbox = ui_test.find(selector)
+        self.assertIsNotNone(checkbox)
+        self.assertEqual(checkbox.widget.model.get_value_as_bool(), original_value)
+        self.assertEqual(checkbox.widget.checked, original_value)
+        self.assertEqual(prim.GetAttribute("doubleSided").Get(), original_value)
+
+        await self.__destroy(_window, _widget)
+
+    async def test_drag_float_undo_is_single_operation(self):
+        """Dragging a float field should undo as one operation and refresh the UI."""
+        # Build the property panel and locate the translate drag widgets.
+        _window, _widget = await self.__setup_widget()
+        _widget.refresh(["/Xform/Cube"])
+        await omni.kit.ui_test.wait_n_updates(15)
+
+        selector = (
+            f"{_window.title}//Frame/**/FloatDrag[*].identifier=="
+            f"'/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
+        )
+        widgets = ui_test.find_all(selector)
+        self.assertEqual(len(widgets), 3)
+
+        usd_context = omni.usd.get_context(_CONTEXT_NAME)
+        stage = usd_context.get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        original_value = prim.GetAttribute("xformOp:translate").Get()
+
+        # Snapshot the current undo history so the drag can be inspected in isolation.
+        latest_history_key = max(omni.kit.undo.get_history().keys(), default=0)
+
+        # Drag the X field far enough to generate multiple intermediate UI updates.
+        widget_ref = widgets[0]
+        target = widget_ref.center
+        target.x = target.x + 200
+        await omni.kit.ui_test.human_delay(30)
+        await omni.kit.ui_test.emulate_mouse_drag_and_drop(widget_ref.center, target)
+        await ui_test.human_delay()
+
+        # The minimal fix should collapse the drag into a single ChangeProperty write.
+        drag_history_entries = [entry for key, entry in omni.kit.undo.get_history().items() if key > latest_history_key]
+        change_property_entries = [entry for entry in drag_history_entries if entry.name == "ChangeProperty"]
+        self.assertEqual(len(change_property_entries), 1)
+        self.assertNotEqual(prim.GetAttribute("xformOp:translate").Get()[0], original_value[0])
+
+        # One undo should restore both USD and the property panel value.
+        omni.kit.undo.undo()
+        await ui_test.human_delay()
+
+        widgets = ui_test.find_all(selector)
+        self.assertGreater(len(widgets), 0)
+        self.assertAlmostEqual(prim.GetAttribute("xformOp:translate").Get()[0], original_value[0], places=5)
+        self.assertAlmostEqual(widgets[0].widget.model.get_value_as_float(), original_value[0], places=5)
 
         await self.__destroy(_window, _widget)

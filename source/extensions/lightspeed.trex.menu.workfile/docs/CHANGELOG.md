@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.3]
+### Fixed
+- Fixed duplicate Undo/Redo menu hotkeys so a single shortcut press no longer triggers two operations
+
 ## [1.5.2]
 ### Changed
 - Modernize python style and enable more ruff checks
