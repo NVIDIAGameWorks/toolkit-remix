@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.31.1]
+### Fixed
+- Fixed property panel undo/redo by flushing drag edits on release and purging stale USD listeners so active panels refresh correctly
+
 ## [2.31.0]
 ### Fixed
 - REMIX-5210: Fixed significant viewport FPS drop when dragging float/int sliders in the property panel by throttling USD writes to at most once per application frame during a drag interaction

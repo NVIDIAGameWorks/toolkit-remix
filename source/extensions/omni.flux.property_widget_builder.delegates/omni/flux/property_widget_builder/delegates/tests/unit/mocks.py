@@ -33,6 +33,20 @@ class MockValueModel(ui.AbstractValueModel):
     def read_only(self) -> bool:
         return self._read_only
 
+    @property
+    def supports_batch_edit(self) -> bool:
+        return False
+
+    @property
+    def is_batch_editing(self) -> bool:
+        return False
+
+    def begin_batch_edit(self) -> None:
+        pass
+
+    def end_batch_edit(self) -> None:
+        pass
+
     def get_value(self):
         return self._value
 

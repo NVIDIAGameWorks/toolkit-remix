@@ -75,7 +75,8 @@ class USDListener:
 
     def _enable_listener(self, stage: Usd.Stage):
         """Enable the USD listener to see if an attribute is changed"""
-        assert stage not in self._listeners
+        if stage in self._listeners:
+            return
         self._listeners[stage] = Tf.Notice.Register(Usd.Notice.ObjectsChanged, self._on_usd_changed, stage)
 
     def _disable_listener(self, stage: Usd.Stage):
@@ -83,6 +84,16 @@ class USDListener:
         if stage in self._listeners:
             self._listeners[stage].Revoke()
             self._listeners.pop(stage)
+
+    def _purge_stale_listeners(self):
+        """Remove listeners registered for stages that have been closed or invalidated."""
+        for stage in list(self._listeners):
+            try:
+                if stage.GetRootLayer():
+                    continue
+            except Exception:  # noqa: BLE001
+                pass
+            self._disable_listener(stage)
 
     def _on_usd_changed(self, notice, stage):
         for model in self._models:
@@ -117,20 +128,21 @@ class USDListener:
 
     def add_model(self, model: "_USDModel"):
         """
-        Add a model and delegate to listen to
+        Add a model to listen to
 
         Args:
             model: the model to listen
-            delegate: the delegate to listen
         """
-        if not any(f for f in self._models if f.stage == model.stage):
-            self._enable_listener(model.stage)
+        self._purge_stale_listeners()
+        stage = model.stage
+        if stage and stage not in self._listeners:
+            self._enable_listener(stage)
 
         self._models.append(model)
 
     def remove_model(self, model: "_USDModel"):
         """
-        Remove a model and delegate that we were listening to
+        Remove a model that we were listening to
 
         Args:
             model: the listened model
@@ -139,8 +151,10 @@ class USDListener:
             return
         if model in self._models:
             self._models.remove(model)
-        if not any(f for f in self._models if f.stage == model.stage):
-            self._disable_listener(model.stage)
+        stage = model.stage
+        if stage and not any(f for f in self._models if f.stage == stage):
+            self._disable_listener(stage)
+        self._purge_stale_listeners()
 
     def destroy(self):
         for listener in self._listeners.values():
