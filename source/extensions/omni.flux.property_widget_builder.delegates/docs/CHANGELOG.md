@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.1]
+### Fixed
+- Fixed drag fields to batch only mouse-drag edits so typed values still write immediately while drag undo stays grouped
+
 ## [1.14.0]
 ### Fixed
 - `AbstractDragField` now registers a `pre_set_value` callback to clamp typed numeric input to hard bounds before the value is written to USD, preventing crashes in synchronous downstream systems (e.g. particle allocators)

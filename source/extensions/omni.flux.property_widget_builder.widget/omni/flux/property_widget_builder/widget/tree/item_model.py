@@ -237,6 +237,24 @@ class ItemModelBase(Serializable, abc.ABC):
         """Return true if this ItemModel currently represents multiple values"""
         return False
 
+    @property
+    def supports_batch_edit(self) -> bool:
+        """Return whether delegates can group multiple UI edits into one logical batch on this model."""
+        return False
+
+    @property
+    def is_batch_editing(self) -> bool:
+        """Return whether this model is currently inside an open batch-edit section."""
+        return False
+
+    def begin_batch_edit(self) -> None:
+        """Begin a batch edit when supported; the default implementation is a no-op."""
+        pass
+
+    def end_batch_edit(self) -> None:
+        """End a batch edit when supported; the default implementation is a no-op."""
+        pass
+
     def __repr__(self):
         return f"{self.__class__.__name__}({self.get_value()!r})"
 

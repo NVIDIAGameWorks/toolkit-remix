@@ -59,6 +59,28 @@ class _StubDragField(AbstractDragField):
         return ui.FloatDrag(**kwargs)
 
 
+class _BatchEditValueModel(MockValueModel):
+    def __init__(self, value: float | int = 0.0):
+        super().__init__(value=value)
+        self._is_batch_editing = False
+        self.end_batch_edit_calls = 0
+
+    @property
+    def supports_batch_edit(self) -> bool:
+        return True
+
+    @property
+    def is_batch_editing(self) -> bool:
+        return self._is_batch_editing
+
+    def begin_batch_edit(self) -> None:
+        self._is_batch_editing = True
+
+    def end_batch_edit(self) -> None:
+        self.end_batch_edit_calls += 1
+        self._is_batch_editing = False
+
+
 class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     # ------------------------------------------------------------------
     # Constructor & property tests
@@ -229,3 +251,17 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
         model = MockValueModel(value=150.0)
         field.end_edit(model)
         self.assertEqual(model.get_value_as_float(), 100.0)
+
+    async def test_end_edit_closes_active_batch_edit(self):
+        """end_edit should close an active batch edit when widget mouse release is missed."""
+        # Arrange
+        field = _StubDragField()
+        model = _BatchEditValueModel(value=5.0)
+        model.begin_batch_edit()
+
+        # Act
+        field.end_edit(model)
+
+        # Assert
+        self.assertEqual(model.end_batch_edit_calls, 1)
+        self.assertFalse(model.is_batch_editing)
