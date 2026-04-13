@@ -20,6 +20,17 @@ seamlessly directly from the documentation itself.
 
    **_NOTE: The 2 websites are equivalent and can be used interchangeably_**
 
+   The URLs above use the default REST API base URL: host `127.0.0.1` and port `8011`. The base URL is controlled by
+   the Kit settings `/exts/omni.services.transport.server.http/host` and
+   `/exts/omni.services.transport.server.http/port`. If either setting is changed before startup, update the
+   documentation URL to match the configured host/IP and port.
+
+   For example, to keep the default host and move the REST API to port `9000`, start the Toolkit with:
+
+   ```bash
+   ./lightspeed.app.trex.bat --/exts/omni.services.transport.server.http/port=9000
+   ```
+
 ### Static Documentation:
 
 The static documentation doesn't require the Remix Toolkit to be installed and running.
