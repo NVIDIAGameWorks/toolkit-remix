@@ -46,7 +46,19 @@ which gh 2>/dev/null && echo "github" || (which glab 2>/dev/null && echo "gitlab
 ```
 
 - **`gh`**: `gh pr create --base <target-branch> --title "<title>" --body "<body>"`
-- **`glab`**: `glab mr create --target-branch <target-branch> --title "<title>" --description "<body>"`
+- **`glab`**:
+  1. Treat `.gitlab/merge_request_templates/Default.md` as the repo-local source of truth for the GitLab MR body.
+     If the repo-local template and GitLab project settings ever diverge, prefer the repo-local file.
+  2. Build the final MR description by prepending a short summary section (root `CHANGELOG.md` entry), the list of
+     modified extensions, and test/validation notes to that template.
+  3. Create the MR with explicit repo-local defaults instead of relying on GitLab project defaults:
+
+     ```bash
+     glab mr create --target-branch <target-branch> --title "<title>" --description "<body>" --draft --remove-source-branch=true --squash-before-merge=true
+     ```
+
+  4. Preserve any GitLab-enforced merge checks that cannot be versioned in-repo (for example, merge method, pipeline
+     requirements, and discussion-resolution requirements).
 - **Neither**: Print the push URL and tell the user to create the MR/PR manually.
 
 The title and body should be derived from the root CHANGELOG.md entry and the list of modified extensions.

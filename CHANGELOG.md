@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-1088: All numeric property fields now use drag-to-scrub widgets (FloatDrag/IntDrag) including transforms and camera speed
 - REMIX-3540: Renamed override context menu labels from "Delete" to "Revert" for clearer user intent
 - REMIX-5120: Layer Manager restructure and cleanup
+- Versioned the default GitLab MR template in `.gitlab/merge_request_templates/Default.md`, documented repo-local `glab` MR defaults, excluded GitLab-only files from the Sphinx doc scan, and updated commit guidance to match the current Git user's recent commit style
 
 ### Fixed
 - GLAB publishing using the new cli utility
