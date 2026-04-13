@@ -149,19 +149,33 @@ class AbstractDragField(AbstractField):
         if clamped != val:
             model.set_value(clamped)
 
-    def begin_edit(self, _) -> None:
-        """Start an undo group for drag edit."""
+    def begin_edit(self, model: ItemModelBase) -> None:
+        """Start an undo group for non-batched edits.
+
+        Typed edits use this begin/end pair directly. Drag edits on batch-capable
+        models open and close their undo group from the widget mouse callbacks.
+        """
+        if model.supports_batch_edit:
+            return
         omni.kit.undo.begin_group()
 
-    def end_edit(self, model) -> None:
-        """End the undo group for drag edit, clamping to hard bounds.
+    def end_edit(self, model: ItemModelBase) -> None:
+        """End the current edit.
 
-        Note: when a user **types** a value, the ``pre_set_value`` callback (registered in
-        :meth:`build_ui`) has already clamped the value before it reached USD, so
-        ``_clamp_to_hard_bounds`` here is a no-op for typed input.  This call exists to
-        catch the **drag** path, where the widget may land slightly outside the hard bounds
-        due to floating-point rounding at the end of a drag gesture.
+        For batch-edit models, this closes any active drag batch if the mouse-release
+        callback did not already do so. For non-batch models, this clamps to hard
+        bounds and closes the regular undo group.
+
+        Note: when a user **types** a value, the ``pre_set_value`` callback
+        (registered in :meth:`build_ui`) has already clamped the value before it
+        reached USD, so ``_clamp_to_hard_bounds`` here is effectively a safety net
+        for the non-batched drag path.
         """
+        if model.supports_batch_edit:
+            if model.is_batch_editing:
+                # Drag-path clamping already runs per value in _make_drag_value_callback.
+                model.end_batch_edit()
+            return
         self._clamp_to_hard_bounds(model)
         omni.kit.undo.end_group()
 
@@ -219,6 +233,20 @@ class AbstractDragField(AbstractField):
 
         return _clamp
 
+    @staticmethod
+    def _make_drag_value_callback(value_model: ItemModelBase, clamp_fn, drag_state):
+        """Return a ``pre_set_value`` callback that starts batching only for active mouse drags."""
+
+        def _set_value(set_fn, value):
+            if drag_state["mouse_pressed"] and not value_model.is_batch_editing:
+                value_model.begin_batch_edit()
+            if clamp_fn is not None:
+                clamp_fn(set_fn, value)
+            else:
+                set_fn(value)
+
+        return _set_value
+
     def build_ui(self, item, **kwargs) -> list[ui.Widget]:  # PLW0221
         """Build drag widgets for each element of the item, with undo grouping and tooltips."""
         self._subs.clear()
@@ -226,13 +254,20 @@ class AbstractDragField(AbstractField):
         with ui.HStack(height=ui.Pixel(_PRIMARY_FRAME_HEIGHT)):
             for i in range(item.element_count):
                 value_model = item.value_models[i]
+                drag_state = {"mouse_pressed": False}
+                supports_batch_edit = value_model.supports_batch_edit
                 self._subs.append(value_model.subscribe_begin_edit_fn(self.begin_edit))
                 self._subs.append(value_model.subscribe_end_edit_fn(self.end_edit))
 
+                clamp_fn = None
                 if self.hard_min_value is not None or self.hard_max_value is not None:
+                    clamp_fn = self._make_hard_clamp_fn(self.hard_min_value, self.hard_max_value)
+                if supports_batch_edit:
                     value_model.set_callback_pre_set_value(
-                        self._make_hard_clamp_fn(self.hard_min_value, self.hard_max_value)
+                        self._make_drag_value_callback(value_model, clamp_fn, drag_state)
                     )
+                elif clamp_fn is not None:
+                    value_model.set_callback_pre_set_value(clamp_fn)
 
                 ui.Spacer(width=ui.Pixel(_PER_ELEMENT_SPACER_WIDTH))
                 with ui.VStack():
@@ -248,6 +283,20 @@ class AbstractDragField(AbstractField):
                         self.max_value,
                         self.step,
                     )
+                    if supports_batch_edit:
+
+                        def _on_mouse_pressed(_x, _y, b, _m, state=drag_state):
+                            if b == 0:
+                                state["mouse_pressed"] = True
+
+                        widget.set_mouse_pressed_fn(_on_mouse_pressed)
+
+                        def _on_mouse_released(_x, _y, b, _m, model=value_model, state=drag_state):
+                            state["mouse_pressed"] = False
+                            if b == 0 and model.is_batch_editing:
+                                model.end_batch_edit()
+
+                        widget.set_mouse_released_fn(_on_mouse_released)
                     self.set_dynamic_tooltip_fn(widget, value_model)
                     widgets.append(widget)
                     ui.Spacer(height=ui.Pixel(_VSTACK_SPACER_HEIGHT))

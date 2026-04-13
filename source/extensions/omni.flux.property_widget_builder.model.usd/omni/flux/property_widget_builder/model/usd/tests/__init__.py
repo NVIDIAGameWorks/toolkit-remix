@@ -18,6 +18,7 @@
 from .unit.test_delegate_alignment import TestDelegateAlignment
 from .unit.test_drag_write_throttling import TestDragWriteThrottling
 from .unit.test_file_texture_picker import TestFileTexturePicker
+from .unit.test_listener import TestUSDListener
 from .unit.test_relationship_item import TestUSDRelationshipItem
 from .unit.test_relationship_utils import TestRelationshipUtils
 from .unit.test_relationship_value_model import TestUsdRelationshipValueModel
@@ -37,6 +38,7 @@ __all__ = [
     "TestRelationshipUtils",
     "TestSetGradientPrimvarsCommand",
     "TestUSDAttributeItemBounds",
+    "TestUSDListener",
     "TestUSDRelationshipItem",
     "TestUsdGradientWidgetLifecycle",
     "TestUsdRelationshipValueModel",
