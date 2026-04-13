@@ -7,10 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Created 1.4.2-1 build
+- Added auto-save feature: periodically saves all dirty layers in the active project; configurable via Edit > Preferences > Auto-Save (enable/disable, interval presets, and custom interval)
+
+### Changed
+
+- REMIX-5120: Layer Manager restructure and cleanup
+- Versioned the default GitLab MR template in `.gitlab/merge_request_templates/Default.md`, documented repo-local `glab` MR defaults, excluded GitLab-only files from the Sphinx doc scan, and updated commit guidance to match the current Git user's recent commit style
+
+### Fixed
+
+- Fixed crash in Stage Manager window resize callback when content widget is uninitialized after a monitor resolution change
+- REMIX-5242: Fixed open recent project regression — app no longer hangs during load, loading indicator is restored, and post-open capture layer validation warnings are shown correctly
+- REMIX-5202: Fixed capture directory being reset when the selected capture file is deleted; projects now auto-open a repair wizard to select a replacement capture
+
+### Removed
+
+## [1.4.2-1]
 
 ### Added
 
-- Added auto-save feature: periodically saves all dirty layers in the active project; configurable via Edit > Preferences > Auto-Save (enable/disable, interval presets, and custom interval)
+- Created 1.4.2-0 build
+- REMIX-3542: Added "Deleted" reference type to the Stage Manager Capture Reference filter, a lightspeed-specific Geometry Prims filter to keep deleted meshes visible, and shared prim detection utilities in `lightspeed.trex.utils.common`
+
+### Changed
+
+- REMIX-5117: Consolidated `AbstractValueField` / `AbstractSliderField` into a single `AbstractDragField` hierarchy with optional bounds and independent hard-bound clamping; renamed all `*SliderField` classes/styles to `*DragField` and simplified OGN builder routing
+
+### Fixed
+
+- GLAB publishing using the new cli utility
+- Fixed selection panel showing no hierarchy or properties for certain imported USD assets by adding regex-based prototype resolution fallback
+- REMIX-5209: Fixed crash when typing out-of-range values (e.g. negative Max Particles) in the particle editor by reading schema-defined limits and clamping typed input before it reaches USD
+- REMIX-5188: Fixed teleport tool keyword error
+- REMIX-5241: Fixed `TypeError` crash when opening the skeleton remapping window due to `JointItem` using an outdated `TreeItemBase` API
+- REMIX-5210: Fixed significant viewport FPS drop when dragging float/int property sliders by throttling USD writes to once per frame during drag interactions
+- REMIX-5042, REMIX-5211: Fixed property panel undo/redo so drag edits undo in one step and property values refresh immediately after undo/redo
+
+## [1.4.2-0]
+
+### Added
+
 - Created 1.3.6-2 build
 - Set app version to 1.3.6-2 to fix docs
 - REMIX-4838: Added Instance Group and Mesh Group filter plugins to the Stage Manager and added headers to the
@@ -29,7 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4880: Adding a generic fcurve editor
 - REMIX-5002: Integrating the Curve Editor and Gradient Widget in the Particles Property Panel
 - Updated particle system documentation for the Advanced Particle VFX features
-- REMIX-3542: Added "Deleted" reference type to the Stage Manager Capture Reference filter, a lightspeed-specific Geometry Prims filter to keep deleted meshes visible, and shared prim detection utilities in `lightspeed.trex.utils.common`
 
 ### Changed
 
@@ -50,11 +88,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5009: Improve Linter Setup to be More Aggressive
 - REMIX-1088: All numeric property fields now use drag-to-scrub widgets (FloatDrag/IntDrag) including transforms and camera speed
 - REMIX-3540: Renamed override context menu labels from "Delete" to "Revert" for clearer user intent
-- REMIX-5120: Layer Manager restructure and cleanup
-- Versioned the default GitLab MR template in `.gitlab/merge_request_templates/Default.md`, documented repo-local `glab` MR defaults, excluded GitLab-only files from the Sphinx doc scan, and updated commit guidance to match the current Git user's recent commit style
 
 ### Fixed
-- GLAB publishing using the new cli utility
+
 - REMIX-4347: Fixed Scan Folder for Ingestion showing invalid file types (e.g. .mdl) alongside valid formats
 - REMIX-3187, REMIX-2383: Fixed selection tree expanded items (lights group, xform nodes) collapsing after a prim or reference deletion
 - REMIX-4810: Fixed ComboBox dropdown becoming see-through when the header item is hovered
@@ -79,7 +115,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4938: Fixed Stage Manager filter tooltips not being displayed
 - REMIX-3411: Fixed texture file picker accepting unsupported file extensions; invalid selections now show a prompt listing valid texture formats
 - REMIX-5095: Fixed mass-ingestion (e.g. IngestCraft) so drag-and-drop adds files only to the visible tab (Model(s) or Material(s)), not to both lists.
-- REMIX-5202: Fixed capture directory being reset when the selected capture file is deleted; projects now auto-open a repair wizard to select a replacement capture
 - Fixed offline build fallback in repoman incorrectly pulling local platform-specific packman manifests, breaking builds outside VPN
 - REMIX-4992: Fixed non-project USDA files being accepted as valid project files when opened outside of a STAGE_CRAFT context
 - REMIX-4188: Fixed inconsistent error when trying to ingest a texture
@@ -89,16 +124,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4478: Fixed IndexError when dragging files with unsupported extensions onto the Material Properties panel
 - REMIX-5047: Fix for packaging for missing textures in weaker sublayers masked by stronger layer
 - REMIX-4424: Fixed AttributeError in REST API asset replacement validators when no stage is loaded
-- Fixed selection panel showing no hierarchy or properties for certain imported USD assets by adding regex-based prototype resolution fallback
-- REMIX-5209: Fixed crash when typing out-of-range values (e.g. negative Max Particles) in the particle editor by reading schema-defined limits and clamping typed input before it reaches USD
-- Fixed crash in Stage Manager window resize callback when content widget is uninitialized after a monitor resolution change
-- REMIX-5242: Fixed open recent project regression — app no longer hangs during load, loading indicator is restored, and post-open capture layer validation warnings are shown correctly
-- REMIX-5188: Fixed teleport tool keyword error
-- REMIX-5241: Fixed `TypeError` crash when opening the skeleton remapping window due to `JointItem` using an outdated `TreeItemBase` API
-- REMIX-5210: Fixed significant viewport FPS drop when dragging float/int property sliders by throttling USD writes to once per frame during drag interactions
-- REMIX-5042, REMIX-5211: Fixed property panel undo/redo so drag edits undo in one step and property values refresh immediately after undo/redo
-
-### Removed
 
 ## [1.3.6-2]
 
