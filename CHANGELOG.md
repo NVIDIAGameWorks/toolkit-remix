@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5188: Fixed teleport tool keyword error
 - REMIX-5241: Fixed `TypeError` crash when opening the skeleton remapping window due to `JointItem` using an outdated `TreeItemBase` API
 - REMIX-5210: Fixed significant viewport FPS drop when dragging float/int property sliders by throttling USD writes to once per frame during drag interactions
+- REMIX-5042, REMIX-5211: Fixed property panel undo/redo so drag edits undo in one step and property values refresh immediately after undo/redo
 
 ### Removed
 
