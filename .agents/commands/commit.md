@@ -11,8 +11,11 @@ See `docs_dev/getting-started/git-workflow.md` for commit format conventions.
 1. `git status --short && git diff --stat` — show what changed. Stop if nothing to commit.
 2. Ask the user what to stage (all, select files, or already staged).
 3. `git diff --cached --stat` — confirm what will be committed.
-4. Generate a conventional commit message from the staged diff. Infer the type from the changes. Ask
-   the user to confirm or edit before committing.
+4. Inspect recent **non-merge** commits from the current Git user (`git config user.name` and `git config user.email`)
+   and generate a commit message that matches that user's established style in this repository. If that user has no
+   clear history, fall back to recent non-merge commits in the repo. Only use conventional-commit prefixes if they are
+   the dominant pattern in the inspected history or the user explicitly asks for them. Ask the user to confirm or edit
+   before committing.
 5. `git commit -m "<message>"` — create the commit.
 6. `git log --oneline -1 --stat` — show the result.
 

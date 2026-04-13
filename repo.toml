@@ -675,6 +675,7 @@ sphinx_exclude_patterns = [
     ".claude",
     ".clinerules",
     ".cursor",
+    ".gitlab",
     ".windsurf",
     ".github/copilot-instructions.md",
     "AGENTS.md",
