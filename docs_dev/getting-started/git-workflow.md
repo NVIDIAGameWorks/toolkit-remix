@@ -13,13 +13,13 @@ Branching conventions, commit format, and merge request process for the RTX Remi
 | Bug fix           | `fix/<short-description>`            | `fix/event-stream-leak`                   |
 | Dependency update | `dependabot/<description>`           | `dependabot/update-rtx-remix-target-deps` |
 
-Derive `<username>` from `git config user.name` — lowercase, replace spaces with hyphens.
+Derive `<username>` from `git config user.name` - lowercase, replace spaces with hyphens.
 
 ### One branch per change
 
 Keep each branch focused on a single logical change. This keeps MRs small, easy to review, and atomic.
 
-Everything that belongs to the same change — implementation, tests, documentation — stays on the same
+Everything that belongs to the same change - implementation, tests, documentation - stays on the same
 branch. The goal is one *logical* change per branch, not one file per branch.
 
 If you spot an unrelated bug or come up with another feature idea while working on something, resist
@@ -36,27 +36,31 @@ bundling it into the same branch. Create a separate branch and MR for it instead
 
 ## Commit Format
 
-Use conventional commits:
+Match the commit-subject style already used by the current Git user in this repository.
 
 ```
-<type>: <summary>
+<subject line matching recent history>
 ```
 
-| Type       | When                                |
-|------------|-------------------------------------|
-| `feat`     | New functionality                   |
-| `fix`      | Bug fix                             |
-| `refactor` | Code change without behavior change |
-| `chore`    | Config, CI, tooling, dependencies   |
-| `docs`     | Documentation only                  |
-| `test`     | Test additions or changes           |
-| `style`    | Formatting, linting fixes           |
+Before choosing a message:
+
+- Identify the current author from `git config user.name` and `git config user.email`.
+- Inspect that user's recent **non-merge** commits in this repo.
+- Match the dominant subject format, capitalization, and ticket-prefix usage from that history.
+- If that user has no meaningful local history yet, fall back to recent non-merge commits in the repo.
+- Use conventional-commit prefixes only if they are already the dominant style in the inspected history or the user
+  explicitly asks for them.
+
+Common patterns you may see in history:
+
+- `<TICKET>: <summary>`
+- `<Short summary without a type prefix>`
 
 Rules:
 
 - Summary: one line, max 72 characters, no trailing period
-- Use imperative mood ("add X" not "added X")
-- Body is optional — use for context that the diff doesn't explain
+- Prefer the same tone and capitalization as the inspected history for that Git user
+- Body is optional - use for context that the diff doesn't explain
 
 ---
 
@@ -71,17 +75,26 @@ Rules:
 4. **Root changelog**: add a one-liner at the **end** of the appropriate section under `## [Unreleased]`
    in the root `CHANGELOG.md`. Prefix with Jira ticket: `REMIX-XXXX: <summary>`. Omit the prefix only if
    no ticket exists.
+5. **Draft by default**: open the MR as Draft first, complete your self-review, then mark it ready.
+
+### Repo-local GitLab defaults
+
+- The canonical GitLab MR template lives in `.gitlab/merge_request_templates/Default.md`.
+- If the repo-local template and the GitLab project-level default template ever conflict, prefer the repo-local file.
+- When creating GitLab MRs with `glab`, pass `--draft --remove-source-branch=true --squash-before-merge=true`
+  explicitly so the MR creation behavior matches the repo-local workflow.
 
 ### MR description
 
 Include:
 
+- Start from `.gitlab/merge_request_templates/Default.md`
 - Summary of changes (from the root CHANGELOG entry)
 - List of modified extensions
 - Known issues or follow-up work
 
 ### Target branch
 
-- `dev/*` branches → target their parent `feature/*` branch
-- `feature/*` branches → target `main`
+- `dev/*` branches -> target their parent `feature/*` branch
+- `feature/*` branches -> target `main`
 - If unclear, specify the target explicitly when creating the MR
