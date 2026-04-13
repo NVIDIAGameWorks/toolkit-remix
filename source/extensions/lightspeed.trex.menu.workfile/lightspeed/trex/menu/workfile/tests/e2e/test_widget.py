@@ -15,16 +15,14 @@
 * limitations under the License.
 """
 
-import asyncio
-import uuid
 from typing import TypeVar
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import omni.kit.test
 import omni.kit.ui_test
 import omni.kit.window.about
 import omni.kit.window.preferences
-import omni.ui as ui
+from lightspeed.trex.menu.workfile.extension import get_instance
 from lightspeed.trex.menu.workfile.setup_ui import SetupUI
 
 # NOTE: This can be swapped out with typing.Self once we update our version of typing.
@@ -41,36 +39,38 @@ class AsyncTestMenu:
     ...     menu.click('properties')
     """
 
-    WINDOW_TITLE_ROOT = "TestBurgerMenu"
+    _MENU_PATH_BY_IDENTIFIER = {
+        "preferences": "Edit/Preferences",
+        "about": "Help/About",
+        "logs": "Help/Show Logs",
+        "empty_stage": "File/Close Project",
+    }
 
     def __init__(self):
         self._is_built = False
 
-        # These are populated in `build` below.
-        self._window: ui.Window | None = None
+        # Populated in `build` below.
         self._ui_builder: SetupUI | None = None
 
-    async def build(self):
-        # Used to generate unique window title names
-        salt = str(uuid.uuid1())
-        self._window = ui.Window(
-            f"{self.WINDOW_TITLE_ROOT}_{salt}",
-            height=0,
-            width=100,
-            position_x=0,
-            position_y=0,
-        )
-        with self._window.frame:
-            self._ui_builder = SetupUI()
-            self._ui_builder.show_at(self._window.width, 0)
+    @property
+    def ui_builder(self) -> SetupUI:
+        if self._ui_builder is None:
+            raise RuntimeError("Need to build the menu first.")
+        return self._ui_builder
 
-        await asyncio.sleep(0.1)
+    async def build(self):
+        # Reuse the live extension instance so the test drives the actual menu entries registered
+        # during extension startup.
+        self._ui_builder = get_instance()
+        if self._ui_builder is None:
+            raise RuntimeError("Workfile menu extension is not loaded.")
+
+        await omni.kit.ui_test.human_delay(10)
         self._is_built = True
 
     async def destroy(self):
-        self._ui_builder.menu.destroy()
-        self._ui_builder.destroy()
-        self._window.destroy()
+        await omni.kit.ui_test.human_delay(10)
+        self._ui_builder = None
         self._is_built = False
 
     async def __aenter__(self) -> AsyncTestMenuT:
@@ -80,29 +80,15 @@ class AsyncTestMenu:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.destroy()
 
-    def _get_menu_item(self, identifier: str) -> omni.kit.ui_test.WidgetRef:
+    async def click(self, identifier: str):
         """
-        Helper method to get a MenuItem for the provided identifier.
-
-        Raises:
-            ValueError: If the MenuItem with the provided identifier can not be found.
+        Helper to click a workfile menu entry through the real app menubar.
         """
         if not self._is_built:
             raise RuntimeError("Need to build the menu first.")
 
-        result = omni.kit.ui_test.find(f"{self._window.title}//Frame/**/MenuItem[*].identifier=='{identifier}'")
-        if result is None:
-            raise ValueError(f"No MenuItem with identifier {identifier:!r}")
-        return result
-
-    async def click(self, identifier: str):
-        """
-        Helper to find and click a MenuItem.
-        """
-        menu_item = self._get_menu_item(identifier)
-
-        # NOTE: Don't use .click() here due to the call to .focus() which will hide the widget.
-        await omni.kit.ui_test.emulate_mouse_move_and_click(menu_item.center)
+        await omni.kit.ui_test.menu_click(self._MENU_PATH_BY_IDENTIFIER[identifier], human_delay_speed=4)
+        await omni.kit.ui_test.human_delay(10)
 
 
 class TestWorkFileBurgerMenu(omni.kit.test.AsyncTestCase):
@@ -114,6 +100,7 @@ class TestWorkFileBurgerMenu(omni.kit.test.AsyncTestCase):
             self.assertTrue(inst._window_is_visible)
             # NOTE: Use this helper to destroy the window to ensure the preferences instance keeps the proper state.
             inst.hide_preferences_window()
+            await omni.kit.ui_test.human_delay(10)
 
     async def test_about(self):
         async with AsyncTestMenu() as menu:
@@ -123,15 +110,20 @@ class TestWorkFileBurgerMenu(omni.kit.test.AsyncTestCase):
             self.assertTrue(inst._is_visible())
             # NOTE: The about extension doesn't create/destroy the window just toggles its visibility.
             inst.show(False)
+            await omni.kit.ui_test.human_delay(10)
 
     async def test_show_logs(self):
-        with patch.object(SetupUI, "_open_logs_dir") as mock_open:
+        with patch("lightspeed.trex.menu.workfile.setup_ui.open_file_using_os_default") as mock_open:
             async with AsyncTestMenu() as menu:
                 await menu.click("logs")
         self.assertEqual(1, mock_open.call_count)
 
     async def test_unload_stage(self):
-        with patch.object(SetupUI, "_create_new_workfile") as mock_open:
-            async with AsyncTestMenu() as menu:
-                await menu.click("empty_stage")
-            self.assertEqual(1, mock_open.call_count)
+        async with AsyncTestMenu() as menu:
+            on_new_workfile = Mock()
+            subscription = menu.ui_builder.subscribe_create_new_workfile(on_new_workfile)
+
+            await menu.click("empty_stage")
+
+            self.assertEqual(1, on_new_workfile.call_count)
+            del subscription

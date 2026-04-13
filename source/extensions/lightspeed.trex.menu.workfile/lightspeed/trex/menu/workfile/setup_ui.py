@@ -17,7 +17,6 @@
 
 import asyncio
 
-import carb.input
 import carb.tokens
 import omni.flux.feature_flags.window
 import omni.kit.app
@@ -167,16 +166,10 @@ class SetupUI:
             _menu_utils.MenuItemDescription(name="File/Save", onclick_fn=self._save),
             _menu_utils.MenuItemDescription(name="File/Save As...", onclick_fn=self._save_as),
             _menu_utils.MenuItemDescription(name="File/Close Project", onclick_fn=self._create_new_workfile),
-            _menu_utils.MenuItemDescription(
-                name="Edit/Undo",
-                onclick_fn=self._undo,
-                hotkey=(carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL, carb.input.KeyboardInput.Z),
-            ),
-            _menu_utils.MenuItemDescription(
-                name="Edit/Redo",
-                onclick_fn=self._redo,
-                hotkey=(carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL, carb.input.KeyboardInput.Y),
-            ),
+            # lightspeed.trex.control.stagecraft registers the global undo/redo hotkeys.
+            # Leaving them off the menu avoids triggering both handlers on one keypress.
+            _menu_utils.MenuItemDescription(name="Edit/Undo", onclick_fn=self._undo),
+            _menu_utils.MenuItemDescription(name="Edit/Redo", onclick_fn=self._redo),
             _menu_utils.MenuItemDescription(
                 name="Edit/Preferences", onclick_fn=self._show_preferences_window, appear_after="Edit/Redo"
             ),
