@@ -87,6 +87,9 @@ deps/kit-sdk.packman.xml.user*
 *.local.md
 *.local.json
 
+# Ignore local Codex root config/state files, but keep subdirectories like skills/ and hooks/ trackable
+.codex/*.toml
+
 # NICC CLI version tracking (per-user, not committed)
 .nicc_resource_versions.json
 
