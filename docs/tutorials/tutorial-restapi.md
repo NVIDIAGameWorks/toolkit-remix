@@ -435,9 +435,13 @@ class APIUtils:
         self.base_url = base_url
 ```
 
-The RTX Remix REST API is available at `http://127.0.0.1:8011` by default but can be changed. The `base_url`
-variable will therefore be used to define the base URL of the REST API and make sure the code doesn't break if the URL
-changes.
+The RTX Remix REST API is available at `http://127.0.0.1:8011` by default. This base URL comes from the Kit settings
+`/exts/omni.services.transport.server.http/host` and `/exts/omni.services.transport.server.http/port`, so if you
+override either setting when launching the Toolkit, update the `base_url` value to match the configured host/IP and
+port. The `base_url` variable will therefore be used to define the base URL of the REST API and make sure the code
+doesn't break if the URL changes.
+
+See [Using the REST API](../howto/learning-restapi.md) for a startup override example and the live documentation URL.
 
 If the URL changing is a problem, it could even be exposed as a parameter in the Blender Add-On UI for the user to set.
 
