@@ -18,11 +18,13 @@
 __all__ = ["StageManagerUtils"]
 
 import asyncio
-import concurrent
+import concurrent.futures
+import time
 from collections import Counter
 from collections.abc import Callable, Iterable
 
 import omni.usd
+from omni.flux.utils.common.task_budget import AdaptiveTaskBudget
 
 from .items import StageManagerItem
 from .plugins.filter_plugin import FilterCategory as _FilterCategory
@@ -54,6 +56,11 @@ def _filter_result_closed(
 
 
 class StageManagerUtils:
+    # Shared adaptive budget is intentional for the current single interaction-plugin
+    # usage pattern. If multiple call sites with very different workloads emerge,
+    # move to per-plugin or keyed budgets to avoid cross-workload EMA bleed.
+    _task_budget = AdaptiveTaskBudget()
+
     @classmethod
     def _get_depth(cls, item: StageManagerItem) -> int:
         """Count how many ancestors an item has."""
@@ -141,66 +148,64 @@ class StageManagerUtils:
         items: Iterable[StageManagerItem],
         predicates: Iterable[Callable[[StageManagerItem], bool]],
         include_invalid_parents: bool = True,
-        max_workers: int | None = None,
     ) -> list[StageManagerItem]:
         """
-        Filter items using predicates with parallel processing.
+        Filter items using adaptive chunked tasks on a dedicated worker thread.
+
+        Note:
+            This path intentionally uses a single-worker thread pool. Prior
+            per-item fanout created substantial scheduling overhead and did not
+            produce effective multi-core scaling for this Python predicate
+            workload because of GIL contention.
 
         Args:
             items: Items to filter
             predicates: Predicates to execute on each item
             include_invalid_parents: Whether to include invalid parent items of valid items in the filtered list
-            max_workers: Maximum number of workers to use for parallel processing
 
         Returns:
             Filtered items list
         """
+        item_list = list(items)
+        predicate_list = list(predicates)
+
+        partition = cls._task_budget.compute_partition(len(item_list), len(predicate_list))
+        task_count = partition.task_count
+        chunk_size = partition.chunk_size
+        chunk_compute_ms = 0.0
+
+        def _run_chunk(start_index: int, end_index: int):
+            loop_start = time.perf_counter()
+            for item in item_list[start_index:end_index]:
+                item.reset_filter_state()
+                item.is_valid = all(predicate(item) for predicate in predicate_list)
+            return (time.perf_counter() - loop_start) * 1000.0
+
         loop = asyncio.get_event_loop()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
-            # Submit the jobs in an async thread to avoid locking up the UI
-            tasks = await loop.run_in_executor(pool, cls._submit_jobs, items, predicates, loop, pool)
-            await asyncio.gather(*tasks)
+        wait_start = loop.time()
+        executed_chunks = 0
+        # Intentionally single-worker: chunking improves responsiveness while
+        # avoiding per-item task overhead from broad thread fanout.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="sm_filter_profile") as pool:
+            for chunk_index in range(task_count):
+                start_index = chunk_index * chunk_size
+                if start_index >= len(item_list):
+                    break
+                end_index = min(start_index + chunk_size, len(item_list))
+                chunk_compute_ms += await loop.run_in_executor(pool, _run_chunk, start_index, end_index)
+                executed_chunks += 1
+        executor_wait_ms = (loop.time() - wait_start) * 1000.0
+        cls._task_budget.update_metrics(
+            compute_ms=chunk_compute_ms,
+            executor_wait_ms=executor_wait_ms,
+            task_count=executed_chunks,
+            item_count=len(item_list),
+            predicate_count=len(predicate_list),
+        )
 
-        # Filter out the invalid items
         if include_invalid_parents:
-            return list(filter(lambda f: f.is_valid or f.is_child_valid, items))
-        return list(filter(lambda f: f.is_valid, items))
+            result = list(filter(lambda f: f.is_valid or f.is_child_valid, item_list))
+        else:
+            result = list(filter(lambda f: f.is_valid, item_list))
 
-    @classmethod
-    def _submit_jobs(
-        cls,
-        items: Iterable[StageManagerItem],
-        predicates: Iterable[Callable[[StageManagerItem], bool]],
-        loop: asyncio.AbstractEventLoop,
-        pool: concurrent.futures.ThreadPoolExecutor,
-    ) -> list[asyncio.Future]:
-        """
-        Submit jobs to update the item state in parallel
-
-        Args:
-            items: The items to update
-            predicates: The predicates to apply
-            loop: The Asyncio event loop
-            pool: The thread pool
-
-        Returns:
-            A list of futures for the submitted jobs
-        """
-        futures = []
-        for item in items:
-            # Reset the filter state
-            item.reset_filter_state()
-            # Start filtering
-            futures.append(loop.run_in_executor(pool, cls._update_item_state, item, predicates))
-        return futures
-
-    @classmethod
-    def _update_item_state(cls, item: StageManagerItem, predicates: Iterable[Callable[[StageManagerItem], bool]]):
-        """
-        Update the item state based on the predicates
-
-        Args:
-            item: The item to update
-            predicates: The predicates to apply
-        """
-        item.is_valid = all(predicate(item) for predicate in predicates)
+        return result

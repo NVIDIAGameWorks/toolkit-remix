@@ -1,6 +1,17 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.12.0]
+### Added
+- Added unit coverage for `StageManagerUtils.filter_items`, including a regression guard that asserts partitioned chunked executor dispatch.
+
+### Changed
+- Updated `filter_items` to use adaptive chunk partitioning from `AdaptiveTaskBudget`, preserving refresh wins while improving frame pacing under large filter loads.
+
+### Removed
+- Removed `max_workers` from `StageManagerUtils.filter_items`; worker scheduling is now managed internally by `AdaptiveTaskBudget`.
+- Removed `percent_available_core_usage` from `StageManagerInteractionPlugin` and dropped `set_max_workers` from `StageManagerTreeModel`.
+
 ## [4.11.0]
 ### Added
 - REMIX-4575: Added `selection` property and `set_selection` method to `StageManagerTreeModel` to store live tree selection state in the model
