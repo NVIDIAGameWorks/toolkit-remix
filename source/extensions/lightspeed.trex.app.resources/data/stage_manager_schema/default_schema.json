@@ -21,7 +21,6 @@
     "interactions": [
         {
             "name": "AllPrimsInteractionPlugin",
-            "percent_available_core_usage": 0.75,
             "filters": [
                 {
                     "name": "SearchFilterPlugin"
