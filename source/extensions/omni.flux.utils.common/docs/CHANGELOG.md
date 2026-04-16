@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.12.0]
+### Added
+- Added `AdaptiveTaskBudget` to compute adaptive task/chunk partitions for large background filtering workloads.
+
+### Changed
+- Added EMA-driven overhead tuning (`max_overhead_ratio` plus warmup gating) to stabilize task counts and reduce UI stutter under heavier predicate mixes.
+
 ## [3.11.0]
 ### Added
 - Centralized OS drag-and-drop router (`WidgetDropRouter`) with `get_mouse_position` and `is_point_inside_widget` hit-testing utilities

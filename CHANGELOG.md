@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5120: Layer Manager restructure and cleanup
 - Versioned the default GitLab MR template in `.gitlab/merge_request_templates/Default.md`, documented repo-local `glab` MR defaults, excluded GitLab-only files from the Sphinx doc scan, and updated commit guidance to match the current Git user's recent commit style
 - Clarified REST API documentation for configurable host, port, and startup overrides
+- REMIX-5166: Refined Stage Manager filtering with adaptive task-budget tuning and moved partition math into shared Flux utilities for better UI responsiveness at scale.
 
 ### Fixed
 

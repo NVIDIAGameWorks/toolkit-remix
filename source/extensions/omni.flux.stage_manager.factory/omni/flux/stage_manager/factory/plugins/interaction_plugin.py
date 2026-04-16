@@ -17,7 +17,6 @@
 
 import abc
 import asyncio
-import os
 from asyncio import Future, Queue, ensure_future
 from collections.abc import Callable
 from functools import partial
@@ -103,14 +102,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         ),
     )
 
-    percent_available_core_usage: float | None = Field(
-        default=None,
-        description=(
-            "The percentage of the available CPU cores to use to filter the context items. "
-            "If the value is unset, the default python maximum will be used."
-        ),
-    )
-
     internal_context_filters: list[_StageManagerFilterPlugin] = Field(
         default=[],
         description=(
@@ -181,15 +172,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         # Use a list + validator to keep the list order
         return list(dict.fromkeys(v))
 
-    @field_validator("percent_available_core_usage", mode="before")
-    @classmethod
-    def check_valid_percent_available_core_usage(cls, v):
-        if v is None:
-            return v
-        if v <= 0 or v > 1:
-            raise ValueError("Value must be larger than 0 and smaller or equal to 1 (percentage)")
-        return v
-
     @field_validator("debounce_frames", mode="before")
     @classmethod
     def check_positive_frame_count(cls, v):
@@ -253,17 +235,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         Active status should be managed by the widget
         """
         return self._is_active
-
-    @property
-    def _max_workers(self) -> int | None:
-        """
-        Whether the tree selection should be validated & updated to include the item being right-clicked on or not
-        """
-        return (
-            max(1, int(os.cpu_count() * self.percent_available_core_usage))
-            if self.percent_available_core_usage
-            else None
-        )
 
     @abc.abstractmethod
     def _setup_listeners(self):
@@ -472,7 +443,6 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         Subscribe to the `_item_changed` event triggered by the tree model to rebuild the result UI frames
         """
-        self.tree.model.set_max_workers(self._max_workers)
         self._item_changed_sub = self.tree.model.subscribe_item_changed_fn(self._on_item_changed)
 
         # Make sure the widgets' `_item_clicked` event triggers the delegate's `_item_clicked` event
@@ -642,8 +612,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             self._context.get_items(),
             predicates,
             include_invalid_parents=self.include_invalid_parents,
-            max_workers=self._max_workers,
         )
+
         if filtered_items is None:
             return
 
