@@ -35,9 +35,13 @@ git show origin/main:deps/target-deps.packman.xml | grep -A1 "rtx-remix-hdremix\
 
 Exit early if already at the target version.
 
+## Step 2b — Check remix_runtime
+
+If the dependabot commit also changed `rtx-remix-remix_runtime`, show the old and new versions and **ask the user** whether to include that bump. The runtime has an independent release cadence and may not be officially released yet — do not update it without explicit confirmation.
+
 ## Step 3 — Update deps/target-deps.packman.xml
 
-Update both `rtx-remix-hdremix` and `rtx-remix-omni_core_materials` version attributes to the new version tag.
+Update both `rtx-remix-hdremix` and `rtx-remix-omni_core_materials` version attributes to the new version tag. Only update `rtx-remix-remix_runtime` if the user confirmed it in Step 2b.
 
 ## Step 4 — Update CHANGELOG.md
 
