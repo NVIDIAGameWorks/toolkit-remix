@@ -111,13 +111,19 @@ When a prim with the `ParticleSystemAPI` schema applied is selected, its propert
 
 ### Visual Controls
 
-**2D Particle Size** (1.4)
+```{versionadded} 1.4
+```
+
+**2D Particle Size**
 
 Particle size now has independent width and height (`minSize`/`maxSize` as Float2), enabling rectangular particles.
 Both dimensions are animatable via the Curve Editor. Useful for raindrops (tall and narrow), leaves (wide and short),
 or any effect where square billboards look unnatural.
 
-**Motion Trail** (1.4)
+```{versionadded} 1.4
+```
+
+**Motion Trail**
 
 The **Enable Motion Trail** (`enableMotionTrail`) toggle elongates particles along their velocity vector, creating
 a streak effect for fast-moving particles like sparks, meteors, or tracer rounds. The **Motion Trail Multiplier**
@@ -129,7 +135,10 @@ Motion trail stretches the center of the particle quad; edges preserve the textu
 use simple or uniform textures rather than detailed sprite sheets.
 ```
 
-**Random Axis Flipping** (1.4)
+```{versionadded} 1.4
+```
+
+**Random Axis Flipping**
 
 The **Random Axis Flipping** (`randomFlipAxis`) setting flips particle textures at spawn to break up repetitive
 patterns in dense effects:
@@ -139,7 +148,10 @@ patterns in dense effects:
 * **Vertical** — Random vertical flip at spawn
 * **Both** — Random flip in both directions at spawn
 
-**Initial Rotation Deviation** (1.4)
+```{versionadded} 1.4
+```
+
+**Initial Rotation Deviation**
 
 The **Initial Rotation Deviation** (`initialRotationDeviationDegrees`) adds a randomized starting angle to each
 particle at spawn. The value (0–180 degrees) sets the randomization range. Combined with random axis flipping, this
@@ -147,7 +159,10 @@ makes even simple textures look varied across a particle field.
 
 ### Physics Controls
 
-**Attractor** (1.4)
+```{versionadded} 1.4
+```
+
+**Attractor**
 
 The attractor introduces a force-field system. You define a point in world space with a configurable radius and force
 strength. Particles within the radius are pulled toward the point (positive force) or pushed away from it (negative
@@ -157,7 +172,10 @@ force). Three parameters control this:
 * `attractorForce` — Strength in cm/s²; positive attracts, negative repels
 * `attractorRadius` — Falloff radius; particles outside this radius are unaffected
 
-**Collision Modes** — Stop and Kill (1.4)
+```{versionadded} 1.4
+```
+
+**Collision Modes** — Stop and Kill
 
 The **Collision Mode** (`collisionMode`) parameter now supports three behaviors. Enable collision detection first with
 the `enableCollisionDetection` toggle, then choose:
@@ -169,18 +187,27 @@ the `enableCollisionDetection` toggle, then choose:
 * **Kill** — Particles are destroyed on contact. Useful for raindrops that disappear on impact or sparks that
   extinguish when they hit the ground.
 
-**Burst Duration** (1.4)
+```{versionadded} 1.4
+```
+
+**Burst Duration**
 
 The **Burst Duration** (`spawnBurstDuration`) parameter enables periodic bursting instead of continuous emission. A
 value of `0` (default) means continuous spawning. Values greater than `0` spawn particles in bursts separated by the
 specified number of seconds. Useful for explosions, muzzle flashes, and spark effects.
 
-**Drag / Air Resistance** (1.4)
+```{versionadded} 1.4
+```
+
+**Drag / Air Resistance**
 
 The **Drag Coefficient** (`dragCoefficient`) slows particles over time, simulating air resistance. A value of `0`
 (default) means no drag. Higher values cause particles to decelerate more quickly after spawn.
 
-**Axis Restriction** (1.4)
+```{versionadded} 1.4
+```
+
+**Axis Restriction**
 
 Three toggles constrain particle motion to specific axes or planes:
 
@@ -191,7 +218,10 @@ Three toggles constrain particle motion to specific axes or planes:
 Enable **Restrict Y** to create particles that move only horizontally (ground-level dust or fog). Enable **Restrict X**
 and **Restrict Z** to create particles that only move vertically (rising smoke or falling rain).
 
-### The Curve Editor (1.4)
+### The Curve Editor
+
+```{versionadded} 1.4
+```
 
 The Curve Editor replaces the simple start-and-end-value system with a full keyframe animation editor. Instead of
 defining only how a parameter starts and ends, you can add multiple keyframes with tangent-controlled interpolation
@@ -239,7 +269,10 @@ simulation parameters.
 Create a sprite image sequence and configure it according to the
 [Sprite Sheet instructions](learning-materials.md#animated-materials-using-a-sprite-sheet).
 
-**Sprite Sheet Modes** — Override modes (1.4)
+```{versionadded} 1.4
+```
+
+**Sprite Sheet Modes** — Override modes
 
 The **Sprite Sheet Mode** (`spriteSheetMode`) controls how particles play back a sprite sheet animation:
 

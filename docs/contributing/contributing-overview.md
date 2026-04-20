@@ -16,9 +16,9 @@ is [NVIDIAGameWorks/rtx-remix](https://github.com/NVIDIAGameWorks/rtx-remix). Th
 submodules that correspond to the various components of the RTX Remix project:
 
 * **[dxvk-remix](https://github.com/NVIDIAGameWorks/dxvk-remix):** This submodule contains the RTX Remix Renderer,
-  responsible for rendering the ray-traced visuals.
-* **[bridge-remix](https://github.com/NVIDIAGameWorks/bridge-remix):** This submodule encompasses the RTX Remix
-  Interceptor and Converter, which handles the translation of game data for use with the renderer.
+  responsible for rendering the ray-traced visuals. It also contains the
+  RTX Remix Interceptor and Converter, which handles the translation of
+  game data for use with the renderer.
 * **[toolkit-remix](https://github.com/NVIDIAGameWorks/toolkit-remix):** This submodule houses the RTX Remix Toolkit,
   the user interface and set of tools used for authoring RTX Remix mods.
 
