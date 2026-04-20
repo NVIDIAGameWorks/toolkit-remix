@@ -91,7 +91,17 @@ Include:
 - Start from `.gitlab/merge_request_templates/Default.md`
 - Summary of changes (from the root CHANGELOG entry)
 - List of modified extensions
+- Actual measured test coverage percentage from a real `--coverage` report for the modified extension(s)
 - Known issues or follow-up work
+
+Coverage guidance:
+
+- Do not write "coverage" as a list of tests that exist. The MR must include the actual percentage from the generated
+  coverage report.
+- Run `.\repo.bat test -b <extension.name> --coverage` or
+  `.\_build\windows-x86_64\release\tests-<extension.name>.bat -n default --coverage` and copy the reported percent.
+- If the `--coverage` run still fails because of unrelated existing failures, keep the real reported percentage in the
+  MR description and explicitly call out that the run failed plus the unrelated failing tests.
 
 ### Target branch
 

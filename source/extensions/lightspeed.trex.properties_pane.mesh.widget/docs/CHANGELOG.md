@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.8]
+### Fixed
+- Keep stage-light selections on their real USD path so object properties stay visible for stage lights attached to captured lights
+
 ## [1.4.7]
 ### Changed
 - Update test setup to use renamed `LayerManagerCore.set_edit_target_layer_of_type()` (was `set_edit_target_layer`)

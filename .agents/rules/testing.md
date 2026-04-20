@@ -17,7 +17,9 @@ naming, and anti-patterns.
    Act → Assert). If two actions need testing, write two tests.
 
 4. **E2E tests** (`tests/e2e/`): real Kit instance, real data, full user-visible workflows. Drive actions through UI
-   widget identifiers, verify results through UI state — not by calling internal methods directly.
+   widget identifiers, verify results through UI state — not by calling internal methods directly. When running locally
+   through an extension `tests-<extension>.bat`, never run multiple E2E test processes in parallel: these tests open
+   real windows and dialogs, and concurrent runs can interfere with each other.
 
 5. **One test file per source file** — `api.py` → `test_api.py`, `models.py` → `test_models.py`. Skip trivial
    re-export files. When in doubt, write the test file.

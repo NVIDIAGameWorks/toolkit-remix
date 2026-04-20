@@ -33,6 +33,16 @@ Use `-b` to select an extension bucket and `--` to pass extra args to the underl
 Test output lands in `_testoutput/exttest_<sanitized_name>/` (dots replaced with underscores). Default timeout:
 300 seconds.
 
+### Local E2E execution
+
+When you run an extension's `tests-<extension>.bat` locally and it includes E2E tests, **do not run multiple test
+scripts in parallel**. These tests open real Kit windows and dialogs, and parallel local runs can steal focus, click
+the wrong window, or leave modal dialogs open for another test process.
+
+- Run one extension BAT at a time for local E2E workflows
+- If you need to isolate a failure, use `-n default -f <pattern>` instead of starting a second BAT in parallel
+- Treat conflicting windows, missing button queries, and unexpected modal state as likely parallel-run interference first
+
 ### Troubleshooting
 
 **Registry sync hang:** Tests hang at `syncing registry: 'omniverse://kit-extensions.ov.nvidia.com/...'` when a
@@ -285,6 +295,8 @@ a complete multi-step workflow (open a window, fill fields, click buttons, verif
 - **Trigger actions through UI elements** — not by calling internal methods directly
 - **Verify results** through UI state, filesystem checks, or USD stage values as appropriate
 - Use `await ui_test.human_delay()` for frame waits — **never** `time.sleep()` or `next_update_async()`
+- When running locally through an extension `tests-<extension>.bat`, never run multiple E2E test processes in parallel.
+  These tests open real windows and can interfere with each other across processes.
 - Reserved for behaviors that cannot be meaningfully tested with mocks
 - For UI automation details, see
   the [Kit UI test framework](https://docs.omniverse.nvidia.com/kit/docs/kit-manual/latest/guide/testing_exts_python.html#omni-kit-ui-test-writing-ui-tests)
