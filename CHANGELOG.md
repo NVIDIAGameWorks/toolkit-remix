@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed crash in Stage Manager window resize callback when content widget is uninitialized after a monitor resolution change
 - REMIX-5242: Fixed open recent project regression — app no longer hangs during load, loading indicator is restored, and post-open capture layer validation warnings are shown correctly
 - REMIX-5202: Fixed capture directory being reset when the selected capture file is deleted; projects now auto-open a repair wizard to select a replacement capture
+- Fixed stage-light selections in the object properties panel so lights attached to captured lights keep showing their properties
 
 ### Removed
 

@@ -8,6 +8,9 @@ See `.agents/context/project.md` for the command table and rules (no extra flags
 .\_build\windows-x86_64\release\tests-<extension-name>.bat
 ```
 
+If the selected extension includes local E2E tests, run only one extension BAT at a time. These runs open real Kit
+windows and modal dialogs, so parallel local executions can click the wrong window or leave conflicting UI state behind.
+
 ## Filter Tests
 
 Use `-n default` to skip the startup test and `-f <pattern>` to filter by name:

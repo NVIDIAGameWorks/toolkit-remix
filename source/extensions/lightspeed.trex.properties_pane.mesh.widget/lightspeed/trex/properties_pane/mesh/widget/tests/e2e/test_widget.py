@@ -226,6 +226,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await light_disk_button.click()
         await ui_test.human_delay(human_delay_speed=3)
 
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 1)
+        await item_prims[0].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        self.assertEqual(
+            usd_context.get_selection().get_selected_prim_paths(),
+            ["/RootNode/lights/light_9907D0B07D040077/DiskLight"],
+        )
+
         # the properties are visible
         none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")
         frame_mesh_ref = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
@@ -260,6 +270,16 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNotNone(light_disk_button)
         await light_disk_button.click()
         await ui_test.human_delay(human_delay_speed=3)
+
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertEqual(len(item_prims), 2)
+        await item_prims[1].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        self.assertEqual(
+            usd_context.get_selection().get_selected_prim_paths(),
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/DiskLight"],
+        )
 
         # the properties are visible
         none_frames = ui_test.find_all(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_none'")

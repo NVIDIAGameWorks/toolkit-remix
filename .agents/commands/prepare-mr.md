@@ -51,6 +51,10 @@ which gh 2>/dev/null && echo "github" || (which glab 2>/dev/null && echo "gitlab
      If the repo-local template and GitLab project settings ever diverge, prefer the repo-local file.
   2. Build the final MR description by prepending a short summary section (root `CHANGELOG.md` entry), the list of
      modified extensions, and test/validation notes to that template.
+     The description must include the actual measured coverage percentage from a real `--coverage` report for the
+     modified extension(s). Do not replace the percentage with a test list or a qualitative claim such as "tests were
+     added". If the `--coverage` run still has unrelated baseline failures, keep the real percentage in the
+     description and state clearly that the run failed and why.
   3. Create the MR with explicit repo-local defaults instead of relying on GitLab project defaults:
 
      ```bash

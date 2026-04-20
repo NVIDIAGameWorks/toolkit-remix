@@ -421,6 +421,10 @@ class SetupUI:
             prim_paths = [item.path for item in item_light_assets]
 
             for item in item_light_prims:
+                if not self._current_instance_items:
+                    prim_paths.append(item.path)
+                    continue
+
                 for instance_item in self._current_instance_items:
                     to_select_path = re.sub(
                         constants.REGEX_MESH_TO_INSTANCE_SUB,
