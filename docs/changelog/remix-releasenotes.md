@@ -1,5 +1,105 @@
 # Release Notes
 
+
+## RTX Remix Release 1.4 Notes (4/21/2026)
+
+We are thrilled to unveil the official release of RTX Remix 1.4. This update marks a significant milestone in visual fidelity and modding workflow, headlined by the debut of Advanced Particle VFX. This overhaul transforms how environmental effects and combat visuals are handled, giving modders the power to create complex, cinematic particle behaviors that were previously impossible.
+
+![Remix 1.4 Hero](../data/images/remix-1.4-hero.png)
+
+Beyond particles, we've focused on the "soul" of game characters with specialized eye shaders, offering unprecedented realism for digital humans. Combined with a 55% performance boost in RTX Skin and a fully unified UI styling between the Toolkit and Runtime, version 1.4 makes the path to a path-traced masterpiece smoother and more performant than ever.
+
+### With these new tools, modders can:
+
+* **Evolve Particle Animations:** Use the new Curve Editor to transition particle color, size, and velocity over their entire lifetime.
+* **Create Realistic Characters:** Implement parallax depth and spherical normals for eyes, bringing a new level of life to NPCs.
+* **Optimize Heavy Scenes:** Enjoy massive performance gains in scenes utilizing skin or wax-like materials thanks to RTX Skin optimizations.
+* **Iterate Faster:** Hot-reload textures instantly without restarting the game.
+
+### RTX Remix Toolkit
+
+#### Particle Curve Editor
+
+The centerpiece of the Toolkit update is the new Curve Editor. Modders can now precisely orchestrate particle properties over time.
+
+![Particle Curve Editor](../data/images/remix-particle-curve-editor.png)
+
+* Supports full Bezier and Hermite curves with custom tangent types.
+* Allows for granular control over color gradients, rotation speeds, and velocity scaling.
+* Visualizes lifetime data for more detailed control and VFX creation.
+
+```{seealso}
+For more details on working with particles, see our [Particle System documentation](../howto/learning-particles.md).
+```
+
+#### UX & Workflow Improvements
+
+* **Prim Nicknames:** Added a "Nickname" attribute for prims in the selection tree and Stage Manager, making it easier to track specific assets in complex scenes.
+* **Enhanced Stage Manager:** Added Instance Group and Mesh Group filter plugins with new section headers for faster navigation.
+* **Scan Folder Validation:** Improved the reliability of model ingestion and fixed multiselect checkbox handling in the Scan Folder tool.
+
+#### Bugfixes/Minor Changes
+
+* Fixed Stage Manager refresh logic to ensure items populate correctly before the UI displays.
+* Updated Stage Manager's Mesh Prim Filter to correctly exclude light sources from mesh-only filters.
+* Resolved an issue where the viewport selection would fail to "frame" the selected objects in the Skeleton Tab.
+
+#### For Developers/Contributors
+
+* Added `create_venv.bat` to streamline creating a virtual environment for development.
+* Migrated the codebase to [ruff](https://docs.astral.sh/ruff/) for formatting and linting, modernized the codebase for Python 3.10, and added pre-commit hooks for automated code quality checks.
+
+
+```{seealso}
+For a full toolkit changelog, please click [here](remix-full-changelog.md)
+```
+
+---
+
+### RTX Remix Runtime
+
+#### Advanced Particle VFX
+
+A major overhaul of the particle system provides a modernized foundation for all Remix effects, including full backwards compatibility for existing USD and Hydra assets.
+
+![Advanced Particle VFX](../data/images/remix-1.4-runtime-particle-vfx.png)
+
+* **Physics & Interaction:** Added Physical Attractors to pull or repel particles from specific points, and Drag/Air Resistance to simulate realistic friction.
+* **Collision Modes:** Particles can now be set to Bounce, Stop, or Kill upon hitting geometry.
+* **Sprite Sheet Animation:** New flipbook modes allow for animated textures on particles, including random sprite selection to break up visual repetition.
+* **Screenspace Culling:** Replaced world-space culling with a screenspace heuristic, preventing particles from "popping" out of existence when the player zooms in or gets too close.
+* **2D Sizing:** Particles now support independent X and Y dimensions for non-square effects like sparks or debris.
+
+#### Advanced Rendering & Visuals
+
+* **Specialized Eye Shaders:** Opaque shaders now support parallax depth on the iris and smooth spherical normals on the whites (sclera), creating depth and realistic reflections.
+* **RTX Skin Optimization:** RTX Skin or Subsurface Scattering (SSS) is now up to 55% faster. We achieved this by masking SSS instances, enabling backface culling, and implementing a single-scattering transmission heuristic.
+* **Texture Hot-Reload:** You can now toggle an option to listen for filesystem changes, allowing textures to update live in-game as you save them in your image editor.
+
+#### UI & Configuration Refactor
+
+* **Unified Styling:** The Runtime UI now uses the Toolkit's styling, including improved spacing, hover states, and a new bold font for better readability.
+* **RtxOption Layers:** We have refactored how settings are saved. Local user changes are now strictly separated into `user.conf`, while mod-specific defaults live in `rtx.conf`. A new migration flow ensures your existing settings are moved to the correct layers automatically.
+
+---
+
+#### Code & Community Contributions
+
+* **Enhanced Particles:** Massive thanks to @runestorm for the initial Request for Enhancement and feedback that shaped the Advanced Particle VFX architecture.
+* **Stability Fix:** Thanks to @xoxor4d for fixing a serialization bug that previously caused particle systems to fail during creation via the Remix API.
+* **Build Optimization:** Added precompiled header support to the build system, significantly reducing compile times for contributors.
+
+#### Bugfixes/Minor Changes
+
+* Fixed a long-standing orientation bug where billboard particles appeared upside down.
+* Fixed "glow" corruption on far alpha-blended geometry by scaling hit distances to prevent Float16 overflow.
+* Resolved texture blur "pops" that occurred when exiting full-screen menus.
+* Fixed crashes when attempting to capture/export to write-protected directories; a warning dialog now appears instead.
+* Blocked mouse/keyboard input when the game window is out of focus to prevent accidental setting changes.
+
+
+***
+
 ## RTX Remix Release 1.3 Notes (1/27/2026)
 
 We are excited to announce the official release of **RTX Remix 1.3**. RTX Remix now features a system called **RTX Remix Logic**, which allows Remix to detect game logic and make mods more immersive and dynamic. Remix Logic exposes real time game events that modders can use to trigger visual changes in their mods, all without needing source code or programming knowledge. Remix Logic is powerful–modders can read many aspects of the game state and player behavior, and sculpt visual changes in response with all 900+ settings offered in the RTX Remix Runtime menu.
