@@ -615,6 +615,8 @@ autodoc.mock_imports = [
     "lightspeed.trex.app.style", # uses carb.settings.get_settings() at module level
 ]
 
+autodoc.pydantic_model_show_json = false
+autodoc.pydantic_settings_show_json = false
 autodoc.pydantic_model_show_json_error_strategy = "coerce"
 autodoc.pydantic_settings_show_json_error_strategy = "coerce"
 
@@ -663,6 +665,7 @@ sphinx_exclude_patterns = [
     ####################################################################################################################
     ".cache",
     ".local",
+    ".venv",
     "_build",
     "include",
     "portable",
@@ -685,6 +688,7 @@ sphinx_exclude_patterns = [
     # Developer docs — binary assets and GitHub-only navigation pages
     ####################################################################################################################
     "docs_dev/data/*",
+    "docs_dev/internal",
     "docs_dev/README.md",
     ####################################################################################################################
     # Excluded docs

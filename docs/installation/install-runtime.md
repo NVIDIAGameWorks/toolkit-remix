@@ -25,11 +25,10 @@ The downloaded zip file contains the necessary files to prepare a supported game
 can follow the [instructions below](#installing-the-rtx-remix-runtime-for-your-game) to install the Runtime for your game.
 
 ```{tip}
-The RTX Remix Bridge and DXVK-Remix files are also available separately on GitHub for users who want to access
-experimental updates before they are included in a full Runtime release. You can find them here:
+DXVK-Remix sources and pre-release artifacts are on GitHub for users who want experimental renderer updates before they
+ship in a full Runtime release:
 
-* Bridge Application: [bridge-remix](https://github.com/NVIDIAGameWorks/bridge-remix).
-* DXVK-Remix Application: [dxvk-remix](https://github.com/NVIDIAGameWorks/dxvk-remix/).
+[dxvk-remix](https://github.com/NVIDIAGameWorks/dxvk-remix/).
 ```
 
 ## Installing the RTX Remix Runtime for Your Game
