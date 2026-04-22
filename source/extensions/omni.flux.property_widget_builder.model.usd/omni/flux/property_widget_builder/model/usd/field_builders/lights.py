@@ -17,18 +17,18 @@
 
 __all__ = ("LIGHT_FIELD_BUILDERS",)
 
-from omni.flux.property_widget_builder.delegates.float_value.drag import FloatDragField
+from omni.flux.property_widget_builder.delegates.float_value.drag import FloatDragFieldGroup
 
 from .base import USDBuilderList
 
 LIGHT_FIELD_BUILDERS = USDBuilderList()
 
 
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:colorTemperature", FloatDragField(2500.0, 8500.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:exposure", FloatDragField(0.0, 10.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:intensity", FloatDragField(0.0, 65000.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:radius", FloatDragField(0.0, 65000.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:cone:angle", FloatDragField(0.0, 360.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:cone:softness", FloatDragField(0.0, 10.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:focus", FloatDragField(0.0, 10.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:volumetric_radiance_scale", FloatDragField(0.0, 10.0))
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:colorTemperature", FloatDragFieldGroup(2500.0, 8500.0))
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:exposure", FloatDragFieldGroup(0.0, 10.0))
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:intensity", FloatDragFieldGroup(0.0, 65000.0))
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:radius", FloatDragFieldGroup(0.0, 65000.0))
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:cone:angle", FloatDragFieldGroup(0.0, 360.0))
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:cone:softness", FloatDragFieldGroup(0.0, 10.0))
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:focus", FloatDragFieldGroup(0.0, 10.0))
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:volumetric_radiance_scale", FloatDragFieldGroup(0.0, 10.0))

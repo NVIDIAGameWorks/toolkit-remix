@@ -19,6 +19,7 @@ from .e2e.test_file_picker import TestFilePicker
 from .e2e.test_hover_helper import TestHoverHelper
 from .unit.test_color_gradient_widget import TestColorGradientWidget
 from .unit.test_gradient import TestGradientUtils
+from .unit.test_drag_field import TestHardClampedDragMixin
 from .unit.test_scrolling_tree_widget import TestScrollingTreeWidget
 from .unit.test_search import TestSearch
 from .unit.test_tree_widget.test_item import TestTreeItemBase
@@ -35,6 +36,7 @@ __all__ = [
     "TestColorGradientWidget",
     "TestFilePicker",
     "TestGradientUtils",
+    "TestHardClampedDragMixin",
     "TestHoverHelper",
     "TestScrollingTreeWidget",
     "TestSearch",

@@ -17,11 +17,25 @@
 
 import omni.kit.test
 import omni.usd
-from omni.flux.property_widget_builder.model.usd import USDAttributeItem
-from pxr import Sdf
+from omni.flux.property_widget_builder.model.usd import BoundsAdapter, USDAttributeItem
+from omni.flux.property_widget_builder.model.usd.items import VirtualUSDAttributeItem
+from pxr import Gf, Sdf
 
 
-def _make_item(stage, ui_metadata=None, custom_data=None):
+class _UiMetadataAdapter(BoundsAdapter):
+    def _normalize_bounds_step_data(self, metadata_data):
+        if not isinstance(metadata_data, dict):
+            return None
+        return {
+            "soft_min": metadata_data.get("soft_min"),
+            "soft_max": metadata_data.get("soft_max"),
+            "hard_min": metadata_data.get("hard_min"),
+            "hard_max": metadata_data.get("hard_max"),
+            "step": metadata_data.get("ui_step"),
+        }
+
+
+def _make_item(stage, ui_metadata=None, custom_data=None, bounds_adapter=None):
     """Helper to create a float attribute and return a USDAttributeItem wrapping it."""
     prim = stage.DefinePrim("/BoundsTestPrim")
     attr = prim.CreateAttribute("testFloat", Sdf.ValueTypeNames.Float)
@@ -32,11 +46,46 @@ def _make_item(stage, ui_metadata=None, custom_data=None):
         context_name="",
         attribute_paths=[Sdf.Path("/BoundsTestPrim.testFloat")],
         ui_metadata=ui_metadata,
+        bounds_adapter=bounds_adapter or (_UiMetadataAdapter(ui_metadata) if ui_metadata is not None else None),
     )
 
 
+class _FixedBoundsAdapter(BoundsAdapter):
+    def _normalize_bounds_step_data(self, metadata_data):
+        if isinstance(metadata_data, dict) and metadata_data.get("force"):
+            return {"soft_min": 1.0, "soft_max": 2.0, "hard_min": 0.0, "hard_max": 3.0, "step": None}
+        return super()._normalize_bounds_step_data(metadata_data)
+
+
+class _LimitsOnlyAdapter(BoundsAdapter):
+    def _normalize_bounds_step_data(self, metadata_data):
+        if not isinstance(metadata_data, dict):
+            return None
+        limits = metadata_data.get("limits")
+        if not isinstance(limits, dict):
+            return None
+        soft_block = limits.get("soft")
+        hard_block = limits.get("hard")
+        soft_min = soft_block.get("minimum") if isinstance(soft_block, dict) else None
+        soft_max = soft_block.get("maximum") if isinstance(soft_block, dict) else None
+        hard_min = hard_block.get("minimum") if isinstance(hard_block, dict) else None
+        hard_max = hard_block.get("maximum") if isinstance(hard_block, dict) else None
+        step = limits.get("step")
+        min_val = soft_min if soft_min is not None else hard_min
+        max_val = soft_max if soft_max is not None else hard_max
+        if min_val is None and max_val is None and step is None:
+            return None
+        return {
+            "soft_min": min_val,
+            "soft_max": max_val,
+            "hard_min": hard_min,
+            "hard_max": hard_max,
+            "step": step,
+        }
+
+
 class TestUSDAttributeItemBounds(omni.kit.test.AsyncTestCase):
-    """Tests for the updated get_min_max_bounds / _get_min_max_from_ui_metadata logic."""
+    """Tests for the single-source adapter bounds/step contract."""
 
     async def setUp(self):
         self.context = omni.usd.get_context()
@@ -49,12 +98,8 @@ class TestUSDAttributeItemBounds(omni.kit.test.AsyncTestCase):
         self.context = None
         self.stage = None
 
-    # ------------------------------------------------------------------
-    # _get_min_max_from_ui_metadata tests
-    # ------------------------------------------------------------------
-
     async def test_ui_metadata_soft_and_hard_bounds(self):
-        """All four keys present: returns (soft_min, soft_max, hard_min, hard_max)."""
+        # Arrange
         item = _make_item(
             self.stage,
             ui_metadata={
@@ -64,23 +109,15 @@ class TestUSDAttributeItemBounds(omni.kit.test.AsyncTestCase):
                 "hard_max": 110.0,
             },
         )
-        result = item._get_min_max_from_ui_metadata()
+
+        # Act
+        result = item.get_min_max_bounds()
+
+        # Assert
         self.assertEqual(result, (0.0, 100.0, -10.0, 110.0))
 
-    async def test_ui_metadata_soft_only(self):
-        """Only soft bounds: returns (soft_min, soft_max, None, None)."""
-        item = _make_item(
-            self.stage,
-            ui_metadata={
-                "soft_min": 5.0,
-                "soft_max": 50.0,
-            },
-        )
-        result = item._get_min_max_from_ui_metadata()
-        self.assertEqual(result, (5.0, 50.0, None, None))
-
     async def test_ui_metadata_hard_only(self):
-        """Only hard bounds: hard values fill in for min/max."""
+        # Arrange
         item = _make_item(
             self.stage,
             ui_metadata={
@@ -88,125 +125,199 @@ class TestUSDAttributeItemBounds(omni.kit.test.AsyncTestCase):
                 "hard_max": 200.0,
             },
         )
-        result = item._get_min_max_from_ui_metadata()
+
+        # Act
+        result = item.get_min_max_bounds()
+
+        # Assert
         self.assertEqual(result, (-20.0, 200.0, -20.0, 200.0))
 
-    async def test_ui_metadata_min_only_soft(self):
-        """Only soft_min present: returns (soft_min, None, None, None)."""
-        item = _make_item(
-            self.stage,
-            ui_metadata={
-                "soft_min": 0.0,
-            },
-        )
-        result = item._get_min_max_from_ui_metadata()
-        self.assertEqual(result, (0.0, None, None, None))
-
-    async def test_ui_metadata_max_only_soft(self):
-        """Only soft_max present: returns (None, soft_max, None, None)."""
-        item = _make_item(
-            self.stage,
-            ui_metadata={
-                "soft_max": 100.0,
-            },
-        )
-        result = item._get_min_max_from_ui_metadata()
-        self.assertEqual(result, (None, 100.0, None, None))
-
-    async def test_ui_metadata_min_only_hard(self):
-        """Only hard_min present: hard_min fills in for min."""
-        item = _make_item(
-            self.stage,
-            ui_metadata={
-                "hard_min": -5.0,
-            },
-        )
-        result = item._get_min_max_from_ui_metadata()
-        self.assertEqual(result, (-5.0, None, -5.0, None))
-
-    async def test_ui_metadata_max_only_hard(self):
-        """Only hard_max present: hard_max fills in for max."""
-        item = _make_item(
-            self.stage,
-            ui_metadata={
-                "hard_max": 200.0,
-            },
-        )
-        result = item._get_min_max_from_ui_metadata()
-        self.assertEqual(result, (None, 200.0, None, 200.0))
-
     async def test_ui_metadata_none_returns_none(self):
-        """No ui_metadata at all: returns None."""
+        # Arrange
         item = _make_item(self.stage, ui_metadata=None)
-        result = item._get_min_max_from_ui_metadata()
+
+        # Act
+        result = item.get_min_max_bounds()
+
+        # Assert
         self.assertIsNone(result)
 
     async def test_ui_metadata_empty_dict_returns_none(self):
         """Empty ui_metadata dict (no bound keys): returns None."""
+        # Arrange
         item = _make_item(self.stage, ui_metadata={})
-        result = item._get_min_max_from_ui_metadata()
+
+        # Act
+        result = item.get_min_max_bounds()
+
+        # Assert
         self.assertIsNone(result)
 
-    # ------------------------------------------------------------------
-    # _get_min_max_from_attr_metadata tests (customData on USD attribute)
-    # ------------------------------------------------------------------
-
-    async def test_attr_metadata_both_bounds(self):
-        """customData range with both min and max: returns (min, max, None, None)."""
-        item = _make_item(self.stage, custom_data={"range": {"min": 0.0, "max": 100.0}})
-        result = item._get_min_max_from_attr_metadata()
-        self.assertEqual(result, (0.0, 100.0, None, None))
-
-    async def test_attr_metadata_min_only(self):
-        """customData range with only min: returns (min, None, None, None)."""
-        item = _make_item(self.stage, custom_data={"range": {"min": 0.0}})
-        result = item._get_min_max_from_attr_metadata()
-        self.assertEqual(result, (0.0, None, None, None))
-
-    async def test_attr_metadata_max_only(self):
-        """customData range with only max: returns (None, max, None, None)."""
-        item = _make_item(self.stage, custom_data={"range": {"max": 100.0}})
-        result = item._get_min_max_from_attr_metadata()
-        self.assertEqual(result, (None, 100.0, None, None))
-
-    async def test_attr_metadata_no_range(self):
-        """customData without range key: returns None."""
-        item = _make_item(self.stage, custom_data={"other_key": "value"})
-        result = item._get_min_max_from_attr_metadata()
-        self.assertIsNone(result)
-
-    async def test_attr_metadata_no_custom_data(self):
-        """No customData at all: returns None."""
-        item = _make_item(self.stage)
-        result = item._get_min_max_from_attr_metadata()
-        self.assertIsNone(result)
-
-    # ------------------------------------------------------------------
-    # get_min_max_bounds integration (ui_metadata takes priority)
-    # ------------------------------------------------------------------
-
-    async def test_get_min_max_bounds_prefers_ui_metadata(self):
-        """ui_metadata should take priority over attr customData."""
+    async def test_ui_metadata_vector_bounds_are_preserved(self):
+        """Vector-like ui metadata bounds should be preserved for widget-level scalar indexing."""
+        # Arrange
         item = _make_item(
             self.stage,
-            ui_metadata={"soft_min": 10.0, "soft_max": 90.0},
-            custom_data={"range": {"min": 0.0, "max": 100.0}},
+            ui_metadata={
+                "soft_min": Gf.Vec2f(1.0, 2.0),
+                "soft_max": Gf.Vec2f(3.0, 9.0),
+                "hard_min": Gf.Vec2f(-5.0, -1.0),
+                "hard_max": Gf.Vec2f(12.0, 8.0),
+            },
         )
-        result = item.get_min_max_bounds()
-        self.assertEqual(result, (10.0, 90.0, None, None))
 
-    async def test_get_min_max_bounds_falls_back_to_attr(self):
-        """When ui_metadata has no bounds, attr customData is used."""
+        # Act
+        result = item.get_min_max_bounds()
+
+        # Assert
+        self.assertEqual(result, (Gf.Vec2f(1.0, 2.0), Gf.Vec2f(3.0, 9.0), Gf.Vec2f(-5.0, -1.0), Gf.Vec2f(12.0, 8.0)))
+
+    async def test_get_min_max_bounds_ignores_attr_custom_data(self):
+        """Item should no longer fall back to attr metadata."""
+        # Arrange
         item = _make_item(
             self.stage,
             ui_metadata={},
             custom_data={"range": {"min": 0.0, "max": 100.0}},
         )
+
+        # Act
         result = item.get_min_max_bounds()
-        self.assertEqual(result, (0.0, 100.0, None, None))
+
+        # Assert
+        self.assertIsNone(result)
 
     async def test_get_min_max_bounds_returns_none_when_no_data(self):
-        """No bounds anywhere: returns None."""
+        # Arrange
         item = _make_item(self.stage)
+
+        # Act
         result = item.get_min_max_bounds()
+
+        # Assert
         self.assertIsNone(result)
+
+    async def test_get_min_max_bounds_uses_injected_adapter_source(self):
+        # Arrange
+        prim = self.stage.DefinePrim("/BoundsAdapterPrim")
+        attr = prim.CreateAttribute("testFloat", Sdf.ValueTypeNames.Float)
+        attr.Set(0.0)
+        attr.SetMetadata("customData", {"range": {"min": -10.0, "max": 10.0}})
+        item = USDAttributeItem(
+            context_name="",
+            attribute_paths=[Sdf.Path("/BoundsAdapterPrim.testFloat")],
+            ui_metadata={"force": True},
+            bounds_adapter=_FixedBoundsAdapter({"force": True}),
+        )
+
+        # Act
+        result = item.get_min_max_bounds()
+
+        # Assert
+        self.assertEqual(result, (1.0, 2.0, 0.0, 3.0))
+
+    async def test_get_step_value_from_injected_adapter(self):
+        # Arrange
+        item = _make_item(
+            self.stage,
+            ui_metadata={"ui_step": 0.5},
+            custom_data={"limits": {"hard": {"step": 2.0}}, "ui:step": 3.0},
+        )
+
+        # Act
+        step = item.get_step_value()
+
+        # Assert
+        self.assertEqual(step, 0.5)
+
+    async def test_get_step_value_ignores_attr_custom_data(self):
+        # Arrange
+        item = _make_item(
+            self.stage,
+            ui_metadata={},
+            custom_data={"range": {"min": 0.0, "max": 10.0}, "ui:step": 0.25},
+        )
+
+        # Act
+        step = item.get_step_value()
+
+        # Assert
+        self.assertIsNone(step)
+
+    async def test_get_min_max_bounds_uses_limits_with_injected_source_adapter(self):
+        # Arrange
+        prim = self.stage.DefinePrim("/BoundsAdapterLimitsPrim")
+        attr = prim.CreateAttribute("testFloat", Sdf.ValueTypeNames.Float)
+        attr.Set(0.0)
+        attr.SetMetadata("customData", {"limits": {"hard": {"minimum": 0.0, "maximum": 42.0}}})
+        item = USDAttributeItem(
+            context_name="",
+            attribute_paths=[Sdf.Path("/BoundsAdapterLimitsPrim.testFloat")],
+            ui_metadata={"limits": {"hard": {"minimum": 0.0, "maximum": 42.0}}},
+            bounds_adapter=_LimitsOnlyAdapter({"limits": {"hard": {"minimum": 0.0, "maximum": 42.0}}}),
+        )
+
+        # Act
+        result = item.get_min_max_bounds()
+
+        # Assert
+        self.assertEqual(result, (0.0, 42.0, 0.0, 42.0))
+
+    async def test_get_step_value_uses_limits_with_injected_source_adapter(self):
+        # Arrange
+        prim = self.stage.DefinePrim("/BoundsAdapterLimitsStepPrim")
+        attr = prim.CreateAttribute("testFloat", Sdf.ValueTypeNames.Float)
+        attr.Set(0.0)
+        attr.SetMetadata("customData", {"limits": {"step": 0.125}})
+        payload = {"limits": {"step": 0.125}}
+        item = USDAttributeItem(
+            context_name="",
+            attribute_paths=[Sdf.Path("/BoundsAdapterLimitsStepPrim.testFloat")],
+            ui_metadata=payload,
+            bounds_adapter=_LimitsOnlyAdapter(payload),
+        )
+
+        # Act
+        step = item.get_step_value()
+
+        # Assert
+        self.assertEqual(step, 0.125)
+
+    async def test_virtual_item_uses_injected_bounds_adapter(self):
+        # Arrange
+        self.stage.DefinePrim("/VirtualBoundsPrim")
+        payload = {"limits": {"hard": {"minimum": 1.0, "maximum": 10.0}, "step": 0.5}}
+        item = VirtualUSDAttributeItem(
+            context_name="",
+            attribute_paths=[Sdf.Path("/VirtualBoundsPrim.virtualFloat")],
+            value_type_name=Sdf.ValueTypeNames.Float,
+            default_value=0.0,
+            bounds_adapter=_LimitsOnlyAdapter(payload),
+        )
+
+        # Act
+        bounds = item.get_min_max_bounds()
+        step = item.get_step_value()
+
+        # Assert
+        self.assertEqual(bounds, (1.0, 10.0, 1.0, 10.0))
+        self.assertEqual(step, 0.5)
+
+    async def test_virtual_item_allows_missing_bounds_step_metadata(self):
+        # Arrange
+        self.stage.DefinePrim("/VirtualNoBoundsPrim")
+        item = VirtualUSDAttributeItem(
+            context_name="",
+            attribute_paths=[Sdf.Path("/VirtualNoBoundsPrim.virtualFloat")],
+            value_type_name=Sdf.ValueTypeNames.Float,
+            default_value=0.0,
+            bounds_adapter=_LimitsOnlyAdapter({"unexpected": "metadata"}),
+        )
+
+        # Act
+        bounds = item.get_min_max_bounds()
+        step = item.get_step_value()
+
+        # Assert
+        self.assertIsNone(bounds)
+        self.assertIsNone(step)

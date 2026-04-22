@@ -72,7 +72,7 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         await property_branches[0].click()
         await ui_test.human_delay(10)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{_WindowNames.PROPERTIES}//Frame/**/FloatDrag[*]")
+        widget_refs = omni.kit.ui_test.find_all(f"{_WindowNames.PROPERTIES}//Frame/**/FloatBoundedDrag[*]")
         widget_ref = widget_refs[0]
 
         with patch.object(_AssetReplacementsPane, "refresh") as mock:

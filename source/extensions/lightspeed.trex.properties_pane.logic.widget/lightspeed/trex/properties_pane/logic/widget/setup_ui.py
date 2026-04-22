@@ -35,6 +35,7 @@ from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE, REGEX_MESH_TO_INST
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.logic.core.attributes import get_ogn_default_value
 from lightspeed.trex.logic.core.graphs import LogicGraphCore
+from lightspeed.trex.properties_pane.logic.widget.bounds_adapter import OgnBoundsAdapter
 from lightspeed.trex.properties_pane.logic.widget.utils import get_ogn_ui_metadata
 from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker
@@ -604,7 +605,6 @@ class LogicPropertyWidget:
                             display_attr_names_tooltip=[tooltip],
                         )
                     else:
-                        ui_metadata = get_ogn_ui_metadata(attr)
                         attr_item = USDAttributeItem(
                             self._context_name,
                             attribute_paths,
@@ -613,7 +613,7 @@ class LogicPropertyWidget:
                             value_type_name=value_type_name,
                             display_attr_names=[display_name],
                             display_attr_names_tooltip=[tooltip],
-                            ui_metadata=ui_metadata,
+                            bounds_adapter=OgnBoundsAdapter(get_ogn_ui_metadata(attr)),
                         )
 
                 # Collect items by group (but don't add to items list yet)

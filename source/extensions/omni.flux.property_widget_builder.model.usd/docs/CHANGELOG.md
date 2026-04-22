@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.32.0]
+### Changed
+- Reworked USD bounds metadata flow around a canonical adapter contract so `USDAttributeItem` consumes normalized bounds/step from one adapter source provided by particle, logic, generic USD, and materials producers
+
 ## [2.31.1]
 ### Fixed
 - Fixed property panel undo/redo by flushing drag edits on release and purging stale USD listeners so active panels refresh correctly

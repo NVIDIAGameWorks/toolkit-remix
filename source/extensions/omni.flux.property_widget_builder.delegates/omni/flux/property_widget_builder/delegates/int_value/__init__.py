@@ -17,8 +17,8 @@
 
 __all__ = (
     "BytesToHuman",
-    "IntDragField",
+    "IntDragFieldGroup",
 )
 
 from .bytes_to_human_read import BytesToHuman
-from .drag import IntDragField
+from .drag import IntDragFieldGroup

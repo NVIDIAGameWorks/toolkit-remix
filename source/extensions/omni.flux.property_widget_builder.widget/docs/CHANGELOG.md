@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.11.3]
+### Fixed
+- Hardened property widget tree UI test helpers to reduce timing flakiness while validating the refactored drag widget behavior
+
 ## [2.11.2]
 ### Changed
 - Added shared batch-edit defaults to item models so drag delegates can opt into grouped undo without widget-specific type checks

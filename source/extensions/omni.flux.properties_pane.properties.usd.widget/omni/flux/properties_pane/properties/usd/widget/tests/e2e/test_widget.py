@@ -20,11 +20,12 @@ import omni.kit.clipboard
 import omni.kit.undo
 import omni.ui as ui
 import omni.usd
+from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import get_test_data_path, open_stage, wait_stage_loading
-from pxr import Gf
+from pxr import Gf, Sdf
 
 WINDOW_HEIGHT = 1000
 WINDOW_WIDTH = 1436
@@ -59,6 +60,16 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         widget.destroy()
         window.destroy()
 
+    @staticmethod
+    def __find_item_by_attribute_path(widget: "_PropertyWidget", attribute_path: str) -> _USDAttributeItem | None:
+        for item in widget.property_model.get_all_items(include_hidden=True):
+            if not isinstance(item, _USDAttributeItem):
+                continue
+            for path in item.attribute_paths:
+                if str(path) == attribute_path:
+                    return item
+        return None
+
     async def test_setting_a_value_by_script_update_ui(self):
         """
         Test that if we set a value not from the UI (for example here, directly in USD), check that the UI is updated
@@ -69,7 +80,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
         # find the translate field UI
         property_branches = ui_test.find_all(
-            f"{_window.title}//Frame/**/FloatDrag[*].identifier=='/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
+            f"{_window.title}//Frame/**/FloatBoundedDrag[*].identifier=='/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
         )
         self.assertEqual(len(property_branches), 3)
 
@@ -83,7 +94,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
         # Re-query because the property panel rebuilds widgets on USD change.
         property_branches = ui_test.find_all(
-            f"{_window.title}//Frame/**/FloatDrag[*].identifier=='/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
+            f"{_window.title}//Frame/**/FloatBoundedDrag[*].identifier=='/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
         )
         self.assertEqual(len(property_branches), 3)
 
@@ -146,7 +157,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
         # find the translate field UI
         property_branches = ui_test.find_all(
-            f"{_window.title}//Frame/**/FloatDrag[*].identifier=='/Xform/Cube.xformOp:translate,"
+            f"{_window.title}//Frame/**/FloatBoundedDrag[*].identifier=='/Xform/Cube.xformOp:translate,"
             f"/Xform/Cube2.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate,"
             f"/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate'"
         )
@@ -161,7 +172,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
         # Re-query because the property row may be rebuilt after the edit commits.
         property_branches = ui_test.find_all(
-            f"{_window.title}//Frame/**/FloatDrag[*].identifier=='/Xform/Cube.xformOp:translate,"
+            f"{_window.title}//Frame/**/FloatBoundedDrag[*].identifier=='/Xform/Cube.xformOp:translate,"
             f"/Xform/Cube2.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate,"
             f"/Xform/Cube.xformOp:translate,/Xform/Cube2.xformOp:translate'"
         )
@@ -188,7 +199,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         await omni.kit.ui_test.wait_n_updates(15)
 
         selector = (
-            f"{_window.title}//Frame/**/FloatDrag[*].identifier=="
+            f"{_window.title}//Frame/**/FloatBoundedDrag[*].identifier=="
             f"'/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
         )
         widgets = ui_test.find_all(selector)
@@ -275,7 +286,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         await omni.kit.ui_test.wait_n_updates(15)
 
         selector = (
-            f"{_window.title}//Frame/**/FloatDrag[*].identifier=="
+            f"{_window.title}//Frame/**/FloatBoundedDrag[*].identifier=="
             f"'/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
         )
         widgets = ui_test.find_all(selector)
@@ -311,5 +322,103 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         self.assertGreater(len(widgets), 0)
         self.assertAlmostEqual(prim.GetAttribute("xformOp:translate").Get()[0], original_value[0], places=5)
         self.assertAlmostEqual(widgets[0].widget.model.get_value_as_float(), original_value[0], places=5)
+
+        await self.__destroy(_window, _widget)
+
+    async def test_refresh_uses_custom_data_bounds_adapter_for_real_attribute(self):
+        """Producer should pass per-attribute customData through bounds_adapter for real USD attrs."""
+        # Arrange
+        stage = omni.usd.get_context(_CONTEXT_NAME).get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        attr = prim.CreateAttribute("testBounded", Sdf.ValueTypeNames.Float)
+        attr.Set(2.0)
+        attr.SetMetadata("customData", {"range": {"min": 1.0, "max": 9.0}, "ui:step": 0.25})
+
+        _window, _widget = await self.__setup_widget()
+
+        # Act
+        _widget.refresh(["/Xform/Cube"])
+        await omni.kit.ui_test.wait_n_updates(10)
+        item = self.__find_item_by_attribute_path(_widget, "/Xform/Cube.testBounded")
+
+        # Assert
+        self.assertIsNotNone(item, "Expected bound test item to be present in the property model.")
+        self.assertEqual(item.get_min_max_bounds(), (1.0, 9.0, None, None))
+        self.assertEqual(item.get_step_value(), 0.25)
+
+        await self.__destroy(_window, _widget)
+
+    async def test_refresh_accepts_custom_data_without_bounds_or_step(self):
+        """Missing bounds keys in customData should remain valid and return None bounds/step."""
+        # Arrange
+        stage = omni.usd.get_context(_CONTEXT_NAME).get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        attr = prim.CreateAttribute("testNoBoundsMetadata", Sdf.ValueTypeNames.Float)
+        attr.Set(5.0)
+        attr.SetMetadata("customData", {"author": "unit-test"})
+
+        _window, _widget = await self.__setup_widget()
+
+        # Act
+        _widget.refresh(["/Xform/Cube"])
+        await omni.kit.ui_test.wait_n_updates(10)
+        item = self.__find_item_by_attribute_path(_widget, "/Xform/Cube.testNoBoundsMetadata")
+
+        # Assert
+        self.assertIsNotNone(item, "Expected no-bounds test item to be present in the property model.")
+        self.assertIsNone(item.get_min_max_bounds())
+        self.assertIsNone(item.get_step_value())
+
+        await self.__destroy(_window, _widget)
+
+    async def test_refresh_intersects_bounds_for_multi_selected_real_attributes(self):
+        """Multi-selection should merge real-attribute customData into one safe intersected adapter payload."""
+        # Arrange
+        stage = omni.usd.get_context(_CONTEXT_NAME).get_stage()
+        cube = stage.GetPrimAtPath("/Xform/Cube")
+        cube2 = stage.GetPrimAtPath("/Xform/Cube2")
+
+        cube_attr = cube.CreateAttribute("testMultiBounds", Sdf.ValueTypeNames.Float)
+        cube_attr.Set(2.0)
+        cube_attr.SetMetadata("customData", {"range": {"min": 1.0, "max": 4.0}, "ui:step": 0.5})
+
+        cube2_attr = cube2.CreateAttribute("testMultiBounds", Sdf.ValueTypeNames.Float)
+        cube2_attr.Set(3.0)
+        cube2_attr.SetMetadata("customData", {"range": {"min": -3.0, "max": 10.0}, "ui:step": 1.5})
+
+        _window, _widget = await self.__setup_widget()
+
+        # Act
+        _widget.refresh(["/Xform/Cube", "/Xform/Cube2"])
+        await omni.kit.ui_test.wait_n_updates(10)
+        item = self.__find_item_by_attribute_path(_widget, "/Xform/Cube.testMultiBounds")
+
+        # Assert
+        self.assertIsNotNone(item, "Expected merged multi-select bounds item to be present.")
+        self.assertEqual(item.get_min_max_bounds(), (1.0, 4.0, None, None))
+        self.assertEqual(item.get_step_value(), 1.5)
+
+        await self.__destroy(_window, _widget)
+
+    async def test_refresh_preserves_vector_bounds_for_single_selected_real_attribute(self):
+        """Single selection should pass through vector range metadata unchanged."""
+        # Arrange
+        stage = omni.usd.get_context(_CONTEXT_NAME).get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        attr = prim.CreateAttribute("testVectorBounds", Sdf.ValueTypeNames.Float2)
+        attr.Set(Gf.Vec2f(2.0, 3.0))
+        attr.SetMetadata("customData", {"range": {"min": Gf.Vec2f(1.0, 2.0), "max": Gf.Vec2f(4.0, 9.0)}})
+
+        _window, _widget = await self.__setup_widget()
+
+        # Act
+        _widget.refresh(["/Xform/Cube"])
+        await omni.kit.ui_test.wait_n_updates(10)
+        item = self.__find_item_by_attribute_path(_widget, "/Xform/Cube.testVectorBounds")
+
+        # Assert
+        self.assertIsNotNone(item, "Expected vector-bounds test item to be present in the property model.")
+        self.assertEqual(item.get_min_max_bounds(), (Gf.Vec2f(1.0, 2.0), Gf.Vec2f(4.0, 9.0), None, None))
+        self.assertIsNone(item.get_step_value())
 
         await self.__destroy(_window, _widget)
