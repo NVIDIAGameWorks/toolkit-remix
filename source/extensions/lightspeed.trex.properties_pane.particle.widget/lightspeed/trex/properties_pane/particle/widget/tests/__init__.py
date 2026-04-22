@@ -16,6 +16,6 @@
 """
 
 from .e2e.test_schema_discovery import TestSchemaDiscovery
-from .unit.test_extract_ui_metadata import TestExtractUiMetadataFromSchema
+from .unit.test_bounds_adapter import TestParticleBoundsAdapter
 
-__all__ = ["TestExtractUiMetadataFromSchema", "TestSchemaDiscovery"]
+__all__ = ["TestParticleBoundsAdapter", "TestSchemaDiscovery"]

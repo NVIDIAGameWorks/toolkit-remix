@@ -15,9 +15,14 @@
 * limitations under the License.
 """
 
+# API note:
+# ``AbstractDragField`` / ``FloatDragField`` / ``IntDragField`` were renamed to
+# ``AbstractDragFieldGroup`` / ``FloatDragFieldGroup`` / ``IntDragFieldGroup``
+# and compatibility aliases were intentionally removed.
 __all__ = (
-    "AbstractDragField",
+    "AbstractDragFieldGroup",
     "AbstractField",
+    "BoundsValue",
     "BytesToHuman",
     "ColorField",
     "ColorGradientField",
@@ -27,14 +32,15 @@ __all__ = (
     "FileAccess",
     "FileFlags",
     "FilePicker",
-    "FloatDragField",
-    "IntDragField",
+    "FloatDragFieldGroup",
+    "IntDragFieldGroup",
     "MultilineField",
     "NameField",
+    "RealNumber",
 )
 
-from .base import AbstractDragField, AbstractField
+from .base import AbstractDragFieldGroup, AbstractField, BoundsValue, RealNumber
 from .default import CreatorField, DefaultField
-from .float_value import ColorField, ColorGradientField, FloatDragField
-from .int_value import BytesToHuman, IntDragField
+from .float_value import ColorField, ColorGradientField, FloatDragFieldGroup
+from .int_value import BytesToHuman, IntDragFieldGroup
 from .string_value import DefaultLabelField, FileAccess, FileFlags, FilePicker, MultilineField, NameField

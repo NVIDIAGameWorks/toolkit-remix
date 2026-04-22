@@ -42,62 +42,10 @@ from pxr import Sdf, Usd
 from .particle_edit_groups import PARTICLE_CURVE_LOOKUP as _PARTICLE_CURVE_LOOKUP
 from .particle_edit_groups import PARTICLE_EDIT_GROUPS as _PARTICLE_EDIT_GROUPS
 from .particle_lookup_table import get_particle_lookup_table as _get_particle_lookup_table
+from .bounds_adapter import ParticleBoundsAdapter as _ParticleBoundsAdapter
 
 
 PARTICLE_ATTR_GROUP_ORDER = ("Spawn", "Target", "Visual", "Collision", "Simulation")
-
-
-def _extract_ui_metadata_from_schema(schema_attr: Sdf.AttributeSpec | None) -> dict | None:
-    """Extract UI bounds metadata from a USD schema attribute's ``customData.limits``.
-
-    The RemixParticleSystem schema stores per-attribute limits under::
-
-        customData = {
-            "limits": {
-                "hard": {"minimum": <val>, "maximum": <val>, "step": <val>},
-                "soft": {"minimum": <val>, "maximum": <val>},
-            }
-        }
-
-    This maps those values to the ``ui_metadata`` keys understood by
-    ``USDAttributeItem.get_min_max_bounds()`` (``hard_min``, ``hard_max``,
-    ``soft_min``, ``soft_max``, ``ui_step``).  Non-scalar min/max values
-    (e.g. ``Gf.Vec2f``) are ignored because the scalar drag widgets cannot
-    use them.
-
-    Args:
-        schema_attr: The USD schema attribute spec to read limits from, or ``None``.
-
-    Returns:
-        A ``ui_metadata`` dict, or ``None`` if no usable limits are found.
-    """
-    if schema_attr is None:
-        return None
-    custom_data = schema_attr.customData
-    if not custom_data:
-        return None
-    limits = custom_data.get("limits")
-    if not limits:
-        return None
-
-    ui_meta = {}
-    for block_name, (min_key, max_key) in (("soft", ("soft_min", "soft_max")), ("hard", ("hard_min", "hard_max"))):
-        block = limits.get(block_name)
-        if not block:
-            continue
-        val_min = block.get("minimum")
-        val_max = block.get("maximum")
-        if isinstance(val_min, (int, float)):
-            ui_meta[min_key] = val_min
-        if isinstance(val_max, (int, float)):
-            ui_meta[max_key] = val_max
-        step = block.get("step")
-        if isinstance(step, (int, float)) and "ui_step" not in ui_meta:
-            ui_meta["ui_step"] = step
-
-    return ui_meta or None
-
-
 PARTICLE_ATTR_GROUP_FALLBACK = "General"
 
 
@@ -336,13 +284,14 @@ class ParticleSystemPropertyWidget:
                 # Get the attribute from the schema prim
                 default_value = None
                 options: list[str] | None = None
-                ui_metadata: dict | None = None
+                schema_attr: Sdf.AttributeSpec | None = None
                 if schema_prim:
-                    schema_attr: Sdf.AttributeSpec = schema_prim.properties.get(attr_name)
+                    schema_attr = schema_prim.properties.get(attr_name)
                     if schema_attr:
                         options = schema_attr.allowedTokens
                         default_value = schema_attr.default
-                        ui_metadata = _extract_ui_metadata_from_schema(schema_attr)
+                raw_bounds_metadata = self._collect_particle_bounds_metadata(attributes, schema_attr)
+                bounds_adapter = _ParticleBoundsAdapter(raw_bounds_metadata)
 
                 # Create an attribute item to manage all attribute paths
                 if options:
@@ -362,7 +311,7 @@ class ParticleSystemPropertyWidget:
                         display_attr_names=[display_name],
                         display_attr_names_tooltip=[display_info.get("tooltip", "")],
                         read_only=False,
-                        ui_metadata=ui_metadata,
+                        bounds_adapter=bounds_adapter,
                     )
 
                 # Tag items belonging to edit groups
@@ -412,6 +361,32 @@ class ParticleSystemPropertyWidget:
         self._update_create_button_state()
 
         self._refresh_done()
+
+    @staticmethod
+    def _collect_particle_bounds_metadata(
+        attributes: list[Usd.Attribute],
+        schema_attr: Sdf.AttributeSpec | None,
+    ) -> object | None:
+        """Pick the metadata payload used for particle bounds normalization.
+
+        Attribute customData is preferred so per-prim overrides are honored.
+        Schema customData is used only as a fallback.
+
+        Args:
+            attributes: Candidate USD attributes for the current panel item.
+            schema_attr: Optional schema attribute spec fallback source.
+
+        Returns:
+            First available attr ``customData`` payload, otherwise schema
+            ``customData``, otherwise ``None``.
+        """
+        for attr in attributes:
+            custom_data = attr.GetMetadata("customData")
+            if custom_data is not None:
+                return custom_data
+        if schema_attr:
+            return schema_attr.customData or None
+        return None
 
     @staticmethod
     def _extract_curve_id(attr_name: str) -> str | None:

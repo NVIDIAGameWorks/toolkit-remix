@@ -30,6 +30,7 @@ from omni.flux.property_widget_builder.model.usd import USDPropertyWidget as _Pr
 from omni.flux.property_widget_builder.model.usd import VirtualUSDAttributeItem as _VirtualUSDAttributeItem
 from omni.flux.property_widget_builder.model.usd import VirtualUSDAttrListItem as _VirtualUSDAttrListItem
 from omni.flux.property_widget_builder.model.usd import get_usd_listener_instance as _get_usd_listener_instance
+from omni.flux.property_widget_builder.model.usd.bounds_adapter import BoundsAdapter as _BoundsAdapter
 from omni.flux.property_widget_builder.widget import FieldBuilder as _FieldBuilder
 from omni.flux.property_widget_builder.widget import ItemGroup as _ItemGroup
 from omni.flux.utils.common import Event as _Event
@@ -269,6 +270,10 @@ class MaterialPropertyWidget:
                     # description
                     description = "No description"
                     metadata = placeholder.GetAllMetadata()
+                    # Keep value-model metadata and bounds adapter separate:
+                    # metadata feeds virtual value-model behavior, while
+                    # bounds_adapter is the canonical bounds/step source.
+                    bounds_adapter = _BoundsAdapter(metadata)
                     if metadata and metadata.get("documentation"):
                         description = metadata.get("documentation", description)
                     descriptions = [description]
@@ -292,7 +297,7 @@ class MaterialPropertyWidget:
                             str_default,
                             str_options,
                             value_type_name=value_type_name,
-                            metadata=placeholder.GetAllMetadata(),
+                            metadata=metadata,
                             display_attr_names=display_attr_names,
                             display_attr_names_tooltip=descriptions,
                         )
@@ -302,7 +307,8 @@ class MaterialPropertyWidget:
                             attribute_paths,
                             value_type_name=value_type_name,
                             default_value=placeholder.GetDefaultValue(),
-                            metadata=placeholder.GetAllMetadata(),
+                            metadata=metadata,
+                            bounds_adapter=bounds_adapter,
                             display_attr_names=display_attr_names,
                             display_attr_names_tooltip=descriptions,
                         )

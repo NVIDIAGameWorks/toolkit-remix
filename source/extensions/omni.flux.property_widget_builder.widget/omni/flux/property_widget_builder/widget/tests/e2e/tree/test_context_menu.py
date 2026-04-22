@@ -58,7 +58,14 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await helper.click_item(item1, right_click=True)
             await omni.kit.ui_test.menu.select_context_menu("Copy All", menu_root=helper.get_context_menu())
 
-            raw = omni.kit.clipboard.paste()
+            # Context-menu callbacks can resolve one frame later in CI/UI-test mode.
+            # Poll clipboard across a few updates to avoid flaky None reads.
+            raw = None
+            for _ in range(10):
+                raw = omni.kit.clipboard.paste()
+                if raw is not None:
+                    break
+                await omni.kit.ui_test.wait_n_updates(1)
             self.assertEqual(raw, '[{"names": ["N_1"], "values": ["V_1"]}, {"names": ["N_2"], "values": ["V_2"]}]')
 
     async def test_copy_all_paste_all(self):

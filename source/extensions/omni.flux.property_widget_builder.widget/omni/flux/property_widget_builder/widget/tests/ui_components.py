@@ -198,15 +198,24 @@ class AsyncTestPropertyWidget:
         self.delegate._item_expanded(0, item, value)
 
     async def click_item(self, item: Item, column_id: int = 0, right_click: bool = False):
-        cache = self.delegate.widgets.get(id(item), {})
-        widgets = cache.get(column_id)
-        if widgets:
-            widget = widgets[-1]
-            await omni.kit.ui_test.emulate_mouse_move_and_click(
-                omni.kit.ui_test.Vec2(widget.screen_position_x, widget.screen_position_y),
-                right_click=right_click,
-            )
-            return
+        # Tree row widgets are materialized asynchronously. Retry across a few
+        # UI updates so tests don't fail when the delegate cache is one frame late.
+        for _ in range(10):
+            cache = self.delegate.widgets.get(id(item), {})
+            widgets = cache.get(column_id)
+            if widgets:
+                widget = widgets[-1]
+                width = max(1, int(widget.computed_width))
+                height = max(1, int(widget.computed_height))
+                click_x = int(widget.screen_position_x + (width // 2))
+                click_y = int(widget.screen_position_y + (height // 2))
+                await omni.kit.ui_test.emulate_mouse_move_and_click(
+                    omni.kit.ui_test.Vec2(click_x, click_y),
+                    right_click=right_click,
+                )
+                await omni.kit.ui_test.wait_n_updates(1)
+                return
+            await omni.kit.ui_test.wait_n_updates(1)
         raise ValueError(f"Could not find widget for {item}")
 
     async def set_items(self, items: Iterable[Item]):

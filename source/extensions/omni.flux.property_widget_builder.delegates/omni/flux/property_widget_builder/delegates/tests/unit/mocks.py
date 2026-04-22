@@ -57,7 +57,7 @@ class MockValueModel(ui.AbstractValueModel):
         return int(self._value)
 
     def set_callback_pre_set_value(self, callback):
-        """Mirror the real ItemModelBase pre_set_value hook used by AbstractDragField."""
+        """Mirror the real ItemModelBase pre_set_value hook used by AbstractDragFieldGroup."""
         self._pre_set_callback = callback
 
     def set_value(self, value):

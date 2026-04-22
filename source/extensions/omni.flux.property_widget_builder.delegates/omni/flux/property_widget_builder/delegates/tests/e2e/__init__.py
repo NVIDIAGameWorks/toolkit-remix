@@ -16,17 +16,17 @@
 """
 
 __all__ = (
-    "TestAbstractDragField",
+    "TestAbstractDragFieldGroup",
     "TestColorField",
     "TestColorGradientDelegateIntegration",
     "TestColorGradientField",
-    "TestFloatDragField",
-    "TestIntDragField",
+    "TestFloatDragFieldGroup",
+    "TestIntDragFieldGroup",
 )
 
-from .test_abstract_drag import TestAbstractDragField
+from .test_abstract_drag import TestAbstractDragFieldGroup
 from .test_color_gradient import TestColorGradientField
 from .test_color_gradient_integration import TestColorGradientDelegateIntegration
-from .test_float_drag import TestFloatDragField
+from .test_float_drag_group import TestFloatDragFieldGroup
 from .test_float_value import TestColorField
-from .test_int_drag import TestIntDragField
+from .test_int_drag_group import TestIntDragFieldGroup

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.10.0]
+### Changed
+- Material USD properties now pass producer-collected bounds metadata through one canonical adapter source, matching the shared cross-panel normalization and clamping flow
+
 ## [1.9.6]
 ### Changed
 - Applied new lint rules

@@ -15,20 +15,20 @@
 * limitations under the License.
 """
 
-__all__ = ("TestFloatDragField",)
+__all__ = ("TestFloatDragFieldGroup",)
 
 import uuid
 
 import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
-from omni.flux.property_widget_builder.delegates.float_value.drag import FloatDragField
+from omni.flux.property_widget_builder.delegates.float_value.drag import FloatDragFieldGroup
 
 from .mocks import MockItem
 
 
-class TestFloatDragField(omni.kit.test.AsyncTestCase):
-    """E2E tests for FloatDragField widget rendering."""
+class TestFloatDragFieldGroup(omni.kit.test.AsyncTestCase):
+    """E2E tests for FloatDragFieldGroup widget rendering."""
 
     async def test_build_drag_widget_creates_float_drag(self):
         """build_ui should produce ui.FloatDrag widgets."""
@@ -40,7 +40,7 @@ class TestFloatDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[25.0])
-        field = FloatDragField(min_value=0.0, max_value=100.0)
+        field = FloatDragFieldGroup(min_value=0.0, max_value=100.0)
 
         with window.frame:
             widgets = field.build_ui(item)
@@ -64,7 +64,7 @@ class TestFloatDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[25.0])
-        field = FloatDragField()
+        field = FloatDragFieldGroup()
 
         with window.frame:
             widgets = field.build_ui(item)
