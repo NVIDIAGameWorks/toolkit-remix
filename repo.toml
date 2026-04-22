@@ -665,11 +665,18 @@ sphinx_exclude_patterns = [
     ####################################################################################################################
     ".cache",
     ".local",
+    ".ruff_cache",
     ".venv",
+    ".worktrees",
     "_build",
+    "_compiler",
+    "_repo",
+    "_testoutput",
     "include",
+    "outputs",
     "portable",
     "tools",
+    "website",
     "**/omni-core-materials-LICENSE.md",
     ####################################################################################################################
     # AI agent configuration — not documentation

@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clarified REST API documentation for configurable host, port, and startup overrides
 - REMIX-5166: Refined Stage Manager filtering with adaptive task-budget tuning and moved partition math into shared Flux utilities for better UI responsiveness at scale.
 - Bump RTX Remix dependencies to `ext-df20097-main`
+- Rewrote the developer profiling guide (`docs_dev/tools/profiling.md`) for Kit 106.5 with three capture recipes, Python zone-naming conventions, and thread-visibility tips; added agent rules on docs-page writing style and on treating vendored Kit extensions under `_build/**/extscache/` as read-only
+- Excluded dev-local directories from the Sphinx docs build (`.worktrees`, `.ruff_cache`, `_compiler`, `_repo`, `_testoutput`, `outputs`, `website`) to align `sphinx_exclude_patterns` with `.gitignore` and stop parallel-checkout / build-output content from leaking into published docs
 
 ### Fixed
 
