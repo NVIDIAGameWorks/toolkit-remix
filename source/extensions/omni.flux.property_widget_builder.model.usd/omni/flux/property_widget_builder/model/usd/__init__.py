@@ -18,6 +18,8 @@
 from . import mapping as _mapping
 
 __all__ = [
+    "BoundsAdapter",
+    "BoundsValue",
     "ComboboxField",
     "DisableAllListenersBlock",
     "FileTexturePicker",
@@ -46,6 +48,7 @@ __all__ = [
 
 from . import utils
 from .delegate import USDDelegate
+from .bounds_adapter import BoundsAdapter, BoundsValue
 from .extension import USDPropertyWidgetExtension, get_usd_listener_instance
 from .field_builders import USDBuilderList
 from .item_delegates import ComboboxField, FileTexturePicker, USDFloatDragField, USDIntDragField

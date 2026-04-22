@@ -15,20 +15,20 @@
 * limitations under the License.
 """
 
-__all__ = ("TestIntDragField",)
+__all__ = ("TestIntDragFieldGroup",)
 
 import uuid
 
 import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
-from omni.flux.property_widget_builder.delegates.int_value.drag import IntDragField
+from omni.flux.property_widget_builder.delegates.int_value.drag import IntDragFieldGroup
 
 from .mocks import MockItem
 
 
-class TestIntDragField(omni.kit.test.AsyncTestCase):
-    """E2E tests for IntDragField widget rendering."""
+class TestIntDragFieldGroup(omni.kit.test.AsyncTestCase):
+    """E2E tests for IntDragFieldGroup widget rendering."""
 
     async def test_build_drag_widget_creates_int_drag(self):
         """build_ui should produce ui.IntDrag widgets."""
@@ -40,7 +40,7 @@ class TestIntDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[25])
-        field = IntDragField(min_value=0, max_value=100)
+        field = IntDragFieldGroup(min_value=0, max_value=100)
 
         with window.frame:
             widgets = field.build_ui(item)
@@ -64,7 +64,7 @@ class TestIntDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[25])
-        field = IntDragField()
+        field = IntDragFieldGroup()
 
         with window.frame:
             widgets = field.build_ui(item)

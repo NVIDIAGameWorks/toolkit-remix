@@ -15,54 +15,21 @@
 * limitations under the License.
 """
 
-__all__ = ("TestAbstractDragField",)
+__all__ = ("TestAbstractDragFieldGroup",)
 
 import uuid
-from typing import Any
+from typing import cast
 
 import carb.input
 import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
-from omni.flux.property_widget_builder.delegates.base import AbstractDragField
+from omni.flux.property_widget_builder.delegates.float_value.drag import FloatDragFieldGroup
 
 from .mocks import MockItem
 
 
-class _StubDragField(AbstractDragField):
-    """Thin concrete subclass that records build_drag_widget calls."""
-
-    def __init__(self, **kwargs):
-        kwargs.setdefault("style_name", "StubDragField")
-        super().__init__(**kwargs)
-
-    def _get_value_from_model(self, model) -> float:
-        return model.get_value_as_float()
-
-    def build_drag_widget(
-        self,
-        model: ui.AbstractValueModel,
-        style_type_name_override: str,
-        read_only: bool,
-        min_val: float | int | None,
-        max_val: float | int | None,
-        step: float | int | None,
-    ) -> Any:
-        kwargs: dict[str, Any] = {
-            "model": model,
-            "style_type_name_override": style_type_name_override,
-            "read_only": read_only,
-        }
-        if min_val is not None:
-            kwargs["min"] = min_val
-        if max_val is not None:
-            kwargs["max"] = max_val
-        if step is not None:
-            kwargs["step"] = step
-        return ui.FloatDrag(**kwargs)
-
-
-class TestAbstractDragField(omni.kit.test.AsyncTestCase):
+class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
     # ------------------------------------------------------------------
     # __call__ delegation
     # ------------------------------------------------------------------
@@ -77,10 +44,10 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[1.0])
-        field = _StubDragField(min_value=0.0, max_value=10.0)
+        field = FloatDragFieldGroup(min_value=0.0, max_value=10.0)
 
         with window.frame:
-            widgets = field(item)
+            widgets = cast(list[ui.Widget], field(item))
 
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
@@ -105,7 +72,7 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[42.0])
-        field = _StubDragField(min_value=0.0, max_value=100.0)
+        field = FloatDragFieldGroup(min_value=0.0, max_value=100.0)
 
         with window.frame:
             widgets = field.build_ui(item)
@@ -128,7 +95,7 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[1.0, 2.0, 3.0])
-        field = _StubDragField(min_value=0.0, max_value=10.0)
+        field = FloatDragFieldGroup(min_value=0.0, max_value=10.0)
 
         with window.frame:
             widgets = field.build_ui(item)
@@ -151,7 +118,7 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[1.0, 2.0])
-        field = _StubDragField(min_value=0.0, max_value=10.0)
+        field = FloatDragFieldGroup(min_value=0.0, max_value=10.0)
 
         with window.frame:
             widgets = field.build_ui(item)
@@ -168,11 +135,23 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
     async def test_build_ui_read_only_appends_read_suffix(self):
         """When a value model is read-only, the style override should end with 'Read'."""
         build_calls: list[dict] = []
-        original_build = _StubDragField.build_drag_widget
+        original_build = FloatDragFieldGroup.build_drag_widget
 
-        def spy_build(self_inner, model, style_type_name_override, read_only, min_val, max_val, step):
+        def spy_build(
+            self_inner, model, style_type_name_override, read_only, min_val, max_val, hard_min_val, hard_max_val, step
+        ):
             build_calls.append({"style": style_type_name_override, "read_only": read_only})
-            return original_build(self_inner, model, style_type_name_override, read_only, min_val, max_val, step)
+            return original_build(
+                self_inner,
+                model,
+                style_type_name_override,
+                read_only,
+                min_val,
+                max_val,
+                hard_min_val,
+                hard_max_val,
+                step,
+            )
 
         window = ui.Window(
             f"TestAbstractDrag_{str(uuid.uuid1())}",
@@ -182,7 +161,7 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[5.0], read_only=True)
-        field = _StubDragField(min_value=0.0, max_value=10.0)
+        field = FloatDragFieldGroup(min_value=0.0, max_value=10.0)
         field.build_drag_widget = lambda *a, **kw: spy_build(field, *a, **kw)
 
         with window.frame:
@@ -201,11 +180,23 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
     async def test_build_ui_writable_uses_plain_style(self):
         """When a value model is writable, the style override should NOT have 'Read' suffix."""
         build_calls: list[dict] = []
-        original_build = _StubDragField.build_drag_widget
+        original_build = FloatDragFieldGroup.build_drag_widget
 
-        def spy_build(self_inner, model, style_type_name_override, read_only, min_val, max_val, step):
+        def spy_build(
+            self_inner, model, style_type_name_override, read_only, min_val, max_val, hard_min_val, hard_max_val, step
+        ):
             build_calls.append({"style": style_type_name_override, "read_only": read_only})
-            return original_build(self_inner, model, style_type_name_override, read_only, min_val, max_val, step)
+            return original_build(
+                self_inner,
+                model,
+                style_type_name_override,
+                read_only,
+                min_val,
+                max_val,
+                hard_min_val,
+                hard_max_val,
+                step,
+            )
 
         window = ui.Window(
             f"TestAbstractDrag_{str(uuid.uuid1())}",
@@ -215,7 +206,7 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[5.0], read_only=False)
-        field = _StubDragField(min_value=0.0, max_value=10.0)
+        field = FloatDragFieldGroup(min_value=0.0, max_value=10.0)
         field.build_drag_widget = lambda *a, **kw: spy_build(field, *a, **kw)
 
         with window.frame:
@@ -234,11 +225,23 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
     async def test_build_ui_passes_min_max_step_to_drag(self):
         """build_drag_widget should receive the field's min, max, and step values."""
         build_calls: list[dict] = []
-        original_build = _StubDragField.build_drag_widget
+        original_build = FloatDragFieldGroup.build_drag_widget
 
-        def spy_build(self_inner, model, style_type_name_override, read_only, min_val, max_val, step):
+        def spy_build(
+            self_inner, model, style_type_name_override, read_only, min_val, max_val, hard_min_val, hard_max_val, step
+        ):
             build_calls.append({"min": min_val, "max": max_val, "step": step})
-            return original_build(self_inner, model, style_type_name_override, read_only, min_val, max_val, step)
+            return original_build(
+                self_inner,
+                model,
+                style_type_name_override,
+                read_only,
+                min_val,
+                max_val,
+                hard_min_val,
+                hard_max_val,
+                step,
+            )
 
         window = ui.Window(
             f"TestAbstractDrag_{str(uuid.uuid1())}",
@@ -248,7 +251,7 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[5.0])
-        field = _StubDragField(min_value=-10.0, max_value=10.0, step=0.5)
+        field = FloatDragFieldGroup(min_value=-10.0, max_value=10.0, step=0.5)
         field.build_drag_widget = lambda *a, **kw: spy_build(field, *a, **kw)
 
         with window.frame:
@@ -268,11 +271,23 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
     async def test_build_ui_unbounded_passes_none(self):
         """For unbounded fields, build_drag_widget should receive None for min/max."""
         build_calls: list[dict] = []
-        original_build = _StubDragField.build_drag_widget
+        original_build = FloatDragFieldGroup.build_drag_widget
 
-        def spy_build(self_inner, model, style_type_name_override, read_only, min_val, max_val, step):
+        def spy_build(
+            self_inner, model, style_type_name_override, read_only, min_val, max_val, hard_min_val, hard_max_val, step
+        ):
             build_calls.append({"min": min_val, "max": max_val, "step": step})
-            return original_build(self_inner, model, style_type_name_override, read_only, min_val, max_val, step)
+            return original_build(
+                self_inner,
+                model,
+                style_type_name_override,
+                read_only,
+                min_val,
+                max_val,
+                hard_min_val,
+                hard_max_val,
+                step,
+            )
 
         window = ui.Window(
             f"TestAbstractDrag_{str(uuid.uuid1())}",
@@ -282,7 +297,7 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[5.0])
-        field = _StubDragField()
+        field = FloatDragFieldGroup()
         field.build_drag_widget = lambda *a, **kw: spy_build(field, *a, **kw)
 
         with window.frame:
@@ -303,7 +318,7 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
     # ------------------------------------------------------------------
 
     async def test_hard_bounds_clamp_on_drag_and_type(self):
-        """Dragging should clamp to soft bounds; typing should clamp to hard bounds on end-edit."""
+        """Dragging should clamp to soft bounds; typing should clamp to hard bounds via widget pre-set callbacks."""
         window = ui.Window(
             f"TestAbstractDrag_{str(uuid.uuid1())}",
             height=200,
@@ -312,7 +327,7 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[50.0])
-        field = _StubDragField(
+        field = FloatDragFieldGroup(
             min_value=0.0,
             max_value=100.0,
             hard_min_value=-10.0,
@@ -325,8 +340,8 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
 
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatDrag[*]")
-        self.assertTrue(len(widget_refs) > 0, "No FloatDrag widgets found")
+        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
+        self.assertTrue(len(widget_refs) > 0, "No FloatBoundedDrag widgets found")
         widget_ref = widget_refs[0]
 
         # Drag far left -- FloatDrag clamps to min_value (soft bound)
@@ -382,15 +397,15 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[50.0])
-        field = _StubDragField(hard_min_value=10.0)
+        field = FloatDragFieldGroup(hard_min_value=10.0)
 
         with window.frame:
             field.build_ui(item)
 
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatDrag[*]")
-        self.assertTrue(len(widget_refs) > 0, "No FloatDrag widgets found")
+        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
+        self.assertTrue(len(widget_refs) > 0, "No FloatBoundedDrag widgets found")
         widget_ref = widget_refs[0]
 
         # Type below hard_min -- should clamp
@@ -419,15 +434,15 @@ class TestAbstractDragField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[50.0])
-        field = _StubDragField(hard_max_value=100.0)
+        field = FloatDragFieldGroup(hard_max_value=100.0)
 
         with window.frame:
             field.build_ui(item)
 
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatDrag[*]")
-        self.assertTrue(len(widget_refs) > 0, "No FloatDrag widgets found")
+        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
+        self.assertTrue(len(widget_refs) > 0, "No FloatBoundedDrag widgets found")
         widget_ref = widget_refs[0]
 
         # Type above hard_max -- should clamp

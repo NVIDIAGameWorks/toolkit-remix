@@ -45,6 +45,8 @@ from .item_model.metadata_list_model_value import UsdListModelAttrMetadataValueM
 from .mapping import CHANNEL_ELEMENT_BUILDER_TABLE
 from .mapping import DEFAULT_PRECISION as _DEFAULT_PRECISION
 from .mapping import OPS_ATTR_PRECISION_TABLE as _OPS_ATTR_PRECISION_TABLE
+from .bounds_adapter import BoundsAdapter as _BoundsAdapter
+from .bounds_adapter import BoundsValue as _BoundsValue
 from .utils import delete_all_overrides as _delete_all_overrides
 from .utils import delete_layer_override as _delete_layer_override
 from .utils import get_metadata as _get_metadata
@@ -172,7 +174,7 @@ class _BaseUSDAttributeItem(_Item):
         return _EventSubscription(self.__on_override_removed, function)
 
 
-_RealNumber: typing.TypeAlias = float | int
+_BoundsComponent: typing.TypeAlias = _BoundsValue
 
 
 class USDAttributeItem(_BaseUSDAttributeItem):
@@ -187,8 +189,12 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         default_value: optional override for the default value
         read_only: show the attribute(s) as read only
         value_type_name: if None, the type name will be inferred
-        ui_metadata: optional dict of UI hints (e.g. hard_min, soft_min, hard_max,
-            soft_max, ui_step for OGN-style bounds; used by slider and other delegates).
+        ui_metadata: optional dict of UI hints used only when constructing the
+            default ``BoundsAdapter``. Treat as a producer payload for bounds
+            normalization rather than a direct bounds source.
+        bounds_adapter: optional preconfigured bounds adapter instance. When
+            provided, this is the canonical source of bounds/step values.
+            When omitted, ``BoundsAdapter`` is constructed with ``ui_metadata``.
     """
 
     def __init__(
@@ -201,6 +207,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
         ui_metadata: dict | None = None,
+        bounds_adapter: _BoundsAdapter | None = None,
     ):
         super().__init__(context_name, attribute_paths)
         # take only the first attribute name because the attribute name is the same for all values
@@ -225,94 +232,19 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         )
         self._ui_metadata = ui_metadata
 
-    def _get_min_max_from_ui_metadata(
-        self,
-    ) -> tuple[_RealNumber | None, _RealNumber | None, _RealNumber | None, _RealNumber | None] | None:
-        """
-        Get min/max bounds from ui_metadata.
-
-        Soft bounds (soft_min/soft_max) are used as the primary min/max
-        values; hard bounds serve as fallback when soft bounds are absent,
-        and are also returned separately for clamping. Min and max are
-        resolved independently. Returns ``None`` only when no bound keys
-        exist at all; otherwise either value in the tuple may be ``None``.
-
-        Returns:
-            ``(min, max, hard_min, hard_max)`` where min/max may be ``None``, or
-            ``None`` if no bounds metadata is present.
-        """
-        if self._ui_metadata is None:
-            return None
-
-        min_val = self._ui_metadata.get("soft_min")
-        max_val = self._ui_metadata.get("soft_max")
-
-        hard_min_val = self._ui_metadata.get("hard_min")
-        hard_max_val = self._ui_metadata.get("hard_max")
-
-        if min_val is None:
-            min_val = hard_min_val
-
-        if max_val is None:
-            max_val = hard_max_val
-
-        if min_val is None and max_val is None:
-            return None
-
-        return min_val, max_val, hard_min_val, hard_max_val
-
-    def _get_min_max_from_attr_metadata(
-        self,
-    ) -> tuple[_RealNumber | None, _RealNumber | None, None, None] | None:
-        """
-        Get min/max bounds from USD attribute ``customData.range``.
-
-        Iterates over all attribute paths and resolves min/max from each
-        attribute's ``customData["range"]["min"]`` / ``["max"]``.  When
-        multiple attributes provide a value, the widest range wins (smallest
-        min, largest max).  Hard bounds are always ``None`` since USD
-        customData does not distinguish soft vs hard limits.
-
-        Returns:
-            ``(min, max, None, None)`` where either value may be ``None``,
-            or ``None`` if no range metadata is present on any attribute.
-        """
-        min_value = None
-        max_value = None
-
-        for attribute_path in self._attribute_paths:
-            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
-            if prim.HasAttribute(attribute_path.name):
-                attr = prim.GetAttribute(attribute_path.name)
-                custom = attr.GetMetadata("customData")
-                if custom is not None:
-                    min_max_range = custom.get("range")
-                    if min_max_range is not None:
-                        meta_min_value = min_max_range.get("min")
-                        if isinstance(meta_min_value, (int, float)):
-                            if min_value is None:
-                                min_value = meta_min_value
-                            else:
-                                min_value = min(min_value, meta_min_value)
-                        meta_max_value = min_max_range.get("max")
-                        if isinstance(meta_max_value, (int, float)):
-                            if max_value is None:
-                                max_value = meta_max_value
-                            else:
-                                max_value = max(max_value, meta_max_value)
-
-        if min_value is None and max_value is None:
-            return None
-
-        return min_value, max_value, None, None
+        if bounds_adapter is None:
+            bounds_adapter = _BoundsAdapter(self._ui_metadata)
+        self._ui_bounds_adapter = bounds_adapter
 
     def get_min_max_bounds(
         self,
-    ) -> tuple[_RealNumber | None, _RealNumber | None, _RealNumber | None, _RealNumber | None] | None:
+    ) -> (
+        tuple[_BoundsComponent | None, _BoundsComponent | None, _BoundsComponent | None, _BoundsComponent | None] | None
+    ):
         """
-        Get bounds metadata from UI metadata or USD attribute ``customData.range``.
+        Get normalized bounds metadata from the configured adapter instance.
 
-        Checks UI metadata first, then falls back to USD ``customData.range``.
+        Bounds come from the adapter payload provided at item construction.
         Partial bounds are allowed, so any tuple element may be ``None``.
 
         Returns:
@@ -321,41 +253,17 @@ class USDAttributeItem(_BaseUSDAttributeItem):
             present. Callers that require both min and max (for example,
             slider widgets) must validate that both are non-None.
         """
-        bounds = self._get_min_max_from_ui_metadata()
-        if bounds is None:
-            bounds = self._get_min_max_from_attr_metadata()
-        if bounds is None:
-            return None
-        return bounds
+        return self._ui_bounds_adapter.bounds
 
-    def get_step_value(self) -> _RealNumber | None:
+    def get_step_value(self) -> _BoundsComponent | None:
         """Get the UI step size for this attribute, if any.
 
-        Checks ``ui_metadata`` first (OGN-sourced ``ui_step`` key), then falls
-        back to the USD attribute's ``customData["ui:step"]``.
+        Resolves step from the configured adapter instance.
 
         Returns:
             The step value as a float or int, or ``None`` if no step is defined.
         """
-        step_val = None
-        if self._ui_metadata is not None:
-            step_val = self._ui_metadata.get("ui_step")
-
-        if step_val is not None:
-            return step_val
-
-        for attribute_path in self._attribute_paths:  # PLW0212
-            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())  # PLW0212
-            if prim.HasAttribute(attribute_path.name):
-                attr = prim.GetAttribute(attribute_path.name)
-                custom_meta = attr.GetMetadata("customData")
-                if custom_meta is None:
-                    continue
-
-                ui_step = custom_meta.get("ui:step")
-                if ui_step is not None and isinstance(ui_step, (int, float)):
-                    return ui_step
-        return None
+        return self._ui_bounds_adapter.step
 
     @property
     @abc.abstractmethod
@@ -366,6 +274,8 @@ class USDAttributeItem(_BaseUSDAttributeItem):
                 "_element_count": 1,
                 "_name_models": None,
                 "_value_models": None,
+                "_ui_metadata": None,
+                "_ui_bounds_adapter": None,
             }
         )
         return default_attr
@@ -409,7 +319,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
 
     @property
     def has_bounds_data(self) -> bool:
-        """True if any bounds metadata is present (from ui_metadata or USD attribute customData). May be partial."""
+        """True if any normalized bounds metadata is present on the configured adapter."""
         return self.get_min_max_bounds() is not None
 
 
@@ -513,6 +423,7 @@ class VirtualUSDAttributeItem(USDAttributeItem):
         display_attr_names_tooltip: list[str] | None = None,
         read_only: bool = False,
         metadata: dict | None = None,
+        bounds_adapter: _BoundsAdapter | None = None,
         create_callback: Callable[[Any], None] | None = None,
     ):
         """
@@ -526,6 +437,11 @@ class VirtualUSDAttributeItem(USDAttributeItem):
             display_attr_names: Display name for the attribute
             display_attr_names_tooltip: tooltip to show on the attribute name
             read_only: If the attribute is read-only
+            metadata: Optional value-model metadata used by virtual attribute
+                behavior (for example type/context hints). This is not used for
+                bounds normalization.
+            bounds_adapter: Optional preconfigured bounds adapter instance.
+                This is the canonical source of bounds/step values.
         """
         # Note: These are excluded from the default_attr because we do not want them cleared in super().__init__()
         self._default_value = default_value
@@ -540,6 +456,7 @@ class VirtualUSDAttributeItem(USDAttributeItem):
             display_attr_names_tooltip=display_attr_names_tooltip,
             read_only=read_only,
             value_type_name=value_type_name,
+            bounds_adapter=bounds_adapter,
         )
 
     @property

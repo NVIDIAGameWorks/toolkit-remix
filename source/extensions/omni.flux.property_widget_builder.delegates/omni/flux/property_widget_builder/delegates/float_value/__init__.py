@@ -18,9 +18,9 @@
 __all__ = (
     "ColorField",
     "ColorGradientField",
-    "FloatDragField",
+    "FloatDragFieldGroup",
 )
 
 from .color import ColorField
 from .color_gradient import ColorGradientField
-from .drag import FloatDragField
+from .drag import FloatDragFieldGroup

@@ -18,10 +18,10 @@
 from __future__ import annotations
 
 
-__all__ = ("AbstractDragField", "AbstractField")
+__all__ = ("AbstractDragFieldGroup", "AbstractField", "BoundsValue", "RealNumber")
 
 import abc
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, Protocol, TypeAlias, TypeVar, cast, overload
 
 import carb
 import omni.kit.undo
@@ -34,6 +34,16 @@ if TYPE_CHECKING:
 
 
 ItemT = TypeVar("ItemT", bound="Item")
+RealNumber: TypeAlias = int | float
+
+
+class _BoundsSequenceLike(Protocol):
+    """Indexable bounds payload contract for per-channel scalar extraction."""
+
+    def __getitem__(self, index: int) -> object: ...
+
+
+BoundsValue: TypeAlias = RealNumber | _BoundsSequenceLike
 
 _PRIMARY_FRAME_HEIGHT = 24
 _PER_ELEMENT_SPACER_WIDTH = 8
@@ -69,45 +79,58 @@ class AbstractField(Generic[ItemT]):
         widget.set_mouse_hovered_fn(update_tooltip)
 
 
-class AbstractDragField(AbstractField):
+class AbstractDragFieldGroup(AbstractField):
     """Abstract base for drag-style delegates with optional min/max bounds and step.
 
     Subclasses must implement :meth:`build_drag_widget` to create the actual
-    drag widget (e.g. :class:`omni.ui.FloatDrag` or :class:`omni.ui.IntDrag`).
-    Edits are grouped for undo via :meth:`begin_edit` and :meth:`end_edit`.
+    drag widget instance. Edit events are grouped for undo via
+    :meth:`begin_edit` and :meth:`end_edit`.
 
     When ``min_value`` and ``max_value`` are both provided the widget displays
     a bounded drag range.  Either (or both) may be ``None`` for an unbounded
     field; in that case the corresponding bound is simply not passed to the
     underlying ``omni.ui`` widget.
 
-    Hard bounds (``hard_min_value`` / ``hard_max_value``) are independent and
-    control clamping on end-edit.  Either may be ``None``; clamping is applied
-    only for bounds that are set.
+    Hard bounds (``hard_min_value`` / ``hard_max_value``) are forwarded to the
+    widget, which is responsible for value clamping behavior.
+
+    API note:
+        This class was renamed from ``AbstractDragField`` to
+        ``AbstractDragFieldGroup`` to make it explicit that it orchestrates one
+        or more drag widgets (for scalar/vector channels) rather than being a
+        single concrete drag widget itself.
     """
 
     def __init__(
         self,
-        min_value: int | float | None = None,
-        max_value: int | float | None = None,
-        hard_min_value: int | float | None = None,
-        hard_max_value: int | float | None = None,
-        step: int | float | None = None,
+        min_value: BoundsValue | None = None,
+        max_value: BoundsValue | None = None,
+        hard_min_value: BoundsValue | None = None,
+        hard_max_value: BoundsValue | None = None,
+        step: BoundsValue | None = None,
         **kwargs,
     ):
         """Initialize the drag field.
 
         Args:
-            min_value: Soft minimum for the drag range.  ``None`` = unbounded.
-            max_value: Soft maximum for the drag range.  ``None`` = unbounded.
-            hard_min_value: Hard minimum bound for clamping on end-edit.
-            hard_max_value: Hard maximum bound for clamping on end-edit.
-            step: Optional step size; subclasses may compute a default when None.
+            min_value: Soft minimum for the drag range. May be scalar or
+                sequence-like for per-channel resolution. ``None`` = unbounded.
+            max_value: Soft maximum for the drag range. May be scalar or
+                sequence-like for per-channel resolution. ``None`` = unbounded.
+            hard_min_value: Hard minimum bound forwarded to drag widgets for
+                typed-value clamping via widget pre-set callbacks. May be scalar
+                or sequence-like for per-channel resolution.
+            hard_max_value: Hard maximum bound forwarded to drag widgets for
+                typed-value clamping via widget pre-set callbacks. May be scalar
+                or sequence-like for per-channel resolution.
+            step: Optional step size; scalar or sequence-like values are
+                resolved per channel in ``build_ui``.
             **kwargs: Passed to AbstractField (e.g. style_name, identifier).
         """
         super().__init__(**kwargs)
         self._subs: list[carb.Subscription] = []
-        if min_value is not None and max_value is not None and min_value >= max_value:
+
+        if isinstance(min_value, RealNumber) and isinstance(max_value, RealNumber) and min_value >= max_value:
             raise ValueError(f"min_value ({min_value}) must be less than max_value ({max_value})")
 
         self.min_value = min_value
@@ -117,37 +140,6 @@ class AbstractDragField(AbstractField):
         self.hard_max_value = hard_max_value
 
         self.step = step
-
-    @abc.abstractmethod
-    def _get_value_from_model(self, model) -> int | float:
-        raise NotImplementedError("please implement this method")
-
-    def _clamp_to_hard_bounds(self, model):
-        """Clamp the model's value to whichever hard bounds are set."""
-        if self.hard_min_value is None and self.hard_max_value is None:
-            return
-
-        if (
-            self.hard_min_value is not None
-            and self.hard_max_value is not None
-            and self.hard_min_value >= self.hard_max_value
-        ):
-            carb.log_warn(
-                f"Hard-bound clamping skipped: hard_min ({self.hard_min_value}) "
-                f"must be less than hard_max ({self.hard_max_value})"
-            )
-            return
-
-        val = self._get_value_from_model(model)
-        clamped = val
-
-        if self.hard_min_value is not None and val < self.hard_min_value:
-            clamped = self.hard_min_value
-        if self.hard_max_value is not None and val > self.hard_max_value:
-            clamped = self.hard_max_value
-
-        if clamped != val:
-            model.set_value(clamped)
 
     def begin_edit(self, model: ItemModelBase) -> None:
         """Start an undo group for non-batched edits.
@@ -162,21 +154,13 @@ class AbstractDragField(AbstractField):
     def end_edit(self, model: ItemModelBase) -> None:
         """End the current edit.
 
-        For batch-edit models, this closes any active drag batch if the mouse-release
-        callback did not already do so. For non-batch models, this clamps to hard
-        bounds and closes the regular undo group.
-
-        Note: when a user **types** a value, the ``pre_set_value`` callback
-        (registered in :meth:`build_ui`) has already clamped the value before it
-        reached USD, so ``_clamp_to_hard_bounds`` here is effectively a safety net
-        for the non-batched drag path.
+        For batch-edit models, this closes any active drag batch if needed.
+        For non-batch models, this closes the regular undo group.
         """
         if model.supports_batch_edit:
             if model.is_batch_editing:
-                # Drag-path clamping already runs per value in _make_drag_value_callback.
                 model.end_batch_edit()
             return
-        self._clamp_to_hard_bounds(model)
         omni.kit.undo.end_group()
 
     @abc.abstractmethod
@@ -185,9 +169,11 @@ class AbstractDragField(AbstractField):
         model: ui.AbstractValueModel,
         style_type_name_override: str,
         read_only: bool,
-        min_val: float | int | None,
-        max_val: float | int | None,
-        step: float | int | None,
+        min_val: RealNumber | None,
+        max_val: RealNumber | None,
+        hard_min_val: RealNumber | None,
+        hard_max_val: RealNumber | None,
+        step: RealNumber | None,
     ) -> ui.Widget:
         """Build the drag widget for one value model.
 
@@ -197,55 +183,45 @@ class AbstractDragField(AbstractField):
             read_only: Whether the widget should be read-only.
             min_val: Minimum value for the widget, or ``None`` for unbounded.
             max_val: Maximum value for the widget, or ``None`` for unbounded.
+            hard_min_val: Hard minimum value for typed-value clamping, or
+                ``None`` for no lower hard bound.
+            hard_max_val: Hard maximum value for typed-value clamping, or
+                ``None`` for no upper hard bound.
             step: Step size for the widget, or ``None`` to omit.
 
         Returns:
-            The built drag widget (e.g. ui.FloatDrag or ui.IntDrag).
+            The built drag widget (typically ``FloatBoundedDrag``/``IntBoundedDrag`` wrappers
+            or other ``ui.Widget``-compatible drag controls).
         """
         raise NotImplementedError
 
     @staticmethod
-    def _make_hard_clamp_fn(hard_min, hard_max):
-        """Return a ``pre_set_value`` callback that clamps scalar values to ``[hard_min, hard_max]``.
-
-        Args:
-            hard_min: Lower clamp bound, or ``None`` for no lower limit.
-            hard_max: Upper clamp bound, or ``None`` for no upper limit.
-
-        Note: ``omni.ui`` drag widgets only honour ``min``/``max`` for mouse-drag input.
-        When a user types a value directly, the widget bypasses those limits and calls
-        ``model.set_value()`` immediately with the raw typed value.  The ``pre_set_value``
-        callback registered here intercepts the value *before* it is written to USD,
-        so out-of-range typed values are clamped before any downstream system can react.
-        """
-
-        def _clamp(set_fn, val):
-            if isinstance(val, (int, float)):
-                clamped = val
-                if hard_min is not None and clamped < hard_min:
-                    clamped = hard_min
-                if hard_max is not None and clamped > hard_max:
-                    clamped = hard_max
-                # Preserve the original value type (int vs float) so the model
-                # receives the same type it would have without clamping.
-                val = type(val)(clamped)
-            set_fn(val)
-
-        return _clamp
+    @overload
+    def _resolve_scalar_component(value: BoundsValue | None, scalar_index: None) -> BoundsValue | None: ...
 
     @staticmethod
-    def _make_drag_value_callback(value_model: ItemModelBase, clamp_fn, drag_state):
-        """Return a ``pre_set_value`` callback that starts batching only for active mouse drags."""
+    @overload
+    def _resolve_scalar_component(value: BoundsValue | None, scalar_index: int) -> RealNumber | None: ...
 
-        def _set_value(set_fn, value):
-            if drag_state["mouse_pressed"] and not value_model.is_batch_editing:
-                value_model.begin_batch_edit()
-            if clamp_fn is not None:
-                clamp_fn(set_fn, value)
-            else:
-                set_fn(value)
+    @staticmethod
+    def _resolve_scalar_component(value: BoundsValue | None, scalar_index: int | None) -> BoundsValue | None:
+        """Resolve a channel scalar from bounds/step, or return input when index is None."""
+        if scalar_index is None:
+            return value
+        if isinstance(value, (int, float)):
+            return value
 
-        return _set_value
+        if value is None:
+            return None
+
+        try:
+            # Keep panel rendering resilient: if one attribute provides malformed
+            # bounds metadata, fail this component gracefully instead of crashing
+            # the whole properties panel build.
+            return cast(BoundsValue, value[scalar_index])
+        except (IndexError, KeyError, TypeError):
+            carb.log_error(f"Failed to resolve bounds component at index {scalar_index} from value {value!r}")
+            return None
 
     def build_ui(self, item, **kwargs) -> list[ui.Widget]:  # PLW0221
         """Build drag widgets for each element of the item, with undo grouping and tooltips."""
@@ -254,20 +230,38 @@ class AbstractDragField(AbstractField):
         with ui.HStack(height=ui.Pixel(_PRIMARY_FRAME_HEIGHT)):
             for i in range(item.element_count):
                 value_model = item.value_models[i]
-                drag_state = {"mouse_pressed": False}
-                supports_batch_edit = value_model.supports_batch_edit
                 self._subs.append(value_model.subscribe_begin_edit_fn(self.begin_edit))
                 self._subs.append(value_model.subscribe_end_edit_fn(self.end_edit))
 
-                clamp_fn = None
-                if self.hard_min_value is not None or self.hard_max_value is not None:
-                    clamp_fn = self._make_hard_clamp_fn(self.hard_min_value, self.hard_max_value)
-                if supports_batch_edit:
-                    value_model.set_callback_pre_set_value(
-                        self._make_drag_value_callback(value_model, clamp_fn, drag_state)
+                min_value = self._resolve_scalar_component(self.min_value, i)
+                max_value = self._resolve_scalar_component(self.max_value, i)
+                hard_min_value = self._resolve_scalar_component(self.hard_min_value, i)
+                hard_max_value = self._resolve_scalar_component(self.hard_max_value, i)
+                step_value = self._resolve_scalar_component(self.step, i)
+
+                if min_value is not None and max_value is not None and min_value >= max_value:
+                    carb.log_warn(
+                        f"Drag bounds ignored for channel {i}: min ({min_value}) must be less than max ({max_value})."
                     )
-                elif clamp_fn is not None:
-                    value_model.set_callback_pre_set_value(clamp_fn)
+                    min_value = None
+                    max_value = None
+
+                if step_value is not None:
+                    step_value = abs(step_value)
+
+                effective_hard_min = hard_min_value if hard_min_value is not None else min_value
+                effective_hard_max = hard_max_value if hard_max_value is not None else max_value
+                if (
+                    effective_hard_min is not None
+                    and effective_hard_max is not None
+                    and effective_hard_min >= effective_hard_max
+                ):
+                    carb.log_warn(
+                        f"Hard bounds ignored for channel {i}: hard_min ({effective_hard_min}) "
+                        f"must be less than hard_max ({effective_hard_max})."
+                    )
+                    effective_hard_min = None
+                    effective_hard_max = None
 
                 ui.Spacer(width=ui.Pixel(_PER_ELEMENT_SPACER_WIDTH))
                 with ui.VStack():
@@ -279,24 +273,12 @@ class AbstractDragField(AbstractField):
                         value_model,
                         style_type_name_override,
                         value_model.read_only,
-                        self.min_value,
-                        self.max_value,
-                        self.step,
+                        min_value,
+                        max_value,
+                        effective_hard_min,
+                        effective_hard_max,
+                        step_value,
                     )
-                    if supports_batch_edit:
-
-                        def _on_mouse_pressed(_x, _y, b, _m, state=drag_state):
-                            if b == 0:
-                                state["mouse_pressed"] = True
-
-                        widget.set_mouse_pressed_fn(_on_mouse_pressed)
-
-                        def _on_mouse_released(_x, _y, b, _m, model=value_model, state=drag_state):
-                            state["mouse_pressed"] = False
-                            if b == 0 and model.is_batch_editing:
-                                model.end_batch_edit()
-
-                        widget.set_mouse_released_fn(_on_mouse_released)
                     self.set_dynamic_tooltip_fn(widget, value_model)
                     widgets.append(widget)
                     ui.Spacer(height=ui.Pixel(_VSTACK_SPACER_HEIGHT))

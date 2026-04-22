@@ -15,35 +15,44 @@
 * limitations under the License.
 """
 
-__all__ = ("IntDragField",)
+__all__ = ("IntDragFieldGroup",)
 
+from typing import Any
 import omni.ui as ui
+from omni.flux.utils.widget import IntBoundedDrag
 
-from ..base import AbstractDragField
+from ..base import AbstractDragFieldGroup, BoundsValue, RealNumber
 
 
-class IntDragField(AbstractDragField):
+class IntDragFieldGroup(AbstractDragFieldGroup):
     """An integer drag field delegate with optional min/max bounds and step."""
 
     def __init__(
         self,
-        min_value: int | None = None,
-        max_value: int | None = None,
-        hard_min_value: int | None = None,
-        hard_max_value: int | None = None,
-        step: int | None = None,
+        min_value: BoundsValue | None = None,
+        max_value: BoundsValue | None = None,
+        hard_min_value: BoundsValue | None = None,
+        hard_max_value: BoundsValue | None = None,
+        step: BoundsValue | None = None,
         **kwargs,
     ):
         """Initialize the int drag field.
 
         Args:
-            min_value: Soft minimum for the drag range.  ``None`` = unbounded.
-            max_value: Soft maximum for the drag range.  ``None`` = unbounded.
-            hard_min_value: Hard minimum bound for clamping on end-edit.
-            hard_max_value: Hard maximum bound for clamping on end-edit.
-            step: Optional step size; if None and both bounds are set, ``1``
+            min_value: Soft minimum for the drag range. May be scalar or
+                sequence-like for per-channel resolution. ``None`` = unbounded.
+            max_value: Soft maximum for the drag range. May be scalar or
+                sequence-like for per-channel resolution. ``None`` = unbounded.
+            hard_min_value: Hard minimum bound forwarded to the drag widget for
+                typed-value clamping via widget pre-set callbacks. May be scalar
+                or sequence-like for per-channel resolution.
+            hard_max_value: Hard maximum bound forwarded to the drag widget for
+                typed-value clamping via widget pre-set callbacks. May be scalar
+                or sequence-like for per-channel resolution.
+            step: Optional step size; explicit values may be scalar or
+                sequence-like. If unset and both scalar bounds are set, ``1``
                 for range <= 100, else ``max(1, int(range * 0.01))``; otherwise ``1``.
-            **kwargs: Passed to AbstractDragField (e.g. style_name, default "DragField").
+            **kwargs: Passed to AbstractDragFieldGroup (e.g. style_name, default "DragField").
         """
         style_name = kwargs.get("style_name", "DragField")
         kwargs["style_name"] = style_name
@@ -57,11 +66,11 @@ class IntDragField(AbstractDragField):
         )
 
     @property
-    def step(self) -> int:
+    def step(self) -> BoundsValue:
         """Step size; uses explicit step if set, else derives from range or falls back to 1."""
         if self._step is not None:
             return self._step
-        if self.min_value is not None and self.max_value is not None:
+        if isinstance(self.min_value, RealNumber) and isinstance(self.max_value, RealNumber):
             range_size = self.max_value - self.min_value
             if range_size <= 100:
                 return 1
@@ -69,11 +78,8 @@ class IntDragField(AbstractDragField):
         return 1
 
     @step.setter
-    def step(self, value: int) -> None:
+    def step(self, value: BoundsValue) -> None:
         self._step = value
-
-    def _get_value_from_model(self, model) -> int | float:
-        return model.get_value_as_int()
 
     def build_drag_widget(
         self,
@@ -82,14 +88,18 @@ class IntDragField(AbstractDragField):
         read_only: bool,
         min_val: float | int | None,
         max_val: float | int | None,
+        hard_min_val: float | int | None,
+        hard_max_val: float | int | None,
         step: float | int | None,
     ) -> ui.Widget:
         """Build a ui.IntDrag widget, only passing bounds/step that are set."""
-        kwargs: dict[str, object] = {
+        kwargs: dict[str, Any] = {
             "model": model,
             "style_type_name_override": style_type_name_override,
             "read_only": read_only,
             "identifier": self.identifier or "",
+            "hard_min_value": hard_min_val,
+            "hard_max_value": hard_max_val,
         }
         if min_val is not None:
             kwargs["min"] = min_val
@@ -97,4 +107,4 @@ class IntDragField(AbstractDragField):
             kwargs["max"] = max_val
         if step is not None:
             kwargs["step"] = step
-        return ui.IntDrag(**kwargs)
+        return IntBoundedDrag(**kwargs)

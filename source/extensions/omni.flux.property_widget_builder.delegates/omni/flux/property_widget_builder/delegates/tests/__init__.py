@@ -16,24 +16,24 @@
 """
 
 __all__ = (
-    "TestAbstractDragField",
+    "TestAbstractDragFieldGroup",
     "TestAbstractDragFieldUnit",
     "TestColorField",
     "TestColorGradientDelegateIntegration",
     "TestColorGradientField",
-    "TestFloatDragField",
+    "TestFloatDragFieldGroup",
     "TestFloatDragFieldUnit",
-    "TestIntDragField",
+    "TestIntDragFieldGroup",
     "TestIntDragFieldUnit",
 )
 
 from .e2e import (
-    TestAbstractDragField,
+    TestAbstractDragFieldGroup,
     TestColorField,
     TestColorGradientDelegateIntegration,
     TestColorGradientField,
-    TestFloatDragField,
-    TestIntDragField,
+    TestFloatDragFieldGroup,
+    TestIntDragFieldGroup,
 )
 from .unit import (
     TestAbstractDragFieldUnit,

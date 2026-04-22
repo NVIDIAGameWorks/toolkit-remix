@@ -17,32 +17,48 @@
 
 __all__ = ("TestFloatDragFieldUnit",)
 
-import omni.kit.test
-from omni.flux.property_widget_builder.delegates.float_value.drag import FloatDragField
+from typing import cast
 
-from .mocks import MockValueModel
+import omni.kit.test
+from omni.flux.property_widget_builder.delegates.float_value.drag import FloatDragFieldGroup
 
 
 class TestFloatDragFieldUnit(omni.kit.test.AsyncTestCase):
-    """Unit tests for FloatDragField logic (no UI rendering)."""
+    """Unit tests for FloatDragFieldGroup logic (no UI rendering)."""
 
     # ------------------------------------------------------------------
     # Default constructor values
     # ------------------------------------------------------------------
 
     async def test_default_constructor_values(self):
-        """FloatDragField defaults: min=None, max=None, step=None, style='DragField'."""
-        field = FloatDragField()
-        self.assertIsNone(field.min_value)
-        self.assertIsNone(field.max_value)
-        self.assertIsNone(field._step)
-        self.assertEqual(field.style_name, "DragField")
+        """FloatDragFieldGroup defaults: min=None, max=None, step=None, style='DragField'."""
+        # Arrange
+        field = FloatDragFieldGroup()
+
+        # Act
+        min_value = field.min_value
+        max_value = field.max_value
+        step_value = field._step
+        style_name = field.style_name
+
+        # Assert
+        self.assertIsNone(min_value)
+        self.assertIsNone(max_value)
+        self.assertIsNone(step_value)
+        self.assertEqual(style_name, "DragField")
 
     async def test_bounded_constructor(self):
         """When both bounds are provided they should be stored."""
-        field = FloatDragField(min_value=0.0, max_value=100.0)
-        self.assertEqual(field.min_value, 0.0)
-        self.assertEqual(field.max_value, 100.0)
+        # Arrange
+        field = FloatDragFieldGroup(min_value=0.0, max_value=100.0)
+
+        # Act
+        min_value = field.min_value
+        max_value = field.max_value
+
+        # Assert
+        self.assertEqual(min_value, 0.0)
+        self.assertEqual(max_value, 100.0)
 
     # ------------------------------------------------------------------
     # Step calculation (overrides base)
@@ -50,42 +66,66 @@ class TestFloatDragFieldUnit(omni.kit.test.AsyncTestCase):
 
     async def test_default_step_standard_range(self):
         """Default step should be (max - min) * 0.005 when both bounds set."""
-        field = FloatDragField(min_value=0.0, max_value=100.0)
-        self.assertAlmostEqual(field.step, 0.5)
+        # Arrange
+        field = FloatDragFieldGroup(min_value=0.0, max_value=100.0)
+
+        # Act
+        step_value = cast(float, field.step)
+
+        # Assert
+        self.assertAlmostEqual(step_value, 0.5)
 
     async def test_default_step_negative_range(self):
         """Default step should work for ranges spanning negative to positive."""
-        field = FloatDragField(min_value=-50.0, max_value=50.0)
-        self.assertAlmostEqual(field.step, 0.5)
+        # Arrange
+        field = FloatDragFieldGroup(min_value=-50.0, max_value=50.0)
+
+        # Act
+        step_value = cast(float, field.step)
+
+        # Assert
+        self.assertAlmostEqual(step_value, 0.5)
 
     async def test_default_step_small_range(self):
         """Default step for a small range (0 to 1)."""
-        field = FloatDragField(min_value=0.0, max_value=1.0)
-        self.assertAlmostEqual(field.step, 0.005)
+        # Arrange
+        field = FloatDragFieldGroup(min_value=0.0, max_value=1.0)
+
+        # Act
+        step_value = cast(float, field.step)
+
+        # Assert
+        self.assertAlmostEqual(step_value, 0.005)
 
     async def test_default_step_unbounded(self):
         """Default step should be 1.0 when bounds are not set."""
-        field = FloatDragField()
-        self.assertAlmostEqual(field.step, 1.0)
+        # Arrange
+        field = FloatDragFieldGroup()
+
+        # Act
+        step_value = cast(float, field.step)
+
+        # Assert
+        self.assertAlmostEqual(step_value, 1.0)
 
     async def test_default_step_partial_bound(self):
         """Default step should be 1.0 when only one bound is set."""
-        field = FloatDragField(min_value=0.0)
-        self.assertAlmostEqual(field.step, 1.0)
+        # Arrange
+        field = FloatDragFieldGroup(min_value=0.0)
+
+        # Act
+        step_value = cast(float, field.step)
+
+        # Assert
+        self.assertAlmostEqual(step_value, 1.0)
 
     async def test_custom_step_overrides_default(self):
         """An explicitly provided step should override the computed default."""
-        field = FloatDragField(min_value=0.0, max_value=100.0, step=2.5)
-        self.assertAlmostEqual(field.step, 2.5)
+        # Arrange
+        field = FloatDragFieldGroup(min_value=0.0, max_value=100.0, step=2.5)
 
-    # ------------------------------------------------------------------
-    # _get_value_from_model
-    # ------------------------------------------------------------------
+        # Act
+        step_value = cast(float, field.step)
 
-    async def test_get_value_from_model(self):
-        """_get_value_from_model should return a float from the model."""
-        field = FloatDragField()
-        model = MockValueModel(value=3.14)
-        result = field._get_value_from_model(model)
-        self.assertIsInstance(result, float)
-        self.assertAlmostEqual(result, 3.14)
+        # Assert
+        self.assertAlmostEqual(step_value, 2.5)
