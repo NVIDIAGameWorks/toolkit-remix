@@ -16,7 +16,8 @@
 """
 
 from .e2e.test_prim_picker_ui import TestLogicWidgetUIComplete
+from .unit.test_bounds_adapter import TestOgnBoundsAdapter
 from .unit.test_prim_picker_integration import TestLogicWidgetIntegration
 from .unit.test_utils import TestGetOgnUiMetadata
 
-__all__ = ["TestGetOgnUiMetadata", "TestLogicWidgetIntegration", "TestLogicWidgetUIComplete"]
+__all__ = ["TestGetOgnUiMetadata", "TestLogicWidgetIntegration", "TestLogicWidgetUIComplete", "TestOgnBoundsAdapter"]

@@ -29,6 +29,7 @@ from omni.flux.property_widget_builder.model.usd import USDModel as _USDProperty
 from omni.flux.property_widget_builder.model.usd import USDPropertyWidget as _PropertyWidget
 from omni.flux.property_widget_builder.model.usd import VirtualUSDAttributeItem as _VirtualUSDAttributeItem
 from omni.flux.property_widget_builder.model.usd import get_usd_listener_instance as _get_usd_listener_instance
+from omni.flux.property_widget_builder.model.usd.bounds_adapter import BoundsAdapter as _BoundsAdapter
 from omni.flux.property_widget_builder.widget import FieldBuilder as _FieldBuilder
 from omni.flux.property_widget_builder.widget import ItemGroup as _ItemGroup
 from omni.flux.utils.common import Event as _Event
@@ -232,12 +233,18 @@ class PropertyWidget:
                         display_attr_names_tooltips = [documentation]
 
                 if isinstance(attr, Usd.Attribute):
+                    real_attrs = [candidate for candidate in attrs if isinstance(candidate, Usd.Attribute)]
+                    per_attr_adapters = [
+                        _BoundsAdapter(real_attr.GetMetadata("customData")) for real_attr in real_attrs
+                    ]
+                    bounds_adapter = _BoundsAdapter.merge_bounds_adapters(per_attr_adapters)
                     attr_item = _USDAttributeItem(
                         self._context_name,
                         [attr_.GetPath() for attr_ in attrs],
                         read_only=display_read_only,
                         display_attr_names=display_attr_names,
                         display_attr_names_tooltip=display_attr_names_tooltips,
+                        bounds_adapter=bounds_adapter,
                     )
                 elif isinstance(attr, _USDAttributeDef):
                     attr_item = _VirtualUSDAttributeItem(

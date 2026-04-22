@@ -17,6 +17,8 @@
 
 from .color_gradient import GRADIENT_PRESETS
 from .color_gradient import ColorGradientWidget
+from .drag_field import FloatBoundedDrag
+from .drag_field import IntBoundedDrag
 from .search import SearchExtension
 
-__all__ = ["GRADIENT_PRESETS", "ColorGradientWidget", "SearchExtension"]
+__all__ = ["GRADIENT_PRESETS", "ColorGradientWidget", "FloatBoundedDrag", "IntBoundedDrag", "SearchExtension"]

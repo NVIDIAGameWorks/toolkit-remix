@@ -16,6 +16,7 @@
 """
 
 from .unit.test_delegate_alignment import TestDelegateAlignment
+from .unit.test_bounds_adapter import TestBoundsAdapter
 from .unit.test_drag_write_throttling import TestDragWriteThrottling
 from .unit.test_file_texture_picker import TestFileTexturePicker
 from .unit.test_listener import TestUSDListener
@@ -31,6 +32,7 @@ from .e2e.test_gradient_command import (
 )
 
 __all__ = [
+    "TestBoundsAdapter",
     "TestDelegateAlignment",
     "TestDragWriteThrottling",
     "TestFileTexturePicker",

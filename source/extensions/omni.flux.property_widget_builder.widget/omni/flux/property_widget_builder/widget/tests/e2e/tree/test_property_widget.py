@@ -6,7 +6,7 @@ import carb.input
 import omni.kit.clipboard
 import omni.kit.test
 import omni.kit.ui_test
-from omni.flux.property_widget_builder.delegates import FloatDragField
+from omni.flux.property_widget_builder.delegates import FloatDragFieldGroup
 from omni.flux.property_widget_builder.widget import FieldBuilderList, Item, ItemGroup
 
 from ...ui_components import AsyncTestPropertyWidget, TestItem
@@ -47,22 +47,28 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
                 f"{helper.window.title}//Frame/**/Image[*].identifier=='property_branch'"
             ):
                 await widget_ref.click()
+                await omni.kit.ui_test.wait_n_updates(1)
+            await omni.kit.ui_test.wait_n_updates(2)
 
             # Clicking just the single child that is the only thing selected
             await helper.click_item(group_a.children[0])
+            await omni.kit.ui_test.wait_n_updates(1)
             self.assert_items_equal(helper.get_selected_items(), [group_a.children[0]])
 
             # Control click another child
             async with omni.kit.ui_test.KeyDownScope(carb.input.KeyboardInput.LEFT_CONTROL):
                 await helper.click_item(group_b.children[1])
+            await omni.kit.ui_test.wait_n_updates(1)
             self.assert_items_equal(helper.get_selected_items(), [group_a.children[0], group_b.children[1]])
 
             # Click an unselected child
             await helper.click_item(group_a.children[1])
+            await omni.kit.ui_test.wait_n_updates(1)
             self.assert_items_equal(helper.get_selected_items(), [group_a.children[1]])
 
             # Click an unselected parent
             await helper.click_item(group_a)
+            await omni.kit.ui_test.wait_n_updates(1)
             self.assert_items_equal(helper.get_selected_items(), [group_a] + group_a.children)
 
     async def test_widget_update(self):
@@ -78,16 +84,21 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
             self.assertTrue(len(widget_refs) > 0, "No widgets found")
             widget_ref = widget_refs[0]
 
-            await widget_ref.double_click()
+            # Be explicit about replacing text to avoid platform-dependent
+            # double-click selection behavior in StringField.
+            await widget_ref.click()
 
-            await omni.kit.ui_test.emulate_char_press("1.2")
-            await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.TAB)
-            await omni.kit.ui_test.emulate_char_press("1.3")
-            await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.TAB)
-            await omni.kit.ui_test.emulate_char_press("1.4")
-            await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.TAB)
-            await omni.kit.ui_test.emulate_char_press("1.5")
-            await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.TAB)
+            async def _replace_and_tab(value: str):
+                for _ in range(8):
+                    await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.BACKSPACE)
+                await omni.kit.ui_test.emulate_char_press(value)
+                await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.TAB)
+                await omni.kit.ui_test.wait_n_updates(1)
+
+            await _replace_and_tab("1.2")
+            await _replace_and_tab("1.3")
+            await _replace_and_tab("1.4")
+            await _replace_and_tab("1.5")
             await omni.kit.ui_test.emulate_char_press("1.6")
             # NOTE: This last one we don't hit tab or enter after so the value should not update the value.
 
@@ -103,7 +114,7 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
 
         @field_builders.register_build(lambda _: True)
         def build(item):
-            builder = FloatDragField(min_value, max_value)
+            builder = FloatDragFieldGroup(min_value, max_value)
             return builder(item)
 
         async with AsyncTestPropertyWidget() as helper:
@@ -111,7 +122,7 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
 
             await helper.set_items([item])
 
-            widget_refs = omni.kit.ui_test.find_all(f"{helper.window.title}//Frame/**/FloatDrag[*]")
+            widget_refs = omni.kit.ui_test.find_all(f"{helper.window.title}//Frame/**/FloatBoundedDrag[*]")
             self.assertTrue(len(widget_refs) > 0, "No widgets found")
             widget_ref = widget_refs[0]
 
@@ -131,8 +142,9 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
             await omni.kit.ui_test.wait_n_updates(2)
             self.assertAlmostEqual(item.get_value()[0], max_value)
 
-            # Test manually entering value outside the range
+            # Test manually entering value outside the soft range:
+            # typed value should clamp to max (main behavior).
             await widget_ref.double_click()
             await omni.kit.ui_test.emulate_char_press("2.2")
             await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
-            self.assertAlmostEqual(item.get_value()[0], 2.2)
+            self.assertAlmostEqual(item.get_value()[0], max_value)
