@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created 1.4.2-1 build
 - Added release notes for 1.4.2
 - Added auto-save feature: periodically saves all dirty layers in the active project; configurable via Edit > Preferences > Auto-Save (enable/disable, interval presets, and custom interval)
+- REMIX-3553: Unified the viewport Lights menu and added intensity-control visibility toggles for light manipulators
 
 ### Changed
 

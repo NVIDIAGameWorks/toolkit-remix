@@ -3,6 +3,10 @@
 This document records all notable changes to ``omni.kit.viewport.bundle`` extension.
 This project adheres to `Semantic Versioning <https://semver.org/>`_.
 
+## [1.3.1]
+### Changed
+- Hid the built-in viewport Lights row so custom light gizmo and manipulator toggles can replace it with a unified Lights section
+
 ## [1.3.0]
 ### Changed
 - Removed support for waypoints

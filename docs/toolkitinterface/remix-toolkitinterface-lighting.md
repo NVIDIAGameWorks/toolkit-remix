@@ -2,6 +2,12 @@
 
 ## Light Manipulators
 
+### Showing and Hiding Manipulators
+
+Light manipulators can be toggled on or off from the viewport. Open the **Show by Type** menu in the viewport toolbar
+and toggle **Lights > Manipulators** to show or hide the 3D handles for all lights in the scene. This setting persists
+across sessions.
+
 ### How to Use
 
 Select a light or lights and then drag the manipulator handles to change the shape of the light.

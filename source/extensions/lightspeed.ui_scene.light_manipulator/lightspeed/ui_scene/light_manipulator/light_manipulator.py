@@ -230,6 +230,68 @@ class AbstractLightManipulator(sc.Manipulator):
     def shape_xform(self) -> sc.Transform:
         return self._shape_xform
 
+    @property
+    def show_intensity_controls(self) -> bool:
+        viewport_layer = getattr(self.model, "_viewport_layer", None)
+        if viewport_layer is None:
+            return True
+        return viewport_layer.intensity_controls_visible
+
+    def _build_minimal_intensity_xform(self) -> list | None:
+        return None
+
+    def _minimal_intensity_indicator_length(self) -> float:
+        return 1.0
+
+    def build_minimal_intensity_xform(self):
+        if not self.model:
+            return
+        xform = self._build_minimal_intensity_xform()
+        if xform:
+            self._minimal_intensity_xform.transform = xform
+
+    def _build_single_intensity_arrow(
+        self,
+        point1: tuple[float, float, float],
+        point2: tuple[float, float, float],
+        attr_map: dict[int, str | None],
+        directions: list[int],
+        multipliers: list[int],
+        persistent_head: bool = False,
+        interactive: bool = True,
+    ):
+        hover_arrows = _HoverArrows()
+        arrow = hover_arrows.define(point1, point2)
+        if persistent_head:
+            arrow_head = hover_arrows.arrows_group[-1]
+            arrow_head.visible = True
+        if not interactive:
+            return
+        if persistent_head:
+
+            def reset_arrow_appearance():
+                if is_mouse_button_down():
+                    return
+                set_thickness([arrow], THICKNESS)
+                set_color([arrow_head], COLOR)
+
+            hover_gesture = sc.HoverGesture(
+                on_began_fn=lambda _sender: (
+                    set_thickness([arrow], HOVER_THICKNESS),
+                    set_color([arrow_head], HOVER_COLOR),
+                ),
+                on_ended_fn=lambda _sender: reset_arrow_appearance(),
+            )
+        else:
+            hover_gesture = sc.HoverGesture(
+                on_began_fn=lambda _sender: hover_arrows.show(),
+                on_ended_fn=lambda _sender: hover_arrows.hide(),
+            )
+        arrow.gestures = [
+            LightDragGesture(self, directions, multipliers, attr_map, on_ended_fn=hover_arrows.hide),
+            hover_gesture,
+        ]
+
     @abc.abstractmethod
     def _build_shape_xform(self):
         raise NotImplementedError()
@@ -247,10 +309,17 @@ class AbstractLightManipulator(sc.Manipulator):
 
     def _build(self):
         self._shape_xform = sc.Transform()
+        self._minimal_intensity_xform = sc.Transform()
         # Build the shape's transform
         self.build_shape_xform()
         with self._shape_xform:
             self._build_manipulator_geometry()
+        self.build_minimal_intensity_xform()
+        with self._minimal_intensity_xform:
+            self._build_minimal_intensity_geometry()
+
+    def _build_minimal_intensity_geometry(self):
+        return
 
     def on_build(self):
         """Called when the model is changed"""
@@ -341,67 +410,91 @@ class RectLightManipulator(AbstractLightManipulator):
         shape3.gestures = [LightDragGesture(self, [0], [1], rect_attr_map), horizontal_hover_gesture]
         shape4.gestures = [LightDragGesture(self, [0], [-1], rect_attr_map), horizontal_hover_gesture]
 
-        # create hover arrows in the z-axis to indicate the intensity
-        hover_arrows = _HoverArrows()
-        hover_arrows.define((h, h, 0), (h, h, z))
-        hover_arrows.define((-h, -h, 0), (-h, -h, z))
-        hover_arrows.define((h, -h, 0), (h, -h, z))
-        hover_arrows.define((-h, h, 0), (-h, h, z))
-        for arrow in hover_arrows.shapes:
-            arrow.gestures = [
-                LightDragGesture(self, [2], [-1], rect_attr_map, on_ended_fn=hover_arrows.hide),
-                sc.HoverGesture(
-                    on_began_fn=lambda _sender: hover_arrows.show(),
-                    on_ended_fn=lambda _sender: hover_arrows.hide(),
-                ),
+        if self.show_intensity_controls:
+            # create hover arrows in the z-axis to indicate the intensity
+            hover_arrows = _HoverArrows()
+            hover_arrows.define((h, h, 0), (h, h, z))
+            hover_arrows.define((-h, -h, 0), (-h, -h, z))
+            hover_arrows.define((h, -h, 0), (h, -h, z))
+            hover_arrows.define((-h, h, 0), (-h, h, z))
+            for arrow in hover_arrows.shapes:
+                arrow.gestures = [
+                    LightDragGesture(self, [2], [-1], rect_attr_map, on_ended_fn=hover_arrows.hide),
+                    sc.HoverGesture(
+                        on_began_fn=lambda _sender: hover_arrows.show(),
+                        on_ended_fn=lambda _sender: hover_arrows.hide(),
+                    ),
+                ]
+
+            # create 4 rectangles at the corner, and add gesture to update width, height and intensity at the
+            # same time
+            r1 = make_square((h - SQUARE_CENTER_TO_EDGE, -h + SQUARE_CENTER_TO_EDGE, 0))
+            r2 = make_square((h - SQUARE_CENTER_TO_EDGE, h - SQUARE_CENTER_TO_EDGE, 0))
+            r3 = make_square((-h + SQUARE_CENTER_TO_EDGE, h - SQUARE_CENTER_TO_EDGE, 0))
+            r4 = make_square((-h + SQUARE_CENTER_TO_EDGE, -h + SQUARE_CENTER_TO_EDGE, 0))
+            hover_squares = [r1, r2, r3, r4]
+
+            def highlight_all():
+                set_thickness(rectangle_lines, HOVER_THICKNESS)
+                set_color(hover_squares, HOVER_COLOR)
+                hover_arrows.show()
+
+            def unhighlight_all():
+                if is_mouse_button_down():
+                    return
+                set_thickness(rectangle_lines, THICKNESS)
+                set_color(hover_squares, CLEAR_COLOR)
+                hover_arrows.hide()
+
+            highlight_all_gesture = sc.HoverGesture(
+                on_began_fn=lambda sender: highlight_all(),
+                on_ended_fn=lambda sender: unhighlight_all(),
+            )
+
+            r1.gestures = [
+                LightDragGesture(self, [0, 1], [1, -1], rect_attr_map, on_ended_fn=unhighlight_all),
+                highlight_all_gesture,
+            ]
+            r2.gestures = [
+                LightDragGesture(self, [0, 1], [1, 1], rect_attr_map, on_ended_fn=unhighlight_all),
+                highlight_all_gesture,
+            ]
+            r3.gestures = [
+                LightDragGesture(self, [0, 1], [-1, 1], rect_attr_map, on_ended_fn=unhighlight_all),
+                highlight_all_gesture,
+            ]
+            r4.gestures = [
+                LightDragGesture(self, [0, 1], [-1, -1], rect_attr_map, on_ended_fn=unhighlight_all),
+                highlight_all_gesture,
             ]
 
-        # create 4 rectangles at the corner, and add gesture to update width, height and intensity at the
-        # same time
-        r1 = make_square((h - SQUARE_CENTER_TO_EDGE, -h + SQUARE_CENTER_TO_EDGE, 0))
-        r2 = make_square((h - SQUARE_CENTER_TO_EDGE, h - SQUARE_CENTER_TO_EDGE, 0))
-        r3 = make_square((-h + SQUARE_CENTER_TO_EDGE, h - SQUARE_CENTER_TO_EDGE, 0))
-        r4 = make_square((-h + SQUARE_CENTER_TO_EDGE, -h + SQUARE_CENTER_TO_EDGE, 0))
-        hover_squares = [r1, r2, r3, r4]
+    def _build_minimal_intensity_xform(self) -> list | None:
+        if self.show_intensity_controls or not (self.model.width and self.model.height):
+            return None
+        length = max(self._minimal_intensity_indicator_length(), 1.0)
+        y = max(self.model.get_as_float(self.model.height), 0.0) * 0.5 + 0.7
+        y += max(length * 0.25, 0.0)
+        return [length, 0, 0, 0, 0, length, 0, 0, 0, 0, length, 0, 0, y, 0, 1]
 
-        def highlight_all():
-            set_thickness(rectangle_lines, HOVER_THICKNESS)
-            set_color(hover_squares, HOVER_COLOR)
-            hover_arrows.show()
+    def _minimal_intensity_indicator_length(self) -> float:
+        if not (self.model.width and self.model.height):
+            return super()._minimal_intensity_indicator_length()
+        width = self.model.get_as_float(self.model.width)
+        height = self.model.get_as_float(self.model.height)
+        return max(width, height, 0.0) * 0.3
 
-        def unhighlight_all():
-            if is_mouse_button_down():
-                return
-            set_thickness(rectangle_lines, THICKNESS)
-            set_color(hover_squares, CLEAR_COLOR)
-            hover_arrows.hide()
-
-        highlight_all_gesture = sc.HoverGesture(
-            on_began_fn=lambda sender: highlight_all(),
-            on_ended_fn=lambda sender: unhighlight_all(),
-        )
-
-        r1.gestures = [
-            LightDragGesture(self, [0, 1], [1, -1], rect_attr_map, on_ended_fn=unhighlight_all),
-            highlight_all_gesture,
-        ]
-        r2.gestures = [
-            LightDragGesture(self, [0, 1], [1, 1], rect_attr_map, on_ended_fn=unhighlight_all),
-            highlight_all_gesture,
-        ]
-        r3.gestures = [
-            LightDragGesture(self, [0, 1], [-1, 1], rect_attr_map, on_ended_fn=unhighlight_all),
-            highlight_all_gesture,
-        ]
-        r4.gestures = [
-            LightDragGesture(self, [0, 1], [-1, -1], rect_attr_map, on_ended_fn=unhighlight_all),
-            highlight_all_gesture,
-        ]
+    def _build_minimal_intensity_geometry(self):
+        if not self.show_intensity_controls:
+            rect_attr_map = {0: "width", 1: "height", 2: "intensity"}
+            self._build_single_intensity_arrow(
+                (0, 0, 0), (0, 0, -1.0), rect_attr_map, [2], [-1], persistent_head=True, interactive=False
+            )
 
     def _on_model_updated(self, item: sc.AbstractManipulatorItem):
         if item in {self.model.width, self.model.height, self.model.intensity}:
             # if width, height or intensity changed, update shape xform
             self.build_shape_xform()
+            self.build_minimal_intensity_xform()
 
 
 class DiskLightManipulator(AbstractLightManipulator):
@@ -447,66 +540,89 @@ class DiskLightManipulator(AbstractLightManipulator):
         shape3.gestures = [LightDragGesture(self, [0], [-1], disk_attr_map), circle_hover_gesture]
         shape4.gestures = [LightDragGesture(self, [0], [1], disk_attr_map), circle_hover_gesture]
 
-        # create hover arrows in the z-axis to indicate the intensity
-        hover_arrows = _HoverArrows()
-        hover_arrows.define((r, 0, 0), (r, 0, z))
-        hover_arrows.define((-r, 0, 0), (-r, 0, z))
-        hover_arrows.define((0, -r, 0), (0, -r, z))
-        hover_arrows.define((0, r, 0), (0, r, z))
-        for arrow in hover_arrows.shapes:
-            arrow.gestures = [
-                LightDragGesture(self, [2], [-1], disk_attr_map, on_ended_fn=hover_arrows.hide),
-                sc.HoverGesture(
-                    on_began_fn=lambda _sender: hover_arrows.show(), on_ended_fn=lambda _sender: hover_arrows.hide()
-                ),
+        if self.show_intensity_controls:
+            # create hover arrows in the z-axis to indicate the intensity
+            hover_arrows = _HoverArrows()
+            hover_arrows.define((r, 0, 0), (r, 0, z))
+            hover_arrows.define((-r, 0, 0), (-r, 0, z))
+            hover_arrows.define((0, -r, 0), (0, -r, z))
+            hover_arrows.define((0, r, 0), (0, r, z))
+            for arrow in hover_arrows.shapes:
+                arrow.gestures = [
+                    LightDragGesture(self, [2], [-1], disk_attr_map, on_ended_fn=hover_arrows.hide),
+                    sc.HoverGesture(
+                        on_began_fn=lambda _sender: hover_arrows.show(),
+                        on_ended_fn=lambda _sender: hover_arrows.hide(),
+                    ),
+                ]
+
+            # create 4 rectangles at the corner, and add gesture to update radius and intensity at the
+            # same time
+            r1 = make_square((r - SQUARE_CENTER_TO_EDGE, -r + SQUARE_CENTER_TO_EDGE, 0))
+            r2 = make_square((r - SQUARE_CENTER_TO_EDGE, r - SQUARE_CENTER_TO_EDGE, 0))
+            r3 = make_square((-r + SQUARE_CENTER_TO_EDGE, r - SQUARE_CENTER_TO_EDGE, 0))
+            r4 = make_square((-r + SQUARE_CENTER_TO_EDGE, -r + SQUARE_CENTER_TO_EDGE, 0))
+            hover_squares = [r1, r2, r3, r4]
+
+            def highlight_all():
+                set_thickness(circle_lines, HOVER_THICKNESS)
+                set_color(hover_squares, HOVER_COLOR)
+                hover_arrows.show()
+
+            def unhighlight_all():
+                if is_mouse_button_down():
+                    return
+                set_thickness(circle_lines, THICKNESS)
+                set_color(hover_squares, CLEAR_COLOR)
+                hover_arrows.hide()
+
+            highlight_all_gesture = sc.HoverGesture(
+                on_began_fn=lambda sender: highlight_all(),
+                on_ended_fn=lambda sender: unhighlight_all(),
+            )
+
+            r1.gestures = [
+                LightDragGesture(self, [0], [1, -1], disk_attr_map, on_ended_fn=unhighlight_all),
+                highlight_all_gesture,
+            ]
+            r2.gestures = [
+                LightDragGesture(self, [0], [1, 1], disk_attr_map, on_ended_fn=unhighlight_all),
+                highlight_all_gesture,
+            ]
+            r3.gestures = [
+                LightDragGesture(self, [0], [-1, 1], disk_attr_map, on_ended_fn=unhighlight_all),
+                highlight_all_gesture,
+            ]
+            r4.gestures = [
+                LightDragGesture(self, [0], [-1, -1], disk_attr_map, on_ended_fn=unhighlight_all),
+                highlight_all_gesture,
             ]
 
-        # create 4 rectangles at the corner, and add gesture to update radius and intensity at the
-        # same time
-        r1 = make_square((r - SQUARE_CENTER_TO_EDGE, -r + SQUARE_CENTER_TO_EDGE, 0))
-        r2 = make_square((r - SQUARE_CENTER_TO_EDGE, r - SQUARE_CENTER_TO_EDGE, 0))
-        r3 = make_square((-r + SQUARE_CENTER_TO_EDGE, r - SQUARE_CENTER_TO_EDGE, 0))
-        r4 = make_square((-r + SQUARE_CENTER_TO_EDGE, -r + SQUARE_CENTER_TO_EDGE, 0))
-        hover_squares = [r1, r2, r3, r4]
+    def _build_minimal_intensity_xform(self) -> list | None:
+        if self.show_intensity_controls or not self.model.radius:
+            return None
+        length = max(self._minimal_intensity_indicator_length(), 1.0)
+        y = max(self.model.get_as_float(self.model.radius), 0.0) + 0.7
+        y += max(length * 0.25, 0.0)
+        return [length, 0, 0, 0, 0, length, 0, 0, 0, 0, length, 0, 0, y, 0, 1]
 
-        def highlight_all():
-            set_thickness(circle_lines, HOVER_THICKNESS)
-            set_color(hover_squares, HOVER_COLOR)
-            hover_arrows.show()
+    def _minimal_intensity_indicator_length(self) -> float:
+        if not self.model.radius:
+            return super()._minimal_intensity_indicator_length()
+        return max(self.model.get_as_float(self.model.radius), 0.0) * 0.6
 
-        def unhighlight_all():
-            if is_mouse_button_down():
-                return
-            set_thickness(circle_lines, THICKNESS)
-            set_color(hover_squares, CLEAR_COLOR)
-            hover_arrows.hide()
-
-        highlight_all_gesture = sc.HoverGesture(
-            on_began_fn=lambda sender: highlight_all(),
-            on_ended_fn=lambda sender: unhighlight_all(),
-        )
-
-        r1.gestures = [
-            LightDragGesture(self, [0], [1, -1], disk_attr_map, on_ended_fn=unhighlight_all),
-            highlight_all_gesture,
-        ]
-        r2.gestures = [
-            LightDragGesture(self, [0], [1, 1], disk_attr_map, on_ended_fn=unhighlight_all),
-            highlight_all_gesture,
-        ]
-        r3.gestures = [
-            LightDragGesture(self, [0], [-1, 1], disk_attr_map, on_ended_fn=unhighlight_all),
-            highlight_all_gesture,
-        ]
-        r4.gestures = [
-            LightDragGesture(self, [0], [-1, -1], disk_attr_map, on_ended_fn=unhighlight_all),
-            highlight_all_gesture,
-        ]
+    def _build_minimal_intensity_geometry(self):
+        if not self.show_intensity_controls:
+            disk_attr_map = {0: "radius", 1: None, 2: "intensity"}
+            self._build_single_intensity_arrow(
+                (0, 0, 0), (0, 0, -1.0), disk_attr_map, [2], [-1], persistent_head=True, interactive=False
+            )
 
     def _on_model_updated(self, item: sc.AbstractManipulatorItem):
         if item in {self.model.radius, self.model.intensity}:
             # if width, height or intensity changed, update shape xform
             self.build_shape_xform()
+            self.build_minimal_intensity_xform()
 
 
 class DistantLightManipulator(AbstractLightManipulator):
@@ -527,23 +643,25 @@ class DistantLightManipulator(AbstractLightManipulator):
         return None
 
     def _build_manipulator_geometry(self):
-        # Build the shape geometry as unit-sized
-        r = 0.5
-        z = -1.0
-        attr_map = {0: None, 1: None, 2: "intensity"}
-        # create hover arrows in the z-axis to indicate the intensity
-        hover_arrows = _HoverArrows()
-        hover_arrows.define((r, 0, 0), (r, 0, z))
-        hover_arrows.define((-r, 0, 0), (-r, 0, z))
-        hover_arrows.define((0, -r, 0), (0, -r, z))
-        hover_arrows.define((0, r, 0), (0, r, z))
-        for arrow in hover_arrows.shapes:
-            arrow.gestures = [
-                LightDragGesture(self, [2], [-1], attr_map, on_ended_fn=hover_arrows.hide),
-                sc.HoverGesture(
-                    on_began_fn=lambda _sender: hover_arrows.show(), on_ended_fn=lambda _sender: hover_arrows.hide()
-                ),
-            ]
+        if self.show_intensity_controls:
+            attr_map = {0: None, 1: None, 2: "intensity"}
+            self._build_single_intensity_arrow((0, 1.2, 0), (0, 1.2, -1.0), attr_map, [2], [-1])
+
+    def _build_minimal_intensity_xform(self) -> list | None:
+        length = self._minimal_intensity_indicator_length()
+        return [length, 0, 0, 0, 0, length, 0, 0, 0, 0, length, 0, 0, 2.8, 0, 1]
+
+    def _minimal_intensity_indicator_length(self) -> float:
+        return 5.0
+
+    def _build_minimal_intensity_geometry(self):
+        if not self.show_intensity_controls:
+            attr_map = {0: None, 1: None, 2: "intensity"}
+            # Keep the distant-light intensity handle offset from the pivot so it does not sit on top of the
+            # transform axes.
+            self._build_single_intensity_arrow(
+                (0, 0, 0), (0, 0, -1.0), attr_map, [2], [-1], persistent_head=True, interactive=False
+            )
 
 
 class IntensityMixinFor3DManipulators:
@@ -633,9 +751,10 @@ class IntensityMixinFor3DManipulators:
         self.build_shape_xform()
         with self._shape_xform:
             self._build_manipulator_geometry()
-        self.build_intensity_xform()
-        with self._intensity_xform:
-            self._build_intensity_geometry()
+        if self.show_intensity_controls:
+            self.build_intensity_xform()
+            with self._intensity_xform:
+                self._build_intensity_geometry()
 
 
 class SphereLightManipulator(IntensityMixinFor3DManipulators, AbstractLightManipulator):

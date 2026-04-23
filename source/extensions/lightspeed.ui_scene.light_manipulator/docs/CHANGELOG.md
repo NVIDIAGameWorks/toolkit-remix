@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Changed
+- Added persistent viewport toggles for light manipulator visibility and intensity controls
+- Integrated the manipulator toggles into the unified viewport Lights menu
+- Kept menubar and viewport-manipulator dependencies lazy or optional so isolated tests do not load Remix startup paths
+- Added direct coverage and golden images for the new manipulator visibility states
+
 ## [1.1.5]
 ### Changed
 - Applied new lint rules

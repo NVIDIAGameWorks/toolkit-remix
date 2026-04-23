@@ -19,8 +19,11 @@ __all__ = ["LightGizmosLayer"]
 
 import carb
 import omni.usd
+from lightspeed.common.constants import VIEWPORT_MENU_SHOW_BY_TYPE
 from lightspeed.trex.viewports.manipulators.global_selection import GlobalSelection
 from omni.kit.scene_view.opengl import ViewportOpenGLSceneView
+from omni.kit.viewport.menubar.core import CategoryCollectionItem, CategoryStateItem
+from omni.kit.viewport.menubar.display import get_instance as _get_menubar_instance
 from pxr import Tf, Usd, UsdGeom, UsdLux
 
 from .manipulator import LightGizmosManipulator
@@ -29,6 +32,8 @@ from .model import LightGizmosModel
 CARB_SETTING_GIZMO_SCALE = "/persistent/app/viewport/gizmo/scale"
 CARB_SETTING_CONST_GIZMO_SCALE = "/persistent/app/viewport/gizmo/constantScale"
 CARB_SETTING_CONST_SCALE_ENABLED = "/persistent/app/viewport/gizmo/constantScaleEnabled"
+SETTING_LIGHT_MANIPULATOR_VISIBLE = "/persistent/app/viewport/manipulator/lightManipulatorsVisible"
+SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE = "/persistent/app/viewport/manipulator/lightIntensityControlsVisible"
 
 
 class LightGizmosLayer:
@@ -53,10 +58,12 @@ class LightGizmosLayer:
 
         self._gizmo_scale = 1.0
 
-        self._light_visible_setting = f"/app/viewport/usdcontext-{self._usd_context_name}/scene/lights/visible"
-        carb.settings.get_settings().set(self._light_visible_setting, True)
+        self._light_visible_setting = f"/persistent/app/viewport/{self._viewport_api.id}/scene/lights/visible"
 
         isettings = carb.settings.get_settings()
+        isettings.set_default(self._light_visible_setting, True)
+        isettings.set_default(SETTING_LIGHT_MANIPULATOR_VISIBLE, True)
+        isettings.set_default(SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE, False)
         isettings.subscribe_to_node_change_events(self._light_visible_setting, self._light_gizmo_setting_change)
         isettings.subscribe_to_node_change_events(CARB_SETTING_GIZMO_SCALE, self._light_gizmo_setting_change)
         isettings.subscribe_to_node_change_events(CARB_SETTING_CONST_GIZMO_SCALE, self._light_gizmo_setting_change)
@@ -72,9 +79,36 @@ class LightGizmosLayer:
 
         # Trigger a settings update to obtain defaults
         self._light_gizmo_setting_change(None, carb.settings.ChangeEventType.CHANGED)
+        self._add_menubar_items()
 
     def __del__(self):
         self.destroy()
+
+    def _add_menubar_items(self):
+        inst = _get_menubar_instance()
+        if not inst:
+            self.__menubar_items = []
+            return
+        # The viewport menubar API only supports registering custom top-level items in Show By Type.
+        # Keep both light-related toggles under one owner here so we can expose a single Lights section.
+        lights_collection_item = CategoryCollectionItem(
+            "Lights",
+            [
+                CategoryStateItem("Gizmos", setting_path=self._light_visible_setting, hotkey_text="Ctrl + L"),
+                CategoryStateItem("Manipulators", setting_path=SETTING_LIGHT_MANIPULATOR_VISIBLE),
+                CategoryStateItem("Intensity Controls", setting_path=SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE),
+            ],
+        )
+        self.__menubar_items = [lights_collection_item]
+        for menubar_item in self.__menubar_items:
+            inst.register_custom_category_item(VIEWPORT_MENU_SHOW_BY_TYPE, menubar_item)
+
+    def _remove_menubar_items(self):
+        inst = _get_menubar_instance()
+        if not inst:
+            return
+        for item in self.__menubar_items:
+            inst.deregister_custom_category_item(VIEWPORT_MENU_SHOW_BY_TYPE, item)
 
     def _light_gizmo_setting_change(self, item: carb.dictionary.Item, event_type: carb.settings.ChangeEventType):
         if event_type != carb.settings.ChangeEventType.CHANGED:
@@ -126,6 +160,7 @@ class LightGizmosLayer:
         if self._scene_view and self._viewport_api:
             # Be a good citizen, and un-register the SceneView from Viewport updates
             self._viewport_api.remove_scene_view(self._scene_view)
+        self._remove_menubar_items()
         self._revoke_listeners()
         self._destroy_manipulators()
         # Remove our references to these objects
