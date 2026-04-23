@@ -347,7 +347,7 @@ class ProjectWizardCore:
         self._log_info(f"Add Sub-Layer to Project: {deps_capture_file}")
 
         if not dry_run:
-            capture_core.import_capture_layer(str(deps_capture_file))
+            capture_core.import_capture_layer(str(deps_capture_file), do_undo=False)
 
     async def _insert_existing_mods(self, replacement_core, existing_mods, mod_file, mods_directory, dry_run):
         if not existing_mods:
@@ -368,6 +368,7 @@ class ProjectWizardCore:
                     set_edit_target=False,
                     replace_existing=False,
                     sublayer_position=0,
+                    do_undo=False,
                 )
 
     async def _setup_existing_mod_project(self, replacement_core, mod_file, project_directory, dry_run):
@@ -384,6 +385,7 @@ class ProjectWizardCore:
                 set_edit_target=True,
                 replace_existing=False,
                 sublayer_position=0,
+                do_undo=False,
             )
 
         return project_mod_file
@@ -399,6 +401,7 @@ class ProjectWizardCore:
                 set_edit_target=True,
                 replace_existing=False,
                 sublayer_position=0,
+                do_undo=False,
             )
 
         return mod_file

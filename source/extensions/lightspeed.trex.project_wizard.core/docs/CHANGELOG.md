@@ -1,6 +1,9 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.1]
+### Fixed
+- Keep wizard-driven capture and replacement imports out of the undo stack during project setup
 
 ## [2.1.0]
 ### Added

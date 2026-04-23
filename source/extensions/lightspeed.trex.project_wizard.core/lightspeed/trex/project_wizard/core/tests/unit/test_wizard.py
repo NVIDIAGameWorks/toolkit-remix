@@ -315,6 +315,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
                 set_edit_target=True,
                 replace_existing=False,
                 sublayer_position=0,
+                do_undo=False,
             ),
             insert_sublayer_mock.call_args,
         )
@@ -345,6 +346,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
                 set_edit_target=True,
                 replace_existing=False,
                 sublayer_position=0,
+                do_undo=False,
             ),
             create_sublayer_mock.call_args,
         )
@@ -389,6 +391,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
                 set_edit_target=False,
                 replace_existing=False,
                 sublayer_position=0,
+                do_undo=False,
             ),
             insert_mock.call_args_list[0],
         )
@@ -399,6 +402,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
                 set_edit_target=False,
                 replace_existing=False,
                 sublayer_position=0,
+                do_undo=False,
             ),
             insert_mock.call_args_list[1],
         )
@@ -418,7 +422,7 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(1, insert_mock.call_count)
-        self.assertEqual(call(str(project_capture_dir / capture_file.name)), insert_mock.call_args)
+        self.assertEqual(call(str(project_capture_dir / capture_file.name), do_undo=False), insert_mock.call_args)
 
     async def test_save_authoring_layer_no_stage_quick_return(self):
         # Arrange

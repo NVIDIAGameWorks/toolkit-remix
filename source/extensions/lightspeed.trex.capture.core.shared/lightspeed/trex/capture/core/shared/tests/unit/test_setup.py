@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from unittest.mock import MagicMock, patch
+
 import omni.kit.test
 import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
@@ -113,6 +115,61 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         core = _CaptureCoreSetup("")
         result = core.is_capture_file("123456789")
         self.assertFalse(result)
+
+    async def test_get_capture_files_filters_and_sorts_capture_files(self):
+        # Arrange
+        core = _CaptureCoreSetup("")
+        core.set_directory("C:/project/deps/captures")
+
+        capture_a = MagicMock()
+        capture_a.is_file.return_value = True
+        capture_a.suffix = ".usda"
+        capture_a.__str__.return_value = "C:/project/deps/captures/capture_a.usda"
+
+        capture_b = MagicMock()
+        capture_b.is_file.return_value = True
+        capture_b.suffix = ".usda"
+        capture_b.__str__.return_value = "C:/project/deps/captures/capture_b.usda"
+
+        not_a_capture = MagicMock()
+        not_a_capture.is_file.return_value = True
+        not_a_capture.suffix = ".usda"
+        not_a_capture.__str__.return_value = "C:/project/deps/captures/not_a_capture.usda"
+
+        # Act
+        with (
+            patch(
+                "lightspeed.trex.capture.core.shared.setup.Path.iterdir",
+                return_value=[capture_a, not_a_capture, capture_b],
+            ),
+            patch.object(
+                _CaptureCoreSetup,
+                "is_capture_file",
+                side_effect=lambda path: path != "C:/project/deps/captures/not_a_capture.usda",
+            ),
+        ):
+            result = core.get_capture_files()
+
+        # Assert
+        self.assertEqual(
+            [
+                "C:/project/deps/captures/capture_b.usda",
+                "C:/project/deps/captures/capture_a.usda",
+            ],
+            result,
+        )
+
+    async def test_get_capture_files_returns_empty_when_directory_disappears(self):
+        # Arrange
+        core = _CaptureCoreSetup("")
+        core.set_directory("C:/project/deps/captures")
+
+        # Act
+        with patch("lightspeed.trex.capture.core.shared.setup.Path.iterdir", side_effect=FileNotFoundError):
+            result = core.get_capture_files()
+
+        # Assert
+        self.assertEqual([], result)
 
     async def test_async_get_replaced_hashes_two_meshes(self):
         """We set an override on 2 meshes"""

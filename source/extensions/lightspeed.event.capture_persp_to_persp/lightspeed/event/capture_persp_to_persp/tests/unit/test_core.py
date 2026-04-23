@@ -32,7 +32,7 @@ from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage, wait_stage_loading
 
 # from omni.kit.test_suite.helpers wait_stage_loading
-from pxr import Gf, Usd
+from pxr import Gf, Sdf, Usd
 
 _CONTEXT_NAME = ""
 
@@ -190,3 +190,55 @@ class TestCore(AsyncTestCase):
 
             # camera should be moved
             self.assertNotEqual(self.__get_camera_translate_from_stage(context), random_value)
+
+    async def test_set_perspective_camera_disables_undo_for_center_of_interest_update(self):
+        # Arrange
+        core = _EventCapturePerspToPerspCore()
+        camera_prim = MagicMock()
+        camera_prim.IsValid.return_value = True
+        camera_prim.GetPath.return_value = Sdf.Path("/OmniverseKit_Persp")
+        camera_prim.GetAttributes.return_value = []
+        camera_prim.GetAttribute.return_value.Get.return_value = Gf.Vec3d(3.0, 4.0, 0.0)
+
+        captured_camera_prim = MagicMock()
+        captured_camera_prim.IsValid.return_value = True
+        captured_camera_prim.GetPath.return_value = Sdf.Path("/CapturedCamera")
+
+        stage = MagicMock()
+        stage.GetSessionLayer.return_value = MagicMock()
+        stage.GetPrimAtPath.side_effect = lambda path: camera_prim if path == core._PERSP_PATH else captured_camera_prim
+
+        attr_position = MagicMock()
+        attr_position.GetName.return_value = "xformOp:translate"
+
+        # Act
+        with (
+            patch.object(core, "_context", MagicMock(get_stage=MagicMock(return_value=stage))),
+            patch.object(core, "_layer_manager", MagicMock(get_layer_of_type=MagicMock(return_value=MagicMock()))),
+            patch(
+                "lightspeed.event.capture_persp_to_persp.core.Usd.EditContext", return_value=contextlib.nullcontext()
+            ),
+            patch("lightspeed.event.capture_persp_to_persp.core.Sdf.CopySpec") as mock_copy_spec,
+            patch("lightspeed.event.capture_persp_to_persp.core.omni.usd.TransformHelper") as mock_transform_helper,
+            patch(
+                "lightspeed.event.capture_persp_to_persp.core.omni.kit.undo.disabled",
+                return_value=contextlib.nullcontext(),
+            ) as mock_disabled,
+            patch("lightspeed.event.capture_persp_to_persp.core.omni.kit.commands.execute") as mock_execute,
+        ):
+            mock_transform_helper.return_value.get_transform_attr.return_value = (attr_position, None, None, None)
+            core._set_perspective_camera()
+
+        # Assert
+        mock_copy_spec.assert_called_once()
+        mock_disabled.assert_called_once_with()
+        mock_execute.assert_called_once_with(
+            "ChangePropertyCommand",
+            prop_path="/OmniverseKit_Persp.omni:kit:centerOfInterest",
+            value=Gf.Vec3d(0, 0, -5.0),
+            prev=None,
+            type_to_create_if_not_exist=Sdf.ValueTypeNames.Vector3d,
+            is_custom=True,
+            usd_context_name=_CONTEXT_NAME,
+            variability=Sdf.VariabilityUniform,
+        )

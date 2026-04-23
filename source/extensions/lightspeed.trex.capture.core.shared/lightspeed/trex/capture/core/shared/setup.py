@@ -18,9 +18,11 @@
 import functools
 from pathlib import Path
 from collections.abc import Callable
+from contextlib import nullcontext
 
 import carb
 import omni.client
+import omni.kit.undo
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
@@ -131,25 +133,27 @@ class Setup:
                 if self.is_path_valid(str(captures_dir)):
                     self.__directory = str(captures_dir)
 
-    def import_capture_layer(self, path: str):
+    def import_capture_layer(self, path: str, do_undo: bool = True):
         carb.log_info(f"Import capture layer {path}")
         # copy over layer-meta-data from capture layer
         stage = self._context.get_stage()
         capture_stage = Usd.Stage.Open(path)
-        self.__copy_metadata_from_stage_to_stage(capture_stage, stage)
+        with nullcontext() if do_undo else omni.kit.undo.disabled():
+            self.__copy_metadata_from_stage_to_stage(capture_stage, stage)
 
-        # delete existing one if exists
-        self._layer_manager.remove_layers_of_type(LayerType.capture)
-        # add the capture layer (layer_type left as None -- the capture file already
-        # carries its own lightspeed_layer_type metadata and should not be re-saved)
-        self._layer_manager.create_layer(
-            path,
-            create_or_insert=False,
-            set_edit_target=False,
-            replace_existing=False,
-            sublayer_position=-1,
-        )
-        self._layer_manager.lock_layers_of_type(LayerType.capture)
+            # delete existing one if exists
+            self._layer_manager.remove_layers_of_type(LayerType.capture, do_undo=do_undo)
+            # add the capture layer (layer_type left as None -- the capture file already
+            # carries its own lightspeed_layer_type metadata and should not be re-saved)
+            self._layer_manager.create_layer(
+                path,
+                create_or_insert=False,
+                set_edit_target=False,
+                replace_existing=False,
+                sublayer_position=-1,
+                do_undo=do_undo,
+            )
+            self._layer_manager.lock_layers_of_type(LayerType.capture, do_undo=do_undo)
         _get_event_manager_instance().call_global_custom_event(constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value)
 
     def set_directory(self, path: str):
@@ -195,7 +199,10 @@ class Setup:
         if not self._check_directory():
             return []
 
-        result = [str(path) for path in Path(self.__directory).iterdir() if _get_files(path)]
+        try:
+            result = [str(path) for path in Path(self.__directory).iterdir() if _get_files(path)]
+        except FileNotFoundError:
+            return []
 
         # It will deadlock
         # result = []

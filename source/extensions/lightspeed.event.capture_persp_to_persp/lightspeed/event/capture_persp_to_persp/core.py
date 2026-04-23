@@ -22,6 +22,8 @@ import contextlib
 
 import carb
 import carb.settings
+import omni.kit.commands
+import omni.kit.undo
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
@@ -101,16 +103,17 @@ class EventCapturePerspToPerspCore(_ILSSEvent):
 
                 zlen = Gf.Vec3d(translate[0], translate[1], translate[2]).GetLength()
 
-                omni.kit.commands.execute(
-                    "ChangePropertyCommand",
-                    prop_path=str(camera_prim.GetPath().AppendProperty("omni:kit:centerOfInterest")),
-                    value=Gf.Vec3d(0, 0, -zlen),
-                    prev=None,
-                    type_to_create_if_not_exist=Sdf.ValueTypeNames.Vector3d,
-                    is_custom=True,
-                    usd_context_name=self._context_name,
-                    variability=Sdf.VariabilityUniform,
-                )
+                with omni.kit.undo.disabled():
+                    omni.kit.commands.execute(
+                        "ChangePropertyCommand",
+                        prop_path=str(camera_prim.GetPath().AppendProperty("omni:kit:centerOfInterest")),
+                        value=Gf.Vec3d(0, 0, -zlen),
+                        prev=None,
+                        type_to_create_if_not_exist=Sdf.ValueTypeNames.Vector3d,
+                        is_custom=True,
+                        usd_context_name=self._context_name,
+                        variability=Sdf.VariabilityUniform,
+                    )
 
     @omni.usd.handle_exception
     async def _deferred_set_perspective_camera(self):
