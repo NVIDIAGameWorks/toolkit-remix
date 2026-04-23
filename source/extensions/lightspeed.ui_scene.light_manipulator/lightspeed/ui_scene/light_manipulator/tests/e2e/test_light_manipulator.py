@@ -24,6 +24,7 @@ import omni.kit.app
 import omni.kit.test
 import omni.usd
 from lightspeed.ui_scene.light_manipulator import get_manipulator_class
+from lightspeed.ui_scene.light_manipulator.layer import SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE
 from omni.ui import scene as sc
 from omni.ui.tests.test_base import OmniUiTest
 from pxr import UsdGeom, UsdLux
@@ -46,6 +47,7 @@ class TestLightManipulator(OmniUiTest):
         await super().tearDown()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
+        carb.settings.get_settings().destroy_item(SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE)
 
     def create_and_select_test_light(self, light_prim_type: str):
         usd_context = omni.usd.get_context()
@@ -61,9 +63,12 @@ class TestLightManipulator(OmniUiTest):
 
         return stage.GetPrimAtPath("/TestLight")
 
-    async def draw_manipulator_and_compare(self, window, light_prim):
+    async def draw_manipulator_and_compare(
+        self, window, light_prim, *, intensity_controls_visible=False, golden_img_name=None
+    ):
         usd_context = omni.usd.get_context()
         viewport_layers = MagicMock()
+        viewport_layers.intensity_controls_visible = intensity_controls_visible
 
         with window.frame:
             # Camera matrices
@@ -78,7 +83,8 @@ class TestLightManipulator(OmniUiTest):
             # Add the manipulator into the SceneView's scene
             with scene_view.scene:
                 manipulator_class(
-                    viewport_layers, model=manipulator_class.model_class(light_prim, usd_context.get_name())
+                    viewport_layers,
+                    model=manipulator_class.model_class(light_prim, usd_context.get_name(), viewport_layers),
                 )
 
         for _ in range(10):
@@ -86,8 +92,14 @@ class TestLightManipulator(OmniUiTest):
 
         await self.wait_n_updates(10)
 
+        # Note: on Windows with display scaling >100%, captures are in physical pixels
+        # (e.g. 640×640 at 250% DPI) while goldens are 256×256, causing a resolution
+        # mismatch. ui.Workspace.get_dpi_scale() reads the OS DPI directly from the
+        # per-monitor-aware Kit process manifest; --/app/window/dpiScaleOverride=1.0
+        # cannot override it. Set Windows display scaling to 100% for local golden-
+        # image validation. CI runs at 100% DPI and is the canonical target.
         carb.log_info(f"Comparing golden with test image in dir: {OUTPUTS_DIR}")
-        await self.finalize_test(golden_img_dir=TEST_DATA_DIR)
+        await self.finalize_test(golden_img_dir=TEST_DATA_DIR, golden_img_name=golden_img_name)
 
     async def test_disklight_manipulator(self):
         window = await self.create_test_window(width=256, height=256)
@@ -101,7 +113,9 @@ class TestLightManipulator(OmniUiTest):
         light_x.AddRotateXOp().Set(30)
         light_x.AddRotateYOp().Set(45)
 
-        await self.draw_manipulator_and_compare(window, prim)
+        await self.draw_manipulator_and_compare(
+            window, prim, intensity_controls_visible=True, golden_img_name="test_disklight_manipulator.png"
+        )
 
     async def test_distantlight_manipulator(self):
         window = await self.create_test_window(width=256, height=256)
@@ -114,7 +128,9 @@ class TestLightManipulator(OmniUiTest):
         light_x.AddRotateXOp().Set(30)
         light_x.AddRotateYOp().Set(20)
 
-        await self.draw_manipulator_and_compare(window, prim)
+        await self.draw_manipulator_and_compare(
+            window, prim, intensity_controls_visible=True, golden_img_name="test_distantlight_manipulator.png"
+        )
 
     async def test_rectlight_manipulator(self):
         window = await self.create_test_window(width=256, height=256)
@@ -129,7 +145,9 @@ class TestLightManipulator(OmniUiTest):
         light_x.AddRotateXOp().Set(30)
         light_x.AddRotateYOp().Set(45)
 
-        await self.draw_manipulator_and_compare(window, prim)
+        await self.draw_manipulator_and_compare(
+            window, prim, intensity_controls_visible=True, golden_img_name="test_rectlight_manipulator.png"
+        )
 
     async def test_spherelight_manipulator(self):
         window = await self.create_test_window(width=256, height=256)
@@ -143,7 +161,9 @@ class TestLightManipulator(OmniUiTest):
         light_x.AddRotateXOp().Set(30)
         light_x.AddRotateYOp().Set(45)
 
-        await self.draw_manipulator_and_compare(window, prim)
+        await self.draw_manipulator_and_compare(
+            window, prim, intensity_controls_visible=True, golden_img_name="test_spherelight_manipulator.png"
+        )
 
     async def test_cylinderlight_manipulator(self):
         window = await self.create_test_window(width=256, height=256)
@@ -158,4 +178,60 @@ class TestLightManipulator(OmniUiTest):
         light_x.AddRotateXOp().Set(30)
         light_x.AddRotateYOp().Set(65)
 
-        await self.draw_manipulator_and_compare(window, prim)
+        await self.draw_manipulator_and_compare(
+            window, prim, intensity_controls_visible=True, golden_img_name="test_cylinderlight_manipulator.png"
+        )
+
+    async def test_disklight_manipulator_without_intensity_controls(self):
+        window = await self.create_test_window(width=256, height=256)
+
+        prim = self.create_and_select_test_light("DiskLight")
+        light = UsdLux.DiskLight(prim)
+        light.GetRadiusAttr().Set(5)
+        light.GetIntensityAttr().Set(500)
+        light_x = UsdGeom.Xformable(light)
+        light_x.AddRotateXOp().Set(30)
+        light_x.AddRotateYOp().Set(45)
+
+        await self.draw_manipulator_and_compare(
+            window,
+            prim,
+            intensity_controls_visible=False,
+            golden_img_name="test_disklight_manipulator_without_intensity_controls.png",
+        )
+
+    async def test_distantlight_manipulator_without_intensity_controls(self):
+        window = await self.create_test_window(width=256, height=256)
+
+        prim = self.create_and_select_test_light("DistantLight")
+        light = UsdLux.DistantLight(prim)
+        light.GetIntensityAttr().Set(25)
+        light_x = UsdGeom.Xformable(light)
+        light_x.AddRotateXOp().Set(30)
+        light_x.AddRotateYOp().Set(20)
+
+        await self.draw_manipulator_and_compare(
+            window,
+            prim,
+            intensity_controls_visible=False,
+            golden_img_name="test_distantlight_manipulator_without_intensity_controls.png",
+        )
+
+    async def test_rectlight_manipulator_without_intensity_controls(self):
+        window = await self.create_test_window(width=256, height=256)
+
+        prim = self.create_and_select_test_light("RectLight")
+        light = UsdLux.RectLight(prim)
+        light.GetHeightAttr().Set(10)
+        light.GetWidthAttr().Set(10)
+        light.GetIntensityAttr().Set(400)
+        light_x = UsdGeom.Xformable(light)
+        light_x.AddRotateXOp().Set(30)
+        light_x.AddRotateYOp().Set(45)
+
+        await self.draw_manipulator_and_compare(
+            window,
+            prim,
+            intensity_controls_visible=False,
+            golden_img_name="test_rectlight_manipulator_without_intensity_controls.png",
+        )
