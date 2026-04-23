@@ -119,15 +119,20 @@ class ModPackagingOutputWidget:
 
             self._open_button = ui.Button(
                 "Open in Explorer",
-                clicked_fn=self._open_output_path,
+                clicked_fn=self.open_output_path,
                 height=ui.Pixel(32),
                 identifier="open_in_explorer_button",
             )
 
-    def _open_output_path(self):
-        if not self._update_open_button_state():
+    def refresh_output_directory_state(self) -> bool:
+        return self._update_open_button_state()
+
+    def open_output_path(self):
+        output_directory = self._get_existing_output_directory()
+        if not output_directory:
+            self.refresh_output_directory_state()
             return
-        open_file_using_os_default(self._output_field.model.get_value_as_string())
+        open_file_using_os_default(output_directory, highlight=False)
 
     def _update_enable_state(self, *_):
         checked = self._override_checkbox.model.get_value_as_bool()
@@ -162,11 +167,18 @@ class ModPackagingOutputWidget:
         return is_valid
 
     def _update_open_button_state(self):
-        output_dir_exists = _OmniUrl(self._output_field.model.get_value_as_string()).exists
+        output_dir_exists = bool(self._get_existing_output_directory())
         self._open_button.enabled = output_dir_exists
         self._open_button.tooltip = "" if output_dir_exists else "The output directory does not exist."
 
         return output_dir_exists
+
+    def _get_existing_output_directory(self) -> str | None:
+        output_directory = self._output_field.model.get_value_as_string().strip()
+        if not output_directory:
+            return None
+        output_directory = _OmniUrl(output_directory).path
+        return output_directory if _OmniUrl(output_directory).exists else None
 
     def _on_output_field_changed(self, model):
         self._overlay_label.visible = not model.get_value_as_string()

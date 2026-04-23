@@ -122,7 +122,7 @@
 |  8  | Open in Explorer                            | This option facilitates the opening of the Packaging Directory; however, it may not always be available.                                                                              |
 |  9  | Selected Layers Panel                       | This panel provides a comprehensive list of layers that are eligible for packaging                                                                                                    |
 | 10  | Checked or Unchecked Layers                 | Be cautious when dealing with unchecked layers, as their exclusion may impact the integrity of the mod. Unchecked layers will not be copied into the package                          |
-| 11  | Redirect External Mod Dependencies Checkbox | This checkbox governs the decision to either redirect external mod dependencies or replicate them within the current mod. Careful consideration is advised when making this selection |
+| 11  | Packaging Mode Dropdown                     | Choose whether external dependencies are redirected, imported into the package, or imported and flattened into one packaged root layer. The info popup explains the side effects of each mode |
 | 12  | Package Button                              | Start the Packaging Process                                                                                                                                                           |
 
 ### Fixing Unresolved Assets

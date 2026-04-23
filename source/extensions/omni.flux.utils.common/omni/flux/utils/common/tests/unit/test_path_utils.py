@@ -254,6 +254,90 @@ class TestPathUtils(omni.kit.test.AsyncTestCase):
             with self.subTest(name=f"texture_to_udim_{text_in}"):
                 self.assertEqual(_path_utils.texture_to_udim(text_in), text_out)
 
+    async def test_open_file_using_os_default_should_highlight_path_on_windows_by_default(self):
+        # Arrange
+        file_path = "C:/test/file.usd"
+
+        with (
+            patch.object(_path_utils.platform, "system", return_value="Windows"),
+            patch.object(_path_utils.subprocess, "call") as subprocess_call_mock,
+        ):
+            # Act
+            _path_utils.open_file_using_os_default(file_path)
+
+        # Assert
+        subprocess_call_mock.assert_called_once_with(("explorer", "/select,", os.path.normpath(file_path)))
+
+    async def test_open_file_using_os_default_should_open_path_on_windows_when_highlight_disabled(self):
+        # Arrange
+        file_path = "C:/test/package"
+
+        with (
+            patch.object(_path_utils.platform, "system", return_value="Windows"),
+            patch.object(_path_utils.subprocess, "call") as subprocess_call_mock,
+        ):
+            # Act
+            _path_utils.open_file_using_os_default(file_path, highlight=False)
+
+        # Assert
+        subprocess_call_mock.assert_called_once_with(("explorer", os.path.normpath(file_path)))
+
+    async def test_open_file_using_os_default_should_reveal_path_on_macos_by_default(self):
+        # Arrange
+        file_path = "/test/file.usd"
+
+        with (
+            patch.object(_path_utils.platform, "system", return_value="Darwin"),
+            patch.object(_path_utils.subprocess, "call") as subprocess_call_mock,
+        ):
+            # Act
+            _path_utils.open_file_using_os_default(file_path)
+
+        # Assert
+        subprocess_call_mock.assert_called_once_with(("open", "-R", os.path.normpath(file_path)))
+
+    async def test_open_file_using_os_default_should_open_path_on_macos_when_highlight_disabled(self):
+        # Arrange
+        file_path = "/test/package"
+
+        with (
+            patch.object(_path_utils.platform, "system", return_value="Darwin"),
+            patch.object(_path_utils.subprocess, "call") as subprocess_call_mock,
+        ):
+            # Act
+            _path_utils.open_file_using_os_default(file_path, highlight=False)
+
+        # Assert
+        subprocess_call_mock.assert_called_once_with(("open", os.path.normpath(file_path)))
+
+    async def test_open_file_using_os_default_should_open_parent_directory_on_linux_by_default(self):
+        # Arrange
+        file_path = "/test/package/file.usd"
+
+        with (
+            patch.object(_path_utils.platform, "system", return_value="Linux"),
+            patch.object(_path_utils.subprocess, "call") as subprocess_call_mock,
+        ):
+            # Act
+            _path_utils.open_file_using_os_default(file_path)
+
+        # Assert
+        subprocess_call_mock.assert_called_once_with(("xdg-open", str(Path(os.path.normpath(file_path)).parent)))
+
+    async def test_open_file_using_os_default_should_open_path_on_linux_when_highlight_disabled(self):
+        # Arrange
+        file_path = "/test/package"
+
+        with (
+            patch.object(_path_utils.platform, "system", return_value="Linux"),
+            patch.object(_path_utils.subprocess, "call") as subprocess_call_mock,
+        ):
+            # Act
+            _path_utils.open_file_using_os_default(file_path, highlight=False)
+
+        # Assert
+        subprocess_call_mock.assert_called_once_with(("xdg-open", os.path.normpath(file_path)))
+
     async def test_elide_path_returns_original_when_within_limit(self):
         path = "/World/Mesh"
         self.assertEqual(_path_utils.elide_path(path, 40), path)

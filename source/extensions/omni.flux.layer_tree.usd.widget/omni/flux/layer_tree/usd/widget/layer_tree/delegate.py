@@ -196,7 +196,7 @@ class LayerDelegate(_TreeDelegateBase):
                                             scroll_y_max=0,
                                         ):
                                             with ui.HStack():
-                                                for _ in range(5):
+                                                for _ in range(10):
                                                     ui.Image(
                                                         "",
                                                         name="ActiveLayerBackground",

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.3]
+### Fixed
+- Increased the active layer background tiling so the authoring hatch covers wider layer rows
+
 ## [1.15.2]
 ### Changed
 - Applied new lint rules

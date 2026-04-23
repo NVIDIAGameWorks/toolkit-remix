@@ -41,15 +41,21 @@ platforms such as [ModDB](https://www.moddb.com/rtx/) or any other preferred loc
 This panel gathers the dependencies of the selected layers. Layers that are unchecked will be excluded from the
 packaging process. This functionality is useful for excluding development layers, for example.
 
-### Redirect External Mod Dependencies
+### Packaging Mode
 
-This section allows for specifying how to handle external mod dependencies during the packaging process.
+This dropdown controls how external mod dependencies are handled during packaging.
 
-* **Redirect:** This option replaces reference paths from "./deps/mods/\<Name>" to "../mods/\<Name>". This requires both
-  mods to be present in the `rtx-remix/mods` directory when setting up the game.
-* **Copy:** Selecting this option copies the external references into the packaging directory. If there is uncertainty
-  about which option to choose, selecting "Copy" is generally safer to ensure all dependencies are included in the
-  package.
+* **Redirect dependencies:** This keeps references pointed at installed dependency mods by replacing paths from
+  "./deps/mods/\<Name>" to "../mods/\<Name>". This creates the smallest package, but the dependency mods must also be
+  installed in the `rtx-remix/mods` directory.
+* **Import dependencies:** This copies the external references into the package and preserves the layered USD output.
+  This produces a standalone mod package.
+* **Flatten into one layer:** This first imports dependencies, then flattens the packaged result into one authored root
+  USD layer. This also prunes packaged content so only assets still referenced by the flattened result are kept.
+
+Packaging is non-destructive. The packaging process only writes to temporary packaging layers and the output package
+directory. The source project and its sublayers are not modified during packaging. The only exception is when unresolved
+asset fixes are explicitly applied through the fix dialog.
 
 ***
 

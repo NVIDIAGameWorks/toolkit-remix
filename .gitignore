@@ -86,6 +86,7 @@ deps/kit-sdk.packman.xml.user*
 # Ignore local agent config
 *.local.md
 *.local.json
+_consensus_*.json
 
 # Ignore local Codex root config/state files, but keep subdirectories like skills/ and hooks/ trackable
 .codex/*.toml

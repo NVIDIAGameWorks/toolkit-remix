@@ -24,6 +24,13 @@ Then rebase onto main:
 git rebase origin/main
 ```
 
+If the rebase stops for conflicts, resolve them and continue non-interactively. Do not run plain `git rebase --continue`.
+
+```powershell
+$env:GIT_EDITOR='py -3 -c "import sys; sys.exit(0)"'
+git rebase --continue
+```
+
 ## Step 2 — Check Current vs. Available Versions
 
 ```bash
