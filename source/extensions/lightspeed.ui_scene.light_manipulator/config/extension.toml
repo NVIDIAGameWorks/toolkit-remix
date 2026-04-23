@@ -1,5 +1,5 @@
 [package]
-version = "1.1.5"
+version = "1.2.0"
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Omni.UI Scene Sample For Manipulating Select Light"
 description = "This example show an 3D manipulator for a selected light"
@@ -14,7 +14,12 @@ icon = "data/icon.png"
 [dependencies]
 "lightspeed.trex.asset_replacements.core.shared" = {}
 "lightspeed.trex.contexts" = {}
-"lightspeed.trex.viewports.manipulators" = {}
+# Optional: loaded by the app bundle in production (ensures load ordering when present),
+# but not auto-enabled in the isolated test process. No Python symbols are imported from
+# this package; it is listed here solely for load ordering. Keeping it optional prevents
+# its transitive dependency on lightspeed.hydra.remix.core from loading in tests, which
+# would trigger a Remix initialization timeout and block the async event loop.
+"lightspeed.trex.viewports.manipulators" = { optional = true }
 "omni.appwindow" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.commands" = {}
@@ -25,6 +30,10 @@ icon = "data/icon.png"
 
 [[python.module]]
 name = "lightspeed.ui_scene.light_manipulator"
+
+[settings.persistent.app.viewport.manipulator]
+lightManipulatorsVisible = true
+lightIntensityControlsVisible = false
 
 [[test]]
 args = [

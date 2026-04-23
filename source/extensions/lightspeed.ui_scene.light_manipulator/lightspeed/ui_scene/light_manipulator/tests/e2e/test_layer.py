@@ -15,9 +15,12 @@
 * limitations under the License.
 """
 
+import carb
 import omni.kit.test
 import omni.usd
 from lightspeed.ui_scene.light_manipulator.layer import LightManipulatorLayer
+from lightspeed.ui_scene.light_manipulator.layer import SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE
+from lightspeed.ui_scene.light_manipulator.layer import SETTING_LIGHT_MANIPULATOR_VISIBLE
 from omni.kit.widget.viewport.api import ViewportAPI
 from omni.ui.tests.test_base import OmniUiTest
 from pxr import Usd
@@ -55,4 +58,58 @@ class TestLightLayer(OmniUiTest):
         self.assertEqual(len(layer.manipulators), len(lights))
 
         # make sure we can destroy layer properly
+        layer.destroy()
+
+    async def test_layer_uses_default_visible_setting(self):
+        vp_api = ViewportAPI("", 0, lambda: 0)
+        settings = carb.settings.get_settings()
+        settings.destroy_item(SETTING_LIGHT_MANIPULATOR_VISIBLE)
+
+        layer = LightManipulatorLayer({"viewport_api": vp_api})
+
+        self.assertTrue(layer.visible)
+
+        layer.destroy()
+        settings.destroy_item(SETTING_LIGHT_MANIPULATOR_VISIBLE)
+
+    async def test_layer_visibility_tracks_setting_changes(self):
+        vp_api = ViewportAPI("", 0, lambda: 0)
+        settings = carb.settings.get_settings()
+        layer = LightManipulatorLayer({"viewport_api": vp_api})
+
+        settings.set(SETTING_LIGHT_MANIPULATOR_VISIBLE, False)
+        layer._light_manipulator_setting_change(None, carb.settings.ChangeEventType.CHANGED)
+        self.assertFalse(layer.visible)
+
+        settings.set(SETTING_LIGHT_MANIPULATOR_VISIBLE, True)
+        layer._light_manipulator_setting_change(None, carb.settings.ChangeEventType.CHANGED)
+        self.assertTrue(layer.visible)
+
+        layer.destroy()
+
+    async def test_layer_uses_default_intensity_controls_setting(self):
+        vp_api = ViewportAPI("", 0, lambda: 0)
+        settings = carb.settings.get_settings()
+        settings.destroy_item(SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE)
+
+        layer = LightManipulatorLayer({"viewport_api": vp_api})
+
+        self.assertFalse(layer.intensity_controls_visible)
+
+        layer.destroy()
+        settings.destroy_item(SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE)
+
+    async def test_layer_intensity_controls_tracks_setting_changes(self):
+        vp_api = ViewportAPI("", 0, lambda: 0)
+        settings = carb.settings.get_settings()
+        layer = LightManipulatorLayer({"viewport_api": vp_api})
+
+        settings.set(SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE, False)
+        layer._light_manipulator_setting_change(None, carb.settings.ChangeEventType.CHANGED)
+        self.assertFalse(layer.intensity_controls_visible)
+
+        settings.set(SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE, True)
+        layer._light_manipulator_setting_change(None, carb.settings.ChangeEventType.CHANGED)
+        self.assertTrue(layer.intensity_controls_visible)
+
         layer.destroy()
