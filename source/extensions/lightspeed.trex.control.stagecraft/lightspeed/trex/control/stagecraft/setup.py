@@ -17,16 +17,21 @@
 
 import asyncio
 from asyncio import ensure_future
+from collections.abc import Callable
+from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
-from collections.abc import Callable
 
 import carb
 import lightspeed.trex.sidebar as sidebar
+import omni.client
 import omni.kit.app
+import omni.kit.commands
+import omni.kit.undo
 import omni.kit.window.file
 import omni.ui
 import omni.usd
+from omni.kit.viewport.menubar.lighting.menu_container import MenuContainer as _ViewportLightingMenuContainer
 from lightspeed.common.constants import GlobalEventNames
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
@@ -56,6 +61,10 @@ _DEFAULT_LAYOUT = "/app/trex/default_layout"
 
 
 class Setup:
+    _SWITCH_CAPTURE_COMMAND_NAME = "SwitchCaptureCommand"
+    _DISABLE_STAGE_OPEN_LIGHTING_UNDO = False
+    _LIGHTING_STAGE_OPEN_ORIGINAL = None
+
     def __init__(self):
         self._default_attr = {
             "_sub_wizard_completed": None,
@@ -79,6 +88,7 @@ class Setup:
             "_sub_key_unselect_all": None,
             "_sub_stage_event": None,
             "_context": None,
+            "_capture_swap_undo_dialog_open": False,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -127,6 +137,39 @@ class Setup:
         default_layout = settings.get(_DEFAULT_LAYOUT) or ""
         if default_layout == "stagecraft":
             load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
+        self.__install_stage_open_lighting_undo_patch()
+
+    @classmethod
+    def __install_stage_open_lighting_undo_patch(cls):
+        if cls._LIGHTING_STAGE_OPEN_ORIGINAL is not None:
+            return
+
+        cls._LIGHTING_STAGE_OPEN_ORIGINAL = _ViewportLightingMenuContainer._MenuContainer__on_stage_open  # noqa: SLF001
+
+        def _on_stage_open_with_undo_disabled(menu_container, menu_context, usd_context_name, usd_context, prev_mode):
+            undo_scope = (
+                omni.kit.undo.disabled()
+                if cls._DISABLE_STAGE_OPEN_LIGHTING_UNDO and usd_context_name == _TrexContexts.STAGE_CRAFT.value
+                else nullcontext()
+            )
+            with undo_scope:
+                return cls._LIGHTING_STAGE_OPEN_ORIGINAL(
+                    menu_container, menu_context, usd_context_name, usd_context, prev_mode
+                )
+
+        _ViewportLightingMenuContainer._MenuContainer__on_stage_open = _on_stage_open_with_undo_disabled  # noqa: SLF001
+
+    @classmethod
+    def __uninstall_stage_open_lighting_undo_patch(cls):
+        if cls._LIGHTING_STAGE_OPEN_ORIGINAL is None:
+            return
+
+        _ViewportLightingMenuContainer._MenuContainer__on_stage_open = cls._LIGHTING_STAGE_OPEN_ORIGINAL  # noqa: SLF001
+        cls._LIGHTING_STAGE_OPEN_ORIGINAL = None
+
+    @classmethod
+    def __set_stage_open_lighting_undo_disabled(cls, value: bool):
+        cls._DISABLE_STAGE_OPEN_LIGHTING_UNDO = value
 
     def prompt_if_unsaved_project(self, callback: Callable[[], None], action_text: str) -> bool:
         """
@@ -223,7 +266,17 @@ class Setup:
 
     def _on_import_layer(self, layer_type: _LayerType, path: str, existing_file: bool = False):
         if layer_type == _LayerType.capture:
-            self._capture_core_setup.import_capture_layer(path)
+            capture_layer = self._capture_core_setup.get_layer()
+            requested_capture_identifier = omni.client.normalize_url(path) if path else None
+            current_capture_identifier = capture_layer.identifier if capture_layer else None
+            if current_capture_identifier is None:
+                self._capture_core_setup.import_capture_layer(path, do_undo=False)
+            elif requested_capture_identifier != current_capture_identifier:
+                omni.kit.commands.execute(
+                    self._SWITCH_CAPTURE_COMMAND_NAME,
+                    new_capture_path=path,
+                    context_name=self._context_name,
+                )
         elif layer_type == _LayerType.replacement:
             self._replacement_core_setup.import_replacement_layer(path, use_existing_layer=existing_file)
         self._update_modding_button_state()
@@ -239,6 +292,7 @@ class Setup:
             wizard.set_payload({_ProjectWizardKeys.PROJECT_FILE.value: Path(path)})
             wizard.show_project_wizard(reset_page=True)
             return
+        self.__set_stage_open_lighting_undo_disabled(True)
         omni.kit.window.file.open_stage(path)
         load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
 
@@ -251,7 +305,35 @@ class Setup:
     def _on_unselect_all(self):
         self._context.get_selection().clear_selected_prim_paths()
 
+    def _show_capture_swap_undo_dialog(self):
+        if self._capture_swap_undo_dialog_open:
+            return
+
+        self._capture_swap_undo_dialog_open = True
+
+        def _close_dialog(undo_capture_change: bool = False):
+            self._capture_swap_undo_dialog_open = False
+            if undo_capture_change:
+                self._stage_core_setup.undo()
+
+        _TrexMessageDialog(
+            message="Undoing this action will change the loaded capture.\n\nDo you want to load the previous capture?",
+            title="Undo Capture Change",
+            ok_label="Load Capture",
+            cancel_label="Cancel",
+            ok_handler=lambda: _close_dialog(undo_capture_change=True),
+            cancel_handler=_close_dialog,
+            on_window_closed_fn=_close_dialog,
+        )
+
     def _on_undo(self):
+        if self._capture_swap_undo_dialog_open:
+            return
+        if omni.kit.undo.can_undo():
+            undo_stack = list(omni.kit.undo.get_undo_stack())
+            if undo_stack and undo_stack[-1].name == self._SWITCH_CAPTURE_COMMAND_NAME:
+                self._show_capture_swap_undo_dialog()
+                return
         self._stage_core_setup.undo()
 
     def _on_redo(self):
@@ -279,6 +361,7 @@ class Setup:
         await omni.kit.app.get_app().next_update_async()
         self._update_modding_button_state()
         if event_type == int(omni.usd.StageEventType.OPENED):
+            self.__set_stage_open_lighting_undo_disabled(False)
             self._check_capture_on_open()
 
     def _check_capture_on_open(self):
@@ -299,7 +382,7 @@ class Setup:
         wizard.show_project_wizard(reset_page=True)
 
     def _on_capture_repair_completed(self, payload):
-        """Import the user-selected capture layer into the already-open stage."""
+        """Import the user-selected capture layer into the already-open stage without recording undo."""
         capture_file = payload.get(_ProjectWizardKeys.CAPTURE_FILE.value)
         if not capture_file:
             return
@@ -312,7 +395,7 @@ class Setup:
             / _REMIX_CAPTURE_FOLDER
             / Path(str(capture_file)).name
         )
-        self._capture_core_setup.import_capture_layer(str(capture_path))
+        self._capture_core_setup.import_capture_layer(str(capture_path), do_undo=False)
 
     def _update_modding_button_state(self):
         if not self.__sub_sidebar_items:
@@ -326,4 +409,6 @@ class Setup:
         self.__sub_sidebar_items.set_enabled(bool(has_project))
 
     def destroy(self):
+        self.__set_stage_open_lighting_undo_disabled(False)
+        self.__uninstall_stage_open_lighting_undo_patch()
         _reset_default_attrs(self)

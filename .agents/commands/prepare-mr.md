@@ -61,7 +61,16 @@ which gh 2>/dev/null && echo "github" || (which glab 2>/dev/null && echo "gitlab
      glab mr create --target-branch <target-branch> --title "<title>" --description "<body>" --draft --remove-source-branch=true --squash-before-merge=true
      ```
 
-  4. Preserve any GitLab-enforced merge checks that cannot be versioned in-repo (for example, merge method, pipeline
+  4. When updating an existing GitLab MR description from PowerShell, prefer:
+
+     ```bash
+     glab api "projects/:fullpath/merge_requests/<iid>" -X PUT -F "description=@<path-to-utf8-no-bom-file>"
+     ```
+
+     Do not rely on `glab mr update -d "<multiline body>"` for large multiline descriptions in PowerShell, and do not
+     send a raw JSON body with `glab api --input` for this endpoint.
+
+  5. Preserve any GitLab-enforced merge checks that cannot be versioned in-repo (for example, merge method, pipeline
      requirements, and discussion-resolution requirements).
 - **Neither**: Print the push URL and tell the user to create the MR/PR manually.
 

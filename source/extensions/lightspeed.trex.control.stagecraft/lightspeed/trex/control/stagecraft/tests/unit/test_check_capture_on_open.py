@@ -159,7 +159,7 @@ class TestCheckCaptureOnOpen(omni.kit.test.AsyncTestCase):
 
         # Assert
         expected_path = str(Path("/some/project/deps/captures/my_capture.usda"))
-        setup._capture_core_setup.import_capture_layer.assert_called_once_with(expected_path)
+        setup._capture_core_setup.import_capture_layer.assert_called_once_with(expected_path, do_undo=False)
 
     async def test_capture_repair_no_import_when_no_capture_selected(self):
         """_on_capture_repair_completed should do nothing when no capture was selected."""

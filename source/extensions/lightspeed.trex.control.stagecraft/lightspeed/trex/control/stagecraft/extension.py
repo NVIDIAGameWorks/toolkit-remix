@@ -22,6 +22,7 @@ from lightspeed.events_manager import get_instance as _get_event_manager_instanc
 from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 
+from . import commands
 from .setup import Setup
 from .unsaved_stage import EventUnsavedStageOnShutdown
 
@@ -49,6 +50,7 @@ class TrexStageCraftControlExtension(omni.ext.IExt):
         carb.log_info("[lightspeed.trex.control.stagecraft] Startup")
 
         trex_contexts_instance().create_usd_context(_TrexContexts.STAGE_CRAFT)
+        commands.register_commands()
 
         instance = _create_instance()
         self._unsaved_event = EventUnsavedStageOnShutdown()
@@ -62,4 +64,5 @@ class TrexStageCraftControlExtension(omni.ext.IExt):
         if _stagecraft_control_instance:
             _stagecraft_control_instance.destroy()
         _stagecraft_control_instance = None
+        commands.unregister_commands()
         self._unsaved_event = None
