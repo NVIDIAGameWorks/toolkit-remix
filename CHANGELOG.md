@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote the developer profiling guide (`docs_dev/tools/profiling.md`) for Kit 106.5 with three capture recipes, Python zone-naming conventions, and thread-visibility tips; added agent rules on docs-page writing style and on treating vendored Kit extensions under `_build/**/extscache/` as read-only
 - Excluded dev-local directories from the Sphinx docs build (`.worktrees`, `.ruff_cache`, `_compiler`, `_repo`, `_testoutput`, `outputs`, `website`) to align `sphinx_exclude_patterns` with `.gitignore` and stop parallel-checkout / build-output content from leaking into published docs
 - REMIX-5212: Expanded from a particle-only bounds fix into a broader property-panel refactor that centralizes bounds/step adapter normalization and routes typed clamping through shared drag widgets across particle, logic, generic USD, and materials workflows.
+- REMIX-5331: Added non-destructive packaging options with redirect/import/flatten modes, USD output extension choices, package-folder opening, and sequential packaging fixes
 
 ### Fixed
 

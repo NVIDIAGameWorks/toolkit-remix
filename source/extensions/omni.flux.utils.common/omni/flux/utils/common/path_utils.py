@@ -420,13 +420,23 @@ def texture_to_udim(file_path: _OmniUrl | Path | str) -> str:
     return str(file_url)
 
 
-def open_file_using_os_default(path: str):
+def open_file_using_os_default(path: str, highlight: bool = True):
+    normalized_path = os.path.normpath(path)
     if platform.system() == "Darwin":  # macOS
-        subprocess.call(("open", path))
+        if highlight:
+            subprocess.call(("open", "-R", normalized_path))
+            return
+        subprocess.call(("open", normalized_path))
     elif platform.system() == "Windows":  # Windows
-        subprocess.call(("explorer", "/select,", os.path.normpath(path)))
+        if highlight:
+            subprocess.call(("explorer", "/select,", normalized_path))
+            return
+        subprocess.call(("explorer", normalized_path))
     else:  # linux variants
-        subprocess.call(("xdg-open", path))
+        if highlight:
+            subprocess.call(("xdg-open", str(Path(normalized_path).parent)))
+            return
+        subprocess.call(("xdg-open", normalized_path))
 
 
 def get_invalid_extensions(

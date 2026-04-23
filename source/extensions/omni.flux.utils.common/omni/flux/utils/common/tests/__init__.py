@@ -16,7 +16,10 @@
 """
 
 from .unit.test_decorators import TestLimitRecursion
+from .unit.test_event import TestEvent
+from .unit.test_icons import TestIcons
 from .unit.test_layer_utils import TestLayerUtils
+from .unit.test_lights import TestLights
 from .unit.test_mouse import TestGetMousePosition, TestIsPointInsideWidget
 from .unit.test_omni_url import TestOmniUrl
 from .unit.test_os_drop_router import TestWidgetDropRouter
@@ -24,16 +27,21 @@ from .unit.test_path_utils import TestPathUtils
 from .unit.test_serialize import TestSerializer
 from .unit.test_symlink import TestSymlink
 from .unit.test_task_budget import TestAdaptiveTaskBudget
+from .unit.test_version import TestVersion
 
 __all__ = [
     "TestAdaptiveTaskBudget",
+    "TestEvent",
     "TestGetMousePosition",
+    "TestIcons",
     "TestIsPointInsideWidget",
     "TestLayerUtils",
+    "TestLights",
     "TestLimitRecursion",
     "TestOmniUrl",
     "TestPathUtils",
     "TestSerializer",
     "TestSymlink",
+    "TestVersion",
     "TestWidgetDropRouter",
 ]
