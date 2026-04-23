@@ -28,7 +28,6 @@ from typing import Any
 import carb
 import omni.client
 import omni.kit.app
-import omni.kit.commands
 import omni.usd
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
 from lightspeed.common.constants import REMIX_DEPENDENCIES_FOLDER as _REMIX_DEPENDENCIES_FOLDER
@@ -39,6 +38,7 @@ from lightspeed.layer_manager.core import LSS_LAYER_MOD_NAME as _LSS_LAYER_MOD_N
 from lightspeed.layer_manager.core import LSS_LAYER_MOD_NOTES as _LSS_LAYER_MOD_NOTES
 from lightspeed.layer_manager.core import LSS_LAYER_MOD_VERSION as _LSS_LAYER_MOD_VERSION
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
+from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -48,6 +48,9 @@ from omni.kit.usd.collect.omni_client_wrapper import OmniClientWrapper as _OmniC
 from omni.kit.usd.layers import LayerUtils as _LayerUtils
 from pxr import Sdf, Usd, UsdUtils
 
+from .enum import get_packaged_root_export_args as _get_packaged_root_export_args
+from .enum import get_packaged_root_output_suffix as _get_packaged_root_output_suffix
+from .enum import ModPackagingMode as _ModPackagingMode
 from .items import ModPackagingSchema as _ModPackagingSchema
 
 # Aligned with omni.flux.asset_importer.core.data_models.constants.SUPPORTED_TEXTURE_EXTENSIONS
@@ -176,24 +179,36 @@ class PackagingCore:
             )
             self.current_count += 1
 
+            packaging_root_layer = temp_root_mod_layer
+            packaging_temp_layers = temp_layers
+
             # Get the updated external mods dependencies pointing to the installed external mods
-            if model.redirect_external_dependencies:
+            if model.packaging_mode == _ModPackagingMode.REDIRECT:
                 mod_dependencies, redirected_dependencies = self._get_redirected_dependencies(
                     temp_root_mod_layer, [m for m in model.mod_layer_paths if m not in model.selected_layer_paths]
                 )
-            # No dependencies will be redirected
             else:
                 mod_dependencies = set()
                 redirected_dependencies = set()
 
+            if model.packaging_mode == _ModPackagingMode.FLATTEN:
+                packaging_root_layer = await self._flatten_temp_root_layer(temp_root_mod_layer)
+                if self._cancel_token:
+                    return
+                packaging_temp_layers = [packaging_root_layer.identifier]
+                stage = await self._initialize_usd_stage(model.context_name, packaging_root_layer.identifier)
+                if not stage:
+                    raise RuntimeError("Unable to open the flattened temporary root stage.")
+
             # Don't use the omni collector because it's not flexible enough
             collect_errors, collected_failed_assets = await self._collect(
                 stage,
-                temp_root_mod_layer,
-                temp_layers,
+                packaging_root_layer,
+                packaging_temp_layers,
                 model.output_directory,
                 redirected_dependencies,
                 model.ignored_errors,
+                model.output_format,
             )
             errors.extend(collect_errors)
             failed_assets = collected_failed_assets
@@ -202,12 +217,11 @@ class PackagingCore:
                 exported_mod_layer = Sdf.Layer.FindOrOpen(
                     str(
                         _OmniUrl(model.output_directory)
-                        / _OmniUrl(self._temp_files.get(_OmniUrl(temp_root_mod_layer.identifier).path)).name
+                        / self._get_packaged_root_output_name(model.mod_layer_paths[0], model.output_format)
                     )
                 )
                 if exported_mod_layer:
                     errors.extend(self._update_layer_metadata(model, exported_mod_layer, mod_dependencies, True))
-                    errors.extend(self._update_layer_metadata(model, root_mod_layer, mod_dependencies, False))
                 else:
                     errors.append("Unable to find the exported mod file.")
         except Exception as e:  # noqa: BLE001
@@ -230,6 +244,30 @@ class PackagingCore:
         self._temp_files[temp_path] = layer_url.name
         return temp_path
 
+    @staticmethod
+    def _get_packaged_root_output_name(root_layer_path: Path | str, output_format: _UsdExtensions | None) -> str:
+        root_layer_url = _OmniUrl(root_layer_path)
+        if output_format is not None:
+            return Path(root_layer_url.name).with_suffix(_get_packaged_root_output_suffix(output_format)).name
+        return root_layer_url.name
+
+    @staticmethod
+    def _export_packaged_layer(
+        layer: Sdf.Layer,
+        output_path: Path | str,
+        output_format: _UsdExtensions | None,
+        *,
+        is_packaged_root: bool = False,
+    ):
+        if not is_packaged_root or output_format is None:
+            layer.Export(str(output_path))
+            return
+        export_args = _get_packaged_root_export_args(output_format)
+        if export_args:
+            layer.Export(str(output_path), args=export_args)
+            return
+        layer.Export(str(output_path))
+
     @omni.usd.handle_exception
     async def _clean_temp_files(self):
         self._packaging_new_stage("Cleaning up temporary layers...", len(self._temp_files))
@@ -243,19 +281,56 @@ class PackagingCore:
         self._temp_files.clear()
 
     @omni.usd.handle_exception
+    async def _flatten_temp_root_layer(self, temp_root_layer: Sdf.Layer) -> Sdf.Layer:
+        if self._cancel_token:
+            return temp_root_layer
+
+        self._packaging_new_stage("Preparing packaged stage for flattening...", 4)
+
+        stage = Usd.Stage.Open(temp_root_layer.identifier)
+        if not stage:
+            raise RuntimeError(f"Unable to open the temporary root mod layer at path: {temp_root_layer.identifier}")
+
+        stage.Load()
+        self.current_count += 1
+
+        if self._cancel_token:
+            return temp_root_layer
+
+        self._packaging_update_status("Flattening packaged layers...")
+        flattened_layer = stage.Flatten()
+        self.current_count += 1
+
+        flattened_custom_data = dict(flattened_layer.customLayerData)
+        flattened_custom_data.update(temp_root_layer.customLayerData)
+        flattened_layer.customLayerData = flattened_custom_data
+
+        if self._cancel_token:
+            return temp_root_layer
+
+        self._packaging_update_status("Writing flattened package root...")
+        flattened_temp_path = await self._make_temp_layer(temp_root_layer.identifier)
+        original_root_path = self._get_original_path(temp_root_layer.identifier)
+        if original_root_path:
+            self._temp_files[_OmniUrl(flattened_temp_path).path] = _OmniUrl(original_root_path).name
+        flattened_layer.Export(flattened_temp_path)
+        self.current_count += 1
+
+        if self._cancel_token:
+            return temp_root_layer
+
+        self._packaging_update_status("Finalizing flattened package root...")
+        flattened_temp_layer = Sdf.Layer.FindOrOpen(flattened_temp_path)
+        if not flattened_temp_layer:
+            raise RuntimeError(f"Unable to open the flattened temporary root layer at path: {flattened_temp_path}")
+        self.current_count += 1
+
+        return flattened_temp_layer
+
+    @omni.usd.handle_exception
     async def _initialize_usd_stage(self, context_name: str, root_mod_layer_path: str) -> Usd.Stage | None:
-        # Make sure the context exists
-        context = omni.usd.get_context(context_name)
-        if not context:
-            context = omni.usd.create_context(context_name)
-
-        if not context:
-            return None
-
-        # Using `open_stage_async` causes a crash here
-        context.open_stage(root_mod_layer_path)
-
-        return context.get_stage()
+        del context_name
+        return Usd.Stage.Open(root_mod_layer_path)
 
     @omni.usd.handle_exception
     async def _filter_sublayers(
@@ -281,12 +356,10 @@ class PackagingCore:
                 sublayer_position = _LayerUtils.get_sublayer_position_in_parent(parent_layer.identifier, original_path)
                 # If position is -1, the item was not found, so we should not remove a random layer
                 if sublayer_position >= 0:
-                    omni.kit.commands.execute(
-                        "RemoveSublayerCommand",
-                        layer_identifier=parent_layer.identifier,
-                        sublayer_position=sublayer_position,
-                        usd_context=context_name,
-                    )
+                    parent_sublayers = list(parent_layer.subLayerPaths)
+                    parent_sublayers.pop(sublayer_position)
+                    parent_layer.subLayerPaths = parent_sublayers
+                    parent_layer.Save()
             return temp_layers
 
         self.total_count += len(temp_layer.subLayerPaths)
@@ -315,6 +388,7 @@ class PackagingCore:
         output_directory: Path | str,
         redirected_dependencies: set[str],
         ignored_errors: list[tuple[str, str, str]] | None,
+        output_format: _UsdExtensions | None,
     ) -> tuple[list[str], list[tuple[str, str, str]]]:
         errors = []
         failed_assets = []
@@ -424,8 +498,14 @@ class PackagingCore:
                     return errors, failed_assets
                 output_path = _OmniUrl(output_directory) / relative_output_path
                 input_path = self._get_original_path(temp_input_path)
+                is_packaged_root = temp_input_path == _OmniUrl(temp_root_layer.identifier).path
                 if input_path:
-                    output_path = output_path.with_name(_OmniUrl(input_path).name)
+                    output_name = (
+                        self._get_packaged_root_output_name(input_path, output_format)
+                        if is_packaged_root
+                        else _OmniUrl(input_path).name
+                    )
+                    output_path = output_path.with_name(output_name)
 
                 # Create all the missing folders in the tree
                 cumulative_url = None
@@ -441,7 +521,9 @@ class PackagingCore:
                 # If the dependency is a layer, export it to the output directory to keep references changes applied
                 input_layer = temp_layer_paths.get(temp_input_path)
                 if input_layer:
-                    input_layer.Export(str(output_path))
+                    self._export_packaged_layer(
+                        input_layer, output_path, output_format, is_packaged_root=is_packaged_root
+                    )
                 # Otherwise simply copy the dependency to the output directory
                 else:
                     await _OmniClientWrapper.copy(temp_input_path, str(output_path))
@@ -449,7 +531,7 @@ class PackagingCore:
                 self.current_count += 1
         # Make sure to bubble up failures
         except Exception as e:  # noqa: BLE001
-            errors.append(e)
+            errors.append(str(e))
 
         # Clear assets marked for collection now that they were copied
         self._collected_dependencies.clear()
@@ -717,6 +799,10 @@ class PackagingCore:
         self._status = status
         self._current_count = 0
         self._total_count = total_count
+        self._packaging_progress()
+
+    def _packaging_update_status(self, status: str):
+        self._status = status
         self._packaging_progress()
 
     def _packaging_progress(self):

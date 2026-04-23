@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
-from .unit.test_subscription_lifecycle import TestPackagingPaneSubscriptionLifecycle
-
-__all__ = ["TestPackagingPaneSubscriptionLifecycle"]
+from .unit.test_setup_ui import (
+    TestPackagingPaneCompletion,
+    TestPackagingPaneMode,
+    TestPackagingPaneSubscriptionLifecycle,
+)

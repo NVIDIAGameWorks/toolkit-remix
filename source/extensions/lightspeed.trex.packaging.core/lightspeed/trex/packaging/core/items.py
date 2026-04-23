@@ -19,11 +19,16 @@ import re
 from pathlib import Path
 
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
+from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from .enum import ModPackagingMode
 
 
 class ModPackagingSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     context_name: str = Field(
         description="The context name to use for the packaging stage. Should be a unique context name."
     )
@@ -39,14 +44,21 @@ class ModPackagingSchema(BaseModel):
         description="The directory where the packaged mod should be stored.\n\n"
         "WARNING: The directory will be emptied prior to packaging the mod.",
     )
-    redirect_external_dependencies: bool | None = Field(
-        default=True,
-        description="Whether the reference dependencies taken from external mods should be redirected or copied in "
-        "this mod's package during the packaging process.\n\n"
-        "- Redirecting will allow the mod to use the installed mod's dependencies so updating a dependency will be as "
-        "simple as to install the updated dependency.\n"
-        "- Copying will make sure the mod is completely standalone so no other mods need to be installed for this mod "
-        "to be loaded successfully.",
+    packaging_mode: ModPackagingMode = Field(
+        default=ModPackagingMode.FLATTEN,
+        description="How external dependencies should be handled during packaging.\n\n"
+        "- redirect: Keep external dependency references pointed at installed mods.\n"
+        "- import: Copy dependency content into the package and preserve the layered USD output.\n"
+        "- flatten: Copy dependency content into the package, flatten the packaged result into one layer, and prune "
+        "unused assets that are no longer referenced after flattening.",
+    )
+    output_format: _UsdExtensions | None = Field(
+        default=_UsdExtensions.USD,
+        description="How the packaged root USD layer should be written.\n\n"
+        "- None: Keep the source mod root layer extension.\n"
+        "- UsdExtensions.USD: Write the packaged root layer with the `.usd` extension.\n"
+        "- UsdExtensions.USDA: Write the packaged root layer as human-readable `.usda`.\n"
+        "- UsdExtensions.USDC: Write the packaged root layer as binary `.usdc`.",
     )
     mod_name: str = Field(description="The display name used for the mod in the RTX Remix Runtime.")
     mod_version: str = Field(description="The mod version. Used when building dependency lists.")

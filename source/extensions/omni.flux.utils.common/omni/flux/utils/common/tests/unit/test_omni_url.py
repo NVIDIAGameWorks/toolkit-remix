@@ -16,8 +16,10 @@
 """
 
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 import omni.kit.test
+from omni.flux.utils.common import omni_url as _omni_url
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.kit.test_suite.helpers import get_test_data_path
 
@@ -46,6 +48,111 @@ class TestOmniUrl(omni.kit.test.AsyncTestCase):
 
         self.assertTrue((OmniUrl(f"file:{local_path_str}") / "file.txt").exists)
         self.assertFalse((OmniUrl(f"file:{local_path_str}") / "nofile.txt").exists)
+
+    async def test_iterdir_returns_no_children_when_omni_client_list_fails(self):
+        # Arrange
+        url = OmniUrl("omniverse://host.com/path")
+
+        with patch.object(
+            _omni_url.omni.client, "list", return_value=(_omni_url.omni.client.Result.ERROR_NOT_FOUND, [])
+        ):
+            # Act
+            result = list(url.iterdir())
+
+        # Assert
+        self.assertEqual([], result)
+
+    async def test_is_directory_returns_true_for_directory_entries(self):
+        # Arrange
+        url = OmniUrl("omniverse://host.com/path")
+        entry = Mock(flags=_omni_url.omni.client.ItemFlags.CAN_HAVE_CHILDREN)
+
+        with patch.object(_omni_url.omni.client, "stat", return_value=(_omni_url.omni.client.Result.OK, entry)):
+            # Act
+            result = url.is_directory
+
+        # Assert
+        self.assertTrue(result)
+
+    async def test_is_file_returns_true_for_file_entries(self):
+        # Arrange
+        url = OmniUrl("omniverse://host.com/path/file.usd")
+        entry = Mock(flags=0)
+
+        with patch.object(_omni_url.omni.client, "stat", return_value=(_omni_url.omni.client.Result.OK, entry)):
+            # Act
+            result = url.is_file
+
+        # Assert
+        self.assertTrue(result)
+
+    async def test_entry_returns_none_when_stat_fails(self):
+        # Arrange
+        url = OmniUrl("omniverse://host.com/path/file.usd")
+
+        with patch.object(
+            _omni_url.omni.client, "stat", return_value=(_omni_url.omni.client.Result.ERROR_NOT_FOUND, None)
+        ):
+            # Act
+            result = url.entry
+
+        # Assert
+        self.assertIsNone(result)
+
+    async def test_exists_returns_true_without_stat_when_list_entry_is_cached(self):
+        # Arrange
+        cached_entry = Mock()
+        url = OmniUrl("omniverse://host.com/path/file.usd", list_entry=cached_entry)
+
+        with patch.object(_omni_url.omni.client, "stat") as stat_mock:
+            # Act
+            result = url.exists
+
+        # Assert
+        self.assertTrue(result)
+        stat_mock.assert_not_called()
+
+    async def test_delete_delegates_to_omni_client_delete_with_the_original_url(self):
+        # Arrange
+        url = OmniUrl("omniverse://host.com/path/file.usd")
+
+        with patch.object(_omni_url.omni.client, "delete", return_value="deleted") as delete_mock:
+            # Act
+            result = url.delete()
+
+        # Assert
+        self.assertEqual("deleted", result)
+        delete_mock.assert_called_once_with("omniverse://host.com/path/file.usd")
+
+    async def test_validate_omni_url_for_pydantic_returns_existing_instance(self):
+        # Arrange
+        url = OmniUrl("omniverse://host.com/path/to/file.usd")
+
+        # Act
+        result = OmniUrl._validate_omni_url_for_pydantic(url)
+
+        # Assert
+        self.assertIs(url, result)
+
+    async def test_validate_omni_url_for_pydantic_converts_path_instances(self):
+        # Arrange
+        path = Path("relative/path.usd")
+
+        # Act
+        result = OmniUrl._validate_omni_url_for_pydantic(path)
+
+        # Assert
+        self.assertEqual(OmniUrl("relative/path.usd"), result)
+
+    async def test_validate_omni_url_for_pydantic_raises_type_error_for_invalid_types(self):
+        # Arrange
+
+        # Act
+        with self.assertRaisesRegex(TypeError, "Expected OmniUrl, Path, or str") as error:
+            OmniUrl._validate_omni_url_for_pydantic(123)
+
+        # Assert
+        self.assertIsInstance(error.exception, TypeError)
 
     async def test_is_hashable(self):
         # Assert

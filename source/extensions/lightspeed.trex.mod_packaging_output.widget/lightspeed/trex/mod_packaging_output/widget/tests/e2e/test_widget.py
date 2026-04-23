@@ -18,7 +18,7 @@
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, call
+from unittest.mock import Mock, call, patch
 
 import omni.kit.test
 from carb.input import KeyboardInput
@@ -198,6 +198,68 @@ class TestModPackagingOutputWidget(omni.kit.test.AsyncTestCase):
 
         # Open In Explorer button should now be disabled because directory was deleted
         self.assertEqual(False, open_in_explorer_button.widget.enabled)
+
+        await self.__destroy_widget(window, widget)
+
+    async def test_open_in_explorer_button_state_should_refresh_after_directory_created(self):
+        window, widget = await self.__setup_widget()
+
+        temp_package_dir = (Path(self.temp_dir.name) / "package_created_after_packaging").as_posix()
+
+        enable_override = ui_test.find(f"{window.title}//Frame/**/CheckBox[*].identifier=='enable_override'")
+        output_field = ui_test.find(f"{window.title}//Frame/**/StringField[*].identifier=='output_field'")
+        open_in_explorer_button = ui_test.find(
+            f"{window.title}//Frame/**/Button[*].identifier=='open_in_explorer_button'"
+        )
+
+        self.assertIsNotNone(enable_override)
+        self.assertIsNotNone(output_field)
+        self.assertIsNotNone(open_in_explorer_button)
+
+        await enable_override.click()
+        await ui_test.human_delay()
+
+        await ui_test.human_delay(30)
+        await output_field.input(temp_package_dir)
+        await ui_test.human_delay()
+
+        self.assertEqual(False, open_in_explorer_button.widget.enabled)
+
+        os.makedirs(temp_package_dir)
+        await ui_test.human_delay()
+
+        self.assertEqual(True, widget.refresh_output_directory_state())
+        self.assertEqual(True, open_in_explorer_button.widget.enabled)
+
+        await self.__destroy_widget(window, widget)
+
+    async def test_open_output_path_should_open_existing_package_directory(self):
+        window, widget = await self.__setup_widget()
+
+        temp_package_dir = OmniUrl((Path(self.temp_dir.name) / "actual_package").as_posix()).path
+
+        enable_override = ui_test.find(f"{window.title}//Frame/**/CheckBox[*].identifier=='enable_override'")
+        output_field = ui_test.find(f"{window.title}//Frame/**/StringField[*].identifier=='output_field'")
+
+        self.assertIsNotNone(enable_override)
+        self.assertIsNotNone(output_field)
+
+        await enable_override.click()
+        await ui_test.human_delay()
+
+        os.makedirs(temp_package_dir)
+        await ui_test.human_delay()
+
+        await ui_test.human_delay(30)
+        await output_field.input(temp_package_dir)
+        await ui_test.human_delay()
+
+        with patch(
+            "lightspeed.trex.mod_packaging_output.widget.setup_ui.open_file_using_os_default"
+        ) as open_directory_mock:
+            widget.open_output_path()
+
+        open_directory_mock.assert_called_once_with(temp_package_dir, highlight=False)
 
         await self.__destroy_widget(window, widget)
 

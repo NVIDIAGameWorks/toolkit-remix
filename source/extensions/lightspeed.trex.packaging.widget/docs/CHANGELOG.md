@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.9]
+### Changed
+- Added packaging option dropdowns for packaging mode and packaged root output extension, and open the created package directory after successful packaging.
+
 ## [1.4.6]
 ### Changed
 - Update call sites to use renamed `LayerManagerCore` API: `get_layer_of_type()` and `get_layers_of_type()` (was `get_layer()` / `get_layers()`)
