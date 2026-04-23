@@ -14,3 +14,9 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
+from .test_check_capture_on_open import TestCheckCaptureOnOpen
+from .test_commands import TestCommands
+from .test_setup import TestSetup
+
+__all__ = ["TestCheckCaptureOnOpen", "TestCommands", "TestSetup"]

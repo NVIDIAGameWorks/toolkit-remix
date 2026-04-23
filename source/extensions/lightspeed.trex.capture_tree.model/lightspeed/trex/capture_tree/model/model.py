@@ -168,6 +168,10 @@ class CaptureTreeModel(ui.AbstractItemModel):
             replaced_items = replaced_items.union(_ReplacementCoreSetup.group_replaced_hashes(layer))
 
         tasks = [asyncio.ensure_future(self.async_get_captured_hashes(item, replaced_items)) for item in collection]
+        if not tasks:
+            self.__on_progress_updated()
+            self.__task_completed()
+            return
         await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
         self.__on_progress_updated()
         # Make sure the cancel is reset

@@ -15,7 +15,16 @@
 * limitations under the License.
 """
 
-from .e2e import TestHotkeys, TestStageManagerPropertiesInteraction
+from .e2e import TestCaptureSwapUndo, TestHotkeys, TestStageManagerPropertiesInteraction
 from .unit.test_check_capture_on_open import TestCheckCaptureOnOpen
+from .unit.test_commands import TestCommands
+from .unit.test_setup import TestSetup as TestSetupUnit
 
-__all__ = ["TestCheckCaptureOnOpen", "TestHotkeys", "TestStageManagerPropertiesInteraction"]
+__all__ = [
+    "TestCaptureSwapUndo",
+    "TestCheckCaptureOnOpen",
+    "TestCommands",
+    "TestHotkeys",
+    "TestSetupUnit",
+    "TestStageManagerPropertiesInteraction",
+]

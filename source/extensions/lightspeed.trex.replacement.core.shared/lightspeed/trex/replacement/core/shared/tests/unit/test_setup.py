@@ -19,7 +19,7 @@ import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import omni.client
 import omni.kit.test
@@ -547,3 +547,39 @@ class TestSetup(omni.kit.test.AsyncTestCase):
             grouped_replaced_hashes = core.group_replaced_hashes((layer_replacement, hashes[layer_replacement]))
 
             self.assertEqual(grouped_replaced_hashes, {"BC868CE5A075ABB0"})
+
+    async def test_import_replacement_layer_do_undo_false_uses_existing_layer_manager_path(self):
+        # Arrange
+        core = _ReplacementCore("")
+        capture_layer = Mock(timeCodesPerSecond=48.0, realPath="capture.usda")
+        replacement_layer = Mock(customLayerData={})
+        replacement_layer.Save = Mock()
+        layer_instance = Mock()
+        layer_instance.get_custom_layer_data.return_value = {"layer_type": _LayerType.replacement.value}
+
+        with (
+            patch.object(core._layer_manager, "get_layer_of_type", return_value=capture_layer),
+            patch.object(core._layer_manager, "remove_layers_of_type") as mock_remove_layers,
+            patch.object(core._layer_manager, "create_layer") as mock_create_layer,
+            patch.object(core._layer_manager, "get_layer_instance", return_value=layer_instance),
+            patch.object(core._layer_manager, "get_game_name_from_path", return_value="Game"),
+            patch("lightspeed.trex.replacement.core.shared.setup.omni.kit.undo.disabled") as mock_disabled,
+        ):
+            mock_create_layer.return_value = replacement_layer
+
+            # Act
+            core.import_replacement_layer("C:/temp/replacements.usda", do_undo=False)
+
+        # Assert
+        mock_disabled.assert_called_once_with()
+        mock_remove_layers.assert_called_once_with(_LayerType.replacement, do_undo=False)
+        mock_create_layer.assert_called_once_with(
+            "C:/temp/replacements.usda",
+            layer_type=_LayerType.replacement,
+            create_or_insert=False,
+            set_edit_target=False,
+            sublayer_position=-1,
+            do_undo=False,
+        )
+        self.assertEqual(48.0, replacement_layer.timeCodesPerSecond)
+        replacement_layer.Save.assert_called_once_with()
