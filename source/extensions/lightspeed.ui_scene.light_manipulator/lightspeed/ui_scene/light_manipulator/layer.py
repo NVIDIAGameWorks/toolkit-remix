@@ -32,6 +32,8 @@ from .light_manipulator import AbstractLightManipulator, get_manipulator_class
 # TODO: We reuse this transform manipulator setting for now, but we should create an independent setting for
 #  light manipulators
 SETTING_MANIPULATOR_SCALE = "/persistent/exts/omni.kit.manipulator.transform/manipulator/scaleMultiplier"
+SETTING_LIGHT_MANIPULATOR_VISIBLE = "/persistent/app/viewport/manipulator/lightManipulatorsVisible"
+SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE = "/persistent/app/viewport/manipulator/lightIntensityControlsVisible"
 
 
 class LightManipulatorLayer:
@@ -51,6 +53,7 @@ class LightManipulatorLayer:
             "_events": None,
             "_stage_event_sub": None,
             "_manipulator_scale": None,
+            "_intensity_controls_visible": False,
             # need to maintain ref for carb settings:
             # "__light_manipulator_visible_setting": None,
             "_manipulators": {},
@@ -73,14 +76,14 @@ class LightManipulatorLayer:
 
         self._manipulator_scale = carb.settings.get_settings().get(SETTING_MANIPULATOR_SCALE)
 
-        self.__light_manipulator_visible_setting = (
-            f"/app/viewport/usdcontext-{self._usd_context_name}/scene/light_manipulators/visible"
-        )
-        carb.settings.get_settings().set(self.__light_manipulator_visible_setting, True)
-
         isettings = carb.settings.get_settings()
+        isettings.set_default(SETTING_LIGHT_MANIPULATOR_VISIBLE, True)
+        isettings.set_default(SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE, False)
         isettings.subscribe_to_node_change_events(
-            self.__light_manipulator_visible_setting, self._light_manipulator_setting_change
+            SETTING_LIGHT_MANIPULATOR_VISIBLE, self._light_manipulator_setting_change
+        )
+        isettings.subscribe_to_node_change_events(
+            SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE, self._light_manipulator_setting_change
         )
         isettings.subscribe_to_node_change_events(SETTING_MANIPULATOR_SCALE, self._light_manipulator_setting_change)
 
@@ -95,6 +98,8 @@ class LightManipulatorLayer:
         # Trigger a settings update to obtain defaults
         self._light_manipulator_setting_change(None, carb.settings.ChangeEventType.CHANGED)
 
+        # The unified Lights menu is registered by lightspeed.light.gizmos so Show By Type does not end up with
+        # duplicate top-level Lights entries. This layer only reacts to the shared visibility setting.
         self._core = _AssetReplacementsCore(self._usd_context_name)
 
     def __del__(self):
@@ -129,6 +134,17 @@ class LightManipulatorLayer:
                 manipulator.model.set_manipulator_scale(value)
 
     @property
+    def intensity_controls_visible(self):
+        return self._intensity_controls_visible
+
+    @intensity_controls_visible.setter
+    def intensity_controls_visible(self, value):
+        if self._intensity_controls_visible != value:
+            self._intensity_controls_visible = value
+            for manipulator in self._manipulators.values():
+                manipulator.invalidate()
+
+    @property
     def manipulators(self):
         return self._manipulators
 
@@ -139,7 +155,9 @@ class LightManipulatorLayer:
     def _light_manipulator_setting_change(self, _item: carb.dictionary.Item, event_type: carb.settings.ChangeEventType):
         if event_type != carb.settings.ChangeEventType.CHANGED:
             return
-        self.visible = bool(carb.settings.get_settings().get(self.__light_manipulator_visible_setting))
+        settings = carb.settings.get_settings()
+        self.visible = bool(settings.get(SETTING_LIGHT_MANIPULATOR_VISIBLE))
+        self.intensity_controls_visible = bool(settings.get(SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE))
         self.manipulator_scale = self._get_global_manipulator_scale()
 
     def _get_global_manipulator_scale(self):

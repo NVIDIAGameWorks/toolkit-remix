@@ -21,7 +21,7 @@ icon = "data/icon.png"
 preview_image = "data/preview.png"
 
 category = "internal"
-version = "1.3.0"
+version = "1.3.1"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.viewports.stagecraft.bundle"
 
 [dependencies]
@@ -42,8 +42,8 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 [settings]
 # Collapse the additional camera control area
 persistent.exts."omni.kit.viewport.menubar.camera".expand = false
-# Override default value of ["Skeletons"] to make sure skeleton option is shown. Cannot be [] or it will be ignored.
-exts."omni.kit.viewport.menubar.display".showByType.exclude_list = [""]
+# Hide the built-in Lights row so custom light gizmo/manipulator toggles can replace it with a single Lights section.
+exts."omni.kit.viewport.menubar.display".showByType.exclude_list = ["Lights"]
 # Set the default perspective camera focalLength
 persistent.app.primCreation.typedDefaults.camera.focalLength = 18.147562
 

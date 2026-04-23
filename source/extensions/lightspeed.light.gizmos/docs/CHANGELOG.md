@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Changed
+- Replaced the built-in viewport Lights row with a custom Lights section
+- Grouped the light gizmo, manipulator, and intensity-control toggles under that custom Lights section
+
 ## [1.2.1]
 ### Changed
 - Modernize python style and enable more ruff checks
