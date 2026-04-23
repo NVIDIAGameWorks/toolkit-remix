@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.3]
+### Fixed
+- Open package directories directly and refresh the `Open in Explorer` button state after packaging creates them.
+
 ## [1.2.2]
 ### Changed
 - Modernize python style and enable more ruff checks

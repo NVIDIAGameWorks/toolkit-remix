@@ -31,14 +31,22 @@ WARNING: The directory will be emptied prior to packaging the mod.
 output_directory: Path
 
 """
-Whether the reference dependencies taken from external mods should be redirected or copied in this mod's package
-during the packaging process.
-- Redirecting will allow the mod to use the installed mod's dependencies so updating a dependency will be as simple
-  as to install the updated dependency.
-- Copying will make sure the mod is completely standalone so no other mods need to be installed for this mod to be
-  loaded successfully."
+How external dependencies should be handled during packaging.
+- ModPackagingMode.REDIRECT: Creates the smallest package and keeps dependency references pointed at installed mods.
+- ModPackagingMode.IMPORT: Creates a standalone package and preserves the layered USD output.
+- ModPackagingMode.FLATTEN: Creates a standalone package, flattens the packaged result into one root layer, and only keeps assets still
+  referenced by the flattened output.
 """
-redirect_external_dependencies: Optional[bool] = True
+packaging_mode: ModPackagingMode = ModPackagingMode.FLATTEN
+
+"""
+How the packaged root USD layer should be written.
+- None: Keeps the packaged root layer extension from the source mod layer.
+- UsdExtensions.USD: Writes the packaged root layer with the `.usd` extension.
+- UsdExtensions.USDA: Writes the packaged root layer as human-readable `.usda`.
+- UsdExtensions.USDC: Writes the packaged root layer as binary `.usdc`.
+"""
+output_format: UsdExtensions | None = UsdExtensions.USD
 
 """
 The display name used for the mod in the RTX Remix Runtime.
@@ -55,3 +63,7 @@ Optional text used to describe the mod in more details.
 """
 mod_details: Optional[str] = None
 ```
+
+Packaging is non-destructive: it only mutates temporary packaging layers and the packaged output directory. The source
+project root layer and project sublayers are left unchanged during packaging. The only exception is the unresolved
+reference fix workflow, where the user explicitly chooses to replace or remove broken references in the project.

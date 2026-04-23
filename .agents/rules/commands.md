@@ -3,6 +3,24 @@
 When you recognize that you are about to perform one of these operations, read the corresponding file first and follow
 its steps exactly. Do not invent an ad-hoc process.
 
+## Git Rebase Safety
+
+- Never use `git rebase -i` unless the user explicitly asks for an interactive rebase.
+- Never run plain `git rebase --continue` in this repo. Continue rebases non-interactively so Git does not open an
+  editor and block the agent.
+- Use a no-op editor when continuing a rebase, for example:
+
+```powershell
+$env:GIT_EDITOR='py -3 -c "import sys; sys.exit(0)"'
+git rebase --continue
+```
+
+- If you need a one-shot form, this is also acceptable:
+
+```powershell
+git -c core.editor=true rebase --continue
+```
+
 ### Commands (multi-step procedures)
 
 | When you are about to...             | Read and follow                            |

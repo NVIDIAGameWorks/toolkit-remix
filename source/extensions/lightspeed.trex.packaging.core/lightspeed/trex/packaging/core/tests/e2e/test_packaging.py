@@ -23,8 +23,12 @@ from unittest.mock import Mock, call
 
 import carb
 import omni.client
+import omni.kit.app
 import omni.kit.test
-from lightspeed.trex.packaging.core import PackagingCore
+import omni.usd
+from lightspeed.trex.packaging.core.enum import ModPackagingMode
+from lightspeed.trex.packaging.core.packaging import PackagingCore
+from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.kit.test_suite.helpers import get_test_data_path
 
 
@@ -46,6 +50,9 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
+        default_context = omni.usd.get_context()
+        if default_context and default_context.get_stage():
+            await default_context.close_stage_async()
         self.temp_dir.cleanup()
         self.temp_dir = None
 
@@ -105,6 +112,8 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
                         str(temp_sublayer),
                     ],
                     "output_directory": output_dir,
+                    "packaging_mode": ModPackagingMode.REDIRECT,
+                    "output_format": None,
                     "mod_name": "Main Project",
                     "mod_version": "1.0.0",
                     "mod_details": "Main Test Notes",
@@ -217,6 +226,209 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
         # Make sure the actual package matches the expected package
         await self.__asset_directories_equal(get_test_data_path(__name__, "package"), output_dir)
 
+    async def test_packaging_all_modes_should_not_modify_source_project_files(self):
+        for packaging_mode in (
+            ModPackagingMode.REDIRECT,
+            ModPackagingMode.IMPORT,
+            ModPackagingMode.FLATTEN,
+        ):
+            with self.subTest(packaging_mode=packaging_mode.value):
+                packaging_core = PackagingCore()
+                output_dir = Path(self.temp_dir.name) / f"package_{packaging_mode.value}"
+
+                with tempfile.TemporaryDirectory() as temp_input:
+                    input_project_path = get_test_data_path(__name__, "projects")
+                    temp_project_path = Path(temp_input) / "projects"
+
+                    result = await omni.client.copy_async(input_project_path, str(temp_project_path))
+                    self.assertEqual(result, omni.client.Result.OK, "Can't copy the project to the temporary directory")
+
+                    temp_project_root = temp_project_path / "MainProject"
+                    before_snapshot = self.__snapshot_directory_contents(temp_project_root)
+
+                    temp_mod_usda = temp_project_root / "mod.usda"
+                    temp_subproject_mod = temp_project_root / "deps" / "mods" / "SubProject" / "mod.usda"
+                    temp_mod_capture_baker = temp_project_root / "mod_capture_baker.usda"
+                    temp_sublayer = temp_project_root / "sublayer.usda"
+
+                    await packaging_core.package_async_with_exceptions(
+                        {
+                            "context_name": f"PackagingE2E_{packaging_mode.value}",
+                            "mod_layer_paths": [
+                                str(temp_mod_usda),
+                                str(temp_subproject_mod),
+                            ],
+                            "selected_layer_paths": [
+                                str(temp_mod_usda),
+                                str(temp_mod_capture_baker),
+                                str(temp_sublayer),
+                            ],
+                            "output_directory": output_dir,
+                            "packaging_mode": packaging_mode,
+                            "mod_name": "Main Project",
+                            "mod_version": "1.0.0",
+                            "mod_details": "Main Test Notes",
+                        }
+                    )
+
+                    after_snapshot = self.__snapshot_directory_contents(temp_project_root)
+
+                self.assertDictEqual(before_snapshot, after_snapshot)
+
+    async def test_package_flatten_mode_should_export_single_root_layer_and_prune_packaged_sublayers(self):
+        packaging_core = PackagingCore()
+        output_dir = Path(self.temp_dir.name) / "package_flatten"
+
+        with tempfile.TemporaryDirectory() as temp_input:
+            input_project_path = get_test_data_path(__name__, "projects")
+            temp_project_path = Path(temp_input) / "projects"
+
+            result = await omni.client.copy_async(input_project_path, str(temp_project_path))
+            self.assertEqual(result, omni.client.Result.OK, "Can't copy the project to the temporary directory")
+
+            temp_project_root = temp_project_path / "MainProject"
+            temp_mod_usda = temp_project_root / "mod.usda"
+            temp_subproject_mod = temp_project_root / "deps" / "mods" / "SubProject" / "mod.usda"
+            temp_mod_capture_baker = temp_project_root / "mod_capture_baker.usda"
+            temp_sublayer = temp_project_root / "sublayer.usda"
+
+            await packaging_core.package_async_with_exceptions(
+                {
+                    "context_name": "PackagingE2E_Flatten",
+                    "mod_layer_paths": [
+                        str(temp_mod_usda),
+                        str(temp_subproject_mod),
+                    ],
+                    "selected_layer_paths": [
+                        str(temp_mod_usda),
+                        str(temp_mod_capture_baker),
+                        str(temp_sublayer),
+                    ],
+                    "output_directory": output_dir,
+                    "packaging_mode": ModPackagingMode.FLATTEN,
+                    "output_format": None,
+                    "mod_name": "Main Project",
+                    "mod_version": "1.0.0",
+                    "mod_details": "Main Test Notes",
+                }
+            )
+
+        flattened_root = output_dir / "mod.usda"
+        self.assertTrue(flattened_root.exists())
+        self.assertFalse((output_dir / "sublayer.usda").exists())
+        self.assertFalse((output_dir / "mod_capture_baker.usda").exists())
+        self.assertFalse((output_dir / "SubUSDs").exists())
+        self.assertFalse((output_dir / "deps" / "mods").exists())
+
+        flattened_text = flattened_root.read_text(encoding="utf8")
+        self.assertNotIn("sublayer.usda", flattened_text)
+        self.assertNotIn("mod_capture_baker.usda", flattened_text)
+        self.assertNotIn("../../mods/SubProject", flattened_text)
+        self.assertNotIn('string SubProject = "0.0.1"', flattened_text)
+
+    async def test_package_usdc_output_format_should_export_root_layer_as_usdc(self):
+        packaging_core = PackagingCore()
+        output_dir = Path(self.temp_dir.name) / "package_usdc_root"
+
+        with tempfile.TemporaryDirectory() as temp_input:
+            input_project_path = get_test_data_path(__name__, "projects")
+            temp_project_path = Path(temp_input) / "projects"
+
+            result = await omni.client.copy_async(input_project_path, str(temp_project_path))
+            self.assertEqual(result, omni.client.Result.OK, "Can't copy the project to the temporary directory")
+
+            temp_project_root = temp_project_path / "MainProject"
+            temp_mod_usda = temp_project_root / "mod.usda"
+            temp_subproject_mod = temp_project_root / "deps" / "mods" / "SubProject" / "mod.usda"
+            temp_mod_capture_baker = temp_project_root / "mod_capture_baker.usda"
+            temp_sublayer = temp_project_root / "sublayer.usda"
+
+            await packaging_core.package_async_with_exceptions(
+                {
+                    "context_name": "PackagingE2E_BinaryRoot",
+                    "mod_layer_paths": [
+                        str(temp_mod_usda),
+                        str(temp_subproject_mod),
+                    ],
+                    "selected_layer_paths": [
+                        str(temp_mod_usda),
+                        str(temp_mod_capture_baker),
+                        str(temp_sublayer),
+                    ],
+                    "output_directory": output_dir,
+                    "packaging_mode": ModPackagingMode.REDIRECT,
+                    "output_format": _UsdExtensions.USDC,
+                    "mod_name": "Main Project",
+                    "mod_version": "1.0.0",
+                    "mod_details": "Main Test Notes",
+                }
+            )
+
+        binary_root = output_dir / "mod.usdc"
+        self.assertTrue(binary_root.exists())
+        self.assertFalse((output_dir / "mod.usda").exists())
+        self.assertTrue((output_dir / "sublayer.usda").exists())
+        self.assertEqual(b"PXR-USDC", binary_root.read_bytes()[:8])
+
+    async def test_packaging_twice_should_not_dirty_open_stage_and_should_recreate_package(self):
+        packaging_core = PackagingCore()
+        output_dir = Path(self.temp_dir.name) / "package_sequential"
+        packaging_context_name = "PackagingE2E_Sequential"
+        source_context = omni.usd.get_context()
+
+        with tempfile.TemporaryDirectory() as temp_input:
+            input_project_path = get_test_data_path(__name__, "projects")
+            temp_project_path = Path(temp_input) / "projects"
+
+            result = await omni.client.copy_async(input_project_path, str(temp_project_path))
+            self.assertEqual(result, omni.client.Result.OK, "Can't copy the project to the temporary directory")
+
+            temp_project_root = temp_project_path / "MainProject"
+            temp_main_project = temp_project_root / "main_project.usda"
+            temp_mod_usda = temp_project_root / "mod.usda"
+            temp_subproject_mod = temp_project_root / "deps" / "mods" / "SubProject" / "mod.usda"
+            temp_mod_capture_baker = temp_project_root / "mod_capture_baker.usda"
+            temp_sublayer = temp_project_root / "sublayer.usda"
+
+            await source_context.open_stage_async(str(temp_main_project))
+            await omni.kit.app.get_app().next_update_async()
+            self.__assert_context_is_clean(source_context, "before first packaging")
+
+            schema = {
+                "context_name": packaging_context_name,
+                "mod_layer_paths": [
+                    str(temp_mod_usda),
+                    str(temp_subproject_mod),
+                ],
+                "selected_layer_paths": [
+                    str(temp_mod_usda),
+                    str(temp_mod_capture_baker),
+                    str(temp_sublayer),
+                ],
+                "output_directory": output_dir,
+                "packaging_mode": ModPackagingMode.FLATTEN,
+                "output_format": _UsdExtensions.USD,
+                "mod_name": "Main Project",
+                "mod_version": "1.0.0",
+                "mod_details": "Main Test Notes",
+            }
+
+            await packaging_core.package_async_with_exceptions(schema)
+            await omni.kit.app.get_app().next_update_async()
+            self.__assert_context_is_clean(source_context, "after first packaging")
+            self.assertTrue((output_dir / "mod.usd").exists(), "First packaging did not create the packaged root file")
+
+            await packaging_core.package_async_with_exceptions(schema)
+            await omni.kit.app.get_app().next_update_async()
+            self.__assert_context_is_clean(source_context, "after second packaging")
+            self.assertTrue(
+                (output_dir / "mod.usd").exists(), "Second packaging did not recreate the packaged root file"
+            )
+
+        packaging_context = omni.usd.get_context(packaging_context_name)
+        if packaging_context and packaging_context.get_stage():
+            await packaging_context.close_stage_async()
+
     async def __asset_directories_equal(self, expected: Path, actual: Path):
         # Make sure all the files in the expected directory are identical in the actual directory
         for dirpath, _, filenames in walk(expected):
@@ -239,3 +451,20 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
                 self.assertTrue(
                     expected_path.exists(), msg=f"An extra file was found in the actual package: {actual_path}"
                 )
+
+    def __snapshot_directory_contents(self, root: Path) -> dict[str, bytes]:
+        return {
+            str(path.relative_to(root)).replace("\\", "/"): path.read_bytes()
+            for path in root.rglob("*")
+            if path.is_file()
+        }
+
+    def __assert_context_is_clean(self, context, label: str):
+        stage = context.get_stage()
+        self.assertIsNotNone(stage, msg=f"Expected an open stage for {label}")
+        dirty_layers = [layer.identifier for layer in stage.GetLayerStack() if getattr(layer, "dirty", False)]
+        self.assertFalse(
+            context.has_pending_edit(),
+            msg=f"Context had pending edits {label}. Dirty layers: {dirty_layers}",
+        )
+        self.assertListEqual([], dirty_layers, msg=f"Unexpected dirty layers {label}: {dirty_layers}")
