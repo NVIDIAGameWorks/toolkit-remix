@@ -16,6 +16,7 @@
 """
 
 from .test_hotkeys import TestHotkeys
-from .test_stage_manger import TestStageManagerPropertiesInteraction
+from .test_capture_swap_undo import TestCaptureSwapUndo
+from .test_stage_manager import TestStageManagerPropertiesInteraction
 
-__all__ = ["TestHotkeys", "TestStageManagerPropertiesInteraction"]
+__all__ = ["TestCaptureSwapUndo", "TestHotkeys", "TestStageManagerPropertiesInteraction"]

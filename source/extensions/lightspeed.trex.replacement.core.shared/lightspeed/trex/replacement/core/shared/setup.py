@@ -19,10 +19,12 @@ from __future__ import annotations
 
 import os
 import re
+from contextlib import nullcontext
 from pathlib import Path
 
 import carb
 import omni.client
+import omni.kit.undo
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.layer_manager.core import LSS_LAYER_GAME_NAME, LSS_LAYER_MOD_NOTES
@@ -76,39 +78,45 @@ class Setup:
         set_edit_target: bool = False,
         replace_existing: bool = True,
         sublayer_position: int = -1,
+        do_undo: bool = True,
     ):
-        capture_layer = self._layer_manager.get_layer_of_type(LayerType.capture)
-        if not capture_layer:
-            carb.log_error("A capture layer must be imported in the stage before a replacement layer can be imported.")
-            return
+        with nullcontext() if do_undo else omni.kit.undo.disabled():
+            capture_layer = self._layer_manager.get_layer_of_type(LayerType.capture)
+            if not capture_layer:
+                carb.log_error(
+                    "A capture layer must be imported in the stage before a replacement layer can be imported."
+                )
+                return
 
-        if replace_existing:
-            self._layer_manager.remove_layers_of_type(LayerType.replacement)
+            if replace_existing:
+                self._layer_manager.remove_layers_of_type(LayerType.replacement, do_undo=do_undo)
 
-        if use_existing_layer:
-            carb.log_info(f"Importing mod layer {path}")
-            replacement_layer = self._layer_manager.create_layer(
-                path,
-                layer_type=LayerType.replacement,
-                create_or_insert=False,
-                set_edit_target=set_edit_target,
-                sublayer_position=sublayer_position,
-            )
-            carb.log_info("Ok")
-        else:
-            carb.log_info(f"Creating a new mod layer {path}")
-            existing_layer = Sdf.Layer.FindOrOpen(path)
-            if existing_layer:
-                existing_layer.Clear()
-            replacement_layer = self._layer_manager.create_layer(
-                path,
-                layer_type=LayerType.replacement,
-                create_or_insert=True,
-                set_edit_target=set_edit_target,
-                replace_existing=replace_existing,
-                sublayer_position=sublayer_position,
-            )
-            carb.log_info("Ok")
+            if use_existing_layer:
+                carb.log_info(f"Importing mod layer {path}")
+                replacement_layer = self._layer_manager.create_layer(
+                    path,
+                    layer_type=LayerType.replacement,
+                    create_or_insert=False,
+                    set_edit_target=set_edit_target,
+                    sublayer_position=sublayer_position,
+                    do_undo=do_undo,
+                )
+                carb.log_info("Ok")
+            else:
+                carb.log_info(f"Creating a new mod layer {path}")
+                existing_layer = Sdf.Layer.FindOrOpen(path)
+                if existing_layer:
+                    existing_layer.Clear()
+                replacement_layer = self._layer_manager.create_layer(
+                    path,
+                    layer_type=LayerType.replacement,
+                    create_or_insert=True,
+                    set_edit_target=set_edit_target,
+                    replace_existing=replace_existing,
+                    sublayer_position=sublayer_position,
+                    do_undo=do_undo,
+                )
+                carb.log_info("Ok")
 
         # replacement layer needs to have the same TimeCodesPerSecond as the capture layer
         # for reference deletion to work. See OM-42663 for more info.

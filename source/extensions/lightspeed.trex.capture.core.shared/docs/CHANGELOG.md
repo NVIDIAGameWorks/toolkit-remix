@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.11]
+### Fixed
+- Reused the existing capture-layer import path for non-undoable project-open and repair flows while leaving capture-swap undo ownership in StageCraft
+
 ## [1.3.10]
 ### Fixed
 - REMIX-5202: Preserve capture directory when a project loads with a missing capture layer, using the project structure as a fallback
