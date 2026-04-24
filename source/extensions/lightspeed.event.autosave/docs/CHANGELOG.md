@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0]
+### Changed
+- Auto-save now defaults to off.
+- Auto-save now prompts before saving, with options to save, skip the current save, or stop prompting for the app session.
+
 ## [1.0.1]
 ### Changed
 - Applied new lint rules

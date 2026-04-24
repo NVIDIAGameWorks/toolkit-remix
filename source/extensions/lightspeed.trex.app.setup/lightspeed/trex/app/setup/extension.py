@@ -26,7 +26,7 @@ class TrexSetupExtension(omni.ext.IExt):
 
     def __init__(self):
         super().__init__()
-        self._setup = None
+        self._setup_ui = None
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.app.setup] Startup")
@@ -34,4 +34,6 @@ class TrexSetupExtension(omni.ext.IExt):
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.app.setup] Shutdown")
+        if self._setup_ui:
+            self._setup_ui.destroy()
         self._setup_ui = None

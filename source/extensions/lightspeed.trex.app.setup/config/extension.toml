@@ -2,7 +2,7 @@
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Setup Extension"
 description = "This Extension does the final setup of the NVIDIA RTX Remix Apps"
-version = "1.2.2"
+version = "1.2.3"
 readme = "docs/README.md"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.app.setup"
 category = "internal"
@@ -21,3 +21,9 @@ icon = "data/icon.png"
 
 [[python.module]]
 name = "lightspeed.trex.app.setup"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+    "omni.kit.menu.utils",
+]
