@@ -36,6 +36,10 @@ class SetupUI:
     def __init__(self):
         """Setup the main Lightspeed settings"""
         self.__settings = carb.settings.get_settings()
+        self.__sub_app_ready = None
+        self.__preferences_menu_hook = self.__clear_preferences_menu_tick
+        omni.kit.menu.utils.add_hook(self.__preferences_menu_hook)
+        self.__preferences_menu_hook_registered = True
 
         if self.__settings.get(_HIDE_MENU):
             # Editor Menu API must be used when the app is ready.
@@ -59,6 +63,20 @@ class SetupUI:
             omni.kit.menu.utils.add_layout(custom_layouts)
 
         asyncio.ensure_future(deferred_hide_menu())
+
+    @staticmethod
+    def __clear_preferences_menu_tick(merged_menu):
+        for item in merged_menu.get("Edit", []):
+            if item.name == "Preferences":
+                item.ticked = False
+                item.ticked_value = None
+                item.ticked_fn = None
+
+    def destroy(self):
+        self.__sub_app_ready = None
+        if self.__preferences_menu_hook_registered:
+            omni.kit.menu.utils.remove_hook(self.__preferences_menu_hook)
+            self.__preferences_menu_hook_registered = False
 
 
 class MenubarIgnore:
