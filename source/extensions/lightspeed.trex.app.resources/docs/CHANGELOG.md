@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.7]
+### Changed
+- Restored the Edit/Preferences menu item in the production menu filter.
+
 ## [1.27.6]
 ### Changed
 - Removed deprecated `percent_available_core_usage` from the default Stage Manager schema to match the updated filtering API.
