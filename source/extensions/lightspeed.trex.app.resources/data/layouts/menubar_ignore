@@ -1,6 +1,7 @@
 Edit/*
 !Edit/Undo
 !Edit/Redo
+!Edit/Preferences
 
 Rendering/*
 

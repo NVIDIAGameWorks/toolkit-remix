@@ -24,6 +24,8 @@ from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.kit.widget.prompt import PromptButtonInfo as _PromptButtonInfo
+from omni.kit.widget.prompt import PromptManager as _PromptManager
 from omni.kit.usd.layers import LayerUtils
 from pxr import Sdf
 
@@ -32,8 +34,13 @@ _CONTEXT = "/exts/lightspeed.event.autosave/context"
 SETTINGS_ENABLED = "/persistent/exts/lightspeed.event.autosave/enabled"
 SETTINGS_INTERVAL_SECONDS = "/persistent/exts/lightspeed.event.autosave/interval_seconds"
 
-_DEFAULT_ENABLED = True
+_DEFAULT_ENABLED = False
 _DEFAULT_INTERVAL_SECONDS = 300  # 5 minutes
+_PROMPT_TITLE = "Auto-Save Project?"
+_PROMPT_MESSAGE = (
+    "Auto-Save is turned on, and RTX Remix found unsaved changes in this project.\n\n"
+    "Save now, skip this save, or allow Auto-Save to continue without prompting again until you restart the app."
+)
 
 
 class AutoSaveCore(_ILSSEvent):
@@ -42,9 +49,12 @@ class AutoSaveCore(_ILSSEvent):
         self.default_attr = {
             "_context_name": None,
             "_context": None,
+            "_layer_manager": None,
             "_notification_manager": None,
             "_stage_event_sub": None,
             "_autosave_task": None,
+            "_autosave_prompt_open": None,
+            "_autosave_prompt_suppressed_for_session": None,
         }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
@@ -55,6 +65,8 @@ class AutoSaveCore(_ILSSEvent):
 
         self._notification_manager = _nm.manager.NotificationManager()
         self._notification_manager.on_startup()
+        self._autosave_prompt_open = False
+        self._autosave_prompt_suppressed_for_session = False
 
         # Ensure settings have defaults on first run
         settings = carb.settings.get_settings()
@@ -130,14 +142,64 @@ class AutoSaveCore(_ILSSEvent):
             carb.log_verbose("[autosave] No replacement layer found, skipping auto-save")
             return
 
+        saveable_layers = self._get_saveable_dirty_layers(stage)
+        if not saveable_layers:
+            return
+
+        if self._autosave_prompt_suppressed_for_session:
+            self._save_layers(saveable_layers)
+            return
+
+        self._prompt_to_autosave(saveable_layers)
+
+    def _get_saveable_dirty_layers(self, stage) -> list[Sdf.Layer]:
         dirty_identifiers = LayerUtils.get_dirty_layers(stage)
-        saved_count = 0
+        saveable_layers = []
         for identifier in dirty_identifiers:
             layer = Sdf.Layer.FindOrOpen(identifier)
             if layer and not layer.anonymous:
-                layer.Save()
-                saved_count += 1
-                carb.log_info(f"[autosave] Saved layer: {identifier}")
+                saveable_layers.append(layer)
+        return saveable_layers
+
+    def _prompt_to_autosave(self, layers: list[Sdf.Layer]):
+        if self._autosave_prompt_open:
+            return
+
+        self._autosave_prompt_open = True
+
+        def on_close():
+            self._autosave_prompt_open = False
+
+        def on_save():
+            on_close()
+            self._save_layers(layers)
+
+        def on_dont_save():
+            on_close()
+            carb.log_info("[autosave] User skipped auto-save")
+
+        def on_dont_ask_again_this_session():
+            self._autosave_prompt_suppressed_for_session = True
+            on_save()
+
+        _PromptManager.post_simple_prompt(
+            _PROMPT_TITLE,
+            _PROMPT_MESSAGE,
+            ok_button_info=_PromptButtonInfo("Save", on_save),
+            middle_button_info=_PromptButtonInfo("Don't Save", on_dont_save),
+            middle_2_button_info=_PromptButtonInfo("Don't Ask Again This Session", on_dont_ask_again_this_session),
+            cancel_button_info=None,
+            modal=True,
+            no_title_bar=False,
+            on_window_closed_fn=on_close,
+        )
+
+    def _save_layers(self, layers: list[Sdf.Layer]):
+        saved_count = 0
+        for layer in layers:
+            layer.Save()
+            saved_count += 1
+            carb.log_info(f"[autosave] Saved layer: {layer.identifier}")
 
         if saved_count:
             self._post_notification(saved_count)
