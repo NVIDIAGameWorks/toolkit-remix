@@ -524,6 +524,194 @@ class Setup:
                     if sublayer:
                         stack.append(sublayer)
 
+    def copy_replacement_overrides_to_path(
+        self,
+        source_prim_path: Sdf.Path | str,
+        dest_prim_path: Sdf.Path | str,
+    ) -> None:
+        """
+        Copy replacement-layer override specs for a prim and all its descendants
+        from source_prim_path to dest_prim_path, across the replacement layer and
+        all its sublayers.
+
+        CopyPrimCommand already handles the root prim's overrides. This method
+        fills the gap for child prims whose override specs in the replacement
+        layer are not included by the default duplicate_layers=False copy.
+        Both attribute overrides and relationship overrides (e.g. material:binding)
+        are copied.
+        """
+        replacement_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
+        if not replacement_layer:
+            return
+
+        source_path = Sdf.Path(str(source_prim_path))
+        dest_path = Sdf.Path(str(dest_prim_path))
+
+        stage = self._context.get_stage()
+        source_prim = stage.GetPrimAtPath(source_path)
+        if not source_prim:
+            return
+
+        # GetChildren returns direct children only. For each child, include
+        # it and all of its descendants so every override spec is covered.
+        prim_paths = [p.GetPath() for child in source_prim.GetChildren() for p in Usd.PrimRange(child)]
+
+        self._copy_overrides_in_layer(
+            stage,
+            replacement_layer,
+            source_path,
+            dest_path,
+            prim_paths,
+        )
+        self._copy_material_overrides(
+            stage,
+            replacement_layer,
+            source_path,
+            dest_path,
+            prim_paths,
+        )
+
+    @staticmethod
+    def _copy_overrides_in_layer(
+        stage: Usd.Stage,
+        layer: Sdf.Layer,
+        source_path: Sdf.Path,
+        dest_path: Sdf.Path,
+        prim_paths: list[Sdf.Path],
+    ) -> None:
+        """
+        Copy prim specs for replacement overrides from under *source_path* to under *dest_path*
+        within the same physical *layer*, for each path in *prim_paths* that has a prim spec in
+        *layer*, then recurse into *layer*'s sublayers.
+
+        For each remapped pair ``old_path`` → ``new_path`` (via ``ReplacePrefix``), requires valid
+        source and destination prims on *stage*. Under ``Usd.EditContext(stage)``, ensures each
+        attribute on the source prim has a matching attribute definition on the destination prim
+        (creating it when missing), then runs ``Sdf.CopySpec(layer, old_path, layer, new_path)`` to
+        copy the subtree of specs at *old_path* to *new_path* **in that same layer** (not the stage
+        edit target).
+
+        Args:
+            stage: Stage used to resolve prims and author attribute values.
+            layer: Layer or sublayer to scan for ``GetPrimAtPath`` specs.
+            source_path: The source prim path prefix to copy overrides from.
+            dest_path: The destination prim path prefix to copy overrides to.
+            prim_paths: The prim paths whose specs should be remapped.
+        """
+        # Find which prim paths have specs in this layer.
+        paths_with_specs = [p for p in prim_paths if layer.GetPrimAtPath(p)]
+        target_layer = stage.GetEditTarget().GetLayer()
+
+        if paths_with_specs:
+            for old_path in paths_with_specs:
+                new_path = old_path.ReplacePrefix(source_path, dest_path)
+                if old_path == new_path:
+                    continue
+                old_prim = stage.GetPrimAtPath(old_path)
+                new_prim = stage.GetPrimAtPath(new_path)
+                if not old_prim or not old_prim.IsValid() or not new_prim or not new_prim.IsValid():
+                    continue
+                with Usd.EditContext(stage):
+                    for attr in old_prim.GetAttributes():
+                        if not attr or not attr.IsValid():
+                            continue
+                        name = attr.GetName()
+                        if not name:
+                            continue
+                        dst_attr = new_prim.GetAttribute(name)
+                        if not dst_attr or not dst_attr.IsValid():
+                            dst_attr = new_prim.CreateAttribute(
+                                name,
+                                attr.GetTypeName(),
+                                custom=attr.IsCustom(),
+                            )
+                            dst_attr.SetVariability(attr.GetVariability())
+                    Sdf.CopySpec(layer, old_path, target_layer, new_path)
+
+        # Recurse into sublayers
+        for sub_path in layer.subLayerPaths:
+            sublayer = Sdf.Layer.FindOrOpen(layer.ComputeAbsolutePath(sub_path))
+            if sublayer:
+                Setup._copy_overrides_in_layer(stage, sublayer, source_path, dest_path, prim_paths)
+
+    @staticmethod
+    def _copy_material_overrides(
+        stage: Usd.Stage,
+        layer: Sdf.Layer,
+        source_path: Sdf.Path,
+        dest_path: Sdf.Path,
+        prim_paths: list[Sdf.Path],
+    ) -> None:
+        """
+        Copy relationship overrides from source_path to dest_path for each path in prim_paths,
+        scanning *layer* and recursing into sublayers.
+
+        Only relationships explicitly authored in *layer* are copied — base-file bindings coming
+        from referenced assets are not touched.  Targets that live inside the source prim's
+        sub-hierarchy are remapped to the dest prefix; targets that point elsewhere (e.g. shared
+        Remix materials under ``/RootNode/Looks/``) are copied as-is.
+
+        Only targets authored in *layer*'s own relationship spec are written — not the full
+        composed target set from the stage.  ``Sdf.PathListOp.explicitItems`` covers a
+        full-replace override; ``prependedItems`` covers an additive override.  Either
+        represents what the replacement layer explicitly authored, excluding base-asset bindings
+        that were not overridden.
+
+        Args:
+            stage: Stage used to check dest prim validity.
+            layer: Layer or sublayer to scan for relationship specs.
+            source_path: The source prim path prefix to copy overrides from.
+            dest_path: The destination prim path prefix to copy overrides to.
+            prim_paths: The prim paths whose relationship specs should be remapped.
+        """
+        for old_path in prim_paths:
+            prim_spec = layer.GetPrimAtPath(old_path)
+            if not prim_spec:
+                continue
+
+            new_path = old_path.ReplacePrefix(source_path, dest_path)
+            if new_path == old_path:
+                continue
+
+            dest_prim = stage.GetPrimAtPath(new_path)
+            if not dest_prim or not dest_prim.IsValid():
+                continue
+
+            for rel_spec in prim_spec.relationships:
+                rel_name = rel_spec.name
+
+                # Read only the targets authored in this layer's spec, not the full composed set
+                # from the stage. explicitItems = full-replace override (takes precedence);
+                # prependedItems = additive override. Both represent only what this layer
+                # overrides, excluding base-asset bindings the replacement layer did not author.
+                target_list = rel_spec.targetPathList
+                layer_targets = list(target_list.explicitItems) or list(target_list.prependedItems) + list(
+                    target_list.appendedItems
+                )
+                if not layer_targets:
+                    continue
+
+                # Remap targets inside the source sub-hierarchy; leave external paths unchanged.
+                remapped_targets = [
+                    t.ReplacePrefix(source_path, dest_path) if t.HasPrefix(source_path) else t for t in layer_targets
+                ]
+
+                dest_rel = dest_prim.GetRelationship(rel_name)
+                if not dest_rel or not dest_rel.IsValid():
+                    dest_rel = dest_prim.CreateRelationship(rel_name, custom=False)
+
+                omni.kit.commands.execute(
+                    "SetRelationshipTargetsCommand",
+                    relationship=dest_rel,
+                    targets=remapped_targets,
+                )
+
+        # Recurse into sublayers
+        for sub_path in layer.subLayerPaths:
+            sublayer = Sdf.Layer.FindOrOpen(layer.ComputeAbsolutePath(sub_path))
+            if sublayer:
+                Setup._copy_material_overrides(stage, sublayer, source_path, dest_path, prim_paths)
+
     def get_selected_prim_paths(self) -> list[str]:
         return self._context.get_selection().get_selected_prim_paths()
 
