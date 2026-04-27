@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.0]
+### Added
+- REMIX-1926: Added `copy_replacement_overrides_to_path` to copy replacement-layer override specs for a prim and all its descendants to a new path, across the replacement layer and all its sublayers
+
 ## [3.2.1]
 ### Changed
 - Update call sites to use renamed `LayerManagerCore` API: `get_layer_of_type()` and `get_layers_of_type()` (was `get_layer()` / `get_layers()`)

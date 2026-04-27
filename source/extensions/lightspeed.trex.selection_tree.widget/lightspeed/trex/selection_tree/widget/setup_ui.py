@@ -18,11 +18,12 @@
 from __future__ import annotations
 
 import asyncio
+import enum
 import functools
 import re
 import typing
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 import carb
 import omni.kit.app
@@ -59,6 +60,13 @@ from .selection_tree.model import ListModel as _ListModel
 
 if typing.TYPE_CHECKING:
     from pxr import Usd
+
+
+class AddReferenceActionType(enum.Enum):
+    """How adding a reference mesh was initiated (controls replacement-layer copy behavior)."""
+
+    NEW_REFERENCE = "new_reference"
+    DUPLICATE_REFERENCE = "duplicate_reference"
 
 
 class SetupUI:
@@ -267,7 +275,7 @@ class SetupUI:
 
     def _on_duplicate_reference(self, item: _ItemReferenceFile):
         abs_path = omni.client.normalize_url(item.layer.ComputeAbsolutePath(item.path))
-        self._add_new_ref_mesh(item, abs_path)
+        self._add_new_ref_mesh(item, abs_path, AddReferenceActionType.DUPLICATE_REFERENCE)
 
     def _on_duplicate_prim(self, item: _ItemPrim):
         # need to save the current instance selection before calling usd command
@@ -278,11 +286,17 @@ class SetupUI:
                 path_from=item.path,
                 usd_context_name=self._context_name,
             )
+            # CopyPrimCommand selects the new prim(s) — capture before anything
+            # else changes the selection.
+            duplicated_prim_paths = self._core.get_selected_prim_paths()
+
+            # Copy replacement-layer child overrides that CopyPrimCommand misses.
+            for new_path in duplicated_prim_paths:
+                self._core.copy_replacement_overrides_to_path(item.path, new_path)
+
             if not instances:
                 instances = self._tree_model.get_root_asset_item(item).instance_group_item.instances
             if instances:
-                # newly duplicated prim paths will be selected after copy command
-                duplicated_prim_paths = self._core.get_selected_prim_paths()
                 self._core.select_prim_paths(
                     self._core.get_instance_from_mesh(duplicated_prim_paths, [instances[0].path])
                 )
@@ -818,9 +832,12 @@ class SetupUI:
             )
 
     def __ignore_warning_ingest_asset(
-        self, add_reference_item: _ItemAddNewReferenceFileMesh | _ItemReferenceFile, asset_path: str
+        self,
+        add_reference_item: _ItemAddNewReferenceFileMesh | _ItemReferenceFile,
+        asset_path: str,
+        ref_kind: AddReferenceActionType,
     ):
-        self._add_new_ref_mesh(add_reference_item, asset_path)
+        self._add_new_ref_mesh(add_reference_item, asset_path, ref_kind)
 
     def _add_new_unique_ref_mesh(
         self, add_reference_item: _ItemAddNewReferenceFileMesh | _ItemReferenceFile, asset_path: str
@@ -835,7 +852,12 @@ class SetupUI:
             _TrexMessageDialog(
                 title=constants.ASSET_NEED_INGEST_WINDOW_TITLE,
                 message=constants.ASSET_NEED_INGEST_MESSAGE,
-                ok_handler=functools.partial(self.__ignore_warning_ingest_asset, add_reference_item, asset_path),
+                ok_handler=functools.partial(
+                    self.__ignore_warning_ingest_asset,
+                    add_reference_item,
+                    asset_path,
+                    AddReferenceActionType.NEW_REFERENCE,
+                ),
                 ok_label=constants.ASSET_NEED_INGEST_WINDOW_OK_LABEL,
                 disable_ok_button=not self._core.asset_is_in_project_dir(asset_path, layer),
                 disable_cancel_button=False,
@@ -845,12 +867,13 @@ class SetupUI:
             )
 
             return
-        self._add_new_ref_mesh(add_reference_item, asset_path)
+        self._add_new_ref_mesh(add_reference_item, asset_path, AddReferenceActionType.NEW_REFERENCE)
 
     def _add_new_ref_mesh(
         self,
         add_reference_item: _ItemAddNewReferenceFileMesh | _ItemReferenceFile,
         asset_path: str,
+        ref_kind: AddReferenceActionType,
     ):
         layer = self._context.get_stage().GetEditTarget().GetLayer()
         if not self._core.asset_is_in_project_dir(asset_path, layer):
@@ -868,6 +891,7 @@ class SetupUI:
                         callback_func=lambda x: self._add_new_ref_mesh(
                             add_reference_item=add_reference_item,
                             asset_path=x,
+                            ref_kind=ref_kind,
                         ),
                     ),
                     disable_middle_button=True,
@@ -887,7 +911,14 @@ class SetupUI:
             return
 
         stage = self._context.get_stage()
+        # Capture the current instance selection before entering the undo group.
+        current_instance_items = [item for item in self._previous_instance_selection if isinstance(item, _ItemInstance)]
         with omni.kit.undo.group(), self._tree_model.refresh_only_at_the_end():
+            # Clear the selection before adding the reference. Placing this inside the undo
+            # group ensures that undo restores the previous selection, and that the selection
+            # is cleared before the new prim is deleted on undo (preventing null-prim errors
+            # in the property panel).
+            self._core.select_prim_paths([])
             new_ref, prim_path = self._core.add_new_reference(
                 stage,
                 add_reference_item.prim.GetPath(),
@@ -904,6 +935,10 @@ class SetupUI:
                 current_instance_items = [
                     item for item in self._previous_instance_selection if isinstance(item, _ItemInstance)
                 ]
+                # When duplicating an existing reference, copy replacement-layer overrides
+                # to the new prim. Skip for brand-new references from the add-ref UI.
+                if ref_kind == AddReferenceActionType.DUPLICATE_REFERENCE:
+                    self._core.copy_replacement_overrides_to_path(add_reference_item.prim.GetPath(), prim_path)
                 self._core.select_child_from_instance_item_and_ref(
                     stage,
                     stage.GetPrimAtPath(prim_path),

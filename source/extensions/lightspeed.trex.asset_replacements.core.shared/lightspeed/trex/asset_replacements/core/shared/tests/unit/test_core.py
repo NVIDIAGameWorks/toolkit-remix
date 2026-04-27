@@ -27,7 +27,7 @@ from lightspeed.trex.asset_replacements.core.shared import usd_copier as _usd_co
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage
-from pxr import Sdf
+from pxr import Sdf, Usd, UsdGeom
 
 
 class TestAssetReplacementsCore(AsyncTestCase):
@@ -225,6 +225,11 @@ class TestAssetReplacementsCore(AsyncTestCase):
                 return layer
         return None
 
+    def _mark_replacement_specs(self, replacement_layer: Sdf.Layer, *paths: Sdf.Path) -> None:
+        for p in paths:
+            prim_spec = Sdf.CreatePrimInLayer(replacement_layer, p)
+            prim_spec.specifier = Sdf.SpecifierOver
+
     async def test_remove_prim_reference_overrides_clears_references(self):
         """Reference list edits on a replacement-layer prim spec are cleared."""
         # Arrange
@@ -420,3 +425,336 @@ class TestAssetReplacementsCore(AsyncTestCase):
             self.assertEqual(f"'{invalid_prim_path}' is not a valid USD path", str(cm.exception))
 
         temp_dir.cleanup()
+
+    async def test_copy_overrides_in_layer_copies_attributes_to_dest_prims(self):
+        """_copy_overrides_in_layer copies the replacement-layer prim spec to the dest path via Sdf.CopySpec."""
+        stage = self.context.get_stage()
+        replacement_layer = self._find_replacement_layer()
+        self.assertIsNotNone(replacement_layer)
+        source_root = "/RootNode/meshes/test_copy_layer_src"
+        dest_root = "/RootNode/meshes/test_copy_layer_dst"
+        child_path = Sdf.Path(f"{source_root}/child_scope")
+        dest_child_path = Sdf.Path(f"{dest_root}/child_scope")
+        UsdGeom.Scope.Define(stage, source_root)
+        UsdGeom.Scope.Define(stage, dest_root)
+        UsdGeom.Scope.Define(stage, str(child_path))
+        UsdGeom.Scope.Define(stage, str(dest_child_path))
+        attr_name = "copyReplaceTestAttr"
+
+        # Author the attribute in the replacement-layer spec so Sdf.CopySpec has content to copy.
+        self._mark_replacement_specs(replacement_layer, child_path)
+        child_spec = replacement_layer.GetPrimAtPath(child_path)
+        Sdf.AttributeSpec(child_spec, attr_name, Sdf.ValueTypeNames.Float).default = 88.5
+
+        # Pre-create only the dest parent spec (not dest_child_path itself) so
+        # Sdf.CopySpec can create the child spec fresh — same-layer CopySpec
+        # does not copy attributes if the destination spec already exists.
+        self._mark_replacement_specs(replacement_layer, Sdf.Path(dest_root))
+
+        # Pre-author all source attributes on the dest prim in the root layer so
+        # _copy_overrides_in_layer's CreateAttribute branch (which targets the active
+        # edit layer) cannot implicitly create a replacement-layer spec for
+        # dest_child_path before Sdf.CopySpec runs.
+        dest_prim = stage.GetPrimAtPath(str(dest_child_path))
+        src_prim = stage.GetPrimAtPath(str(child_path))
+        for src_attr in src_prim.GetAttributes():
+            if src_attr and src_attr.IsValid() and not dest_prim.GetAttribute(src_attr.GetName()).IsValid():
+                dest_prim.CreateAttribute(src_attr.GetName(), src_attr.GetTypeName(), custom=src_attr.IsCustom())
+
+        # Set the edit target to replacement_layer so _copy_overrides_in_layer's
+        # Sdf.CopySpec writes into the replacement layer, not the root layer.
+        with Usd.EditContext(stage, replacement_layer):
+            _AssetReplacementsCore._copy_overrides_in_layer(
+                stage,
+                replacement_layer,
+                Sdf.Path(source_root),
+                Sdf.Path(dest_root),
+                [child_path],
+            )
+
+        dest_spec = replacement_layer.GetPrimAtPath(dest_child_path)
+        self.assertIsNotNone(dest_spec)
+        copied_attr = dest_spec.attributes.get(attr_name)
+        self.assertIsNotNone(copied_attr)
+        self.assertAlmostEqual(copied_attr.default, 88.5, places=5)
+
+    async def test_copy_overrides_in_layer_recurse_sublayers(self):
+        """Specs on a sublayer of the replacement stack are copied within that sublayer."""
+        stage = self.context.get_stage()
+        replacement_layer = self._find_replacement_layer()
+        self.assertIsNotNone(replacement_layer)
+        sublayer = Sdf.Layer.CreateAnonymous()
+        replacement_layer.subLayerPaths.append(sublayer.identifier)
+
+        source_root = "/RootNode/meshes/test_copy_sublayer_src"
+        dest_root = "/RootNode/meshes/test_copy_sublayer_dst"
+        child_path = Sdf.Path(f"{source_root}/sub_child")
+        dest_child_path = Sdf.Path(f"{dest_root}/sub_child")
+        UsdGeom.Scope.Define(stage, source_root)
+        UsdGeom.Scope.Define(stage, dest_root)
+        UsdGeom.Scope.Define(stage, str(child_path))
+        UsdGeom.Scope.Define(stage, str(dest_child_path))
+        attr_name = "copyReplaceTestAttrSub"
+
+        # Author attribute in the sublayer spec; pre-create only the dest root spec (not
+        # dest_child_path itself) so Sdf.CopySpec can create the child spec fresh.
+        self._mark_replacement_specs(sublayer, child_path)
+        child_spec = sublayer.GetPrimAtPath(child_path)
+        Sdf.AttributeSpec(child_spec, attr_name, Sdf.ValueTypeNames.Float).default = 12.0
+        self._mark_replacement_specs(sublayer, Sdf.Path(dest_root))
+
+        # Pre-author all source attributes on the dest prim in the root layer so
+        # _copy_overrides_in_layer's CreateAttribute branch cannot implicitly create
+        # a sublayer spec for dest_child_path before Sdf.CopySpec runs.
+        dest_prim = stage.GetPrimAtPath(str(dest_child_path))
+        src_prim = stage.GetPrimAtPath(str(child_path))
+        for src_attr in src_prim.GetAttributes():
+            if src_attr and src_attr.IsValid() and not dest_prim.GetAttribute(src_attr.GetName()).IsValid():
+                dest_prim.CreateAttribute(src_attr.GetName(), src_attr.GetTypeName(), custom=src_attr.IsCustom())
+
+        # Set the edit target to sublayer so _copy_overrides_in_layer's Sdf.CopySpec
+        # writes into the sublayer (where the source spec lives), not the root layer.
+        with Usd.EditContext(stage, sublayer):
+            _AssetReplacementsCore._copy_overrides_in_layer(
+                stage,
+                replacement_layer,
+                Sdf.Path(source_root),
+                Sdf.Path(dest_root),
+                [child_path],
+            )
+
+        dest_spec = sublayer.GetPrimAtPath(dest_child_path)
+        self.assertIsNotNone(dest_spec)
+        copied_attr = dest_spec.attributes.get(attr_name)
+        self.assertIsNotNone(copied_attr)
+        self.assertAlmostEqual(copied_attr.default, 12.0, places=5)
+
+    async def test_copy_replacement_overrides_to_path_copies_descendant_overrides(self):
+        """copy_replacement_overrides_to_path copies child/descendant attribute and material overrides (not the root)."""
+        core = _AssetReplacementsCore("")
+        stage = self.context.get_stage()
+        replacement_layer = self._find_replacement_layer()
+        self.assertIsNotNone(replacement_layer)
+        source_root = "/RootNode/meshes/test_copy_api_src"
+        dest_root = "/RootNode/meshes/test_copy_api_dst"
+        child_path = Sdf.Path(f"{source_root}/api_child")
+        grand_path = Sdf.Path(f"{source_root}/api_child/grand_scope")
+        dest_grand_path = Sdf.Path(f"{dest_root}/api_child/grand_scope")
+        UsdGeom.Scope.Define(stage, source_root)
+        UsdGeom.Scope.Define(stage, dest_root)
+        UsdGeom.Scope.Define(stage, str(child_path))
+        UsdGeom.Scope.Define(stage, str(grand_path))
+        UsdGeom.Scope.Define(stage, f"{dest_root}/api_child")
+        UsdGeom.Scope.Define(stage, str(dest_grand_path))
+        attr_name = "copyReplaceTestAttrApi"
+
+        # Author attribute and material override in the replacement-layer spec.
+        self._mark_replacement_specs(replacement_layer, child_path, grand_path)
+        grand_spec = replacement_layer.GetPrimAtPath(grand_path)
+        Sdf.AttributeSpec(grand_spec, attr_name, Sdf.ValueTypeNames.Float).default = 55.0
+        mat_target = Sdf.Path("/RootNode/Looks/mat_BC868CE5A075ABB1")
+        Sdf.RelationshipSpec(grand_spec, "material:binding", custom=False).targetPathList.Prepend(mat_target)
+
+        # Pre-create only the dest root spec so Sdf.CopySpec can create child/grandchild
+        # specs fresh — same-layer CopySpec does not copy attributes into existing specs.
+        self._mark_replacement_specs(replacement_layer, Sdf.Path(dest_root))
+
+        # Pre-author the custom attribute on dest_grand_path in the root layer so
+        # _copy_overrides_in_layer's CreateAttribute branch cannot implicitly create a
+        # replacement-layer spec for dest_grand_path before Sdf.CopySpec runs.
+        stage.GetPrimAtPath(str(dest_grand_path)).CreateAttribute(attr_name, Sdf.ValueTypeNames.Float, custom=True)
+
+        # Set the edit target to replacement_layer so _copy_overrides_in_layer's
+        # Sdf.CopySpec writes into the replacement layer, not the root layer.
+        with Usd.EditContext(stage, replacement_layer):
+            core.copy_replacement_overrides_to_path(source_root, dest_root)
+
+        # Attribute was copied via Sdf.CopySpec into the replacement-layer dest spec.
+        dest_grand_spec = replacement_layer.GetPrimAtPath(dest_grand_path)
+        copied_attr = dest_grand_spec.attributes.get(attr_name)
+        self.assertIsNotNone(copied_attr)
+        self.assertAlmostEqual(copied_attr.default, 55.0, places=5)
+        # Material override was copied via SetRelationshipTargetsCommand.
+        dst_mat = stage.GetPrimAtPath(str(dest_grand_path)).GetRelationship("material:binding")
+        self.assertTrue(dst_mat.IsValid())
+        self.assertEqual(dst_mat.GetTargets(), [mat_target])
+
+    async def test_copy_replacement_overrides_to_path_undo_restores_destination_values(self):
+        """SetRelationshipTargetsCommand issued by _copy_material_overrides is undoable in isolation.
+
+        _copy_material_overrides is called directly (not through copy_replacement_overrides_to_path)
+        so that Sdf.CopySpec does not run first and overwrite the dest spec non-undoably.
+        With CopySpec out of the picture, SetRelationshipTargetsCommand captures mat_dest_before as
+        its prev state, and a single undo correctly restores the original binding.
+        """
+        stage = self.context.get_stage()
+        replacement_layer = self._find_replacement_layer()
+        self.assertIsNotNone(replacement_layer)
+        source_root = "/RootNode/meshes/test_copy_undo_src"
+        dest_root = "/RootNode/meshes/test_copy_undo_dst"
+        child_path = Sdf.Path(f"{source_root}/undo_child")
+        dest_child_path = Sdf.Path(f"{dest_root}/undo_child")
+        UsdGeom.Scope.Define(stage, source_root)
+        UsdGeom.Scope.Define(stage, dest_root)
+        UsdGeom.Scope.Define(stage, str(child_path))
+        UsdGeom.Scope.Define(stage, str(dest_child_path))
+
+        # Source spec: material:binding override.
+        self._mark_replacement_specs(replacement_layer, child_path)
+        child_spec = replacement_layer.GetPrimAtPath(child_path)
+        mat_from_source = Sdf.Path("/RootNode/Looks/mat_BC868CE5A075ABB1")
+        Sdf.RelationshipSpec(child_spec, "material:binding", custom=False).targetPathList.Prepend(mat_from_source)
+
+        # Dest spec: pre-existing binding so we can verify undo restores it.
+        self._mark_replacement_specs(replacement_layer, dest_child_path)
+        dest_spec = replacement_layer.GetPrimAtPath(dest_child_path)
+        mat_dest_before = Sdf.Path("/RootNode/meshes/test_copy_undo_dst/placeholder_mat_binding")
+        Sdf.RelationshipSpec(dest_spec, "material:binding", custom=False).targetPathList.Prepend(mat_dest_before)
+
+        dest_mat_before = list(
+            stage.GetPrimAtPath(str(dest_child_path)).GetRelationship("material:binding").GetTargets()
+        )
+
+        # Call _copy_material_overrides directly to avoid Sdf.CopySpec pre-empting the undo state.
+        _AssetReplacementsCore._copy_material_overrides(
+            stage,
+            replacement_layer,
+            Sdf.Path(source_root),
+            Sdf.Path(dest_root),
+            [child_path],
+        )
+        self.assertEqual(
+            list(stage.GetPrimAtPath(str(dest_child_path)).GetRelationship("material:binding").GetTargets()),
+            [mat_from_source],
+        )
+
+        max_undos = 128
+        for _ in range(max_undos):
+            cur = list(stage.GetPrimAtPath(str(dest_child_path)).GetRelationship("material:binding").GetTargets())
+            if cur == dest_mat_before:
+                break
+            omni.kit.undo.undo()
+        else:
+            self.fail("undo did not restore material:binding targets")
+
+        self.assertEqual(
+            list(stage.GetPrimAtPath(str(dest_child_path)).GetRelationship("material:binding").GetTargets()),
+            dest_mat_before,
+        )
+
+    async def test_copy_material_overrides_copies_relationship_to_dest(self):
+        """_copy_material_overrides copies an authored relationship override to the dest prim.
+
+        A material:binding relationship spec authored in the replacement layer for a source
+        child prim is replicated on the corresponding dest child prim.  External targets
+        (those outside the source sub-hierarchy) are copied as-is.
+        """
+        core = _AssetReplacementsCore("")
+        stage = self.context.get_stage()
+        replacement_layer = self._find_replacement_layer()
+        self.assertIsNotNone(replacement_layer)
+
+        source_root = "/RootNode/meshes/test_mat_copy_src"
+        dest_root = "/RootNode/meshes/test_mat_copy_dst"
+        child_path = Sdf.Path(f"{source_root}/rel_child")
+        dest_child_path = Sdf.Path(f"{dest_root}/rel_child")
+
+        UsdGeom.Scope.Define(stage, source_root)
+        UsdGeom.Scope.Define(stage, dest_root)
+        UsdGeom.Scope.Define(stage, str(child_path))
+        UsdGeom.Scope.Define(stage, str(dest_child_path))
+
+        # Author a material:binding relationship override in the replacement layer.
+        self._mark_replacement_specs(replacement_layer, child_path)
+        child_spec = replacement_layer.GetPrimAtPath(child_path)
+        rel_spec = Sdf.RelationshipSpec(child_spec, "material:binding", custom=False)
+        mat_target = Sdf.Path("/RootNode/Looks/mat_BC868CE5A075ABB1")
+        rel_spec.targetPathList.Prepend(mat_target)
+
+        self._mark_replacement_specs(replacement_layer, dest_child_path)
+
+        core.copy_replacement_overrides_to_path(source_root, dest_root)
+
+        dest_prim = stage.GetPrimAtPath(str(dest_child_path))
+        dest_rel = dest_prim.GetRelationship("material:binding")
+        self.assertTrue(dest_rel.IsValid())
+        self.assertEqual(dest_rel.GetTargets(), [mat_target])
+
+    async def test_copy_material_overrides_remaps_internal_targets(self):
+        """Relationship targets within the source sub-hierarchy are remapped to dest.
+
+        When a material:binding target path starts with source_path, the copied
+        relationship must point to the equivalent path under dest_path.
+        """
+        core = _AssetReplacementsCore("")
+        stage = self.context.get_stage()
+        replacement_layer = self._find_replacement_layer()
+        self.assertIsNotNone(replacement_layer)
+
+        source_root = "/RootNode/meshes/test_mat_remap_src"
+        dest_root = "/RootNode/meshes/test_mat_remap_dst"
+        child_path = Sdf.Path(f"{source_root}/remap_child")
+        dest_child_path = Sdf.Path(f"{dest_root}/remap_child")
+
+        UsdGeom.Scope.Define(stage, source_root)
+        UsdGeom.Scope.Define(stage, dest_root)
+        UsdGeom.Scope.Define(stage, str(child_path))
+        UsdGeom.Scope.Define(stage, str(dest_child_path))
+
+        # Target lives inside the source sub-hierarchy and must be remapped.
+        source_mat_target = Sdf.Path(f"{source_root}/Looks/CubeMaterial")
+        expected_target = Sdf.Path(f"{dest_root}/Looks/CubeMaterial")
+
+        self._mark_replacement_specs(replacement_layer, child_path)
+        child_spec = replacement_layer.GetPrimAtPath(child_path)
+        rel_spec = Sdf.RelationshipSpec(child_spec, "material:binding", custom=False)
+        rel_spec.targetPathList.Prepend(source_mat_target)
+
+        self._mark_replacement_specs(replacement_layer, dest_child_path)
+
+        core.copy_replacement_overrides_to_path(source_root, dest_root)
+
+        dest_prim = stage.GetPrimAtPath(str(dest_child_path))
+        self.assertEqual(dest_prim.GetRelationship("material:binding").GetTargets(), [expected_target])
+
+    async def test_copy_material_overrides_recurses_sublayers(self):
+        """Relationship overrides authored only in a sublayer are also copied.
+
+        _copy_material_overrides recurses into sublayers of the replacement layer,
+        so a material:binding spec found only in a sublayer is still replicated on
+        the corresponding dest prim.
+        """
+        core = _AssetReplacementsCore("")
+        stage = self.context.get_stage()
+        replacement_layer = self._find_replacement_layer()
+        self.assertIsNotNone(replacement_layer)
+
+        sublayer = Sdf.Layer.CreateAnonymous()
+        replacement_layer.subLayerPaths.append(sublayer.identifier)
+
+        source_root = "/RootNode/meshes/test_mat_sub_src"
+        dest_root = "/RootNode/meshes/test_mat_sub_dst"
+        child_path = Sdf.Path(f"{source_root}/sub_rel_child")
+        dest_child_path = Sdf.Path(f"{dest_root}/sub_rel_child")
+
+        UsdGeom.Scope.Define(stage, source_root)
+        UsdGeom.Scope.Define(stage, dest_root)
+        UsdGeom.Scope.Define(stage, str(child_path))
+        UsdGeom.Scope.Define(stage, str(dest_child_path))
+
+        # Author the override in the sublayer only.
+        self._mark_replacement_specs(sublayer, child_path)
+        child_spec = sublayer.GetPrimAtPath(child_path)
+        rel_spec = Sdf.RelationshipSpec(child_spec, "material:binding", custom=False)
+        mat_target = Sdf.Path("/RootNode/Looks/mat_BC868CE5A075ABB1")
+        rel_spec.targetPathList.Prepend(mat_target)
+
+        # Dest must have parent specs in both replacement layer AND sublayer so Sdf.CopySpec
+        # succeeds when _copy_overrides_in_layer recurses into the sublayer.
+        self._mark_replacement_specs(replacement_layer, dest_child_path)
+        self._mark_replacement_specs(sublayer, dest_child_path)
+
+        core.copy_replacement_overrides_to_path(source_root, dest_root)
+
+        dest_prim = stage.GetPrimAtPath(str(dest_child_path))
+        self.assertEqual(dest_prim.GetRelationship("material:binding").GetTargets(), [mat_target])
