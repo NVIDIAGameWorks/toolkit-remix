@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.9]
+### Fixed
+- REMIX-1926: Fixed duplicated prims not inheriting child prim property overrides from the replacement layer
+
 ## [1.9.8]
 ### Changed
 - Update test setup to use renamed `LayerManagerCore.set_edit_target_layer_of_type()` (was `set_edit_target_layer`)
