@@ -1014,6 +1014,55 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
+    async def test_selection_preserved_after_duplicate_prim(self):
+        """After duplicating a prim, selection points to the new duplicate's instance path.
+
+        _on_duplicate_prim captures the USD selection immediately after CopyPrimCommand
+        (before copy_replacement_overrides_to_path runs) and then remaps it to the
+        instance hierarchy via select_prim_paths.  This test verifies the complete
+        flow: that the final selection is non-empty, distinct from the original light,
+        and lives under the same instance root — confirming that no step in the
+        duplication flow (including the override-copy) silently drops the selection.
+        """
+        # Arrange
+        _window, _wid = await self.__setup_widget()
+        usd_context = omni.usd.get_context()
+
+        usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+        await ui_test.human_delay(human_delay_speed=10)
+
+        # Add a DiskLight — creation auto-selects the new light in the instance hierarchy.
+        item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        await item_add_buttons[1].click()
+        light_disk_button = ui_test.find("Light creator//Frame/**/Button[*].name=='LightDisk'")
+        await light_disk_button.click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        original_selection = usd_context.get_selection().get_selected_prim_paths()
+        self.assertTrue(original_selection, "Light creation must auto-select the new light")
+
+        # Act: duplicate the light via its Duplicate button.
+        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
+        self.assertEqual(len(duplicate_images), 2)  # ref item + light
+        await duplicate_images[1].click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # Assert: selection is non-empty, moved off the original prim, and remained in the
+        # instance hierarchy — which proves select_prim_paths ran with the remapped path.
+        selected_paths = usd_context.get_selection().get_selected_prim_paths()
+        self.assertTrue(selected_paths, "Selection must not be empty after duplicate")
+        self.assertNotEqual(
+            set(original_selection), set(selected_paths), "Selection must move to the new duplicate prim"
+        )
+        instance_root = "/RootNode/instances/inst_0AB745B8BEE1F16B_0"
+        for path in selected_paths:
+            self.assertTrue(
+                path.startswith(instance_root),
+                f"Selected path {path!r} must be under instance root {instance_root!r}",
+            )
+
+        await self.__destroy(_window, _wid)
+
     async def test_select_prim_instances_on_mesh(self):
         # setup
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
