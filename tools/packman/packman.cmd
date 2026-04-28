@@ -1,7 +1,10 @@
-:: RUN_PM_MODULE must always be at the same spot for packman update to work (batch reloads file during update!) 
-:: [xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]
+:: RUN_PM_MODULE must be at fixed byte 766 [x]
 :: Reset errorlevel status (don't inherit from caller) 
 @call :ECHO_AND_RESET_ERROR
+
+set PM_PACKMAN_VERSION=8.3.0
+set PM_PYTHON_VERSION=3.12.13-nv3-windows-x86_64
+set PM_PACKMAN_COMMON_SHA256=1ae6974274ed61cafbe6a830e56bb8e17040d5c98323f2931eff25bc2884d539
 
 :: You can remove this section if you do your own manual configuration of the dev machines
 call :CONFIGURE
@@ -36,11 +39,11 @@ goto :eof
 
 :: Subroutines below
 :PYTHON_ENV_ERROR
-@echo User environment variable PM_PYTHON is not set! Please configure machine for packman or call configure.bat.
+@echo User environment variable PM_PYTHON is not set! Please configure machine for packman or call configure.ps1.
 exit /b 1
 
 :MODULE_ENV_ERROR
-@echo User environment variable PM_MODULE is not set! Please configure machine for packman or call configure.bat.
+@echo User environment variable PM_MODULE is not set! Please configure machine for packman or call configure.ps1.
 exit /b 1
 
 :VAR_ERROR
@@ -75,11 +78,17 @@ if %errorlevel% equ 0 (
 :: trim leading space (this is safe even when PM_OLD_CODE_PAGE has not been set)
 set PM_OLD_CODE_PAGE=%PM_OLD_CODE_PAGE:~1%
 if "%PM_OLD_CODE_PAGE%" equ "65001" (
-	chcp 437 > nul
-	set PM_RESTORE_CODE_PAGE=1
+	chcp 437 > nul 2>&1 && set PM_RESTORE_CODE_PAGE=1
 )
-call "%~dp0\bootstrap\configure.bat"
-set PM_CONFIG_ERRORLEVEL=%errorlevel%
+:: Capture configure.ps1 stdout directly via `for /f` instead of a shared file since those get messy
+:: and we can run into race conditions. The trailing `&& echo PM_CONFIGURE_OK=1` sentinel lets us
+:: recover the exit status that `for /f` would otherwise swallow.
+set PM_CONFIG_ERRORLEVEL=1
+for /f "delims=" %%A in ('powershell -ExecutionPolicy ByPass -NoLogo -NoProfile -File "%~dp0\bootstrap\configure.ps1" -PackmanVersion "%PM_PACKMAN_VERSION%" -PythonVersion "%PM_PYTHON_VERSION%" -PackmanCommonSha256 "%PM_PACKMAN_COMMON_SHA256%" ^&^& echo PM_CONFIGURE_OK^=1') do set "%%A"
+if defined PM_CONFIGURE_OK (
+	set PM_CONFIG_ERRORLEVEL=0
+	set "PM_CONFIGURE_OK="
+)
 if defined PM_RESTORE_CODE_PAGE (
 	:: Restore code page
 	chcp %PM_OLD_CODE_PAGE% > nul
