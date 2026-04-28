@@ -23,4 +23,7 @@
   <dependency name="rtx-remix-remix_runtime" linkPath="../_build/${platform}/${config}/deps/remix_runtime">
     <package name="rtx-remix-remix_runtime" version="remix-1.4.2" />
   </dependency>
+  <dependency name="rtxio" linkPath="../_build/target-deps/rtxio">
+    <package name="rtx-remix-rtxio" version="7" />
+  </dependency>
 </project>

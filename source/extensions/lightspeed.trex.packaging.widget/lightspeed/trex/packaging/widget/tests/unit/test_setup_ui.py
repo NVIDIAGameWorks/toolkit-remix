@@ -27,6 +27,7 @@ import omni.ui as ui
 from lightspeed.trex.packaging.core.enum import ModPackagingMode
 from lightspeed.trex.packaging.widget import setup_ui as _setup_ui
 from lightspeed.trex.packaging.widget.setup_ui import PackagingPane
+from lightspeed.trex.rtxio.core import RtxIoSplitSizePreset
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows
@@ -248,6 +249,23 @@ class TestPackagingPaneMode(AsyncTestCase):
             widget.destroy()
             window.destroy()
 
+    async def test_rtxio_option_indexes_map_to_named_options(self):
+        # Arrange
+        split_size_option = PackagingPane._get_rtxio_split_size_option_from_index(2)
+
+        # Act
+        disabled_mode = PackagingPane._get_rtxio_mode_from_index(0)
+        pack_mode = PackagingPane._get_rtxio_mode_from_index(1)
+        disabled_split = PackagingPane._get_rtxio_split_size_option_from_index(0)
+
+        # Assert
+        self.assertIs(_setup_ui._RtxIoMode.DISABLED, disabled_mode)
+        self.assertIs(_setup_ui._RtxIoMode.PACK, pack_mode)
+        self.assertIs(_setup_ui._RtxIoSplitSizeOption.DISABLED, disabled_split)
+        self.assertIs(_setup_ui._RtxIoSplitSizeOption.SIZE_2_GB, split_size_option)
+        self.assertEqual("2 GB", split_size_option.label)
+        self.assertIs(RtxIoSplitSizePreset.SIZE_2_GB, split_size_option.preset)
+
 
 class TestPackagingPaneCompletion(AsyncTestCase):
     async def setUp(self):
@@ -383,6 +401,9 @@ class TestPackagingPaneCompletion(AsyncTestCase):
                         "mod_version": "1.0.0",
                         "mod_details": "",
                         "ignored_errors": None,
+                        "rtxio_pack": False,
+                        "rtxio_delete_dds_after_pack": False,
+                        "rtxio_split_size_mb": None,
                     }
                 )
                 self.assertEqual(["delete", "package"], callback_order)

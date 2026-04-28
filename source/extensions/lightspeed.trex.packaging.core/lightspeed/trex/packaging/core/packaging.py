@@ -27,7 +27,6 @@ from typing import Any
 
 import carb
 import omni.client
-import omni.kit.app
 import omni.usd
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
 from lightspeed.common.constants import REMIX_DEPENDENCIES_FOLDER as _REMIX_DEPENDENCIES_FOLDER
@@ -37,7 +36,7 @@ from lightspeed.layer_manager.core import LSS_LAYER_MOD_DEPENDENCIES as _LSS_LAY
 from lightspeed.layer_manager.core import LSS_LAYER_MOD_NAME as _LSS_LAYER_MOD_NAME
 from lightspeed.layer_manager.core import LSS_LAYER_MOD_NOTES as _LSS_LAYER_MOD_NOTES
 from lightspeed.layer_manager.core import LSS_LAYER_MOD_VERSION as _LSS_LAYER_MOD_VERSION
-from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
+from lightspeed.trex.rtxio.core import RtxIoCore as _RtxIoCore
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -53,9 +52,6 @@ from .enum import get_packaged_root_output_suffix as _get_packaged_root_output_s
 from .enum import ModPackagingMode as _ModPackagingMode
 from .items import ModPackagingSchema as _ModPackagingSchema
 
-# Aligned with omni.flux.asset_importer.core.data_models.constants.SUPPORTED_TEXTURE_EXTENSIONS
-_PACKAGING_TEXTURE_SUFFIXES = frozenset(suffix.lower() for suffix in (_SUPPORTED_TEXTURE_EXTENSIONS))
-
 
 class PackagingCore:
     def __init__(self):
@@ -64,6 +60,9 @@ class PackagingCore:
             "_current_count": None,
             "_total_count": None,
             "_temp_files": None,
+            "_rtxio_core": None,
+            "_rtxio_progress_sub": None,
+            "_status": None,
         }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
@@ -73,6 +72,8 @@ class PackagingCore:
         self._total_count = 0
         self._status = "Initializing..."
         self._temp_files = {}
+        self._rtxio_core = _RtxIoCore()
+        self._rtxio_progress_sub = self._rtxio_core.subscribe_progress(self._on_rtxio_progress)
 
         self.__packaging_progress = _Event()
         self.__packaging_completed = _Event()
@@ -82,6 +83,9 @@ class PackagingCore:
         Cancel the packaging process.
         """
         self._cancel_token = True
+        rtxio_core = self._rtxio_core
+        if rtxio_core is not None:
+            rtxio_core.cancel()
 
     @property
     def current_count(self) -> int:
@@ -139,6 +143,12 @@ class PackagingCore:
             >>>)
         """
         return ensure_future(self.package_async(schema))
+
+    def _on_rtxio_progress(self, current: int, total: int, status: str):
+        self._current_count = current
+        self._total_count = total
+        self._status = status
+        self._packaging_progress()
 
     @omni.usd.handle_exception
     async def package_async(self, schema: dict):
@@ -224,6 +234,14 @@ class PackagingCore:
                     errors.extend(self._update_layer_metadata(model, exported_mod_layer, mod_dependencies, True))
                 else:
                     errors.append("Unable to find the exported mod file.")
+
+            # RTX IO post-processing: pack DDS textures after successful standard packaging
+            if not errors and not failed_assets and not self._cancel_token and model.rtxio_pack:
+                split_size_mb = int(model.rtxio_split_size_mb) if model.rtxio_split_size_mb is not None else None
+                errors.extend(await self._rtxio_core.compress_directory(model.output_directory, split_size_mb))
+                if not errors and model.rtxio_delete_dds_after_pack:
+                    await self._rtxio_core.delete_dds_files(model.output_directory)
+
         except Exception as e:  # noqa: BLE001
             errors.append(str(e))
         finally:
@@ -400,7 +418,12 @@ class PackagingCore:
         stage_prims = list(stage.TraverseAll())
         self._packaging_new_stage("Resolving invalid references...", len(stage_prims))
 
-        invalid_assets = self._collect_invalid_packaging_assets(stage_prims, unresolved_paths)
+        invalid_assets = self._rtxio_core.collect_invalid_stage_assets(
+            stage_prims,
+            unresolved_paths,
+            is_cancelled=lambda: self._cancel_token,
+            on_prim_processed=lambda: setattr(self, "current_count", self.current_count + 1),
+        )
 
         invalid_assets.difference_update(ignored_errors or [])
         if invalid_assets:
@@ -538,76 +561,19 @@ class PackagingCore:
 
         return errors, failed_assets
 
-    @staticmethod
-    def _normalize_packaging_absolute_path(absolute_path: str) -> str:
-        """Normalize dependency / disk paths for stable set comparisons (posix format)."""
-        return Path(absolute_path).as_posix()
-
-    def _collect_invalid_packaging_assets(
-        self,
-        stage_prims: list[Usd.Prim],
-        unresolved_paths: list[str],
-        *,
-        include_missing_authored_textures: bool = True,
-    ) -> set[tuple[str, str, str]]:
-        """
-        Scan stage prims once for packaging failures: missing authored textures (optional) and/or
-        prim references and per-spec asset attributes matching ``unresolved_paths`` (when non-empty).
-        """
-        unresolved_set = (
-            {self._normalize_packaging_absolute_path(p) for p in unresolved_paths} if unresolved_paths else None
-        )
-        result: set[tuple[str, str, str]] = set()
-
-        for prim in stage_prims:
-            if self._cancel_token:
-                return result
-
-            if unresolved_set:
-                prim_stack = prim.GetPrimStack()
-                for prim_spec in prim_stack:
-                    for ref in prim_spec.referenceList.GetAddedOrExplicitItems():
-                        resolved_path = self._normalize_packaging_absolute_path(
-                            prim_spec.layer.ComputeAbsolutePath(ref.assetPath)
-                        )
-                        if resolved_path in unresolved_set:
-                            result.add((prim_spec.layer.identifier, str(prim_spec.path), resolved_path))
-
-            for prop in prim.GetAttributes():
-                if not isinstance(prop.Get(), Sdf.AssetPath):
-                    continue
-                property_stack = prop.GetPropertyStack(Usd.TimeCode.Default())
-                for prop_spec in property_stack:
-                    prop_layer = prop_spec.layer
-                    authored_value = prop_spec.default
-                    if not isinstance(authored_value, Sdf.AssetPath) or not authored_value.path:
-                        continue
-                    abs_path = self._normalize_packaging_absolute_path(
-                        prop_layer.ComputeAbsolutePath(authored_value.path)
-                    )
-                    if include_missing_authored_textures and self._is_missing_packaging_texture_path(abs_path):
-                        result.add((prop_layer.identifier, str(prop.GetPath()), abs_path))
-                    if unresolved_set and abs_path in unresolved_set:
-                        result.add((prop_layer.identifier, str(prop.GetPath()), abs_path))
-
-            self.current_count += 1
-
-        return result
-
-    def _is_missing_packaging_texture_path(self, absolute_path: str) -> bool:
-        """True if ``absolute_path`` looks like a packaging texture and the file is not present."""
-        absolute_url = _OmniUrl(absolute_path)
-        if absolute_url.suffix.lower() not in _PACKAGING_TEXTURE_SUFFIXES:
-            return False
-        return not absolute_url.exists
-
     @omni.usd.handle_exception
     async def _get_unresolved_assets_prim_paths(
         self, stage: Usd.Stage, unresolved_paths: list[str]
     ) -> list[tuple[str, str, str]]:
         prims = list(stage.TraverseAll())
         return list(
-            self._collect_invalid_packaging_assets(prims, unresolved_paths, include_missing_authored_textures=False)
+            self._rtxio_core.collect_invalid_stage_assets(
+                prims,
+                unresolved_paths,
+                include_missing_authored_textures=False,
+                is_cancelled=lambda: self._cancel_token,
+                on_prim_processed=lambda: setattr(self, "current_count", self.current_count + 1),
+            )
         )
 
     def _get_original_path(self, temp_layer_path: str) -> str | None:
@@ -829,4 +795,9 @@ class PackagingCore:
         return _EventSubscription(self.__packaging_completed, function)
 
     def destroy(self):
+        self.cancel()
+        rtxio_core = self._rtxio_core
+        self._rtxio_core = None
+        if rtxio_core is not None:
+            rtxio_core.destroy()
         _reset_default_attrs(self)

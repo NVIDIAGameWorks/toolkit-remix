@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Added
+- Added an RTX IO packaging section to the packaging panel for post-packaging compression and packaged DDS cleanup.
+- Added RTX IO split-size presets from `1 GB` through `16 GB`.
+
 ## [1.4.9]
 ### Changed
 - Added packaging option dropdowns for packaging mode and packaged root output extension, and open the created package directory after successful packaging.

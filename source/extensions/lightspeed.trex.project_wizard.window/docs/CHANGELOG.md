@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.1]
+### Changed
+- Added a progress popup while the wizard probes projects for RTX IO packages and broken references.
+- Refined the RTX IO extraction prompt copy and action handling for open/edit flows.
+
 ## [2.2.0]
 ### Changed
 - REMIX-5202: Skip redundant open_stage when project is already loaded and Pass payload through subscribe_wizard_completed to callers

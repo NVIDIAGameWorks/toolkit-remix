@@ -19,6 +19,7 @@ import re
 from pathlib import Path
 
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
+from lightspeed.trex.rtxio.core import RtxIoSplitSizePreset as _RtxIoSplitSizePreset
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -65,6 +66,20 @@ class ModPackagingSchema(BaseModel):
     mod_details: str | None = Field(default=None, description="Optional text used to describe the mod in more details.")
     ignored_errors: list[tuple[str, str, str]] | None = Field(
         default=None, description="A list of errors to ignore when packaging the mod."
+    )
+    rtxio_pack: bool = Field(
+        default=False,
+        description="When True, all DDS textures in the output directory are compressed into an RTX IO .pkg file "
+        "after the standard packaging pipeline completes.",
+    )
+    rtxio_delete_dds_after_pack: bool = Field(
+        default=False,
+        description="When True (and rtxio_pack is True), all .dds files are deleted from the output directory "
+        "after successful RTX IO compression.",
+    )
+    rtxio_split_size_mb: _RtxIoSplitSizePreset | None = Field(
+        default=None,
+        description="Optional RTX IO split-size preset, mapped to the packager's --split argument.",
     )
 
     @field_validator("mod_layer_paths", mode="before")
