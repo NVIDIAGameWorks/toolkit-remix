@@ -17,21 +17,31 @@
 
 import tempfile
 from pathlib import Path
+from unittest import mock
 
 import omni.ui as ui
 import omni.usd
 from carb.input import KeyboardInput
+from lightspeed.common.constants import PARTICLE_SCHEMA_NAME as _PARTICLE_SCHEMA_NAME
+from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
+from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.properties_pane.widget import AssetReplacementsPane as _AssetReplacementsPane
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage
+from pxr import Sdf
 
 NUM_PIN_ICONS = 4  # Object, Material, Particles, Logic
 NUM_COLLAPSABLE_FRAMES = 7  # Object, Material, Particles, Logic, Selection Tree, Bookmark Tree, History
 
 
 class TestAssetReplacementsWidget(AsyncTestCase):
+    PARTICLE_MESH_PATH = "/RootNode/meshes/mesh_CED45075A077A49A/mesh"
+    PARTICLE_INSTANCE_MESH_PATH = "/RootNode/instances/inst_CED45075A077A49A_0/mesh"
+    SECOND_PARTICLE_MESH_PATH = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"
+    SECOND_INSTANCE_MESH_PATH = "/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"
+
     # Before running each test
     async def setUp(self):
         await arrange_windows()
@@ -54,6 +64,33 @@ class TestAssetReplacementsWidget(AsyncTestCase):
     async def __destroy(self, window, wid):
         wid.destroy()
         window.destroy()
+
+    @staticmethod
+    def __set_replacement_edit_target():
+        # Arrange helper: author particle attrs into the writable replacement layer.
+        layer_manager = _LayerManagerCore()
+        layer_manager.set_edit_target_layer_of_type(_LayerType.replacement)
+
+    def __author_particle_system(self, prim_path: str, gravity: float = 9.8):
+        self.__set_replacement_edit_target()
+        stage = omni.usd.get_context().get_stage()
+        prim = stage.GetPrimAtPath(prim_path)
+        self.assertTrue(prim.IsValid(), msg=f"Expected valid prim at {prim_path}")
+        prim.ApplyAPI(_PARTICLE_SCHEMA_NAME)
+        gravity_attr = prim.CreateAttribute("primvars:particle:gravityForce", Sdf.ValueTypeNames.Float)
+        gravity_attr.Set(gravity)
+
+    async def __set_selection(self, prim_paths: list[str], human_delay_speed: int = 10):
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths(prim_paths, False)
+        await ui_test.human_delay(human_delay_speed=human_delay_speed)
+
+    @staticmethod
+    def __get_particle_widgets(_window):
+        particle_frame = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_particle_widget'")
+        create_frame = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_particle_create'")
+        create_button = ui_test.find(f"{_window.title}//Frame/**/Button[*].identifier=='create_particle_system_button'")
+        return particle_frame, create_frame, create_button
 
     async def test_collapse_frames_here(self):
         # setup
@@ -346,6 +383,88 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         # ensure the selection tree is occupied with the selection since mesh selection
         self.assertEqual(len(selection_tree.widget.selection), 1)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_particle_create_state_visible_for_valid_non_particle_target(self):
+        # Arrange
+        _window, _wid = await self.__setup_widget("test_particle_create_state_visible_for_valid_non_particle_target")
+        particle_frame, create_frame, create_button = self.__get_particle_widgets(_window)
+
+        self.assertIsNotNone(particle_frame)
+        self.assertIsNotNone(create_frame)
+        self.assertIsNotNone(create_button)
+
+        # Act
+        await self.__set_selection([self.SECOND_INSTANCE_MESH_PATH])
+
+        # Assert
+        self.assertFalse(particle_frame.widget.visible)
+        self.assertTrue(create_frame.widget.visible)
+        self.assertTrue(create_button.widget.enabled)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_material_refresh_preserves_selection_order_after_dedupe(self):
+        # Arrange
+        _window, _wid = await self.__setup_widget("test_material_refresh_preserves_selection_order_after_dedupe")
+        expected_paths = [self.SECOND_PARTICLE_MESH_PATH, self.PARTICLE_MESH_PATH]
+        await self.__set_selection(expected_paths)
+
+        with (
+            mock.patch.object(_wid._material_properties_widget, "refresh") as refresh_mock,
+        ):
+            # Act
+            _wid._refresh_material_properties_widget()
+
+        # Assert
+        refresh_mock.assert_called_once()
+        refreshed_prims = refresh_mock.call_args.args[0]
+        self.assertEqual([str(prim.GetPath()) for prim in refreshed_prims], expected_paths)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_particle_properties_win_over_create_state_for_mixed_selection(self):
+        # Arrange
+        _window, _wid = await self.__setup_widget("test_particle_properties_win_over_create_state_for_mixed_selection")
+        self.__author_particle_system(self.PARTICLE_MESH_PATH)
+        particle_frame, create_frame, _create_button = self.__get_particle_widgets(_window)
+
+        self.assertIsNotNone(particle_frame)
+        self.assertIsNotNone(create_frame)
+
+        # Act
+        await self.__set_selection([self.SECOND_INSTANCE_MESH_PATH, self.PARTICLE_INSTANCE_MESH_PATH])
+
+        # Assert
+        self.assertTrue(particle_frame.widget.visible)
+        self.assertFalse(create_frame.widget.visible)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_particle_mixed_attribute_uses_last_selected_value(self):
+        # Arrange
+        _window, _wid = await self.__setup_widget("test_particle_mixed_attribute_uses_last_selected_value")
+        self.__author_particle_system(self.PARTICLE_MESH_PATH, gravity=1.0)
+        self.__author_particle_system(self.SECOND_PARTICLE_MESH_PATH, gravity=9.0)
+
+        # Act
+        await self.__set_selection([self.PARTICLE_INSTANCE_MESH_PATH, self.SECOND_INSTANCE_MESH_PATH])
+
+        # Assert
+        all_items = _wid._particle_properties_widget.property_model.get_all_items()
+        gravity_item = next(
+            (
+                item
+                for item in all_items
+                if getattr(item, "attribute_paths", None)
+                and any(str(path).endswith("primvars:particle:gravityForce") for path in item.attribute_paths)
+            ),
+            None,
+        )
+        self.assertIsNotNone(gravity_item)
+        self.assertTrue(gravity_item.value_models[0].is_mixed)
+        self.assertAlmostEqual(gravity_item.value_models[0].get_value_as_float(), 9.0, places=5)
 
         await self.__destroy(_window, _wid)
 

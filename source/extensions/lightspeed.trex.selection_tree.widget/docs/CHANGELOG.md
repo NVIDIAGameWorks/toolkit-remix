@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.10]
+### Fixed
+- Preserved selection order when deduplicating tree-sync paths so order-only viewport changes no longer get reshuffled by the selection tree
+
 ## [1.9.9]
 ### Fixed
 - REMIX-1926: Fixed duplicated prims not inheriting child prim property overrides from the replacement layer

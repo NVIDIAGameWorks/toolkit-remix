@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.16.1]
+### Fixed
+- Suppressed USD selection write-backs when only selection order changes so Stage Manager no longer reverses multi-selection precedence
+
 ## [2.16.0]
 ### Added
 - Added `DeleteRestoreActionWidgetPlugin` to `AllLightsInteractionPlugin` so lights can be deleted and restored from the Stage Manager lights tab

@@ -116,12 +116,15 @@ class TestUSDPropertiesWidget(AsyncTestCase):
             f"{_window.title}//Frame/**/CheckBox[*].identifier=='/Xform/Cube.doubleSided,/Xform/Cube2.doubleSided'"
         )
         # one cube is double sided and the other is not, so this should be mixed
+        usd_context = omni.usd.get_context(_CONTEXT_NAME)
+        stage = usd_context.get_stage()
+        expected_last_selected_value = stage.GetPrimAtPath("/Xform/Cube2").GetAttribute("doubleSided").Get()
         self.assertEqual(double_sided_widget.widget.model.is_mixed, True)
-        self.assertEqual(double_sided_widget.widget.model.get_value(), True)
-        self.assertEqual(double_sided_widget.widget.model.get_value_as_bool(), True)
+        self.assertEqual(double_sided_widget.widget.model.get_value(), expected_last_selected_value)
+        self.assertEqual(double_sided_widget.widget.model.get_value_as_bool(), expected_last_selected_value)
 
         # Act: toggle bool widget
-        self.assertEqual(double_sided_widget.widget.checked, True)
+        self.assertEqual(double_sided_widget.widget.checked, expected_last_selected_value)
         await omni.kit.ui_test.emulate_mouse_move(double_sided_widget.position + omni.kit.ui_test.Vec2(3, 3))
         await omni.kit.ui_test.emulate_mouse_click()
 
@@ -130,11 +133,11 @@ class TestUSDPropertiesWidget(AsyncTestCase):
             f"{_window.title}//Frame/**/CheckBox[*].identifier=='/Xform/Cube.doubleSided,/Xform/Cube2.doubleSided'"
         )
         self.assertIsNotNone(double_sided_widget, "CheckBox should still exist after click")
-        self.assertEqual(double_sided_widget.widget.checked, False)
+        self.assertEqual(double_sided_widget.widget.checked, True)
 
         # we check that the value of the UI element changed
-        self.assertEqual(double_sided_widget.widget.model.get_value(), False)
-        self.assertEqual(double_sided_widget.widget.model.get_value_as_bool(), False)
+        self.assertEqual(double_sided_widget.widget.model.get_value(), True)
+        self.assertEqual(double_sided_widget.widget.model.get_value_as_bool(), True)
         self.assertEqual(double_sided_widget.widget.model.is_mixed, False)
         # and that both cubes now have the correct value
         usd_context = omni.usd.get_context(_CONTEXT_NAME)
@@ -142,7 +145,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         for prim_path in ("/Xform/Cube", "/Xform/Cube2"):
             prim = stage.GetPrimAtPath(prim_path)
             xf_tr = prim.GetAttribute("doubleSided")
-            self.assertEqual(xf_tr.Get(), False)
+            self.assertEqual(xf_tr.Get(), True)
 
         await self.__destroy(_window, _widget)
 
@@ -163,9 +166,19 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         )
         self.assertEqual(len(property_branches), 3)
         translate_x_widget = property_branches[0]
+        usd_context = omni.usd.get_context(_CONTEXT_NAME)
+        stage = usd_context.get_stage()
+        expected_last_selected_translate_x = (
+            stage.GetPrimAtPath("/Xform/Cube2").GetAttribute("xformOp:translate").Get()[0]
+        )
         self.assertEqual(translate_x_widget.widget.model.is_mixed, True)
+        self.assertAlmostEqual(
+            translate_x_widget.widget.model.get_value_as_float(), expected_last_selected_translate_x, places=5
+        )
         # Act: click on field, set a value and then click off of it
         await translate_x_widget.double_click()
+        for _ in range(8):
+            await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.BACKSPACE)
         await omni.kit.ui_test.emulate_char_press("2.2")
         await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
         await omni.kit.ui_test.wait_n_updates(5)

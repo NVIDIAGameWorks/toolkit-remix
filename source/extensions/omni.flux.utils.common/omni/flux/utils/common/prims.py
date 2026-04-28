@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from collections.abc import Iterable
+
 from pxr import Sdf, Usd
 
 
@@ -40,6 +42,40 @@ def get_proto_from_prim(prim: Usd.Prim) -> Usd.Prim:
         if proto_prim and proto_prim.IsValid():
             return proto_prim
     return prim
+
+
+def unique_prim_sequence(
+    prim_seq: Iterable[Usd.Prim],
+    prototypes_only: bool = False,
+) -> list[Usd.Prim]:
+    """Return unique prims in last-occurrence order after optional prototype normalization.
+
+    Invalid prims are skipped. When ``prototypes_only`` is true, each valid
+    prim is first resolved through ``get_proto_from_prim()`` before dedupe.
+
+    Args:
+        prim_seq: Prims to deduplicate in incoming selection order.
+        prototypes_only: Whether to resolve each prim to its prototype before
+            deduping.
+
+    Returns:
+        Unique valid prims in last-occurrence order.
+    """
+    prims_by_path: dict[str, Usd.Prim] = {}
+    for prim in prim_seq:
+        if not prim or not prim.IsValid():
+            continue
+
+        normalized_prim = get_proto_from_prim(prim) if prototypes_only else prim
+        if not normalized_prim or not normalized_prim.IsValid():
+            continue
+
+        path_key = str(normalized_prim.GetPath())
+        if path_key in prims_by_path:
+            prims_by_path.pop(path_key)
+        prims_by_path[path_key] = normalized_prim
+
+    return list(prims_by_path.values())
 
 
 def get_omni_prims() -> set[Sdf.Path]:

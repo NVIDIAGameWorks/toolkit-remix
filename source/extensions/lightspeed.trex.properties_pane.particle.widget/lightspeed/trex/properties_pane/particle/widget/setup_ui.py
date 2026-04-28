@@ -24,7 +24,6 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common.constants import PARTICLE_PRIMVAR_PREFIX, PARTICLE_SCHEMA_NAME
 from lightspeed.trex.schemas.utils import get_schema_prim as _get_schema_prim
-from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
 from omni.flux.property_widget_builder.model.usd import USDAttributeEditGroupItem as _USDAttributeEditGroupItem
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.property_widget_builder.model.usd import USDAttrListItem as _USDAttrListItem
@@ -36,6 +35,7 @@ from omni.flux.property_widget_builder.widget import FieldBuilder as _FieldBuild
 from omni.flux.property_widget_builder.widget import ItemGroup as _ItemGroup
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common.prims import unique_prim_sequence as _unique_prim_sequence
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from pxr import Sdf, Usd
 
@@ -140,7 +140,7 @@ class ParticleSystemPropertyWidget:
         with self._root_frame:
             with ui.ZStack():
                 # Frame for when particle system exists - always created, visibility toggled
-                self._property_frame = ui.Frame(visible=False)
+                self._property_frame = ui.Frame(visible=False, identifier="frame_particle_widget")
                 with self._property_frame:
                     self._property_widget = _PropertyWidget(
                         self._context_name,
@@ -152,7 +152,7 @@ class ParticleSystemPropertyWidget:
                     )
 
                 # Frame for when no particle system exists - always created, visibility toggled
-                self._create_frame = ui.Frame(visible=True)
+                self._create_frame = ui.Frame(visible=True, identifier="frame_particle_create")
                 with self._create_frame:
                     with ui.VStack(height=0):
                         with ui.VStack(height=ui.Pixel(24)):
@@ -162,6 +162,7 @@ class ParticleSystemPropertyWidget:
                                 clicked_fn=lambda: self._create_particle_systems(self._valid_target_paths),
                                 tooltip="Select a material prim or mesh prim to create a particle system.",
                                 enabled=False,
+                                identifier="create_particle_system_button",
                             )
                             ui.Spacer()
                         ui.Spacer(height=ui.Pixel(8))
@@ -185,11 +186,12 @@ class ParticleSystemPropertyWidget:
         paths: list[str | Sdf.Path] | None = None,
         valid_target_paths: list[str | Sdf.Path] | None = None,
     ):
-        """
-        Refresh the panel with the given prim paths
+        """Refresh the panel for particle prims or create-capable targets.
 
         Args:
-            paths: the USD prim paths to use
+            paths: USD prim paths for selected particle systems to display.
+            valid_target_paths: USD prim paths that support particle creation
+                when no particle systems are currently selected.
         """
         if self._refresh_task is not None:
             self._refresh_task.cancel()
@@ -201,11 +203,12 @@ class ParticleSystemPropertyWidget:
         paths: list[str | Sdf.Path] | None = None,
         valid_target_paths: list[str | Sdf.Path] | None = None,
     ):
-        """
-        Deferred refresh to handle USD updates properly
+        """Refresh the panel asynchronously after USD selection updates settle.
 
         Args:
-            paths: the paths of particle system prims
+            paths: USD prim paths for selected particle systems to display.
+            valid_target_paths: USD prim paths that support particle creation
+                when no particle systems are currently selected.
         """
         if paths is not None:
             self._paths = paths
@@ -229,14 +232,14 @@ class ParticleSystemPropertyWidget:
         valid_paths = []
 
         if stage is not None:
-            prims = [
-                prototype_prim
-                for path in self._paths
-                if (prototype_prim := _get_prototype(stage.GetPrimAtPath(path)))  # Filtering Nones out
-            ]
+            prims = _unique_prim_sequence(
+                [stage.GetPrimAtPath(path) for path in self._paths],
+                prototypes_only=True,
+            )
 
             # Group attributes by name across all selected prims
             attr_added: dict[str, list[tuple[Usd.Prim, Usd.Attribute]]] = {}
+            valid_paths_by_key: dict[str, Sdf.Path] = {}
 
             for prim in prims:
                 if not prim.IsValid():
@@ -245,7 +248,7 @@ class ParticleSystemPropertyWidget:
                 if not prim.HasAPI(PARTICLE_SCHEMA_NAME):
                     continue
 
-                valid_paths.append(prim.GetPath())
+                valid_paths_by_key.setdefault(str(prim.GetPath()), prim.GetPath())
 
                 attrs = prim.GetAttributes()
                 for attr in attrs:
@@ -259,7 +262,8 @@ class ParticleSystemPropertyWidget:
 
             # Group items by category for better organization
             group_items = {}
-            num_prims = len([p for p in prims if p.IsValid() and p.HasAPI(PARTICLE_SCHEMA_NAME)])
+            valid_paths = list(valid_paths_by_key.values())
+            num_prims = len(valid_paths)
 
             # Sort attribute names for better organization (min/max pairs together, then alphabetical)
             sorted_attr_names = self._sort_particle_attributes(list(attr_added.keys()))
@@ -355,7 +359,7 @@ class ParticleSystemPropertyWidget:
         self.__usd_listener_instance.add_model(self._property_model)
 
         # Toggle visibility between property widget and create button
-        has_particles = bool(self._paths and valid_paths)
+        has_particles = bool(valid_paths)
         self._property_frame.visible = has_particles
         self._create_frame.visible = not has_particles
         self._update_create_button_state()
