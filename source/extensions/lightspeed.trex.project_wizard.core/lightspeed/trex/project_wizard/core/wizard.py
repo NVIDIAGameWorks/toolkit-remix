@@ -32,6 +32,8 @@ from lightspeed.layer_manager.core import LayerManagerCore as _LayerManager
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCore
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
+from lightspeed.trex.rtxio.core import RtxIoCore as _RtxIoCore
+from lightspeed.trex.rtxio.core import RtxIoProbeResult as _RtxIoProbeResult
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.symlink import create_folder_symlinks as _create_folder_symlinks
@@ -54,6 +56,7 @@ class ProjectWizardCore:
         """
         Project Wizard core that creates project scaffolding according to a given schema.
         """
+        self._rtxio_core = _RtxIoCore()
         self.__on_run_finished = _Event()
         self.__on_run_progress = _Event()
         self.__on_log_info = _Event()
@@ -82,6 +85,13 @@ class ProjectWizardCore:
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_log_error, callback)
+
+    def destroy(self):
+        """Release retained helper cores owned by the wizard."""
+        rtxio_core = self._rtxio_core
+        if rtxio_core is not None:
+            rtxio_core.destroy()
+            self._rtxio_core = None
 
     def setup_project(self, schema: dict, dry_run: bool = False):
         r"""
@@ -167,6 +177,18 @@ class ProjectWizardCore:
             self._on_run_progress(30)
 
             if model.existing_project:
+                if model.extract_rtxio_packages:
+                    extract_error = await self._extract_rtxio_packages(
+                        model.project_file.parent,
+                        dry_run,
+                        overwrite_existing=model.extract_rtxio_overwrite_existing,
+                        progress_start=30,
+                        progress_end=95,
+                    )
+                    if extract_error:
+                        self._log_error(extract_error)
+                        self._on_run_finished(False, error=extract_error)
+                        return False, extract_error
                 self._destroy_context()
                 self._log_info(f"Project is ready: {model.project_file}")
                 self._on_run_progress(100)
@@ -192,7 +214,12 @@ class ProjectWizardCore:
 
             if model.mod_file:
                 mod_file = await self._setup_existing_mod_project(
-                    replacement_core, model.mod_file, project_directory, dry_run
+                    replacement_core,
+                    model.mod_file,
+                    project_directory,
+                    dry_run,
+                    extract_rtxio_packages=model.extract_rtxio_packages,
+                    extract_rtxio_overwrite_existing=model.extract_rtxio_overwrite_existing,
                 )
             else:
                 mod_file = await self._setup_new_mod_project(replacement_core, project_directory, dry_run)
@@ -276,6 +303,32 @@ class ProjectWizardCore:
         remix_mods_directory = remix_directory / _constants.REMIX_MODS_FOLDER
         remix_project_directory = remix_mods_directory / model.project_file.parent.stem
         return not _get_path_or_symlink(remix_project_directory)
+
+    def cancel_rtxio(self):
+        rtxio_core = self._rtxio_core
+        if rtxio_core is not None:
+            rtxio_core.cancel()
+
+    async def probe_rtxio_project(
+        self,
+        model: _ProjectWizardSchema,
+        *,
+        on_progress: Callable[[int, int, str], Any] | None = None,
+    ) -> _RtxIoProbeResult:
+        probe_directory = (
+            model.project_file.parent if model.existing_project else model.mod_file.parent if model.mod_file else None
+        )
+        if not probe_directory:
+            return _RtxIoProbeResult(package_files=[], broken_references=[], was_cancelled=False)
+
+        probe_stage_file = model.project_file if model.existing_project else model.mod_file
+        rtxio_core = self._rtxio_core
+        progress_sub = rtxio_core.subscribe_progress(on_progress) if on_progress else None
+        try:
+            return await rtxio_core.probe_directory(probe_directory, probe_stage_file)
+        finally:
+            if progress_sub is not None:
+                del progress_sub
 
     async def _create_symlinks(
         self,
@@ -371,13 +424,31 @@ class ProjectWizardCore:
                     do_undo=False,
                 )
 
-    async def _setup_existing_mod_project(self, replacement_core, mod_file, project_directory, dry_run):
+    async def _setup_existing_mod_project(
+        self,
+        replacement_core,
+        mod_file,
+        project_directory,
+        dry_run,
+        extract_rtxio_packages: bool = False,
+        extract_rtxio_overwrite_existing: bool = False,
+    ):
         self._log_info(f"Copy content of '{mod_file.parent}' to '{project_directory}'")
 
         project_mod_file = project_directory / mod_file.name
 
         if not dry_run:
             copytree(str(mod_file.parent), str(project_directory), dirs_exist_ok=True)
+            if extract_rtxio_packages:
+                extract_error = await self._extract_rtxio_packages(
+                    project_directory,
+                    dry_run,
+                    overwrite_existing=extract_rtxio_overwrite_existing,
+                    progress_start=60,
+                    progress_end=70,
+                )
+                if extract_error:
+                    raise RuntimeError(extract_error)
             project_mod_file.chmod(stat.S_IREAD | stat.S_IWRITE)
             replacement_core.import_replacement_layer(
                 str(project_mod_file),
@@ -389,6 +460,40 @@ class ProjectWizardCore:
             )
 
         return project_mod_file
+
+    async def _extract_rtxio_packages(
+        self,
+        directory: Path,
+        dry_run: bool,
+        *,
+        overwrite_existing: bool = False,
+        progress_start: float | None = None,
+        progress_end: float | None = None,
+    ) -> str | None:
+        rtxio_core = self._rtxio_core
+        package_files = rtxio_core.find_rtxio_package_files(directory)
+        if not package_files:
+            return None
+
+        self._log_info(f"Extract RTX IO packages in '{directory}'")
+        if dry_run:
+            return None
+
+        def _forward_packaging_progress(current: int, total: int, _status: str):
+            if progress_start is None or progress_end is None or total <= 0:
+                return
+            progress = progress_start + ((progress_end - progress_start) * (current / total))
+            self._on_run_progress(progress)
+
+        progress_sub = rtxio_core.subscribe_progress(_forward_packaging_progress)
+        try:
+            errors = await rtxio_core.extract_packages(directory, force_overwrite=overwrite_existing)
+        finally:
+            del progress_sub
+
+        if not errors:
+            return None
+        return "\n".join(errors)
 
     async def _setup_new_mod_project(self, replacement_core, project_directory, dry_run):
         mod_file = project_directory / _constants.REMIX_MOD_FILE

@@ -41,10 +41,21 @@ class TestWizard(omni.kit.test.AsyncTestCase):
     # After running each test
     async def tearDown(self):
         self.base_dir = None
+        if self.core is not None:
+            self.core.destroy()
         self.core = None
 
         self.__temp_dir.cleanup()
         self.__temp_dir = None
+
+    async def test_destroy_should_release_rtxio_core(self):
+        rtxio_core = Mock()
+        self.core._rtxio_core = rtxio_core
+
+        self.core.destroy()
+
+        self.assertEqual(1, rtxio_core.destroy.call_count)
+        self.assertIsNone(self.core._rtxio_core)
 
     async def test_setup_project_existing_project_should_quick_return_success(self):
         # Arrange
@@ -110,6 +121,106 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual([call(0), call(10), call(20)], mock.progress_mock.call_args_list)
 
         self.assertEqual(call(False, error=symlink_error), mock.finished_mock.call_args)
+
+    async def test_setup_project_existing_project_with_rtxio_extract_should_extract_before_success(self):
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
+
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=remix_dir,
+            extract_rtxio_packages=True,
+        )
+
+        with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
+            # Act
+            await self.core.setup_project_async_with_exceptions({})
+
+        # Assert
+        self.assertEqual(1, mock.extract_rtxio_packages_mock.call_count)
+        self.assertEqual(
+            call(
+                project_file.parent,
+                False,
+                overwrite_existing=False,
+                progress_start=30,
+                progress_end=95,
+            ),
+            mock.extract_rtxio_packages_mock.call_args,
+        )
+        self.assertEqual(call(True), mock.finished_mock.call_args)
+
+    async def test_setup_project_existing_project_with_rtxio_extract_overwrite_should_extract_with_overwrite(self):
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
+
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=remix_dir,
+            extract_rtxio_packages=True,
+            extract_rtxio_overwrite_existing=True,
+        )
+
+        with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
+            # Act
+            await self.core.setup_project_async_with_exceptions({})
+
+        # Assert
+        self.assertEqual(1, mock.extract_rtxio_packages_mock.call_count)
+        self.assertEqual(
+            call(
+                project_file.parent,
+                False,
+                overwrite_existing=True,
+                progress_start=30,
+                progress_end=95,
+            ),
+            mock.extract_rtxio_packages_mock.call_args,
+        )
+        self.assertEqual(call(True), mock.finished_mock.call_args)
+
+    async def test_probe_rtxio_project_existing_project_should_probe_project_file(self):
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
+        schema = ProjectWizardSchemaMock(existing_project=True, project_file=project_file)
+
+        with WizardMockContext(schema_mock=schema) as mock:
+            self.core._rtxio_core = mock.rtxio_core_mock.return_value
+            expected = Mock(package_files=[project_file.parent / "mod.pkg"], broken_references=[], was_cancelled=False)
+            mock.rtxio_core_mock.return_value.probe_directory.return_value = expected
+
+            # Act
+            value = await self.core.probe_rtxio_project(schema)
+
+        # Assert
+        self.assertEqual(expected, value)
+        self.assertEqual(1, mock.rtxio_core_mock.return_value.probe_directory.call_count)
+        self.assertEqual(
+            call(project_file.parent, project_file), mock.rtxio_core_mock.return_value.probe_directory.call_args
+        )
+
+    async def test_probe_rtxio_project_mod_project_should_probe_mod_file(self):
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
+        mod_file = self.base_dir / constants.REMIX_FOLDER / constants.REMIX_MODS_FOLDER / "Existing Mod" / "mod.usda"
+        schema = ProjectWizardSchemaMock(existing_project=False, project_file=project_file, mod_file=mod_file)
+
+        with WizardMockContext(schema_mock=schema) as mock:
+            self.core._rtxio_core = mock.rtxio_core_mock.return_value
+            expected = Mock(package_files=[mod_file.parent / "mod.pkg"], broken_references=[], was_cancelled=False)
+            mock.rtxio_core_mock.return_value.probe_directory.return_value = expected
+
+            # Act
+            value = await self.core.probe_rtxio_project(schema)
+
+        # Assert
+        self.assertEqual(expected, value)
+        self.assertEqual(1, mock.rtxio_core_mock.return_value.probe_directory.call_count)
+        self.assertEqual(call(mod_file.parent, mod_file), mock.rtxio_core_mock.return_value.probe_directory.call_args)
 
     async def test_setup_project_mod_file_should_setup_existing_mod_project(self):
         await self.__run_test_setup_project_should_setup_project(True)
@@ -324,6 +435,84 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual(call(stat.S_IREAD | stat.S_IWRITE), mock.path_chmod_mock.call_args)
 
         self.assertEqual(project_mod_file, value)
+
+    async def test_setup_existing_mod_project_with_rtxio_extract_should_extract_in_project_directory(self):
+        # Arrange
+        project_file = self.base_dir / "My Project" / "project.usda"
+        mod_file = self.base_dir / constants.REMIX_FOLDER / constants.REMIX_MODS_FOLDER / "Existing Mod" / "mod.usda"
+        project_dir = project_file.parent
+
+        with WizardMockContext() as mock:
+            self.core._rtxio_core = mock.rtxio_core_mock.return_value
+            mock.rtxio_core_mock.return_value.find_rtxio_package_files.return_value = [project_dir / "mod.pkg"]
+            # Act
+            await self.core._setup_existing_mod_project(
+                mock.replacement_core_mock,
+                mod_file,
+                project_dir,
+                False,
+                extract_rtxio_packages=True,
+            )
+
+        # Assert
+        self.assertEqual(1, mock.rtxio_core_mock.return_value.find_rtxio_package_files.call_count)
+        self.assertEqual(call(project_dir), mock.rtxio_core_mock.return_value.find_rtxio_package_files.call_args)
+        self.assertEqual(1, mock.rtxio_core_mock.return_value.extract_packages.call_count)
+        self.assertEqual(
+            call(project_dir, force_overwrite=False),
+            mock.rtxio_core_mock.return_value.extract_packages.call_args,
+        )
+
+    async def test_setup_existing_mod_project_with_rtxio_extract_overwrite_should_extract_with_overwrite(self):
+        # Arrange
+        project_file = self.base_dir / "My Project" / "project.usda"
+        mod_file = self.base_dir / constants.REMIX_FOLDER / constants.REMIX_MODS_FOLDER / "Existing Mod" / "mod.usda"
+        project_dir = project_file.parent
+
+        with WizardMockContext() as mock:
+            self.core._rtxio_core = mock.rtxio_core_mock.return_value
+            mock.rtxio_core_mock.return_value.find_rtxio_package_files.return_value = [project_dir / "mod.pkg"]
+
+            # Act
+            await self.core._setup_existing_mod_project(
+                mock.replacement_core_mock,
+                mod_file,
+                project_dir,
+                False,
+                extract_rtxio_packages=True,
+                extract_rtxio_overwrite_existing=True,
+            )
+
+        # Assert
+        self.assertEqual(1, mock.rtxio_core_mock.return_value.extract_packages.call_count)
+        self.assertEqual(
+            call(project_dir, force_overwrite=True),
+            mock.rtxio_core_mock.return_value.extract_packages.call_args,
+        )
+
+    async def test_extract_rtxio_packages_should_forward_packaging_progress_into_wizard_progress_range(self):
+        project_dir = self.base_dir / "My Project"
+
+        with WizardMockContext() as mock:
+            self.core._rtxio_core = mock.rtxio_core_mock.return_value
+            captured_callbacks = []
+
+            def _subscribe(callback):
+                captured_callbacks.append(callback)
+                return Mock()
+
+            async def _extract(*_args, **_kwargs):
+                captured_callbacks[0](1, 2, "Extracting RTX IO packages...")
+                return []
+
+            mock.rtxio_core_mock.return_value.find_rtxio_package_files.return_value = [project_dir / "mod.pkg"]
+            mock.rtxio_core_mock.return_value.subscribe_progress.side_effect = _subscribe
+            mock.rtxio_core_mock.return_value.extract_packages.side_effect = _extract
+
+            await self.core._extract_rtxio_packages(project_dir, False, progress_start=30, progress_end=95)
+
+        self.assertEqual(1, mock.rtxio_core_mock.return_value.subscribe_progress.call_count)
+        self.assertIn(call(62.5), mock.progress_mock.call_args_list)
 
     async def test_setup_new_mod_project_should_create_new_sublayer_and_return_file(self):
         # Arrange
@@ -559,7 +748,15 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             self.assertEqual(1, mock.setup_existing_mod_mock.call_count)
             self.assertEqual(0, mock.setup_new_mod_mock.call_count)
             self.assertEqual(
-                call(replacement_core_mock, mod_file, project_dir, dry_run), mock.setup_existing_mod_mock.call_args
+                call(
+                    replacement_core_mock,
+                    mod_file,
+                    project_dir,
+                    dry_run,
+                    extract_rtxio_packages=False,
+                    extract_rtxio_overwrite_existing=False,
+                ),
+                mock.setup_existing_mod_mock.call_args,
             )
         else:
             self.assertEqual(0, mock.setup_existing_mod_mock.call_count)

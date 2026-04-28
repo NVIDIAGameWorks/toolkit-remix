@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.2]
+### Changed
+- Route project open/edit RTX IO probing and extraction through the shared RTX IO core.
+- Forward RTX IO probe and extraction progress through the project wizard progress flow.
+
 ## [2.1.1]
 ### Fixed
 - Keep wizard-driven capture and replacement imports out of the undo stack during project setup

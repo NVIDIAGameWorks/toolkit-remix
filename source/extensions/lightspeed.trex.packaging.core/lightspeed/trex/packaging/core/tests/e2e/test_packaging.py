@@ -30,6 +30,7 @@ from lightspeed.trex.packaging.core.enum import ModPackagingMode
 from lightspeed.trex.packaging.core.packaging import PackagingCore
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.kit.test_suite.helpers import get_test_data_path
+from pxr import Sdf
 
 
 def compare_files(fn1, fn2):
@@ -275,6 +276,61 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
 
                 self.assertDictEqual(before_snapshot, after_snapshot)
 
+    async def test_package_missing_authored_texture_should_report_failed_asset_and_skip_package(self):
+        packaging_core = PackagingCore()
+
+        completed_mock = Mock()
+        _completed_sub = packaging_core.subscribe_packaging_completed(completed_mock)
+
+        output_dir = Path(self.temp_dir.name) / "package_missing_texture"
+
+        with tempfile.TemporaryDirectory() as temp_input:
+            input_project_path = get_test_data_path(__name__, "projects")
+            temp_project_path = Path(temp_input) / "projects"
+
+            result = await omni.client.copy_async(input_project_path, str(temp_project_path))
+            self.assertEqual(result, omni.client.Result.OK, "Can't copy the project to the temporary directory")
+
+            temp_project_root = temp_project_path / "MainProject"
+            temp_mod_usda = temp_project_root / "mod.usda"
+            temp_subproject_mod = temp_project_root / "deps" / "mods" / "SubProject" / "mod.usda"
+            temp_mod_capture_baker = temp_project_root / "mod_capture_baker.usda"
+            temp_sublayer = temp_project_root / "sublayer.usda"
+            material_layer_path = temp_project_root / "materials" / "AperturePBR_Translucent.usda"
+            missing_texture_path = temp_project_root / "materials" / "not_created.a.rtex.dds"
+
+            self.__author_missing_texture(material_layer_path)
+
+            await packaging_core.package_async_with_exceptions(
+                {
+                    "context_name": "PackagingE2EMissingTexture",
+                    "mod_layer_paths": [
+                        str(temp_mod_usda),
+                        str(temp_subproject_mod),
+                    ],
+                    "selected_layer_paths": [
+                        str(temp_mod_usda),
+                        str(temp_mod_capture_baker),
+                        str(temp_sublayer),
+                    ],
+                    "output_directory": output_dir,
+                    "mod_name": "Main Project",
+                    "mod_version": "1.0.0",
+                    "mod_details": "Main Test Notes",
+                }
+            )
+
+            self.assertEqual(1, completed_mock.call_count)
+            errors, failed_assets, was_cancelled = completed_mock.call_args.args
+            self.assertEqual([], errors)
+            self.assertFalse(was_cancelled)
+            self.assertEqual(1, len(failed_assets))
+
+            _, prop_path, missing_path = failed_assets[0]
+            self.assertEqual("/RootNode/Looks/mat_CC76669780A210D2/Shader.inputs:diffuse_texture", prop_path)
+            self.assertEqual(missing_texture_path.as_posix(), missing_path)
+            self.assertFalse(output_dir.exists())
+
     async def test_package_flatten_mode_should_export_single_root_layer_and_prune_packaged_sublayers(self):
         packaging_core = PackagingCore()
         output_dir = Path(self.temp_dir.name) / "package_flatten"
@@ -428,6 +484,20 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
         packaging_context = omni.usd.get_context(packaging_context_name)
         if packaging_context and packaging_context.get_stage():
             await packaging_context.close_stage_async()
+
+    def __author_missing_texture(self, material_layer_path: Path) -> str:
+        material_layer = Sdf.Layer.FindOrOpen(str(material_layer_path))
+        self.assertIsNotNone(material_layer)
+
+        shader_spec = material_layer.GetPrimAtPath("/Looks/mat_AperturePBR_Translucent/Shader")
+        self.assertIsNotNone(shader_spec)
+
+        attr_spec = Sdf.AttributeSpec(shader_spec, "inputs:diffuse_texture", Sdf.ValueTypeNames.Asset)
+        attr_spec.default = Sdf.AssetPath("./not_created.a.rtex.dds")
+        material_layer.Save()
+        material_layer_identifier = material_layer.identifier
+        material_layer = None
+        return material_layer_identifier
 
     async def __asset_directories_equal(self, expected: Path, actual: Path):
         # Make sure all the files in the expected directory are identical in the actual directory

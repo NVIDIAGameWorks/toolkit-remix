@@ -18,7 +18,6 @@
 import abc
 import asyncio
 from enum import Enum
-from functools import partial
 from pathlib import Path
 
 import carb.settings
@@ -37,6 +36,7 @@ from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.dialog import ErrorPopup as _ErrorPopup
+from omni.flux.utils.dialog import ProgressPopup as _ProgressPopup
 from omni.flux.wizard.widget import WizardModel as _WizardModel
 from omni.flux.wizard.widget import WizardPage as _WizardPage
 from omni.flux.wizard.window import WizardWindow as _WizardWindow
@@ -86,37 +86,126 @@ class ProjectWizardBase(abc.ABC):
     @usd.handle_exception
     async def _on_wizard_completed(self, payload: dict):
         @usd.handle_exception
-        async def _setup_project():
-            success, error = await self._wizard_core.setup_project_async(payload)
-            self._on_setup_completed(payload, success, error)
+        async def _run_setup_project(
+            extract_rtxio_packages: bool = False, extract_rtxio_overwrite_existing: bool = False
+        ):
+            setup_payload = dict(payload)
+            setup_payload[_ProjectWizardKeys.EXTRACT_RTXIO_PACKAGES.value] = extract_rtxio_packages
+            setup_payload[_ProjectWizardKeys.EXTRACT_RTXIO_OVERWRITE_EXISTING.value] = extract_rtxio_overwrite_existing
+            success, error = await self._wizard_core.setup_project_async(setup_payload)
+            self._on_setup_completed(setup_payload, success, error)
+
+        @usd.handle_exception
+        async def _setup_project(extract_rtxio_packages: bool = False, extract_rtxio_overwrite_existing: bool = False):
+            if (
+                any(
+                    [
+                        self._wizard_core.need_project_directory_symlink(model),
+                        self._wizard_core.need_deps_directory_symlink(model),
+                    ]
+                )
+                and not force_junction
+            ):
+                await omni.kit.app.get_app().next_update_async()
+
+                _TrexMessageDialog(
+                    title="Elevated Privileges Required",
+                    message=(
+                        'You will be prompted with a "User Account Control" window.\n\n'
+                        "RTX Remix requires elevated privileges to symlink your project in your game install directory.\n\n"
+                        "Without elevated privileges the project creation will fail."
+                    ),
+                    disable_cancel_button=True,
+                    ok_handler=lambda: asyncio.ensure_future(
+                        _run_setup_project(extract_rtxio_packages, extract_rtxio_overwrite_existing)
+                    ),
+                )
+            else:
+                await _run_setup_project(extract_rtxio_packages, extract_rtxio_overwrite_existing)
 
         settings = carb.settings.get_settings()
         force_junction = settings.get(_SETTING_JUNCTION_NAME)  # junction doesn't need admin right
 
         model = _ProjectWizardSchema(**payload)
-        if (
-            any(
-                [
-                    self._wizard_core.need_project_directory_symlink(model),
-                    self._wizard_core.need_deps_directory_symlink(model),
-                ]
+        probe_popup = _ProgressPopup(title="Checking RTX IO Packages")
+        probe_popup.set_cancel_fn(self._wizard_core.cancel_rtxio)
+
+        def _on_probe_progress(current: int, total: int, status: str):
+            if not probe_popup.is_visible():
+                probe_popup.show()
+            status_text = status
+            if total > 0:
+                status_text = f"{status}\n{current} / {total}"
+            if probe_popup.status_text != status_text:
+                probe_popup.set_status_text(status_text)
+            probe_popup.set_progress(current / total if total > 0 else 0)
+
+        probe_result = await self._wizard_core.probe_rtxio_project(model, on_progress=_on_probe_progress)
+        if probe_popup.is_visible():
+            probe_popup.hide()
+        probe_popup.destroy()
+
+        if probe_result.was_cancelled:
+            return
+
+        rtxio_package_files = probe_result.package_files
+        if rtxio_package_files:
+            probe_directory = model.project_file.parent if model.existing_project else model.mod_file.parent
+            broken_references = probe_result.broken_references
+            location_hint = (
+                "The selected project's directory will be modified."
+                if model.existing_project
+                else "Extraction will happen only in the copied project directory, not the source mod."
             )
-            and not force_junction
-        ):
+
             await omni.kit.app.get_app().next_update_async()
+            if broken_references:
+                _TrexMessageDialog(
+                    title="RTX IO Extraction Required",
+                    message=(
+                        f"Found {len(rtxio_package_files)} RTX IO package file(s) in:\n{probe_directory}\n\n"
+                        f"The stage also contains {len(broken_references)} broken asset reference(s), so extraction "
+                        "is required before continuing.\n\n"
+                        "Extract & Skip: unpack the RTX IO packages and leave any existing destination files unchanged.\n"
+                        "Extract & Overwrite: unpack the RTX IO packages and replace matching files in the destination "
+                        "project directory.\n"
+                        "Cancel: stop here without opening the project.\n\n"
+                        f"{location_hint}"
+                    ),
+                    ok_label="Extract & Skip",
+                    middle_label="Extract & Overwrite",
+                    cancel_label="Cancel",
+                    disable_middle_button=False,
+                    ok_handler=lambda: asyncio.ensure_future(_setup_project(True)),
+                    middle_handler=lambda: asyncio.ensure_future(_setup_project(True, True)),
+                )
+                return
 
             _TrexMessageDialog(
-                title="Elevated Privileges Required",
+                title="RTX IO Packages Detected",
                 message=(
-                    'You will be prompted with a "User Account Control" window.\n\n'
-                    "RTX Remix requires elevated privileges to symlink your project in your game install directory.\n\n"
-                    "Without elevated privileges the project creation will fail."
+                    f"Found {len(rtxio_package_files)} RTX IO package file(s) in:\n{probe_directory}\n\n"
+                    "Choose how the project should handle them before continuing.\n\n"
+                    "Extract & Skip: unpack the RTX IO packages and leave any existing destination files unchanged.\n"
+                    "Extract & Overwrite: unpack the RTX IO packages and replace matching files in the destination "
+                    "project directory.\n"
+                    "Continue: open the project without extracting the RTX IO packages.\n"
+                    "Cancel: stop here without opening the project.\n\n"
+                    f"{location_hint}"
                 ),
-                disable_cancel_button=True,
-                ok_handler=partial(asyncio.ensure_future, _setup_project()),
+                ok_label="Extract & Skip",
+                middle_label="Extract & Overwrite",
+                middle_2_label="Continue",
+                cancel_label="Cancel",
+                disable_middle_button=False,
+                disable_middle_2_button=False,
+                ok_handler=lambda: asyncio.ensure_future(_setup_project(True)),
+                middle_handler=lambda: asyncio.ensure_future(_setup_project(True, True)),
+                middle_2_handler=lambda: asyncio.ensure_future(_setup_project(False)),
             )
-        else:
-            await _setup_project()
+            return
+
+        await _setup_project(False)
 
     def _on_setup_completed(self, payload: dict, success: bool, error: str | None):
         if not success:
@@ -184,6 +273,9 @@ class ProjectWizardBase(abc.ABC):
         self._payload = payload
 
     def destroy(self):
+        wizard_core = self._wizard_core
+        if wizard_core is not None:
+            wizard_core.destroy()
         _reset_default_attrs(self)
 
 

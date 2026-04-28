@@ -16,6 +16,7 @@
 """
 
 from asyncio import ensure_future
+from enum import Enum
 from functools import partial
 
 import carb.settings
@@ -27,7 +28,6 @@ from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.mod_packaging_details.widget import ModPackagingDetailsWidget as _ModPackagingDetailsWidget
 from lightspeed.trex.mod_packaging_layers.widget import ModPackagingLayersWidget as _ModPackagingLayersWidget
 from lightspeed.trex.mod_packaging_output.widget import ModPackagingOutputWidget as _ModPackagingOutputWidget
-from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from lightspeed.trex.packaging.core.enum import MOD_PACKAGING_MODE_UI_OPTIONS as _MOD_PACKAGING_MODE_UI_OPTIONS
 from lightspeed.trex.packaging.core.enum import (
     MOD_PACKAGING_OUTPUT_FORMAT_UI_OPTIONS as _MOD_PACKAGING_OUTPUT_FORMAT_UI_OPTIONS,
@@ -38,6 +38,8 @@ from lightspeed.trex.packaging.core.enum import (
     get_packaging_output_format_description as _get_packaging_output_format_description,
 )
 from lightspeed.trex.packaging.core.packaging import PackagingCore as _PackagingCore
+from lightspeed.trex.rtxio.core import RtxIoSplitSizePreset as _RtxIoSplitSizePreset
+from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from lightspeed.trex.packaging.window import PackagingErrorWindow as _PackagingErrorWindow
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
@@ -55,8 +57,46 @@ _SETTINGS_OUTPUT_FORMAT = "/persistent/exts/lightspeed.trex.packaging.widget/out
 _PRESERVE_OUTPUT_FORMAT_SETTING_VALUE = "preserve"
 
 
+class _RtxIoMode(Enum):
+    DISABLED = "Disabled"
+    PACK = "Compress DDS textures after packaging"
+
+    @property
+    def label(self) -> str:
+        return self.value
+
+
+class _RtxIoSplitSizeOption(Enum):
+    DISABLED = ("Disabled", None)
+    SIZE_1_GB = (_RtxIoSplitSizePreset.SIZE_1_GB.label, _RtxIoSplitSizePreset.SIZE_1_GB)
+    SIZE_2_GB = (_RtxIoSplitSizePreset.SIZE_2_GB.label, _RtxIoSplitSizePreset.SIZE_2_GB)
+    SIZE_4_GB = (_RtxIoSplitSizePreset.SIZE_4_GB.label, _RtxIoSplitSizePreset.SIZE_4_GB)
+    SIZE_8_GB = (_RtxIoSplitSizePreset.SIZE_8_GB.label, _RtxIoSplitSizePreset.SIZE_8_GB)
+    SIZE_16_GB = (_RtxIoSplitSizePreset.SIZE_16_GB.label, _RtxIoSplitSizePreset.SIZE_16_GB)
+
+    def __init__(self, label: str, preset: _RtxIoSplitSizePreset | None):
+        self._label = label
+        self._preset = preset
+
+    @property
+    def label(self) -> str:
+        return self._label
+
+    @property
+    def preset(self) -> _RtxIoSplitSizePreset | None:
+        return self._preset
+
+
+_RTXIO_MODES = tuple(_RtxIoMode)
+_RTXIO_SPLIT_SIZE_OPTIONS = tuple(_RtxIoSplitSizeOption)
+
+
 class PackagingPane(_WorkspaceWidget):
     _MOD_PACKAGING_CONTEXT = "ModPackaging"
+    _SPACING_XS = ui.Pixel(4)
+    _SPACING_MD = ui.Pixel(8)
+    _SPACING_LG = ui.Pixel(16)
+    _ROW_HEIGHT = ui.Pixel(24)
 
     def __init__(self, context_name: str = ""):
         """Nvidia StageCraft Mod Packaging Pane"""
@@ -88,6 +128,14 @@ class PackagingPane(_WorkspaceWidget):
             "_packaging_output_format_combo": None,
             "_packaging_output_format_changed_sub": None,
             "_export_button": None,
+            # RTX IO widgets
+            "_rtxio_collapsable_frame": None,
+            "_rtxio_mode_combo": None,
+            "_rtxio_mode_sub": None,
+            "_rtxio_delete_dds_checkbox": None,
+            "_rtxio_delete_dds_row": None,
+            "_rtxio_split_combo": None,
+            "_rtxio_split_row": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -211,6 +259,68 @@ class PackagingPane(_WorkspaceWidget):
 
                             ui.Spacer(height=ui.Pixel(16))
 
+                            self._rtxio_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
+                                "RTX IO PACKAGING",
+                                info_text=(
+                                    "Control whether the packaged mod's normalized DDS textures are compressed into an "
+                                    "RTX IO .pkg file after the standard packaging pipeline completes, and optionally "
+                                    "split the result into multiple package files.\n\n"
+                                    "This only affects the packaged output directory. It does not remove source "
+                                    "textures from the active project."
+                                ),
+                                collapsed=True,
+                            )
+                            with self._rtxio_collapsable_frame:
+                                with ui.VStack(height=0, spacing=0):
+                                    ui.Spacer(height=self._SPACING_XS)
+
+                                    with ui.HStack(height=0, spacing=self._SPACING_LG):
+                                        with ui.VStack(width=0, height=0, spacing=self._SPACING_MD):
+                                            with ui.HStack(
+                                                height=self._ROW_HEIGHT, alignment=ui.Alignment.RIGHT_CENTER
+                                            ):
+                                                ui.Label("Packaging mode", width=0, alignment=ui.Alignment.RIGHT_CENTER)
+                                            ui.Spacer(height=self._ROW_HEIGHT)
+                                            with ui.HStack(
+                                                height=self._ROW_HEIGHT, alignment=ui.Alignment.RIGHT_CENTER
+                                            ):
+                                                ui.Label(
+                                                    "Split package files", width=0, alignment=ui.Alignment.RIGHT_CENTER
+                                                )
+                                        with ui.VStack(height=0, spacing=self._SPACING_MD):
+                                            with ui.HStack(height=self._ROW_HEIGHT):
+                                                self._rtxio_mode_combo = ui.ComboBox(
+                                                    _RTXIO_MODES.index(_RtxIoMode.DISABLED),
+                                                    *[mode.label for mode in _RTXIO_MODES],
+                                                    identifier="rtxio_packaging_mode",
+                                                )
+                                                self._rtxio_mode_sub = self._rtxio_mode_combo.model.get_item_value_model().subscribe_value_changed_fn(
+                                                    self._on_rtxio_mode_changed
+                                                )
+
+                                            self._rtxio_delete_dds_row = ui.HStack(
+                                                height=self._ROW_HEIGHT, enabled=False
+                                            )
+                                            with self._rtxio_delete_dds_row:
+                                                self._rtxio_delete_dds_checkbox = ui.CheckBox(
+                                                    width=0, identifier="rtxio_delete_dds_after_pack"
+                                                )
+                                                ui.Spacer(width=self._SPACING_MD)
+                                                ui.Label("Delete packaged DDS files after compression", width=0)
+                                                ui.Spacer()
+
+                                            self._rtxio_split_row = ui.HStack(height=self._ROW_HEIGHT, enabled=False)
+                                            with self._rtxio_split_row:
+                                                self._rtxio_split_combo = ui.ComboBox(
+                                                    _RTXIO_SPLIT_SIZE_OPTIONS.index(_RtxIoSplitSizeOption.DISABLED),
+                                                    *[option.label for option in _RTXIO_SPLIT_SIZE_OPTIONS],
+                                                    identifier="rtxio_split_size_mb",
+                                                )
+
+                                    ui.Spacer(height=self._SPACING_XS)
+
+                            ui.Spacer(height=ui.Pixel(16))
+
                             self._export_button = ui.Button(
                                 "Package", clicked_fn=self._on_package_pressed, height=ui.Pixel(32)
                             )
@@ -295,6 +405,10 @@ class PackagingPane(_WorkspaceWidget):
                         "mod_version": self._package_details_widget.mod_version,
                         "mod_details": self._package_details_widget.mod_details,
                         "ignored_errors": ignored_errors,
+                        "rtxio_pack": self._is_rtxio_pack_enabled(),
+                        "rtxio_delete_dds_after_pack": self._is_rtxio_pack_enabled()
+                        and self._rtxio_delete_dds_checkbox.model.get_value_as_bool(),
+                        "rtxio_split_size_mb": self._get_rtxio_split_size_mb(),
                     }
                 )
             else:
@@ -411,8 +525,11 @@ class PackagingPane(_WorkspaceWidget):
         if not self._progress_popup.is_visible():
             self._progress_popup.show()
 
-        if self._progress_popup.get_status_text != status:
-            self._progress_popup.set_status_text(status)
+        status_text = status
+        if total > 0:
+            status_text = f"{status}\n{current} / {total}"
+        if self._progress_popup.status_text != status_text:
+            self._progress_popup.set_status_text(status_text)
 
         self._progress_popup.set_progress(current / total if total > 0 else 0)
 
@@ -460,5 +577,50 @@ class PackagingPane(_WorkspaceWidget):
 
         self._on_package_pressed(silent=True, ignored_errors=ignored_errors)
 
+    # ------------------------------------------------------------------
+    # RTX IO callbacks
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _get_rtxio_mode_from_index(index: int) -> _RtxIoMode:
+        try:
+            return _RTXIO_MODES[index]
+        except IndexError:
+            return _RtxIoMode.DISABLED
+
+    @staticmethod
+    def _get_rtxio_split_size_option_from_index(index: int) -> _RtxIoSplitSizeOption:
+        try:
+            return _RTXIO_SPLIT_SIZE_OPTIONS[index]
+        except IndexError:
+            return _RtxIoSplitSizeOption.DISABLED
+
+    def _is_rtxio_pack_enabled(self) -> bool:
+        if not self._rtxio_mode_combo:
+            return False
+        index = self._rtxio_mode_combo.model.get_item_value_model().as_int
+        return self._get_rtxio_mode_from_index(index) is _RtxIoMode.PACK
+
+    def _get_rtxio_split_size_mb(self) -> _RtxIoSplitSizePreset | None:
+        if not self._is_rtxio_pack_enabled() or not self._rtxio_split_combo:
+            return None
+        index = self._rtxio_split_combo.model.get_item_value_model().as_int
+        return self._get_rtxio_split_size_option_from_index(index).preset
+
+    def _on_rtxio_mode_changed(self, value_model):
+        """Enable RTX IO-specific options only when RTX IO packaging is selected."""
+        enabled = self._get_rtxio_mode_from_index(value_model.as_int) is _RtxIoMode.PACK
+        self._rtxio_delete_dds_row.enabled = enabled
+        self._rtxio_split_row.enabled = enabled
+        if not enabled:
+            self._rtxio_delete_dds_checkbox.model.set_value(False)
+            self._rtxio_split_combo.model.get_item_value_model().set_value(
+                _RTXIO_SPLIT_SIZE_OPTIONS.index(_RtxIoSplitSizeOption.DISABLED)
+            )
+
     def destroy(self):
+        packaging_core = self._packaging_core
+        self._packaging_core = None
+        if packaging_core is not None:
+            packaging_core.destroy()
         _reset_default_attrs(self)

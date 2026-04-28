@@ -33,6 +33,8 @@ from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
 from pxr import Sdf
 
+_RTXIO_PACKAGE_MAGIC = b"\x0d\xd0\xad\xba"
+
 
 class TestComponents(Enum):
     """
@@ -79,6 +81,7 @@ class TestWizardWindow(AsyncTestCase):
         self.wizard.hide_project_wizard()
         self.wizard.destroy()
         self.window.destroy()
+        await self.__destroy_prompt_dialogs()
 
         await self.__cleanup_directories()
         self.temp_dir.cleanup()
@@ -139,6 +142,88 @@ class TestWizardWindow(AsyncTestCase):
     async def __cleanup_directories(self):
         shutil.rmtree(self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem, ignore_errors=True)
         shutil.rmtree(self.project_path.parent / constants.REMIX_DEPENDENCIES_FOLDER, ignore_errors=True)
+
+    async def __destroy_prompt_dialogs(self):
+        prompt_titles = {"RTX IO Extraction Required", "RTX IO Packages Detected", "Checking RTX IO Packages"}
+        for other_window in ui.Workspace.get_windows():
+            if other_window.title not in prompt_titles:
+                continue
+            try:
+                prompt_dialog = ui_test.find(other_window.title)
+                if prompt_dialog:
+                    prompt_dialog.widget.destroy()
+            except AttributeError:
+                pass
+
+    @staticmethod
+    def __write_fake_rtxio_package(path: Path):
+        path.write_bytes(_RTXIO_PACKAGE_MAGIC + b"\x00" * 8)
+
+    @staticmethod
+    def __write_missing_texture_mod_file(path: Path):
+        path.unlink(missing_ok=True)
+        layer = Sdf.Layer.CreateNew(str(path))
+        layer.customLayerData = {
+            "test_data": "test",
+            "lightspeed_layer_type": "replacement",
+        }
+        with Sdf.ChangeBlock():
+            shader_spec = Sdf.CreatePrimInLayer(layer, "/RootNode/Looks/mat_001/Shader")
+            shader_spec.specifier = Sdf.SpecifierOver
+            attr_spec = Sdf.AttributeSpec(shader_spec, "inputs:diffuse_texture", Sdf.ValueTypeNames.Asset)
+            attr_spec.default = Sdf.AssetPath("./not_created.a.rtex.dds")
+        layer.Save()
+
+    async def __wait_for_window(self, title: str, timeout_steps: int = 50):
+        for _ in range(timeout_steps):
+            window = ui_test.find(title)
+            if window and window.window.visible:
+                return window
+            await ui_test.human_delay()
+        return None
+
+    async def __find_prompt_button(self, window_title: str, text: str):
+        return ui_test.find(f"{window_title}//Frame/**/Button[*].text=='{text}'")
+
+    async def __navigate_to_edit_mod_selection(self, wizard_window):
+        self.wizard.show_project_wizard(reset_page=True)
+        await ui_test.human_delay()
+
+        components = await self.__find_start_page_components(wizard_window)
+        await components[TestComponents.EDIT_OPTION].click()
+        await ui_test.human_delay()
+
+        components = await self.__find_setup_page_components(wizard_window)
+        nav_buttons = await self.__find_navigation_buttons(wizard_window)
+
+        await components[TestComponents.PROJECT_STRING_FIELD].input(str(self.project_path), end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay()
+
+        await components[TestComponents.REMIX_STRING_FIELD].input(str(self.remix_dir), end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(50)
+
+        capture_labels = ui_test.find_all(
+            f"{wizard_window.title}//Frame/**/Label[*].name=='PropertiesPaneSectionTreeItem'"
+        )
+        self.assertGreater(len(capture_labels), 0)
+
+        await capture_labels[0].click()
+        await ui_test.human_delay()
+
+        await nav_buttons[TestComponents.NEXT_BUTTON].click()
+        await ui_test.human_delay(50)
+
+        components = await self.__find_existing_mods_components(wizard_window)
+        nav_buttons = await self.__find_navigation_buttons(wizard_window)
+        return components, nav_buttons
+
+    @staticmethod
+    def __find_label_by_mod_directory(labels, mod_directory_name: str):
+        expected_text = f"{mod_directory_name}/{constants.REMIX_MOD_FILE}"
+        for label in labels:
+            if label.widget.text.replace("\\", "/") == expected_text:
+                return label
+        return None
 
     async def __find_navigation_buttons(self, window, should_exist: bool = True):
         components = {
@@ -516,6 +601,44 @@ class TestWizardWindow(AsyncTestCase):
         # Make sure the project has the right authoring layer and the capture layer is locked
         self.assertEqual(expected_mod_file, omni_layers_data.get("authoring_layer", None))
         self.assertDictEqual({expected_capture_file: True}, omni_layers_data.get("locked", None))
+
+    async def test_edit_project_with_rtxio_pkg_and_broken_references_should_require_extraction(self):
+        wizard_window = self.wizard._wizard_window._window
+        mod_dir = self.remix_dir / constants.REMIX_MODS_FOLDER / "ExistingMod1"
+        mod_file = mod_dir / constants.REMIX_MOD_FILE
+
+        self.__write_missing_texture_mod_file(mod_file)
+        self.__write_fake_rtxio_package(mod_dir / "mod.pkg")
+
+        components, nav_buttons = await self.__navigate_to_edit_mod_selection(wizard_window)
+
+        available_mod_labels = components[TestComponents.AVAILABLE_MODS_TREE].find_all(
+            "/Label[*].identifier=='ExistingModLabel'"
+        )
+        selected_label = self.__find_label_by_mod_directory(available_mod_labels, "ExistingMod1")
+
+        self.assertIsNotNone(selected_label)
+
+        await selected_label.drag_and_drop(components[TestComponents.SELECTED_MODS_TREE].center)
+        await ui_test.human_delay()
+
+        await nav_buttons[TestComponents.NEXT_BUTTON].click()
+        await ui_test.human_delay(50)
+
+        prompt_window = await self.__wait_for_window("RTX IO Extraction Required")
+
+        self.assertIsNotNone(prompt_window)
+        self.assertIsNotNone(await self.__find_prompt_button("RTX IO Extraction Required", "Extract & Skip"))
+        self.assertIsNotNone(await self.__find_prompt_button("RTX IO Extraction Required", "Extract & Overwrite"))
+        self.assertIsNotNone(await self.__find_prompt_button("RTX IO Extraction Required", "Cancel"))
+        self.assertIsNone(await self.__find_prompt_button("RTX IO Extraction Required", "Continue"))
+
+        cancel_button = await self.__find_prompt_button("RTX IO Extraction Required", "Cancel")
+        await cancel_button.click()
+        await ui_test.human_delay(10)
+
+        self.assertFalse(wizard_window.visible)
+        self.assertFalse(self.project_path.exists())
 
     # async def test_remaster_project_should_create_project_with_dependencies(self):
     #     # Setup the test

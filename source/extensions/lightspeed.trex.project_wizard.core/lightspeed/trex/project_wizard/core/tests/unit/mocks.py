@@ -20,7 +20,7 @@ import dataclasses
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import carb
 import omni.usd
@@ -36,6 +36,8 @@ class ProjectWizardSchemaMock:
     existing_mods: list[Path] | None = None
     mod_file: Path | None = None
     capture_file: Path | None = None
+    extract_rtxio_packages: bool = False
+    extract_rtxio_overwrite_existing: bool = False
 
 
 class WizardMockContext:
@@ -56,6 +58,7 @@ class WizardMockContext:
             self._create_mods_dir = patch.object(ProjectWizardCore, "_create_mods_dir")
             self._create_symlinks_mock = patch.object(ProjectWizardCore, "_create_symlinks")
             self._create_project_mock = patch.object(ProjectWizardCore, "_create_project_layer")
+            self._extract_rtxio_packages_mock = patch.object(ProjectWizardCore, "_extract_rtxio_packages")
             self._setup_existing_mod_mock = patch.object(ProjectWizardCore, "_setup_existing_mod_project")
             self._setup_new_mod_mock = patch.object(ProjectWizardCore, "_setup_new_mod_project")
             self._insert_existing_mods_mock = patch.object(ProjectWizardCore, "_insert_existing_mods")
@@ -69,6 +72,7 @@ class WizardMockContext:
         self._layer_manager_mock = patch("lightspeed.trex.project_wizard.core.wizard._LayerManager")
         self._capture_core_mock = patch("lightspeed.trex.project_wizard.core.wizard._CaptureCore")
         self._replacement_core_mock = patch("lightspeed.trex.project_wizard.core.wizard._ReplacementCore")
+        self._rtxio_core_mock = patch("lightspeed.trex.project_wizard.core.wizard._RtxIoCore")
         self._log_error_mock = patch.object(carb, "log_error")
         self._save_custom_data_mock = patch.object(LayerUtils, "save_authoring_layer_to_custom_data")
         self._copy_tree_mock = patch("lightspeed.trex.project_wizard.core.wizard.copytree")
@@ -84,6 +88,7 @@ class WizardMockContext:
             self.create_mods_dir = self._create_mods_dir.start()
             self.create_symlinks_mock = self._create_symlinks_mock.start()
             self.create_project_mock = self._create_project_mock.start()
+            self.extract_rtxio_packages_mock = self._extract_rtxio_packages_mock.start()
             self.setup_existing_mod_mock = self._setup_existing_mod_mock.start()
             self.setup_new_mod_mock = self._setup_new_mod_mock.start()
             self.insert_existing_mods_mock = self._insert_existing_mods_mock.start()
@@ -97,6 +102,7 @@ class WizardMockContext:
         self.layer_manager_mock = self._layer_manager_mock.start()
         self.capture_core_mock = self._capture_core_mock.start()
         self.replacement_core_mock = self._replacement_core_mock.start()
+        self.rtxio_core_mock = self._rtxio_core_mock.start()
         self.log_error_mock = self._log_error_mock.start()
         self.save_custom_data_mock = self._save_custom_data_mock.start()
         self.copy_tree_mock = self._copy_tree_mock.start()
@@ -116,6 +122,12 @@ class WizardMockContext:
                 generic_wizard_future = asyncio.Future()
                 generic_wizard_future.set_result(Mock())
             self.create_project_mock.return_value = generic_wizard_future
+            if sys.version_info.minor > 7:
+                self.extract_rtxio_packages_mock.return_value = None
+            else:
+                extract_future = asyncio.Future()
+                extract_future.set_result(None)
+                self.extract_rtxio_packages_mock.return_value = extract_future
             self.insert_existing_mods_mock.return_value = generic_wizard_future
             self.insert_capture_layer_mock.return_value = generic_wizard_future
             self.save_authoring_layer_mock.return_value = generic_wizard_future
@@ -144,6 +156,11 @@ class WizardMockContext:
             self.setup_new_mod_mock.return_value = setup_mod_future
 
         self.schema_mock.return_value = self.__schema_mock
+        self.rtxio_core_mock.return_value.find_rtxio_package_files.return_value = []
+        self.rtxio_core_mock.return_value.extract_packages = AsyncMock(return_value=[])
+        self.rtxio_core_mock.return_value.probe_directory = AsyncMock(
+            return_value=Mock(package_files=[], broken_references=[], was_cancelled=False)
+        )
 
         omni_client_future = asyncio.Future()
         omni_client_future.set_result((True, ""))
@@ -163,6 +180,7 @@ class WizardMockContext:
             self._create_mods_dir.stop()
             self._create_symlinks_mock.stop()
             self._create_project_mock.stop()
+            self._extract_rtxio_packages_mock.stop()
             self._setup_existing_mod_mock.stop()
             self._setup_new_mod_mock.stop()
             self._insert_existing_mods_mock.stop()
@@ -176,6 +194,7 @@ class WizardMockContext:
         self._layer_manager_mock.stop()
         self._capture_core_mock.stop()
         self._replacement_core_mock.stop()
+        self._rtxio_core_mock.stop()
         self._save_custom_data_mock.stop()
         self._copy_tree_mock.stop()
         self._check_call_mock.stop()
