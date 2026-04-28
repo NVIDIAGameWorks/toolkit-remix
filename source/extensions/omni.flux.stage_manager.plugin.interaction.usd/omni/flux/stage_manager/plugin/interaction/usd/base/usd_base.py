@@ -185,6 +185,11 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         return omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()
 
     def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
+        """Synchronize tree selection back to USD without rewriting order-only changes.
+
+        Args:
+            items: Selected tree items that may map to USD prim paths.
+        """
         super()._on_selection_changed(items)  # updates model.selection before USD sync
 
         if self._selection_update_lock or not self.synchronize_selection:
@@ -195,7 +200,11 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
         selection_prim_paths = [str(item.data.GetPath()) for item in items if item.data]
         selection = self._get_selection()
-        if selection != selection_prim_paths:
+        # Only synchronize membership changes back to USD.
+        # Order-only differences are owned by the upstream selection source and
+        # must not be rewritten from the tree, or we can clobber the active
+        # selection ordering that downstream property panels rely on.
+        if set(selection) != set(selection_prim_paths):
             omni.usd.get_context(self._context_name).get_selection().set_selected_prim_paths(selection_prim_paths)
 
     def _on_layer_event_occurred(self, event_type: _layers.LayerEventType):

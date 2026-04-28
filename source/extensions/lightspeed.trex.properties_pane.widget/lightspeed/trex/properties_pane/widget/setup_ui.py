@@ -56,6 +56,7 @@ from omni.flux.layer_tree.usd.widget import LayerModel as _LayerModel
 from omni.flux.layer_tree.usd.widget import LayerTreeWidget as _LayerTreeWidget
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common.prims import unique_prim_sequence as _unique_prim_sequence
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
@@ -432,23 +433,23 @@ class AssetReplacementsPane(_WorkspaceWidget):
     def selection_tree_widget(self):
         return self._selection_tree_widget
 
-    def _get_prims_from_selection(self, resolve_to_prototypes: bool = False) -> list:
+    def _get_prims_from_selection(self, prototypes_only: bool = False) -> list[Usd.Prim]:
+        """Get selected prims with a consistent dedupe and prototype policy.
+
+        Args:
+            prototypes_only: Whether to normalize selected prims to prototypes.
+
+        Returns:
+            Valid selected prims in last-occurrence order.
         """
-        Helper to get prims from current selection, optionally resolving instances to meshes.
-        """
-        prims = []
-        prim_paths = list(set(self._usd_context.get_selection().get_selected_prim_paths()))
         stage = self._usd_context.get_stage()
-        for prim_path in prim_paths:
-            prim = stage.GetPrimAtPath(prim_path)
-            if not prim:
-                continue
-            if resolve_to_prototypes and _is_instance(prim):
-                prim = self._material_properties_widget.get_mesh_from_instance(prim)
-                if not prim:
-                    continue
-            prims.append(prim)
-        return prims
+        prims = [
+            stage.GetPrimAtPath(prim_path) for prim_path in self._usd_context.get_selection().get_selected_prim_paths()
+        ]
+        return _unique_prim_sequence(
+            prims,
+            prototypes_only=prototypes_only,
+        )
 
     def _format_prim_names_for_pin(self, prims: list) -> str:
         """
@@ -475,7 +476,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         """
         Get a formatted name of the current USD material selection for the pin label.
         """
-        prims = self._get_prims_from_selection(resolve_to_prototypes=True)
+        prims = self._get_prims_from_selection(prototypes_only=True)
         # Use materials relevant to USD selection for material pinning
         stage = self._usd_context.get_stage()
         material_paths = self._material_properties_widget.get_materials_from_prims(prims)
@@ -488,7 +489,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         """
         Get a formatted name of the current USD particle selection for the pin label.
         """
-        prims = self._get_prims_from_selection(resolve_to_prototypes=True)
+        prims = self._get_prims_from_selection(prototypes_only=True)
         particle_prims = [prim for prim in prims if (prim.IsValid() and prim.HasAPI(_PARTICLE_SCHEMA_NAME))]
         particle_count = len(particle_prims)
         if particle_count == 0:
@@ -498,11 +499,41 @@ class AssetReplacementsPane(_WorkspaceWidget):
             f"{self._format_prim_names_for_pin(particle_prims)}"
         )
 
+    @staticmethod
+    def _normalize_particle_selection_target(prim: Usd.Prim) -> Sdf.Path | None:
+        """Normalize a selected prim to the particle-relevant target path.
+
+        Material prototypes and plain meshes are returned directly. Instance
+        and prototype prims resolve to their mesh prototype path. Unsupported
+        prims, invalid prims, and instances without a valid mesh prototype are
+        rejected.
+
+        Args:
+            prim: Selected prim that may be a mesh, material prototype,
+                mesh prototype, or instance.
+
+        Returns:
+            The normalized mesh or prototype path used by particle selection,
+            or ``None`` when the prim is not a supported particle target.
+        """
+        if not prim or not prim.IsValid():
+            return None
+        if _is_material_prototype(prim):
+            return prim.GetPath()
+        if _is_a_prototype(prim) or _is_instance(prim):
+            prototype = _get_prototype(prim)
+            if prototype and prototype.IsA(UsdGeom.Mesh):
+                return prototype.GetPath()
+            return None
+        if prim.IsA(UsdGeom.Mesh):
+            return prim.GetPath()
+        return None
+
     def _get_logic_selection_pin_name(self) -> str:
         """
         Get a formatted name of the current USD logic graph selection for the pin label.
         """
-        prims = self._get_prims_from_selection(resolve_to_prototypes=True)
+        prims = self._get_prims_from_selection(prototypes_only=True)
         logic_graph_prims = [prim for prim in prims if prim.GetTypeName() == OMNI_GRAPH_NODE_TYPE]
         logic_graph_count = len(logic_graph_prims)
         if logic_graph_count == 0:
@@ -598,9 +629,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
             return
 
         # Grab the selection prims and refresh the properties
-        stage = self._usd_context.get_stage()
-        prim_paths = list(set(self._usd_context.get_selection().get_selected_prim_paths()))
-        items = [stage.GetPrimAtPath(prim_path) for prim_path in prim_paths]
+        items = self._get_prims_from_selection()
         self._material_properties_widget.refresh(items)
 
     def _refresh_particle_properties_widget(self):
@@ -611,25 +640,30 @@ class AssetReplacementsPane(_WorkspaceWidget):
         if not self._particle_properties_widget:
             return
 
-        # Get selected prims
-        selected_paths = self._usd_context.get_selection().get_selected_prim_paths()
-        particle_system_paths = []
-        valid_target_paths = []
+        selected_prims = self._get_prims_from_selection()
+        particle_system_prims: list[Usd.Prim] = []
+        valid_target_prims: list[Usd.Prim] = []
 
         # Filter for RemixParticleSystem prims and valid target prims
         stage = self._usd_context.get_stage()
-        for path in selected_paths:
-            prim = stage.GetPrimAtPath(path)
+        for prim in selected_prims:
+            normalized_target = self._normalize_particle_selection_target(prim)
+            if normalized_target is None:
+                continue
 
-            if prim.IsValid() and prim.HasAPI(_PARTICLE_SCHEMA_NAME):
-                particle_system_paths.append(path)
-            elif _is_material_prototype(prim):
-                valid_target_paths.append(path)
-            elif _is_a_prototype(prim) or _is_instance(prim):
-                prototype = _get_prototype(prim)
-                if not prototype or not prototype.IsA(UsdGeom.Mesh):
-                    continue
-                valid_target_paths.append(prototype.GetPath())
+            normalized_prim = stage.GetPrimAtPath(normalized_target)
+            if normalized_prim.IsValid() and normalized_prim.HasAPI(_PARTICLE_SCHEMA_NAME):
+                particle_system_prims.append(normalized_prim)
+                continue
+            valid_target_prims.append(normalized_prim)
+
+        particle_system_prims = _unique_prim_sequence(particle_system_prims)
+        valid_target_prims = _unique_prim_sequence(valid_target_prims)
+        particle_system_paths = [str(prim.GetPath()) for prim in particle_system_prims]
+        particle_system_path_set = set(particle_system_paths)
+        valid_target_paths = [
+            str(prim.GetPath()) for prim in valid_target_prims if str(prim.GetPath()) not in particle_system_path_set
+        ]
 
         # Refresh the widget
         self._particle_properties_widget.refresh(particle_system_paths, valid_target_paths)
@@ -642,21 +676,14 @@ class AssetReplacementsPane(_WorkspaceWidget):
         if not self._logic_properties_widget:
             return
 
-        stage = self._usd_context.get_stage()
-        selected_paths = list(set(self._usd_context.get_selection().get_selected_prim_paths()))
+        selected_prims = self._get_prims_from_selection(prototypes_only=True)
         items: list[Usd.Prim] = []
         valid_target_prims: list[Usd.Prim] = []
-        for path in selected_paths:
-            prim = stage.GetPrimAtPath(path)
-            if not prim.IsValid():
-                continue
-            prototype_prim = _get_prototype(prim)
-            if not prototype_prim:
-                continue
-            if prototype_prim.GetTypeName() == OMNI_GRAPH_NODE_TYPE:
-                items.append(prototype_prim)
+        for prim in selected_prims:
+            if prim.GetTypeName() == OMNI_GRAPH_NODE_TYPE:
+                items.append(prim)
             # Get asset path from prim
-            parent = LogicGraphCore.get_graph_root_prim(prototype_prim)
+            parent = LogicGraphCore.get_graph_root_prim(prim)
             if parent:
                 valid_target_prims.append(parent)
 
