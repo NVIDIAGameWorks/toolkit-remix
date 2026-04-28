@@ -1,5 +1,5 @@
 [package]
-version = "2.0.7"
+version = "2.1.0"
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "Mod Packaging Core"
 description = "Mod Packaging Core implementation"
@@ -15,6 +15,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "lightspeed.common" = {}
 "lightspeed.layer_manager.core" = {}
 "lightspeed.trex.replacement.core.shared" = {}
+"lightspeed.trex.rtxio.core" = {}
 "omni.client" = {}
 "omni.flux.asset_importer.core" = {}
 "omni.flux.pip_archive" = {}  # Required for Pydantic

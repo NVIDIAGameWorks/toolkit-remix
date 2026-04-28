@@ -21,6 +21,7 @@ import omni.kit.test
 from lightspeed.trex.packaging.core.enum import ModPackagingMode
 from lightspeed.trex.packaging.core.items import ModPackagingSchema
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCore
+from lightspeed.trex.rtxio.core import RtxIoSplitSizePreset
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.flux.utils.common.omni_url import OmniUrl
 from pydantic import ValidationError
@@ -253,3 +254,27 @@ class TestModPackagingSchema(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertIn("redirect_external_dependencies", str(error))
+
+    async def test_rtxio_split_size_mb_none_should_be_allowed(self):
+        # Arrange
+        # Act
+        schema = self._create_schema(rtxio_split_size_mb=None)
+
+        # Assert
+        self.assertIsNone(schema.rtxio_split_size_mb)
+
+    async def test_rtxio_split_size_mb_invalid_should_raise_validation_error(self):
+        # Arrange
+        # Act
+        error = self._get_schema_validation_error(rtxio_split_size_mb=0)
+
+        # Assert
+        self.assertIn("rtxio_split_size_mb", str(error))
+
+    async def test_rtxio_split_size_mb_valid_should_coerce_to_int_enum(self):
+        # Arrange
+        # Act
+        schema = self._create_schema(rtxio_split_size_mb="2048")
+
+        # Assert
+        self.assertIs(RtxIoSplitSizePreset.SIZE_2_GB, schema.rtxio_split_size_mb)

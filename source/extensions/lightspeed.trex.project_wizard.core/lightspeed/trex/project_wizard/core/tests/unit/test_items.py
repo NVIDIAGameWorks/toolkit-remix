@@ -67,18 +67,22 @@ class TestItems(omni.kit.test.AsyncTestCase):
         capture_file = ProjectWizardKeys.CAPTURE_FILE.value
         existing_mods = ProjectWizardKeys.EXISTING_MODS.value
         mod_file = ProjectWizardKeys.MOD_FILE.value
+        extract_rtxio_packages = ProjectWizardKeys.EXTRACT_RTXIO_PACKAGES.value
+        extract_rtxio_overwrite_existing = ProjectWizardKeys.EXTRACT_RTXIO_OVERWRITE_EXISTING.value
 
         # Act
         pass
 
         # Assert
-        self.assertEqual(6, len(ProjectWizardKeys))
+        self.assertEqual(8, len(ProjectWizardKeys))
         self.assertEqual("existing_project", existing_project)
         self.assertEqual("project_file", project_file)
         self.assertEqual("remix_directory", remix_directory)
         self.assertEqual("capture_file", capture_file)
         self.assertEqual("existing_mods", existing_mods)
         self.assertEqual("mod_file", mod_file)
+        self.assertEqual("extract_rtxio_packages", extract_rtxio_packages)
+        self.assertEqual("extract_rtxio_overwrite_existing", extract_rtxio_overwrite_existing)
 
     async def test_schema_are_project_symlinks_valid_no_deps_returns_false(self):
         # Arrange

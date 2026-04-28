@@ -39,6 +39,8 @@ class ProjectWizardKeys(Enum):
     EXISTING_MODS = "existing_mods"
     MOD_FILE = "mod_file"
     CAPTURE_FILE = "capture_file"
+    EXTRACT_RTXIO_PACKAGES = "extract_rtxio_packages"
+    EXTRACT_RTXIO_OVERWRITE_EXISTING = "extract_rtxio_overwrite_existing"
 
 
 class ProjectWizardSchema(BaseModel):
@@ -48,6 +50,8 @@ class ProjectWizardSchema(BaseModel):
     existing_mods: list[Path] | None = None
     mod_file: Path | None = None
     capture_file: Path | None = None
+    extract_rtxio_packages: bool = False
+    extract_rtxio_overwrite_existing: bool = False
 
     @field_validator(ProjectWizardKeys.PROJECT_FILE.value, mode="before")
     @classmethod
