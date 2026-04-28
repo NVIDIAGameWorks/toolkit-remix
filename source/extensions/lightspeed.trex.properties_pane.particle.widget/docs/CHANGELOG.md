@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Fixed
+- Resolved particle prim paths so multi-selection counts unique prototype-backed particle targets without duplicating equivalent paths
+
 ## [1.4.0]
 ### Changed
 - Particle bounds metadata now flows through `ParticleBoundsAdapter` using canonical `limits` parsing with legacy range fallback, aligning particle clamping behavior with the shared bounds refactor

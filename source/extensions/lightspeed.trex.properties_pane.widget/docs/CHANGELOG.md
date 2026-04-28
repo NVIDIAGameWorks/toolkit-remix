@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.0]
+### Fixed
+- Normalized particle multi-selection so particle targets win over create-only targets and instance-backed selections dedupe by prototype path
+
 ## [1.15.5]
 ### Changed
 - Update call sites to use renamed `LayerManagerCore` API: `get_layer_of_type()` and `get_layers_of_type()` (was `get_layer()` / `get_layers()`)

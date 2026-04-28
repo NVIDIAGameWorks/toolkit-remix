@@ -641,7 +641,7 @@ class SetupUI:
 
         # if there were multiple ItemMesh in the tree, add the unrelated previous instance selections back
         if unrelated_instance_selections:
-            selection += list(set(unrelated_instance_selections))
+            selection += list(dict.fromkeys(unrelated_instance_selections))  # make unique list without changing order
 
         # reset the tree pressed input; this prevents outdated input after selection change from viewport
         self._current_tree_pressed_input = None
@@ -760,10 +760,11 @@ class SetupUI:
             to_select_paths.extend([str(selected_ref.prim.GetPath()) for selected_ref in selected_ref_file_items])
 
             # Select the instance prims in the stage
-            self._tree_model.select_prim_paths(list(set(to_select_paths)))
+            ordered_paths = list(dict.fromkeys(to_select_paths))  # make unique list without changing order
+            self._tree_model.select_prim_paths(ordered_paths)
 
-        self._previous_tree_selection = list(set(items))
-        self._previous_instance_selection = list(set(self._instance_selection))
+        self._previous_tree_selection = list(dict.fromkeys(items))
+        self._previous_instance_selection = list(dict.fromkeys(self._instance_selection))
         self._tree_delegate.on_item_selected(items, self._instance_selection, self._tree_model.get_all_items())
 
         # if add item was clicked, we open the ref picker

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.13.0]
+### Added
+- Added `unique_prim_sequence()` for consistent last-occurrence USD prim dedupe with optional prototype normalization.
+
 ## [3.12.1]
 ### Fixed
 - Added a `highlight` option to `open_file_using_os_default()` so callers can open a directory directly on Windows instead of always opening its parent and selecting it.

@@ -1,6 +1,10 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.5]
+### Fixed
+- Preserved viewport selection merge order across reset, merge, and invert picking modes so multi-selection defaults stay stable downstream
+
 ## [1.6.4]
 ### Changed
 - Applied new lint rules

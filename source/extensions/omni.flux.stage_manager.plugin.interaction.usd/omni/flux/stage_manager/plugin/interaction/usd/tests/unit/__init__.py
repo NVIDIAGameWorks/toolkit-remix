@@ -15,6 +15,6 @@
 * limitations under the License.
 """
 
-from .test_bounds_adapter import TestParticleBoundsAdapter
+from .test_usd_base import TestStageManagerUSDInteractionPlugin
 
-__all__ = ["TestParticleBoundsAdapter"]
+__all__ = ["TestStageManagerUSDInteractionPlugin"]

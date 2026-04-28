@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.1]
+### Changed
+- Updated multi-selection property coverage to assert that mixed-value widgets display the last selected prim as the baseline value
+
 ## [2.12.0]
 ### Changed
 - Generic USD properties now build per-attribute bounds adapters and route multi-selection bound/step merge policy through shared `BoundsAdapter.merge_bounds_adapters`, so the producer layer only orchestrates adapter inputs while canonical merge behavior stays centralized in the adapter path

@@ -16,3 +16,4 @@
 """
 
 from .e2e.test_widget import *
+from .unit.test_global_selection import TestGlobalSelection

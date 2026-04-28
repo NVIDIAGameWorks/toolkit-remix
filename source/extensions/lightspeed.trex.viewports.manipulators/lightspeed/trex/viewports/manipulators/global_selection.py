@@ -38,15 +38,26 @@ LIGHT_SELECTION_WITH_DEPTH_TEST = False
 
 
 def l_apply_picking_mode(old, picked, pickingmode):
+    """Merge selection paths according to the active USD picking mode.
+
+    Args:
+        old: Existing USD selection paths.
+        picked: Newly picked prim or manipulator paths.
+        pickingmode: The picking mode requested by the viewport interaction.
+
+    Returns:
+        The updated ordered selection paths after applying ``pickingmode``.
+    """
     if pickingmode is omni.usd.PickingMode.RESET_AND_SELECT:
         if len(picked) > 0:
-            return list(set(picked))
+            return list(dict.fromkeys(picked))  # make unique list without changing order
         return []
     if pickingmode is omni.usd.PickingMode.MERGE_SELECTION:
-        return list(set(old) | set(picked))
+        return list(dict.fromkeys(list(old) + list(picked)))
     if pickingmode is omni.usd.PickingMode.INVERT_SELECTION:
-        return list(set(old) - set(picked))
-    return list(set(old))
+        picked_set = set(picked)
+        return [path for path in old if path not in picked_set]
+    return list(dict.fromkeys(old))
 
 
 # Omniverse Scene View doesn't currently have any good way to resolve selection between layers - in our case,
