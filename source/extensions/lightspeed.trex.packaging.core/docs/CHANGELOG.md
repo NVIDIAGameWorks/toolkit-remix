@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.0]
+### Added
+- Added optional RTX IO compression and split-size presets to the standard packaging flow.
+
 ## [2.0.7]
 ### Changed
 - Added non-destructive packaging modes and packaged root export format support, including flattened output pruning and clean repeated packaging runs.

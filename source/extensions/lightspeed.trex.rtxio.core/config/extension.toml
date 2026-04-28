@@ -1,0 +1,35 @@
+[package]
+version = "1.0.0"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "RTX IO Core"
+description = "Shared RTX IO probing, compression, and extraction helpers"
+readme = "docs/README.md"
+category = "internal"
+keywords = ["kit", "lightspeed", "rtxio", "core"]
+changelog = "docs/CHANGELOG.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.rtxio.core"
+
+[dependencies]
+"omni.flux.asset_importer.core" = {}
+"omni.flux.pip_archive" = {}  # Required for Pydantic
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.rtxio.core"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
