@@ -260,14 +260,22 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         self._value = new_value
 
     def _read_value_from_usd(self):
-        """
-        Return:
-            True if the cached value was updated; false otherwise
+        """Read attribute values from USD and refresh cached mixed-value state.
+
+        When multiple attribute paths contribute values, ``self._is_mixed``
+        still reflects whether any value differs from the first one read, but
+        the cached displayed value follows the last attribute encountered in
+        iteration order.
+
+        Returns:
+            True if the cached value or mixed-value state changed; otherwise
+            False.
         """
         if not self._stage:
             assert self._value is None
             return False
 
+        first_value = None
         last_value = None
         values_read = 0
         value_was_set = False
@@ -288,16 +296,17 @@ class UsdAttributeBase(_Serializable, abc.ABC):
                     continue
 
                 if values_read == 0:
-                    # If this is the first prim with this attribute, use it for the cached value.
-                    last_value = value
-                    if self._value is None or value != self._value:
-                        self._value = value  # we can set directly from the _get_attribute_value value
-                        value_was_set = True
-                elif last_value != value:
-                    is_mixed = True
+                    first_value = value
+                else:
+                    is_mixed |= first_value != value
+                last_value = value
                 values_read += 1
                 self._values.append(value)
 
+        display_value_changed = values_read > 0 and (self._value is None or last_value != self._value)
+        if display_value_changed:
+            self._value = last_value
+            value_was_set = True
         if is_mixed != self._is_mixed:
             value_was_set = True
         self._is_mixed = is_mixed
