@@ -229,6 +229,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
             default_value=default_value,
             read_only=read_only,
             value_type_name=value_type_name,
+            display_attr_names=display_attr_names,
         )
         self._ui_metadata = ui_metadata
 
@@ -299,7 +300,9 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         default_value: Any = None,
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
+        display_attr_names: list[str] | None = None,
     ):
+        # Value tooltips use the base display name for every vector channel; the value model adds X/Y/Z/W suffixes.
         self._value_models = [
             _UsdAttributeValueModel(
                 context_name,
@@ -308,6 +311,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
                 default_value=default_value,
                 read_only=read_only,
                 value_type_name=value_type_name,
+                tooltip_display_name=display_attr_names[0] if display_attr_names else None,
             )
             for i in range(self._element_count)
         ]
@@ -483,6 +487,7 @@ class VirtualUSDAttributeItem(USDAttributeItem):
         default_value: Any = None,
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
+        display_attr_names: list[str] | None = None,
     ):
         # Note: VirtualUSDAttributeItem uses self._default_value from __init__, ignoring passed default_value
         if not value_type_name:
@@ -497,6 +502,7 @@ class VirtualUSDAttributeItem(USDAttributeItem):
                 read_only=read_only,
                 metadata=self._metadata,
                 create_callback=self._create_callback,
+                tooltip_display_name=display_attr_names[0] if display_attr_names else None,
             )
             for i in range(self._element_count)
         ]
@@ -540,7 +546,13 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
         self._metadata = metadata
         self._init_name_models(context_name, attribute_paths, display_attr_names, display_attr_names_tooltip)
         self._init_value_models(
-            context_name, attribute_paths, default_value, options, read_only, value_type_name=value_type_name
+            context_name,
+            attribute_paths,
+            default_value,
+            options,
+            read_only,
+            value_type_name=value_type_name,
+            display_attr_names=display_attr_names,
         )
 
     @property
@@ -556,14 +568,8 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
         return default_attr
 
     def _init_name_models(self, context_name, attribute_paths, display_attr_names, display_attr_names_tooltip):
-        display_attr_name = None
-        if display_attr_names:
-            display_attr_name = display_attr_names[0]
-        if display_attr_name and self._metadata_key:
-            display_attr_name = f"{display_attr_name} {self._metadata_key}"
-        display_attr_name_tooltip = None
-        if display_attr_names_tooltip:
-            display_attr_name_tooltip = display_attr_names_tooltip[0]
+        display_attr_name = self._resolve_display_attr_name(display_attr_names)
+        display_attr_name_tooltip = display_attr_names_tooltip[0] if display_attr_names_tooltip else None
 
         self._name_models = [
             _UsdAttributeNameModel(
@@ -583,7 +589,9 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
         options,
         read_only,
         value_type_name: Sdf.ValueTypeName | None = None,
+        display_attr_names: list[str] | None = None,
     ):
+        display_attr_name = self._resolve_display_attr_name(display_attr_names)
         self._value_models = [
             self.value_model_class(
                 context_name,
@@ -594,8 +602,16 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
                 value_type_name=value_type_name,
                 metadata=self._metadata,
                 metadata_key=self._metadata_key,
+                tooltip_display_name=display_attr_name,
             )
         ]
+
+    def _resolve_display_attr_name(self, display_attr_names: list[str] | None) -> str | None:
+        """Resolve the display name shared by the label and value tooltip."""
+        display_attr_name = display_attr_names[0] if display_attr_names else None
+        if display_attr_name and self._metadata_key:
+            return f"{display_attr_name} {self._metadata_key}"
+        return display_attr_name
 
 
 class USDMetadataListItem(_BaseListModelItem):
@@ -703,6 +719,7 @@ class USDAttributeItemStub(USDAttributeItem):
         default_value: Any = None,
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
+        display_attr_names: list[str] | None = None,
     ):
         self._value_models = []
 

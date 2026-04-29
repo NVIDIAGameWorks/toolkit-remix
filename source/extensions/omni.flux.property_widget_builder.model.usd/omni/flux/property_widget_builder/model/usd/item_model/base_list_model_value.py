@@ -49,12 +49,14 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
         value_type_name: Sdf.ValueTypeName | None = None,
         metadata: dict | None = None,
         metadata_key: str | None = None,
+        tooltip_display_name: str | None = None,
     ):
         super().__init__(
             context_name,
             attribute_paths,
             read_only=read_only,
             value_type_name=value_type_name,
+            tooltip_display_name=tooltip_display_name,
         )
         # Clear out guessed value type, we leave it as str and handle it ourselves for better serialization.
         self._override_value_type = None
