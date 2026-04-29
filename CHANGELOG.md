@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-1926: Fixed duplicated prims not inheriting child prim property overrides from the replacement layer
 - REMIX-4572: Fixed particle multi-selection ordering so normalized prototype selections use shared ordered prim dedupe, mixed values use the last selected baseline, and selection sync no longer rewrites order-only changes
 - REMIX-5039: Fixed shared property input tooltips so scalar fields include their display name and vector fields include their X/Y/Z/W channel.
+- REMIX-5239: Fixed object and camera properties panels refreshing during viewport manipulation so selected widgets rebuild only after release
 
 ### Removed
 

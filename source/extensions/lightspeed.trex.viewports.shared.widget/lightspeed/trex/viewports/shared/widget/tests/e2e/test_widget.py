@@ -17,7 +17,9 @@
 
 from typing import TYPE_CHECKING
 
+import carb.input
 import carb.settings
+import omni.appwindow
 import omni.ui as ui
 import omni.usd
 from lightspeed.trex.contexts.setup import Contexts as _TrexContext
@@ -25,7 +27,9 @@ from lightspeed.trex.viewports.shared.widget import create_instance as _create_v
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
+from omni.kit.ui_test import Vec2
 from omni.ui.tests.test_base import OmniUiTest
+from pxr import UsdGeom
 
 if TYPE_CHECKING:
     from lightspeed.trex.viewports.shared.widget.setup_ui import SetupUI as _ViewportSetupUI
@@ -76,7 +80,8 @@ class TestSharedViewportWidget(OmniUiTest):
         window.destroy()
 
     async def test_always_one_vp_enabled(self):
-        """Test global viewport events that ensure only one viewport is active"""
+        """Test global viewport events that ensure only one viewport is active."""
+
         # setup
         _window, _widgets = await self.__setup_widget()  # Keep in memory during test
 
@@ -161,3 +166,98 @@ class TestSharedViewportWidget(OmniUiTest):
         self.assertTrue(_widgets[1].viewport_api.updates_enabled is True)
 
         await self.__destroy(_window, _widgets)
+
+    async def test_mouse_wheel_zoom_changes_active_viewport_camera(self):
+        # Build the real shared viewport widgets with real USD stages so the event delegate is connected as it is in
+        # app.
+        window, widgets = await self.__setup_widget()
+        try:
+            viewports = ui_test.find_all(f"{window.title}//Frame/**/.identifier == 'viewport'")
+            self.assertEqual(len(widgets), len(viewports))
+
+            # Click the first viewport to make it active, then snapshot its active camera transform before scrolling.
+            await wait_stage_loading(usd_context=omni.usd.get_context(_CONTEXT_NAME))
+            await viewports[0].click()
+            await ui_test.human_delay(human_delay_speed=2)
+            viewport_api = widgets[0].viewport_api
+            stage = omni.usd.get_context(viewport_api.usd_context_name).get_stage()
+            camera_prim = stage.GetPrimAtPath(viewport_api.camera_path)
+            self.assertTrue(camera_prim.IsValid())
+
+            def camera_matrix() -> tuple[float, ...]:
+                return tuple(
+                    component
+                    for row in UsdGeom.Xformable(camera_prim).GetLocalTransformation(viewport_api.time)
+                    for component in row
+                )
+
+            initial_camera_matrix = camera_matrix()
+
+            # Scroll over the viewport like a user would; the delegate should route this to the shared zoom operation.
+            await ui_test.input.emulate_mouse_move(viewports[0].center)
+            await ui_test.input.emulate_mouse_scroll(Vec2(0, -1200))
+
+            # Wait for the viewport camera to settle after the discrete wheel event.
+            for _ in range(60):
+                if camera_matrix() != initial_camera_matrix:
+                    break
+                await ui_test.wait_n_updates()
+            else:
+                self.fail("Mouse-wheel zoom did not update the active viewport camera")
+        finally:
+            await self.__destroy(window, widgets)
+
+    async def test_mouse_wheel_does_not_zoom_while_regular_key_is_held(self):
+        # Build a real viewport so keyboard and wheel events go through the same delegate wiring as a user session.
+        window, widgets = await self.__setup_widget()
+        keyboard = omni.appwindow.get_default_app_window().get_keyboard()
+        input_provider = carb.input.acquire_input_provider()
+        key = carb.input.KeyboardInput.B
+        key_is_down = False
+        try:
+            viewports = ui_test.find_all(f"{window.title}//Frame/**/.identifier == 'viewport'")
+            self.assertEqual(len(widgets), len(viewports))
+
+            # Activate the viewport and snapshot the camera before sending the key-held wheel event.
+            await wait_stage_loading(usd_context=omni.usd.get_context(_CONTEXT_NAME))
+            await viewports[0].click()
+            await ui_test.human_delay(human_delay_speed=2)
+            viewport_api = widgets[0].viewport_api
+            stage = omni.usd.get_context(viewport_api.usd_context_name).get_stage()
+            camera_prim = stage.GetPrimAtPath(viewport_api.camera_path)
+            self.assertTrue(camera_prim.IsValid())
+
+            def camera_matrix() -> tuple[float, ...]:
+                return tuple(
+                    component
+                    for row in UsdGeom.Xformable(camera_prim).GetLocalTransformation(viewport_api.time)
+                    for component in row
+                )
+
+            initial_camera_matrix = camera_matrix()
+
+            # Hold a normal key while scrolling; the delegate should treat this as a tool shortcut and ignore zoom.
+            input_provider.buffer_keyboard_key_event(keyboard, carb.input.KeyboardEventType.KEY_PRESS, key, 0)
+            key_is_down = True
+            await ui_test.wait_n_updates()
+            await ui_test.input.emulate_mouse_move(viewports[0].center)
+            await ui_test.input.emulate_mouse_scroll(Vec2(0, -1200))
+            await ui_test.human_delay(human_delay_speed=4)
+            self.assertEqual(initial_camera_matrix, camera_matrix())
+
+            # Release the key and scroll again; zoom should be active once no regular key is held down.
+            input_provider.buffer_keyboard_key_event(keyboard, carb.input.KeyboardEventType.KEY_RELEASE, key, 0)
+            key_is_down = False
+            await ui_test.wait_n_updates()
+            await ui_test.input.emulate_mouse_scroll(Vec2(0, -1200))
+            for _ in range(60):
+                if camera_matrix() != initial_camera_matrix:
+                    break
+                await ui_test.wait_n_updates()
+            else:
+                self.fail("Mouse-wheel zoom did not resume after the held key was released")
+        finally:
+            if key_is_down:
+                input_provider.buffer_keyboard_key_event(keyboard, carb.input.KeyboardEventType.KEY_RELEASE, key, 0)
+                await ui_test.wait_n_updates()
+            await self.__destroy(window, widgets)

@@ -22,6 +22,9 @@ from typing import TYPE_CHECKING
 import omni.appwindow
 import omni.kit
 import omni.kit.commands
+import omni.kit.undo
+from omni.flux.utils.common.interactive_usd_notices import begin_interaction as _begin_interaction
+from omni.flux.utils.common.interactive_usd_notices import end_interaction as _end_interaction
 from omni.ui import scene as sc
 
 from .constants import DIMENSION_MIN, INTENSITY_MIN
@@ -35,7 +38,12 @@ if TYPE_CHECKING:
 
 
 class _DisableViewportLayers:
-    """Object that hides viewport layers and then resets state when it goes out of scope."""
+    """Object that hides viewport layers and resets state when it goes out of scope.
+
+    Args:
+        viewport_layers: Viewport layer collection to modify.
+        layers_and_categories: Layer/category pairs to hide until this object is destroyed.
+    """
 
     # intentionally make this a class attribute in order to ensure that no matter what order
     # this disable instance is created or destroyed that layers will be restored properly.
@@ -64,11 +72,15 @@ class _DisableViewportLayers:
 
 
 def disable_other_drag_gestures(viewport_layers):
-    """
-    Disable selection rect and prim transform effects on a Viewport.
+    """Disable selection rect and prim transform effects on a Viewport.
 
-    Returns an object that resets selection when it goes out of scope.
+    Args:
+        viewport_layers: Viewport layer collection that owns the drag gesture layers.
+
+    Returns:
+        Object that restores the disabled layers when it goes out of scope.
     """
+
     disable_items = [
         ("Selection", "manipulator"),
         ("Prim Transform", "manipulator"),
@@ -77,7 +89,16 @@ def disable_other_drag_gestures(viewport_layers):
 
 
 class LightDragGesture(sc.DragGesture):
-    """Gesture to capture a drag on a light manipulator"""
+    """Gesture that captures a drag on a light manipulator.
+
+    Args:
+        manipulator: Light manipulator whose model is edited by the drag.
+        orientations: Axes affected by the drag.
+        flag: Per-axis sign used to convert drag direction into authored values.
+        orientation_attr_map: Mapping from axis index to model attribute name.
+        on_ended_fn: Optional callback fired after the drag ends.
+        shape_xform: Optional transform to edit instead of the manipulator transform.
+    """
 
     def __init__(
         self,
@@ -110,15 +131,14 @@ class LightDragGesture(sc.DragGesture):
         self.flag = flag
         self.user_on_ended_fn = on_ended_fn
         self.__disable_gestures = None
+        self.__notice_interaction = None
 
     def _get_axis_attr(self, orientation: int) -> str:
         return self.orientation_attr_map[orientation]
 
     def _on_began(self):
-        """
-        Record the current values to the model for the omni.kit.command and
-        do any required initializations.
-        """
+        """Record the current values to the model and initialize drag state."""
+
         for orientation in self.orientations:
             item = self.model.get_item(self._get_axis_attr(orientation))
             self.model.set_item_value(item, self.model.get_as_float(item))
@@ -149,9 +169,18 @@ class LightDragGesture(sc.DragGesture):
 
         # record the current values to the model for the omni.kit.command
         self._on_began()
+        viewport_api = self._manipulator.viewport_layers.viewport_api
+        self.__notice_interaction = _begin_interaction(viewport_api.stage if viewport_api else None)
 
     def _on_changed(self, moved_x, moved_y, moved_z):
-        """Update USD with the appropriate values based on the drag deltas"""
+        """Update USD with the appropriate values based on the drag deltas.
+
+        Args:
+            moved_x: Object-space X drag delta.
+            moved_y: Object-space Y drag delta.
+            moved_z: Object-space Z drag delta.
+        """
+
         # since self._shape_xform.transform = [x, 0, 0, 0,
         #                                      0, y, 0, 0,
         #                                      0, 0, z, 0,
@@ -212,7 +241,8 @@ class LightDragGesture(sc.DragGesture):
         self._on_changed(moved_x, moved_y, moved_z)
 
     def _on_ended(self):
-        """Set the final values using `set_float_commands` to make change undoable"""
+        """Set the final values using commands so the change is undoable."""
+
         for orientation in self.orientations:
             if self._get_axis_attr(orientation) == "intensity":
                 if self.intensity_new:
@@ -228,17 +258,16 @@ class LightDragGesture(sc.DragGesture):
             self.model.set_raw_intensity_commands_multiple(self.model.intensity, self.intensity_new)
 
     def on_ended(self):
-        # This re-enables the selection in the Viewport Legacy
-        self.__disable_gestures = None
+        try:
+            # This re-enables the selection in the Viewport Legacy
+            self.__disable_gestures = None
 
-        if self.is_global:
-            # start group command
-            omni.kit.undo.begin_group()
-
-        self._on_ended()
-
-        if self.is_global:
-            # end group command
-            omni.kit.undo.end_group()
-        if self.user_on_ended_fn:
-            self.user_on_ended_fn()
+            # A single viewport drag can replay several ChangeProperty commands:
+            # global light handles edit multiple attrs, and multi-selection edits multiple lights.
+            with omni.kit.undo.group():
+                self._on_ended()
+            if self.user_on_ended_fn:
+                self.user_on_ended_fn()
+        finally:
+            _end_interaction(self.__notice_interaction)
+            self.__notice_interaction = None

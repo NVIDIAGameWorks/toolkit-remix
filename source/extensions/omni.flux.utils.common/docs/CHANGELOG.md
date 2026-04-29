@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.13.1]
+### Added
+- Added `interactive_usd_notices` to coalesce per-stage `Usd.Notice.ObjectsChanged` traffic during interactive drags and flush deferred listeners once on release
+
 ## [3.13.0]
 ### Added
 - Added `unique_prim_sequence()` for consistent last-occurrence USD prim dedupe with optional prototype normalization.

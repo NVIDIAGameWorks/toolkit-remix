@@ -15,5 +15,9 @@
 * limitations under the License.
 """
 
-from .e2e.test_widget import *
+from .e2e.test_widget import TestViewportManipulators
+from .unit.test_camera_default import TestCameraDefault
 from .unit.test_global_selection import TestGlobalSelection
+from .unit.test_prim_transform_model import TestPrimTransformModel
+
+__all__ = ["TestCameraDefault", "TestGlobalSelection", "TestPrimTransformModel", "TestViewportManipulators"]

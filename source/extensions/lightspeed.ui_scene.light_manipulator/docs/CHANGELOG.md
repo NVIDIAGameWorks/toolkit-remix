@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1]
+### Fixed
+- Bracketed interactive light manipulator drags with the shared USD notice coalescer so deferred UI listeners flush once after release
+
 ## [1.2.0]
 ### Changed
 - Added persistent viewport toggles for light manipulator visibility and intensity controls
