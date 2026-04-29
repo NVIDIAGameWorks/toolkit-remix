@@ -1,5 +1,5 @@
 [package]
-version = "1.6.5"
+version = "1.6.6"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -30,8 +30,8 @@ name = "lightspeed.trex.viewports.manipulators"
 [[test]]
 dependencies = [
     "lightspeed.trex.tests.dependencies",
-    "lightspeed.trex.viewports.shared.widget",  # grab the viewport because the viewport generate the persp camera
-    "lightspeed.trex.viewports.stagecraft.bundle",  # grab the viewport because the viewport generate the persp camera
+    "lightspeed.trex.control.stagecraft",
+    "lightspeed.trex.viewports.stagecraft.bundle",  # viewport registry/menu baseline used by StageCraft
 ]
 
 args = [
@@ -48,6 +48,10 @@ stdoutFailPatterns.exclude = [
 name = "startup"
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/renderer/mdl/searchPaths/templates=${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
 ]
 
 stdoutFailPatterns.exclude = [

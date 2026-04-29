@@ -15,4 +15,6 @@
 * limitations under the License.
 """
 
-from .e2e.test_widget import *
+from .e2e.test_widget import TestSharedViewportWidget
+
+__all__ = ["TestSharedViewportWidget"]

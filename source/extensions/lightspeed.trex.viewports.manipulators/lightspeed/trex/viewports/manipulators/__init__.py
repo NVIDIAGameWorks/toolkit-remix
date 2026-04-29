@@ -19,6 +19,7 @@ from .camera_default import camera_default_factory
 from .legacy import audio_factory, grid_default_factory, light_factory
 from .prim_transform_default import prim_transform_default_factory
 from .selection_default import selection_default_factory
+from .zoom import zoom_operation
 
 __all__ = [
     "audio_factory",
@@ -27,4 +28,5 @@ __all__ = [
     "light_factory",
     "prim_transform_default_factory",
     "selection_default_factory",
+    "zoom_operation",
 ]

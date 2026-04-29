@@ -18,14 +18,19 @@
 import typing
 
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from pxr import Tf, Usd
+from omni.flux.utils.common.interactive_usd_notices import ListenerSubscription as _ListenerSubscription
+from omni.flux.utils.common.interactive_usd_notices import register_objects_changed_listener as _register_listener
+from pxr import Usd
 
 if typing.TYPE_CHECKING:
     from .model import USDModel as _USDModel
 
 
 class DisableAllListenersBlock:
-    """Use to disable all listeners
+    """Temporarily disables all USD listeners.
+
+    Args:
+        listener_instance: USD listener whose model registrations should be suspended.
 
     Example:
         If you add multiple entity at the same time, you can do:
@@ -54,39 +59,60 @@ class DisableAllListenersBlock:
 
 
 class USDListener:
+    """Listens for USD changes and refreshes matching property models."""
+
     def __init__(self):
-        """USD listener for the property widget"""
+        """Create an empty USD listener for the property widget."""
+
         self._default_attr = {"_listeners": None, "_models": None, "_tmp_models": None}
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self._models: list[_USDModel] = []
         self._tmp_models: list[_USDModel] = []
-        self._listeners: dict[Usd.Stage, Tf.Listener] = {}
+        self._listeners: dict[Usd.Stage, _ListenerSubscription] = {}
 
     def tmp_enable_all_listeners(self):
+        """Restore listeners that were temporarily disabled."""
+
         for model in self._tmp_models:
             self.add_model(model)
         self._tmp_models = []
 
     def tmp_disable_all_listeners(self):
+        """Temporarily disable all current model listeners."""
+
         self._tmp_models = list(self._models)
         for model in self._tmp_models:
             self.remove_model(model)
 
     def _enable_listener(self, stage: Usd.Stage):
-        """Enable the USD listener to see if an attribute is changed"""
+        """Enable the USD listener for a stage.
+
+        Args:
+            stage: Stage whose object-change notices should be observed.
+        """
+
         if stage in self._listeners:
             return
-        self._listeners[stage] = Tf.Notice.Register(Usd.Notice.ObjectsChanged, self._on_usd_changed, stage)
+        self._listeners[stage] = _register_listener(
+            stage,
+            self._on_usd_changed,
+        )
 
     def _disable_listener(self, stage: Usd.Stage):
-        """Disable the USD listener"""
+        """Disable the USD listener for a stage.
+
+        Args:
+            stage: Stage whose listener should be revoked.
+        """
+
         if stage in self._listeners:
             self._listeners[stage].Revoke()
             self._listeners.pop(stage)
 
     def _purge_stale_listeners(self):
         """Remove listeners registered for stages that have been closed or invalidated."""
+
         for stage in list(self._listeners):
             try:
                 if stage.GetRootLayer():
@@ -96,6 +122,13 @@ class USDListener:
             self._disable_listener(stage)
 
     def _on_usd_changed(self, notice, stage):
+        """Refresh matching models for a USD object-change notice.
+
+        Args:
+            notice: USD notice, or aggregated notice, exposing the ObjectsChanged read API.
+            stage: Stage whose properties changed.
+        """
+
         for model in self._models:
             if model.supress_usd_events_during_widget_edit:
                 continue
@@ -122,17 +155,18 @@ class USDListener:
                 model.refresh()
 
     def refresh_all(self):
-        """Refresh all attributes"""
+        """Refresh all registered models."""
+
         for model in self._models:
             model.refresh()
 
     def add_model(self, model: "_USDModel"):
-        """
-        Add a model to listen to
+        """Add a model to listen to.
 
         Args:
-            model: the model to listen
+            model: Model whose stage should be observed.
         """
+
         self._purge_stale_listeners()
         stage = model.stage
         if stage and stage not in self._listeners:
@@ -141,12 +175,12 @@ class USDListener:
         self._models.append(model)
 
     def remove_model(self, model: "_USDModel"):
-        """
-        Remove a model that we were listening to
+        """Remove a model that was being listened to.
 
         Args:
-            model: the listened model
+            model: Model whose stage may no longer need a listener.
         """
+
         if not model or not self._models:
             return
         if model in self._models:
@@ -157,6 +191,8 @@ class USDListener:
         self._purge_stale_listeners()
 
     def destroy(self):
+        """Revoke all registered stage listeners and reset listener state."""
+
         for listener in self._listeners.values():
             listener.Revoke()
 

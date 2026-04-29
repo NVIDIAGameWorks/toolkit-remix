@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.3]
+### Changed
+- Added Stage Manager E2E coverage for property updates that should refresh after deferred interaction notices
+
 ## [1.7.2]
 ### Fixed
 - Make capture-picker swaps a single undoable action with confirmation on undo, while keeping project-open and repair flows non-undoable

@@ -18,6 +18,7 @@
 from .unit.test_decorators import TestLimitRecursion
 from .unit.test_event import TestEvent
 from .unit.test_icons import TestIcons
+from .unit.test_interactive_usd_notices import TestInteractiveUsdNoticeService
 from .unit.test_layer_utils import TestLayerUtils
 from .unit.test_lights import TestLights
 from .unit.test_mouse import TestGetMousePosition, TestIsPointInsideWidget
@@ -35,6 +36,7 @@ __all__ = [
     "TestEvent",
     "TestGetMousePosition",
     "TestIcons",
+    "TestInteractiveUsdNoticeService",
     "TestIsPointInsideWidget",
     "TestLayerUtils",
     "TestLights",

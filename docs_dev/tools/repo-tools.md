@@ -28,6 +28,28 @@ the summary line alone is not reliable.
 
 ---
 
+## Common Issues
+
+### Kit cannot initialize Python after worktree cleanup
+
+If Kit or extension tests crash during startup with `failed to get the Python codec of the filesystem encoding`, the
+shared packman Python install is likely broken. This can happen after cleaning up git worktrees because the default
+cleanup path can remove files from the shared packman package cache.
+
+To recover:
+
+1. Find the packman cache from `PM_PACKAGES_ROOT` (defaults to `C:/packman-repo`).
+2. Delete that packman cache directory.
+3. Rebuild from the repo root with:
+
+   ```powershell
+   .\build.bat -x
+   ```
+
+The rebuild redownloads a valid Kit/Python package set.
+
+---
+
 ## Run
 
 | Tool                                   | Description                                                            |
