@@ -22,6 +22,7 @@ import math
 import traceback
 
 import carb
+from lightspeed.trex.viewports.manipulators.zoom import zoom_operation as _zoom_operation
 
 
 def _limit_camera_velocity(value: float, settings: carb.settings.ISettings, context_name: str):
@@ -129,8 +130,6 @@ class ViewportEventDelegate:
             self.__key_down = set()
 
         try:
-            from omni.kit.manipulator.camera.viewport_camera_manipulator import _zoom_operation  # noqa: PLC0415
-
             _zoom_operation(x, y, self.viewport_api)
         except Exception:  # noqa: BLE001
             carb.log_error(f"Traceback:\n{traceback.format_exc()}")

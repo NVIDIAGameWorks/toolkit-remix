@@ -56,10 +56,8 @@ source/extensions/<ext-name>/
 │   └── tests/
 │       ├── __init__.py         # Must export test classes for runner discovery
 │       ├── unit/
-│       │   ├── __init__.py
 │       │   └── test_*.py
 │       └── e2e/
-│           ├── __init__.py
 │           └── test_*.py
 └── premake5.lua                # Build symlink script (boilerplate — copy from any existing ext)
 ```
@@ -255,8 +253,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Tests Export Pattern
 
-Every `tests/__init__.py` must export its test classes so the test runner can discover them. Update this as you add
-tests:
+Only the top-level `tests/__init__.py` should exist. It must export test classes so the test runner can discover them.
+Use explicit imports from the concrete test modules. Never use `import *`. Never add `tests/unit/__init__.py` or
+`tests/e2e/__init__.py`. Update `tests/__init__.py` as you add tests:
 
 ```python
 """
@@ -278,13 +277,15 @@ tests:
 
 from .unit.test_my_module import TestMyModule
 from .e2e.test_my_workflow import TestMyWorkflow
+
+__all__ = ["TestMyModule", "TestMyWorkflow"]
 ```
 
 An empty `tests/__init__.py` causes the test runner to find nothing, even if test files exist — always export your test
 classes.
 
-`tests/unit/__init__.py` and `tests/e2e/__init__.py` are empty files (no license header required for empty
-`__init__.py`).
+Do not create `tests/unit/__init__.py` or `tests/e2e/__init__.py`; the only test package initializer should be
+`tests/__init__.py`.
 
 ---
 

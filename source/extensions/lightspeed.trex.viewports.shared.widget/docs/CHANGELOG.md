@@ -2,6 +2,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.7.2]
+### Fixed
+- Routed mouse-wheel camera zoom through the local wrapped camera manipulator so interactive USD notice coalescing also covers scroll zoom
+
 ## [1.7.1]
 ### Changed
 - Removed unused `query_name` parameter from `viewport_api_request_query_hdremix` call

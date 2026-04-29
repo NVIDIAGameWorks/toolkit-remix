@@ -15,13 +15,106 @@
 * limitations under the License.
 """
 
-from typing import Any
+from functools import wraps
+from typing import Any, cast
 
 import carb
 import omni.kit.app
-from omni.kit.manipulator.camera import ViewportCameraManipulator as _ViewportCameraManipulator
+import omni.usd
+from omni.flux.utils.common.interactive_usd_notices import begin_interaction as _begin_interaction
+from omni.flux.utils.common.interactive_usd_notices import end_interaction as _end_interaction
+from omni.kit.manipulator.camera import ViewportCameraManipulator as _BaseViewportCameraManipulator
 
 from .interface.i_manipulator import IManipulator
+from .protocols import CameraGestureProtocol as _CameraGestureProtocol
+from .protocols import GestureScreenProtocol as _GestureScreenProtocol
+from .protocols import ViewportAPIProtocol as _ViewportAPIProtocol
+
+
+class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
+    """Camera manipulator that brackets camera gestures with USD notice interactions."""
+
+    def __init__(self, viewport_api: _ViewportAPIProtocol, *args, **kwargs):
+        self.__viewport_api = viewport_api
+        self.__notice_interaction = None
+        self.__wrapped_gesture_ids: set[int] = set()
+        super().__init__(viewport_api, *args, **kwargs)
+
+    def on_build(self):
+        """Build the base manipulator and wrap camera gesture lifecycle callbacks."""
+
+        super().on_build()
+        screen = cast(_GestureScreenProtocol, self._screen)
+        for gesture in screen.gestures:
+            self.__wrap_gesture_lifecycle(gesture)
+
+    def __wrap_gesture_lifecycle(self, gesture: _CameraGestureProtocol):
+        gesture_id = id(gesture)
+        if gesture_id in self.__wrapped_gesture_ids:
+            return
+
+        on_began = gesture.on_began
+        on_changed = gesture.on_changed
+        on_ended = gesture.on_ended
+
+        @wraps(on_began)
+        def wrapped_on_began(*args, **kwargs):
+            self._begin_interaction()
+            try:
+                return on_began(*args, **kwargs)
+            except Exception:
+                self._end_interaction()
+                raise
+
+        @wraps(on_changed)
+        def wrapped_on_changed(*args, **kwargs):
+            if self.__notice_interaction is None:
+                self._begin_interaction()
+            try:
+                return on_changed(*args, **kwargs)
+            except Exception:
+                self._end_interaction()
+                raise
+
+        @wraps(on_ended)
+        def wrapped_on_ended(*args, **kwargs):
+            try:
+                return on_ended(*args, **kwargs)
+            finally:
+                self._end_interaction()
+
+        gesture.on_began = wrapped_on_began
+        gesture.on_changed = wrapped_on_changed
+        gesture.on_ended = wrapped_on_ended
+        self.__wrapped_gesture_ids.add(gesture_id)
+
+    def _begin_interaction(self):
+        """Start deferring USD notices for the viewport stage."""
+
+        if self.__notice_interaction is not None:
+            return
+        viewport_api = self.__viewport_api
+        stage = None
+        context_name = viewport_api.usd_context_name
+        if context_name:
+            stage = omni.usd.get_context(context_name).get_stage()
+        if stage is None:
+            stage = viewport_api.stage
+        self.__notice_interaction = _begin_interaction(stage)
+
+    def _end_interaction(self):
+        """End the active USD notice interaction when one exists."""
+
+        if self.__notice_interaction is None:
+            return
+        _end_interaction(self.__notice_interaction)
+        self.__notice_interaction = None
+
+    def destroy(self):
+        """End active notice interactions and destroy the base manipulator."""
+
+        self._end_interaction()
+        super().destroy()
 
 
 class CameraDefault(IManipulator):

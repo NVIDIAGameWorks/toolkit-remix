@@ -15,9 +15,12 @@
 * limitations under the License.
 """
 
+from unittest.mock import Mock, patch
+
 import omni.kit.test
 import omni.usd
 from omni.flux.property_widget_builder.model.usd import BoundsAdapter, USDAttributeItem
+from omni.flux.property_widget_builder.model.usd import items as _items_module
 from omni.flux.property_widget_builder.model.usd.items import VirtualUSDAttributeItem
 from pxr import Gf, Sdf
 
@@ -36,7 +39,18 @@ class _UiMetadataAdapter(BoundsAdapter):
 
 
 def _make_item(stage, ui_metadata=None, custom_data=None, bounds_adapter=None):
-    """Helper to create a float attribute and return a USDAttributeItem wrapping it."""
+    """Create a float attribute item for bounds tests.
+
+    Args:
+        stage: Stage where the test prim and attribute are created.
+        ui_metadata: Optional UI metadata passed to the item.
+        custom_data: Optional custom data authored on the attribute.
+        bounds_adapter: Optional bounds adapter injected into the item.
+
+    Returns:
+        USD attribute item wrapping the created test attribute.
+    """
+
     prim = stage.DefinePrim("/BoundsTestPrim")
     attr = prim.CreateAttribute("testFloat", Sdf.ValueTypeNames.Float)
     attr.Set(0.0)
@@ -152,6 +166,60 @@ class TestUSDAttributeItemBounds(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertIsNone(result)
+
+    async def test_set_display_attr_names_uses_empty_name_when_display_list_is_short(self):
+        # Arrange
+        item = _make_item(self.stage)
+
+        # Act
+        item.set_display_attr_names([])
+
+        # Assert
+        self.assertEqual("", item.name_models[0].get_value_as_string())
+
+    async def test_set_display_attr_names_tooltip_keeps_default_tooltip_when_display_list_is_short(self):
+        # Arrange
+        item = _make_item(self.stage)
+
+        # Act
+        item.set_display_attr_names_tooltip([])
+
+        # Assert
+        self.assertEqual("testFloat", item.name_models[0].get_tool_tip())
+
+    async def test_delete_all_overrides_notifies_subscribers_after_deletion(self):
+        # Arrange
+        item = _make_item(self.stage)
+        callback = Mock()
+        subscription = item.subscribe_override_removed(callback)
+
+        with patch.object(_items_module, "_delete_all_overrides") as delete_all_overrides_mock:
+            # Act
+            item.delete_all_overrides()
+
+        # Assert
+        self.assertIsNotNone(subscription)
+        delete_all_overrides_mock.assert_called_once()
+        self.assertEqual("", delete_all_overrides_mock.call_args.kwargs["context_name"])
+        callback.assert_called_once_with()
+
+    async def test_delete_layer_override_notifies_subscribers_after_deletion(self):
+        # Arrange
+        item = _make_item(self.stage)
+        layer = self.stage.GetRootLayer()
+        callback = Mock()
+        subscription = item.subscribe_override_removed(callback)
+
+        with patch.object(_items_module, "_delete_layer_override") as delete_layer_override_mock:
+            # Act
+            item.delete_layer_override(layer)
+
+        # Assert
+        self.assertIsNotNone(subscription)
+        delete_layer_override_mock.assert_called_once()
+        self.assertEqual(layer, delete_layer_override_mock.call_args.args[0])
+        self.assertEqual("", delete_layer_override_mock.call_args.kwargs["context_name"])
+        callback.assert_called_once_with()
 
     async def test_ui_metadata_vector_bounds_are_preserved(self):
         """Vector-like ui metadata bounds should be preserved for widget-level scalar indexing."""
