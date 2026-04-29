@@ -42,6 +42,13 @@ All UI elements should align pixel-perfectly. Use screenshots and draw guideline
 Use named constants (e.g. `self._DEFAULT_WIDGET_HEIGHT = 300`) to share values across aligned widgets. Reuse the same
 padding in adjacent widgets to communicate visual grouping.
 
+### Property input tooltips identify fields
+
+Shared USD property value tooltips should identify the field being edited as well as the current value. Scalar fields use
+`<Display Name>: <value>`, and generic vector fields use `<Display Name> <channel>: <value>` with channels derived from
+the value type as `X`, `Y`, `Z`, and `W`. Color value types are treated as single color-widget values rather than
+generic vector channels. Label tooltips remain reserved for schema/help documentation.
+
 ### Avoid hardcoded dimensions
 
 `ui.Pixel(293)` is almost never necessary. Build layouts by setting sizes to 0 or leaving them unset:

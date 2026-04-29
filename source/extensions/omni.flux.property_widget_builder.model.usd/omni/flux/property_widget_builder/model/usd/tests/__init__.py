@@ -24,6 +24,7 @@ from .unit.test_relationship_item import TestUSDRelationshipItem
 from .unit.test_relationship_utils import TestRelationshipUtils
 from .unit.test_relationship_value_model import TestUsdRelationshipValueModel
 from .unit.test_usd_attribute_item_bounds import TestUSDAttributeItemBounds
+from .unit.test_value_tooltips import TestUSDAttributeValueTooltips
 
 from .e2e.test_gradient_command import (
     TestGradientEditorUndo,
@@ -40,6 +41,7 @@ __all__ = [
     "TestRelationshipUtils",
     "TestSetGradientPrimvarsCommand",
     "TestUSDAttributeItemBounds",
+    "TestUSDAttributeValueTooltips",
     "TestUSDListener",
     "TestUSDRelationshipItem",
     "TestUsdGradientWidgetLifecycle",

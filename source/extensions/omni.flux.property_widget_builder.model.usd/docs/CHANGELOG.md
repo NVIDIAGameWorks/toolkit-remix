@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.33.0]
+### Fixed
+- REMIX-5039: USD property input tooltips now include the field display name and vector channel when applicable
+
 ## [2.32.1]
 ### Fixed
 - Mixed USD value models now keep the last selected attribute as the displayed baseline while still marking differing selections as mixed
