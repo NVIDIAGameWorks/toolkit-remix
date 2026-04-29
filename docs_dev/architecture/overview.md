@@ -187,6 +187,10 @@ See [Implementing REST Service Endpoints](../patterns/services.md) for the full 
 Declared in `extension.toml` under `[settings]` (transient) or `[settings.persistent]` (persisted across sessions).
 Access at runtime via `carb.settings.get_settings()`.
 
+For drag-lifetime USD churn, prefer a shared helper over ad-hoc transient settings. Use
+`omni.flux.utils.common.interactive_usd_notices` so interactive writers bracket the edit and listeners can receive one
+aggregated `Usd.Notice.ObjectsChanged` flush when the interaction ends.
+
 ```toml
 [settings]
 exts."my.ext.name".some_key = "default_value"

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.5]
+### Fixed
+- Routed USD notice delivery through the shared interactive coalescer so stage manager listeners can defer interactive refreshes until drag completion
+
 ## [2.3.4]
 ### Changed
 - Reverted the listener to refresh on all USD notices

@@ -186,7 +186,8 @@ After writing tests, update `extension.toml` to declare them and specify any req
 Every `tests/__init__.py` must export its test classes so the test runner can discover them. An empty
 `tests/__init__.py` causes the test runner to find nothing, even if test files exist.
 
-For the full export template with license header, see [Extension Guide —
+Keep test package exports explicit. `tests/__init__.py` must import each test class from its concrete module, for
+example `from .unit.test_my_module import TestMyModule`. For the full rule and export template, see [Extension Guide —
 `tests/__init__.py` Export Pattern](../architecture/extension-guide.md#tests-export-pattern).
 
 ---
