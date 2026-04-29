@@ -23,6 +23,7 @@ from .test_relationship_item import TestUSDRelationshipItem
 from .test_relationship_utils import TestRelationshipUtils
 from .test_relationship_value_model import TestUsdRelationshipValueModel
 from .test_usd_attribute_item_bounds import TestUSDAttributeItemBounds
+from .test_value_tooltips import TestUSDAttributeValueTooltips
 
 __all__ = [
     "TestDelegateAlignment",
@@ -30,6 +31,7 @@ __all__ = [
     "TestFileTexturePicker",
     "TestRelationshipUtils",
     "TestUSDAttributeItemBounds",
+    "TestUSDAttributeValueTooltips",
     "TestUSDListener",
     "TestUSDRelationshipItem",
     "TestUsdRelationshipValueModel",
