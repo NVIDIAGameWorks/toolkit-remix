@@ -37,6 +37,16 @@ from ..utils import get_metadata as _get_metadata
 from ..utils import get_type_name as _get_type_name
 from ..utils import is_item_overriden as _is_item_overriden
 
+_CHANNEL_NAMES = ("X", "Y", "Z", "W")
+
+
+def _get_channel_name(channel_index: int) -> str:
+    """Get the display name for a multichannel value index."""
+    try:
+        return _CHANNEL_NAMES[channel_index]
+    except IndexError:
+        return str(channel_index)
+
 
 def _safe_deepcopy(value):
     """
@@ -74,6 +84,8 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         attribute_paths: list[Sdf.Path],
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
+        tooltip_display_name: str | None = None,
+        tooltip_channel_name: str | None = None,
     ):
         """
         Base model of a USD attribute value.
@@ -85,6 +97,8 @@ class UsdAttributeBase(_Serializable, abc.ABC):
             attribute_paths:  the path(s) of the attribute
             read_only: if the attribute is read only or not
             value_type_name: the type name of the attribute
+            tooltip_display_name: optional display name used to prefix value widget tooltips
+            tooltip_channel_name: optional channel suffix used to identify multichannel value widget tooltips
         """
         super().__init__()
         self._context_name = context_name
@@ -92,6 +106,8 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         self._attribute_paths = attribute_paths
         self._read_only = read_only
         self._is_mixed = False
+        self._tooltip_display_name = tooltip_display_name
+        self._tooltip_channel_name = tooltip_channel_name
 
         if not value_type_name:
             value_type_name = self._get_type_name(self.metadata)
@@ -188,25 +204,26 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         return self._is_batch_editing
 
     def get_tool_tip(self):
-        """Get the tooltip that best represents the current value"""
-        summary = ""
-        more = ""
+        """Get the value tooltip, prefixed with field identity when available."""
         should_use_separate_lines = len(str(self.get_value())) > 10
 
         if self.is_mixed:
-            summary += "Mixed Values: "
-            if should_use_separate_lines:
-                summary += "\n"
-        else:
-            return self._get_value_as_string()
-
-        values = self._values
-        if len(self._values) > self._summary_limit:
             values = self._values[: self._summary_limit]
-            more = "..."
-        separator = "\n" if should_use_separate_lines else ", "
-        value_text = separator.join(str(v) for v in values)
-        return summary + value_text + more
+            more = "..." if len(self._values) > self._summary_limit else ""
+            separator = "\n" if should_use_separate_lines else ", "
+            summary_suffix = "\n" if should_use_separate_lines else ""
+            value_text = separator.join(str(v) for v in values)
+            value_tooltip = f"Mixed Values: {summary_suffix}{value_text}{more}"
+        else:
+            value_tooltip = self._get_value_as_string()
+
+        display_name = self._tooltip_display_name or (self._attribute_paths[0].name if self._attribute_paths else None)
+        if not display_name:
+            return value_tooltip
+
+        if self._tooltip_channel_name:
+            display_name = f"{display_name} {self._tooltip_channel_name}"
+        return f"{display_name}: {value_tooltip}"
 
     @staticmethod
     def _get_type_name(metadata):
@@ -420,6 +437,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         default_value: Any = None,
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
+        tooltip_display_name: str | None = None,
     ):
         """
         Value model of an attribute value
@@ -429,7 +447,8 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             attribute_paths:  the path(s) of the attribute
             channel_index: the channel index of the attribute
             read_only: if the attribute is read only or not
-            type_name: the type name of the attribute
+            value_type_name: the type name of the attribute
+            tooltip_display_name: optional display name used to prefix value widget tooltips
             default_value: optional override for the default value
         """
         super().__init__(
@@ -437,10 +456,12 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             attribute_paths,
             read_only=read_only,
             value_type_name=value_type_name,
+            tooltip_display_name=tooltip_display_name,
         )
         self._channel_index = channel_index
         # should we treat value as a "multi" value or by channel.
         self._is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(self._value_type_name, False)
+        self._tooltip_channel_name = _get_channel_name(channel_index) if self._is_multichannel else None
         self._has_wrong_value = False
         self._default_value = default_value
         self.init_attributes()
@@ -604,11 +625,12 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         read_only: bool = False,
         metadata: dict | None = None,
         create_callback: Callable[[Usd.Attribute, Any], None] | None = None,
+        tooltip_display_name: str | None = None,
     ):
         self._create_callback = create_callback
 
         if not value_type_name:
-            raise ValueError("type_name is required for virtual attribute value models")
+            raise ValueError("value_type_name is required for virtual attribute value models")
         self._metadata = metadata or {Sdf.PrimSpec.TypeNameKey: str(value_type_name)}
         is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(value_type_name, False)
         if is_multichannel and default_value is not None:
@@ -620,6 +642,7 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
             channel_index,
             read_only=read_only,
             value_type_name=value_type_name,
+            tooltip_display_name=tooltip_display_name,
         )
 
         # Set _default_value AFTER super().__init__() to avoid being overwritten by the parent class

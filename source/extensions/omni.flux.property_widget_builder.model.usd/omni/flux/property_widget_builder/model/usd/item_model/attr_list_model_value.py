@@ -77,6 +77,7 @@ class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):
         metadata: dict | None = None,
         metadata_key: str | None = None,
         create_callback: Callable[[Usd.Attribute, Any], None] | None = None,
+        tooltip_display_name: str | None = None,
     ):
         if metadata is None and value_type_name is not None:
             metadata = {Sdf.PrimSpec.TypeNameKey: str(value_type_name)}
@@ -90,6 +91,7 @@ class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):
             value_type_name=value_type_name,
             metadata=metadata,
             metadata_key=metadata_key,
+            tooltip_display_name=tooltip_display_name,
         )
         self._create_callback = create_callback
 
