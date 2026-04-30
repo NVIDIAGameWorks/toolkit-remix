@@ -26,6 +26,7 @@ from lightspeed.common.constants import PARTICLE_SCHEMA_NAME as _PARTICLE_SCHEMA
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.properties_pane.widget import AssetReplacementsPane as _AssetReplacementsPane
+from lightspeed.trex.properties_pane.widget import setup_ui
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
@@ -41,6 +42,26 @@ class TestAssetReplacementsWidget(AsyncTestCase):
     PARTICLE_INSTANCE_MESH_PATH = "/RootNode/instances/inst_CED45075A077A49A_0/mesh"
     SECOND_PARTICLE_MESH_PATH = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"
     SECOND_INSTANCE_MESH_PATH = "/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"
+
+    async def test_frame_prim_event_frames_active_viewport(self):
+        prim = mock.Mock()
+        prim.GetPath.return_value = Sdf.Path("/World/Prim")
+        pane = _AssetReplacementsPane.__new__(_AssetReplacementsPane)
+
+        with mock.patch.object(setup_ui, "_get_active_viewport") as viewport:
+            pane._on_frame_prim(prim)
+
+        viewport.return_value.frame_viewport_selection.assert_called_once_with(["/World/Prim"])
+
+    async def test_frame_prim_event_without_active_viewport_does_not_get_prim_path(self):
+        prim = mock.Mock()
+        pane = _AssetReplacementsPane.__new__(_AssetReplacementsPane)
+
+        with mock.patch.object(setup_ui, "_get_active_viewport", return_value=None) as viewport:
+            pane._on_frame_prim(prim)
+
+        viewport.assert_called_once_with()
+        prim.GetPath.assert_not_called()
 
     # Before running each test
     async def setUp(self):

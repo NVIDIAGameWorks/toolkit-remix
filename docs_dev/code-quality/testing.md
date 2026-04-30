@@ -225,6 +225,9 @@ that method.
 
 - Inherit `omni.kit.test.AsyncTestCase`
 - Mock all external dependencies (USD stage, carb settings, HTTP calls, job queue)
+- Prefer `mock.patch.object(module_or_object, "name")` over broad string-based patching like
+  `mock.patch("package.module.name")`. Object patching binds to the imported object under test, catches missing
+  attributes earlier, and avoids brittle module-path strings. Import modules under their real names before patching.
 - **Cover all code paths** — happy path, error cases, edge cases, boundary conditions, and invalid input. If a method
   has an `if/else`, there should be tests for both branches.
 - Test one behavior per test method using the Arrange/Act/Assert pattern
