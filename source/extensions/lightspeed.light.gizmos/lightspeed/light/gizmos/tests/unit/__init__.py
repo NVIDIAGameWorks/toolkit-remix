@@ -15,7 +15,6 @@
 * limitations under the License.
 """
 
-from .e2e.test_info import TestInfo
-from .unit.test_visibility import TestParentResolvesInComposition
+from .test_visibility import TestParentResolvesInComposition
 
-__all__ = ["TestInfo", "TestParentResolvesInComposition"]
+__all__ = ["TestParentResolvesInComposition"]

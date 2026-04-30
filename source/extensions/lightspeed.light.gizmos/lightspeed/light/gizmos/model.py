@@ -35,6 +35,24 @@ class LightType(IntEnum):
     UnknownLight = 6
 
 
+def _parent_resolves_in_composition(prim: Usd.Prim) -> bool:
+    """REMIX-3969: a light is "orphaned" when its parent prim only exists as
+    `over` opinions on the layer stack — e.g., a mod layer references a
+    captured mesh that is not present in the currently active capture. Such
+    parents have no `def` or `class` spec anywhere in the layer stack, so
+    `HasDefiningSpecifier` returns False, and we hide the light's gizmo
+    because there is no real geometry to attach it to.
+
+    Lights authored directly under the pseudo-root (or other defined groups
+    such as `/RootNode/Lights/...`) are unaffected: those parents have a
+    defining specifier from the project or capture layer.
+    """
+    parent = prim.GetParent()
+    if not parent or parent.IsPseudoRoot():
+        return True
+    return parent.HasDefiningSpecifier()
+
+
 class LightGizmosModel(sc.AbstractManipulatorModel):
     """
     User part. The model tracks the transform and info of the selected object.
@@ -130,6 +148,8 @@ class LightGizmosModel(sc.AbstractManipulatorModel):
         if not stage or not self._current_path:
             return False
         if not self._prim.IsActive():
+            return False
+        if not _parent_resolves_in_composition(self._prim):
             return False
         imageable = UsdGeom.Imageable(self._prim)
         return imageable.ComputeVisibility() != UsdGeom.Tokens.invisible
