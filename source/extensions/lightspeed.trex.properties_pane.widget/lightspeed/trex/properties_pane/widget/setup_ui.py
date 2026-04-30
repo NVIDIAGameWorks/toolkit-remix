@@ -49,6 +49,7 @@ from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
 from lightspeed.trex.utils.common.prim_utils import is_material_prototype as _is_material_prototype
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
+from lightspeed.trex.viewports.shared.widget import get_active_viewport as _get_active_viewport
 from omni import ui
 from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as _UsdBookmarkCollectionModel
 from omni.flux.bookmark_tree.widget import BookmarkTreeWidget as _BookmarkTreeWidget
@@ -102,6 +103,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
             "_particle_properties_collapsable_frame": None,
             "_logic_graph_properties_collapsable_frame": None,
             "_sub_tree_selection_changed": None,
+            "_sub_frame_prim": None,
             "_sub_go_to_ingest_tab1": None,
             "_sub_go_to_ingest_tab2": None,
             "_sub_go_to_ingest_tab3": None,
@@ -405,6 +407,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         self._sub_tree_selection_changed = self._selection_tree_widget.subscribe_tree_selection_changed(
             self._on_tree_selection_changed
         )
+        self._sub_frame_prim = self._selection_tree_widget.subscribe_frame_prim(self._on_frame_prim)
 
         self._sub_go_to_ingest_tab1 = self._mesh_properties_widget.subscribe_go_to_ingest_tab(self._go_to_ingest_tab)
         self._sub_go_to_ingest_tab2 = self._selection_tree_widget.subscribe_go_to_ingest_tab(self._go_to_ingest_tab)
@@ -667,6 +670,11 @@ class AssetReplacementsPane(_WorkspaceWidget):
 
         # Refresh the widget
         self._particle_properties_widget.refresh(particle_system_paths, valid_target_paths)
+
+    def _on_frame_prim(self, prim: Usd.Prim):
+        viewport = _get_active_viewport()
+        if viewport:
+            viewport.frame_viewport_selection([str(prim.GetPath())])
 
     def _refresh_logic_properties_widget(self):
         """Refresh the logic properties widget based on current selection"""

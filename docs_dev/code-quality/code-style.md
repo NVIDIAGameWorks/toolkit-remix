@@ -39,6 +39,12 @@ easier to follow.
 
 Treat `carb`, `omni`, and `lightspeed` as **third-party**.
 
+## Imports
+
+Avoid import aliases (`import x as y` or `from x import y as z`) unless there is a name collision or a widely
+established external convention. Prefer real module and symbol names so patch targets, stack traces, and grep results
+stay obvious.
+
 ---
 
 ## License Headers
