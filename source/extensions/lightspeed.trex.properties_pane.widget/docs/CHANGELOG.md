@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.1]
+### Fixed
+- Fixed Selection panel instance frame buttons so they focus the active viewport
+
 ## [1.16.0]
 ### Fixed
 - Normalized particle multi-selection so particle targets win over create-only targets and instance-backed selections dedupe by prototype path
