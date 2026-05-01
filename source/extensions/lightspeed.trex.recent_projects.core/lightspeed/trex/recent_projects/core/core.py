@@ -23,6 +23,7 @@ import json
 import math
 import os
 import shutil
+from enum import Enum
 from pathlib import Path
 
 import carb
@@ -38,6 +39,30 @@ from lightspeed.layer_manager.core import (
 )
 from omni.flux.utils.common.omni_url import OmniUrl
 from pxr import Sdf, Tf
+
+
+class UsdFileSignature(Enum):
+    """Supported USD file extensions and their valid binary header signatures."""
+
+    USDA = (".usda", (b"#usda 1.",))
+    USDC = (".usdc", (b"PXR-USDC",))
+    USDZ = (".usdz", (b"PK\x03\x04",))
+    USD = (".usd", (b"#usda 1.", b"PXR-USDC"))
+
+    @property
+    def extension(self) -> str:
+        return self.value[0]
+
+    @property
+    def signatures(self) -> tuple[bytes, ...]:
+        return self.value[1]
+
+    @classmethod
+    def for_extension(cls, ext: str) -> "UsdFileSignature | None":
+        for member in cls:
+            if member.extension == ext:
+                return member
+        return None
 
 
 class RecentProjectsCore:
@@ -57,9 +82,13 @@ class RecentProjectsCore:
     def save_recent_file(self, data):
         """Save the recent work files to the file"""
         file_path = self.__get_recent_file()
-        with open(file_path, "w", encoding="utf8") as json_file:
-            json.dump(data, json_file, indent=2)
-
+        try:
+            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, "w", encoding="utf8") as json_file:
+                json.dump(data, json_file, indent=2)
+        except OSError as exc:
+            carb.log_warn(f"[RecentProjectsCore] Could not save recent file '{file_path}': {exc}")
+            return
         carb.log_info(f"Recent saved file tracker saved to {file_path}")
 
     def append_path_to_recent_file(self, path: str, game: str, capture: str, save: bool = True):
@@ -107,33 +136,91 @@ class RecentProjectsCore:
         carb.log_info(f"Get recent saved file(s) from {file_path}")
         try:
             with open(file_path, encoding="utf8") as json_file:
-                return json.load(json_file)
+                raw = json.load(json_file)
         except json.JSONDecodeError:
-            carb.log_warn(f"{file_path} is corrupted! Deleting it.")
-            shutil.copyfile(file_path, f"{file_path}.bak")
-            Path(file_path).unlink()
-        return {}
+            carb.log_warn(f"[RecentProjectsCore] {file_path} is corrupted! Attempting backup.")
+            try:
+                shutil.copyfile(file_path, f"{file_path}.bak")
+                Path(file_path).unlink()
+                carb.log_warn(f"[RecentProjectsCore] Corrupt file backed up to {file_path}.bak")
+            except OSError as exc:
+                carb.log_warn(f"[RecentProjectsCore] Could not back up corrupt file: {exc}")
+            return {}
+        except OSError as exc:
+            carb.log_warn(f"[RecentProjectsCore] Could not read recent file '{file_path}': {exc}")
+            return {}
 
-    def get_path_detail(self, path) -> dict[str, str]:
+        if not isinstance(raw, dict):
+            carb.log_warn(f"[RecentProjectsCore] Recent file is not a dict (got {type(raw).__name__})")
+            return {}
+
+        result = {}
+        for path, entry in raw.items():
+            ok, reason = self._validate_json_entry(path, entry)
+            if not ok:
+                carb.log_warn(f"[RecentProjectsCore] Skipping malformed entry: {reason}")
+                continue
+            result[path] = entry
+        return result
+
+    def get_path_detail(
+        self, path, recent_file_data: dict[str, dict[str, str]] | None = None
+    ) -> dict[str, str | list[tuple[str, str]]]:
         """Get details from the given path"""
+
+        if recent_file_data is None:
+            recent_file_data = self.get_recent_file_data()
+
+        ok, reason = self._validate_path(path)
+        if not ok:
+            carb.log_warn(f"[RecentProjectsCore] get_path_detail skipped: {reason}")
+            return {
+                "Invalid": [(path, reason)],
+                "Game": recent_file_data.get("game", None),
+                "Capture": recent_file_data.get("capture", None),
+            }
+
+        ok, reason = self._validate_usd_file(path)
+        if not ok:
+            carb.log_warn(f"[RecentProjectsCore] get_path_detail skipped: {reason}")
+            return {
+                "Invalid": [(path, reason)],
+                "Game": recent_file_data.get("game", None),
+                "Capture": recent_file_data.get("capture", None),
+            }
+
         result = {}
         recent_url = OmniUrl(path)
-        if recent_url.exists:
-            data = self.get_recent_file_data()
-            if path in data:
-                # Default values from the recent file
-                result["Game"] = data[path]["game"]
-                result["Capture"] = data[path]["capture"]
+        if not recent_url.exists:
+            return result
 
-                # Get updated values from the project
-                try:
-                    project_layer = Sdf.Layer.FindOrOpen(path)
-                except Tf.ErrorException:
-                    project_layer = None  # error reading the layer
-                if not project_layer:
-                    return result
+        if path in recent_file_data:
+            result["Game"] = recent_file_data[path].get("game", "")
+            result["Capture"] = recent_file_data[path].get("capture", "")
+            result["Invalid"] = []
+
+            try:
+                project_layer = Sdf.Layer.FindOrOpen(path)
+            except (Tf.ErrorException, RuntimeError) as exc:
+                carb.log_warn(f"[RecentProjectsCore] Could not open project layer '{path}': {exc}")
+                result["Invalid"].append((path, str(exc)))
+                project_layer = None
+
+            if project_layer:
                 for sublayer_path in project_layer.subLayerPaths:
-                    sublayer = Sdf.Layer.FindOrOpenRelativeToLayer(project_layer, sublayer_path)
+                    resolved = Sdf.ComputeAssetPathRelativeToLayer(project_layer, sublayer_path)
+                    ok, reason = self._validate_usd_layer(resolved)
+                    if not ok:
+                        carb.log_warn(f"[RecentProjectsCore] Skipping sublayer '{sublayer_path}': {reason}")
+                        result["Invalid"].append((sublayer_path, reason))
+                        continue
+
+                    try:
+                        sublayer = Sdf.Layer.FindOrOpenRelativeToLayer(project_layer, sublayer_path)
+                    except (Tf.ErrorException, RuntimeError) as exc:
+                        carb.log_warn(f"[RecentProjectsCore] Could not open sublayer '{sublayer_path}': {exc}")
+                        result["Invalid"].append((sublayer_path, str(exc)))
+                        continue
                     if not sublayer:
                         continue
                     metadata = sublayer.customLayerData
@@ -148,8 +235,13 @@ class RecentProjectsCore:
                             result["Game"] = metadata.get(LSS_LAYER_GAME_NAME)
                         case _:
                             pass
-            result["Published"] = recent_url.entry.modified_time.strftime("%m/%d/%Y, %H:%M:%S")
-            result["Size"] = self.convert_size(recent_url.entry.size)
+
+        if not recent_url.entry:
+            carb.log_warn(f"[RecentProjectsCore] No entry metadata available for '{path}'")
+            return result
+
+        result["Published"] = recent_url.entry.modified_time.strftime("%m/%d/%Y, %H:%M:%S")
+        result["Size"] = self.convert_size(recent_url.entry.size)
         return result
 
     @staticmethod
@@ -176,10 +268,65 @@ class RecentProjectsCore:
 
     @staticmethod
     def convert_size(size_bytes):
-        if size_bytes == 0:
+        if size_bytes <= 0:
             return "0B"
         size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
         i = int(math.floor(math.log(size_bytes, 1024)))
+        i = min(i, len(size_name) - 1)
         p = math.pow(1024, i)
         s = round(size_bytes / p, 2)
         return f"{s} {size_name[i]}"
+
+    @staticmethod
+    def _validate_path(path: str) -> tuple[bool, str]:
+        if not path or not path.strip():
+            return False, "path is empty"
+        p = Path(path)
+        if not p.exists():
+            return False, f"path does not exist: {path}"
+        if not p.is_file():
+            return False, f"path is not a file: {path}"
+        return True, ""
+
+    @staticmethod
+    def _validate_json_entry(path: str, entry: object) -> tuple[bool, str]:
+        if not isinstance(entry, dict):
+            return False, f"entry for '{path}' is not a dict (got {type(entry).__name__})"
+        for key in ("game", "capture"):
+            if key not in entry:
+                return False, f"entry for '{path}' is missing required key '{key}'"
+        return True, ""
+
+    @staticmethod
+    def _validate_usd_file(path: str) -> tuple[bool, str]:
+        suffix = Path(path).suffix.lower()
+        sig_entry = UsdFileSignature.for_extension(suffix)
+        if sig_entry is None:
+            return False, f"'{path}' has unsupported extension '{suffix}'"
+        if not os.access(path, os.R_OK):
+            return False, f"'{path}' is not readable (permission denied)"
+
+        try:
+            with open(path, "rb") as f:
+                header = f.read(8)
+        except OSError as exc:
+            return False, f"'{path}' could not be read: {exc}"
+
+        if not header:
+            return False, f"'{path}' is empty"
+
+        if not any(header.startswith(sig) for sig in sig_entry.signatures):
+            readable = header.hex()
+            return False, (
+                f"'{path}' has an unrecognised header (got 0x{readable}, "
+                f"expected one of {[s.hex() for s in sig_entry.signatures]})"
+            )
+
+        return True, ""
+
+    @staticmethod
+    def _validate_usd_layer(path: str) -> tuple[bool, str]:
+        ok, reason = RecentProjectsCore._validate_path(path)
+        if not ok:
+            return False, reason
+        return RecentProjectsCore._validate_usd_file(path)

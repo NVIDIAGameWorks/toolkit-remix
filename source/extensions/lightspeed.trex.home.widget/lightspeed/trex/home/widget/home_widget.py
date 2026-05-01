@@ -443,14 +443,19 @@ class HomePageWidget(_WorkspaceWidget):
     @omni.usd.handle_exception
     async def _refresh_recent_items_deferred(self):
         items = []
-        for path in self._recent_saved_file.get_recent_file_data():
+        recent_file_data = self._recent_saved_file.get_recent_file_data()
+        for path in recent_file_data:
             title = os.path.basename(path)
             details = {"Path": path}
-            details.update(self._recent_saved_file.get_path_detail(path))
-            data = await self._recent_saved_file.find_thumbnail_async(path)
-            if data is None:
-                continue
-            _, thumbnail = data
+            thumbnail = ""
+            try:
+                details.update(self._recent_saved_file.get_path_detail(path, recent_file_data))
+                data = await self._recent_saved_file.find_thumbnail_async(path)
+                if data is not None:
+                    _, thumbnail = data
+            except (OSError, AttributeError) as exc:
+                carb.log_warn(f"[HomePageWidget] Failed to load recent project '{path}': {exc}")
+                details["Invalid"] = [(path, str(exc))]
             items.append((title, thumbnail, details))
 
         self._set_recent_items(items)
@@ -478,6 +483,15 @@ class HomePageWidget(_WorkspaceWidget):
     def _load_work_file(self, path: str):
         """Triggers the "Load Project" event and loads the workspace window layout if there were no interruptions."""
         if not self._window_visible:
+            return
+
+        item = self._recent_model.get_item_by_path(path)
+        if item is not None and item.invalid:
+            _TrexMessageDialog(
+                "The selected project is invalid. Please check the project details.",
+                title="Invalid Selected Project",
+                disable_cancel_button=True,
+            )
             return
 
         path_obj = Path(path)
