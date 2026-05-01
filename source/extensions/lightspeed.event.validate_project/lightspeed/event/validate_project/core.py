@@ -144,10 +144,17 @@ class EventValidateProjectCore(_ILSSEvent):
         )
         if capture_sublayer_path != expected_relative_path:
             # Make sure to clean up the lock status for the capture layer since it's invalid and will be removed
-            _layers.LayerUtils.remove_layer_lock_status(
-                self._context.get_stage().GetRootLayer(),
-                Sdf.Layer.FindOrOpenRelativeToLayer(project_layer, capture_sublayer_path).identifier,
-            )
+            resolved_layer = Sdf.Layer.FindOrOpenRelativeToLayer(project_layer, capture_sublayer_path)
+            if resolved_layer:
+                _layers.LayerUtils.remove_layer_lock_status(
+                    self._context.get_stage().GetRootLayer(),
+                    resolved_layer.identifier,
+                )
+            else:
+                carb.log_warn(
+                    f"Could not resolve capture sublayer '{capture_sublayer_path}' relative to project layer; "
+                    "skipping lock status cleanup."
+                )
             # If the capture sublayer path doesn't start with ./deps/captures, try to find it through that path
             capture_url = OmniUrl(OmniUrl(project_layer.realPath).parent_url) / expected_relative_path
             if capture_url.exists:
