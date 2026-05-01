@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5039: Fixed shared property input tooltips so scalar fields include their display name and vector fields include their X/Y/Z/W channel.
 - REMIX-5239: Fixed object and camera properties panels refreshing during viewport manipulation so selected widgets rebuild only after release
 - REMIX-5374: Fixed Selection panel instance frame buttons so they focus the active viewport
+- REMIX-3969: Fixed light gizmos drawing for lights whose parent prim is absent from the active capture's composition; eliminates viewport clutter and substantial FPS loss in projects with multi-capture light overrides
 
 ### Removed
 

@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,6 @@
 * limitations under the License.
 """
 
-from .e2e.test_info import TestInfo
-from .unit.test_model import TestLightGizmosModel
+from .test_model import TestLightGizmosModel
 
-__all__ = ["TestInfo", "TestLightGizmosModel"]
+__all__ = ["TestLightGizmosModel"]
