@@ -87,10 +87,11 @@ class RecentProjectDelegate(TreeDelegateBase):
 
         with ui.ZStack():
             tooltip = ""
-            if not item.exists:
+            if item.invalid:
+                tooltip = "\n".join([f"{path}: {reason}" for path, reason in item.invalid])
+                ui.Rectangle(name="HomeInvalidProject")
+            elif not item.exists:
                 tooltip = "The project does not exist at the given location"
-
-                # Add a red background when the project is invalid
                 ui.Rectangle(name="HomeInvalidProject")
 
             with ui.VStack(
@@ -167,7 +168,7 @@ class RecentProjectDelegate(TreeDelegateBase):
             ui.MenuItem(
                 "Open Project",
                 triggered_fn=lambda: self.__on_item_open_project(item.path),
-                enabled=item.exists,
+                enabled=item.exists and not item.invalid,
             )
             ui.Separator()
             ui.MenuItem(

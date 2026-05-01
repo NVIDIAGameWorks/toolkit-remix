@@ -98,6 +98,14 @@ class RecentProjectItem(TreeItemBase):
         return self._details.get("Published")
 
     @property
+    def invalid(self) -> list[tuple[str, str]]:
+        """
+        Returns:
+            The invalid paths and reasons
+        """
+        return self._details.get("Invalid", [])
+
+    @property
     def exists(self) -> bool:
         """
         Returns:

@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5212: Expanded from a particle-only bounds fix into a broader property-panel refactor that centralizes bounds/step adapter normalization and routes typed clamping through shared drag widgets across particle, logic, generic USD, and materials workflows.
 - REMIX-5331: Added non-destructive packaging options with redirect/import/flatten modes, USD output extension choices, package-folder opening, and sequential packaging fixes
 - Updated auto-save to default off, prompt before saving, and expose unticked Preferences from the Edit menu again
+- Hardened recent-projects resilience: magic-byte USD validation, per-sublayer path validation, per-item error isolation in the home widget with amber visual cue for failing projects
 
 ### Fixed
 

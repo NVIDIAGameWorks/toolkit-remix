@@ -57,3 +57,9 @@ class RecentProjectModel(TreeModelBase):
 
     def get_item_value_model_count(self, item: RecentProjectItem) -> int:
         return len(TREE_COLUMNS.keys())
+
+    def get_item_by_path(self, path: str) -> RecentProjectItem | None:
+        for item in self._items:
+            if item.path == path:
+                return item
+        return None
