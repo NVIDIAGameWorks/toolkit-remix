@@ -131,8 +131,33 @@ class LightGizmosModel(sc.AbstractManipulatorModel):
             return False
         if not self._prim.IsActive():
             return False
+        if not self._parent_resolves_in_composition(self._prim):
+            return False
         imageable = UsdGeom.Imageable(self._prim)
         return imageable.ComputeVisibility() != UsdGeom.Tokens.invisible
+
+    @staticmethod
+    def _parent_resolves_in_composition(prim: Usd.Prim) -> bool:
+        """Return whether the light parent resolves to a defining prim.
+
+        Lights authored directly under the pseudo-root, or under defined groups
+        such as `/RootNode/Lights/...`, are unaffected.
+
+        Args:
+            prim: The light prim to inspect.
+
+        Returns:
+            True if the light has no parent, its parent is the pseudo-root, or
+            its parent has a defining specifier. False when the parent only has
+            non-defining opinions in the composed layer stack.
+
+        Raises:
+            None.
+        """
+        parent = prim.GetParent()
+        if not parent or parent.IsPseudoRoot():
+            return True
+        return parent.HasDefiningSpecifier()
 
     def _get_transform(self):
         """Returns transform of currently selected object"""
