@@ -1,5 +1,5 @@
 [package]
-version = "1.1.4"
+version = "1.1.5"
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -22,3 +22,8 @@ preview_image = "data/preview.png"
 
 [[python.module]]
 name = "lightspeed.event.validate_project"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

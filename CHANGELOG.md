@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5374: Fixed Selection panel instance frame buttons so they focus the active viewport
 - REMIX-3969: Fixed light gizmos drawing for lights whose parent prim is absent from the active capture's composition; eliminates viewport clutter and substantial FPS loss in projects with multi-capture light overrides
 - REMIX-4870: Fixed scroll-wheel zoom distance not scaling with Camera Speed setting in the viewport
+- Fixed crash when loading a scene with custom references where the capture layer path cannot be resolved
 
 ### Removed
 

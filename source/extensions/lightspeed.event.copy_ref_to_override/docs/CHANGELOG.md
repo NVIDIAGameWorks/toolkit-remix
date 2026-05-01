@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.7]
+### Fixed
+- Fixed crash when capture baker layer creation fails during project load
+### Added
+- Added unit test for unresolvable capture baker layer
+
 ## [1.3.6]
 ### Changed
 - Update call sites to use renamed `LayerManagerCore` API: `get_layer_of_type()` and `get_layers_of_type()` (was `get_layer()` / `get_layers()`)

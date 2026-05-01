@@ -411,6 +411,9 @@ class CopyRefToPrimCore(_ILSSEvent):
         all_replacements_layers.insert(0, replacements_layer)
         # we create/insert the capture_baker layer.
         capture_package_layer = self.__create_capture_package_layer()
+        if not capture_package_layer:
+            carb.log_warn("CopyRefToPrimCore: Could not create or find capture baker layer, skipping.")
+            return
         with Sdf.ChangeBlock():
             self.__create_default_stage_nodes(
                 stage, current_capture_layer, capture_package_layer, all_replacements_layers

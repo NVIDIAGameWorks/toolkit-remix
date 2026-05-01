@@ -17,6 +17,7 @@
 
 import contextlib
 import tempfile
+from unittest.mock import patch
 
 import omni.kit.app
 import omni.usd
@@ -213,3 +214,22 @@ class TestCore(AsyncTestCase):
                     f"even though replacement_layer was already supplied; expected 0"
                 ),
             )
+
+    async def test_do_process_layer_skips_when_capture_baker_is_none(self):
+        """Verify that __do_process_layer returns early when __create_capture_package_layer returns None."""
+        context = omni.usd.get_context()
+        async with make_temp_directory(context) as temp_dir:
+            stage, layer_replacement, layer_capture = await self.__create_stage_and_layers(temp_dir=temp_dir)
+
+            core = CopyRefToPrimCore()
+
+            with patch.object(
+                CopyRefToPrimCore,
+                "_CopyRefToPrimCore__create_capture_package_layer",
+                return_value=None,
+            ) as mock_create:
+                # Should not raise when capture baker layer is None
+                core._CopyRefToPrimCore__do_process_layer(stage, replacements_layer=layer_replacement)
+                mock_create.assert_called_once()
+
+            core.destroy()
