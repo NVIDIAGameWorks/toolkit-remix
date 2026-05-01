@@ -35,7 +35,7 @@ jobs:
         sudo apt purge -y firefox google-chrome-stable microsoft-edge-stable
 
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         ref: ${{ github.event.client_payload.commit_sha || github.sha }}
     
@@ -80,7 +80,7 @@ jobs:
     
     - name: Upload artifact
       if: env.SHOULD_UPLOAD == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ env.FILENAME }}
         path: _artifacts/${{ env.FILENAME }}

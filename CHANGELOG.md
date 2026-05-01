@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5331: Added non-destructive packaging options with redirect/import/flatten modes, USD output extension choices, package-folder opening, and sequential packaging fixes
 - Updated auto-save to default off, prompt before saving, and expose unticked Preferences from the Edit menu again
 - Hardened recent-projects resilience: magic-byte USD validation, per-sublayer path validation, per-item error isolation in the home widget with amber visual cue for failing projects
+- Updated GitHub Actions workflow dependencies to current stable releases.
 
 ### Fixed
 
