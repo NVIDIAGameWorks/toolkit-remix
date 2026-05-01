@@ -130,7 +130,11 @@ class ViewportEventDelegate:
             self.__key_down = set()
 
         try:
-            _zoom_operation(x, y, self.viewport_api)
+            settings = carb.settings.get_settings()
+            cam_velocity = settings.get("/persistent/app/viewport/camMoveVelocity") or 5.0
+            default_velocity = 5.0
+            speed_scale = cam_velocity / default_velocity
+            _zoom_operation(x, y * speed_scale, self.viewport_api)
         except Exception:  # noqa: BLE001
             carb.log_error(f"Traceback:\n{traceback.format_exc()}")
 
