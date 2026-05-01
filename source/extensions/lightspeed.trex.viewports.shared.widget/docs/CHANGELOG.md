@@ -2,6 +2,11 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.7.3]
+### Fixed
+- Fixed scroll-wheel zoom distance not scaling with Camera Speed setting in the viewport
+- Added unit tests for scroll-wheel zoom camera-speed scaling in ViewportEventDelegate
+
 ## [1.7.2]
 ### Fixed
 - Routed mouse-wheel camera zoom through the local wrapped camera manipulator so interactive USD notice coalescing also covers scroll zoom
