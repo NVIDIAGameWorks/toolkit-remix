@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- LSSDEVOPS-39: Narrowed GitHub mirror sync to the triggering public branch or tag.
+
+- LSSDEVOPS-39: Hardened GitHub mirror sync for shell runners and branch/tag-only pushes.
+
 - LSSDEVOPS-39: Addressed mirror denylist feedback from the private-file migration review.
 
 ### Added
@@ -34,9 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated GitHub Actions workflow dependencies to current stable releases.
 - LSSDEVOPS-39: Consolidated private Toolkit files into lightspeed-kit and configured the filtered GitHub mirror path.
 - LSSDEVOPS-39: Retargeted GitHub mirror sync to lightspeed-kit Linux runners.
-- LSSDEVOPS-39: Hardened GitHub mirror sync for shell runners and branch/tag-only pushes.
-- LSSDEVOPS-39: Narrowed GitHub mirror sync to the triggering public branch or tag.
-- LSSDEVOPS-39: Narrowed the GitHub mirror denylist to the private open-project shell scripts.
 
 ### Fixed
 
