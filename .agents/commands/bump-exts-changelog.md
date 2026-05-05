@@ -42,7 +42,8 @@ This info should be used to:
    inferring from the diff if it is a major, minor or patch bump.
 2. Write very concise, one-liner changelog entries as the **last item** of the appropriate Added, Changed, Fixed, or
    Removed section in `<ext-name>/docs/CHANGELOG.md`. Never insert at the top — always append after the last existing
-   entry. Follow the writing style of previous entries.
+   entry. Follow the writing style of previous entries. **Do NOT prefix extension changelog entries with the Jira
+   ticket** — the ticket prefix is only used in the root-level `CHANGELOG.md` (Step 4).
 3. Ensure there is an empty line below the added section (there should always be an empty line between version
    sections).
 

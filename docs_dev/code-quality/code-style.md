@@ -12,6 +12,28 @@ Run: `.\format_code.bat` (formatter) | `.\lint_code.bat all` (linter)
 Names must be descriptive and self-explanatory. Avoid vague names like `_push`, `_do`, `_run_it`.
 Name them for what they do: `_push_settings_changed`, `_validate_host`, `_start_server`.
 
+**Never use shorthand abbreviations.** Spell out full words in all identifiers — variable names, style names,
+`omni.ui` style identifiers, constants, and class names.
+
+| Do                      | Don't               |
+|-------------------------|----------------------|
+| `InputRowBackground`    | `InputRowBg`         |
+| `_section_header`       | `_sec_hdr`           |
+| `Button`                | `Btn`                |
+| `Separator`             | `Sep`                |
+| `_selected_index`       | `_sel_idx`           |
+| `workflow_input`        | `inp`                |
+
+This applies everywhere: variables, parameters, loop variables, and comprehension variables.
+
+## omni.ui Layout Rules
+
+See `docs_dev/patterns/ui-style.md` for all omni.ui layout rules including:
+- Layout constants (class-level `ui.Pixel` definitions)
+- Layout spacing (no `style={}` — use stacks + spacers)
+- Background patterns (ZStack + Rectangle)
+- Tree widget patterns
+
 ## Class Member Ordering
 
 Order members by visibility.
@@ -49,11 +71,17 @@ from .foo import Foo as Foo
 from .bar import Bar as Bar
 ```
 
+## Imports
+
 ### isort Grouping
 
-Treat `carb`, `omni`, and `lightspeed` as **third-party**.
+Treat `carb`, `omni`, and `lightspeed` as **third-party**. The formatter handles sorting automatically —
+see `.ruff.toml` for the full isort configuration.
 
-## Imports
+For import rules that affect correctness and architecture (symbol imports, relative vs absolute),
+see `engineering-standards.md` → **Import Rules**.
+
+### Import Aliases
 
 Avoid import aliases (`import x as y` or `from x import y as z`) unless there is a name collision or a widely
 established external convention. Prefer real module and symbol names so patch targets, stack traces, and grep results
@@ -90,6 +118,25 @@ Every Python source file must begin with an SPDX Apache-2.0 license header as it
 | Existing files                                            | Do not change the year                                                             |
 | Existing files missing the header                         | Add it. Use `git log --follow --diff-filter=A -- <file>` to find the original year |
 | Non-Python files (`.toml`, `.lua`, `.md`, `.rst`, `.kit`) | No header required                                                                 |
+
+---
+
+## omni.ui Color Format
+
+Colors in `omni.ui` and `trex_style.py` use **AABBGGRR** byte order (NOT AARRGGBB). This is because `omni.ui`
+uses ImGui's color format internally.
+
+```python
+# Example: 50% transparent white
+_WHITE_50 = 0x80FFFFFF   # AA=0x80, BB=0xFF, GG=0xFF, RR=0xFF
+
+# Example: opaque NVIDIA green (#76B900)
+_NV_GREEN = 0xFF00B976   # AA=0xFF, BB=0x00, GG=0xB9, RR=0x76
+#                                    ^^     ^^     ^^
+#                                    B      G      R   (reversed from HTML #RRGGBB)
+```
+
+When converting from web/HTML hex colors (`#RRGGBB`), reverse the R/G/B bytes and prepend the alpha byte.
 
 ---
 

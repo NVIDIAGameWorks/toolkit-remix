@@ -4,15 +4,17 @@ Review code against project rules. Report findings grouped by severity. Do NOT m
 
 ## Process
 
-1. Read the diff — understand what changed and why
-2. Check against each rule (imported below)
-3. Check architectural patterns per docs_dev/ guides:
+1. Research first: verify changed APIs with `kit-dev-mcp`, `omni-ui-mcp`, or `usd-code-mcp`, read the relevant
+   `docs_dev/` guides below, and search the codebase for established patterns
+2. Read the diff — understand what changed and why
+3. Check against each rule (imported below)
+4. Check architectural patterns per docs_dev/ guides:
     - `docs_dev/code-quality/engineering-standards.md`
     - `docs_dev/code-quality/testing.md`
     - `docs_dev/patterns/ui-style.md`
     - `docs_dev/patterns/commands.md`
     - `docs_dev/getting-started/review-checklist.md`
-4. Report: blocking → warning → suggestion, with file:line and rule reference
+5. Report: blocking → warning → suggestion, with file:line and rule reference
 
 ## Rules
 
