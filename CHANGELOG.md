@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4870: Fixed scroll-wheel zoom distance not scaling with Camera Speed setting in the viewport
 - Fixed crash when loading a scene with custom references where the capture layer path cannot be resolved
 - REMIX-4286: Hardened AI Tools ComfyUI connection, workflow submission, job output handling, and widget cleanup
+- REMIX-3614: Fixed capture image path calculation to check images with and without the .usd extension in the filename
 
 ### Removed
 
