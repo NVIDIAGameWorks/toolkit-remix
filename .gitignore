@@ -134,10 +134,7 @@ rtx-remix/logs/
 nrc_session_log.txt
 
 # Ignore internal repo files (downloaded from private repo by repoman.py)
-/deps/repo-deps-internal.packman.xml
 /.git-blob-hash-cache.json
-repo_internal.toml
-docs_dev/internal/
 
 # Ignore generated documentation
 docs/toolkitinterface/remix-toolkitinterface-restapi-docs.html

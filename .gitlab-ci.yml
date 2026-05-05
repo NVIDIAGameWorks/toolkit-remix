@@ -5,6 +5,7 @@ variables:
 
 stages:
   - check_mr
+  - github_mirror
   - flux_e2e_tests
   - flux_unit_tests
   - lss_e2e_tests
@@ -66,3 +67,60 @@ include:
     file: 'templates/v3/windows/codesign.gitlab-ci.yml'
   - project: 'omniverse/sectools/vault'
     file: 'templates/v3/windows/nucleus/kit-extensions.ov.nvidia.com/kit-extension-svc.gitlab-ci.yml'
+
+github-mirror-sync:
+  stage: github_mirror
+  timeout: 15 minutes
+  resource_group: github-mirror
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH =~ /^release\/1\.\d+\.x$/
+    - if: $CI_COMMIT_TAG
+  image: python:3.12-slim
+  variables:
+    STAGING_REMOTE: "https://oauth2:${STAGING_PUSH_TOKEN}@gitlab-master.nvidia.com/lightspeedrtx/toolkit-remix-staging.git"
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends git
+    - pip install git-filter-repo==2.38.0
+    - git config --global user.email "ci-bot@nvidia.com"
+    - git config --global user.name "CI Mirror Bot"
+  script:
+    - git clone --mirror "${CI_REPOSITORY_URL}" /tmp/filtered-repo
+    - cd /tmp/filtered-repo
+    - |
+      if ! git show HEAD:.github-private-paths > /tmp/private-paths.txt; then
+        echo "FATAL: .github-private-paths is missing. Aborting to prevent leak."
+        exit 1
+      fi
+      sed 's/\r$//' /tmp/private-paths.txt | awk 'NF && $1 !~ /^#/ { print }' > /tmp/private-paths.active
+      if [ ! -s /tmp/private-paths.active ]; then
+        echo "FATAL: .github-private-paths is missing or has no active entries. Aborting to prevent leak."
+        exit 1
+      fi
+    - |
+      echo "=== Paths removed from GitHub mirror ==="
+      cat /tmp/private-paths.active
+      echo "=== Dry-run: filtered history audit ==="
+      git-filter-repo --dry-run --paths-from-file /tmp/private-paths.active --invert-paths --force > /tmp/filter-audit.log 2>&1
+      tail -100 /tmp/filter-audit.log
+    - git-filter-repo --paths-from-file /tmp/private-paths.active --invert-paths --force
+    - |
+      echo "=== Post-filter validation ==="
+      leaked=0
+      while IFS= read -r path; do
+        if git log --all --full-history -- "$path" 2>/dev/null | grep -q .; then
+          echo "LEAK DETECTED: $path still exists in filtered history"
+          leaked=1
+        fi
+      done < /tmp/private-paths.active
+      if [ "$leaked" -eq 1 ]; then
+        echo "FATAL: Denylisted paths survived filtering. Aborting push."
+        exit 1
+      fi
+    - git remote add staging "${STAGING_REMOTE}"
+    - git push staging --mirror --force
+  after_script:
+    - rm -rf /tmp/filtered-repo
+  tags:
+    - type/docker
+    - os/linux
