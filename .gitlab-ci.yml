@@ -76,12 +76,11 @@ github-mirror-sync:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_BRANCH =~ /^release\/1\.\d+\.x$/
     - if: $CI_COMMIT_TAG
-  image: python:3.12-slim
   variables:
     STAGING_REMOTE: "https://oauth2:${STAGING_PUSH_TOKEN}@gitlab-master.nvidia.com/lightspeedrtx/toolkit-remix-staging.git"
   before_script:
-    - apt-get update && apt-get install -y --no-install-recommends git
-    - pip install git-filter-repo==2.38.0
+    - python3 -m pip install --user git-filter-repo==2.38.0 || python -m pip install --user git-filter-repo==2.38.0
+    - export PATH="${HOME}/.local/bin:${PATH}"
     - git config --global user.email "ci-bot@nvidia.com"
     - git config --global user.name "CI Mirror Bot"
   script:
@@ -122,5 +121,6 @@ github-mirror-sync:
   after_script:
     - rm -rf /tmp/filtered-repo
   tags:
-    - type/docker
-    - os/linux
+    - ada_rtx6000
+    - linux
+    - nv-driver-stable
