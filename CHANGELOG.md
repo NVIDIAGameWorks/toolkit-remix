@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- LSSDEVOPS-39: Addressed mirror denylist feedback from the private-file migration review.
+
 ### Added
 
 - Created 1.4.2-1 build
