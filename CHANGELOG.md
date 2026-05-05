@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - LSSDEVOPS-39: Hardened GitHub mirror sync for shell runners and branch/tag-only pushes.
 
+- LSSDEVOPS-39: Addressed mirror denylist feedback from the private-file migration review.
+
 ### Added
 
 - Created 1.4.2-1 build
@@ -21,8 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- LSSDEVOPS-39: Retargeted GitHub mirror sync to lightspeed-kit Linux runners.
-- LSSDEVOPS-39: Consolidated private Toolkit files into lightspeed-kit and configured the filtered GitHub mirror path.
 - REMIX-5120: Layer Manager restructure and cleanup
 - Versioned the default GitLab MR template in `.gitlab/merge_request_templates/Default.md`, documented repo-local `glab` MR defaults, excluded GitLab-only files from the Sphinx doc scan, and updated commit guidance to match the current Git user's recent commit style
 - Clarified REST API documentation for configurable host, port, and startup overrides
@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4286: Renamed the prototype AI Tools workspace to AI Tools (Experimental)
 - Hardened recent-projects resilience: magic-byte USD validation, per-sublayer path validation, per-item error isolation in the home widget with amber visual cue for failing projects
 - Updated GitHub Actions workflow dependencies to current stable releases.
+- LSSDEVOPS-39: Consolidated private Toolkit files into lightspeed-kit and configured the filtered GitHub mirror path.
+- LSSDEVOPS-39: Retargeted GitHub mirror sync to lightspeed-kit Linux runners.
 
 ### Fixed
 
