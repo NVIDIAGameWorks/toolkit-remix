@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Changed
+- Use Remix Proxies for Stage Manager Interaction & Context Plugins to allow for Remix-specific functionality
+
 ## [1.3.5]
 ### Fixed
 - Fixed crash in `_on_window_resized` when content widget is uninitialized after a monitor resolution change

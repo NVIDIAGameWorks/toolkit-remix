@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "2.2.1"
+version = "2.2.2"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -43,8 +43,6 @@ reloadable = false
 # folder (pip_prebundle) to sys.path.
 [[python.module]]
 path = "flux_pip_prebundle"
-[[python.module]]
-path = "internal_pip_prebundle"
 
 # That is empty module, added here only to make tests discoverable in test run
 [[python.module]]

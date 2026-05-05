@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.4]
+### Changed
+- Replaced style dict references with named styles in `VirtualGroupsItem` to fix import-time errors
+
 ## [2.6.3]
 ### Fixed
 - REMIX-5078: Fixed crash when resolving prim icon type on expired prims after delete or restore

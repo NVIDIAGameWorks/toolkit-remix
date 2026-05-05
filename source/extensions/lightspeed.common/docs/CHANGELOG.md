@@ -1,6 +1,26 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.6]
+### Added
+- Added `AI_TOOLS` layout file constant for the AI Tools workspace.
+
+### Changed
+- Renamed the `AI_TOOLS` window label to `AI Tools (Experimental)`
+
+### Removed
+- Removed legacy AI texture tooling constants.
+
+## [1.14.5]
+### Changed
+- Updated viewport focus tooltip text
+
+## [1.14.4]
+### Changed
+- Adjusted TEXTURECRAFT text to be legacy
+### Added
+- Added AI_TOOLS constant
+
 ## [1.14.3]
 ### Changed
 - Switched to ruff for linting and formatting

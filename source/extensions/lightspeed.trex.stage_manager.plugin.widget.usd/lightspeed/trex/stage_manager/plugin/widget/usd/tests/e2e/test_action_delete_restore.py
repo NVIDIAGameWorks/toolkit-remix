@@ -237,7 +237,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertIsNotNone(id_check)
         self.assertFalse(id_check.widget.enabled)
         self.assertEqual(id_check.widget.name, "Restore")
-        self.assertEqual(id_check.widget.tooltip, "The Prim may not be restored")
+        self.assertEqual(id_check.widget.tooltip, "The prim cannot be restored")
 
     async def test_restore_widget_renders_restore_icon(self):
         """Capture prim whose capture refs were deleted renders a Restore icon."""
@@ -284,7 +284,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertIsNotNone(id_check)
         self.assertEqual(id_check.widget.name, "TrashCan")
         self.assertTrue(id_check.widget.enabled)
-        self.assertEqual(id_check.widget.tooltip, "Delete Prim")
+        self.assertEqual(id_check.widget.tooltip, "Delete the prim")
 
     # ------------------------------------------------------------------
     # Callback behavior tests
@@ -309,6 +309,47 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         # Assert
         self.assertFalse(self.stage.GetPrimAtPath(graph_path).IsValid())
         self.assertFalse(self.stage.GetPrimAtPath(instance_graph_path).IsValid())
+
+    async def test_restore_disabled_for_composition_only_prim(self):
+        """Verify that non-capture prims with no spec in the edit target or any
+        replacement layer (composition-only) are classified as RESTOREDISABLED."""
+        stage = self.stage
+
+        composition_layer = Sdf.Layer.CreateAnonymous()
+        stage.GetRootLayer().subLayerPaths.append(composition_layer.identifier)
+
+        test_prim_path = "/RootNode/meshes/test_composition_only_prim"
+        prim_spec = Sdf.CreatePrimInLayer(composition_layer, test_prim_path)
+        prim_spec.specifier = Sdf.SpecifierDef
+        prim_spec.typeName = "Xform"
+
+        prim = stage.GetPrimAtPath(test_prim_path)
+        self.assertTrue(prim.IsValid())
+
+        edit_target_layer = stage.GetEditTarget().GetLayer()
+        self.assertIsNone(edit_target_layer.GetPrimAtPath(test_prim_path))
+
+        window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+
+        self.assertEqual(
+            widget._get_prim_action_type(prim),
+            widget.ActionType.RESTOREDISABLED,
+        )
+
+        item = StageManagerTreeItem(display_name=prim.GetName(), tooltip="foobar", data=prim)
+
+        with window.frame:
+            widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
+
+        id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._restore_disabled_identifier}'")
+
+        self.assertIsNotNone(id_check)
+        self.assertFalse(id_check.widget.enabled)
+        self.assertEqual(id_check.widget.name, "Restore")
+        self.assertEqual(id_check.widget.tooltip, "The prim cannot be restored")
+
+        widget = None
+        window.destroy()
 
     async def test_delete_prim_in_both_local_and_ancestral(self):
         """Prim with specs in both edit target and replacement sublayer is fully deleted."""

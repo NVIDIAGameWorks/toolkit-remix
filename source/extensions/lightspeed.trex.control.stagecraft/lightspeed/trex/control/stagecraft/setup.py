@@ -254,7 +254,7 @@ class Setup:
                 sidebar.ItemDescriptor(
                     name="Modding",
                     tooltip="Modding",
-                    disabled_tooltip="Modding (Only available if there are projects open).",
+                    disabled_tooltip="Modding (Only available if a project is opened).",
                     group=sidebar.Groups.LAYOUTS,
                     mouse_released_fn=self.__open_layout,
                     sort_index=0,

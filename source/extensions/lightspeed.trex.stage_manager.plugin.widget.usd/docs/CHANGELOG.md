@@ -1,9 +1,25 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.2]
+### Added
+- Added AI Tools job submission action with submenu for submitting selections to the job queue
+- Added AI Tools layout opening to the AI Tools action submenu
+
+### Changed
+- Improved disabled-state action icons with descriptive tooltips instead of empty spacers
+
+### Fixed
+- Guarded AI Tools action tooltips when workflow state changes during UI refresh
+- Handled AI Tools workflow selection races when submitting jobs from Stage Manager
+
 ## [2.7.1]
 ### Changed
 - Refactored `DeleteRestoreActionWidgetPlugin` to use shared prim detection utilities from `lightspeed.trex.utils.common`
+- Updated for Stage Manager Interaction Plugin refactoring
+
+### Fixed
+- Fixed stale tooltip assertion in delete/restore e2e tests
 
 ## [2.7.0]
 ### Added

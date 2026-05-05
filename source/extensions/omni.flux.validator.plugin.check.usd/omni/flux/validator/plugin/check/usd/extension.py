@@ -20,7 +20,6 @@ import carb.settings
 import omni.ext
 from omni.flux.validator.factory import get_instance as _get_factory_instance
 
-from .ai.generate_pbr_material import GeneratePBRMaterial as _GeneratePBRMaterial
 from .example.print_prims import PrintPrims as _PrintPrims
 from .generic.value_mapping import ValueMapping as _ValueMapping
 from .material.clear_unassigned_materials import ClearUnassignedMaterial as _ClearUnassignedMaterial
@@ -50,7 +49,6 @@ class FluxValidatorPluginCheckUSDExtension(omni.ext.IExt):
         carb.log_info("[omni.flux.validator.plugin.check.usd] Startup")
         _get_factory_instance().register_plugins(
             [
-                _GeneratePBRMaterial,
                 _PrintPrims,
                 _ClearUnassignedMaterial,
                 _DefaultMaterial,
@@ -76,7 +74,6 @@ class FluxValidatorPluginCheckUSDExtension(omni.ext.IExt):
         carb.log_info("[omni.flux.validator.plugin.check.usd] Shutdown")
         _get_factory_instance().unregister_plugins(
             [
-                _GeneratePBRMaterial,
                 _PrintPrims,
                 _ClearUnassignedMaterial,
                 _DefaultMaterial,

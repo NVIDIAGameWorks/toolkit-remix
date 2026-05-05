@@ -15,6 +15,6 @@
 * limitations under the License.
 """
 
-__all__ = ["LightspeedStageManagerUSDInteractionPluginsExtension"]
+__all__ = ["RemixStageManagerUSDInteractionPluginsExtension"]
 
-from .extension import LightspeedStageManagerUSDInteractionPluginsExtension
+from .extension import RemixStageManagerUSDInteractionPluginsExtension

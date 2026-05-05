@@ -15,15 +15,23 @@
 * limitations under the License.
 """
 
+__all__ = ["RemixAllCategoriesInteractionPlugin"]
+
 from lightspeed.trex.utils.common.prim_utils import get_extended_selection as _get_extended_selection
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
-from omni.flux.stage_manager.plugin.interaction.usd.base import (
-    StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin,
-)
 from pydantic import Field
 
+from .base import RemixStageManagerUSDInteractionPlugin
 
-class AllCategoriesInteractionPlugin(_StageManagerUSDInteractionPlugin):
+
+class RemixAllCategoriesInteractionPlugin(RemixStageManagerUSDInteractionPlugin):
+    """
+    Remix-only interaction plugin for viewing prims grouped by RTX Remix Runtime categories.
+
+    This plugin has no Flux equivalent and provides Remix-specific category viewing
+    functionality with ComfyUI event subscription.
+    """
+
     display_name: str = Field(default="Categories", exclude=True)
     tooltip: str = Field(default="View the available prims, grouped by RTX Remix Runtime categories", exclude=True)
 
@@ -45,7 +53,6 @@ class AllCategoriesInteractionPlugin(_StageManagerUSDInteractionPlugin):
         ],
         exclude=True,
     )
-    # TODO StageManager: We have LSS plugin names in the flux ext because of this system
     compatible_widgets: list[str] = Field(
         default=[
             "AssignCategoryActionWidgetPlugin",
@@ -59,6 +66,7 @@ class AllCategoriesInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "ParticleSystemsActionWidgetPlugin",
             "PrimRenameNameActionWidgetPlugin",
             "PrimTreeWidgetPlugin",
+            "SubmitAIJobActionWidgetPlugin",
         ],
         exclude=True,
     )

@@ -132,7 +132,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         match self._get_prim_action_type(item.data):
             case self.ActionType.DELETE:
                 icon = "TrashCan"
-                tooltip = "Delete Prim"
+                tooltip = "Delete the prim"
                 callback = self._delete_prim_cb
                 enabled = True
                 identifier = "delete_restore_widget_delete"
@@ -160,7 +160,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
 
             case self.ActionType.RESTOREDISABLED:
                 icon = "Restore"
-                tooltip = "The Prim may not be restored"
+                tooltip = "The prim cannot be restored"
                 callback = None
                 enabled = False
                 identifier = "delete_restore_widget_restore_disabled"

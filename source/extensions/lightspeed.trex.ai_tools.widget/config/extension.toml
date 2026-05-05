@@ -1,0 +1,46 @@
+[package]
+version = "1.2.2"
+authors = ["Sam Bourne <sbourne@nvidia.com>"]
+title = "NVIDIA RTX Remix AI Tools Widget"
+description = "AI Tools Widget for NVIDIA RTX Remix"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["ai", "widget"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.sidebar" = {}
+"lightspeed.trex.utils.common" = {}
+"lightspeed.trex.utils.widget" = {}
+"omni.flux.pip_archive" = {}  # For requests library
+"omni.flux.asset_importer.core" = {}
+"omni.flux.job_queue.core" = {}
+"omni.flux.job_queue.widget" = {}
+"omni.flux.material_api" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.kit.commands" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.ai_tools.widget"
+
+[settings]
+# Default ComfyUI server URL. This is a persistent setting that will be remembered between sessions.
+persistent.exts."lightspeed.trex.ai_tools.widget".comfy_url = "http://127.0.0.1:8188"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    # Generic Error
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

@@ -1,13 +1,13 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "2.6.1"
+version = "2.6.2"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Shona Gillard <sgillard@nvidia.com>", "Scott Fitzpatrick <scfitzpatric@nvidia.com"]
 
 # The title and description fields are primarly for displaying extension info in UI
 description = "A repository of USD interaction plugins for the stage manager"
-title = "Lightspeed Stage Manager USD Interaction Plugins"
+title = "Remix Stage Manager USD Interaction Plugins"
 
 # Path (relative to the root) or content of readme markdown file for UI.
 readme = "docs/README.md"
@@ -30,6 +30,7 @@ preview_image = "data/images/preview.png"
 icon = "data/images/icon.png"
 
 [dependencies]
+"lightspeed.trex.ai_tools.widget" = {}
 "lightspeed.trex.utils.common" = {}
 "omni.flux.stage_manager.factory" = {}
 "omni.flux.stage_manager.plugin.interaction.usd" = {}

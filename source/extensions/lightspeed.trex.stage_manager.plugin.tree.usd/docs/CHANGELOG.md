@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.1]
+### Changed
+- Updated documentation index to include all submodules
+
 ## [2.2.0]
 ### Added
 - Added fallback group header in `MeshGroupsModel` for deleted `mesh_HASH` prims so they remain visible in the Mesh tab after their capture reference is removed

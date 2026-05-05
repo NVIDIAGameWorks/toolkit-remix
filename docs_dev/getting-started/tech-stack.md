@@ -34,21 +34,19 @@ How the toolchain fits together — from `build.bat` to a running app with loade
 Third-party Python packages (e.g., `pydantic`, `numpy`, `torch`) are not installed via `pip install` at runtime. They
 are pre-bundled into frozen archives during the build and loaded by a dedicated extension at startup.
 
-### Two pip files, two layers
+### Pip dependencies
 
 | File                     | Target folder                                | Contains                                                                                                                                                                                   |
 |--------------------------|----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `deps/pip_flux.toml`     | `_build/target-deps/flux_pip_prebundle/`     | Open-source packages: `pydantic`, `numpy`, `fastapi`, `torch`, `pillow`, `pygit2`, `sentry-sdk`, etc.                                                                                      |
-| `deps/pip_internal.toml` | `_build/target-deps/internal_pip_prebundle/` | NVIDIA internal packages: `remix-client`, `remix-models-i2m`. Uses NVIDIA's internal PyPI. Sets `install_dependencies = false` because all transitive deps are already in `pip_flux.toml`. |
+| `deps/pip_flux.toml`     | `_build/target-deps/flux_pip_prebundle/`     | Open-source packages: `pydantic`, `numpy`, `fastapi`, `pillow`, `pygit2`, `sentry-sdk`, `huggingface-hub`, etc.                                                                            |
 
-Repoman installs them in order (configured in `repo.toml` under `[repo_build.fetch.pip]`): `pip_flux.toml` first, then
-`pip_internal.toml`.
+Repoman installs them during the build (configured in `repo.toml` under `[repo_build.fetch.pip]`).
 
 ### How packages reach extensions at runtime
 
-1. During the build, repoman runs `pip install` from both TOML files into their respective prebundle folders using Kit's
+1. During the build, repoman runs `pip install` from the TOML file into the prebundle folder using Kit's
    embedded Python
-2. The `omni.flux.pip_archive` extension loads very early (order `-2000`) and adds both prebundle folders to `sys.path`
+2. The `omni.flux.pip_archive` extension loads very early (order `-2000`) and adds the prebundle folder to `sys.path`
 3. Any extension that imports a third-party package must declare `"omni.flux.pip_archive" = {}` in its
    `[dependencies]` — without it, the import will fail even though the package exists on disk
 4. After merging to `main`, the prebundle is published to NVIDIA's packman servers so subsequent builds download the

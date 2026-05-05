@@ -381,7 +381,6 @@ pre_build.commands = [
 # List of pip files to pip install from (in order)
 files_to_pull = [
     "${root}/deps/pip_flux.toml",
-    "${root}/deps/pip_internal.toml",
 ]
 
 [repo_build.build]
@@ -446,7 +445,6 @@ apps = [
     "${root}/source/apps/lightspeed.app.trex.ingestcraft.kit",
     "${root}/source/apps/lightspeed.app.trex.kit",
     "${root}/source/apps/lightspeed.app.trex.stagecraft.kit",
-    "${root}/source/apps/lightspeed.app.trex.texturecraft.kit",
     "${root}/source/apps/lightspeed.app.trex.validation_cli.kit",
     "${root}/source/apps/lightspeed.app.trex.validation_cli_generator.kit",
     "${root}/source/apps/lightspeed.app.trex_dev.kit",

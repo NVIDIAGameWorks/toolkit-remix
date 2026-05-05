@@ -106,13 +106,6 @@ SHADER_NAME_TRANSLUCENT = "AperturePBR_Translucent.mdl"
 REMIX_SAMPLE_PATH = "${lightspeed.trex.app.resources}/deps/remix_runtime/sample"
 REMIX_LAUNCHER_PATH = "${lightspeed.trex.app.resources}/deps/remix_runtime/runtime/NvRemixLauncher32.exe"
 NVTT_PATH = "${omni.flux.resources}/deps/tools/nvtt/nvtt_export.exe"
-PIX2PIX_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "pytorch-CycleGAN-and-pix2pix"))
-REAL_ESRGAN_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "realesrgan-ncnn-vulkan-20210901-windows"))
-MAT_SR_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "mat-sr"))
-MAT_SR_ARTIFACTS_ROOT_PATH = str(Path(__file__).parent.joinpath("tools", "mat-sr-artifacts"))
-PIX2PIX_TEST_SCRIPT_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("test.py"))
-PIX2PIX_CHECKPOINTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("checkpoints"))
-PIX2PIX_RESULTS_PATH = str(Path(PIX2PIX_ROOT_PATH).joinpath("results"))
 
 # REGEX Constants
 
@@ -201,14 +194,10 @@ READ_USD_FILE_EXTENSIONS_OPTIONS = [("*.usd, *.usda, *.usdc", "USD Files"), *SAV
 
 MODEL_INGESTION_SCHEMA_PATH = "${lightspeed.trex.app.resources}/data/validation_schema/model_ingestion.json"
 MATERIAL_INGESTION_SCHEMA_PATH = "${lightspeed.trex.app.resources}/data/validation_schema/material_ingestion.json"
-TEXTURE_SCHEMA_PATH = "${lightspeed.trex.app.resources}/data/validation_schema/ai_texture.json"
 
 INGESTION_SCHEMAS = [
     {"path": MODEL_INGESTION_SCHEMA_PATH, "name": "Model"},
     {"path": MATERIAL_INGESTION_SCHEMA_PATH, "name": "Material"},
-]
-TEXTURE_SCHEMAS = [
-    {"path": TEXTURE_SCHEMA_PATH, "name": "Texture"},
 ]
 
 ASSET_NEED_INGEST_MESSAGE = (
@@ -236,7 +225,7 @@ ASSET_OUTSIDE_OF_PROJ_DIR_AND_NEED_INGEST_MESSAGE = (
 ASSET_OUTSIDE_OF_PROJ_DIR_AND_NEED_INGEST_TITLE = "##Outside of Project Directory and Not Ingested"
 
 FOCUS_IN_VIEWPORT_TOOLTIP_ENABLED = "Frame prim in the viewport (F)"
-FOCUS_IN_VIEWPORT_TOOLTIP_DISABLED = "Prim cannot be framed within the viewport"
+FOCUS_IN_VIEWPORT_TOOLTIP_DISABLED = "The prim cannot be framed in the viewport"
 
 MATERIAL_OVERRIDE_PATH = "{prim_node}/Looks"
 
@@ -601,24 +590,23 @@ class WindowNames(str, Enum):
     MOD_PACKAGING = "Packaging"
     HOME_PAGE = "Home Page"
     INGESTCRAFT = "Ingestion"
-    TEXTURECRAFT = "AI Tools"
     PROJECT_SETUP = "Project Setup"
     CAPTURES = "Captures"
     REMIX_LOGIC_GRAPH = "Logic Graph"
     COMFYUI = "ComfyUI"
+    AI_TOOLS = "AI Tools (Experimental)"
 
 
 class Layouts(Enum):
     HOME_PAGE = "HomePage"
     WORKSPACE_PAGE = "WorkspacePage"
     INGESTCRAFT = "IngestCraft"
-    TEXTURECRAFT = "TextureCraft"
 
 
 class LayoutFiles(str, Enum):
     HOME_PAGE = "home_page_default_layout"
     WORKSPACE_PAGE = "stagecraft_default_layout"
     INGESTCRAFT = "ingestcraft_default_layout"
-    TEXTURECRAFT = "texturecraft_default_layout"
+    AI_TOOLS = "texturecraft_default_layout"
     PACKAGING = "packaging_default_layout"
     LOGIC_GRAPH = "logic_default_layout"

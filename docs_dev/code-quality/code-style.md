@@ -33,7 +33,21 @@ easier to follow.
 
 ## Module Exports
 
-`__all__` must be defined in every public module.
+`__all__` must be defined in every public module and every `__init__.py`. All imports in `__init__.py` files must
+be listed in `__all__`. Never use the `import X as X` pattern to suppress F401 lint warnings — `__all__` is the
+correct mechanism.
+
+```python
+# Good
+__all__ = ["Foo", "Bar"]
+
+from .foo import Foo
+from .bar import Bar
+
+# Bad — never do this
+from .foo import Foo as Foo
+from .bar import Bar as Bar
+```
 
 ### isort Grouping
 

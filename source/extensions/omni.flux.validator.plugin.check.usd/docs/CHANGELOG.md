@@ -3,6 +3,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [4.2.8]
+### Removed
+- Removed legacy `GeneratePBRMaterial` AI checker plugin and its tests
+
 ## [4.2.7]
 ### Changed
 - Updated internal import paths for prim utilities

@@ -17,7 +17,6 @@
 
 from .e2e.generic.test_value_mapping import *
 from .e2e.meta.test_default_prim_ui import *
-from .unit.ai.test_generate_pbr_material import *
 from .unit.generic.test_value_mapping import *
 from .unit.material.test_default_material import *
 from .unit.material.test_material_shaders import *

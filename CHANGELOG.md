@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5212: Expanded from a particle-only bounds fix into a broader property-panel refactor that centralizes bounds/step adapter normalization and routes typed clamping through shared drag widgets across particle, logic, generic USD, and materials workflows.
 - REMIX-5331: Added non-destructive packaging options with redirect/import/flatten modes, USD output extension choices, package-folder opening, and sequential packaging fixes
 - Updated auto-save to default off, prompt before saving, and expose unticked Preferences from the Edit menu again
+- REMIX-4286: Renamed the prototype AI Tools workspace to AI Tools (Experimental)
 - Hardened recent-projects resilience: magic-byte USD validation, per-sublayer path validation, per-item error isolation in the home widget with amber visual cue for failing projects
 - Updated GitHub Actions workflow dependencies to current stable releases.
 
@@ -47,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3969: Fixed light gizmos drawing for lights whose parent prim is absent from the active capture's composition; eliminates viewport clutter and substantial FPS loss in projects with multi-capture light overrides
 - REMIX-4870: Fixed scroll-wheel zoom distance not scaling with Camera Speed setting in the viewport
 - Fixed crash when loading a scene with custom references where the capture layer path cannot be resolved
+- REMIX-4286: Hardened AI Tools ComfyUI connection, workflow submission, job output handling, and widget cleanup
 
 ### Removed
 
@@ -87,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4854: OGN node attributes now show correct slider bounds and step in the Remix Logic properties panel (from OGN metadata and USDAttributeItem limits)
 - REMIX-4809: `elide_path` utility and `ElideModes` enum for truncating path strings with configurable ellipsis placement
 - REMIX-5012: Added hard-bound clamping on slider delegates and new FloatField/IntField delegates with one-sided clamp support for partially-bounded OGN attributes
+- REMIX-4286: Added experimental AI Tools integration with ComfyUI workflows, Stage Manager submission actions, job queue support, and user documentation
 - Added Claude Code agent hooks (completion gates, memory promotion) and updated rules, commands, and dev docs
 - REMIX-3540: Added Stage Manager support for deleting capture-originating prims and selective restore options (restore original asset vs. restore captured reference only)
 - REMIX-5003: Added a color gradient widget for editing particle color over time
@@ -149,6 +152,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4478: Fixed IndexError when dragging files with unsupported extensions onto the Material Properties panel
 - REMIX-5047: Fix for packaging for missing textures in weaker sublayers masked by stronger layer
 - REMIX-4424: Fixed AttributeError in REST API asset replacement validators when no stage is loaded
+
+### Removed
+
+- REMIX-5175: Removed legacy AI inference stack (remix-client, remix-models-i2m, GeneratePBRMaterial checker) from the toolkit
 
 ## [1.3.6-2]
 

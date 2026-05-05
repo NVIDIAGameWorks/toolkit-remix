@@ -1,0 +1,19 @@
+[package]
+version = "1.0.0"
+authors = ["Sam Bourne <sbourne@nvidia.com>"]
+description = "Job queue, executor, and scheduler library that uses SQLite for persistence"
+title = "Flux Job Queue"
+readme = "docs/README.md"
+category = "Service"
+keywords = ["kit", "flux", "job", "queue"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[[python.module]]
+name = "omni.flux.job_queue.core"
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+]

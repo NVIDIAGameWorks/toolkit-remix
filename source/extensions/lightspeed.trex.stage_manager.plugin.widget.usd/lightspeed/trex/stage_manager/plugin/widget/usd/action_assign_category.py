@@ -46,7 +46,12 @@ class AssignCategoryActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
 
     def build_icon_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
         if not item.data:
-            ui.Spacer(width=self._icon_size, height=self._icon_size)
+            ui.Image(
+                name="CategoriesDisabled",
+                tooltip="Render Categories can only be assigned to mesh prims.",
+                width=self._icon_size,
+                height=self._icon_size,
+            )
             return
 
         if item.data:

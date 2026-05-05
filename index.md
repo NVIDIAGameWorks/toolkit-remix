@@ -48,7 +48,7 @@ docs/howto/learning-lighting
 docs/howto/learning-particles
 docs/howto/learning-logic
 docs/howto/learning-packaging
-docs/howto/learning-aitexturetools
+docs/howto/learning-aitools
 docs/howto/learning-restapi
 docs/howto/learning-mcp
 docs/howto/learning-migrations
@@ -95,7 +95,6 @@ docs/toolkitinterface/remix-toolkitinterface-viewport
 docs/toolkitinterface/remix-toolkitinterface-layouttab
 docs/toolkitinterface/remix-toolkitinterface-categories
 docs/toolkitinterface/remix-toolkitinterface-ingesttab
-docs/toolkitinterface/remix-toolkitinterface-aitools
 docs/toolkitinterface/remix-toolkitinterface-lighting
 docs/toolkitinterface/remix-toolkitinterface-shortcuts
 ```

@@ -15,6 +15,12 @@
 * limitations under the License.
 """
 
-__all__ = ["StageManagerUSDContextPluginsExtension"]
+__all__ = [
+    "CurrentStageContextPlugin",
+    "StageManagerUSDContextPluginsExtension",
+    "UsdFileContextPlugin",
+]
 
+from .current_stage import CurrentStageContextPlugin
 from .extension import StageManagerUSDContextPluginsExtension
+from .usd_file import UsdFileContextPlugin

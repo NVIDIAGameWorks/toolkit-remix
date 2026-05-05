@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.12.1]
+### Added
+- Added `NONE` data type wildcard support for context/listener compatibility checks.
+
 ## [4.12.0]
 ### Added
 - Added unit coverage for `StageManagerUtils.filter_items`, including a regression guard that asserts partitioned chunked executor dispatch.
