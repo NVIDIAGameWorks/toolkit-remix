@@ -79,8 +79,13 @@ github-mirror-sync:
   variables:
     STAGING_REMOTE: "https://oauth2:${STAGING_PUSH_TOKEN}@gitlab-master.nvidia.com/lightspeedrtx/toolkit-remix-staging.git"
   before_script:
-    - python3 -m pip install --user --break-system-packages git-filter-repo==2.38.0 || python -m pip install --user --break-system-packages git-filter-repo==2.38.0
     - export PATH="${HOME}/.local/bin:${PATH}"
+    - |
+      if ! command -v git-filter-repo >/dev/null 2>&1; then
+        echo "FATAL: git-filter-repo is missing on this runner. Run the AWX lightspeed-runners all_linux template with Job Tags=pip-packages for the GitLab Linux runner hosts."
+        exit 1
+      fi
+      git-filter-repo --version
     - git config --global user.email "ci-bot@nvidia.com"
     - git config --global user.name "CI Mirror Bot"
   script:

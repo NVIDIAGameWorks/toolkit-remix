@@ -34,17 +34,17 @@ jobs:
           /opt/microsoft/powershell
         sudo apt purge -y firefox google-chrome-stable microsoft-edge-stable
 
-    - name: Checkout repository
+    - name: Checkout public mirror repository
+      # client_payload.commit_sha is the GitLab source SHA used for Packman
+      # artifact naming. Filtered GitHub history may use a different public SHA.
       uses: actions/checkout@v6
-      with:
-        ref: ${{ github.event.client_payload.commit_sha || github.sha }}
     
     - name: Download package
       run: |
         # Read version from VERSION.md
         VERSION=$(cat VERSION.md | head -n 1 | xargs)
         
-        # Get branch name and commit SHA from client payload or fallback to defaults
+        # Get branch name and GitLab source SHA for Packman package naming.
         BRANCH_NAME="${{ github.event.client_payload.ref || github.ref_name }}"
         COMMIT_SHA="${{ github.event.client_payload.commit_sha || github.sha }}"
         SHORT_SHA="${COMMIT_SHA:0:8}"

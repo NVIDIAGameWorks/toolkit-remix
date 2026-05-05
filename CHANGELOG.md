@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - LSSDEVOPS-39: Addressed mirror denylist feedback from the private-file migration review.
 
+- LSSDEVOPS-39: Made GitHub mirror sync require AWX-provisioned git-filter-repo on kit Linux runners.
+
+- LSSDEVOPS-39: Decoupled GitHub Actions checkout from GitLab source SHAs after filtered mirroring.
+
 ### Added
 
 - Created 1.4.2-1 build
