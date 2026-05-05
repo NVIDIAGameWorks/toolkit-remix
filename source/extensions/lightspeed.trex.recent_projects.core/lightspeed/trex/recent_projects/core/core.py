@@ -37,6 +37,7 @@ from lightspeed.layer_manager.core import (
     LayerType,
     LayerTypeKeys,
 )
+from lightspeed.trex.utils.common.asset_utils import is_layer_from_capture
 from omni.flux.utils.common.omni_url import OmniUrl
 from pxr import Sdf, Tf
 
@@ -209,6 +210,9 @@ class RecentProjectsCore:
             if project_layer:
                 for sublayer_path in project_layer.subLayerPaths:
                     resolved = Sdf.ComputeAssetPathRelativeToLayer(project_layer, sublayer_path)
+                    if is_layer_from_capture(resolved):
+                        continue
+
                     ok, reason = self._validate_usd_layer(resolved)
                     if not ok:
                         carb.log_warn(f"[RecentProjectsCore] Skipping sublayer '{sublayer_path}': {reason}")

@@ -46,6 +46,7 @@ class WizardWidget:
         self._default_attr = {
             "_model": None,
             "_frame": None,
+            "_navigation_holder": None,
             "_refresh_task": None,
             "_on_blocked_changed_sub": None,
             "_on_active_item_changed_sub": None,
