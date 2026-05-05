@@ -118,7 +118,14 @@ github-mirror-sync:
       fi
     - git remote add staging "${STAGING_REMOTE}"
     - git for-each-ref --format='delete %(refname)' refs/replace | git update-ref --stdin
-    - git push staging --force --prune '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
+    - |
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        echo "Pushing filtered tag ${CI_COMMIT_TAG} to staging"
+        git push staging --force "refs/tags/${CI_COMMIT_TAG}:refs/tags/${CI_COMMIT_TAG}"
+      else
+        echo "Pushing filtered branch ${CI_COMMIT_BRANCH} to staging"
+        git push staging --force "refs/heads/${CI_COMMIT_BRANCH}:refs/heads/${CI_COMMIT_BRANCH}"
+      fi
   after_script:
     - rm -rf /tmp/filtered-repo
   tags:
