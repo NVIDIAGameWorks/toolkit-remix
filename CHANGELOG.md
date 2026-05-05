@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- LSSDEVOPS-39: Hardened GitHub mirror sync for shell runners and branch/tag-only pushes.
+
 ### Added
 
 - Created 1.4.2-1 build
