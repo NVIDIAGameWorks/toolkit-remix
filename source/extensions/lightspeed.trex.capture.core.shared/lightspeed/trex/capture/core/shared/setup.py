@@ -16,9 +16,9 @@
 """
 
 import functools
-from pathlib import Path
 from collections.abc import Callable
 from contextlib import nullcontext
+from pathlib import Path
 
 import carb
 import omni.client
@@ -214,9 +214,14 @@ class Setup:
 
     def get_capture_image(self, path: str) -> str | None:
         for folder in [".thumbs", "thumbs"]:
-            image_path = Path(path).parent / folder / f"{Path(path).name}.dds"
-            if image_path.exists():
-                return str(image_path)
+            # Some older capture thumbnails were saved with the .usd extension in the filename
+            # so we check for both with and without the extension in the filename.
+            image_path_with_extension = Path(path).parent / folder / f"{Path(path).name}.dds"
+            image_path_without_extension = Path(path).parent / folder / f"{Path(path).stem}.dds"
+            if image_path_with_extension.exists():
+                return str(image_path_with_extension)
+            elif image_path_without_extension.exists():
+                return str(image_path_without_extension)
         return None
 
     @staticmethod
