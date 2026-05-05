@@ -79,3 +79,19 @@ Arguments are passed after a lone `--`, so they are forwarded from the `.bat` to
 Breakpoints won't work otherwise. Once the app is paused, attach your IDE on port `3000`.
 
 For IDE-specific attach instructions, see [VSCode / Cursor Setup](ide-vscode.md) or [PyCharm Setup](ide-pycharm.md).
+
+## Quick Debug Logging
+
+For temporary debug output while investigating issues at runtime, use `print()` — not `carb.log_info()` or other
+`carb` logging functions. `print()` writes directly to stdout and is immediately visible in the console, while `carb`
+logging goes through Kit's infrastructure which may filter, delay, or format messages differently.
+
+```python
+# Correct — immediate, visible output
+print(f"[MyExt] value={some_var}")
+
+# Avoid for debugging — may be filtered or delayed
+carb.log_info(f"[MyExt] value={some_var}")
+```
+
+Remove all debug `print()` calls before committing.

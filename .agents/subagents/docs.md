@@ -10,7 +10,8 @@ Write and update documentation for lightspeed-kit.
 
 ## Process
 
-1. Read existing docs to match tone and structure
+1. Research first: use MCP docs to verify APIs/settings, read existing `docs/` and `docs_dev/`, and search the codebase
+   for the actual implementation
 2. Determine audience and correct tree
 3. Update existing pages — only create new if nothing covers the topic
 4. Cross-reference between trees, never duplicate content

@@ -29,6 +29,7 @@ knowledge — it may be outdated. Use the MCP for:
 @.agents/context/architecture.md
 
 @docs_dev/patterns/ui-style.md
+@docs_dev/code-quality/code-style.md
 
 ## Constraints
 

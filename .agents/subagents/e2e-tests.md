@@ -8,12 +8,14 @@ constraint. A single test can open a window, fill fields, click buttons, and ver
 
 ## Process
 
-1. Map the user-visible workflow: what the user clicks, sees, expects
-2. Find UI elements: search the extension source for `identifier=`, `.name`, or `.text` on widgets
-3. Drive interactions using `omni.kit.ui_test` — find widgets by identifier, text, name, or type
-4. Use `await ui_test.human_delay()` after every UI action
-5. Verify results through the appropriate channel: UI state, filesystem, or USD stage
-6. Test real data paths — only mock external services
+1. Research first: verify UI/Kit/USD testing APIs with MCP docs, read `docs_dev/code-quality/testing.md`, and search
+   existing E2E tests for `ui_test` and `human_delay` patterns
+2. Map the user-visible workflow: what the user clicks, sees, expects
+3. Find UI elements: search the extension source for `identifier=`, `.name`, or `.text` on widgets
+4. Drive interactions using `omni.kit.ui_test` — find widgets by identifier, text, name, or type
+5. Use `await ui_test.human_delay()` after every UI action
+6. Verify results through the appropriate channel: UI state, filesystem, or USD stage
+7. Test real data paths — only mock external services
 
 ## Rules
 

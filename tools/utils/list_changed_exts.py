@@ -22,9 +22,15 @@ import os
 import re
 import subprocess
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 IS_WINDOWS = sys.platform == "win32"
+
+try:
+    from detect_base_branch import detect_base_branch
+except ImportError:
+    detect_base_branch = None
 
 
 def ensure_project_root():
@@ -54,13 +60,9 @@ def get_git_shas(base_branch):
 def get_all_changed_extensions(merge_base):
     """Get all extensions changed between merge-base and HEAD, categorized by change type"""
     try:
-        changed_files = subprocess.check_output(
-            ["git", "diff", merge_base, "HEAD", "--name-status"],
-            text=True
-        ).splitlines()
+        changed_files = subprocess.check_output(["git", "diff", merge_base, "HEAD", "--name-status"], text=True).splitlines()
 
         # Track file changes per extension
-        from collections import defaultdict
         ext_changes = defaultdict(lambda: {"A": 0, "M": 0, "D": 0})
 
         for line in changed_files:
@@ -123,7 +125,7 @@ def get_all_changed_extensions(merge_base):
                 modified_exts.add(ext_name)
 
         return new_exts, modified_exts, deleted_exts, ext_changes
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         print(f"Error: Failed to get changed extensions: {e}", file=sys.stderr)
         return set(), set(), set(), {}
 
@@ -147,7 +149,7 @@ def get_extensions_with_uncommitted_changes():
                         modified_exts.add(ext_name)
 
         return modified_exts
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         print(f"Warning: Failed to get git status: {e}", file=sys.stderr)
         return set()
 
@@ -162,6 +164,7 @@ def get_extensions_needing_changelog(top_commit, merge_base):
             text=True,
             timeout=60,
             shell=IS_WINDOWS,
+            check=False,
         )
 
         # Parse output for lines like "Version has not been incremented for source/extensions/<ext-name>"
@@ -182,7 +185,7 @@ def get_extensions_needing_changelog(top_commit, merge_base):
     except subprocess.TimeoutExpired:
         print("Error: Timeout running repo check_changelog", file=sys.stderr)
         return []
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         print(f"Error: Failed to run repo check_changelog: {e}", file=sys.stderr)
         return []
 
@@ -191,13 +194,19 @@ def main():
     parser = argparse.ArgumentParser(description="List changed extensions that need changelog updates")
     parser.add_argument(
         "--base",
-        default="main",
-        help="Base branch to compare against (default: main)",
+        default=None,
+        help="Base branch to compare against (default: auto-detect closest remote branch)",
     )
     args = parser.parse_args()
 
     # Ensure we're running from project root for git commands to work
     ensure_project_root()
+
+    if args.base is None:
+        if detect_base_branch is not None:
+            args.base = detect_base_branch()
+        else:
+            args.base = "main"
 
     top_commit, merge_base = get_git_shas(args.base)
 

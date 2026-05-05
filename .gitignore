@@ -161,3 +161,7 @@ pyrightconfig.json
 
 # Git worktrees (isolated workspaces)
 .worktrees/
+
+# Claude Code Superpowers Plugin
+.superpowers/**
+docs/superpowers/**

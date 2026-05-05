@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LSSDEVOPS-39: Consolidated private Toolkit files into lightspeed-kit and configured the filtered GitHub mirror path.
 - LSSDEVOPS-39: Retargeted GitHub mirror sync to lightspeed-kit Linux runners.
 - LSSDEVOPS-39: Removed the repoman runtime private-repo download bootstrap while preserving committed internal repo dependency manifests.
+- REMIX-4286: Added branch-aware repo tooling and agent guidance for atomic merge sequences.
 
 ### Fixed
 

@@ -11,11 +11,13 @@ dependencies. Tests run inside Kit but must not depend on UI or real external sy
 
 ## Process
 
-1. Read the source — identify public methods, edge cases, error paths, branching logic
-2. Determine mock targets: `omni.usd`, `omni.kit.commands`, `omni.client`, prim/layer ops, event streams
-3. Write tests: `omni.kit.test.AsyncTestCase`, `tests/unit/` directory, all methods `async def`
-4. Naming: `test_<action>_<condition>_<expected_outcome>`
-5. Target ≥75% coverage — happy path, edge cases, error handling, all significant branches
+1. Research first: verify Kit/USD/UI testing APIs with MCP docs, read `docs_dev/code-quality/testing.md`, and search
+   existing tests for `AsyncTestCase` patterns and reusable fixtures
+2. Read the source — identify public methods, edge cases, error paths, branching logic
+3. Determine mock targets: `omni.usd`, `omni.kit.commands`, `omni.client`, prim/layer ops, event streams
+4. Write tests: `omni.kit.test.AsyncTestCase`, `tests/unit/` directory, all methods `async def`
+5. Naming: `test_<action>_<condition>_<expected_outcome>`
+6. Target ≥75% coverage — happy path, edge cases, error handling, all significant branches
 
 ## Rules
 

@@ -51,7 +51,7 @@ source/extensions/<ext-name>/
 │   └── index.rst               # Sphinx autodoc entry (copy pattern from existing exts)
 ├── <namespace>/<path>/<name>/  # Python package — mirrors the extension name exactly
 │   ├── __init__.py             # Declares __all__ and re-exports public API
-│   ├── extension.py            # omni.ext.IExt subclass + module-level get_instance()
+│   ├── extension.py            # omni.ext.IExt subclass (+ optional get_instance())
 │   ├── *.py                    # Implementation files
 │   └── tests/
 │       ├── __init__.py         # Must export test classes for runner discovery
@@ -64,6 +64,11 @@ source/extensions/<ext-name>/
 
 The Python package path mirrors the extension name: `omni.flux.job_queue.core` → `omni/flux/job_queue/core/`. For
 `lightspeed.*` extensions, replace the root with `lightspeed/`.
+
+**Important:** The `omni.ext.IExt` subclass ALWAYS lives in `extension.py`, never in `__init__.py`. The `__init__.py`
+file only declares `__all__` and re-exports the extension class (and `get_instance` if the extension needs a singleton
+API). Kit discovers the `IExt` subclass from the module declared in `extension.toml` and runs its `on_startup` /
+`on_shutdown` automatically.
 
 ---
 
@@ -171,9 +176,9 @@ repo_build.prebuild_link {
 * limitations under the License.
 """
 
-__all__ = ["get_instance"]
+__all__ = ["MyExtension"]
 
-from .extension import get_instance
+from .extension import MyExtension
 ```
 
 ### `<namespace>/<path>/<name>/extension.py`
@@ -196,29 +201,25 @@ from .extension import get_instance
 * limitations under the License.
 """
 
-__all__ = ["get_instance"]
+__all__ = ["MyExtension"]
 
 import carb
 import omni.ext
-
-_INSTANCE = None
-
-
-def get_instance():
-    return _INSTANCE
 
 
 class MyExtension(omni.ext.IExt):
     def on_startup(self, ext_id: str):
         carb.log_info("[<ext-name>] Startup")
-        global _INSTANCE
-        _INSTANCE = self
 
     def on_shutdown(self):
         carb.log_info("[<ext-name>] Shutdown")
-        global _INSTANCE
-        _INSTANCE = None
 ```
+
+**Singleton pattern (`get_instance`):** Extensions themselves never need a singleton — Kit manages their lifecycle. The
+`get_instance()` pattern is for exposing a **non-extension class** (e.g., a core service) that the extension creates
+during startup. The extension owns the lifecycle; `get_instance()` returns the core object, not the extension. Export
+`get_instance` from `__init__.py` only when other extensions need runtime access to that core object. Most extensions
+do not need this.
 
 ### `docs/index.rst`
 
