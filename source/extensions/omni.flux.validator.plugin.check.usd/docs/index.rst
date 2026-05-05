@@ -8,7 +8,6 @@ omni.flux.validator.plugin.check.usd
    CHANGELOG
 
 .. automodule:: omni.flux.validator.plugin.check.usd.extension
-.. automodule:: omni.flux.validator.plugin.check.usd.ai.generate_pbr_material
 .. automodule:: omni.flux.validator.plugin.check.usd.base.check_base_usd
 .. automodule:: omni.flux.validator.plugin.check.usd.example.print_prims
 .. automodule:: omni.flux.validator.plugin.check.usd.generic.value_mapping

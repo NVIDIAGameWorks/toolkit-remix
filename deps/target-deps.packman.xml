@@ -5,9 +5,6 @@
   <dependency name="python" linkPath="../_build/target-deps/python">
     <package name="python" version="3.10.10+nv1-${platform}" />
   </dependency>
-  <dependency name="remix-models-i2m-artifacts" linkPath="../_build/target-deps/ai_tools/i2m">
-    <package name="remix-models-i2m-artifacts" version="1.1.0" />
-  </dependency>
   <dependency name="rtx-remix-hdremix" linkPath="../_build/target-deps/hdremix">
     <package name="rtx-remix-hdremix" version="ext-df20097-main" />
   </dependency>

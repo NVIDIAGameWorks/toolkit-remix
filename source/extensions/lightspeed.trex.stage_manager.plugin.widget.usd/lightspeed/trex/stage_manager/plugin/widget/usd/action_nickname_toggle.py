@@ -47,7 +47,12 @@ class NicknameToggleActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
 
     def build_icon_ui(self, model: StageManagerTreeModel, item: _StageManagerTreeItem, level: int, expanded: bool):
         if not item.data:
-            ui.Spacer(width=self._icon_size, height=self._icon_size)
+            ui.Image(
+                name="NicknameDisabled",
+                tooltip="A nickname cannot be assigned to this item",
+                width=self._icon_size,
+                height=self._icon_size,
+            )
             return
 
         ui.Image(

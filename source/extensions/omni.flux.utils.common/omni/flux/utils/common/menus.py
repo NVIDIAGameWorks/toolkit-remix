@@ -45,16 +45,19 @@ class MenuItem(Enum):
 
     COPY_PRIM_PATH = "Copy Prim Path"
     FOCUS_IN_VIEWPORT = "Focus in Viewport"
+    AI_TOOLS = "Remix AI Tools..."  # ... is used to indicate that the menu item is a submenu
+    AI_TOOLS_SUBMIT = "Submit Selection to Job Queue"
+    AI_TOOLS_OPEN_LAYOUT = "Open AI Tools Layout"
     DYNAMIC_SPLITTER = ""
     ASSIGN_CATEGORY = "Assign Render Categories..."  # ... is used to indicate that the menu item opens a modal
     PARTICLE_SYSTEM = "Particle System..."  # ... is used to indicate that the menu item is a submenu
     PARTICLE_SYSTEM_ADD = "Add"
     PARTICLE_SYSTEM_REMOVE = "Remove"
-    LOGIC_GRAPH = "Remix Logic"
-    LOGIC_GRAPH_ADD = "Create Remix Logic Graph"
+    LOGIC_GRAPH = "Remix Logic..."
+    LOGIC_GRAPH_ADD = "Create Remix Logic Graph..."
     LOGIC_GRAPH_EDIT = "Edit Remix Logic Graph"
     LOGIC_GRAPH_REMOVE = "Remove Remix Logic Graph"
-    PRIM_NICENAME = "Nickname"
+    PRIM_NICENAME = "Nickname..."
     RENAME_PRIM_NICENAME = "Add Nickname"
     REMOVE_PRIM_NICENAME = "Restore Name"
     TOGGLE_NICKNAME = "Toggle Nickname"

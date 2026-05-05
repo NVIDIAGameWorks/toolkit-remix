@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.4]
+### Changed
+- Improved disabled Modding sidebar tooltip copy.
+
 ## [1.7.3]
 ### Changed
 - Added Stage Manager E2E coverage for property updates that should refresh after deferred interaction notices

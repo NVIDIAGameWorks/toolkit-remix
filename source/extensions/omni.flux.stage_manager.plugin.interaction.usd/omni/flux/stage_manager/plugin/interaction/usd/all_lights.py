@@ -44,28 +44,18 @@ class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
         default=[
             "AdditionalFilterPlugin",
             "IgnorePrimsFilterPlugin",
-            "IsCaptureFilterPlugin",
             "VisiblePrimsFilterPlugin",
             "LightPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
             "SearchFilterPlugin",
-            "IsCategoryFilterPlugin",
         ],
         exclude=True,
     )
 
-    # TODO StageManager: We have LSS plugin names in the flux ext because of this system
     compatible_widgets: list[str] = Field(
         default=[
-            "AssignCategoryActionWidgetPlugin",
             "CustomTagsWidgetPlugin",
-            "DeleteRestoreActionWidgetPlugin",
-            "FocusInViewportActionWidgetPlugin",
-            "IsCaptureStateWidgetPlugin",
-            "IsCategoryHiddenStateWidgetPlugin",
             "IsVisibleActionWidgetPlugin",
-            "NicknameToggleActionWidgetPlugin",
-            "PrimRenameNameActionWidgetPlugin",
             "PrimTreeWidgetPlugin",
         ],
         exclude=True,

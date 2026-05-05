@@ -1,6 +1,6 @@
 {
     "context": {
-        "name": "CurrentStageContextPlugin",
+        "name": "RemixCurrentStageContextPlugin",
         "context_name": ""
     },
     "icons": {
@@ -20,7 +20,7 @@
     },
     "interactions": [
         {
-            "name": "AllPrimsInteractionPlugin",
+            "name": "RemixAllPrimsInteractionPlugin",
             "filters": [
                 {
                     "name": "SearchFilterPlugin"
@@ -102,7 +102,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 175
+                        "value": 204
                     },
                     "widgets": [
                         {
@@ -116,6 +116,9 @@
                         },
                         {
                             "name": "ParticleSystemsActionWidgetPlugin"
+                        },
+                        {
+                            "name": "SubmitAIJobActionWidgetPlugin"
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
@@ -134,7 +137,7 @@
             ]
         },
         {
-            "name": "AllMeshesInteractionPlugin",
+            "name": "RemixAllMeshesInteractionPlugin",
             "filters": [
                 {
                     "name": "IsCaptureFilterPlugin"
@@ -223,7 +226,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 175
+                        "value": 204
                     },
                     "widgets": [
                         {
@@ -239,6 +242,9 @@
                             "name": "ParticleSystemsActionWidgetPlugin"
                         },
                         {
+                            "name": "SubmitAIJobActionWidgetPlugin"
+                        },
+                        {
                             "name": "DeleteRestoreActionWidgetPlugin"
                         },
                         {
@@ -252,7 +258,7 @@
             ]
         },
         {
-            "name": "AllMaterialsRemixInteractionPlugin",
+            "name": "RemixAllMaterialsInteractionPlugin",
             "filters": [
                 {
                     "name": "SearchFilterPlugin"
@@ -338,7 +344,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 150
+                        "value": 176
                     },
                     "widgets": [
                         {
@@ -354,6 +360,9 @@
                             "name": "ParticleSystemsActionWidgetPlugin"
                         },
                         {
+                            "name": "SubmitAIJobActionWidgetPlugin"
+                        },
+                        {
                             "name": "NicknameToggleActionWidgetPlugin"
                         },
                         {
@@ -364,7 +373,7 @@
             ]
         },
         {
-            "name": "AllLightsInteractionPlugin",
+            "name": "RemixAllLightsInteractionPlugin",
             "filtering_rules": {
                 "force_refresh_rules": [
                     {
@@ -478,7 +487,7 @@
             ]
         },
         {
-            "name": "AllSkeletonsInteractionPlugin",
+            "name": "RemixAllSkeletonsInteractionPlugin",
             "include_invalid_parents": false,
             "filtering_rules": {
                 "force_refresh_rules": [
@@ -590,7 +599,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 150
+                        "value": 176
                     },
                     "widgets": [
                         {
@@ -616,7 +625,7 @@
             ]
         },
         {
-            "name": "AllCategoriesInteractionPlugin",
+            "name": "RemixAllCategoriesInteractionPlugin",
             "filtering_rules": {
                 "force_refresh_rules": [
                     {
@@ -707,7 +716,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 175
+                        "value": 204
                     },
                     "widgets": [
                         {
@@ -723,6 +732,9 @@
                             "name": "ParticleSystemsActionWidgetPlugin"
                         },
                         {
+                            "name": "SubmitAIJobActionWidgetPlugin"
+                        },
+                        {
                             "name": "DeleteRestoreActionWidgetPlugin"
                         },
                         {
@@ -736,7 +748,7 @@
             ]
         },
         {
-            "name": "AllTagsInteractionPlugin",
+            "name": "RemixAllTagsInteractionPlugin",
             "filtering_rules": {
                 "force_refresh_rules": [
                     {
@@ -825,7 +837,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 175
+                        "value": 204
                     },
                     "widgets": [
                         {
@@ -839,6 +851,9 @@
                         },
                         {
                             "name": "ParticleSystemsActionWidgetPlugin"
+                        },
+                        {
+                            "name": "SubmitAIJobActionWidgetPlugin"
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"

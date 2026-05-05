@@ -48,7 +48,7 @@ from pxr import Sdf, Usd
 
 class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
     FOCUS_IN_VIEWPORT_TOOLTIP_ENABLED = "Frame prim in the viewport (F)"
-    FOCUS_IN_VIEWPORT_TOOLTIP_DISABLED = "Prim cannot be framed within the viewport"
+    FOCUS_IN_VIEWPORT_TOOLTIP_DISABLED = "The prim cannot be framed in the viewport"
 
     # Before running each test
     async def setUp(self):

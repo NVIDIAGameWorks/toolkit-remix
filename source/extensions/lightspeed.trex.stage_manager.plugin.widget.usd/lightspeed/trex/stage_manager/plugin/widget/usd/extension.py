@@ -30,6 +30,7 @@ from .focus_in_viewport import FocusInViewportActionWidgetPlugin as _FocusInView
 from .info_remap_skeleton import RemapSkeletonInfoWidgetPlugin as _RemapSkeletonInfoWidgetPlugin
 from .state_hidden_category import IsCategoryHiddenStateWidgetPlugin as _IsCategoryHiddenStateWidgetPlugin
 from .state_is_capture import IsCaptureStateWidgetPlugin as _IsCaptureStateWidgetPlugin
+from .submit_ai_job import SubmitAIJobActionWidgetPlugin as _SubmitAIJobActionWidgetPlugin
 
 
 class LightspeedStageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
@@ -45,6 +46,7 @@ class LightspeedStageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
         _PrimRenameNameActionWidgetPlugin,
         _RemapSkeletonActionWidgetPlugin,
         _RemapSkeletonInfoWidgetPlugin,
+        _SubmitAIJobActionWidgetPlugin,
     ]
 
     def on_startup(self, _):

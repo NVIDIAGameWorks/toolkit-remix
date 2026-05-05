@@ -1,0 +1,24 @@
+[package]
+version = "1.0.0"
+authors = ["Sam Bourne <sbourne@nvidia.com>"]
+description = "Widget for viewing and manipulating the queue from omni.flux.job_queue.core"
+title = "Flux SQL Queue Widget"
+readme = "docs/README.md"
+category = "Service"
+keywords = ["kit", "flux", "sqlq", "job", "queue", "widget"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[[python.module]]
+name = "omni.flux.job_queue.widget"
+
+[dependencies]
+"omni.flux.job_queue.core" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+]

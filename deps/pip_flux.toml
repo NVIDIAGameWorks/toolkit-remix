@@ -46,25 +46,13 @@ packages = [
     "sentry-sdk==2.29.1",           # OSRB filed under: https://nvbugs/4575650
     "shapely==2.0.5",               # OSRB filed under: https://nvbugs/4748740
     "six==1.17.0",                  # OSRB filed under: https://nvbugs/5484025
+    "toml==0.10.2",                 # OSRB filed under: https://nvbugs/4575571
+    "pillow==11.0.0",               # OSRB filed under: https://nvbugs/5254655
+    "requests==2.31.0",             # OSRB filed under: https://nvbugs/4549153
 
     # remix dependencies
     "hf_xet==1.1.10",               # OSRB filed under: https://nvbugs/5571291
     "huggingface-hub==0.35.3",      # OSRB filed under: https://nvbugs/5571291
-    "toml==0.10.2",                 # OSRB filed under: https://nvbugs/4575571
-
-    # remix-models-i2m dependencies
-    "torchvision==0.22.0+cu128",    # OSRB filed under: https://nvbugs/4549134
-    "torch==2.7.0+cu128",           # OSRB filed under: https://nvbugs/4549134
-    "munch==4.0.0",                 # OSRB filed under: https://nvbugs/4549021
-    "pillow==11.0.0",               # OSRB filed under: https://nvbugs/5254655 (shared with flux common dependencies)
-    "PyYAML==6.0.1",                # OSRB filed under: https://nvbugs/4549052
-
-    # remix-client dependencies
-    "requests==2.31.0",             # OSRB filed under: https://nvbugs/4549153 (shared with flux common dependencies)
-]
-
-extra_args = [
-    "--extra-index-url", "https://download.pytorch.org/whl/cu128",
 ]
 
 target = "../_build/target-deps/flux_pip_prebundle"

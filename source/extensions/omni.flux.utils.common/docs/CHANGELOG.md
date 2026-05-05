@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.13.2]
+### Added
+- Added AI Tools menu items for job submission and layout switching.
+
+### Changed
+- Appended ellipses to submenu-style menu item labels.
+
 ## [3.13.1]
 ### Added
 - Added `interactive_usd_notices` to coalesce per-stage `Usd.Notice.ObjectsChanged` traffic during interactive drags and flush deferred listeners once on release

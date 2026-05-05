@@ -71,7 +71,7 @@ class RemixLogicGraphWorkspaceWindow(_WorkspaceWindowBase):
                 sidebar.ItemDescriptor(
                     name="LogicGraph",
                     tooltip="Logic Graph",
-                    disabled_tooltip="Logic Graph (Only available if there are projects open).",
+                    disabled_tooltip="Logic Graph (Only available if a project is opened).",
                     group=sidebar.Groups.LAYOUTS,
                     mouse_released_fn=self.__open_layout,
                     sort_index=5,

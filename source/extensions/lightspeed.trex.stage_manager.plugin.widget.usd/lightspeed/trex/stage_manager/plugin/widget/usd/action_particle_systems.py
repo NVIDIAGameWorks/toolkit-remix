@@ -48,7 +48,12 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
 
     def build_icon_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
         if not item.data:
-            ui.Spacer(width=self._icon_size, height=self._icon_size)
+            ui.Image(
+                name="ParticleDisabled",
+                tooltip="Particle Systems can only be created on material or mesh prims.",
+                width=self._icon_size,
+                height=self._icon_size,
+            )
             return
 
         payload = {"context_name": self._context_name, "selected_paths": [item.data.GetPrimPath()]}
@@ -66,7 +71,7 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
         else:
             icon = "ParticleDisabled"
             tooltip = (
-                "Select a material prim or mesh prim to create a particle system.\n\n"
+                "Particle Systems can only be created on material or mesh prims.\n\n"
                 "NOTE: Instance prims are also supported but the particle system will be created on the associated "
                 "mesh prim."
             )

@@ -15,6 +15,18 @@
 * limitations under the License.
 """
 
-__all__ = ["StageManagerUSDInteractionPluginsExtension"]
+__all__ = [
+    "AllLightsInteractionPlugin",
+    "AllMaterialsInteractionPlugin",
+    "AllPrimsInteractionPlugin",
+    "AllSkeletonsInteractionPlugin",
+    "AllTagsInteractionPlugin",
+    "StageManagerUSDInteractionPluginsExtension",
+]
 
+from .all_lights import AllLightsInteractionPlugin
+from .all_materials import AllMaterialsInteractionPlugin
+from .all_prims import AllPrimsInteractionPlugin
+from .all_skeletons import AllSkeletonsInteractionPlugin
+from .all_tags import AllTagsInteractionPlugin
 from .extension import StageManagerUSDInteractionPluginsExtension

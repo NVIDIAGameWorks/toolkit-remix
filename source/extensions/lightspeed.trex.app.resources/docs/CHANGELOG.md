@@ -1,6 +1,29 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.28.4]
+### Changed
+- Updated default layouts to use the `AI Tools (Experimental)` window title
+
+### Removed
+- Removed `ai_texture.json` validation schema
+
+## [1.28.3]
+### Added
+- Added `open-in-browser` icon
+
+## [1.28.2]
+### Changed
+- Updated Stage Manager schema for Remix interaction plugin proxies
+
+## [1.28.1]
+### Added
+- Added AI Tools action widget to Stage Manager schema
+
+## [1.28.0]
+### Changed
+- Changed AI Tools default layout
+
 ## [1.27.7]
 ### Changed
 - Restored the Edit/Preferences menu item in the production menu filter.

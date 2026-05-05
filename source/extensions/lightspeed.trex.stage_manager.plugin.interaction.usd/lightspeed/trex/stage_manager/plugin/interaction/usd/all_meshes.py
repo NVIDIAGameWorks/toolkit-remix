@@ -15,16 +15,24 @@
 * limitations under the License.
 """
 
+__all__ = ["RemixAllMeshesInteractionPlugin"]
+
 from lightspeed.trex.utils.common.prim_utils import get_extended_selection as _get_extended_selection
 from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin as _StageManagerFilterPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
-from omni.flux.stage_manager.plugin.interaction.usd.base import (
-    StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin,
-)
 from pydantic import Field
 
+from .base import RemixStageManagerUSDInteractionPlugin
 
-class AllMeshesInteractionPlugin(_StageManagerUSDInteractionPlugin):
+
+class RemixAllMeshesInteractionPlugin(RemixStageManagerUSDInteractionPlugin):
+    """
+    Remix-only interaction plugin for viewing meshes and their instances.
+
+    This plugin has no Flux equivalent and provides Remix-specific mesh viewing
+    functionality with ComfyUI event subscription.
+    """
+
     display_name: str = Field(default="Meshes", exclude=True)
     tooltip: str = Field(default="View the available meshes and their respective instances", exclude=True)
 
@@ -47,7 +55,6 @@ class AllMeshesInteractionPlugin(_StageManagerUSDInteractionPlugin):
         ],
         exclude=True,
     )
-    # TODO StageManager: We have LSS plugin names in the flux ext because of this system
     compatible_widgets: list[str] = Field(
         default=[
             "AssignCategoryActionWidgetPlugin",
@@ -61,6 +68,7 @@ class AllMeshesInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "ParticleSystemsActionWidgetPlugin",
             "PrimRenameNameActionWidgetPlugin",
             "PrimTreeWidgetPlugin",
+            "SubmitAIJobActionWidgetPlugin",
         ],
         exclude=True,
     )

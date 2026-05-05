@@ -29,23 +29,17 @@ from pxr import Sdf, Usd
 __all__ = ["GLOBAL_SHOW_NICKNAMES_SETTING", "UsdPrimNameField"]
 
 
-FIELD_READ_ONLY_STYLE_NO_NICKNAME = {
-    "background_color": 0x00000000,
-    "font": get_fonts("NVIDIASans_A_Rg"),
-    "font_size": 16,
-    ":hovered": {
-        "color": 0xFFFFFFFF,
-    },
-}
+def _make_read_only_style(font_name: str) -> dict:
+    """Build a read-only label style, resolving the font lazily to avoid import-time font directory access."""
+    return {
+        "background_color": 0x00000000,
+        "font": get_fonts(font_name),
+        "font_size": 16,
+        ":hovered": {
+            "color": 0xFFFFFFFF,
+        },
+    }
 
-FIELD_READ_ONLY_STYLE_NICKNAME = {
-    "background_color": 0x00000000,
-    "font": get_fonts("NVIDIASans_A_It"),
-    "font_size": 16,
-    ":hovered": {
-        "color": 0xFFFFFFFF,
-    },
-}
 
 FIELD_EDITABLE_STYLE = {
     "background_color": 0xFF303030,
@@ -61,9 +55,9 @@ GLOBAL_SHOW_NICKNAMES_SETTING = "/UsdPrimNameField/DisplayNickNames"
 
 def _get_nickname_string_field_style(nickname: bool = False) -> dict:
     if nickname:
-        return FIELD_READ_ONLY_STYLE_NICKNAME
+        return _make_read_only_style("NVIDIASans_A_It")
 
-    return FIELD_READ_ONLY_STYLE_NO_NICKNAME
+    return _make_read_only_style("NVIDIASans_A_Rg")
 
 
 class UsdPrimNameField:

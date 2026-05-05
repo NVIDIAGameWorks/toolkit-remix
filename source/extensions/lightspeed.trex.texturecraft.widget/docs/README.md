@@ -1,1 +1,0 @@
-# lightspeed.trex.texturecraft.widget

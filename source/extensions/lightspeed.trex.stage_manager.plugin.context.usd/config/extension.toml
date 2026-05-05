@@ -1,0 +1,31 @@
+[package]
+version = "1.0.0"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Remix Stage Manager USD Context Plugins"
+description = "USD context plugins for the Remix stage manager"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["remix", "stage", "manager", "plugin", "context", "usd"]
+icon = "data/images/icon.png"
+category = "internal"
+preview_image = "data/images/preview.png"
+
+[dependencies]
+"lightspeed.trex.stage_manager.plugin.listener.comfyui" = {}
+"omni.flux.pip_archive" = {}  # For pydantic
+"omni.flux.stage_manager.factory" = {}
+"omni.flux.stage_manager.plugin.context.usd" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.stage_manager.plugin.context.usd"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

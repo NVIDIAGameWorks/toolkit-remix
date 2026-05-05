@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.2]
+### Added
+- Added Flux Stage Manager USD Interaction Plugins Proxies for all interaction plugins to add remix-specific functionality
+- Added AI Tools action widget to interaction plugins
+
+### Changed
+- Kept Remix-specific tag action widgets on `RemixAllTagsInteractionPlugin`
+
 ## [2.6.1]
 ### Removed
 - Removed `GeometryPrimsFilterPlugin` from `AllCategoriesInteractionPlugin.compatible_widgets`

@@ -8,4 +8,5 @@ lightspeed.trex.stage_manager.plugin.tree.usd
    README
    CHANGELOG
 
-.. automodule:: lightspeed.trex.stage_manager.plugin.tree.usd
+.. automodule:: lightspeed.trex.stage_manager.plugin.tree.usd.category_groups
+.. automodule:: lightspeed.trex.stage_manager.plugin.tree.usd.mesh_groups

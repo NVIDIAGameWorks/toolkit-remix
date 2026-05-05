@@ -4,6 +4,10 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.7.4]
+### Changed
+- Improved disabled tooltip message
+
 ## [1.7.3]
 ### Changed
 - Applied new lint rules

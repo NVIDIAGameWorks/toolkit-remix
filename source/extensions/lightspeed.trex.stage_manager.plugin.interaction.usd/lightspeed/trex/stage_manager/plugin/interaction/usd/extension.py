@@ -15,25 +15,42 @@
 * limitations under the License.
 """
 
-import carb
-import carb.settings
+__all__ = ["RemixStageManagerUSDInteractionPluginsExtension"]
+
 import omni.ext
-from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
+from omni.flux.stage_manager.factory import get_instance
 
-from .all_categories import AllCategoriesInteractionPlugin as _AllCategoriesInteractionPlugin
-from .all_materials import AllMaterialsRemixInteractionPlugin as _AllMaterialsRemixInteractionPlugin
-from .all_meshes import AllMeshesInteractionPlugin as _AllMeshesInteractionPlugin
+from .all_categories import RemixAllCategoriesInteractionPlugin
+from .all_lights import RemixAllLightsInteractionPlugin
+from .all_materials import RemixAllMaterialsInteractionPlugin
+from .all_meshes import RemixAllMeshesInteractionPlugin
+from .all_prims import RemixAllPrimsInteractionPlugin
+from .all_skeletons import RemixAllSkeletonsInteractionPlugin
+from .all_tags import RemixAllTagsInteractionPlugin
 
 
-class LightspeedStageManagerUSDInteractionPluginsExtension(omni.ext.IExt):
-    _PLUGINS = [_AllCategoriesInteractionPlugin, _AllMaterialsRemixInteractionPlugin, _AllMeshesInteractionPlugin]
+class RemixStageManagerUSDInteractionPluginsExtension(omni.ext.IExt):
+    """Extension that registers Remix USD interaction plugins with the Stage Manager factory."""
 
-    def on_startup(self, _):
-        carb.log_info("[lightspeed.trex.stage_manager.plugin.interaction.usd] Startup")
+    _PLUGINS = [
+        RemixAllCategoriesInteractionPlugin,
+        RemixAllLightsInteractionPlugin,
+        RemixAllMaterialsInteractionPlugin,
+        RemixAllMeshesInteractionPlugin,
+        RemixAllPrimsInteractionPlugin,
+        RemixAllSkeletonsInteractionPlugin,
+        RemixAllTagsInteractionPlugin,
+    ]
 
-        _get_factory_instance().register_plugins(self._PLUGINS)
+    def on_startup(self, ext_id):
+        """
+        Register interaction plugins on extension startup.
+
+        Args:
+            ext_id: The extension identifier
+        """
+        get_instance().register_plugins(self._PLUGINS)
 
     def on_shutdown(self):
-        carb.log_info("[lightspeed.trex.stage_manager.plugin.interaction.usd] Shutdown")
-
-        _get_factory_instance().unregister_plugins(self._PLUGINS)
+        """Unregister interaction plugins on extension shutdown."""
+        get_instance().unregister_plugins(self._PLUGINS)

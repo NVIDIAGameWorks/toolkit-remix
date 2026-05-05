@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.16.2]
+### Added
+- Exported all interaction plugin classes for external use.
+
+### Changed
+- Moved Remix-specific filters and widgets to Lightspeed proxy plugins.
+- Removed remaining Remix-specific tag widgets from `AllTagsInteractionPlugin`.
+
 ## [2.16.1]
 ### Fixed
 - Suppressed USD selection write-backs when only selection order changes so Stage Manager no longer reverses multi-selection precedence

@@ -115,6 +115,9 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
             ValueError: If the data type is not compatible with this plugin
         """
         for listener in self.listeners:
+            # NONE is a wildcard - compatible with any data type
+            if listener.compatible_data_type == _StageManagerDataTypes.NONE:
+                continue
             if self.data_type != listener.compatible_data_type:
                 raise ValueError(
                     f"The listener plugin data type is not compatible with this context plugin -> {listener.name} -> "

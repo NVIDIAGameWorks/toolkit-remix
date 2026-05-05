@@ -15,12 +15,46 @@
 * limitations under the License.
 """
 
-from lightspeed.trex.utils.common.prim_utils import get_extended_selection as _get_extended_selection
-from omni.flux.stage_manager.plugin.interaction.usd.all_materials import (
-    AllMaterialsInteractionPlugin as _AllMaterialInteractionPlugin,
-)
+__all__ = ["RemixAllMaterialsInteractionPlugin"]
+
+from lightspeed.trex.utils.common.prim_utils import get_extended_selection
+from omni.flux.stage_manager.plugin.interaction.usd import AllMaterialsInteractionPlugin
+from pydantic import Field
+
+from .base import RemixStageManagerUSDInteractionPlugin
 
 
-class AllMaterialsRemixInteractionPlugin(_AllMaterialInteractionPlugin):
+class RemixAllMaterialsInteractionPlugin(AllMaterialsInteractionPlugin, RemixStageManagerUSDInteractionPlugin):
+    """
+    Remix extension of the Flux AllMaterialsInteractionPlugin.
+
+    Adds ComfyUI event subscription, Remix-specific widgets/filters, and extended selection behavior.
+    """
+
+    compatible_filters: list[str] = Field(
+        default=[
+            *AllMaterialsInteractionPlugin.model_fields["compatible_filters"].default,
+            # Remix filters
+            "IsCaptureFilterPlugin",
+        ],
+        exclude=True,
+    )
+
+    compatible_widgets: list[str] = Field(
+        default=[
+            *AllMaterialsInteractionPlugin.model_fields["compatible_widgets"].default,
+            # Remix widgets
+            "AssignCategoryActionWidgetPlugin",
+            "FocusInViewportActionWidgetPlugin",
+            "IsCaptureStateWidgetPlugin",
+            "IsCategoryHiddenStateWidgetPlugin",
+            "NicknameToggleActionWidgetPlugin",
+            "ParticleSystemsActionWidgetPlugin",
+            "PrimRenameNameActionWidgetPlugin",
+            "SubmitAIJobActionWidgetPlugin",
+        ],
+        exclude=True,
+    )
+
     def _get_selection(self):
-        return _get_extended_selection(self._context_name)
+        return get_extended_selection(self._context_name)

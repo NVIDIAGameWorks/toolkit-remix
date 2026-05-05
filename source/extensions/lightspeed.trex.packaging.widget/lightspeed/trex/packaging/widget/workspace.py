@@ -60,7 +60,7 @@ class PackagingWindow(_WorkspaceWindowBase):
                 sidebar.ItemDescriptor(
                     name="PackageMod",
                     tooltip="Package Mod for Release",
-                    disabled_tooltip="Package Mod for Release (Only available if there are projects open).",
+                    disabled_tooltip="Package Mod for Release (Only available if a project is opened).",
                     group=sidebar.Groups.LAYOUTS,
                     mouse_released_fn=self.__open_layout,
                     sort_index=20,

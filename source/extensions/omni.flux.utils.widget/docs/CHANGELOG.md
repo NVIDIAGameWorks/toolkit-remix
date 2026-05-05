@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.28.1]
+### Fixed
+- Deferred font resolution in `UsdPrimNameField` read-only styles to avoid import-time font directory access.
+
 ## [1.28.0]
 ### Added
 - Added shared `FloatBoundedDrag` and `IntBoundedDrag` widgets with `_HardLimitDragMixin` for typed hard-limit clamping and batch-edit-aware drag lifecycle handling

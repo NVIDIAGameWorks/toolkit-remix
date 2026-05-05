@@ -467,6 +467,9 @@ current_dict.update(
         "Image::Modding:hovered": {"image_url": _get_icons("modding-icon"), "color": _WHITE_80},
         "Image::Modding:selected": {"image_url": _get_icons("modding-icon"), "color": _WHITE_100},
         "Image::ModdingDisabled": {"image_url": _get_icons("modding-icon"), "color": _WHITE_30},
+        "Image::OpenInBrowser": {"image_url": _get_icons("open-in-browser"), "color": _WHITE_60},
+        "Image::OpenInBrowser:hovered": {"image_url": _get_icons("open-in-browser"), "color": _WHITE_80},
+        "Image::OpenInBrowser:disabled": {"image_url": _get_icons("open-in-browser"), "color": _WHITE_30},
         "Image::PackageMod": {"image_url": _get_icons("package-mod-icon"), "color": _WHITE_60},
         "Image::PackageMod:hovered": {"image_url": _get_icons("package-mod-icon"), "color": _WHITE_80},
         "Image::PackageMod:selected": {"image_url": _get_icons("package-mod-icon"), "color": _WHITE_100},
@@ -802,6 +805,32 @@ current_dict.update(
         "Line::WelcomePadTop": {"color": _WHITE_20, "border_width": 1},
         "Line::TreeSpacer": {"color": _BLUE_SELECTED, "border_width": 2},
         "StringField::PropertiesPaneSelectionTreeFieldItem": {"color": _WHITE_80, "font_size": 14},
+        # Stage Manager Tree Item Styles
+        "StringField::StageManagerTreeItemNoNickname": {
+            "background_color": 0x00000000,
+            "border_width": 0,
+            "border_color": 0x00000000,
+            "font": ui.url.nvidia_rg,
+            "font_size": 16,
+        },
+        "StringField::StageManagerTreeItemNoNickname:hovered": {
+            "color": 0xFFFFFFFF,
+        },
+        "StringField::StageManagerTreeItemNickname": {
+            "background_color": 0x00000000,
+            "border_width": 0,
+            "border_color": 0x00000000,
+            "font": ui.url.nvidia_it,
+            "font_size": 16,
+        },
+        "StringField::StageManagerTreeItemNickname:hovered": {
+            "color": 0xFFFFFFFF,
+        },
+        "StringField::StageManagerTreeItemEditable": {
+            "background_color": _GREY_50,
+            "border_width": 1,
+            "border_color": _BLUE_SELECTED,
+        },
         "Menu.Separator": {
             "color": _WHITE_20,
             "margin_height": 3,
