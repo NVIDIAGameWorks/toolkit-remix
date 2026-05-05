@@ -79,7 +79,7 @@ github-mirror-sync:
   variables:
     STAGING_REMOTE: "https://oauth2:${STAGING_PUSH_TOKEN}@gitlab-master.nvidia.com/lightspeedrtx/toolkit-remix-staging.git"
   before_script:
-    - python3 -m pip install --user git-filter-repo==2.38.0 || python -m pip install --user git-filter-repo==2.38.0
+    - python3 -m pip install --user --break-system-packages git-filter-repo==2.38.0 || python -m pip install --user --break-system-packages git-filter-repo==2.38.0
     - export PATH="${HOME}/.local/bin:${PATH}"
     - git config --global user.email "ci-bot@nvidia.com"
     - git config --global user.name "CI Mirror Bot"
@@ -117,7 +117,8 @@ github-mirror-sync:
         exit 1
       fi
     - git remote add staging "${STAGING_REMOTE}"
-    - git push staging --mirror --force
+    - git for-each-ref --format='delete %(refname)' refs/replace | git update-ref --stdin
+    - git push staging --force --prune '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
   after_script:
     - rm -rf /tmp/filtered-repo
   tags:
