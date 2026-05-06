@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed recent-projects treating a deleted capture as a project error when another valid capture sublayer exists in the project
 - REMIX-4286: Hardened AI Tools ComfyUI connection, workflow submission, job output handling, and widget cleanup
 - REMIX-3614: Fixed capture image path calculation to check images with and without the .usd extension in the filename
+- Fixed package flatten soak failures by loading USD MDL support with Packman-provided Remix resource materials
 
 ### Removed
 
