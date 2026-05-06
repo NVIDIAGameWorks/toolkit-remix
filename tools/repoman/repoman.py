@@ -7,6 +7,7 @@ import os
 import sys
 
 import packmanapi
+from repoman_bootstrapper import repoman_bootstrap
 
 REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../.."))
 REPO_DEPS_FILE = os.path.join(REPO_ROOT, "deps/repo-deps.packman.xml")
@@ -31,6 +32,7 @@ def bootstrap():
 
 
 if __name__ == "__main__":
+    repoman_bootstrap()
     bootstrap()
     import omni.repo.man
 

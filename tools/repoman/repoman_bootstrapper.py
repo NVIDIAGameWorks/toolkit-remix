@@ -1,20 +1,22 @@
-# SPDX-FileCopyrightText: Copyright (c) 2019-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2019-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: MIT
 #
 
+import contextlib
 import json
 import logging
 import os
 import platform
 import re
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 import packmanapi
 
 logger = logging.getLogger(__name__)
 
-if sys.version_info < (3, 10):
+if sys.version_info < (3, 10):  # noqa: UP036 - Keep version check for user-facing warning
     logger.warning("This version of repo_man currently requires Python 3.10 or later.")
 
 REPO_ROOT = os.path.join(os.path.dirname(os.path.normpath(__file__)), "../..")
@@ -25,18 +27,80 @@ def repoman_bootstrap():
     _path_checks()
     _prep_cache_paths()
     _pull_optional_deps()
+    _check_ai_skills_stale()
+
+
+def _check_ai_skills_stale():
+    """Set ``_REPO_AI_SKILLS_STALE=1`` if installed AI skills look out of date.
+
+    Compares the mtime of the resolved main and optional packman dep files
+    against the AI skills manifest. If either deps file is newer (e.g. the
+    user ran ``repo update``, switched branches, or hand-edited a deps file)
+    the env var is set so ``omni.repo.man.entry`` can refresh skills after
+    the tool finishes. Side-effect-only by design: returns nothing because
+    the contract with ``entry.py`` is the env var.
+
+    Lives in the bootstrapper rather than in ``repoman.py`` so that customer
+    repos auto-pick-up new staleness logic via ``repo update`` (the update
+    pipeline refreshes the bootstrapper but does not rewrite ``repoman.py``).
+
+    Hygiene: any inherited ``_REPO_AI_SKILLS_STALE`` from a parent process
+    is cleared before deciding. This prevents a stale value from a previous
+    ``repo`` invocation in the same shell (or from an outer build wrapper)
+    from triggering an unintended refresh in this one. We then make our own
+    independent decision based on the local mtime check.
+
+    Docker / container relaunch: when ``LINBUILD_EMBEDDED`` is set, we are
+    running inside a re-launched build container -- the outer process will
+    still run its own bootstrap and post-tool refresh after we exit, and
+    that outer process operates on the same mounted repo. Skipping the
+    check here avoids two refreshes touching identical files, which is
+    purely wasteful in an already-slow flow.
+
+    Cost: 1 ``os.path.exists`` + 1-2 ``isfile`` + 1-3 ``stat`` calls. No
+    network, no imports beyond stdlib. Returns silently if the manifest
+    doesn't exist (skills never installed) or if any check raises.
+    """
+    # Always start from a clean slate; never carry an inherited value forward.
+    os.environ.pop("_REPO_AI_SKILLS_STALE", None)
+
+    if os.environ.get("LINBUILD_EMBEDDED"):
+        # Running inside a re-launched build container; outer process handles refresh.
+        return
+
+    manifest_path = os.path.join(REPO_ROOT, ".repo-ai-manifest.json")
+    if not os.path.exists(manifest_path):
+        return  # Skills never installed -- no staleness to flag.
+
+    try:
+        manifest_mtime = os.path.getmtime(manifest_path)
+        main_deps, opt_deps = _find_deps_files(REPO_ROOT)
+        stale = (main_deps is not None and os.path.getmtime(main_deps) > manifest_mtime) or (
+            opt_deps is not None and os.path.getmtime(opt_deps) > manifest_mtime
+        )
+        if stale:
+            os.environ["_REPO_AI_SKILLS_STALE"] = "1"
+    except Exception as e:
+        logger.debug(f"AI skills staleness check failed (non-fatal): {e}")
 
 
 def _pull_optional_deps():
     """
     Pull optional dependencies if repo-deps-<suffix> exists as determined by _opt_deps_suffix()
     """
-    OPT_DEPS_FILE = Path(REPO_ROOT, f"deps/repo-deps-{_opt_deps_suffix()}.packman.xml")
-    if OPT_DEPS_FILE.is_file():
-        deps = packmanapi.pull(OPT_DEPS_FILE.as_posix())
+    _, opt_deps_file = _find_deps_files(REPO_ROOT)
+    if opt_deps_file is None:
+        return
+    deps = None
+    with contextlib.suppress(packmanapi.PackmanErrorFileNotFound):
+        deps = packmanapi.pull(opt_deps_file)
         for dep_path in deps.values():
             if dep_path not in sys.path:
                 sys.path.append(dep_path)
+    if deps is None:
+        logger.debug(
+            f"Failed to pull optional dependencies in {opt_deps_file}. This can be normal depending on configuration and context.",
+        )
 
 
 def _path_checks():
@@ -108,6 +172,55 @@ def _prep_cache_paths():
                 os.environ["OMNI_REPO_ROOT"] = ""
 
 
+def _find_deps_files(repo_root):
+    """Locate this repo's main and optional packman dep files.
+
+    Resolution order, each step taking precedence over the next:
+
+    1. ``REPO_DEPS_FILE`` and ``OPT_DEPS_FILE`` module constants on the
+       running ``repoman.py`` (i.e. ``sys.modules['__main__']``). Repos that
+       relocate their deps directory surface the change as module-level
+       constants in their ``tools/repoman/repoman.py``; honouring those is
+       how downstream consumers stay in sync without each having to teach
+       us a new path.
+    2. The conventional ``deps/`` directory under ``repo_root``. The
+       optional file name is derived from :func:`_opt_deps_suffix` so the
+       suffix stays parameter-driven from the repo's ``repo.toml``.
+
+    Either return value may be ``None`` if the corresponding file does not
+    exist on disk. ``REPO_DEPS_FILE`` / ``OPT_DEPS_FILE`` may be ``str`` or
+    :class:`pathlib.Path`; both are normalised through :func:`os.fspath`.
+    """
+    main_path = None
+    opt_path = None
+
+    main_module = sys.modules.get("__main__")
+    if main_module is not None:
+        repo_deps_const = getattr(main_module, "REPO_DEPS_FILE", None)
+        if repo_deps_const is not None:
+            main_path = os.fspath(repo_deps_const)
+        opt_deps_const = getattr(main_module, "OPT_DEPS_FILE", None)
+        if opt_deps_const is not None:
+            opt_path = os.fspath(opt_deps_const)
+
+    # Fallback for the main file: the conventional ``deps/`` location.
+    if main_path is None:
+        main_path = os.path.join(repo_root, "deps", "repo-deps.packman.xml")
+
+    # Fallback for the optional file: same directory as the main file,
+    # filename built from the configured suffix. This handles repos that
+    # only override REPO_DEPS_FILE, and repos that override neither.
+    if opt_path is None:
+        suffix = _opt_deps_suffix()
+        deps_dir = os.path.dirname(main_path)
+        opt_path = os.path.join(deps_dir, f"repo-deps-{suffix}.packman.xml")
+
+    main_path = main_path if os.path.isfile(main_path) else None
+    opt_path = opt_path if os.path.isfile(opt_path) else None
+    return main_path, opt_path
+
+
+@lru_cache  # Called by both _pull_optional_deps() and repoman.py's staleness check
 def _opt_deps_suffix():
     """
     We want a general ability to specify an optional set of repo-tool dependencies for internal use.
@@ -123,7 +236,7 @@ def _opt_deps_suffix():
     opt_deps_suffix = "nv"
     repo_toml = Path(REPO_ROOT, "repo.toml")
     if repo_toml.is_file():
-        with open(repo_toml, "r") as f:
+        with open(repo_toml) as f:
             for line in f.readlines():
                 line = line.lstrip()
                 if line.startswith("optional_deps_suffix"):
