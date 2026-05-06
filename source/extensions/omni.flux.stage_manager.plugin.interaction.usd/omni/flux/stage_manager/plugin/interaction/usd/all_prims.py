@@ -34,6 +34,7 @@ class AllPrimsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     compatible_filters: list[str] = Field(
         default=[
             "AdditionalFilterPlugin",
+            "CustomTagsFilterPlugin",
             "GeometryPrimsFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "VisiblePrimsFilterPlugin",

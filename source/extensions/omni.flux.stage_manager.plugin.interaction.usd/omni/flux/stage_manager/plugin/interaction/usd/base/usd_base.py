@@ -125,6 +125,10 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             if hasattr(filter_plugin, set_context_method_name):
                 filter_plugin.set_context_name(value)
 
+        for filter_plugin in self.additional_filters:
+            if hasattr(filter_plugin, set_context_method_name):
+                filter_plugin.set_context_name(value)
+
         for column_plugin in self.columns:
             if hasattr(column_plugin, set_context_method_name):
                 column_plugin.set_context_name(value)

@@ -15,8 +15,9 @@ git branch --show-current && git status --short
 
 - **On `main`?** Run `/create-branch` (`.agents/commands/create-branch.md`) first, then continue.
 - **Dirty working tree?** Run `/commit` (`.agents/commands/commit.md`) to commit pending work first.
-- **Determine target branch.** Infer from branch name (`dev/*` → parent `feature/*`, `feature/*` → `main`).
-  If unclear, ask the user. Store for all subsequent steps.
+- **Determine target branch.** Most MRs target `main`. Target a parent `feature/*` branch when the work is part of a
+  larger change that should be tested thoroughly before merging to `main`, or when the work is explicitly scoped to
+  that feature branch. If unclear, ask the user. Store for all subsequent steps.
 
 ## Step 1 — Completion Gates
 

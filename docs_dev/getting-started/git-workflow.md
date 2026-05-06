@@ -105,6 +105,10 @@ Coverage guidance:
 
 ### Target branch
 
-- `dev/*` branches -> target their parent `feature/*` branch
-- `feature/*` branches -> target `main`
+- `feature/*` branches usually target `main`
+- `dev/*` and `fix/*` branches usually target `main`
+- Target a parent `feature/*` branch when the work introduces or contributes to a larger change that should be tested
+  thoroughly before merging to `main`
+- Both `main` and parent `feature/*` targets are valid for `dev/*` and `fix/*` work; choose the one that matches the
+  intended integration and validation path
 - If unclear, specify the target explicitly when creating the MR

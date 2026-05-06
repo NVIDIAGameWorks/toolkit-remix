@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.22.4]
+### Changed
+- Added `Label::FilterCheckboxLabel` style for brighter checkbox label text in the custom tags filter
+- Added disabled-state styling for `Label::FilterSectionAction` bulk filter actions
+
 ## [1.22.3]
 ### Added
 - Added `OpenInBrowser` icon style with default, hovered, and disabled states for the ComfyUI browser button

@@ -292,6 +292,15 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
         self._is_initialized = True
 
+    def on_hidden(self):
+        """
+        Called by the widget immediately before the interaction frame is cleared.
+        Propagates to all filter plugins so they can drop UI subscriptions
+        before their widgets are destroyed.
+        """
+        for f in [*self.filters, *self.additional_filters]:
+            f.clear_subscriptions()
+
     def build_ui(self):
         """
         The method used to build the UI for the plugin.

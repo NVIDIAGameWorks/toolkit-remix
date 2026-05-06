@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.13]
+### Changed
+- Applied new lint rules
+
 ## [1.3.12]
 ### Fixed
 - Fixed capture image path calculation to check images with and without the .usd extension in the filename

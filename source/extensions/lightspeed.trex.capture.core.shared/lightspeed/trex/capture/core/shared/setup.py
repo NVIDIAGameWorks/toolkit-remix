@@ -220,7 +220,7 @@ class Setup:
             image_path_without_extension = Path(path).parent / folder / f"{Path(path).stem}.dds"
             if image_path_with_extension.exists():
                 return str(image_path_with_extension)
-            elif image_path_without_extension.exists():
+            if image_path_without_extension.exists():
                 return str(image_path_without_extension)
         return None
 

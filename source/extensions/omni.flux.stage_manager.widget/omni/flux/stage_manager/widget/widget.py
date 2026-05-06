@@ -184,6 +184,7 @@ class StageManagerWidget:
         # Quick return if the active interaction is the selected tab
         if self._active_interaction == index:
             return
+        prev_index = self._active_interaction
         self._active_interaction = index
 
         # Reset the widget to the original state
@@ -198,6 +199,12 @@ class StageManagerWidget:
         interaction = enabled_interactions[index]
 
         self._tab_backgrounds[hash(interaction)].name = self._active_style
+
+        # Let the outgoing interaction drop its UI subscriptions before the frame destroys
+        # its widgets — otherwise model value_changed callbacks fire during clear() and
+        # corrupt plugin state (e.g. clearing selected filter tags).
+        if 0 <= prev_index < len(enabled_interactions):
+            enabled_interactions[prev_index].on_hidden()
 
         self._interaction_frame.clear()
         with self._interaction_frame:

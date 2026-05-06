@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.28.5]
+### Changed
+- Added `CustomTagsFilterPlugin` to all Stage Manager tabs in the default schema (Prims, Meshes, Materials, Lights, Skeletons, Categories, Tags)
+
 ## [1.28.4]
 ### Changed
 - Updated default layouts to use the `AI Tools (Experimental)` window title

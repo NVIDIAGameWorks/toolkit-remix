@@ -16,5 +16,6 @@
 """
 
 from .unit.test_additional_filters import TestAdditionalFiltersUnit
+from .unit.test_custom_tags_filter import TestCustomTagsFilterPluginUnit
 
-__all__ = ["TestAdditionalFiltersUnit"]
+__all__ = ["TestAdditionalFiltersUnit", "TestCustomTagsFilterPluginUnit"]

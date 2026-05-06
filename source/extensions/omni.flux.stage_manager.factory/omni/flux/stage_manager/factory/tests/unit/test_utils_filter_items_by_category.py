@@ -247,3 +247,29 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(len(called), 2)
+
+    async def test_filter_items_by_category_named_categories_union_sibling_filter_results(self):
+        for category in (FilterCategory.PRIMS, FilterCategory.GROUP, FilterCategory.TAGS):
+            with self.subTest(title=f"category={category.value}"):
+                # Arrange: named filter categories use OR composition across sibling filters
+                items = _make_tree([("root", None), ("a", 0), ("b", 0), ("c", 0)])
+                plugin_1 = _TestFilterPlugin(lambda item: item.identifier == "a", category=category)
+                plugin_2 = _TestFilterPlugin(lambda item: item.identifier == "b", category=category)
+
+                # Act
+                result = StageManagerUtils.filter_items_by_category(items, [plugin_1, plugin_2])
+
+                # Assert
+                self.assertEqual({items[0], items[1], items[2]}, set(result))
+
+    async def test_filter_items_by_category_other_category_intersects_sibling_filter_results(self):
+        # Arrange: OTHER is the generic AND category
+        items = _make_tree([("root", None), ("a", 0), ("b", 0), ("c", 0)])
+        plugin_1 = _TestFilterPlugin(lambda item: item.identifier in ("a", "b"), category=FilterCategory.OTHER)
+        plugin_2 = _TestFilterPlugin(lambda item: item.identifier == "b", category=FilterCategory.OTHER)
+
+        # Act
+        result = StageManagerUtils.filter_items_by_category(items, [plugin_1, plugin_2])
+
+        # Assert
+        self.assertEqual({items[0], items[2]}, set(result))
