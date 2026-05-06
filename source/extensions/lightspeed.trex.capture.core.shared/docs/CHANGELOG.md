@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.12]
+### Fixed
+- Fixed capture image path calculation to check images with and without the .usd extension in the filename
+
 ## [1.3.11]
 ### Fixed
 - Reused the existing capture-layer import path for non-undoable project-open and repair flows while leaving capture-swap undo ownership in StageCraft
