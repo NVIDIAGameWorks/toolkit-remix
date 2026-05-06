@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Created 1.5.0-0 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.5.0-0]
+
+### Added
+
 - Created 1.4.2-1 build
 - Added release notes for 1.4.2
 - Added auto-save feature: periodically saves all dirty layers in the active project; configurable via Edit > Preferences > Auto-Save (enable/disable, interval presets, and custom interval)
@@ -49,8 +61,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed crash when loading a scene with custom references where the capture layer path cannot be resolved
 - Fixed recent-projects treating a deleted capture as a project error when another valid capture sublayer exists in the project
 - REMIX-3614: Fixed capture image path calculation to check images with and without the .usd extension in the filename
-
-### Removed
 
 ## [1.4.2-1]
 
