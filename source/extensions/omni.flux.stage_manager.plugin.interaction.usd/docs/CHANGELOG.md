@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.16.3]
+### Added
+- Added `CustomTagsFilterPlugin` to `compatible_filters` for all interaction plugins
+
+### Fixed
+- Propagate `context_name` to `additional_filters` in `StageManagerUSDInteractionPlugin`
+
 ## [2.16.2]
 ### Added
 - Exported all interaction plugin classes for external use.

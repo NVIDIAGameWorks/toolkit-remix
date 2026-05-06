@@ -31,6 +31,12 @@ class FilterCategory(Enum):
     OTHER = "Other"
     PRIMS = "Prims"
     GROUP = "Group"
+    TAGS = "Tags"
+
+    @property
+    def is_or(self) -> bool:
+        """Whether sibling filters in this category are OR-combined."""
+        return self is not FilterCategory.OTHER
 
 
 class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
@@ -69,6 +75,12 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
         It will cause the TreeWidget model to refresh the items and re-filter the context items.
         """
         self._on_filter_items_changed()
+
+    def clear_subscriptions(self):
+        """
+        Called by the widget immediately before the interaction frame is cleared.
+        Override to release UI subscriptions so they don't fire during widget destruction.
+        """
 
     def refresh_filter_items(self):
         """

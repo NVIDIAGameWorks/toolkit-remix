@@ -113,6 +113,12 @@ class CustomTagsCore:
 
         return self._get_tags_base_path().AppendProperty(f"collection:{new_tag_name}")
 
+    def refresh_stage(self):
+        """Re-fetch the stage from the USD context. Call this before querying tags when the stage
+        may have been opened after this core instance was created."""
+        context = omni.usd.get_context(self._context_name)
+        self._stage = context.get_stage() if context else None
+
     def get_all_tags(self) -> list[Sdf.Path]:
         """
         Get all available tags in the current stage
@@ -126,7 +132,9 @@ class CustomTagsCore:
         tags_prim = self._stage.GetPrimAtPath(self._get_tags_base_path())
         if not tags_prim.IsValid():
             return []
-        return [collection.GetCollectionPath() for collection in Usd.CollectionAPI.GetAllCollections(tags_prim)]
+        return [
+            p for collection in Usd.CollectionAPI.GetAllCollections(tags_prim) if (p := collection.GetCollectionPath())
+        ]
 
     def get_prim_tags(self, prim: Usd.Prim) -> list[Sdf.Path]:
         """
@@ -173,13 +181,26 @@ class CustomTagsCore:
         Returns:
             True if the prim is assigned the given tag, False otherwise
         """
-        if not prim:
+        if not prim or not tag_path or tag_path.isEmpty:
             return False
         return (
             Usd.CollectionAPI.GetCollection(self._stage, tag_path)
             .ComputeMembershipQuery()
             .IsPathIncluded(prim.GetPath())
         )
+
+    def prim_has_any_tag(self, prim: Usd.Prim, tag_paths: list[Sdf.Path]) -> bool:
+        """
+        Return True if *prim* belongs to any of the given tag collections (OR logic).
+
+        Args:
+            prim: The prim to evaluate
+            tag_paths: The tag collection paths to check membership against
+
+        Returns:
+            True if the prim is a member of at least one of the given collections, False otherwise
+        """
+        return any(self.prim_has_tag(prim, tag_path) for tag_path in tag_paths)
 
     def create_tag(self, tag_name: str, use_undo_group: bool = True):
         """

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.3]
+### Added
+- Added `CustomTagsFilterPlugin` to `compatible_filters` for `AllCategoriesInteractionPlugin` and `AllMeshesInteractionPlugin`
+
 ## [2.6.2]
 ### Added
 - Added Flux Stage Manager USD Interaction Plugins Proxies for all interaction plugins to add remix-specific functionality

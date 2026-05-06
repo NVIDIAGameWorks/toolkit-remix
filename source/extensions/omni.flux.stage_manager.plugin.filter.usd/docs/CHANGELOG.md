@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.9.0]
+### Added
+- REMIX-5208: Added `CustomTagsFilterPlugin` and `CheckboxGroupFilterPlugin` base class with per-tag checkboxes, prim counts, cross-tab selection preservation, `FilterCategory.TAGS` support, and reusable Select All / Deselect All actions for any OR-checkbox filter group
+
+### Fixed
+- Fixed Additional Filters popup placement, overflow scrolling, and checkbox alignment for custom tag and toggleable filters
 
 ## [2.8.0]
 ### Removed

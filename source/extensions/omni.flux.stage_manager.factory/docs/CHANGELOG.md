@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.12.2]
+### Added
+- Add `FilterCategory.TAGS` for tag/label-based filters distinct from prim-type filters
+- Added shared OR-category semantics for `FilterCategory.TAGS`
+- Added `clear_subscriptions` hook to `StageManagerFilterPlugin` and `on_hidden` to `StageManagerInteractionPlugin`
+
+### Fixed
+- Fixed null telemetry guard in `StageManagerTreeModel.refresh_filtered_items`
+
 ## [4.12.1]
 ### Added
 - Added `NONE` data type wildcard support for context/listener compatibility checks.

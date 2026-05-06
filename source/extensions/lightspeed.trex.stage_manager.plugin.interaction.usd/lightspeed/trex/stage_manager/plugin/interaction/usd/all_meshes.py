@@ -45,6 +45,7 @@ class RemixAllMeshesInteractionPlugin(RemixStageManagerUSDInteractionPlugin):
     compatible_filters: list[str] = Field(
         default=[
             "AdditionalFilterPlugin",
+            "CustomTagsFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "IsCaptureFilterPlugin",
             "IsCategoryFilterPlugin",

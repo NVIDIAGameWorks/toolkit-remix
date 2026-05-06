@@ -283,15 +283,21 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
 
         await omni.kit.app.get_app().next_update_async()
-        with get_telemetry_instance().sentry_sdk.start_transaction(
+        if self._context_items is None:
+            return []
+        telemetry = get_telemetry_instance()
+        if telemetry is None:
+            return _StageManagerUtils.filter_items_by_category(self._context_items, self._user_filter_plugins) or []
+        with telemetry.sentry_sdk.start_transaction(
             op="stage_manager",
             name="Refresh Stage Manager",
             custom_sampling_context={"sample_rate_override": 0.25},
         ) as transaction:
             filtered_items = _StageManagerUtils.filter_items_by_category(self._context_items, self._user_filter_plugins)
 
-            transaction.set_data("input_items_count", len(self._context_items))
-            transaction.set_data("output_items_count", len(filtered_items))
+            if transaction is not None:
+                transaction.set_data("input_items_count", len(self._context_items))
+                transaction.set_data("output_items_count", len(filtered_items))
 
             return filtered_items or []
 

@@ -26,6 +26,10 @@
                     "name": "SearchFilterPlugin"
                 },
                 {
+                    "name": "CustomTagsFilterPlugin",
+                    "display": false
+                },
+                {
                     "name": "AdditionalFilterPlugin"
                 }
             ],
@@ -146,6 +150,10 @@
                     "name": "SearchFilterPlugin"
                 },
                 {
+                    "name": "CustomTagsFilterPlugin",
+                    "display": false
+                },
+                {
                     "name": "AdditionalFilterPlugin"
                 }
             ],
@@ -262,6 +270,10 @@
             "filters": [
                 {
                     "name": "SearchFilterPlugin"
+                },
+                {
+                    "name": "CustomTagsFilterPlugin",
+                    "display": false
                 },
                 {
                     "name": "AdditionalFilterPlugin"
@@ -394,6 +406,10 @@
                     "name": "SearchFilterPlugin"
                 },
                 {
+                    "name": "CustomTagsFilterPlugin",
+                    "display": false
+                },
+                {
                     "name": "AdditionalFilterPlugin"
                 }
             ],
@@ -504,6 +520,10 @@
             "filters": [
                 {
                     "name": "SearchFilterPlugin"
+                },
+                {
+                    "name": "CustomTagsFilterPlugin",
+                    "display": false
                 },
                 {
                     "name": "AdditionalFilterPlugin"
@@ -649,6 +669,10 @@
                     "name": "SearchFilterPlugin"
                 },
                 {
+                    "name": "CustomTagsFilterPlugin",
+                    "display": false
+                },
+                {
                     "name": "AdditionalFilterPlugin"
                 }
             ],
@@ -769,6 +793,10 @@
             "filters": [
                 {
                     "name": "SearchFilterPlugin"
+                },
+                {
+                    "name": "CustomTagsFilterPlugin",
+                    "display": false
                 },
                 {
                     "name": "AdditionalFilterPlugin"

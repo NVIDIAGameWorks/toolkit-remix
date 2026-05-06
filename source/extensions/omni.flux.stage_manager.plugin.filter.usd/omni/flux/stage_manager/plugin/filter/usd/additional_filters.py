@@ -16,6 +16,7 @@
 """
 
 import carb
+import omni.appwindow
 from omni import ui
 from omni.flux.stage_manager.core import get_instance as _get_stage_manager_core_instance
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
@@ -23,17 +24,62 @@ from omni.flux.stage_manager.factory.plugins.filter_plugin import FilterCategory
 from omni.kit.widget.options_menu.popup_menu import AbstractPopupMenu, PopupMenuDelegate, PopupMenuItemDelegate
 from pydantic import Field, PrivateAttr
 
+from .base import CheckboxGroupFilterPlugin as _CheckboxGroupFilterPlugin
 from .base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
 from .base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 
 EXCLUDE_FILTERS = ["AdditionalFilterPlugin", "SearchFilterPlugin"]
+_FILTER_CATEGORY_SPACING = 8
+_FILTER_CATEGORY_PADDING = 4
+_FILTER_CATEGORY_HEADER_TOP_SPACING = 8
+_FILTER_CATEGORY_ACTION_TRAILING_PADDING = 12
+_FILTER_POPUP_EDGE_MARGIN = 8
+_FILTER_POPUP_NON_BODY_HEIGHT = 28
+_FILTER_POPUP_MAX_BODY_HEIGHT = 500
+_FILTER_POPUP_WIDTH = 340
 
 # Section titles for each FilterCategory in the additional filters popup
 _FILTER_CATEGORY_TITLES = {
     _FilterCategory.OTHER: "Multi-Option Filters",
     _FilterCategory.PRIMS: "Prim Filters",
     _FilterCategory.GROUP: "Group Filters",
+    _FilterCategory.TAGS: "Custom Tags Filter",
 }
+
+
+def _clamp_filter_popup_x(anchor_x: float, app_width: float) -> float:
+    """Clamp the filter popup's X position inside the app window."""
+    max_x = max(_FILTER_POPUP_EDGE_MARGIN, app_width - _FILTER_POPUP_WIDTH - _FILTER_POPUP_EDGE_MARGIN)
+    return max(_FILTER_POPUP_EDGE_MARGIN, min(anchor_x, max_x))
+
+
+def _get_app_window_width_points() -> float:
+    """Return the app window width in UI points."""
+    app_window = omni.appwindow.get_default_app_window()
+    if not app_window:
+        return 0
+    return app_window.get_size()[0] / ui.Workspace.get_dpi_scale()
+
+
+def _get_app_window_height_points() -> float:
+    """Return the app window height in UI points."""
+    app_window = omni.appwindow.get_default_app_window()
+    if not app_window:
+        return 0
+    return app_window.get_size()[1] / ui.Workspace.get_dpi_scale()
+
+
+def _get_filter_popup_body_height(anchor_y: float | None = None) -> float:
+    """Return the maximum popup body height allowed by the app window."""
+    if anchor_y is None:
+        return _FILTER_POPUP_MAX_BODY_HEIGHT
+
+    app_height = _get_app_window_height_points()
+    if not app_height:
+        return _FILTER_POPUP_MAX_BODY_HEIGHT
+
+    available_height = app_height - anchor_y - _FILTER_POPUP_EDGE_MARGIN - _FILTER_POPUP_NON_BODY_HEIGHT
+    return max(1, min(_FILTER_POPUP_MAX_BODY_HEIGHT, available_height))
 
 
 class AdditionalFiltersPopupMenuItemDelegate(PopupMenuItemDelegate):
@@ -81,29 +127,114 @@ class AdditionalFiltersPopupMenuItemDelegate(PopupMenuItemDelegate):
 
 
 class AdditionalFiltersPopupMenu(AbstractPopupMenu):
-    def __init__(self, title, filters: list[_StageManagerUSDFilterPlugin], on_filter_changed_fn=None):
-        self._delegate = AdditionalFiltersPopupMenuDelegate(filters, on_filter_changed_fn)
+    def __init__(
+        self,
+        title,
+        filters: list[_StageManagerUSDFilterPlugin],
+        on_filter_changed_fn=None,
+        body_height: float | None = None,
+    ):
+        self._on_filter_changed_fn = on_filter_changed_fn
+        self._category_header_frames = {}
+        self._body_height = body_height or _FILTER_POPUP_MAX_BODY_HEIGHT
+        self._delegate = AdditionalFiltersPopupMenuDelegate(filters, self._on_filter_changed)
+        self._scrolling_frame = None
+        self._body_stack = None
         super().__init__(title, self._delegate)
         self.filters = filters
 
     def build_menu_items(self):
-        with ui.HStack(spacing=ui.Pixel(8)):
+        self._category_header_frames.clear()
+        self._body_stack = None
+        self._scrolling_frame = ui.ScrollingFrame(
+            width=ui.Pixel(_FILTER_POPUP_WIDTH),
+            height=ui.Pixel(self._body_height),
+            horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+            vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED,
+            computed_content_size_changed_fn=self._update_body_height,
+        )
+        with self._scrolling_frame:
+            self._build_menu_body()
+
+    def _update_body_height(self):
+        if not self._scrolling_frame:
+            return
+
+        if self._scrolling_frame.scroll_y_max:
+            self._scrolling_frame.height = ui.Pixel(self._body_height)
+            return
+
+        content_height = (
+            self._body_stack.computed_height if self._body_stack else self._scrolling_frame.computed_content_height
+        )
+        if content_height:
+            self._scrolling_frame.height = ui.Pixel(max(1, min(self._body_height, content_height)))
+
+    def _build_menu_body(self):
+        categories = [category for category in _FilterCategory if self._delegate.items[category]]
+        last_category = categories[-1] if categories else None
+
+        with ui.HStack(width=ui.Pixel(_FILTER_POPUP_WIDTH), height=0, spacing=ui.Pixel(_FILTER_CATEGORY_SPACING)):
             ui.Spacer(width=0)
-            with ui.VStack():
-                ui.Spacer()
-                for category in _FilterCategory:
+            self._body_stack = ui.VStack(height=0)
+            with self._body_stack:
+                for category in categories:
                     items = self._delegate.items[category]
-                    if not items:
-                        continue
-                    with ui.HStack():
-                        ui.Spacer(width=4)
-                        ui.Label(_FILTER_CATEGORY_TITLES[category], name="PropertiesPaneSectionTitle")
+                    ui.Spacer(height=ui.Pixel(_FILTER_CATEGORY_HEADER_TOP_SPACING))
+                    self._category_header_frames[category] = ui.Frame(
+                        height=0, build_fn=lambda c=category: self._build_category_header(c)
+                    )
                     ui.Spacer(height=ui.Pixel(8))
                     for item in items:
                         item.build_item()
                         if category != _FilterCategory.OTHER:
                             ui.Spacer(height=ui.Pixel(4))
-                    ui.Spacer(height=ui.Pixel(4))
+                    bottom_spacing = _FILTER_CATEGORY_HEADER_TOP_SPACING if category == last_category else 4
+                    ui.Spacer(height=ui.Pixel(bottom_spacing))
+
+    def _build_category_header(self, category: _FilterCategory):
+        with ui.HStack(height=0, spacing=ui.Pixel(_FILTER_CATEGORY_SPACING)):
+            ui.Spacer(width=ui.Pixel(_FILTER_CATEGORY_PADDING))
+            ui.Label(_FILTER_CATEGORY_TITLES[category], name="PropertiesPaneSectionTitle", width=0)
+            if not self._delegate.has_bulk_actions(category):
+                return
+            ui.Spacer(width=ui.Fraction(1))
+            self._build_category_action("Select All", category, True)
+            ui.Spacer(width=ui.Pixel(_FILTER_CATEGORY_SPACING))
+            self._build_category_action("Deselect All", category, False)
+            ui.Spacer(width=ui.Pixel(_FILTER_CATEGORY_ACTION_TRAILING_PADDING))
+
+    def _build_category_action(self, text: str, category: _FilterCategory, selected: bool):
+        enabled = self._delegate.can_set_all_selected(category, selected)
+        ui.Label(
+            text,
+            width=0,
+            name="FilterSectionAction",
+            identifier=f"additional_filters_{category.value.lower()}_{'select' if selected else 'deselect'}_all",
+            enabled=enabled,
+            mouse_pressed_fn=lambda *_, c=category, s=selected: self._set_all_selected(c, s),
+        )
+
+    def _set_all_selected(self, category: _FilterCategory, selected: bool):
+        if not self._delegate.can_set_all_selected(category, selected):
+            return
+        if not self._delegate.set_all_selected(category, selected):
+            return
+        self._rebuild_category_headers()
+
+    def _on_filter_changed(self):
+        self._rebuild_category_headers()
+        if self._on_filter_changed_fn:
+            self._on_filter_changed_fn()
+
+    def _rebuild_category_headers(self):
+        for frame in self._category_header_frames.values():
+            frame.rebuild()
+
+    def destroy(self):
+        self._category_header_frames.clear()
+        self._body_stack = None
+        super().destroy()
 
 
 class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
@@ -121,6 +252,46 @@ class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
     def build_title(self, item: ui.MenuItem):
         super().build_title(item)
         self.enable_reset_all(True)
+
+    def has_bulk_actions(self, category: _FilterCategory) -> bool:
+        return any(self._supports_bulk_actions(item) for item in self.items[category])
+
+    def can_set_all_selected(self, category: _FilterCategory, selected: bool) -> bool:
+        return any(self._can_set_item_selected(item, selected) for item in self.items[category])
+
+    def set_all_selected(self, category: _FilterCategory, selected: bool) -> bool:
+        changed = False
+        for item in self.items[category]:
+            if not self._can_set_item_selected(item, selected):
+                continue
+            self._set_item_selected(item, selected)
+            changed = True
+        return changed
+
+    def _supports_bulk_actions(self, item: AdditionalFiltersPopupMenuItemDelegate) -> bool:
+        return item.filter_category.is_or and isinstance(
+            item.filter_obj, (_CheckboxGroupFilterPlugin, _ToggleableUSDFilterPlugin)
+        )
+
+    def _can_set_item_selected(self, item: AdditionalFiltersPopupMenuItemDelegate, selected: bool) -> bool:
+        if not self._supports_bulk_actions(item):
+            return False
+        filter_obj = item.filter_obj
+        if isinstance(filter_obj, _ToggleableUSDFilterPlugin):
+            return filter_obj.filter_active != selected
+        if isinstance(filter_obj, _CheckboxGroupFilterPlugin):
+            return filter_obj.can_set_all_selected(selected)
+        return False
+
+    def _set_item_selected(self, item: AdditionalFiltersPopupMenuItemDelegate, selected: bool):
+        filter_obj = item.filter_obj
+        if isinstance(filter_obj, _ToggleableUSDFilterPlugin):
+            item.filter_active = selected
+            filter_obj.filter_active = selected
+            item.build_item()
+            filter_obj.refresh_filter_items()
+        elif isinstance(filter_obj, _CheckboxGroupFilterPlugin):
+            filter_obj.set_all_selected(selected)
 
     def on_reset_all(self):
         """Reset all filter items to their default values."""
@@ -145,6 +316,10 @@ class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
                     # Handle default_factory if present
                     if default_value is None and field_info.default_factory:
                         default_value = field_info.default_factory()
+                    elif isinstance(default_value, list):
+                        # Copy to avoid mutating field_info.default in place (e.g. selected_tags uses default=[] so
+                        # field_info.default is a shared object across all instances)
+                        default_value = list(default_value)
 
                     setattr(filter_obj, field_name, default_value)
 
@@ -239,17 +414,20 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
 
             active_filters = active_interaction.filters.copy()
             active_filters.extend(active_interaction.additional_filters)
+            seen_names: set[str] = set()
             # Get additional filters from the active interaction plugin
             for filter_plugin in active_filters:
                 if (
                     isinstance(filter_plugin, _StageManagerUSDFilterPlugin)
                     and filter_plugin.name not in EXCLUDE_FILTERS
+                    and filter_plugin.name not in seen_names
                 ):
                     # Get the filter's filter_active to correctly set checkbox state
                     value = {}
                     if isinstance(filter_plugin, _ToggleableUSDFilterPlugin):
                         value = {"filter_active": filter_plugin.filter_active}
                     additional_filters.append([filter_plugin, value])
+                    seen_names.add(filter_plugin.name)
                 elif not isinstance(filter_plugin, _StageManagerUSDFilterPlugin):
                     carb.log_error(
                         f"Filter plugin {filter_plugin.name} is not a valid filter plugin and will be ignored."
@@ -287,8 +465,30 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
 
     def _on_button_clicked(self):
         self._update_active_filters()
-        menu = AdditionalFiltersPopupMenu("Additional Filters", self._active_filters, self._on_filter_changed)
-        menu.show()
+        if self._icon is None:
+            menu = AdditionalFiltersPopupMenu(
+                "Additional Filters",
+                self._active_filters,
+                self._on_filter_changed,
+                body_height=_get_filter_popup_body_height(),
+            )
+            menu.show()
+            return
+
+        app_width = _get_app_window_width_points()
+        popup_x = (
+            _clamp_filter_popup_x(self._icon.screen_position_x, app_width)
+            if app_width
+            else self._icon.screen_position_x
+        )
+        popup_y = self._icon.screen_position_y + self._icon.computed_height
+        menu = AdditionalFiltersPopupMenu(
+            "Additional Filters",
+            self._active_filters,
+            self._on_filter_changed,
+            body_height=_get_filter_popup_body_height(popup_y),
+        )
+        menu.show_at(popup_x, popup_y)
 
     def build_ui(self):
         # Gather available filters and update active filters

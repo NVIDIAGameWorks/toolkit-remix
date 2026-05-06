@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.33.2]
+### Added
+- Add missing `tests/unit/__init__.py` to expose unit test classes for extension test discovery
+
 ## [2.33.1]
 ### Fixed
 - Deferred viewport manipulator and camera property refreshes until release so property panels rebuild once after drag or navigation instead of every frame

@@ -35,6 +35,7 @@ class AllMaterialsInteractionPlugin(_StageManagerUSDInteractionPlugin):
     compatible_filters: list[str] = Field(
         default=[
             "AdditionalFilterPlugin",
+            "CustomTagsFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "VisiblePrimsFilterPlugin",
             "MaterialPrimsFilterPlugin",

@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.5]
+### Added
+- `prim_has_any_tag`: returns True if a prim belongs to any of the given tag collections (OR logic)
+- `refresh_stage`: re-fetches the stage from the USD context (needed when stage opens after core construction)
+
 ## [1.2.4]
 ### Changed
 - Applied new lint rules

@@ -106,7 +106,7 @@ class StageManagerUtils:
         """
         Filter items by category. Each filter's result matches what filter_items would
         return for that predicate alone (passing items plus ancestors); results are
-        then combined by category: OR within PRIMS/GROUP, AND within OTHER, AND between categories.
+        then combined by category: OR within named categories, AND within OTHER, AND between categories.
         AND filters are applied sequentially so predicates run only on the current
         candidate set, reducing work when items have already been ruled out.
         """
@@ -116,16 +116,12 @@ class StageManagerUtils:
             filters_by_category[filter_obj.filter_category].append(filter_obj)
 
         candidates = items_set
-        is_or_categories = (_FilterCategory.PRIMS, _FilterCategory.GROUP)
-
         for category in _FilterCategory:
             category_filters = filters_by_category.get(category, [])
             if not category_filters:
                 continue
 
-            is_or_filter = category in is_or_categories
-
-            if is_or_filter:
+            if category.is_or:
                 closed_sets = [
                     _filter_result_closed(candidates, f.filter_predicate)
                     for f in category_filters
