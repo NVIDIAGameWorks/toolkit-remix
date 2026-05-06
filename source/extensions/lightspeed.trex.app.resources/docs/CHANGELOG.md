@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.8]
+### Fixed
+- Loaded USD MDL support with Remix resources so Packman-provided core materials can resolve
+
 ## [1.27.7]
 ### Changed
 - Restored the Edit/Preferences menu item in the production menu filter.

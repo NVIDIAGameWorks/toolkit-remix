@@ -81,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3614: Fixed capture image path calculation to check images with and without the .usd extension in the filename
 - Fixed GitHub mirror filtering so branch-specific private paths and glob-prefixed entries are checked correctly
 - Fixed GitHub toolkit package downloads to use the GitLab-dispatched version when constructing Packman package names
+- Fixed package flatten soak failures by loading USD MDL support with Packman-provided Remix resource materials
 
 ## [1.4.2-1]
 
