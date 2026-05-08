@@ -16,6 +16,9 @@ Available shared commands in `.agents/commands/`:
 - `remove-extension.md` — safely remove an extension and all its references
 - `update-remix-deps.md` — update RTX Remix target dependencies to latest
 
+If this is a private/internal checkout, also check `.agents/commands/internal/README.md` for internal-only commands when
+that file exists.
+
 ## Subagents
 
 Specialized role instructions in `.agents/subagents/`. Read the matching file and follow its role when the task matches:
