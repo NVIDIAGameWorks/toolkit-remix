@@ -7,15 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- LSSDEVOPS-39: Narrowed GitHub mirror sync to the triggering public branch or tag.
+### Added
 
-- LSSDEVOPS-39: Hardened GitHub mirror sync for shell runners and branch/tag-only pushes.
+- REMIX-5208: Added custom tag filtering and category-level bulk actions to the Stage Manager filter popup
 
-- LSSDEVOPS-39: Addressed mirror denylist feedback from the private-file migration review.
+### Changed
 
-- LSSDEVOPS-39: Made GitHub mirror sync require AWX-provisioned git-filter-repo on kit Linux runners.
+- REMIX-4286: Renamed the prototype AI Tools workspace to AI Tools (Experimental)
+- LSSDEVOPS-39: Updated release automation and repository maintenance workflows.
+- LSSDEVOPS-39: Removed legacy bootstrap from repo tooling.
+- REMIX-4286: Added branch-aware repo tooling and agent guidance for atomic merge sequences.
 
-- LSSDEVOPS-39: Decoupled GitHub Actions checkout from GitLab source SHAs after filtered mirroring.
+### Fixed
+
+- REMIX-4286: Hardened AI Tools ComfyUI connection, workflow submission, job output handling, and widget cleanup
+
+## [1.5.0-0]
 
 ### Added
 
@@ -24,7 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added auto-save feature: periodically saves all dirty layers in the active project; configurable via Edit > Preferences > Auto-Save (enable/disable, interval presets, and custom interval)
 - REMIX-3553: Unified the viewport Lights menu and added intensity-control visibility toggles for light manipulators
 - Added optional RTXIO compression and split-size presets to the mod packaging workflow.
-- REMIX-5208: Added custom tag filtering and category-level bulk actions to the Stage Manager filter popup
 
 ### Changed
 
@@ -38,13 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5212: Expanded from a particle-only bounds fix into a broader property-panel refactor that centralizes bounds/step adapter normalization and routes typed clamping through shared drag widgets across particle, logic, generic USD, and materials workflows.
 - REMIX-5331: Added non-destructive packaging options with redirect/import/flatten modes, USD output extension choices, package-folder opening, and sequential packaging fixes
 - Updated auto-save to default off, prompt before saving, and expose unticked Preferences from the Edit menu again
-- REMIX-4286: Renamed the prototype AI Tools workspace to AI Tools (Experimental)
 - Hardened recent-projects resilience: magic-byte USD validation, per-sublayer path validation, per-item error isolation in the home widget with amber visual cue for failing projects
 - Updated GitHub Actions workflow dependencies to current stable releases.
-- LSSDEVOPS-39: Consolidated private Toolkit files into lightspeed-kit and configured the filtered GitHub mirror path.
-- LSSDEVOPS-39: Retargeted GitHub mirror sync to lightspeed-kit Linux runners.
-- LSSDEVOPS-39: Removed the repoman runtime private-repo download bootstrap while preserving committed internal repo dependency manifests.
-- REMIX-4286: Added branch-aware repo tooling and agent guidance for atomic merge sequences.
 
 ### Fixed
 
@@ -64,11 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4870: Fixed scroll-wheel zoom distance not scaling with Camera Speed setting in the viewport
 - Fixed crash when loading a scene with custom references where the capture layer path cannot be resolved
 - Fixed recent-projects treating a deleted capture as a project error when another valid capture sublayer exists in the project
-- REMIX-4286: Hardened AI Tools ComfyUI connection, workflow submission, job output handling, and widget cleanup
 - REMIX-3614: Fixed capture image path calculation to check images with and without the .usd extension in the filename
 - Fixed package flatten soak failures by loading USD MDL support with Packman-provided Remix resource materials
-
-### Removed
 
 ## [1.4.2-1]
 

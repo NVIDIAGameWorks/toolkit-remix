@@ -83,6 +83,9 @@ On-demand rules and all commands are exposed as Cursor skills (`.cursor/skills/*
   `description`, and `@.agents/commands/<name>.md`), a one-line wrapper in `.claude/commands/`, and add the entry to
   `AGENTS.md`. Keep commands lean and focused — only document information the model cannot reliably infer on its own.
   Do not add default knowledge (e.g. semver rules, git basics, general coding conventions).
+- **Add internal commands** in `.agents/commands/internal/` and index them from `.agents/commands/internal/README.md`.
+  Do not add internal commands to `AGENTS.md` or shared command tables. Agent-specific wrappers are optional; add them
+  only when that agent must discover the internal command directly.
 - **Add new subagents in `.agents/subagents/`**, then create a wrapper in `.claude/agents/<name>.md` (with frontmatter
   and `@.agents/subagents/<name>.md`), and add the entry to `AGENTS.md` and `GEMINI.md`. Cursor discovers
   `.claude/agents/` natively — no separate skill needed.

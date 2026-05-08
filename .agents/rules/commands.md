@@ -49,3 +49,8 @@ git -c core.editor=true rebase --continue
 
 You do not need the user to type a slash command. If the user says anything equivalent to one of the operations above,
 recognize it, load the file, and follow it.
+
+### Private/internal commands
+
+If the user asks for an internal-only workflow and `.agents/commands/internal/README.md` exists, read that file before
+choosing a command. Do not assume every internal command is listed in the shared command table above.
