@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LSSDEVOPS-39: Updated release automation and repository maintenance workflows.
 - LSSDEVOPS-39: Removed legacy bootstrap from repo tooling.
 - REMIX-4286: Added branch-aware repo tooling and agent guidance for atomic merge sequences.
+- Update hdremix and omni_core_materials to `ext-06e306e-main`
 
 ### Fixed
 

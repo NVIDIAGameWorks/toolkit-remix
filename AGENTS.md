@@ -14,7 +14,6 @@ Available shared commands in `.agents/commands/`:
 - `kit-test.md` — run or debug extension tests
 - `prepare-mr.md` — prepare a merge request with proper description
 - `remove-extension.md` — safely remove an extension and all its references
-- `update-remix-deps.md` — update RTX Remix target dependencies to latest
 
 If this is a private/internal checkout, also check `.agents/commands/internal/README.md` for internal-only commands when
 that file exists.
