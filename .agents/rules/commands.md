@@ -32,7 +32,6 @@ git -c core.editor=true rebase --continue
 | Remove an extension                  | `.agents/commands/remove-extension.md`     |
 | Bump versions and update changelogs  | `.agents/commands/bump-exts-changelog.md`  |
 | Diagnose an extension load failure   | `.agents/commands/debug-extension-load.md` |
-| Update RTX Remix target dependencies | `.agents/commands/update-remix-deps.md`    |
 | Add a pip package dependency         | `.agents/commands/add-pip-dep.md`          |
 | Run or debug extension tests         | `.agents/commands/kit-test.md`             |
 
