@@ -23,17 +23,6 @@ from pathlib import Path
 import toml
 
 
-def _diff_ref_spec(source_hash: str, original_hash: str) -> str:
-    """Return the git ref spec for diffing, including uncommitted changes when source is HEAD."""
-    if source_hash == "HEAD":
-        has_uncommitted = subprocess.check_output(
-            ["git", "status", "--porcelain"], text=True
-        ).strip()
-        if has_uncommitted:
-            return original_hash
-    return f"{original_hash}..{source_hash}"
-
-
 def get_changed_files(source_hash: str, original_hash: str) -> list[tuple[str, str]]:
     """
     Find all the files that have changed since the last commit.
@@ -45,11 +34,10 @@ def get_changed_files(source_hash: str, original_hash: str) -> list[tuple[str, s
     Returns:
         A list of change type + file names that have changed since the last commit.
     """
-    ref_spec = _diff_ref_spec(source_hash, original_hash)
     changed_files = subprocess.check_output(
         # Use --no-page to avoid paging the output
         # Use --name-only to only return the file names, not the changed diff
-        ["git", "--no-pager", "diff", "--name-status", ref_spec],
+        ["git", "--no-pager", "diff", "--name-status", f"{original_hash}..{source_hash}"],
         text=True
     )
     return [(file[0], file[2:]) for file in changed_files.splitlines()]
@@ -100,13 +88,7 @@ def validate_extension_changes(
     """
 
     def get_source(file_path, hashval):
-        """Use `git show` to get the version of a file at the given commit, or read from disk for HEAD with uncommitted changes."""
-        if hashval == "HEAD" and file_path.exists():
-            has_uncommitted = subprocess.check_output(
-                ["git", "status", "--porcelain", "--", file_path.as_posix()], text=True
-            ).strip()
-            if has_uncommitted:
-                return file_path.read_text()
+        """Use `git show` to get the version of a file at the given commit"""
         try:
             return subprocess.check_output(["git", "show", f"{hashval}:{file_path.as_posix()}"], text=True)
         except subprocess.CalledProcessError:
@@ -214,11 +196,10 @@ def get_diff_lines(file_path: str, source_hash: str, original_hash: str):
         # Get the number of lines in the CHANGELOG file to have a complete diff of the file
         with open(file_path, 'r') as file_content:
             lines = len(file_content.readlines())
-        ref_spec = _diff_ref_spec(source_hash, original_hash)
         diff_output = subprocess.check_output(
             # Use --no-page to avoid paging the output
             # Use --unified={lines} to avoid trimming the diff context
-            ["git", "--no-pager", "diff", f"--unified={lines}", ref_spec, '--', file_path],
+            ["git", "--no-pager", "diff", f"--unified={lines}", f"{original_hash}..{source_hash}", '--', file_path],
             text=True
         )
     except TypeError:

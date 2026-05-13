@@ -14,7 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- REMIX-4869: Show an informational dialog when opening a project missing required metadata, directing users to pick MOD layers in the Open > Edit workflow
 - REMIX-4286: Renamed the prototype AI Tools workspace to AI Tools (Experimental)
 - LSSDEVOPS-39: Updated release automation and repository maintenance workflows.
 - LSSDEVOPS-39: Removed legacy bootstrap from repo tooling.
@@ -74,7 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed recent-projects treating a deleted capture as a project error when another valid capture sublayer exists in the project
 - REMIX-3614: Fixed capture image path calculation to check images with and without the .usd extension in the filename
 - Fixed package flatten soak failures by loading USD MDL support with Packman-provided Remix resource materials
-- REMIX-4869: Fixed legacy projects (created in older toolkit versions) failing to load due to missing `lightspeed_layer_type` metadata key; the toolkit now auto-migrates these projects on open
 
 ## [1.4.2-1]
 
