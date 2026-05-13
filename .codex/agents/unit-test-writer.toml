@@ -1,0 +1,9 @@
+description = """
+PROACTIVELY use this agent after feature code is written and unit tests are needed. Do NOT use for e2e or UI tests.
+
+Examples:
+- After writing a new function → dispatch unit-test-writer
+- "I refactored the layer manager" → dispatch unit-test-writer
+- "Add tests for the price calculator" → dispatch unit-test-writer"""
+developer_instructions = "@.agents/subagents/unit-tests.md"
+name = "unit-test-writer"

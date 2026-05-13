@@ -63,27 +63,28 @@ class MyExtension(omni.ext.IExt):
         _instances.clear()
 ```
 
-### `default_attr` cleanup pattern — multiple attributes to tear down
+### Explicit cleanup pattern — multiple attributes to tear down
 
-`reset_default_attrs` calls `destroy()` on each attribute (if it exists), then resets it to the default value. Use this
-instead of manually nulling attributes in `on_shutdown`:
+New code should clean up lifecycle-owned attributes explicitly in `on_shutdown()` or `destroy()`. Do not add new
+`default_attr` / `reset_default_attrs` usage; that pattern remains in legacy code only.
 
 ```python
-from omni.flux.utils.common import reset_default_attrs
-
 class MyExtension(omni.ext.IExt):
     def __init__(self):
         super().__init__()
-        self.default_attr = {"_core": None, "_sub": None}
-        for attr, value in self.default_attr.items():
-            setattr(self, attr, value)
+        self._core = None
+        self._sub = None
 
     def on_startup(self, ext_id: str):
         self._core = MyCore()
         self._sub = EventSubscription(...)
 
     def on_shutdown(self):
-        reset_default_attrs(self)
+        if self._sub is not None:
+            self._sub = None
+        if self._core is not None:
+            self._core.destroy()
+            self._core = None
 ```
 
 ### Pure library pattern — no lifecycle management
@@ -99,14 +100,16 @@ Extensions that are just Python packages omit `extension.py` entirely. Register 
 
 - `.core` does the work. It takes inputs and produces outputs. No UI, no menus.
 - `.widget` shows the UI. It fires subscriptions when the user interacts. It does no processing.
-- `.controller` connects them. It is the only extension a user needs to enable.
+- A top-level feature entry extension wires `.core`, `.widget`/`.window`, and `.menu` pieces together. In this repo,
+  that entry point usually follows a nearby feature, app, menu, window, or bundle pattern for naming and loading.
 
 This means you can swap the UI without changing the logic, and reuse the logic from a completely different UI. A
 `.widget` built on `omni.ui.Frame` can be embedded in a window, a sidebar, or a panel in any application — not just the
 one it was designed for.
 
-**Widget rule:** Always build widgets on `omni.ui.Frame` or `omni.ui.Stack`, never on `omni.ui.Window`. A widget must be
-embeddable anywhere without creating a standalone window.
+**Widget rule:** Reusable `.widget` extensions and widget components must build on `omni.ui.Frame` or `omni.ui.Stack` so
+they remain embeddable anywhere. Dedicated `.window` extensions or top-level feature entry extensions may own an
+`omni.ui.Window` when the feature intentionally needs a standalone window.
 
 **Style rule:** Never define a stylesheet inside a widget or window extension. Styles belong in the app-level `.style`
 extension. Use identifier names on UI elements so the stylesheet can target them.

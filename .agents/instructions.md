@@ -1,20 +1,16 @@
-# Agent Instructions — lightspeed-kit
+# Agent Instructions - lightspeed-kit
 
-> **Learnings & memory:** Any new patterns, corrections, or project knowledge you discover during a session belong in
-> the appropriate `docs_dev/` file (or a new `docs_dev/` file if no section fits). Do NOT accumulate learnings only in
-> agent memory — `docs_dev/` is the canonical source for both humans and agents.
+Lean always-on shared context. Detailed procedures stay in referenced `.agents/` files.
 
----
-
-# Project Overview & Commands
+## Project + Commands
 
 @.agents/context/project.md
 
-# Code Architecture (Remix-Specific Patterns)
+## Architecture
 
 @.agents/context/architecture.md
 
-# Rules (always apply)
+## Always Rules
 
 @.agents/rules/code-style.md
 @.agents/rules/code-comments.md
@@ -24,14 +20,19 @@
 @.agents/rules/commands.md
 @.agents/rules/subagents.md
 @.agents/rules/completion-gates.md
+@.agents/rules/memory-promotion.md
 
-# Research Resources
+## Local
 
-See `.agents/context/resources.md` for web documentation URLs, sub-agent usage patterns, codebase search patterns, and
-legal/compliance references.
+If `.agents/instructions.local.md` exists, read it now. It is ignored machine-local always-on context.
 
-# Reference (read when relevant to your task)
+## Resources
 
-- `.agents/rules/extension-docs.md` — extension README structure (required sections, template)
-- `.agents/rules/documentation.md` — when and where to update docs
-- `.agents/rules/agent-config.md` — how to maintain this multi-agent config setup
+Read `.agents/context/resources.md` when task needs web docs or repo pattern discovery refs.
+Shared skills live in `.agents/skills/`; key automatic skills: `completion-gates`, `memory-promotion`.
+
+## On Demand
+
+- `.agents/rules/extension-docs.md` - extension README required sections/template
+- `.agents/rules/documentation.md` - doc placement/update rules
+- `.agents/rules/agent-config.md` - multi-agent config maintenance

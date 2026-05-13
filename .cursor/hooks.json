@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": "git -c alias.agent-hook=!./.agents/scripts/run_packman_python.sh agent-hook .agents/hooks/stop_gate.py --agent cursor .agents/hooks/completion_gates_check.py .agents/hooks/memory_promotion_check.py",
+        "timeout": 600,
+        "loop_limit": 5,
+        "failClosed": true
+      }
+    ]
+  }
+}

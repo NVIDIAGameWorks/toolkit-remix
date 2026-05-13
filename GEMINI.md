@@ -1,5 +1,7 @@
 # GEMINI.md
 
-This file provides guidance to Google Gemini CLI and Antigravity when working with code in this repository.
+Gemini CLI / Antigravity entry. Canonical repo instructions:
 
 @.agents/instructions.md
+
+Command/skill/subagent index: `AGENTS.md`.

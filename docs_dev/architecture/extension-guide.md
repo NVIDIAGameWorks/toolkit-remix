@@ -13,20 +13,23 @@ Extension names encode their role:
 - `.widget` — Reusable UI component built on `omni.ui.Frame`/`omni.ui.Stack` (never a window). Exposes `Event`
   subscriptions for interactions; contains no business logic.
 - `.window` — Wraps one or more widgets in an `omni.ui.Window`. Often skipped — a simple window can live directly in
-  `.controller`.
-- `.menu` — Menu items only, exposes subscriptions. Often skipped — a simple menu can live directly in `.controller`.
+  the top-level feature entry extension.
+- `.menu` — Menu items only, exposes subscriptions. Often skipped — a simple menu can live directly in the top-level
+  feature entry extension.
 - `.model` — Data models for tree/list views (`omni.ui.AbstractItemModel`)
-- `.controller` — The top-level entry point for a feature. Wires `.core`, `.widget`/`.window`, and `.menu` together.
-  This is the extension users enable to activate a feature.
 - `.service` — REST API endpoints (FastAPI via Omniverse microservices)
 - `.plugin.*` — Plugin implementations loaded by a factory
 - `.app.resources` — Shared assets (icons, images, fonts) for an application. No code.
 - `.style` — Global application stylesheet. No per-widget inline styles; all styles come from here.
 - `.bundle` — Meta-extension that aggregates others for convenience loading
 
+A top-level feature entry extension wires `.core`, `.widget`/`.window`, and `.menu` pieces together. In the current
+repo this is normally an app, menu, window, bundle, or existing feature extension; match nearby patterns for naming and
+loading.
+
 ### Dependency Direction
 
-`.controller` → `.widget` + `.core`. `.widget` and `.core` must never depend on each other.
+Feature entry extension → `.widget` + `.core`. `.widget` and `.core` must never depend on each other.
 
 ### Flux / Lightspeed Namespaces
 

@@ -1,83 +1,67 @@
 # prepare-mr
 
-Prepares the current branch for a merge request by running all completion gates, then pushing and
-creating the MR. Platform-agnostic — works with both GitHub and GitLab.
+Run completion gates, push, create MR/PR. GitHub/GitLab. Ref: `docs_dev/getting-started/git-workflow.md`.
 
-See `docs_dev/getting-started/git-workflow.md` for branching conventions and MR process.
-
-**Arguments:** none (auto-detects changed extensions and branch info)
-
-## Step 0 — Pre-flight
+## Step 0 - Pre-flight
 
 ```bash
 git branch --show-current && git status --short
 ```
 
-- **On `main`?** Run `/create-branch` (`.agents/commands/create-branch.md`) first, then continue.
-- **Dirty working tree?** Run `/commit` (`.agents/commands/commit.md`) to commit pending work first.
-- **Determine target branch.** Most MRs target `main`. Target a parent `feature/*` branch when the work is part of a
-  larger change that should be tested thoroughly before merging to `main`, or when the work is explicitly scoped to
-  that feature branch. If unclear, ask the user. Store for all subsequent steps.
+- On `main` -> run `.agents/commands/create-branch.md`.
+- Dirty -> run `.agents/commands/commit.md`.
+- Target branch: usually `main`; use parent `feature/*` when stacked/scoped. If unclear, ask. Reuse target below.
 
-## Step 1 — Completion Gates
+## Step 1 - Gates
 
-Run every gate from `.agents/rules/completion-gates.md` in order:
+Run applicable `.agents/rules/completion-gates.md`:
 
-1. **Format**: `.\format_code.bat` — if files change, stage them.
-2. **Lint**: `.\lint_code.bat all` — if errors, fix and re-run.
-3. **Version bump + changelogs**: Run `/bump-exts-changelog` (`.agents/commands/bump-exts-changelog.md`),
-   using the **target branch** instead of `origin/main` for diff comparisons.
-4. **Docs**: Check if any changed behavior needs doc updates.
-5. **Tests**: Ask the user if they want to run tests for modified extensions before pushing.
+1. Format: `.\format_code.bat`; stage changes.
+2. Lint: `.\lint_code.bat all`; fix/rerun.
+3. Version/changelog: `.agents/commands/bump-exts-changelog.md`, using target branch for diffs.
+4. Docs: update changed behavior docs.
+5. Tests: ask user before running modified extension tests.
 
-If any gate produces changes, run `/commit` to commit them before proceeding.
+Gate changes -> commit before continuing.
 
-## Step 2 — Push
+## Step 2 - Push
 
 ```bash
 git push -u origin $(git branch --show-current)
 ```
 
-## Step 3 — Create MR/PR
+## Step 3 - Create MR/PR
 
-Detect which CLI is available:
+Detect CLI:
 
 ```bash
 which gh 2>/dev/null && echo "github" || (which glab 2>/dev/null && echo "gitlab" || echo "none")
 ```
 
-- **`gh`**: `gh pr create --base <target-branch> --title "<title>" --body "<body>"`
-- **`glab`**:
-  1. Treat `.gitlab/merge_request_templates/Default.md` as the repo-local source of truth for the GitLab MR body.
-     If the repo-local template and GitLab project settings ever diverge, prefer the repo-local file.
-  2. Build the final MR description by prepending a short summary section (root `CHANGELOG.md` entry), the list of
-     modified extensions, and test/validation notes to that template.
-     The description must include the actual measured coverage percentage from a real `--coverage` report for the
-     modified extension(s). Do not replace the percentage with a test list or a qualitative claim such as "tests were
-     added". If the `--coverage` run still has unrelated baseline failures, keep the real percentage in the
-     description and state clearly that the run failed and why.
-  3. Create the MR with explicit repo-local defaults instead of relying on GitLab project defaults:
+- `gh`: `gh pr create --base <target-branch> --title "<title>" --body "<body>"`
+- `glab`:
+  - Body source of truth: `.gitlab/merge_request_templates/Default.md`.
+  - Prepend short summary, root changelog entry, modified exts, validation notes.
+  - Include real measured `--coverage` percent for changed ext(s). If coverage run fails on unrelated baseline, keep
+    real percent and state failure.
+  - Create:
 
-     ```bash
-     glab mr create --target-branch <target-branch> --title "<title>" --description "<body>" --draft --remove-source-branch=true --squash-before-merge=true
-     ```
+    ```bash
+    glab mr create --target-branch <target-branch> --title "<title>" --description "<body>" --draft --remove-source-branch=true --squash-before-merge=true
+    ```
 
-  4. When updating an existing GitLab MR description from PowerShell, prefer:
+  - PowerShell MR desc update: write UTF-8 no-BOM file, then:
 
-     ```bash
-     glab api "projects/:fullpath/merge_requests/<iid>" -X PUT -F "description=@<path-to-utf8-no-bom-file>"
-     ```
+    ```bash
+    glab api "projects/:fullpath/merge_requests/<iid>" -X PUT -F "description=@<path-to-utf8-no-bom-file>"
+    ```
 
-     Do not rely on `glab mr update -d "<multiline body>"` for large multiline descriptions in PowerShell, and do not
-     send a raw JSON body with `glab api --input` for this endpoint.
+  - Avoid `glab mr update -d "<multiline>"` for large bodies. Avoid raw JSON `glab api --input` here.
+  - Preserve non-versioned GitLab checks: merge method, pipeline rules, discussion resolution.
+- No CLI: print push URL; user creates MR/PR.
 
-  5. Preserve any GitLab-enforced merge checks that cannot be versioned in-repo (for example, merge method, pipeline
-     requirements, and discussion-resolution requirements).
-- **Neither**: Print the push URL and tell the user to create the MR/PR manually.
-
-The title and body should be derived from the root CHANGELOG.md entry and the list of modified extensions.
+Title/body from root changelog + modified exts.
 
 ## Notes
 
-- Do not force-push or amend commits unless the user explicitly asks.
-- If a gate fails and cannot be fixed, report it — do not skip gates.
+No force-push/amend unless user asks. Gate fail + cannot fix -> report; do not skip.

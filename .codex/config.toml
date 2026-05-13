@@ -1,0 +1,11 @@
+[features]
+hooks = true
+
+[mcp_servers.kit-dev-mcp]
+url = "http://kit-dev-mcp.nvidia.com/mcp"
+
+[mcp_servers.omni-ui-mcp]
+url = "http://omni-ui-mcp.nvidia.com/mcp"
+
+[mcp_servers.usd-code-mcp]
+url = "http://usd-code-mcp.nvidia.com/mcp"

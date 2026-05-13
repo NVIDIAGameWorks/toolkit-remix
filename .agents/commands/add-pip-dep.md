@@ -1,41 +1,27 @@
 # add-pip-dep
 
-Add a new third-party Python package (pip dependency) to the project so it is available to extensions at runtime.
+Add third-party pip package for extension runtime. Full ref: `docs_dev/patterns/pip-packages.md`.
 
-*Full reference: `docs_dev/patterns/pip-packages.md`*
+## Critical
 
-## Important — License Check and OSRB Ticket Required
+License + OSRB required for every new package. Apache-2.0/MIT/BSD usually OK; avoid GPL/LGPL. Tell user OSRB required
+and link `docs_dev/patterns/pip-packages.md` "Step 0 - License Check".
 
-Confirm license compatibility (Apache-2.0, MIT, BSD are fine; avoid GPL/LGPL). An OSRB ticket **must** be filed for
-every new package. See `docs_dev/patterns/pip-packages.md` → "Step 0 — License Check" for the full OSRB process,
-including instructions for NVIDIA employees vs. external contributors. **Tell the user explicitly** about the OSRB
-requirement and link them to the docs.
+## Steps
 
-## Step 1 — Add to `deps/pip_flux.toml`
+1. Add exact version to `deps/pip_flux.toml` with OSRB comment; use doc format.
+2. Build:
 
-Pin to exact version with OSRB comment. See `docs_dev/patterns/pip-packages.md` for the exact format.
+   ```powershell
+   .\build.bat
+   ```
 
-## Step 2 — Build
+3. Every importing extension declares:
 
-```
-.\build.bat
-```
+   ```toml
+   [dependencies]
+   "omni.flux.pip_archive" = {}
+   ```
 
-## Step 3 — Declare the Runtime Dependency
-
-Add to every extension that imports the package:
-
-```toml
-[dependencies]
-"omni.flux.pip_archive" = {}
-```
-
-## Step 4 — Verify
-
-Import in a test and confirm it loads.
-
-## Step 5 — After Merging to Main
-
-Merging a new package to `main` triggers a CI build that publishes a new `pip_repo_cache`. **This cache is private by
-default.** After the merge completes, the cache must be manually set to public so that users and CI can download the
-archive. Remind the user to do this after their PR is merged.
+4. Verify import in test.
+5. After merge to `main`, CI publishes new `pip_repo_cache`; private by default. Remind user to make cache public.

@@ -1,0 +1,9 @@
+description = """
+PROACTIVELY use this agent for USD operations — stage manipulation, prim operations, layer management, composition arcs, pxr Python bindings.
+
+Examples:
+- "Implement batch prim renaming" → dispatch usd-expert
+- "Fix layer references breaking after save" → dispatch usd-expert
+- "Add UsdSkel support" → dispatch usd-expert"""
+developer_instructions = "@.agents/subagents/usd-expert.md"
+name = "usd-expert"

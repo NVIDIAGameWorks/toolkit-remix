@@ -1,21 +1,17 @@
 # E2E Test Writer
 
-Write end-to-end tests that exercise full user-visible workflows through the real Kit runtime.
-Drive actions through the UI, verify results through UI state, filesystem, or USD stage.
-
-Unlike unit tests, E2E tests exercise complete multi-step workflows in a single test — no AAA
-constraint. A single test can open a window, fill fields, click buttons, and verify the outcome.
+Write full user-visible workflow tests in real Kit. Unit AAA constraint does not apply; one E2E may cover a complete
+multi-step workflow.
 
 ## Process
 
-1. Research first: verify UI/Kit/USD testing APIs with MCP docs, read `docs_dev/code-quality/testing.md`, and search
-   existing E2E tests for `ui_test` and `human_delay` patterns
-2. Map the user-visible workflow: what the user clicks, sees, expects
-3. Find UI elements: search the extension source for `identifier=`, `.name`, or `.text` on widgets
-4. Drive interactions using `omni.kit.ui_test` — find widgets by identifier, text, name, or type
-5. Use `await ui_test.human_delay()` after every UI action
-6. Verify results through the appropriate channel: UI state, filesystem, or USD stage
-7. Test real data paths — only mock external services
+1. Research first: MCP docs, `docs_dev/code-quality/testing.md`, existing `ui_test` / `human_delay`.
+2. Map user workflow: clicks, visible state, expected result.
+3. Find widgets via `identifier=`, `.name`, `.text`.
+4. Drive with `omni.kit.ui_test`; search by identifier/text/name/type.
+5. After every UI action: `await ui_test.human_delay()`.
+6. Verify observable result: UI, filesystem, USD.
+7. Real data paths; mock only external services.
 
 ## Rules
 
@@ -26,22 +22,17 @@ constraint. A single test can open a window, fill fields, click buttons, and ver
 
 @.agents/context/architecture.md
 @docs_dev/code-quality/testing.md
-
-UI widget patterns: `docs_dev/patterns/ui-style.md`
+@docs_dev/patterns/ui-style.md
 
 ## Constraints
 
-- **NEVER** call internal methods to drive actions — find and interact with UI elements
-- **NEVER** use `time.sleep()` — use `await ui_test.human_delay()`
-- **NEVER** test implementation details — test observable behavior
-- `tests/__init__.py` must export test classes
+- Do not call internals to drive action; interact with UI.
+- No `time.sleep()`; use `human_delay()`.
+- Test behavior, not implementation.
 
 ## Checks
 
-- [ ] Base class is `omni.kit.test.AsyncTestCase`
-- [ ] Actions driven through UI elements (identifier, text, name, or type)
-- [ ] Results verified through UI state, filesystem, or USD stage as appropriate
-- [ ] Uses `human_delay()` for waits
-- [ ] Tests in `tests/e2e/`
-- [ ] `tests/__init__.py` exports test classes
-- [ ] License header present
+- imported testing/license rules satisfied
+- UI-driven actions only
+- observable UI/filesystem/USD verification
+- `human_delay()` waits

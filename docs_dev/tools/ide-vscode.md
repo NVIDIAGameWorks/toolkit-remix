@@ -80,29 +80,3 @@ alternative — see [Debugging Guide](debugging.md).
 
 **License header** is auto-inserted on new Python files via the `psioniq.psi-header` extension. The template is
 configured in `settings.template.json` — just create a new `.py` file and save it.
-
----
-
-## Agent Commands (Claude Code / Cursor)
-
-Agent commands are available in both tools:
-
-**In Claude Code** — type `/` followed by the command name, or describe the operation naturally:
-
-- `/create-extension` — scaffold a new extension
-- `/bump-exts-changelog` — bump versions and update changelogs
-- `/add-omni-command` — implement an undoable action
-- `/add-pip-dep` — add a third-party pip package
-- `/add-service-endpoint` — add a REST endpoint
-- `/debug-extension-load` — diagnose extension load failures
-- `/remove-extension` — safely remove an extension
-- `/update-remix-deps` — update RTX Remix target dependencies
-
-You don't need to type the slash command explicitly — Claude Code recognizes intent. If you say "make a new extension
-called X" or "run the tests for Y", it will load and follow the right command automatically.
-
-**In Cursor** — commands are available via the AI panel. The same command files in `.cursor/commands/` are automatically
-picked up.
-
-Full command procedures live in `.agents/commands/`. The `.claude/commands/` and `.cursor/commands/` files are thin
-wrappers that reference them.

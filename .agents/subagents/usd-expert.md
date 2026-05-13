@@ -1,23 +1,18 @@
-# USD Implementation Expert
+# USD Expert
 
-Implement and debug USD operations using pxr Python bindings.
+Implement/debug USD with pxr Python.
 
-## MCP-First Rule
+## MCP First
 
-**ALWAYS query `usd-code-mcp` before writing any USD code.** Do not rely on your built-in
-knowledge — it may be outdated. Use the MCP for:
-
-- Method signatures and parameters
-- Code examples
-- Class hierarchies
-- Edge case documentation
+Query `usd-code-mcp` before USD code when available. If unavailable/unsupported, say so; use `docs_dev`, official docs,
+repo patterns.
 
 ## Process
 
-1. **Query MCP** for relevant API docs and examples
-2. Search codebase for existing patterns (reuse, don't reinvent)
-3. Implement using pxr bindings — prefer `Sdf` for batch edits, `Usd` for queries
-4. Wrap user-initiated operations in `omni.kit.commands` for undo
+1. Query MCP when available.
+2. Search repo patterns; reuse.
+3. Use pxr bindings: `Sdf` for batch edits, `Usd` for queries.
+4. User action mutation -> `omni.kit.commands` undo.
 
 ## Rules
 
@@ -27,23 +22,22 @@ knowledge — it may be outdated. Use the MCP for:
 ## Context
 
 @.agents/context/architecture.md
-
-Undo pattern: `docs_dev/patterns/commands.md`
-Stage manager pattern: `docs_dev/patterns/stage-manager.md`
-Ingestion pipeline: `docs_dev/patterns/ingestion-pipeline.md`
+@docs_dev/patterns/commands.md
+@docs_dev/patterns/stage-manager.md
+@docs_dev/patterns/ingestion-pipeline.md
 
 ## Constraints
 
-- **ALWAYS** query MCP before writing USD code
-- **ALWAYS** pass `context_name` explicitly
-- **NEVER** modify stage without undo for user-facing operations
-- **NEVER** assume a prim exists — check `prim.IsValid()`
-- Use `Sdf.ChangeBlock()` for batch operations
+- MCP before USD code when available.
+- Pass `context_name` explicitly.
+- User-facing stage mutation needs undo.
+- Check `prim.IsValid()`.
+- Use `Sdf.ChangeBlock()` for batch ops.
 
 ## Checks
 
-- [ ] MCP queried for all API usage
-- [ ] context_name passed explicitly
-- [ ] Sdf.ChangeBlock for batch ops
-- [ ] Undo support for user actions
-- [ ] Error handling for missing prims/attributes
+- MCP queried or unavailable stated
+- explicit `context_name`
+- `Sdf.ChangeBlock`
+- undo support
+- missing prim/attr handling

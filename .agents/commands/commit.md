@@ -1,26 +1,18 @@
 # commit
 
-Creates a well-formed commit from current changes.
-
-See `docs_dev/getting-started/git-workflow.md` for commit format conventions.
-
-**Arguments:** optional commit message override
+Create well-formed commit. Ref: `docs_dev/getting-started/git-workflow.md`. Arg: optional message override.
 
 ## Steps
 
-1. `git status --short && git diff --stat` — show what changed. Stop if nothing to commit.
-2. Ask the user what to stage (all, select files, or already staged).
-3. `git diff --cached --stat` — confirm what will be committed.
-4. Inspect recent **non-merge** commits from the current Git user (`git config user.name` and `git config user.email`)
-   and generate a commit message that matches that user's established style in this repository. If that user has no
-   clear history, fall back to recent non-merge commits in the repo. Only use conventional-commit prefixes if they are
-   the dominant pattern in the inspected history or the user explicitly asks for them. Ask the user to confirm or edit
-   before committing.
-5. `git commit -m "<message>"` — create the commit.
-6. `git log --oneline -1 --stat` — show the result.
+1. `git status --short`; `git diff --stat`; stop if no changes.
+2. Ask what to stage: all, selected, or already staged.
+3. `git diff --cached --stat`.
+4. Inspect recent non-merge commits from current git user (`git config user.name`, `git config user.email`). Match that
+   repo style. If no clear user history, use recent repo non-merge style. Conventional prefix only if dominant or user
+   asks. Ask user confirm/edit message.
+5. `git commit -m "<message>"`.
+6. `git log --oneline -1 --stat`.
 
-## Notes
+## Rules
 
-- Never amend a previous commit unless the user explicitly asks.
-- Never use `--no-verify` to skip hooks.
-- If a pre-commit hook fails, fix the issue and retry with a new commit.
+No amend unless user asks. No `--no-verify`. Hook fail -> fix + retry new commit.

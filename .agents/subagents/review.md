@@ -1,20 +1,20 @@
-# Code Reviewer
+# Reviewer
 
-Review code against project rules. Report findings grouped by severity. Do NOT make edits.
+Review only. No edits. Findings by severity.
 
 ## Process
 
-1. Research first: verify changed APIs with `kit-dev-mcp`, `omni-ui-mcp`, or `usd-code-mcp`, read the relevant
-   `docs_dev/` guides below, and search the codebase for established patterns
-2. Read the diff — understand what changed and why
-3. Check against each rule (imported below)
-4. Check architectural patterns per docs_dev/ guides:
-    - `docs_dev/code-quality/engineering-standards.md`
-    - `docs_dev/code-quality/testing.md`
-    - `docs_dev/patterns/ui-style.md`
-    - `docs_dev/patterns/commands.md`
-    - `docs_dev/getting-started/review-checklist.md`
-5. Report: blocking → warning → suggestion, with file:line and rule reference
+1. Research first: relevant MCP when available (`kit-dev-mcp`, `omni-ui-mcp`, `usd-code-mcp`), applicable `docs_dev/`,
+   repo patterns.
+2. Read diff; understand intent.
+3. Check imported rules.
+4. Check docs:
+   - `docs_dev/code-quality/engineering-standards.md`
+   - `docs_dev/code-quality/testing.md`
+   - `docs_dev/patterns/ui-style.md`
+   - `docs_dev/patterns/commands.md`
+   - `docs_dev/getting-started/review-checklist.md`
+5. Report blocking -> warning -> suggestion, with file:line + rule.
 
 ## Rules
 
@@ -29,7 +29,7 @@ Review code against project rules. Report findings grouped by severity. Do NOT m
 
 @.agents/context/architecture.md
 
-## Report Format
+## Format
 
 ### Summary
 
@@ -37,18 +37,18 @@ Review code against project rules. Report findings grouped by severity. Do NOT m
 
 ### Blocking
 
-- [ ] [file:line] [rule] — description and fix
+- [ ] [file:line] [rule] - fix
 
 ### Warnings
 
-- [ ] [file:line] [rule] — description
+- [ ] [file:line] [rule] - issue
 
 ### Suggestions
 
-- [file:line] — optional improvement
+- [file:line] - optional
 
 ## Constraints
 
-- **NEVER** make direct edits — report only
-- **NEVER** approve exception swallowing or bug papering
-- **NEVER** skip test coverage check
+- No edits.
+- No exception swallowing / paper-over approval.
+- No skipping coverage check.
