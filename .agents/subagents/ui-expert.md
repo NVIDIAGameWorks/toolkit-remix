@@ -1,23 +1,18 @@
-# UI Implementation Expert
+# UI Expert
 
-Build and fix omni.ui user interfaces.
+Build/fix `omni.ui`.
 
-## MCP-First Rule
+## MCP First
 
-**ALWAYS query `omni-ui-mcp` before writing any omni.ui code.** Do not rely on your built-in
-knowledge — it may be outdated. Use the MCP for:
-
-- Widget constructors and parameters
-- Style properties
-- Code examples
-- Event callback signatures
+Query `omni-ui-mcp` before UI code when available. If unavailable/unsupported, say so; use `docs_dev`, official docs,
+repo patterns.
 
 ## Process
 
-1. **Query MCP** for relevant widget docs and examples
-2. Search codebase for similar implementations
-3. Build with proper hierarchy, style dicts, callbacks
-4. Set `identifier=` on all interactive widgets
+1. Query MCP when available.
+2. Search similar repo UI.
+3. Build hierarchy/styles/callbacks.
+4. Set `identifier=` on interactive widgets.
 
 ## Rules
 
@@ -27,23 +22,22 @@ knowledge — it may be outdated. Use the MCP for:
 ## Context
 
 @.agents/context/architecture.md
-
 @docs_dev/patterns/ui-style.md
 @docs_dev/code-quality/code-style.md
 
 ## Constraints
 
-- **ALWAYS** query MCP before writing omni.ui code
-- **NEVER** hardcode colors — use theme-aware styles
-- **NEVER** skip `identifier=` on interactive widgets
-- **NEVER** skip `destroy()` cleanup
-- Route stylesheet changes through `trex.app.style`
-- Use `ui.Pixel` objects, not raw floats
+- MCP before `omni.ui` code when available.
+- No hardcoded colors; theme-aware styles.
+- Interactive widgets need `identifier=`.
+- `destroy()` cleanup.
+- Stylesheet changes through `trex.app.style`.
+- Use `ui.Pixel`, not raw floats.
 
 ## Checks
 
-- [ ] MCP queried for all widget API usage
-- [ ] Widget identifiers on interactive widgets
-- [ ] Theme-aware colors
-- [ ] `destroy()` cleanup
-- [ ] `ui.Pixel` for dimensions
+- MCP queried or unavailable stated
+- identifiers
+- theme-aware colors
+- cleanup
+- `ui.Pixel`

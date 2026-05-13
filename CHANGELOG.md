@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4286: Added branch-aware repo tooling and agent guidance for atomic merge sequences.
 - Update hdremix and omni_core_materials to `ext-06e306e-main`
 - Refactored GitHub mirror CI job into its own include with extracted shell scripts, structured error handling, and skip-on-scheduled-pipeline guard
+- Hardened repo-local agent skill wrappers and Claude/Cursor/Codex setup documentation.
 
 ### Fixed
 

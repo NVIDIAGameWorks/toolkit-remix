@@ -1,0 +1,8 @@
+description = """
+PROACTIVELY use this agent when E2E tests are needed for user-visible workflows in a real Kit application. Do NOT use for unit tests.
+
+Examples:
+- "Write E2E tests for the texture import workflow" → dispatch e2e-test-writer
+- "Test the mod setup flow from the user's perspective" → dispatch e2e-test-writer"""
+developer_instructions = "@.agents/subagents/e2e-tests.md"
+name = "e2e-test-writer"

@@ -1,0 +1,9 @@
+description = """
+PROACTIVELY use this agent for code review — diffs, MRs, completed features, pre-submission checks.
+
+Examples:
+- After implementing a feature → dispatch reviewer
+- "Review the layer manager changes" → dispatch reviewer
+- "Check if this MR is ready" → dispatch reviewer"""
+developer_instructions = "@.agents/subagents/review.md"
+name = "reviewer"

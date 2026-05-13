@@ -1,0 +1,6 @@
+---
+description: Durable project learnings must be promoted into canonical repo docs or shared agent rules
+alwaysApply: true
+---
+
+@.agents/rules/memory-promotion.md

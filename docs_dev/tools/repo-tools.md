@@ -64,11 +64,10 @@ The rebuild redownloads a valid Kit/Python package set.
 |----------------------------------------|------------------------------------------------------------------------|
 | `lightspeed.app.trex_dev.bat`          | Developer mode — extra logging, hot-reload *(default for development)* |
 | `lightspeed.app.trex.bat`              | Full Toolkit — test the release experience                             |
-| `lightspeed.app.trex.stagecraft.bat`   | Modding Layout (StageCraft)                                            |
-| `lightspeed.app.trex.texturecraft.bat` | AI Tools Layout (TextureCraft)                                         |
-| `lightspeed.app.trex.ingestcraft.bat`  | Ingestion Layout (IngestCraft)                                         |
 
 All launchers are in `_build\windows-x86_64\release\`. If the bat doesn't exist, run `build.bat` first.
+Use the dev app or full app for normal development and verification. Do not use layout-specific launchers unless a
+maintainer explicitly asks for one.
 
 | Launch flag                                | Effect                                             |
 |--------------------------------------------|----------------------------------------------------|

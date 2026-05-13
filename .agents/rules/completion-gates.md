@@ -1,33 +1,14 @@
 ## Completion Gates
 
-Before declaring any implementation task done, verify your work. Do not claim completion until all applicable gates pass
-or the user explicitly accepts exceptions.
+Claim done only after applicable gates pass or user accepts exception.
 
-**Gates (check every one that applies):**
+- Code changed: run relevant extension test with `-n default`; fix failures.
+- Python changed: run `.\format_code.bat`; stage formatting fixes.
+- Python changed: run `.\lint_code.bat all`; inspect ruff `Found X errors (Y fixed, Z remaining)`, not summary.
+- Extension changed: bump `config/extension.toml` version and append entry last in extension `docs/CHANGELOG.md`
+  section. No Jira prefix in extension changelog.
+- Any MR: append one concise root `CHANGELOG.md` entry last under `## [Unreleased]`; Jira prefix only if provided.
+- Behavior, setup, or API changed: update the relevant `docs_dev/` page or extension `docs/README.md`.
 
-1. **Tests pass** — if you wrote or modified code, run the extension's test bat with `-n default`. If tests fail, fix
-   them before completing.
-2. **Format is clean** — if you modified Python files, run `.\format_code.bat`. Always run the script locally — never
-   assume formatting is clean based on CI output or prior runs. If it changes files, stage the formatting fixes.
-3. **Lint is clean** — if you modified Python files, run `.\lint_code.bat all`. Always run the script locally — never
-   assume lint is clean based on CI output or prior runs. Check the full ruff output for `Found X errors (Y fixed, Z
-   remaining)` — the `repo_lint` summary line may report 0 errors even when unfixable errors remain. Fix any errors
-   before completing.
-4. **Version bumped** — if you modified an extension, bump its version in `config/extension.toml` and add a changelog
-   entry as the **last item** of the appropriate section in `docs/CHANGELOG.md`. Never insert at the top — always append
-   after the last existing entry in that section. **Do NOT prefix extension changelog entries with the Jira ticket** —
-   tickets are only used in the root-level changelog.
-5. **Root CHANGELOG.md updated** — once per MR, add a concise one-liner as the **last item** of the appropriate section
-   under `## [Unreleased]` in the root `CHANGELOG.md`. Never insert at the top of a section — always append after the
-   last existing entry. Always applies, including docs-only changes. Do not mention release versions. Follow existing
-   entry style. **Prefix with the Jira ticket** if one was provided (e.g., `REMIX-XXXX: <summary>`).
-6. **Docs updated** — if you changed behavior, public API, or added a feature, update the relevant `docs_dev/` file or
-   extension `docs/README.md`.
-
-**Evidence — summarize before completing:**
-
-- Changed files grouped by purpose
-- Test command(s) run and their pass/fail status
-- Any known issues, deferred work, or accepted exceptions
-
-**If a gate fails and you cannot fix it**, report what failed and why. Do not silently skip gates.
+Before done: summarize changed files, verification commands/results, known issues, accepted exceptions. Gate fails +
+cannot fix -> report why; never silently skip.

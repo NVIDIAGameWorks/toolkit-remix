@@ -80,46 +80,76 @@ limited to permission/trust boundaries (which live in each agent's own config) a
 
 ---
 
-## Recommended Agents
+## Primary Agent Surfaces
 
-The Toolkit team primarily uses **Claude Code** and **Cursor**. Both have full configurations — rules, commands, MCP
-servers, and contextual loading — maintained in lockstep. Other agents receive the same instructions but with simpler
-integration (thin wrappers or inline summaries).
+The Toolkit team primarily uses **Codex**, **Claude Code**, and **Cursor**. The exact maintenance protocol lives in
+`.agents/rules/agent-config.md`; this page is the human overview.
 
-### Cursor Setup
+| Surface                         | Purpose                                                                                  |
+|---------------------------------|------------------------------------------------------------------------------------------|
+| `.agents/instructions.md`       | Shared project instruction index                                                         |
+| `.agents/context/`              | Shared project context and resource pointers                                             |
+| `.agents/rules/`                | Canonical agent behavior rules                                                           |
+| `.agents/commands/`             | Canonical multi-step procedures                                                          |
+| `.agents/skills/`               | Shared Agent Skills wrappers that point to canonical commands or rules                   |
+| `.agents/subagents/`            | Canonical specialist role instructions                                                   |
+| `.agents/hooks/`                | Shared hook targets                                                                      |
+| `.agents/scripts/`              | Portable helper launchers used by hooks or commands                                      |
+| `AGENTS.md`                     | Codex, Antigravity, and other OpenAI-compatible entry point                               |
+| `CLAUDE.md`                     | Claude Code entry point                                                                  |
+| `.cursor/rules/`                | Cursor project rule wrappers                                                             |
+| `.codex/`                       | Codex project config, hook config, and subagent wrappers                                  |
+| `.claude/`                      | Claude Code project settings, skills, and subagent wrappers                              |
+| `.cursor/hooks.json`            | Cursor hook config that invokes the shared `.agents/` hook targets                       |
+| `.mcp.json` and mirrored config | Shared MCP server configuration                                                          |
 
-Cursor gets its instructions via `.cursor/rules/*.mdc` wrappers (thin frontmatter files that import from `.agents/`).
-Rules are loaded in tiers — some always, some only when editing Python files, some on-demand — to stay within Cursor's
-context limits. See `.agents/rules/agent-config.md` for the full loading strategy.
+Agent-specific files should stay thin. Put human-readable setup and rationale in `docs_dev/`; put agent behavior in
+`.agents/`; put only the wrapper syntax required by each tool under `.codex/`, `.claude/`, or `.cursor/`.
 
-- **Rules** — `.cursor/rules/` contains one `.mdc` wrapper per `.agents/rules/` file, each with YAML frontmatter
-  controlling when it loads (`always`, `globs: *.py`, or on-demand).
-- **Commands** — `.cursor/commands/` mirrors `.claude/commands/` with one-line wrappers referencing `.agents/commands/`.
-- **MCP servers** — `.cursor/mcp.json` (synced from `.mcp.json` at project root).
+### Commands and Skills
+
+Full procedures live in `.agents/commands/`. These files are the source of truth for repeatable tasks such as creating
+extensions, running Kit tests, committing, preparing MRs, adding pip dependencies, removing extensions, and bumping
+extension changelogs.
+
+Shared skill wrappers in `.agents/skills/` expose those procedures to tools that support Agent Skills. Claude Code has
+matching `.claude/skills/` wrappers because Claude discovers project skills there. The wrappers should stay as aliases
+to the canonical `.agents/` files; do not copy the procedure text into tool-specific folders.
+
+Describe the operation naturally ("create an extension", "prepare an MR", "run this extension's tests") or use the
+slash/skill command if your tool exposes one. If behavior needs to change, edit the `.agents/commands/` procedure or
+the relevant `.agents/rules/` file first, then update wrappers only when discovery changes.
+
+Internal-only procedures live under `.agents/commands/internal/` and are indexed from that directory's README. They are
+not listed in the public command tables or shared skill discovery unless a tool needs a deliberate internal wrapper.
+
+### Specialist Roles
+
+Specialist role instructions live in `.agents/subagents/`. Use them when a task matches the domain: documentation,
+unit tests, E2E tests, USD, omni.ui, or review. Claude Code and Codex have tool-specific subagent wrappers that point
+back to the same canonical role files. Cursor does not get duplicate role files unless a verified Cursor requirement is
+documented in `.agents/rules/agent-config.md`.
+
+### Shared Hooks
+
+Codex, Claude Code, and Cursor all call the shared Packman Python launcher in `.agents/scripts/`, which runs hook targets
+from `.agents/hooks/`. The launcher exists so hooks use the vendored Packman Python on Windows and POSIX instead of
+whatever Python happens to be installed on a developer machine.
+
+The shared hook targets are:
+
+| Hook target                               | Purpose                                                                                |
+|-------------------------------------------|----------------------------------------------------------------------------------------|
+| `.agents/hooks/stop_gate.py`              | Single stop-hook entry point; runs configured gates and formats output per agent        |
+| `.agents/hooks/completion_gates_check.py` | Checks changed source Python files against formatting/lint completion expectations      |
+| `.agents/hooks/memory_promotion_check.py` | Detects configured local memory changes that may need promotion to repo docs or rules   |
+
+Tool-specific hook configuration stays in `.claude/settings.json`, `.codex/hooks.json`, and `.cursor/hooks.json`.
+Those files should invoke shared `.agents/scripts/` launchers and `.agents/hooks/` targets instead of cloning logic.
+Claude-specific permission prompts remain in `.claude/settings.json`; trust and approval policy is agent-specific and
+does not belong in `.agents/`.
 
 For workspace setup, recommended extensions, tasks, and debug config, see [VSCode / Cursor Setup](ide-vscode.md).
-
-### Claude Code Setup
-
-Beyond the shared `.agents/` instructions, Claude Code has additional automation:
-
-#### Hooks
-
-| Hook             | Trigger                   | What it does                                                                |
-|------------------|---------------------------|-----------------------------------------------------------------------------|
-| **Stop**         | Session ends              | Runs `format_code.bat && lint_code.bat all` — code is always clean on exit. |
-| **PreToolUse**   | Before any `Bash` command | Injects a verification prompt for git commands (intent ↔ action check).     |
-| **SessionStart** | Session begins            | Prompts agent to sync auto-memory against `docs_dev/` and offer updates.    |
-
-#### Permissions
-
-Destructive operations require explicit user approval (configured in `.claude/settings.json`):
-
-- `rm -rf`, `git reset --hard`, `git clean -f`, `git checkout .`
-- `git push --force` / `-f`, `git branch -D`
-- Piped `curl`/`wget` to shell
-
-Everything else (file reads, edits, builds, tests) runs without prompting.
 
 ---
 
@@ -150,21 +180,21 @@ configs — wrappers import from here.
 | `.agents/context/`  | Project knowledge — always loaded. Describes what, how, and where.   |
 | `.agents/rules/`    | Behavioral directives — always loaded or contextual. Constrains how. |
 | `.agents/commands/` | Multi-step procedures — invoked by slash command or auto-dispatched. |
+| `.agents/skills/`   | Agent Skills wrappers that expose shared commands and on-demand rules. |
+| `.agents/subagents/` | Specialist role instructions shared through tool-specific wrappers.   |
+| `.agents/hooks/`    | Hook targets used by Codex, Claude Code, and Cursor.                  |
+| `.agents/scripts/`  | Portable helper launchers, including Packman Python runners.          |
 
 `instructions.md` is the master index that imports everything. See `.agents/rules/agent-config.md` for the full
 maintenance protocol (how to add rules, commands, and new agent wrappers).
 
-### Agent Commands
-
-Commands are available as `/command-name` in both Claude Code and Cursor. Agents also auto-dispatch commands when they
-recognize the intent — you can say "make a new extension called X" instead of typing `/create-extension`.
-
-Browse available commands in `.agents/commands/`. The `.claude/commands/` and `.cursor/commands/` directories contain
-thin one-line wrappers that reference them.
-
 ### MCP Servers
 
 Agents have access to Model Context Protocol servers that provide live API documentation and code search.
+
+The MCP endpoints currently configured in this repo are NVIDIA-internal services. They may require NVIDIA network/VPN
+access; external/public checkout users should expect those servers to be unavailable and use `docs_dev/`, official docs,
+and repo patterns instead.
 
 **`.mcp.json`** (project root) is the canonical MCP config. It follows the emerging cross-IDE standard and is read
 directly by Claude Code (via `enableAllProjectMcpServers`). For tools that require their own config file, changes are
@@ -172,6 +202,7 @@ synced to:
 
 | File                 | Tool           |
 |----------------------|----------------|
+| `.codex/config.toml` | Codex          |
 | `.cursor/mcp.json`   | Cursor         |
 | `.vscode/mcp.json`   | GitHub Copilot |
 | `.windsurf/mcp.json` | Windsurf       |

@@ -1,53 +1,27 @@
 # remove-extension
 
-Safely remove an extension from the project. This is a destructive, hard-to-reverse operation — confirm with the user
-before deleting anything.
+Destructive. Confirm explicit user approval before delete. Ref: `docs_dev/architecture/overview.md` App Files vs Ext
+Deps.
 
-*Dependency patterns: `docs_dev/architecture/overview.md` → App Files vs. Extension Dependencies section*
+## Steps
 
-## Step 1 — Confirm Intent
+1. Tell user exact `<ext-name>` to delete; wait for confirmation.
+2. Find refs before edits:
 
-Tell the user which extension will be deleted and ask for explicit confirmation before proceeding.
+   ```bash
+   grep -r "<ext-name>" source/extensions/ --include="*.toml" -l
+   grep -r "<ext-name>" source/apps/ -l
+   grep -r "<ext-name>" source/extensions/ --include="*.py" -l
+   ```
 
-## Step 2 — Find All References
+3. Remove `<ext-name>` from `[dependencies]` in all found `extension.toml`.
+4. Remove app `.kit` dependency entries.
+5. Remove Python imports + API use. If import was only dep reason, Step 3 must remove dep too.
+6. Delete only after cleanup:
 
-Search for every reference to the extension name across the repo:
+   ```bash
+   rm -rf source/extensions/<ext-name>
+   ```
 
-```
-grep -r "<ext-name>" source/extensions/ --include="*.toml" -l
-grep -r "<ext-name>" source/apps/ -l
-grep -r "<ext-name>" source/extensions/ --include="*.py" -l
-```
-
-Collect the full list before making any changes.
-
-## Step 3 — Remove from `extension.toml` Dependencies
-
-For each extension found in Step 2 that lists `<ext-name>` as a dependency, remove that line from its `[dependencies]`
-section.
-
-## Step 4 — Remove from `.kit` App Files
-
-For each app file found in Step 2, remove the dependency entry.
-
-## Step 5 — Remove Python Imports
-
-For each `.py` file found in Step 2, remove the import statement and any code that used the removed extension's API. If
-the import was the only reason for a dependency, ensure you also cleaned that up in Step 3.
-
-## Step 6 — Delete the Extension Directory
-
-```
-rm -rf source/extensions/<ext-name>
-```
-
-Only do this after Steps 3–5 are complete.
-
-## Step 7 — Verify the Build
-
-Run `.\build.bat` and confirm it completes without errors. If the build fails with a missing reference, trace it back
-through Steps 3–5.
-
-## Step 8 — Run Affected Tests
-
-Run tests for any extension that previously depended on the removed one to confirm nothing broke silently.
+7. Run `.\build.bat`; trace missing refs back through Steps 3-5.
+8. Run tests for previous dependents.

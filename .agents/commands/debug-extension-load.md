@@ -1,63 +1,53 @@
 # debug-extension-load
 
-Diagnose why an extension fails to load, a test bat file doesn't exist, or tests can't be discovered. Work through these
-steps in order and stop at the first one that reveals the problem.
+Diagnose load failure, missing test bat, test discovery. Stop at first cause. Ref:
+`docs_dev/architecture/overview.md` Extension Lifecycle.
 
-*Extension load patterns: `docs_dev/architecture/overview.md` → Extension Lifecycle section*
+## 1 - Build Output
 
-## Step 1 — Check the Build Output Exists
-
-```
+```powershell
 ls _build/windows-x86_64/release/tests-<extension-name>.bat
 ```
 
-If the file doesn't exist, the extension hasn't been built yet. Run `.\build.bat` and retry. If the build fails, read
-the build output for errors before proceeding.
+Missing -> run `.\build.bat`, then retry. Build fail -> read errors first.
 
-## Step 2 — Verify `[[python.module]]` Matches the Directory
+## 2 - Python Module
 
-The `[[python.module]]` name in `config/extension.toml` must map exactly to a real directory with an `__init__.py`. Any
-mismatch causes a silent load failure. See `docs_dev/architecture/extension-guide.md` → Directory Layout for the naming
-convention.
+`[[python.module]]` in `config/extension.toml` must map exactly to directory with `__init__.py`. Mismatch -> silent load
+fail. Ref: `docs_dev/architecture/extension-guide.md` Directory Layout.
 
-## Step 3 — Check `premake5.lua` Symlinks
+## 3 - Premake Symlink
 
-The `premake5.lua` must symlink the correct root namespace (`lightspeed/` or `omni/`). A wrong root path means the
-Python package is never found. See `docs_dev/architecture/extension-guide.md` → `premake5.lua` Boilerplate for the
-correct pattern.
+`premake5.lua` must symlink correct root: `lightspeed/` or `omni/`. Wrong root -> package not found. Ref:
+`docs_dev/architecture/extension-guide.md` `premake5.lua` Boilerplate.
 
-## Step 4 — Scan for Import Errors
+## 4 - Import Errors
 
-Run the test bat without `-n default` to catch startup errors:
+Run without `-n default`:
 
-```
+```powershell
 .\_build\windows-x86_64\release\tests-<extension-name>.bat
 ```
 
-Look in the output and in `_testoutput/exttest_<sanitized_name>/` for tracebacks. An `ImportError` or
-`ModuleNotFoundError` points to a missing dependency or a bad import path.
+Check stdout + `_testoutput/exttest_<sanitized_name>/` for traceback. `ImportError`/`ModuleNotFoundError` -> missing dep
+or bad import path.
 
-## Step 5 — Check Declared Dependencies
+## 5 - Dependencies
 
-For each dependency listed in `[dependencies]` in `extension.toml`:
+For each `[dependencies]` item: spelling uses dots; dep exists locally or registry. Third-party pip import fail ->
+confirm `omni.flux.pip_archive`.
 
-- Confirm the dependency name is spelled correctly (dots, not underscores).
-- Confirm it is available in the build (either a local extension or a registered registry package).
+## 6 - Test Exports
 
-If an import of a third-party pip package fails, confirm `"omni.flux.pip_archive" = {}` is in `[dependencies]`.
-
-## Step 6 — Check `tests/__init__.py` Exports
-
-If the extension loads but tests aren't discovered, open `<namespace>/tests/__init__.py` and confirm test classes are
-exported:
+If loads but tests missing, check `<namespace>/tests/__init__.py` exports classes:
 
 ```python
 from .unit.test_my_module import TestMyModule
 ```
 
-An empty `tests/__init__.py` causes the test runner to find nothing.
+Empty `tests/__init__.py` -> runner finds nothing.
 
-## Step 7 — Check for Circular Imports
+## 7 - Circular Imports
 
-If the traceback mentions a circular import, there is a lazy import somewhere hiding the cycle. Find it (search for
-`import` inside function bodies) and fix the module boundaries — do not suppress with `# noqa: PLC0415`.
+Traceback says circular import -> find lazy imports (`import` inside functions) and fix boundaries. Do not suppress with
+`# noqa: PLC0415`.

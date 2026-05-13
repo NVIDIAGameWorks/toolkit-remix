@@ -1,30 +1,36 @@
 # AGENTS.md
 
-This file provides guidance to OpenAI Codex and other OpenAI agents when working with this repository.
+OpenAI/Codex/Antigravity entry. Canonical context: `.agents/instructions.md`.
 
-Read `.agents/instructions.md` for complete project context (it imports all sub-files automatically).
+Read it first. It points to always-on rules + on-demand refs.
 
-Available shared commands in `.agents/commands/`:
-- `add-pip-dep.md` — add a third-party pip package to the project
-- `bump-exts-changelog.md` — bump versions and changelogs for all modified extensions
-- `commit.md` — commit changes following project conventions
-- `create-branch.md` — create a feature branch with proper naming
-- `create-extension.md` — scaffold a new extension from scratch
-- `debug-extension-load.md` — diagnose extension load and test discovery failures
-- `kit-test.md` — run or debug extension tests
-- `prepare-mr.md` — prepare a merge request with proper description
-- `remove-extension.md` — safely remove an extension and all its references
+Commands in `.agents/commands/`:
 
-If this is a private/internal checkout, also check `.agents/commands/internal/README.md` for internal-only commands when
-that file exists.
+- `add-pip-dep.md` - add pip dep
+- `bump-exts-changelog.md` - bump ext versions/changelogs
+- `commit.md` - commit with repo style
+- `create-branch.md` - create feature branch
+- `create-extension.md` - scaffold extension
+- `debug-extension-load.md` - debug load/test discovery
+- `kit-test.md` - run/debug Kit tests
+- `prepare-mr.md` - prep MR
+- `remove-extension.md` - remove extension + refs
 
-## Subagents
+Skills in `.agents/skills/`:
 
-Specialized role instructions in `.agents/subagents/`. Read the matching file and follow its role when the task matches:
+`add-pip-dep`, `agent-config`, `bump-exts-changelog`, `commit`, `completion-gates`, `create-branch`,
+`create-extension`, `debug-extension-load`, `documentation`, `extension-docs`, `kit-test`, `memory-promotion`,
+`prepare-mr`, `remove-extension`.
 
-- `docs.md` — documentation writer
-- `unit-tests.md` — unit test writer
-- `e2e-tests.md` — E2E test writer
-- `usd-expert.md` — USD implementation expert
-- `ui-expert.md` — UI implementation expert (omni.ui)
-- `review.md` — code reviewer
+Auto-use `completion-gates` before done. Auto-use `memory-promotion` when durable project knowledge appears.
+
+Internal checkout? If `.agents/commands/internal/README.md` exists, read it for internal commands.
+
+Subagents:
+
+- `docs` -> `.agents/subagents/docs.md`
+- `unit-test-writer` -> `.agents/subagents/unit-tests.md`
+- `e2e-test-writer` -> `.agents/subagents/e2e-tests.md`
+- `usd-expert` -> `.agents/subagents/usd-expert.md`
+- `ui-expert` -> `.agents/subagents/ui-expert.md`
+- `reviewer` -> `.agents/subagents/review.md`

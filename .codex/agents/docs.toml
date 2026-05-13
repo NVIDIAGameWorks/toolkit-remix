@@ -1,0 +1,9 @@
+description = """
+PROACTIVELY use this agent when documentation needs writing or updating — extension docs/README.md, docs_dev/, docs/.
+
+Examples:
+- After implementing a feature → dispatch docs
+- "Update the README for lightspeed.trex.stage_manager" → dispatch docs
+- "Document the ingestion pipeline" → dispatch docs"""
+developer_instructions = "@.agents/subagents/docs.md"
+name = "docs"

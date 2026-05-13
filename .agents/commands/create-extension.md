@@ -1,90 +1,51 @@
-## Command: Create Extension
+## create-extension
 
-Scaffold a new extension from scratch. Follow every step in order. All file templates live in
-`docs_dev/architecture/extension-guide.md` — read them there rather than reproducing them.
+Scaffold extension. Templates live in `docs_dev/architecture/extension-guide.md`; read there, do not copy from memory.
 
-### Step 0 — Get the Author
-
-Read the author from git config:
+## Step 0 - Author
 
 ```bash
-git config user.name   # e.g. "Pierre-Olivier Trottier"
-git config user.email  # e.g. "ptrottier@nvidia.com"
+git config user.name
+git config user.email
 ```
 
-If either value is empty or missing, ask the user for the missing information.
+Missing value -> ask. Use `"Full Name <email>"` in `config/extension.toml` `authors`.
 
-Carry `"Full Name <email>"` into the `authors` field of `config/extension.toml`.
+## Step 1 - Name
 
-### Step 1 — Confirm the Extension Name & Namespace
+Ask/confirm full ext name, example `omni.flux.my_feature.core`.
 
-Ask (or confirm from context) the full extension name, e.g. `omni.flux.my_feature.core`.
+- Remix-specific -> `lightspeed.trex.*`; reusable -> `omni.flux.*`.
+- Suffixes: `.core`, `.widget`, `.window`, `.menu`, `.model`, `.service`, `.plugin.*`, `.bundle`.
+- Feature entry ext wires pieces; match nearby repo naming/loading.
+- Python path: dots -> slashes. Example `omni.flux.job_queue.core` -> `omni/flux/job_queue/core/`.
+- Premake root: Flux `omni/`; Trex `lightspeed/`.
 
-- RTX Remix-specific → `lightspeed.trex.*` | Reusable → `omni.flux.*`
-- Suffix: `.core` `.widget` `.window` `.menu` `.controller` `.model` `.service` `.plugin.*` `.bundle` (see
-  `docs_dev/architecture/overview.md`)
+## Steps 2-9 - Files
 
-Derive the Python package path: dots → slashes (`omni.flux.job_queue.core` → `omni/flux/job_queue/core/`). Premake root:
-`omni/` for flux, `lightspeed/` for trex.
+Create under `source/extensions/<ext-name>/`, following `docs_dev/architecture/extension-guide.md`:
 
-### Step 2 — Create Directories
+1. Directory layout.
+2. `config/extension.toml`; use `lightspeed.trex.tests.dependencies` for Trex, `omni.flux.tests.dependencies` for Flux.
+3. `premake5.lua`; correct root namespace.
+4. Python stubs: package `__init__.py` + `extension.py`; replace year/name/class.
+5. `docs/CHANGELOG.md`.
+6. Full `docs/README.md`; no one-line stub.
+7. `docs/index.rst`.
+8. `tests/__init__.py` export pattern. Leave `unit/__init__.py` and `e2e/__init__.py` empty.
 
-Under `source/extensions/<ext-name>/`, create the directory structure from `docs_dev/architecture/extension-guide.md` →
-Directory Layout.
+## Step 10 - Verify
 
-### Step 3 — Write `config/extension.toml`
-
-Use the template from `docs_dev/architecture/extension-guide.md` → `extension.toml` Reference. Substitute all
-placeholders. Use `lightspeed.trex.tests.dependencies` for trex exts, `omni.flux.tests.dependencies` for flux.
-
-### Step 4 — Write `premake5.lua`
-
-Use the boilerplate from `docs_dev/architecture/extension-guide.md` → `premake5.lua` Boilerplate. Adjust the root
-namespace (`lightspeed/` or `omni/`).
-
-### Step 5 — Write Python stubs
-
-Use the templates from `docs_dev/architecture/extension-guide.md` → Python Module Stubs. Replace `<YEAR>`, `<ext-name>`,
-and `MyExtension` with actual values.
-
-Files to create: `__init__.py` and `extension.py` in the package root.
-
-### Step 6 — Write `docs/CHANGELOG.md`
-
-Use the starter from `docs_dev/architecture/extension-guide.md` → `docs/CHANGELOG.md` Starter.
-
-### Step 7 — Write `docs/README.md`
-
-Do not leave a one-line stub. Fill in the full structure from `docs_dev/architecture/extension-guide.md` → README
-Structure section based on what the user has described.
-
-### Step 8 — Write `docs/index.rst`
-
-Use the pattern from `docs_dev/architecture/extension-guide.md` → `docs/index.rst`.
-
-### Step 9 — Write `tests/__init__.py`
-
-Use the export pattern from `docs_dev/architecture/extension-guide.md` → `tests/__init__.py` Export Pattern. Leave
-`unit/__init__.py` and `e2e/__init__.py` as empty files.
-
-### Step 10 — Build & Verify
-
-**This step is mandatory — do not skip it.**
-
-Run the build to ensure the new extension is available to the rest of the codebase:
+Mandatory:
 
 ```bash
 .\build.bat
 ```
 
-If the build fails, fix the issue before proceeding. Common problems:
-- Missing `premake5.lua` or wrong namespace root
-- Typo in `[[python.module]]` name in `extension.toml`
-- Missing `__init__.py` in a package directory
+Fix failures. Common: missing `premake5.lua`, wrong namespace root, bad `[[python.module]]`, missing `__init__.py`.
 
-### Step 11 — Remind the User
+## Step 11 - Remind User
 
-- Replace the placeholder dependency in `config/extension.toml` with actual imports. Add `"omni.flux.pip_archive" = {}`
-  for any third-party pip packages.
-- New extensions load via dependencies in other extensions — only add to a `.kit` app file if this is a standalone
-  top-level UI entry point.
+- Replace placeholder deps with actual imports.
+- Add `omni.flux.pip_archive` for third-party pip.
+- New ext loads through deps; add to `.kit` only if standalone top-level UI entry.

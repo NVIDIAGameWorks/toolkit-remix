@@ -1,5 +1,7 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Claude Code entry. Canonical repo instructions:
 
 @.agents/instructions.md
+
+Command/skill/subagent index: `AGENTS.md`. Claude wrappers mirror `.agents/`.

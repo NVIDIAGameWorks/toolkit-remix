@@ -135,7 +135,7 @@ via your PR's comment page.
 | Page                                         | Description                                                                                                          |
 |----------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
 | [Repo Tools](tools/repo-tools.md)            | All root-level scripts: build, run, format, lint, build docs, pre-commit hooks, repo subcommands, and CLI launchers. |
-| [VSCode / Cursor Setup](tools/ide-vscode.md) | Workspace setup, recommended extensions, tasks, debug config, and agent commands.                                    |
+| [VSCode / Cursor Setup](tools/ide-vscode.md) | Workspace setup, recommended extensions, tasks, and debug config.                                                    |
 | [PyCharm Setup](tools/ide-pycharm.md)        | Python path, run profiles, scope config, and external tools for format/lint.                                         |
 | [Debugging](tools/debugging.md)              | Attaching debuggers to Kit: debugpy (VSCode) and PyCharm Professional. The `break` flag trick for tests.             |
 | [Profiling](tools/profiling.md)              | Performance profiling with Tracy: app-start and on-demand (`F5`).                                                    |

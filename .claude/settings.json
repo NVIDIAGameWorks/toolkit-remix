@@ -18,11 +18,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "bash .claude/hooks/run_packman_python.sh .claude/hooks/completion_gates_check.py"
-                    },
-                    {
-                        "type": "command",
-                        "command": "bash .claude/hooks/run_packman_python.sh .claude/hooks/memory_promotion_check.py"
+                        "command": "git -c alias.agent-hook=!./.agents/scripts/run_packman_python.sh agent-hook .agents/hooks/stop_gate.py --agent claude .agents/hooks/completion_gates_check.py .agents/hooks/memory_promotion_check.py"
                     }
                 ]
             }
