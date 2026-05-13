@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.7]
+### Changed
+- REMIX-4869: Added a dialog to direct to the user to the Open > Edit workflow in the Project Wizard.
+
 ## [1.8.6]
 ### Changed
 - Isolated per-item metadata loading in `_refresh_recent_items_deferred` so a single failing project no longer blocks the rest
