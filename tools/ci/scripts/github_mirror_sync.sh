@@ -25,6 +25,35 @@ die() {
     exit 1
 }
 
+private_path_to_git_pathspec() {
+    local private_path="$1"
+
+    if [[ "${private_path}" == glob:* ]]; then
+        printf ':(glob)%s\n' "${private_path#glob:}"
+    else
+        printf '%s\n' "${private_path}"
+    fi
+}
+
+resolve_target_ref() {
+    if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        target_ref_human="tag ${CI_COMMIT_TAG}"
+        target_ref="refs/tags/${CI_COMMIT_TAG}"
+    elif [ -n "${CI_COMMIT_BRANCH:-}" ]; then
+        target_ref_human="branch ${CI_COMMIT_BRANCH}"
+        target_ref="refs/heads/${CI_COMMIT_BRANCH}"
+    elif [ -n "${MIRROR_DRY_RUN:-}" ] && [ -n "${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-}" ]; then
+        # MR pipelines don't set CI_COMMIT_BRANCH; for dry-runs report the MR
+        # source branch so the trigger context is still visible in the log.
+        target_ref_human="branch ${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME} (MR ${CI_MERGE_REQUEST_IID:-?})"
+        target_ref="refs/heads/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}"
+    else
+        die "Neither CI_COMMIT_TAG nor CI_COMMIT_BRANCH is set; refusing to push."
+    fi
+
+    target_refspec="${target_ref}:${target_ref}"
+}
+
 step() {
     current_step="$1"
     echo
@@ -36,13 +65,17 @@ step() {
 # much easier than scrolling the raw GitLab log.
 trap 'rc=$?; echo "FATAL: github-mirror-sync failed during step \"${current_step}\" (line ${LINENO}, exit ${rc})" >&2' ERR
 
+step "Resolve target ref"
+resolve_target_ref
+echo "Filtering ${target_ref_human} via ref ${target_ref}"
+
 step "Clone current repo as bare mirror"
 git clone --mirror "${CI_REPOSITORY_URL}" "${WORKDIR}"
 cd "${WORKDIR}"
 
 step "Extract denylist from .github-private-paths"
-git show HEAD:.github-private-paths > "${PRIVATE_PATHS_RAW}" \
-    || die ".github-private-paths is missing. Aborting to prevent leak."
+git show "${target_ref}:.github-private-paths" > "${PRIVATE_PATHS_RAW}" \
+    || die ".github-private-paths is missing from ${target_ref_human}. Aborting to prevent leak."
 sed 's/\r$//' "${PRIVATE_PATHS_RAW}" \
     | awk 'NF && $1 !~ /^#/ { print }' \
     > "${PRIVATE_PATHS_ACTIVE}"
@@ -71,7 +104,11 @@ git-filter-repo \
 step "Post-filter leak validation"
 leaked=0
 while IFS= read -r path; do
-    if git log --all --full-history -- "${path}" 2>/dev/null | grep -q .; then
+    pathspec="$(private_path_to_git_pathspec "${path}")"
+    if ! leaked_commit="$(git rev-list --all --max-count=1 --full-history -- "${pathspec}")"; then
+        die "Leak validation failed for ${path}"
+    fi
+    if [ -n "${leaked_commit}" ]; then
         echo "LEAK DETECTED: ${path} still exists in filtered history"
         leaked=1
     fi
@@ -85,21 +122,6 @@ git remote add staging "${STAGING_REMOTE}"
 git for-each-ref --format='delete %(refname)' refs/replace | git update-ref --stdin
 
 step "Push filtered history to staging"
-if [ -n "${CI_COMMIT_TAG:-}" ]; then
-    target_ref_human="tag ${CI_COMMIT_TAG}"
-    target_refspec="refs/tags/${CI_COMMIT_TAG}:refs/tags/${CI_COMMIT_TAG}"
-elif [ -n "${CI_COMMIT_BRANCH:-}" ]; then
-    target_ref_human="branch ${CI_COMMIT_BRANCH}"
-    target_refspec="refs/heads/${CI_COMMIT_BRANCH}:refs/heads/${CI_COMMIT_BRANCH}"
-elif [ -n "${MIRROR_DRY_RUN:-}" ] && [ -n "${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-}" ]; then
-    # MR pipelines don't set CI_COMMIT_BRANCH; for dry-runs report the MR
-    # source branch so the trigger context is still visible in the log.
-    target_ref_human="branch ${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME} (MR ${CI_MERGE_REQUEST_IID:-?})"
-    target_refspec="refs/heads/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}:refs/heads/${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}"
-else
-    die "Neither CI_COMMIT_TAG nor CI_COMMIT_BRANCH is set; refusing to push."
-fi
-
 if [ -n "${MIRROR_DRY_RUN:-}" ]; then
     echo "MIRROR_DRY_RUN=${MIRROR_DRY_RUN}; skipping actual push."
     echo "Would have force-pushed ${target_ref_human} via refspec ${target_refspec}"

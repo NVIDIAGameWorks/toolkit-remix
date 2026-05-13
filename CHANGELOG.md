@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - REMIX-4286: Hardened AI Tools ComfyUI connection, workflow submission, job output handling, and widget cleanup
+- Fixed GitHub mirror filtering so branch-specific private paths and glob-prefixed entries are checked correctly
 
 ## [1.5.0-0]
 
