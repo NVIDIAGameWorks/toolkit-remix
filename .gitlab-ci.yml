@@ -5,6 +5,7 @@ variables:
 
 stages:
   - check_mr
+  - github_mirror
   - flux_e2e_tests
   - flux_unit_tests
   - lss_e2e_tests
@@ -47,6 +48,8 @@ include:
   - local: tools/ci/gitlab/publishing/publish_etm_list.yml
   - local: tools/ci/gitlab/publishing/publish_extensions.yml
   - local: tools/ci/gitlab/publishing/publish_package.yml
+  # GitHub mirror
+  - local: tools/ci/gitlab/mirror.yml
   # Base definitions shared between jobs
   - local: tools/ci/gitlab/defaults/defaults.yml
   - local: tools/ci/gitlab/defaults/soak_test_rules.yml
