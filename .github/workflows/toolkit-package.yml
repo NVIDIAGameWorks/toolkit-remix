@@ -41,8 +41,12 @@ jobs:
     
     - name: Download package
       run: |
-        # Read version from VERSION.md
-        VERSION=$(cat VERSION.md | head -n 1 | xargs)
+        # Read version from the GitLab source commit that published the package.
+        VERSION="${{ github.event.client_payload.version }}"
+        if [ -z "$VERSION" ]; then
+          echo "::error::client_payload.version is required"
+          exit 1
+        fi
         
         # Get branch name and GitLab source SHA for Packman package naming.
         BRANCH_NAME="${{ github.event.client_payload.ref || github.ref_name }}"
