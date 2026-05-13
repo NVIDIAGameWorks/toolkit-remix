@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed GitHub mirror filtering so branch-specific private paths and glob-prefixed entries are checked correctly
+
 ### Removed
 
 ## [1.5.0-0]
