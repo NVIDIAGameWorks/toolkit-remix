@@ -1,0 +1,21 @@
+####################################################
+# Sync filtered repository to GitHub staging mirror
+####################################################
+github-mirror-sync:
+  extends:
+    - .linux_gpu_agent
+    - .github_mirror_defaults
+  stage: github_mirror
+  timeout: 15 minutes
+  resource_group: github-mirror
+  variables:
+    STAGING_REMOTE: "https://oauth2:${STAGING_PUSH_TOKEN}@gitlab-master.nvidia.com/lightspeedrtx/toolkit-remix-staging.git"
+  before_script:
+    - sudo rm -rf /tmp/filtered-repo /tmp/private-paths.txt /tmp/private-paths.active /tmp/filter-audit.log
+    - ./tools/ci/scripts/check_git_filter_repo.sh
+    - git config --global user.email "ci-bot@nvidia.com"
+    - git config --global user.name "CI Mirror Bot"
+  script:
+    - ./tools/ci/scripts/github_mirror_sync.sh
+  after_script:
+    - sudo rm -rf /tmp/filtered-repo /tmp/private-paths.txt /tmp/private-paths.active /tmp/filter-audit.log

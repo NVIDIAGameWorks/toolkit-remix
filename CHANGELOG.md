@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - REMIX-5208: Added custom tag filtering and category-level bulk actions to the Stage Manager filter popup
+- Added MIRROR_DRY_RUN switch to github-mirror-sync for validating the filter pipeline without pushing to the staging mirror
 
 ### Changed
 
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LSSDEVOPS-39: Removed legacy bootstrap from repo tooling.
 - REMIX-4286: Added branch-aware repo tooling and agent guidance for atomic merge sequences.
 - Update hdremix and omni_core_materials to `ext-06e306e-main`
+- Refactored GitHub mirror CI job into its own include with extracted shell scripts, structured error handling, and skip-on-scheduled-pipeline guard
 
 ### Fixed
 
