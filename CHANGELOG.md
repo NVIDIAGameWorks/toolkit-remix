@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed GitHub mirror filtering so branch-specific private paths and glob-prefixed entries are checked correctly
+- Fixed GitHub toolkit package downloads to use the GitLab-dispatched version when constructing Packman package names
 
 ### Removed
 
