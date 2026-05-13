@@ -877,6 +877,11 @@ class LayerManagerCore:
         """
         Check whether a layer file has a valid Remix layer type.
 
+        Legacy projects created before the lightspeed_layer_type metadata was
+        introduced will have this key missing. When validating for 'workfile'
+        type, if the key is absent but the layer looks like a legacy Remix
+        project, automatically set the layer type metadata and treat it as valid.
+
         Args:
             file_path: Path to the USD layer file to inspect.
             layer_type: If provided, the file's layer type must match exactly.
@@ -892,10 +897,19 @@ class LayerManagerCore:
             return False
         input_layer_type = LayerManagerCore.get_custom_data_layer_type(layer)
         if input_layer_type is None:
+            if layer_type == LayerType.workfile and LayerManagerCore._is_legacy_project_layer(layer):
+                LayerManagerCore.set_custom_data_layer_type(layer, LayerType.workfile)
+                layer.Save()
+                return True
             return False
         if layer_type is None:
             return any(input_layer_type == ltype.value for ltype in LayerType)
         return bool(input_layer_type == layer_type.value)
+
+    @staticmethod
+    def _is_legacy_project_layer(layer: Sdf.Layer) -> bool:
+        custom_data = layer.customLayerData
+        return "omni_layer" in custom_data and bool(layer.subLayerPaths)
 
     def destroy(self):
         for layer_inst in self.__layer_cache.values():

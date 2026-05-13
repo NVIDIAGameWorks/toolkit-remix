@@ -285,9 +285,13 @@ class Setup:
         return self.prompt_if_unsaved_project(lambda: self.__open_stage_and_load_layout(path), "changing project")
 
     def __open_stage_and_load_layout(self, path):
-        if not _ProjectWizardSchema.is_project_file_valid(
-            Path(path), {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
-        ) or not _ProjectWizardSchema.are_project_symlinks_valid(Path(path)):
+        try:
+            valid = _ProjectWizardSchema.is_project_file_valid(
+                Path(path), {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
+            )
+        except ValueError:
+            valid = False
+        if not valid or not _ProjectWizardSchema.are_project_symlinks_valid(Path(path)):
             wizard = _get_wizard_instance(_WizardTypes.OPEN, self._context_name)
             wizard.set_payload({_ProjectWizardKeys.PROJECT_FILE.value: Path(path)})
             wizard.show_project_wizard(reset_page=True)

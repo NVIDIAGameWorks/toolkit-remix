@@ -503,9 +503,16 @@ class HomePageWidget(_WorkspaceWidget):
             )
             return
 
-        if not _ProjectWizardSchema.is_project_file_valid(
-            path_obj, {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
-        ) or not _ProjectWizardSchema.are_project_symlinks_valid(path_obj):
+        # Legacy projects from older toolkit versions lack required metadata (e.g. lightspeed_layer_type),
+        # causing is_project_file_valid to raise ValueError. Redirect those users to the Project Wizard.
+        try:
+            valid = _ProjectWizardSchema.is_project_file_valid(
+                path_obj, {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
+            )
+        except ValueError:
+            self._show_missing_metadata_dialog(path)
+            return
+        if not valid or not _ProjectWizardSchema.are_project_symlinks_valid(path_obj):
             self._invoke_mod_setup_wizard(_WizardTypes.OPEN, path)
             return
 
@@ -515,6 +522,18 @@ class HomePageWidget(_WorkspaceWidget):
         )
         if all(approvals):
             load_layout(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
+
+    def _show_missing_metadata_dialog(self, path: str):
+        """Display a dialog informing the user that the project is missing required metadata."""
+        _TrexMessageDialog(
+            message=(
+                "This project was created without the required metadata. Please use the "
+                "Open > Edit workflow in the Project Wizard to repair the project by picking "
+                "MOD layers in the edit workflow and opening the newly edited project."
+            ),
+            title="Missing Project Metadata Detected",
+            disable_cancel_button=True,
+        )
 
     def _invoke_mod_setup_wizard(self, wizard_type: _WizardTypes, project_path: str | None = None):
         def on_load_project(_payload=None):

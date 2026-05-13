@@ -193,3 +193,30 @@ class TestLoadWorkFile(AsyncTestCase):
         # Assert
         mock_dialog.assert_called_once()
         mock_event_manager.assert_not_called()
+
+    async def test_legacy_project_shows_dialog_when_validation_raises(self):
+        # Arrange
+        widget = HomePageWidget.__new__(HomePageWidget)
+        widget._window_visible = True
+        widget._context_name = ""
+        widget._recent_model = MagicMock()
+        widget._recent_model.get_item_by_path.return_value = None
+
+        with (
+            patch("lightspeed.trex.home.widget.home_widget.Path.exists", return_value=True),
+            patch(
+                "lightspeed.trex.home.widget.home_widget._ProjectWizardSchema.is_project_file_valid",
+                side_effect=ValueError("not a valid Remix project file"),
+            ),
+            patch("lightspeed.trex.home.widget.home_widget._TrexMessageDialog") as mock_dialog,
+            patch("lightspeed.trex.home.widget.home_widget._get_event_manager_instance") as mock_event_manager,
+        ):
+            widget._load_work_file("/project/legacy.usda")
+
+        # Assert
+        mock_event_manager.assert_not_called()
+        mock_dialog.assert_called_once()
+        dialog_kwargs = mock_dialog.call_args.kwargs
+        self.assertIn("Project Wizard", dialog_kwargs["message"])
+        self.assertEqual("Missing Project Metadata Detected", dialog_kwargs["title"])
+        self.assertTrue(dialog_kwargs["disable_cancel_button"])

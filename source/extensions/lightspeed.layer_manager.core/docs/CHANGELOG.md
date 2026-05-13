@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.2]
+### Fixed
+- REMIX-4869: Auto-migrate legacy projects missing the `lightspeed_layer_type` metadata key so they can be opened in newer toolkit versions
+
 ## [3.2.1]
 ### Fixed
 - REMIX-5242: Fix `open_stage()` regression introduced in 3.2.0 — use `ensure_future(open_stage_async())` to avoid blocking the UI thread during stage open
