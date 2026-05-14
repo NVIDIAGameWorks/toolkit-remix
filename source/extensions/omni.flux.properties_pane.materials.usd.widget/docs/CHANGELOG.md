@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.11.0]
+### Added
+- Added MDL hard/soft range and enable-if support to material properties while preserving authored USD values as the edit source
+
 ## [1.10.0]
 ### Changed
 - Material USD properties now pass producer-collected bounds metadata through one canonical adapter source, matching the shared cross-panel normalization and clamping flow

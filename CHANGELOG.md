@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - REMIX-5208: Added custom tag filtering and category-level bulk actions to the Stage Manager filter popup
 - Added MIRROR_DRY_RUN switch to github-mirror-sync for validating the filter pipeline without pushing to the staging mirror
+- REMIX-4115 / REMIX-2452: Added MDL range and enable-if support to material properties, including conditional row visibility and hidden-row refresh safeguards
 
 ### Changed
 

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.34.0]
+### Added
+- Added a shared conditional visibility orchestrator for safe enable-if parsing, binding, and value-model driven row updates
+
 ## [2.33.2]
 ### Added
 - Add missing `tests/unit/__init__.py` to expose unit test classes for extension test discovery

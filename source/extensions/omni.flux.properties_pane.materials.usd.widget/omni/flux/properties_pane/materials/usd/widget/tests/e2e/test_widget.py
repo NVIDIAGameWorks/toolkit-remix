@@ -5,6 +5,7 @@ import functools
 import os
 import pathlib
 import uuid
+from typing import Any, cast
 
 import carb.input
 import omni.kit.app
@@ -64,6 +65,11 @@ class AsyncTestMeterialPropertyHelper:
             ):
                 await widget_ref.click()
 
+    @staticmethod
+    async def wait_for_updates(frames=5):
+        for _ in range(frames):
+            await cast(Any, omni.kit.app.get_app()).next_update_async()
+
 
 class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
     @classmethod
@@ -86,6 +92,16 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
     async def tearDown(self):
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
+
+    def _find_material_item(self, helper, *display_names):
+        expected_display_names = set(display_names)
+        for item in helper.property_widget.property_model.get_all_items(include_hidden=True):
+            for name_model in item.name_models or ():
+                if name_model.get_value_as_string() in expected_display_names:
+                    return item
+        raise AssertionError(
+            f"Unable to find material property item with display name in {sorted(expected_display_names)}"
+        )
 
     async def test_file_texture_edit_changes(self):
         stage = omni.usd.get_context().get_stage()
@@ -115,6 +131,23 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
             await widget_ref.input(asset_path, end_key=carb.input.KeyboardInput.ENTER)
             await omni.kit.ui_test.human_delay(human_delay_speed=3)
             self.assertEqual(OmniUrl(widget_ref.widget.model.get_value_as_string()).path, posix_asset_path)
+
+    async def test_enable_emission_updates_emissive_row_visibility(self):
+        mat_path = "/World/Looks/OmniPBR_EnableEmission"
+
+        async with AsyncTestMeterialPropertyHelper() as helper:
+            await helper.set_paths([mat_path])
+            enable_emission_item = self._find_material_item(helper, "Enable Emission", "enable_emission")
+            emissive_intensity_item = self._find_material_item(helper, "Emissive Intensity", "emissive_intensity")
+            self.assertTrue(emissive_intensity_item.hidden)
+
+            enable_emission_item.value_models[0].set_value(True)
+            await helper.wait_for_updates()
+            self.assertFalse(emissive_intensity_item.hidden)
+
+            enable_emission_item.value_models[0].set_value(False)
+            await helper.wait_for_updates()
+            self.assertTrue(emissive_intensity_item.hidden)
 
     async def test_preview_window(self):
         stage = omni.usd.get_context().get_stage()

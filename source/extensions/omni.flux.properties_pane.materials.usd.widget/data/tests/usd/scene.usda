@@ -132,6 +132,21 @@ def Xform "World"
                 )
             }
         }
+
+        def Material "OmniPBR_EnableEmission"
+        {
+            token outputs:mdl:surface.connect = </World/Looks/OmniPBR_EnableEmission/Shader.outputs:out>
+
+            def Shader "Shader"
+            {
+                uniform token info:implementationSource = "sourceAsset"
+                uniform asset info:mdl:sourceAsset = @OmniPBR.mdl@
+                uniform token info:mdl:sourceAsset:subIdentifier = "OmniPBR"
+                token outputs:out (
+                    renderType = "material"
+                )
+            }
+        }
     }
 }
 

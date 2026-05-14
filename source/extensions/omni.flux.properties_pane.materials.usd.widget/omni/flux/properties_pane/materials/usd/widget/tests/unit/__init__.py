@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from .material_visibility_orchestrator import MaterialVisibilityOrchestrator
-from .setup_ui import MaterialPropertyWidget
+__all__ = ("TestMaterialBoundsAdapter", "TestMaterialVisibilityOrchestrator")
 
-__all__ = ["MaterialPropertyWidget", "MaterialVisibilityOrchestrator"]
+from .test_bounds_adapter import TestMaterialBoundsAdapter
+from .test_material_visibility_orchestrator import TestMaterialVisibilityOrchestrator
