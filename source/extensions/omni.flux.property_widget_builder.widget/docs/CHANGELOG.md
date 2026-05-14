@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.0]
+### Added
+- Added hidden row handling in property trees so externally hidden items stay filtered, refreshed, and protected from claim-hidden companion row resets
+
 ## [2.11.3]
 ### Fixed
 - Hardened property widget tree UI test helpers to reduce timing flakiness while validating the refactored drag widget behavior

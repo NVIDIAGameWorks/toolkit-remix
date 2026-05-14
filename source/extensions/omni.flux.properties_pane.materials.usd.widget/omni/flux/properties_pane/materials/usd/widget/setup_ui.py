@@ -16,12 +16,11 @@
 """
 
 import asyncio
-from typing import TYPE_CHECKING
 
 import omni.kit
 import omni.ui as ui
 import omni.usd
-from omni.flux.material_api import ShaderInfoAPI
+from omni.flux.material_api import ShaderInfoAPI, UsdShadePropertyPlaceholder
 from omni.flux.property_widget_builder.model.usd import DisableAllListenersBlock as _USDDisableAllListenersBlock
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDMetadataListItem as _USDMetadataListItem
@@ -30,7 +29,6 @@ from omni.flux.property_widget_builder.model.usd import USDPropertyWidget as _Pr
 from omni.flux.property_widget_builder.model.usd import VirtualUSDAttributeItem as _VirtualUSDAttributeItem
 from omni.flux.property_widget_builder.model.usd import VirtualUSDAttrListItem as _VirtualUSDAttrListItem
 from omni.flux.property_widget_builder.model.usd import get_usd_listener_instance as _get_usd_listener_instance
-from omni.flux.property_widget_builder.model.usd.bounds_adapter import BoundsAdapter as _BoundsAdapter
 from omni.flux.property_widget_builder.widget import FieldBuilder as _FieldBuilder
 from omni.flux.property_widget_builder.widget import ItemGroup as _ItemGroup
 from omni.flux.utils.common import Event as _Event
@@ -38,10 +36,9 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from pxr import Sdf, Usd, UsdShade, Vt
 
+from .bounds_adapter import MaterialBoundsAdapter as _MaterialBoundsAdapter
+from .material_visibility_orchestrator import MaterialVisibilityOrchestrator as _MaterialVisibilityOrchestrator
 from .lookup_table import LOOKUP_TABLE
-
-if TYPE_CHECKING:
-    from omni.flux.material_api import UsdShadePropertyPlaceholder
 
 
 SHADER_ATTR_IGNORE_LIST = [
@@ -84,6 +81,7 @@ class MaterialPropertyWidget:
             "_property_widget": None,
             "_property_model": None,
             "_property_delegate": None,
+            "_conditional_visibility_orchestrator": None,
             "_tree_column_widths": None,
             "_columns_resizable": None,
             "_right_aligned_labels": None,
@@ -171,6 +169,7 @@ class MaterialPropertyWidget:
         if self.__usd_listener_instance and self._property_model:
             self.__usd_listener_instance.remove_model(self._property_model)
 
+        self._conditional_visibility_orchestrator = None
         stage: Usd.Stage = self._context.get_stage()
         items: list[_ItemGroup | _VirtualUSDAttributeItem | _VirtualUSDAttrListItem] = []
         valid_paths: list[Sdf.Path] = []
@@ -180,7 +179,9 @@ class MaterialPropertyWidget:
 
             shader_paths = []
             # relative attr name to item
-            attr_added: dict[str, list[tuple[Usd.Prim, UsdShadePropertyPlaceholder]]] = {}
+            attr_added: dict[
+                str, list[tuple[Usd.Prim, Usd.Attribute | UsdShadePropertyPlaceholder, UsdShadePropertyPlaceholder]]
+            ] = {}
 
             with _USDDisableAllListenersBlock(self.__usd_listener_instance):
                 for prim in prims:
@@ -205,7 +206,7 @@ class MaterialPropertyWidget:
                                 continue
                             if material_attr:
                                 # use material attribute NOT shader attribute
-                                attr_added.setdefault(attr_name, []).append((shader_prim, material_attr))
+                                attr_added.setdefault(attr_name, []).append((shader_prim, material_attr, shader_attr))
                                 continue
 
                             if any(ignore_name in attr_name for ignore_name in SHADER_ATTR_IGNORE_LIST):
@@ -216,7 +217,9 @@ class MaterialPropertyWidget:
                             if prim_path not in valid_paths:
                                 valid_paths.append(prim_path)
 
-                            attr_added.setdefault(attr_name, []).append((shader_prim, shader_attr))
+                            # Tuple layout is (shader_prim, value_source, metadata_source). When the material has no
+                            # authored attribute yet, the MDL placeholder supplies both the virtual value and metadata.
+                            attr_added.setdefault(attr_name, []).append((shader_prim, shader_attr, shader_attr))
 
                         # add source color space
                         shader = UsdShade.Shader(shader_prim)
@@ -234,51 +237,53 @@ class MaterialPropertyWidget:
                                 if not tokens:
                                     # fix missing tokens on attribute
                                     attr_mat.SetMetadata("allowedTokens", ["auto", "raw", "sRGB"])
-                            attr_added.setdefault(attr_name, []).append((shader_prim, attr_mat))
+                            attr_placeholder = UsdShadePropertyPlaceholder(attr_name, attr_mat.GetAllMetadata(), True)
+                            attr_added.setdefault(attr_name, []).append((shader_prim, attr_mat, attr_placeholder))
 
                         valid_paths.append(shader_prim.GetPath())
 
                     valid_paths.append(prim.GetPath())
 
-                group_items = {}
                 num_prims = len(prims)
+                self._conditional_visibility_orchestrator = _MaterialVisibilityOrchestrator()
+
+                group_items = {}
                 for attr_name, prims_and_placeholders in attr_added.items():
                     # Only allow editing common attributes
                     if 1 < num_prims != len(prims_and_placeholders):
                         # skipping attribute because not all prims have it
                         continue
                     attributes = [
-                        shader_prim_.GetAttribute(attr_.GetName()) for shader_prim_, attr_ in prims_and_placeholders
+                        shader_prim_.GetAttribute(attr_.GetName()) for shader_prim_, attr_, _ in prims_and_placeholders
                     ]
                     attribute_paths = [attr_.GetPath() for attr_ in attributes]
-
-                    shader_prim, placeholder = prims_and_placeholders[0]
-                    resolved_attr_name = placeholder.GetName()
+                    _shader_prim, value_source, metadata_source = prims_and_placeholders[0]
+                    placeholder_default_value = value_source.GetDefaultValue()
+                    resolved_attr_name = value_source.GetName()
                     display_attr_names = [resolved_attr_name]
-
-                    display_name = placeholder.GetMetadata(Sdf.PropertySpec.DisplayNameKey)
+                    display_name = metadata_source.GetMetadata(Sdf.PropertySpec.DisplayNameKey)
                     if display_name:
                         display_attr_names = [display_name]
                     if attr_name in self._lookup_table:
                         display_attr_names = [self._lookup_table[attr_name]["name"]]
 
                     value_type_name: Sdf.ValueTypeName | None = None
-                    type_name: str | None = placeholder.GetTypeName()
+                    type_name: str | None = value_source.GetTypeName()
                     if type_name:
                         value_type_name = Sdf.ValueTypeNames.Find(type_name)
 
                     # description
                     description = "No description"
-                    metadata = placeholder.GetAllMetadata()
+                    metadata = metadata_source.GetAllMetadata()
                     # Keep value-model metadata and bounds adapter separate:
                     # metadata feeds virtual value-model behavior, while
                     # bounds_adapter is the canonical bounds/step source.
-                    bounds_adapter = _BoundsAdapter(metadata)
+                    bounds_adapter = _MaterialBoundsAdapter(metadata)
                     if metadata and metadata.get("documentation"):
                         description = metadata.get("documentation", description)
                     descriptions = [description]
 
-                    sdr_metadata = placeholder.GetMetadata("sdrMetadata")
+                    sdr_metadata = metadata_source.GetMetadata("sdrMetadata")
                     if sdr_metadata and sdr_metadata.get("options"):
                         options: list[tuple[str, int]] | str = sdr_metadata.get("options")
                         if isinstance(options, list):
@@ -289,8 +294,7 @@ class MaterialPropertyWidget:
                             str_options = [name_and_index.split(":")[0] for name_and_index in options.split("|")]
                         else:
                             raise ValueError(f"Invalid sdrMetadata options type: {type(options)}")
-                        default_value: int = placeholder.GetDefaultValue()
-                        str_default = str_options[default_value]
+                        str_default = str_options[placeholder_default_value or 0]
                         attr_item = _VirtualUSDAttrListItem(
                             self._context_name,
                             attribute_paths,
@@ -306,14 +310,14 @@ class MaterialPropertyWidget:
                             self._context_name,
                             attribute_paths,
                             value_type_name=value_type_name,
-                            default_value=placeholder.GetDefaultValue(),
+                            default_value=placeholder_default_value,
                             metadata=metadata,
                             bounds_adapter=bounds_adapter,
                             display_attr_names=display_attr_names,
                             display_attr_names_tooltip=descriptions,
                         )
 
-                    attr_display_group = placeholder.GetDisplayGroup()
+                    attr_display_group = metadata_source.GetDisplayGroup()
                     attr_name_lower = attr_name.lower()
                     if attr_display_group:
                         group_name = attr_display_group.removeprefix(UsdShade.Tokens.inputs.capitalize())
@@ -330,7 +334,7 @@ class MaterialPropertyWidget:
                     # texture attribute will get color space attribute
                     color_space_item = None
                     if self._create_color_space_attributes:
-                        color_space_metadata = placeholder.GetMetadata("colorSpace")
+                        color_space_metadata = metadata_source.GetMetadata("colorSpace")
                         if color_space_metadata:
                             # this is a texture
                             # TODO: Add Support for metadata item when attr does not exist yet.
@@ -343,6 +347,15 @@ class MaterialPropertyWidget:
                                 display_attr_names_tooltip=descriptions,
                                 metadata_key="colorSpace",
                             )
+
+                    if self._conditional_visibility_orchestrator.can_bind_attribute(resolved_attr_name):
+                        # Color-space rows are USD metadata companions, not separate MDL inputs with their own
+                        # anno::enable_if metadata, so they inherit the texture input's visibility.
+                        self._conditional_visibility_orchestrator.bind_attribute(
+                            attr_id=resolved_attr_name,
+                            metadata_source=metadata_source,
+                            item_or_items=(attr_item, color_space_item) if color_space_item is not None else attr_item,
+                        )
 
                     if group_name is not None:
                         if group_name not in group_items:
@@ -358,6 +371,8 @@ class MaterialPropertyWidget:
                         items.append(attr_item)
                         if color_space_item:
                             items.append(color_space_item)
+
+                self._conditional_visibility_orchestrator.sync_and_evaluate_bindings()
 
         self._property_model.set_prim_paths(valid_paths)
         self._property_model.set_items(items)

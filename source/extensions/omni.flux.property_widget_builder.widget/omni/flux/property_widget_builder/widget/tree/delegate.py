@@ -114,6 +114,11 @@ class Delegate(_TreeDelegateBase):
 
         self._name_widgets = {}
         self._builder_map: dict[int, FieldBuilder] = {}
+
+        # Field builders can claim related "companion" items that are consumed by a primary item's widget instead of
+        # rendering as their own rows. Track only companions hidden by claim resolution so it can unhide its own
+        # previous companions without clearing visibility state owned by other systems.
+        self._claim_hidden_companion_items: set[Item] = set()
         self._subscriptions: list[carb.Subscription] = []
 
         # This is populated during a right click event within `_show_menu`. We store this Menu instance to avoid it
@@ -130,6 +135,7 @@ class Delegate(_TreeDelegateBase):
                 "_right_aligned_labels": None,
                 "_name_widgets": None,
                 "_builder_map": None,
+                "_claim_hidden_companion_items": None,
                 "_subscriptions": None,
                 "_context_menu": None,
             }
@@ -144,6 +150,7 @@ class Delegate(_TreeDelegateBase):
         """
         self._name_widgets.clear()
         self._builder_map.clear()
+        self._claim_hidden_companion_items.clear()
         self._subscriptions.clear()
         self._selection.clear()
         self._context_menu = None
@@ -178,7 +185,9 @@ class Delegate(_TreeDelegateBase):
         """
         all_items = model.get_all_items(include_hidden=True)
         for item in all_items:
-            item.hidden = False
+            if item in self._claim_hidden_companion_items:
+                item.hidden = False
+        self._claim_hidden_companion_items.clear()
         self._builder_map.clear()
 
         unclaimed = list(all_items)
@@ -193,6 +202,8 @@ class Delegate(_TreeDelegateBase):
             for item in result.primary:
                 self._builder_map[id(item)] = builder
             for item in result.companions:
+                if not item.hidden:
+                    self._claim_hidden_companion_items.add(item)
                 item.hidden = True
             claimed_ids = {id(item) for item in result.all_claimed}
             unclaimed = [item for item in unclaimed if id(item) not in claimed_ids]

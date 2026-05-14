@@ -186,6 +186,8 @@ class Model(_TreeModelBase[_TreeItemBase]):
 
         async def _do_refresh():
             await omni.kit.app.get_app().next_update_async()
+            if self._items is None:
+                return
             self._item_changed(None)
 
         self._hidden_refresh_task = asyncio.ensure_future(_do_refresh())
@@ -201,23 +203,32 @@ class Model(_TreeModelBase[_TreeItemBase]):
         stack = list(items)
         while stack:
             item = stack.pop()
-            if hasattr(item, "_on_hidden_changed"):
-                item._on_hidden_changed = self._schedule_refresh_from_hidden  # noqa: SLF001
-            if getattr(item, "children", None):
-                stack.extend(item.children)
+            item._on_hidden_changed = self._schedule_refresh_from_hidden  # noqa: SLF001
+            children = typing.cast(list[Item], item.children)
+            if children:
+                stack.extend(children)
         self.refresh()
 
     def refresh(self):
         """Refresh everything"""
-        for item in self.get_all_items():
+        for item in self.get_all_items(include_hidden=True):
             item.refresh()
         self._item_changed(None)
 
     def get_all_items(self, include_hidden: bool = False):
+        """Return all items in the model, optionally including hidden rows.
+
+        Args:
+            include_hidden: Whether to include rows hidden by delegate or property visibility state.
+
+        Returns:
+            Flattened list of tree items.
+        """
+
         def _get_children(items):
             result = []
             for item in items:
-                if not include_hidden and getattr(item, "hidden", False):
+                if not include_hidden and item.hidden:
                     continue
                 result.append(item)
                 if item.children:
@@ -229,12 +240,19 @@ class Model(_TreeModelBase[_TreeItemBase]):
         return _get_children(self._items)
 
     def get_item_children(self, item: Item | None) -> list[Item]:
-        """Returns all the children when the widget asks it."""
+        """Return visible children requested by the tree widget.
+
+        Args:
+            item: Parent item whose children should be returned, or ``None`` for root items.
+
+        Returns:
+            Child items not hidden by delegate or property visibility state.
+        """
         if item is None:
-            children = self._items
+            children = typing.cast(list[Item], self._items)
         else:
-            children = item.children
-        return [c for c in children if not getattr(c, "hidden", False)]
+            children = typing.cast(list[Item], item.children)
+        return [c for c in children if not c.hidden]
 
     def get_item_value_model_count(self, item: Item):
         """The number of columns"""

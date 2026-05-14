@@ -17,7 +17,9 @@
 
 from .unit.test_delegate_alignment import TestDelegateAlignment
 from .unit.test_bounds_adapter import TestBoundsAdapter
+from .unit.test_conditional_visibility_orchestrator import TestConditionalVisibilityOrchestrator
 from .unit.test_drag_write_throttling import TestDragWriteThrottling
+from .unit.test_expression_evaluator import TestExpressionEvaluator
 from .unit.test_file_texture_picker import TestFileTexturePicker
 from .unit.test_listener import TestUSDListener
 from .unit.test_relationship_item import TestUSDRelationshipItem
@@ -34,8 +36,10 @@ from .e2e.test_gradient_command import (
 
 __all__ = [
     "TestBoundsAdapter",
+    "TestConditionalVisibilityOrchestrator",
     "TestDelegateAlignment",
     "TestDragWriteThrottling",
+    "TestExpressionEvaluator",
     "TestFileTexturePicker",
     "TestGradientEditorUndo",
     "TestRelationshipUtils",

@@ -22,7 +22,7 @@ import omni.kit.test
 import omni.ui as ui
 from omni.flux.property_widget_builder.widget import ItemGroup, Model, PropertyWidget
 
-from ..ui_components import TestItem
+from ..ui_components import TestDelegate, TestItem
 
 
 class TestItemGroupExpansion(omni.kit.test.AsyncTestCase):
@@ -128,3 +128,60 @@ class TestItemGroupExpansion(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertTrue(self.widget.tree_view.is_expanded(expanded_group))
         self.assertFalse(self.widget.tree_view.is_expanded(collapsed_group))
+
+    async def test_hidden_child_is_filtered_from_model_children(self):
+        """Hidden rows stay created but are excluded from visible tree children."""
+        # Arrange
+        group = ItemGroup("Inputs")
+        visible_child = TestItem([("Visible", "value")])
+        hidden_child = TestItem([("Hidden", "value")])
+        visible_child.parent = group
+        hidden_child.parent = group
+        hidden_child.hidden = True
+
+        # Act
+        self.model.set_items([group])
+
+        # Assert
+        self.assertEqual(self.model.get_item_children(group), [visible_child])
+        self.assertIn(hidden_child, self.model.get_all_items(include_hidden=True))
+
+    async def test_hidden_child_is_refreshed_with_model(self):
+        """Hidden rows stay internally current while excluded from visible children."""
+        # Arrange
+        group = ItemGroup("Inputs")
+        hidden_child = TestItem([("Hidden", "value")])
+        hidden_child.parent = group
+        hidden_child.hidden = True
+        self.model.set_items([group])
+
+        refresh_count = 0
+
+        def _count_refresh():
+            nonlocal refresh_count
+            refresh_count += 1
+
+        hidden_child.refresh = _count_refresh
+
+        # Act
+        self.model.refresh()
+
+        # Assert
+        self.assertEqual(refresh_count, 1)
+
+    async def test_hidden_survives_delegate_claim_resolution(self):
+        """Delegate companion-claim resets do not clear rows hidden by other systems."""
+        # Arrange
+        group = ItemGroup("Inputs")
+        hidden_child = TestItem([("Hidden", "value")])
+        hidden_child.parent = group
+        hidden_child.hidden = True
+        delegate = TestDelegate()
+        self.model.set_items([group])
+
+        # Act
+        delegate.resolve_claims(self.model)
+
+        # Assert
+        self.assertTrue(hidden_child.hidden)
+        self.assertEqual(self.model.get_item_children(group), [])

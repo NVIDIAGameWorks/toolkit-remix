@@ -21,6 +21,7 @@ __all__ = [
     "BoundsAdapter",
     "BoundsValue",
     "ComboboxField",
+    "ConditionalVisibilityOrchestrator",
     "DisableAllListenersBlock",
     "FileTexturePicker",
     "USDAttrListItem",
@@ -49,6 +50,7 @@ __all__ = [
 from . import utils
 from .delegate import USDDelegate
 from .bounds_adapter import BoundsAdapter, BoundsValue
+from .conditional_visibility_orchestrator import ConditionalVisibilityOrchestrator
 from .extension import USDPropertyWidgetExtension, get_usd_listener_instance
 from .field_builders import USDBuilderList
 from .item_delegates import ComboboxField, FileTexturePicker, USDFloatDragField, USDIntDragField
