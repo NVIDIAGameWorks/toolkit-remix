@@ -128,8 +128,17 @@ class Item(_TreeItemBase):
         return val_len == len(self.value_models)
 
     def apply_serialized_data(self, serialized_item: dict):
+        # Interleave begin_paste/deserialize/end_paste per channel: begin_paste on
+        # channel N runs AFTER channel N-1's deserialize has written to USD, so USD
+        # multichannel models can pick up sibling writes within the same paste tick.
+        # The hooks are no-ops on the Serializable base, so non-USD models inherit
+        # safe defaults without subclass-specific checks.
         for value_model, value in zip(self.value_models, serialized_item["values"]):
-            value_model.deserialize(value)
+            value_model.begin_paste()
+            try:
+                value_model.deserialize(value)
+            finally:
+                value_model.end_paste()
 
     def __repr__(self):
         return f"<{self.__class__.__name__}({repr(''.join(str(x) for x in self._name_models))})"

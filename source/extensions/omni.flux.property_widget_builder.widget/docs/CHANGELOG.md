@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.1]
+### Fixed
+- REMIX-4585: `Item.apply_serialized_data` now opens a paste window around the deserialize loop so multichannel USD value models can refresh sibling caches between sequential channel writes
+
 ## [2.12.0]
 ### Added
 - Added hidden row handling in property trees so externally hidden items stay filtered, refreshed, and protected from claim-hidden companion row resets
