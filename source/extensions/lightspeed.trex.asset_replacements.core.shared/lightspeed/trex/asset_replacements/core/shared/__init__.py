@@ -21,6 +21,7 @@ __all__ = [
     "SkeletonAutoRemappingError",
     "SkeletonDefinitionError",
     "SkeletonReplacementBinding",
+    "repair_skinned_replacement_scale",
 ]
 
 from .setup import Setup
@@ -29,4 +30,5 @@ from .skeleton import (
     SkeletonAutoRemappingError,
     SkeletonDefinitionError,
     SkeletonReplacementBinding,
+    repair_skinned_replacement_scale,
 )

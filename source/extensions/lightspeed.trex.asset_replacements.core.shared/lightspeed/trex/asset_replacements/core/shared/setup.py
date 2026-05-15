@@ -82,6 +82,7 @@ from .skeleton import (
     author_binding_to_skel,
     clear_skel_root_type,
     path_names_only,
+    repair_skinned_replacement_scale,
 )
 
 _DEFAULT_PRIM_TAG = "<Default Prim>"
@@ -950,6 +951,9 @@ class Setup:
                 mesh_joint_names = path_names_only(mesh_joints)
                 needs_remapping = not all(m == s for m, s in zip(mesh_joint_names, skel_joint_names))
                 if not needs_remapping:
+                    # Large replacement bind-space scale still needs a Toolkit viewport repair even when the joint
+                    # arrays already match and no remapping is needed.
+                    repair_skinned_replacement_scale(ref_prim)
                     continue
 
                 # Now that the new reference is bound, we can try to remap the joints
@@ -970,6 +974,7 @@ class Setup:
                     continue
 
                 carb.log_info(f"Automatically remapping joints for {ref_prim.GetPath()} with {joint_map}.")
+                # apply() also repairs large replacement bind-space scale after the joint remap is authored.
                 skel_replacement.apply(joint_map)
 
         if detail_message:
