@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed GitHub mirror filtering so branch-specific private paths and glob-prefixed entries are checked correctly
 - Fixed GitHub toolkit package downloads to use the GitLab-dispatched version when constructing Packman package names
 - Fixed invalid agent skill YAML descriptions so local skill discovery loads shared wrappers correctly
+- REMIX-4585: Fixed property copy/paste so multichannel transforms and unresolved asset paths (e.g. textures pending ingestion) round-trip to the target prim
 
 ## [1.5.0-0]
 

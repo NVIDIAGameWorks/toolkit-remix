@@ -140,7 +140,13 @@ class UsdAttributeBase(_Serializable, abc.ABC):
 
         @serializer.register_serialize_hook(Sdf.AssetPath)
         def serialize_asset_path(value: Sdf.AssetPath) -> str:
-            return value.resolvedPath.replace("\\", "/")
+            # Always emit the authored path. The hook is intentionally not a strict
+            # mirror of deserialize_asset_path: serialize captures what USD was given
+            # at the source (relative, absolute, or unresolved-pending-ingest), and
+            # deserialize re-anchors that string against the destination's edit target.
+            # Using value.resolvedPath here would drop paths whose target isn't on disk
+            # yet — the original bug this hook is fixing.
+            return value.path.replace("\\", "/")
 
         @serializer.register_deserialize_hook(Sdf.AssetPath)
         def deserialize_asset_path(value: str) -> str:
@@ -466,6 +472,20 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         self._default_value = default_value
         self.init_attributes()
 
+    def begin_paste(self):
+        """Refresh ``self._value`` from USD before this channel's deserialize.
+
+        ``Item.apply_serialized_data`` interleaves begin_paste/deserialize per channel,
+        so by the time we're called the previous channel has already committed its
+        write to USD. Re-reading here gives us the up-to-date full vector, ensuring
+        the subsequent ``_write_value_to_usd`` (which writes the whole ``self._value``)
+        doesn't clobber a sibling channel that was written earlier in the same paste
+        tick. Single-channel models don't need the refresh, so ``begin_paste``
+        skips the call entirely via the ``_is_multichannel`` guard.
+        """
+        if self._is_multichannel:
+            self._read_value_from_usd()
+
     def get_value(self):
         """Get the value for serialization and external consumption."""
         if self._value is None:
@@ -481,7 +501,6 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
     def _set_internal_value(self, new_value):
         """Inverse of get_value. Prep widget value for storing in self._value."""
         if self._is_multichannel:
-            # may not always be a dict, since this is a USD type
             self._value[self._channel_index] = new_value
         else:
             self._value = new_value

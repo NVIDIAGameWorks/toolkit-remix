@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "2.34.0"
+version = "2.34.1"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -51,6 +51,7 @@ icon = "data/images/icon.png"
 
 [[test]]
 dependencies = [
+    "omni.kit.clipboard",
     "omni.kit.ui_test",
 ]
 

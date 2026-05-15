@@ -119,6 +119,20 @@ class Serializable(abc.ABC):
     def deserialize(self, value):
         self.set_value(value)
 
+    def begin_paste(self):  # noqa: B027  # optional to override
+        """Hook called by ``Item.apply_serialized_data`` immediately before each
+        channel's ``deserialize``. Default is a no-op; subclasses that share state
+        across sibling channel models (e.g. the USD multichannel value model) can
+        override to refresh that state from the source of truth.
+        """
+        pass
+
+    def end_paste(self):  # noqa: B027  # optional to override
+        """Hook called by ``Item.apply_serialized_data`` immediately after each
+        channel's ``deserialize``. Default is a no-op. Paired with ``begin_paste``.
+        """
+        pass
+
 
 class ItemModelBase(Serializable, abc.ABC):
     """The base class for item models that will be used with `Item` and `Model`"""
