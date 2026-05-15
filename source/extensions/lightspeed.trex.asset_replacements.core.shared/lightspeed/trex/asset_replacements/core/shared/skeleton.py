@@ -17,7 +17,13 @@
 
 import carb
 import omni.kit
-from pxr import Sdf, Usd, UsdSkel, Vt
+import omni.kit.undo
+from pxr import Gf, Sdf, Usd, UsdSkel, Vt
+
+# Only large uniform bind scales are treated as unit-conversion repairs. Smaller non-1 scales can be
+# intentional authored sizing and should stay intact.
+_MIN_BIND_SCALE_TO_NORMALIZE = 10.0
+_UNIFORM_SCALE_TOLERANCE = 0.01
 
 
 class SkeletonAutoRemappingError(Exception):
@@ -55,6 +61,275 @@ def author_binding_to_skel(binding_api: UsdSkel.BindingAPI, skeleton_prim: Usd.P
         relationship=binding_api.GetSkeletonRel(),
         targets=[skeleton_prim.GetPath()],
     )
+
+
+def _has_replacement_reference_ancestor(prim: Usd.Prim) -> bool:
+    return bool(_get_replacement_reference_root(prim))
+
+
+def _get_replacement_reference_root(prim: Usd.Prim) -> Usd.Prim | None:
+    stage = prim.GetStage()
+    path = prim.GetPath().GetParentPath()
+    while path and path != Sdf.Path.absoluteRootPath:
+        if path.name.startswith("ref_"):
+            ref_prim = stage.GetPrimAtPath(path)
+            return ref_prim if ref_prim and ref_prim.IsValid() else None
+        path = path.GetParentPath()
+    return None
+
+
+def _targets_captured_skeleton(binding_api: UsdSkel.BindingAPI) -> bool:
+    skeleton_rel = binding_api.GetSkeletonRel()
+    if not skeleton_rel:
+        return False
+    for target in skeleton_rel.GetTargets():
+        target_text = str(target)
+        if target_text.startswith("/RootNode/meshes/") and target_text.endswith("/skel"):
+            return True
+    return False
+
+
+def _coerce_matrix4d(value) -> Gf.Matrix4d | None:
+    if value is None:
+        return None
+    if isinstance(value, Gf.Matrix4d):
+        return value
+    try:
+        return Gf.Matrix4d(*value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _matrix_row_scale(matrix: Gf.Matrix4d, row: int) -> float:
+    return sum(float(matrix[row][column]) ** 2 for column in range(3)) ** 0.5
+
+
+def _uniform_basis_scale(matrix: Gf.Matrix4d) -> float | None:
+    scales = [_matrix_row_scale(matrix, row) for row in range(3)]
+    if any(scale <= 0.0 for scale in scales):
+        return None
+    scale = sum(scales) / len(scales)
+    if scale < _MIN_BIND_SCALE_TO_NORMALIZE:
+        return None
+    if any(abs(axis_scale - scale) > scale * _UNIFORM_SCALE_TOLERANCE for axis_scale in scales):
+        return None
+    return scale
+
+
+def _matrix_without_uniform_basis_scale(
+    matrix: Gf.Matrix4d, scale: float, normalize_translation: bool = False
+) -> Gf.Matrix4d:
+    rows = [[float(matrix[row][column]) for column in range(4)] for row in range(4)]
+    for row in range(3):
+        for column in range(3):
+            rows[row][column] /= scale
+    if normalize_translation:
+        for column in range(3):
+            rows[3][column] /= scale
+    return Gf.Matrix4d(
+        rows[0][0],
+        rows[0][1],
+        rows[0][2],
+        rows[0][3],
+        rows[1][0],
+        rows[1][1],
+        rows[1][2],
+        rows[1][3],
+        rows[2][0],
+        rows[2][1],
+        rows[2][2],
+        rows[2][3],
+        rows[3][0],
+        rows[3][1],
+        rows[3][2],
+        rows[3][3],
+    )
+
+
+def _should_normalize_geom_bind_scale(prim: Usd.Prim, binding_api: UsdSkel.BindingAPI) -> bool:
+    return _has_replacement_reference_ancestor(prim) and _targets_captured_skeleton(binding_api)
+
+
+def _get_matching_uniform_basis_scale(matrix: Gf.Matrix4d, expected_scale: float) -> float | None:
+    scale = _uniform_basis_scale(matrix)
+    if scale is None:
+        return None
+    if abs(scale - expected_scale) > expected_scale * _UNIFORM_SCALE_TOLERANCE:
+        return None
+    return scale
+
+
+def _matrix_array_with_normalized_uniform_basis(
+    value, expected_scale: float, normalize_translation: bool
+) -> list[Gf.Matrix4d] | None:
+    if not value:
+        return None
+
+    changed = False
+    matrices = []
+    for matrix_value in value:
+        matrix = _coerce_matrix4d(matrix_value)
+        if matrix is None:
+            return None
+
+        matrix_scale = _get_matching_uniform_basis_scale(matrix, expected_scale)
+        if matrix_scale is None:
+            matrices.append(matrix)
+            continue
+
+        matrices.append(_matrix_without_uniform_basis_scale(matrix, matrix_scale, normalize_translation))
+        changed = True
+
+    return matrices if changed else None
+
+
+def _active_binding_targets_skeleton(root_prim: Usd.Prim, skeleton_path: Sdf.Path) -> bool:
+    for prim in Usd.PrimRange(root_prim, Usd.PrimAllPrimsPredicate):
+        binding_api = UsdSkel.BindingAPI(prim)
+        if not binding_api:
+            continue
+        skeleton_rel = binding_api.GetSkeletonRel()
+        if skeleton_rel and skeleton_path in skeleton_rel.GetTargets():
+            return True
+    return False
+
+
+def _get_nearby_replacement_skeletons(prim: Usd.Prim) -> list[Usd.Prim]:
+    ref_root = _get_replacement_reference_root(prim)
+    if not ref_root:
+        return []
+
+    ancestor = prim.GetParent()
+    while ancestor and ancestor.IsValid():
+        skeletons = [
+            skeleton_prim
+            for skeleton_prim in Usd.PrimRange(ancestor, Usd.PrimAllPrimsPredicate)
+            if UsdSkel.Skeleton(skeleton_prim)
+        ]
+        if skeletons:
+            return skeletons
+        if ancestor == ref_root:
+            break
+        ancestor = ancestor.GetParent()
+    return []
+
+
+def _collect_skeleton_transform_repairs(
+    repairs: list[tuple[Usd.Attribute, object, float, str]],
+    seen_attr_paths: set[Sdf.Path],
+    prim: Usd.Prim,
+    scale: float,
+):
+    for skeleton_prim in _get_nearby_replacement_skeletons(prim):
+        skeleton_path = skeleton_prim.GetPath()
+        if _active_binding_targets_skeleton(skeleton_prim.GetParent(), skeleton_path):
+            continue
+
+        skeleton = UsdSkel.Skeleton(skeleton_prim)
+        for attr, normalize_translation in (
+            (skeleton.GetRestTransformsAttr(), False),
+            (skeleton.GetBindTransformsAttr(), True),
+        ):
+            if not attr:
+                continue
+            attr_path = attr.GetPath()
+            if attr_path in seen_attr_paths:
+                continue
+
+            matrices = _matrix_array_with_normalized_uniform_basis(attr.Get(), scale, normalize_translation)
+            if matrices is None:
+                continue
+
+            repairs.append((attr, matrices, scale, str(skeleton_path)))
+            seen_attr_paths.add(attr_path)
+
+
+def _get_scale_repair_target_layer(stage: Usd.Stage, target_layer: Sdf.Layer | None = None) -> Sdf.Layer | None:
+    if not stage:
+        return None
+
+    session_layer = stage.GetSessionLayer()
+    if target_layer and target_layer != session_layer:
+        return target_layer
+
+    edit_layer = stage.GetEditTarget().GetLayer()
+    if edit_layer and edit_layer != session_layer:
+        return edit_layer
+
+    root_layer = stage.GetRootLayer()
+    if root_layer and root_layer != session_layer:
+        return root_layer
+
+    return None
+
+
+def _author_scale_repairs(
+    stage: Usd.Stage, repairs: list[tuple[Usd.Attribute, object, float, str]], target_layer: Sdf.Layer | None = None
+) -> int:
+    authoring_layer = _get_scale_repair_target_layer(stage, target_layer)
+    if not authoring_layer:
+        return 0
+
+    repairs_applied = 0
+    with Usd.EditContext(stage, authoring_layer), omni.kit.undo.group():
+        for attr, value, scale, prim_path in repairs:
+            if not attr:
+                continue
+            omni.kit.commands.execute(
+                "ChangePropertyCommand",
+                usd_context_name=stage,
+                prop_path=str(attr.GetPath()),
+                value=value,
+                prev=attr.Get(),
+                type_to_create_if_not_exist=attr.GetTypeName(),
+                is_custom=attr.IsCustom(),
+                variability=attr.GetVariability(),
+            )
+            repairs_applied += 1
+            carb.log_info(
+                f"Repaired {scale:.4g}x skinned replacement {attr.GetName()} scale for Toolkit view: {prim_path}"
+            )
+    return repairs_applied
+
+
+def repair_skinned_replacement_scale(bound_prim: Usd.Prim, target_layer: Sdf.Layer | None = None) -> int:
+    """Normalize large replacement skel scales for one bound replacement mesh.
+
+    Runtime remapping evaluates these meshes against the captured skeleton. Toolkit USD skinning still applies the
+    replacement asset's authored bind-space unit scale, so remapped meshes and their source skeletons can appear huge.
+    The repair is scoped to a selected replacement binding and authored to the current non-session edit target.
+    """
+    if not bound_prim or not bound_prim.IsValid():
+        return 0
+
+    stage = bound_prim.GetStage()
+    if not stage:
+        return 0
+
+    binding_api = UsdSkel.BindingAPI(bound_prim)
+    if not binding_api or not _should_normalize_geom_bind_scale(bound_prim, binding_api):
+        return 0
+
+    geom_bind_attr = binding_api.GetGeomBindTransformAttr()
+    matrix = _coerce_matrix4d(geom_bind_attr.Get() if geom_bind_attr else None)
+    if matrix is None:
+        return 0
+
+    scale = _uniform_basis_scale(matrix)
+    if scale is None:
+        return 0
+
+    repairs = [
+        (
+            geom_bind_attr,
+            _matrix_without_uniform_basis_scale(matrix, scale),
+            scale,
+            str(bound_prim.GetPath()),
+        )
+    ]
+    seen_attr_paths = {geom_bind_attr.GetPath()}
+    _collect_skeleton_transform_repairs(repairs, seen_attr_paths, bound_prim, scale)
+    return _author_scale_repairs(stage, repairs, target_layer=target_layer)
 
 
 class SkeletonReplacementBinding:
@@ -231,11 +506,20 @@ class SkeletonReplacementBinding:
             prev=original_joints,
         )
 
-    def apply(self, joint_map: list[int]):
-        """Apply the remapping to the bound prim"""
+    def repair_scale(self) -> int:
+        """Repair large skinned replacement scale on the bound mesh and nearby replacement skeleton."""
+        return repair_skinned_replacement_scale(self._bound_prim)
+
+    def apply(self, joint_map: list[int]) -> int:
+        """Apply remapping and repair large skinned replacement scale.
+
+        Returns:
+            The number of scale repairs applied to the bound prim and nearby replacement skeleton.
+        """
         self._author_remapped_joints(joint_map)
         self._author_remapped_joint_indices(joint_map)
         self._clear_skel_joints_attr()
+        return self.repair_scale()
 
 
 class CachedReplacementSkeletons:

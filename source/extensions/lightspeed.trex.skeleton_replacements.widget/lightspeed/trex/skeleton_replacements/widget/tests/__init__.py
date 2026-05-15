@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +15,14 @@
 * limitations under the License.
 """
 
-from .unit.test_core import TestAssetReplacementsCore
-from .unit.test_skeleton import TestSkeleton
-from .unit.test_validators import TestAssetReplacementsValidators
+from .unit.test_item_model import TestJointItemModel
+from .unit.test_model import TestJointTreeModel
+from .unit.test_setup_ui import TestSkeletonRemappingWidget
+from .unit.test_window import TestSkeletonRemappingWindow
 
-__all__ = ["TestAssetReplacementsCore", "TestAssetReplacementsValidators", "TestSkeleton"]
+__all__ = [
+    "TestJointItemModel",
+    "TestJointTreeModel",
+    "TestSkeletonRemappingWidget",
+    "TestSkeletonRemappingWindow",
+]

@@ -61,3 +61,9 @@ class SkeletonRemappingWindow:
             self._widget.refresh(skel_replacement)
             self.window.title = f"{self.TITLE_PREFIX} {skel_replacement.bound_prim.GetName()}"
             self.window.tabBar_tooltip = f"{self.TITLE_PREFIX} {skel_replacement.bound_prim.GetPath()}"
+
+    def destroy(self):
+        self._widget = None
+        if self.window:
+            self.window.destroy()
+            self.window = None

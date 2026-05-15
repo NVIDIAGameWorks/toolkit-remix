@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.2]
+### Added
+- Added a Repair Scale action to the skeleton remapping window for fixing oversized skinned replacement viewport scale.
+
 ## [1.2.1]
 ### Fixed
 - REMIX-5241: Fixed `TypeError` crash when opening the skeleton remapping window caused by `JointItem` passing unsupported `children` kwarg to `TreeItemBase.__init__`

@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed GitHub toolkit package downloads to use the GitLab-dispatched version when constructing Packman package names
 - Fixed invalid agent skill YAML descriptions so local skill discovery loads shared wrappers correctly
 - REMIX-4585: Fixed property copy/paste so multichannel transforms and unresolved asset paths (e.g. textures pending ingestion) round-trip to the target prim
+- REMIX-5442: Fixed skinned replacement assets and skeletons with large bind-space scale appearing oversized in the Toolkit viewport while preserving runtime in-game scale.
 
 ## [1.5.0-0]
 
