@@ -15,9 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed GitHub mirror filtering so branch-specific private paths and glob-prefixed entries are checked correctly
-- Fixed GitHub toolkit package downloads to use the GitLab-dispatched version when constructing Packman package names
-
 ### Removed
 
 ## [1.5.0-0]
@@ -44,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated auto-save to default off, prompt before saving, and expose unticked Preferences from the Edit menu again
 - Hardened recent-projects resilience: magic-byte USD validation, per-sublayer path validation, per-item error isolation in the home widget with amber visual cue for failing projects
 - Updated GitHub Actions workflow dependencies to current stable releases.
+- Update hdremix and omni_core_materials to `ext-52b73a1-main`
 
 ### Fixed
 
@@ -64,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed crash when loading a scene with custom references where the capture layer path cannot be resolved
 - Fixed recent-projects treating a deleted capture as a project error when another valid capture sublayer exists in the project
 - REMIX-3614: Fixed capture image path calculation to check images with and without the .usd extension in the filename
+- Fixed GitHub mirror filtering so branch-specific private paths and glob-prefixed entries are checked correctly
+- Fixed GitHub toolkit package downloads to use the GitLab-dispatched version when constructing Packman package names
 
 ## [1.4.2-1]
 
