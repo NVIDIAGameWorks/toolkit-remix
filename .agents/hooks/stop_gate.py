@@ -49,6 +49,10 @@ def _format_failures(failures: list[str]) -> str:
 
 
 def _emit_failure(agent: str, message: str) -> int:
+    if agent == "codex":
+        print(json.dumps({"decision": "block", "reason": message}))
+        return 0
+
     if agent == "cursor":
         print(json.dumps({"followup_message": message}))
         return 0
