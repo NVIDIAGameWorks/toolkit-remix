@@ -55,9 +55,9 @@ and document reason here. Cursor skill discovery version-sensitive.
   They call `tools/packman/python.*`; never system `python`, `python3`, `py`.
 - Hook commands resolve from Git root, work from subdirs, Windows/POSIX. Current commands use temp Git alias because Git
   shell aliases run from worktree root.
-- Hook contract: gate exit `0` allow; exit `2` block/continue with stderr remediation.
-- `.agents/hooks/stop_gate.py --agent <name>` = single stop hook. Claude/Codex get exit-code/stderr. Cursor gets JSON
-  `followup_message`.
+- Stop hook: one target, `.agents/hooks/stop_gate.py --agent <codex|claude|cursor>`. Gate scripts return `0`
+  allow, `2` block + stderr. Wrapper remaps by agent: `claude` keeps exit `2` + stderr; `codex` exits `0` + JSON
+  `decision:block`/`reason`; `cursor` exits `0` + JSON `followup_message`.
 - Memory watch only via ignored `.agents/memory-promotion.local.json` or env vars; no private state hardcode.
 - New rule -> `.agents/rules/`, Cursor wrapper if always/glob, shared + Claude skill if on-demand, wire
   `.agents/instructions.md`.
