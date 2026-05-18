@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened recent-projects resilience: magic-byte USD validation, per-sublayer path validation, per-item error isolation in the home widget with amber visual cue for failing projects
 - Updated GitHub Actions workflow dependencies to current stable releases.
 - Update hdremix and omni_core_materials to `ext-52b73a1-main`
+- Update remix_runtime to `remix-1.5.0`
 
 ### Fixed
 
