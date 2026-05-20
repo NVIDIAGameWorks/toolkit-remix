@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.11]
+### Added
+- Added a centralized nested referenced light test project fixture
+
 ## [1.27.10]
 ### Changed
 - Moved packaging test fixtures into centralized application resources

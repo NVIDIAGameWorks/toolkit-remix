@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.1]
+### Fixed
+- Fixed reference child discovery for over-only mesh prims with authored Remix reference children
+
 ## [2.3.0]
 ### Added
 - Added `is_ghost_prim`, `find_prim_with_references`, and `has_replacement_ref_edits` shared prim detection utilities

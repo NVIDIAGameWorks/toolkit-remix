@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.5]
+### Fixed
+- Updated nested referenced light asset response expectations for the centralized project fixture
+
 ## [2.0.4]
 ### Fixed
 - Fixed AttributeError when calling the Get Material Textures endpoint with no project loaded
