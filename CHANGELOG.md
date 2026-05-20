@@ -9,9 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Created 1.5.1-0 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.5.1-0]
+
+### Added
+
 - Created 1.5.0-0 build
 
 ### Changed
+
+- Update hdremix and omni_core_materials to `ext-d82faa7-release-v1-5`
+- Update remix_runtime to `remix-1.5.1`
 
 ### Fixed
 
