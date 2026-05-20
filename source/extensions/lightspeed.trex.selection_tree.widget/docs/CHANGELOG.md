@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.11]
+### Fixed
+- Fixed selection tree item selection for nested referenced USD lights under mesh replacement hierarchies
+
 ## [1.9.10]
 ### Fixed
 - Preserved selection order when deduplicating tree-sync paths so order-only viewport changes no longer get reshuffled by the selection tree

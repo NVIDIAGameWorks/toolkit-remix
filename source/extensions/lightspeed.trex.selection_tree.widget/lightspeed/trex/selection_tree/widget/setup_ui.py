@@ -748,13 +748,21 @@ class SetupUI:
             if not prim_paths and selected_instance_lights:
                 prim_paths = [str(item.prim.GetPath()) for item in selected_instance_lights]
 
+            direct_light_paths = [
+                item.path
+                for item in items
+                if isinstance(item, _ItemPrim) and item.is_usd_light() and not item.from_live_light_group
+            ]
+            prim_paths_to_instance = [path for path in prim_paths if path not in direct_light_paths]
+
             # we swap all the item prim path with the current selected item instances
             to_select_paths = [
                 re.sub(constants.REGEX_MESH_TO_INSTANCE_SUB, str(instance_item.prim.GetPath()), path)
-                for path in prim_paths
+                for path in prim_paths_to_instance
                 for instance_item in self._instance_selection
                 if isinstance(instance_item, _ItemInstance)
             ]
+            to_select_paths.extend(direct_light_paths)
 
             # If we have a ref selected, add the path of the ref
             to_select_paths.extend([str(selected_ref.prim.GetPath()) for selected_ref in selected_ref_file_items])

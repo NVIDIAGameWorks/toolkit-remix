@@ -248,7 +248,7 @@ class SetupUI:
                     ui.Spacer(height=ui.Pixel(8))
 
                     def should_show_light_attr(prim):
-                        return prim.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else prim.IsA(UsdLux.Light)
+                        return prim.HasAPI(UsdLux.LightAPI)
 
                     self._property_widget = _PropertyWidget(
                         self._context_name,
@@ -418,11 +418,13 @@ class SetupUI:
                 self._remix_categories_frame.visible = False
         elif item_light_assets or item_light_prims:  # light
             # if this is a light, we can transform the light by itself. So we should show the transform frame
-            prim_paths = [item.path for item in item_light_assets]
+            transform_prim_paths = [item.path for item in item_light_assets]
+            property_prim_paths = [item.path for item in item_light_assets]
 
             for item in item_light_prims:
+                property_prim_paths.append(item.path)
                 if not self._current_instance_items:
-                    prim_paths.append(item.path)
+                    transform_prim_paths.append(item.path)
                     continue
 
                 for instance_item in self._current_instance_items:
@@ -431,13 +433,25 @@ class SetupUI:
                         str(instance_item.prim.GetPath()),
                         item.path,
                     )
-                    prim_paths.append(to_select_path)
+                    transform_prim_paths.append(to_select_path)
 
-            xformable_prims = self._core.filter_transformable_prims(prim_paths)
+            xformable_prims = self._core.filter_transformable_prims(transform_prim_paths)
             xformable_prims = list(dict.fromkeys(xformable_prims))
+            property_prims = []
+            # filter_transformable_prims applies Remix transform policy, not only UsdGeom.Xformable.
+            # Keep property refresh on the selected light path before considering transform remaps.
+            stage = self._context.get_stage()
+            if stage:
+                for candidate_paths in (property_prim_paths, xformable_prims):
+                    for path in dict.fromkeys(candidate_paths):
+                        prim = stage.GetPrimAtPath(path)
+                        if prim.IsValid() and prim.HasAPI(UsdLux.LightAPI):
+                            property_prims.append(path)
+                    if property_prims:
+                        break
 
             self._transformation_widget.show(bool(xformable_prims))
-            self._property_widget.show(bool(xformable_prims))
+            self._property_widget.show(bool(property_prims))
 
             # set specific attributes
             specific_attrs = [
@@ -505,7 +519,7 @@ class SetupUI:
             )
             self._property_widget.set_lookup_table(lookup_table)
 
-            if xformable_prims:
+            if xformable_prims or property_prims:
                 self._mesh_properties_frames[_ItemPrim].visible = True
                 self._mesh_properties_frames[None].visible = False
             else:
@@ -513,7 +527,7 @@ class SetupUI:
                 self._mesh_properties_frames[_ItemPrim].visible = False
                 self._mesh_properties_frames[None].visible = True
             self._transformation_widget.refresh(xformable_prims)
-            self._property_widget.refresh(xformable_prims)
+            self._property_widget.refresh(property_prims)
             self._remix_categories_vstack.visible = False
             self._remix_categories_frame.visible = False
 

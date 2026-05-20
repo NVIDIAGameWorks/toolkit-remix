@@ -47,6 +47,32 @@ over "RootNode"
                 }
             }
         }
+
+        over "mesh_CED45075A077A49A"
+        {
+            def Xform "ref_e58b2a90258740278bd55cd166bf7ba3" (
+                prepend references = @./ingested_assets/output/good/nested_lighting.usda@
+            )
+            {
+                custom bool IsRemixRef = 1
+
+                over "Klab_A"
+                {
+                    over "PrimaryLights"
+                    {
+                        over "TankA"
+                        {
+                            float inputs:intensity = 80
+                        }
+
+                        over "TankB"
+                        {
+                            float inputs:intensity = 40
+                        }
+                    }
+                }
+            }
+        }
     }
 
     over "Looks"
@@ -89,4 +115,3 @@ over "RootNode"
         }
     }
 }
-

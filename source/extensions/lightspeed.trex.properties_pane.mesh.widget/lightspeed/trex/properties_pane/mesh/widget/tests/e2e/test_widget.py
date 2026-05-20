@@ -27,6 +27,7 @@ from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.properties_pane.mesh.widget import SetupUI as _MeshPropertiesWidget
 from lightspeed.trex.selection_tree.widget import SetupUI as _SelectionTreeWidget
+from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.flux.validator.factory import BASE_HASH_KEY
@@ -112,6 +113,53 @@ class TestSelectionTreeWidget(AsyncTestCase):
                 prompt_dialog_window = ui_test.find(other_window.title)
                 if prompt_dialog_window:
                     prompt_dialog_window.widget.destroy()
+
+    @staticmethod
+    def __find_item_prim(window_title: str, path: str):
+        display_name = path.rsplit("/", 1)[-1]
+        for item_prim in ui_test.find_all(f"{window_title}//Frame/**/Label[*].identifier=='item_prim'"):
+            if item_prim.widget.text == display_name:
+                return item_prim
+        return None
+
+    @staticmethod
+    def __nested_referenced_light_path():
+        return "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankA"
+
+    @staticmethod
+    def __nested_referenced_light_sibling_path():
+        return "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankB"
+
+    @staticmethod
+    def __captured_nested_mesh_path():
+        return "/RootNode/meshes/mesh_CED45075A077A49A/mesh"
+
+    @staticmethod
+    def __get_attribute_items(mesh_property_wid, attribute_path: str):
+        return [
+            item
+            for item in mesh_property_wid._property_widget.property_model.get_all_items(include_hidden=True)
+            if isinstance(item, _USDAttributeItem)
+            and [str(attr_path) for attr_path in item.attribute_paths] == [attribute_path]
+        ]
+
+    def __assert_property_attribute(self, mesh_property_wid, attribute_path: str, read_only: bool):
+        attribute_items = self.__get_attribute_items(mesh_property_wid, attribute_path)
+        self.assertEqual(len(attribute_items), 1)
+        self.assertTrue(attribute_items[0].value_models)
+        self.assertEqual([model.read_only for model in attribute_items[0].value_models], [read_only])
+
+    def __assert_mesh_prim_frame_visible(self, window_title: str):
+        frame_mesh_prim = ui_test.find(f"{window_title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
+        self.assertTrue(frame_mesh_prim.widget.visible)
+
+    async def __setup_nested_referenced_light_widget(self):
+        await open_stage(_get_test_data("usd/project_example/combined.usda"))
+        layer_manager = _LayerManagerCore()
+        self.assertIsNotNone(layer_manager.get_layer_of_type(_LayerType.capture))
+        self.assertIsNotNone(layer_manager.get_layer_of_type(_LayerType.replacement))
+        layer_manager.set_edit_target_layer_of_type(_LayerType.replacement)
+        return await self.__setup_widget()
 
     async def test_select_one_prim_mesh(self):
         # setup
@@ -244,6 +292,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
             self.assertFalse(frame_none.widget.visible)
         self.assertFalse(frame_mesh_ref.widget.visible)
         self.assertTrue(frame_mesh_prim.widget.visible)
+        self.assertTrue(_mesh_property_wid._property_widget.visible)
+        self.__assert_property_attribute(
+            _mesh_property_wid,
+            "/RootNode/lights/light_9907D0B07D040077/DiskLight.inputs:intensity",
+            read_only=False,
+        )
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -289,6 +343,93 @@ class TestSelectionTreeWidget(AsyncTestCase):
             self.assertFalse(frame_none.widget.visible)
         self.assertFalse(frame_mesh_ref.widget.visible)
         self.assertTrue(frame_mesh_prim.widget.visible)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_usd_selection_nested_referenced_light_shows_editable_light_properties(self):
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_nested_referenced_light_widget()
+        usd_context = omni.usd.get_context()
+        light_path = self.__nested_referenced_light_path()
+        self.assertTrue(usd_context.get_stage().GetPrimAtPath(light_path).IsValid())
+
+        # Select through USD, matching stage-manager/viewport selection rather than a tree click.
+        usd_context.get_selection().set_selected_prim_paths([light_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [light_path])
+
+        # The selected replacement light exposes writable light properties.
+        self.__assert_mesh_prim_frame_visible(_window.title)
+        self.assertTrue(_mesh_property_wid._property_widget.visible)
+        self.__assert_property_attribute(_mesh_property_wid, f"{light_path}.inputs:intensity", read_only=False)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_tree_selection_nested_referenced_light_shows_editable_light_properties(self):
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_nested_referenced_light_widget()
+        usd_context = omni.usd.get_context()
+        light_path = self.__nested_referenced_light_path()
+        self.assertTrue(usd_context.get_stage().GetPrimAtPath(light_path).IsValid())
+
+        # Select the light once so the tree expands to the same entry a user can click.
+        usd_context.get_selection().set_selected_prim_paths([light_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        tank_light_item = self.__find_item_prim(_window.title, light_path)
+        self.assertIsNotNone(tank_light_item)
+
+        # Click the tree item, which also carries the current instance selection from the selection panel.
+        await tank_light_item.click()
+        await ui_test.human_delay(human_delay_speed=3)
+        self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [light_path])
+
+        # The tree-driven refresh keeps editable light properties.
+        self.__assert_mesh_prim_frame_visible(_window.title)
+        self.assertTrue(_mesh_property_wid._property_widget.visible)
+        self.__assert_property_attribute(_mesh_property_wid, f"{light_path}.inputs:intensity", read_only=False)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_tree_selection_nested_referenced_sibling_light_shows_editable_light_properties(self):
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_nested_referenced_light_widget()
+        usd_context = omni.usd.get_context()
+        light_path = self.__nested_referenced_light_path()
+        sibling_light_path = self.__nested_referenced_light_sibling_path()
+        self.assertTrue(usd_context.get_stage().GetPrimAtPath(light_path).IsValid())
+        self.assertTrue(usd_context.get_stage().GetPrimAtPath(sibling_light_path).IsValid())
+
+        # Select a sibling light once so the selection tree expands to the rows a user can click.
+        usd_context.get_selection().set_selected_prim_paths([sibling_light_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        light_item = self.__find_item_prim(_window.title, light_path)
+        self.assertIsNotNone(light_item)
+
+        # Click the selection panel item; the properties pane must switch to that light.
+        await light_item.click()
+        await ui_test.human_delay(human_delay_speed=3)
+        self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [light_path])
+
+        # The real nested replacement light exposes writable light properties.
+        self.__assert_mesh_prim_frame_visible(_window.title)
+        self.assertTrue(_mesh_property_wid._property_widget.visible)
+        self.__assert_property_attribute(_mesh_property_wid, f"{light_path}.inputs:intensity", read_only=False)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_usd_selection_captured_mesh_keeps_properties_read_only(self):
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_nested_referenced_light_widget()
+        usd_context = omni.usd.get_context()
+        mesh_path = self.__captured_nested_mesh_path()
+        self.assertTrue(usd_context.get_stage().GetPrimAtPath(mesh_path).IsValid())
+
+        # Select a captured mesh prototype directly through USD selection.
+        usd_context.get_selection().set_selected_prim_paths([mesh_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [mesh_path])
+
+        # Captured meshes can show inspected mesh properties, but those values remain read-only.
+        self.__assert_mesh_prim_frame_visible(_window.title)
+        self.assertFalse(_mesh_property_wid._transformation_widget.visible)
+        self.assertTrue(_mesh_property_wid._property_widget.visible)
+        self.__assert_property_attribute(_mesh_property_wid, f"{mesh_path}.doubleSided", read_only=True)
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
