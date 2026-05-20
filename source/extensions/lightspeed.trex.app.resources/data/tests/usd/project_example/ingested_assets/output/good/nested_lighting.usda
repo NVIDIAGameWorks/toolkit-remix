@@ -1,0 +1,32 @@
+#usda 1.0
+(
+    defaultPrim = "Root"
+    upAxis = "Z"
+)
+
+def Xform "Root"
+{
+    def Xform "Klab_A"
+    {
+        def Xform "PrimaryLights"
+        {
+            def CylinderLight "TankA" (
+                apiSchemas = ["ShapingAPI"]
+            )
+            {
+                color3f inputs:color = (1, 0.38, 0.17)
+                float inputs:intensity = 10
+                float inputs:length = 90
+                float inputs:radius = 23
+                float inputs:shaping:cone:angle = 180
+                double3 xformOp:translate = (1, 2, 3)
+                uniform token[] xformOpOrder = ["xformOp:translate"]
+            }
+
+            def CylinderLight "TankB"
+            {
+                float inputs:intensity = 20
+            }
+        }
+    }
+}

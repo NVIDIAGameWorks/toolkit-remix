@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4585: Fixed property copy/paste so multichannel transforms and unresolved asset paths (e.g. textures pending ingestion) round-trip to the target prim
 - REMIX-5442: Fixed skinned replacement assets and skeletons with large bind-space scale appearing oversized in the Toolkit viewport while preserving runtime in-game scale.
 - Fixed Codex stop hook completion-gate failures by formatting stop-hook remediation through the agent-specific contract.
+- REMIX-5506: Fix nested referenced light selection - fixed Selection panel and light-property targeting for nested referenced USD lights under mesh replacement hierarchies
 
 ## [1.5.0-0]
 
