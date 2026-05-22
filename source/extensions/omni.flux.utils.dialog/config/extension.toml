@@ -1,5 +1,5 @@
 [package]
-version = "0.2.3"
+version = "0.2.4"
 authors = ["ptrottier@nvidia.com"]
 keywords = ["kit", "flux", "window", "popup", "dialog"]
 title = "Omni Flux Dialogs"
@@ -17,3 +17,13 @@ preview_image = "data/preview.png"
 
 [[python.module]]
 name = "omni.flux.utils.dialog"
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[carb.windowing-glfw.window] getMonitorPrimary: primary monitor is invalid!*",
+    "*[omni.appwindow.plugin] _getMonitorMetrics: failed to getMonitorPrimary*",
+]

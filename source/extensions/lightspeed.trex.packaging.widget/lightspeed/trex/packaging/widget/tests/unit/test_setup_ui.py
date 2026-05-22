@@ -25,6 +25,7 @@ import carb.settings
 import omni.kit.app
 import omni.ui as ui
 from lightspeed.trex.packaging.core.enum import ModPackagingMode
+from lightspeed.trex.packaging.core.packaging import INDETERMINATE_PROGRESS_TOTAL
 from lightspeed.trex.packaging.widget import setup_ui as _setup_ui
 from lightspeed.trex.packaging.widget.setup_ui import PackagingPane
 from lightspeed.trex.rtxio.core import RtxIoSplitSizePreset
@@ -293,6 +294,57 @@ class TestPackagingPaneCompletion(AsyncTestCase):
             widget.destroy()
             window.destroy()
 
+    async def test_package_pressed_without_replacement_layer_should_show_invalid_project_message(self):
+        window, widget = await _create_widget("test_packaging_invalid_project")
+
+        try:
+            # Arrange
+            widget._layer_manager.get_layers_of_type = Mock(return_value=[])
+            widget._packaging_core.package = Mock()
+
+            with patch("lightspeed.trex.packaging.widget.setup_ui._TrexMessageDialog") as message_dialog_mock:
+                # Act
+                widget._on_package_pressed()
+
+            # Assert
+            widget._packaging_core.package.assert_not_called()
+            message_dialog_mock.assert_called_once_with(
+                "The current project does not contain a valid mod layer and cannot be packaged.",
+                "Invalid Project",
+                disable_cancel_button=True,
+            )
+
+        finally:
+            widget.destroy()
+            window.destroy()
+
+    async def test_retry_packaging_flatten_with_ignored_errors_should_stop_and_show_message(self):
+        window, widget = await _create_widget("test_retry_flatten_ignored_errors")
+
+        try:
+            # Arrange
+            ignored_errors = [("C:/projects/MainProject/mod.usda", "/Root/BadRef", "C:/missing/ref.usda")]
+            widget._on_package_pressed = Mock()
+
+            with (
+                patch.object(PackagingPane, "_get_selected_packaging_mode", return_value=ModPackagingMode.FLATTEN),
+                patch("lightspeed.trex.packaging.widget.setup_ui._TrexMessageDialog") as message_dialog_mock,
+            ):
+                # Act
+                await widget._retry_packaging(ignored_errors)
+
+            # Assert
+            widget._on_package_pressed.assert_not_called()
+            message_dialog_mock.assert_called_once_with(
+                "Ignoring unresolved reference errors will stop the packaging process. This project cannot be flattened "
+                "while references are missing.",
+                "Packaging Cannot Continue",
+                disable_cancel_button=True,
+            )
+        finally:
+            widget.destroy()
+            window.destroy()
+
     async def test_cancelled_packaging_does_not_open_output_directory(self):
         window, widget = await _create_widget("test_packaging_completion_cancelled")
 
@@ -432,3 +484,50 @@ class TestPackagingPaneSubscriptionLifecycle(AsyncTestCase):
         finally:
             widget.destroy()
             window.destroy()
+
+
+class TestPackagingPaneProgress(AsyncTestCase):
+    async def test_on_packaging_progress_with_measurable_stage_should_show_count_and_fraction(self):
+        # Arrange
+        widget = PackagingPane.__new__(PackagingPane)
+        popup_mock = Mock()
+        popup_mock.status_text = ""
+        popup_mock.is_visible.return_value = True
+        widget._progress_popup = popup_mock
+
+        # Act
+        widget._on_packaging_progress(5, 10, "Collecting assets...")
+
+        # Assert
+        popup_mock.set_status_text.assert_called_once_with("Collecting assets...\n5 / 10")
+        popup_mock.set_progress.assert_called_once_with(0.5)
+
+    async def test_on_packaging_progress_with_indeterminate_stage_should_show_half_progress(self):
+        # Arrange
+        widget = PackagingPane.__new__(PackagingPane)
+        popup_mock = Mock()
+        popup_mock.status_text = ""
+        popup_mock.is_visible.return_value = True
+        widget._progress_popup = popup_mock
+
+        # Act
+        widget._on_packaging_progress(0, INDETERMINATE_PROGRESS_TOTAL, "Indeterminate stage...")
+
+        # Assert
+        popup_mock.set_status_text.assert_called_once_with("Indeterminate stage...")
+        popup_mock.set_progress.assert_called_once_with(0.5)
+
+    async def test_on_packaging_progress_with_invalid_reference_scan_should_show_count_and_fraction(self):
+        # Arrange
+        widget = PackagingPane.__new__(PackagingPane)
+        popup_mock = Mock()
+        popup_mock.status_text = ""
+        popup_mock.is_visible.return_value = True
+        widget._progress_popup = popup_mock
+
+        # Act
+        widget._on_packaging_progress(500, 1000, "Looking for invalid references...")
+
+        # Assert
+        popup_mock.set_status_text.assert_called_once_with("Looking for invalid references...\n500 / 1000")
+        popup_mock.set_progress.assert_called_once_with(0.5)

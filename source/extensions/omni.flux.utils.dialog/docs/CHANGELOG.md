@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.2.4]
+### Added
+- Added a public progress-popup API for disabling the cancel button during non-interruptible cleanup.
+
 ## [0.2.3]
 ### Changed
 - Applied new lint rules

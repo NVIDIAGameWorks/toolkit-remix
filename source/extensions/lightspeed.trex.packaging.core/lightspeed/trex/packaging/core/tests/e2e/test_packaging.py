@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import asyncio
 import filecmp
 import tempfile
 from os import walk
@@ -27,6 +28,7 @@ import omni.kit.app
 import omni.kit.test
 import omni.usd
 from lightspeed.trex.packaging.core.enum import ModPackagingMode
+from lightspeed.trex.packaging.core.packaging import INDETERMINATE_PROGRESS_TOTAL
 from lightspeed.trex.packaging.core.packaging import PackagingCore
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.kit.test_suite.helpers import get_test_data_path
@@ -121,111 +123,98 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
                 }
             )
 
-        self.assertEqual(98, progress_mock.call_count)
-        self.assertEqual(call(0, 1, "Filtering the selected layers..."), progress_mock.call_args_list[0])
-        self.assertEqual(call(1, 1, "Filtering the selected layers..."), progress_mock.call_args_list[1])
-        self.assertEqual(call(1, 3, "Filtering the selected layers..."), progress_mock.call_args_list[2])
-        self.assertEqual(call(2, 3, "Filtering the selected layers..."), progress_mock.call_args_list[3])
-        self.assertEqual(call(2, 3, "Filtering the selected layers..."), progress_mock.call_args_list[4])
-        self.assertEqual(call(3, 3, "Filtering the selected layers..."), progress_mock.call_args_list[5])
-        self.assertEqual(call(3, 3, "Filtering the selected layers..."), progress_mock.call_args_list[6])
-        self.assertEqual(call(3, 3, "Filtering the selected layers..."), progress_mock.call_args_list[7])
-        self.assertEqual(call(0, 13, "Redirecting dependencies..."), progress_mock.call_args_list[8])
-        self.assertEqual(call(1, 13, "Redirecting dependencies..."), progress_mock.call_args_list[9])
-        self.assertEqual(call(2, 13, "Redirecting dependencies..."), progress_mock.call_args_list[10])
-        self.assertEqual(call(3, 13, "Redirecting dependencies..."), progress_mock.call_args_list[11])
-        self.assertEqual(call(4, 13, "Redirecting dependencies..."), progress_mock.call_args_list[12])
-        self.assertEqual(call(5, 13, "Redirecting dependencies..."), progress_mock.call_args_list[13])
-        self.assertEqual(call(6, 13, "Redirecting dependencies..."), progress_mock.call_args_list[14])
-        self.assertEqual(call(7, 13, "Redirecting dependencies..."), progress_mock.call_args_list[15])
-        self.assertEqual(call(8, 13, "Redirecting dependencies..."), progress_mock.call_args_list[16])
-        self.assertEqual(call(9, 13, "Redirecting dependencies..."), progress_mock.call_args_list[17])
-        self.assertEqual(call(10, 13, "Redirecting dependencies..."), progress_mock.call_args_list[18])
-        self.assertEqual(call(11, 13, "Redirecting dependencies..."), progress_mock.call_args_list[19])
-        self.assertEqual(call(12, 13, "Redirecting dependencies..."), progress_mock.call_args_list[20])
-        self.assertEqual(call(13, 13, "Redirecting dependencies..."), progress_mock.call_args_list[21])
-        self.assertEqual(call(0, 18, "Resolving invalid references..."), progress_mock.call_args_list[22])
-        self.assertEqual(call(1, 18, "Resolving invalid references..."), progress_mock.call_args_list[23])
-        self.assertEqual(call(2, 18, "Resolving invalid references..."), progress_mock.call_args_list[24])
-        self.assertEqual(call(3, 18, "Resolving invalid references..."), progress_mock.call_args_list[25])
-        self.assertEqual(call(4, 18, "Resolving invalid references..."), progress_mock.call_args_list[26])
-        self.assertEqual(call(5, 18, "Resolving invalid references..."), progress_mock.call_args_list[27])
-        self.assertEqual(call(6, 18, "Resolving invalid references..."), progress_mock.call_args_list[28])
-        self.assertEqual(call(7, 18, "Resolving invalid references..."), progress_mock.call_args_list[29])
-        self.assertEqual(call(8, 18, "Resolving invalid references..."), progress_mock.call_args_list[30])
-        self.assertEqual(call(9, 18, "Resolving invalid references..."), progress_mock.call_args_list[31])
-        self.assertEqual(call(10, 18, "Resolving invalid references..."), progress_mock.call_args_list[32])
-        self.assertEqual(call(11, 18, "Resolving invalid references..."), progress_mock.call_args_list[33])
-        self.assertEqual(call(12, 18, "Resolving invalid references..."), progress_mock.call_args_list[34])
-        self.assertEqual(call(13, 18, "Resolving invalid references..."), progress_mock.call_args_list[35])
-        self.assertEqual(call(14, 18, "Resolving invalid references..."), progress_mock.call_args_list[36])
-        self.assertEqual(call(15, 18, "Resolving invalid references..."), progress_mock.call_args_list[37])
-        self.assertEqual(call(16, 18, "Resolving invalid references..."), progress_mock.call_args_list[38])
-        self.assertEqual(call(17, 18, "Resolving invalid references..."), progress_mock.call_args_list[39])
-        self.assertEqual(call(18, 18, "Resolving invalid references..."), progress_mock.call_args_list[40])
-        self.assertEqual(call(0, 10, "Creating temporary layers..."), progress_mock.call_args_list[41])
-        self.assertEqual(call(1, 10, "Creating temporary layers..."), progress_mock.call_args_list[42])
-        self.assertEqual(call(2, 10, "Creating temporary layers..."), progress_mock.call_args_list[43])
-        self.assertEqual(call(3, 10, "Creating temporary layers..."), progress_mock.call_args_list[44])
-        self.assertEqual(call(4, 10, "Creating temporary layers..."), progress_mock.call_args_list[45])
-        self.assertEqual(call(5, 10, "Creating temporary layers..."), progress_mock.call_args_list[46])
-        self.assertEqual(call(6, 10, "Creating temporary layers..."), progress_mock.call_args_list[47])
-        self.assertEqual(call(7, 10, "Creating temporary layers..."), progress_mock.call_args_list[48])
-        self.assertEqual(call(8, 10, "Creating temporary layers..."), progress_mock.call_args_list[49])
-        self.assertEqual(call(9, 10, "Creating temporary layers..."), progress_mock.call_args_list[50])
-        self.assertEqual(call(10, 10, "Creating temporary layers..."), progress_mock.call_args_list[51])
-        self.assertEqual(call(0, 13, "Listing assets to collect..."), progress_mock.call_args_list[52])
-        self.assertEqual(call(1, 13, "Listing assets to collect..."), progress_mock.call_args_list[53])
-        self.assertEqual(call(2, 13, "Listing assets to collect..."), progress_mock.call_args_list[54])
-        self.assertEqual(call(3, 13, "Listing assets to collect..."), progress_mock.call_args_list[55])
-        self.assertEqual(call(4, 13, "Listing assets to collect..."), progress_mock.call_args_list[56])
-        self.assertEqual(call(5, 13, "Listing assets to collect..."), progress_mock.call_args_list[57])
-        self.assertEqual(call(6, 13, "Listing assets to collect..."), progress_mock.call_args_list[58])
-        self.assertEqual(call(7, 13, "Listing assets to collect..."), progress_mock.call_args_list[59])
-        self.assertEqual(call(8, 13, "Listing assets to collect..."), progress_mock.call_args_list[60])
-        self.assertEqual(call(9, 13, "Listing assets to collect..."), progress_mock.call_args_list[61])
-        self.assertEqual(call(10, 13, "Listing assets to collect..."), progress_mock.call_args_list[62])
-        self.assertEqual(call(11, 13, "Listing assets to collect..."), progress_mock.call_args_list[63])
-        self.assertEqual(call(12, 13, "Listing assets to collect..."), progress_mock.call_args_list[64])
-        self.assertEqual(call(13, 13, "Listing assets to collect..."), progress_mock.call_args_list[65])
-        self.assertEqual(call(0, 10, "Updating asset paths..."), progress_mock.call_args_list[66])
-        self.assertEqual(call(1, 10, "Updating asset paths..."), progress_mock.call_args_list[67])
-        self.assertEqual(call(2, 10, "Updating asset paths..."), progress_mock.call_args_list[68])
-        self.assertEqual(call(3, 10, "Updating asset paths..."), progress_mock.call_args_list[69])
-        self.assertEqual(call(4, 10, "Updating asset paths..."), progress_mock.call_args_list[70])
-        self.assertEqual(call(5, 10, "Updating asset paths..."), progress_mock.call_args_list[71])
-        self.assertEqual(call(6, 10, "Updating asset paths..."), progress_mock.call_args_list[72])
-        self.assertEqual(call(7, 10, "Updating asset paths..."), progress_mock.call_args_list[73])
-        self.assertEqual(call(8, 10, "Updating asset paths..."), progress_mock.call_args_list[74])
-        self.assertEqual(call(9, 10, "Updating asset paths..."), progress_mock.call_args_list[75])
-        self.assertEqual(call(10, 10, "Updating asset paths..."), progress_mock.call_args_list[76])
-        self.assertEqual(call(0, 9, "Collecting assets..."), progress_mock.call_args_list[77])
-        self.assertEqual(call(1, 9, "Collecting assets..."), progress_mock.call_args_list[78])
-        self.assertEqual(call(2, 9, "Collecting assets..."), progress_mock.call_args_list[79])
-        self.assertEqual(call(3, 9, "Collecting assets..."), progress_mock.call_args_list[80])
-        self.assertEqual(call(4, 9, "Collecting assets..."), progress_mock.call_args_list[81])
-        self.assertEqual(call(5, 9, "Collecting assets..."), progress_mock.call_args_list[82])
-        self.assertEqual(call(6, 9, "Collecting assets..."), progress_mock.call_args_list[83])
-        self.assertEqual(call(7, 9, "Collecting assets..."), progress_mock.call_args_list[84])
-        self.assertEqual(call(8, 9, "Collecting assets..."), progress_mock.call_args_list[85])
-        self.assertEqual(call(9, 9, "Collecting assets..."), progress_mock.call_args_list[86])
-        self.assertEqual(call(0, 10, "Cleaning up temporary layers..."), progress_mock.call_args_list[87])
-        self.assertEqual(call(1, 10, "Cleaning up temporary layers..."), progress_mock.call_args_list[88])
-        self.assertEqual(call(2, 10, "Cleaning up temporary layers..."), progress_mock.call_args_list[89])
-        self.assertEqual(call(3, 10, "Cleaning up temporary layers..."), progress_mock.call_args_list[90])
-        self.assertEqual(call(4, 10, "Cleaning up temporary layers..."), progress_mock.call_args_list[91])
-        self.assertEqual(call(5, 10, "Cleaning up temporary layers..."), progress_mock.call_args_list[92])
-        self.assertEqual(call(6, 10, "Cleaning up temporary layers..."), progress_mock.call_args_list[93])
-        self.assertEqual(call(7, 10, "Cleaning up temporary layers..."), progress_mock.call_args_list[94])
-        self.assertEqual(call(8, 10, "Cleaning up temporary layers..."), progress_mock.call_args_list[95])
-        self.assertEqual(call(9, 10, "Cleaning up temporary layers..."), progress_mock.call_args_list[96])
-        self.assertEqual(call(10, 10, "Cleaning up temporary layers..."), progress_mock.call_args_list[97])
+        self.__assert_packaging_progress(
+            progress_mock.call_args_list,
+            [
+                (
+                    "Filtering the selected layers...",
+                    [(0, 1), (1, 1), (1, 3), (2, 3), (2, 3), (3, 3), (3, 3), (3, 3)],
+                ),
+                ("Listing references...", [(0, INDETERMINATE_PROGRESS_TOTAL)]),
+                ("Looking for invalid references...", [(0, 0), (18, 18)]),
+                ("Redirecting dependencies...", self.__expected_progress_range(13)),
+                ("Creating temporary layers...", self.__expected_progress_range(10)),
+                ("Listing assets to collect...", self.__expected_progress_range(13)),
+                ("Updating asset paths...", self.__expected_progress_range(10)),
+                ("Collecting assets...", self.__expected_progress_range(9)),
+                ("Cleaning up temporary layers...", self.__expected_progress_range(10)),
+            ],
+        )
 
         self.assertEqual(1, completed_mock.call_count)
         self.assertEqual(call([], [], False), completed_mock.call_args)
 
         # Make sure the actual package matches the expected package
         await self.__asset_directories_equal(get_test_data_path(__name__, "package"), output_dir)
+
+    async def test_package_cancel_during_reference_checks_should_complete_cancelled_without_export(self):
+        for cancel_status in ("Listing references...", "Looking for invalid references..."):
+            with self.subTest(cancel_status=cancel_status):
+                # Set up a real packaging run and cancel from the requested reference-check progress stage.
+                packaging_core = PackagingCore()
+                progress_calls = []
+                completed_mock = Mock()
+                cancel_on_status, was_cancel_requested = self.__make_cancel_on_status(
+                    packaging_core, progress_calls, cancel_status
+                )
+
+                _progress_sub = packaging_core.subscribe_packaging_progress(cancel_on_status)
+                _completed_sub = packaging_core.subscribe_packaging_completed(completed_mock)
+
+                output_dir = Path(self.temp_dir.name) / f"package_cancel_{cancel_status.split()[0].lower()}"
+
+                with tempfile.TemporaryDirectory() as temp_input:
+                    # Copy the fixture project so the test can verify that cancellation leaves no package behind.
+                    input_project_path = get_test_data_path(__name__, "projects")
+                    temp_project_path = Path(temp_input) / "projects"
+
+                    result = await omni.client.copy_async(input_project_path, str(temp_project_path))
+                    self.assertEqual(
+                        result,
+                        omni.client.Result.OK,
+                        "Can't copy the project to the temporary directory",
+                    )
+
+                    temp_project_root = temp_project_path / "MainProject"
+                    temp_mod_usda = temp_project_root / "mod.usda"
+                    temp_subproject_mod = temp_project_root / "deps" / "mods" / "SubProject" / "mod.usda"
+                    temp_mod_capture_baker = temp_project_root / "mod_capture_baker.usda"
+                    temp_sublayer = temp_project_root / "sublayer.usda"
+
+                    # Run packaging through the real pipeline and let the progress callback request cancellation.
+                    await asyncio.wait_for(
+                        packaging_core.package_async_with_exceptions(
+                            {
+                                "context_name": f"PackagingE2E_Cancel_{cancel_status.split()[0]}",
+                                "mod_layer_paths": [
+                                    str(temp_mod_usda),
+                                    str(temp_subproject_mod),
+                                ],
+                                "selected_layer_paths": [
+                                    str(temp_mod_usda),
+                                    str(temp_mod_capture_baker),
+                                    str(temp_sublayer),
+                                ],
+                                "output_directory": output_dir,
+                                "packaging_mode": ModPackagingMode.REDIRECT,
+                                "output_format": None,
+                                "mod_name": "Main Project",
+                                "mod_version": "1.0.0",
+                                "mod_details": "Main Test Notes",
+                            }
+                        ),
+                        timeout=30,
+                    )
+
+                # Confirm the cancellation completed cleanly, skipped export, and still reported cleanup progress.
+                self.assertTrue(was_cancel_requested())
+                self.assertEqual(1, completed_mock.call_count)
+                errors, failed_assets, was_cancelled = completed_mock.call_args.args
+                self.assertEqual([], errors)
+                self.assertEqual([], failed_assets)
+                self.assertTrue(was_cancelled)
+                self.assertFalse(output_dir.exists())
+                self.assertIn("Cleaning up temporary layers...", [status for _, _, status in progress_calls])
 
     async def test_packaging_all_modes_should_not_modify_source_project_files(self):
         for packaging_mode in (
@@ -330,6 +319,67 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
             self.assertEqual("/RootNode/Looks/mat_CC76669780A210D2/Shader.inputs:diffuse_texture", prop_path)
             self.assertEqual(missing_texture_path.as_posix(), missing_path)
             self.assertFalse(output_dir.exists())
+
+    async def test_package_all_modes_missing_reference_should_report_failed_asset_and_skip_package(self):
+        for packaging_mode in (
+            ModPackagingMode.REDIRECT,
+            ModPackagingMode.IMPORT,
+            ModPackagingMode.FLATTEN,
+        ):
+            with self.subTest(packaging_mode=packaging_mode.value):
+                packaging_core = PackagingCore()
+                completed_mock = Mock()
+                _completed_sub = packaging_core.subscribe_packaging_completed(completed_mock)
+
+                output_dir = Path(self.temp_dir.name) / f"package_missing_ref_{packaging_mode.value}"
+
+                with tempfile.TemporaryDirectory() as temp_input:
+                    input_project_path = get_test_data_path(__name__, "projects")
+                    temp_project_path = Path(temp_input) / "projects"
+
+                    result = await omni.client.copy_async(input_project_path, str(temp_project_path))
+                    self.assertEqual(result, omni.client.Result.OK, "Can't copy the project to the temporary directory")
+
+                    temp_project_root = temp_project_path / "MainProject"
+                    temp_mod_usda = temp_project_root / "mod.usda"
+                    temp_subproject_mod = temp_project_root / "deps" / "mods" / "SubProject" / "mod.usda"
+                    temp_mod_capture_baker = temp_project_root / "mod_capture_baker.usda"
+                    temp_sublayer = temp_project_root / "sublayer.usda"
+
+                    missing_prim_path, missing_reference_path = self.__author_missing_reference(temp_sublayer)
+
+                    await packaging_core.package_async_with_exceptions(
+                        {
+                            "context_name": f"PackagingE2EMissingReference_{packaging_mode.value}",
+                            "mod_layer_paths": [
+                                str(temp_mod_usda),
+                                str(temp_subproject_mod),
+                            ],
+                            "selected_layer_paths": [
+                                str(temp_mod_usda),
+                                str(temp_mod_capture_baker),
+                                str(temp_sublayer),
+                            ],
+                            "output_directory": output_dir,
+                            "packaging_mode": packaging_mode,
+                            "mod_name": "Main Project",
+                            "mod_version": "1.0.0",
+                            "mod_details": "Main Test Notes",
+                        }
+                    )
+
+                    self.assertEqual(1, completed_mock.call_count)
+                    errors, failed_assets, was_cancelled = completed_mock.call_args.args
+                    self.assertEqual([], errors)
+                    self.assertFalse(was_cancelled)
+                    self.assertTrue(
+                        any(
+                            prim_path == missing_prim_path and asset_path.replace("\\", "/") == missing_reference_path
+                            for _, prim_path, asset_path in failed_assets
+                        ),
+                        msg=f"Missing reference was not reported. Failed assets: {failed_assets}",
+                    )
+                    self.assertFalse(output_dir.exists())
 
     async def test_package_flatten_mode_should_export_single_root_layer_and_prune_packaged_sublayers(self):
         packaging_core = PackagingCore()
@@ -498,6 +548,61 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
         material_layer_identifier = material_layer.identifier
         material_layer = None
         return material_layer_identifier
+
+    def __author_missing_reference(self, layer_path: Path) -> tuple[str, str]:
+        missing_reference_path = layer_path.parent / "not_created_ref.usda"
+        layer = Sdf.Layer.FindOrOpen(str(layer_path))
+        self.assertIsNotNone(layer)
+
+        prim_path = "/RootNode/BadReference"
+        prim_spec = Sdf.CreatePrimInLayer(layer, prim_path)
+        self.assertIsNotNone(prim_spec)
+        prim_spec.specifier = Sdf.SpecifierDef
+        prim_spec.typeName = "Xform"
+        prim_spec.referenceList.Append(Sdf.Reference("./not_created_ref.usda"))
+        layer.Save()
+        layer = None
+        return prim_path, missing_reference_path.as_posix()
+
+    @staticmethod
+    def __expected_progress_range(total: int) -> list[tuple[int, int]]:
+        return [(current, total) for current in range(total + 1)]
+
+    @staticmethod
+    def __make_cancel_on_status(packaging_core: PackagingCore, progress_calls: list, cancel_status: str):
+        cancel_requested = False
+
+        def cancel_on_status(current, total, status):
+            nonlocal cancel_requested
+            progress_calls.append((current, total, status))
+            if status == cancel_status and not cancel_requested:
+                cancel_requested = True
+                packaging_core.cancel()
+
+        return cancel_on_status, lambda: cancel_requested
+
+    def __assert_packaging_progress(
+        self,
+        progress_calls,
+        expected_progress_by_stage: list[tuple[str, list[tuple[int, int]]]],
+    ):
+        actual_progress_by_stage = []
+        current_status = None
+        current_progress = []
+
+        for progress_call in progress_calls:
+            current, total, status = progress_call.args
+            if status != current_status:
+                if current_status is not None:
+                    actual_progress_by_stage.append((current_status, current_progress))
+                current_status = status
+                current_progress = []
+            current_progress.append((current, total))
+
+        if current_status is not None:
+            actual_progress_by_stage.append((current_status, current_progress))
+
+        self.assertEqual(expected_progress_by_stage, actual_progress_by_stage)
 
     async def __asset_directories_equal(self, expected: Path, actual: Path):
         # Make sure all the files in the expected directory are identical in the actual directory

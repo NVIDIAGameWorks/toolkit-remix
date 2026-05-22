@@ -110,27 +110,41 @@ class ModPackagingDetailsWidget:
 
     def _update_default_values(self):
         replacement_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
+        replacement_custom_data = replacement_layer.customLayerData if replacement_layer else {}
 
         # Update default mod name
-        if _LSS_LAYER_MOD_NAME in replacement_layer.customLayerData:
-            mod_name = replacement_layer.customLayerData[_LSS_LAYER_MOD_NAME]
+        stored_mod_name = replacement_custom_data.get(_LSS_LAYER_MOD_NAME)
+        if stored_mod_name and str(stored_mod_name).strip():
+            mod_name = stored_mod_name
         else:
-            root_layer = omni.usd.get_context(self._context_name).get_stage().GetRootLayer()
-            if root_layer:
-                mod_name = _OmniUrl(root_layer.realPath).stem
-            else:
-                mod_name = _OmniUrl(replacement_layer.realPath).stem
+            context = omni.usd.get_context(self._context_name)
+            stage = context.get_stage() if context else None
+            root_layer = stage.GetRootLayer() if stage else None
+            mod_name = self._get_layer_stem(root_layer) or "Mod"
+            if replacement_layer:
+                self._set_replacement_layer_default_mod_name(replacement_layer, mod_name)
         self._last_valid_name = mod_name
         self._name_field.model.set_value(mod_name)
 
         # Update default mod version
-        mod_version = replacement_layer.customLayerData.get(_LSS_LAYER_MOD_VERSION, "1.0.0")
+        mod_version = replacement_custom_data.get(_LSS_LAYER_MOD_VERSION, "1.0.0")
         self._last_valid_version = mod_version
         self._version_field.model.set_value(mod_version)
 
         # Update default mod details
-        if _LSS_LAYER_MOD_NOTES in replacement_layer.customLayerData:
-            self._details_field.model.set_value(replacement_layer.customLayerData[_LSS_LAYER_MOD_NOTES])
+        self._details_field.model.set_value(replacement_custom_data.get(_LSS_LAYER_MOD_NOTES, ""))
+
+    @staticmethod
+    def _get_layer_stem(layer) -> str | None:
+        if not layer or not layer.realPath:
+            return None
+        return _OmniUrl(layer.realPath).stem or None
+
+    @staticmethod
+    def _set_replacement_layer_default_mod_name(replacement_layer, mod_name: str):
+        replacement_custom_data = dict(replacement_layer.customLayerData)
+        replacement_custom_data[_LSS_LAYER_MOD_NAME] = mod_name
+        replacement_layer.customLayerData = replacement_custom_data
 
     def _update_name_valid(self, *_):
         error = None

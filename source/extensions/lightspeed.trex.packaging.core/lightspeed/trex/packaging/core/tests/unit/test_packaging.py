@@ -18,7 +18,7 @@
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import Mock, PropertyMock, call, patch
+from unittest.mock import AsyncMock, Mock, PropertyMock, call, patch
 
 import carb
 import omni.kit.test
@@ -132,6 +132,23 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
         # Assert
         layer_mock.Export.assert_called_once_with("C:/output/sublayer.usda")
+
+    async def test_export_packaged_layer_export_failure_should_raise_runtime_error(self):
+        # Arrange
+        layer_mock = Mock()
+        layer_mock.Export.return_value = False
+
+        # Act
+        with self.assertRaises(RuntimeError) as cm:
+            PackagingCore._export_packaged_layer(
+                layer_mock,
+                "C:/output/mod.usd",
+                _UsdExtensions.USD,
+                is_packaged_root=True,
+            )
+
+        # Assert
+        self.assertEqual("Unable to export packaged layer to path: C:/output/mod.usd", str(cm.exception))
 
     async def test_package_unexpected_exception_should_be_caught_and_trigger_packaging_completed_event(self):
         # Arrange
@@ -259,6 +276,9 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             patch("lightspeed.trex.packaging.core.packaging._ModPackagingSchema") as model_mock,
             patch.object(PackagingCore, "_initialize_usd_stage") as init_usd_mock,
             patch.object(PackagingCore, "_filter_sublayers") as filter_mock,
+            patch.object(
+                PackagingCore, "_get_dependencies_and_invalid_assets", new_callable=AsyncMock
+            ) as dependencies_mock,
             patch.object(PackagingCore, "_get_redirected_dependencies") as redirect_mock,
             patch.object(PackagingCore, "_make_temp_layer") as make_temp_mock,
             patch.object(PackagingCore, "_collect") as collect_mock,
@@ -296,6 +316,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 collect_mock.return_value = collect_future
 
             update_metadata_mock.return_value = []
+            dependencies_mock.return_value = [], [], []
             redirect_mock.return_value = ([], [])
             packaging_core._temp_files[temp_root_mod_path] = root_mod_mock.name
 
@@ -328,6 +349,9 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             patch("lightspeed.trex.packaging.core.packaging._ModPackagingSchema") as model_mock,
             patch.object(PackagingCore, "_initialize_usd_stage") as init_usd_mock,
             patch.object(PackagingCore, "_filter_sublayers") as filter_mock,
+            patch.object(
+                PackagingCore, "_get_dependencies_and_invalid_assets", new_callable=AsyncMock
+            ) as dependencies_mock,
             patch.object(PackagingCore, "_get_redirected_dependencies") as redirect_mock,
             patch.object(PackagingCore, "_make_temp_layer") as make_temp_mock,
             patch.object(PackagingCore, "_collect") as collect_mock,
@@ -365,6 +389,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 collect_mock.return_value = collect_future
 
             update_metadata_mock.return_value = []
+            dependencies_mock.return_value = [], [], []
             redirect_mock.return_value = ([], [])
 
             find_open_mock.side_effect = [mod_layer_mock, temp_root_mod_mock, exported_mod_layer_mock]
@@ -399,6 +424,8 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         exported_mod_layer_mock = Mock(name="exported_mod_layer")
         exported_mod_layer_mock.customLayerData = {}
 
+        all_layers_mock = [Mock()]
+        all_assets_mock = [Mock()]
         dependencies_mock = [Mock()]
         redirected_mock = [Mock()]
 
@@ -407,6 +434,9 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             patch.object(PackagingCore, "_initialize_usd_stage") as init_usd_mock,
             patch.object(PackagingCore, "_make_temp_layer") as make_temp_mock,
             patch.object(PackagingCore, "_filter_sublayers") as filter_mock,
+            patch.object(
+                PackagingCore, "_get_dependencies_and_invalid_assets", new_callable=AsyncMock
+            ) as dependencies_validation_mock,
             patch.object(PackagingCore, "_get_redirected_dependencies") as redirect_mock,
             patch.object(PackagingCore, "_collect") as collect_mock,
             patch.object(PackagingCore, "_packaging_completed") as completed_mock,
@@ -446,6 +476,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 collect_mock.return_value = collect_future
 
             redirect_mock.return_value = (dependencies_mock, redirected_mock)
+            dependencies_validation_mock.return_value = all_layers_mock, all_assets_mock, []
             packaging_core._temp_files[temp_mod_layer_path] = root_mod_mock.name
 
             find_open_mock.side_effect = [mod_layer_mock, temp_mod_layer_mock, exported_mod_layer_mock]
@@ -457,27 +488,30 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(1, completed_mock.call_count)
         self.assertEqual(call([], []), completed_mock.call_args)
 
-        self.assertEqual(1, init_usd_mock.call_count)
+        self.assertEqual(2, init_usd_mock.call_count)
         self.assertEqual(1, make_temp_mock.call_count)
         self.assertEqual(1, filter_mock.call_count)
         self.assertEqual(1, redirect_mock.call_count)
         self.assertEqual(1, collect_mock.call_count)
         self.assertEqual(1, update_metadata_mock.call_count)
 
-        self.assertEqual(call(context_name_mock, str(root_mod_mock)), init_usd_mock.call_args)
+        self.assertEqual(
+            [call(context_name_mock, str(root_mod_mock)), call(context_name_mock, temp_mod_layer_mock.identifier)],
+            init_usd_mock.call_args_list,
+        )
         self.assertEqual(
             call(context_name_mock, None, temp_mod_layer_mock, [OmniUrl(root_mod_mock).path.lower()]),
             filter_mock.call_args,
         )
-        self.assertEqual(call(temp_mod_layer_mock, []), redirect_mock.call_args)
+        self.assertEqual(call(all_layers_mock, all_assets_mock, []), redirect_mock.call_args)
         self.assertEqual(
             call(
-                init_usd_mock.return_value,
                 temp_mod_layer_mock,
                 temp_layers_mock,
+                all_layers_mock,
+                all_assets_mock,
                 output_directory_mock,
                 redirected_mock,
-                [],
                 None,
             ),
             collect_mock.call_args,
@@ -506,12 +540,17 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
         exported_mod_layer_mock = Mock(name="exported_mod_layer")
         exported_mod_layer_mock.customLayerData = {}
+        all_layers_mock = [Mock()]
+        all_assets_mock = [Mock()]
 
         with (
             patch("lightspeed.trex.packaging.core.packaging._ModPackagingSchema") as model_mock,
             patch.object(PackagingCore, "_initialize_usd_stage") as init_usd_mock,
             patch.object(PackagingCore, "_make_temp_layer") as make_temp_mock,
             patch.object(PackagingCore, "_filter_sublayers") as filter_mock,
+            patch.object(
+                PackagingCore, "_get_dependencies_and_invalid_assets", new_callable=AsyncMock
+            ) as dependencies_validation_mock,
             patch.object(PackagingCore, "_get_redirected_dependencies") as redirect_mock,
             patch.object(PackagingCore, "_collect") as collect_mock,
             patch.object(PackagingCore, "_packaging_completed") as completed_mock,
@@ -549,6 +588,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 collect_mock.return_value = collect_future
 
             packaging_core._temp_files[temp_mod_layer_path] = root_mod_mock.name
+            dependencies_validation_mock.return_value = all_layers_mock, all_assets_mock, []
             find_open_mock.side_effect = [mod_layer_mock, temp_mod_layer_mock, exported_mod_layer_mock]
 
             # Act
@@ -558,12 +598,12 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(0, redirect_mock.call_count)
         self.assertEqual(
             call(
-                init_usd_mock.return_value,
                 temp_mod_layer_mock,
                 temp_layers_mock,
+                all_layers_mock,
+                all_assets_mock,
                 output_directory_mock,
                 set(),
-                [],
                 None,
             ),
             collect_mock.call_args,
@@ -595,6 +635,8 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         exported_mod_layer_mock = Mock(name="exported_mod_layer")
         exported_mod_layer_mock.customLayerData = {}
         source_stage_mock = Mock(name="source_stage")
+        temp_stage_mock = Mock(name="temp_stage")
+        temp_stage_mock.TraverseAll.return_value = []
         flattened_stage_mock = Mock(name="flattened_stage")
 
         with (
@@ -607,6 +649,8 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             patch.object(PackagingCore, "_collect") as collect_mock,
             patch.object(PackagingCore, "_packaging_completed") as completed_mock,
             patch.object(PackagingCore, "_update_layer_metadata") as update_metadata_mock,
+            patch.object(packaging_core._rtxio_core, "collect_invalid_stage_assets") as collect_invalid_mock,
+            patch.object(UsdUtils, "ComputeAllDependencies") as compute_dependencies_mock,
             patch.object(Sdf.Layer, "FindOrOpen") as find_open_mock,
         ):
             model_mock.return_value.mod_layer_paths = [root_mod_mock]
@@ -618,7 +662,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             model_mock.return_value.output_format = None
 
             if sys.version_info.minor > 7:
-                init_usd_mock.side_effect = [source_stage_mock, flattened_stage_mock]
+                init_usd_mock.side_effect = [source_stage_mock, temp_stage_mock, flattened_stage_mock]
                 make_temp_mock.return_value = temp_mod_layer_path
                 filter_mock.return_value = temp_layers_mock
                 flatten_mock.return_value = flattened_mod_layer_mock
@@ -626,9 +670,11 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             else:
                 source_stage_future = asyncio.Future()
                 source_stage_future.set_result(source_stage_mock)
+                temp_stage_future = asyncio.Future()
+                temp_stage_future.set_result(temp_stage_mock)
                 flattened_stage_future = asyncio.Future()
                 flattened_stage_future.set_result(flattened_stage_mock)
-                init_usd_mock.side_effect = [source_stage_future, flattened_stage_future]
+                init_usd_mock.side_effect = [source_stage_future, temp_stage_future, flattened_stage_future]
 
                 make_temp_future = asyncio.Future()
                 make_temp_future.set_result(temp_mod_layer_path)
@@ -648,6 +694,8 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
 
             packaging_core._temp_files[temp_mod_layer_path] = root_mod_mock.name
             packaging_core._temp_files[flattened_mod_layer_mock.identifier] = root_mod_mock.name
+            compute_dependencies_mock.return_value = [], [], []
+            collect_invalid_mock.return_value = set()
             find_open_mock.side_effect = [mod_layer_mock, temp_mod_layer_mock, exported_mod_layer_mock]
 
             # Act
@@ -660,18 +708,19 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(
             [
                 call(context_name_mock, str(root_mod_mock)),
+                call(context_name_mock, temp_mod_layer_mock.identifier),
                 call(context_name_mock, flattened_mod_layer_mock.identifier),
             ],
             init_usd_mock.call_args_list,
         )
         self.assertEqual(
             call(
-                flattened_stage_mock,
                 flattened_mod_layer_mock,
                 [flattened_mod_layer_mock.identifier],
+                [],
+                [],
                 output_directory_mock,
                 set(),
-                [],
                 None,
             ),
             collect_mock.call_args,
@@ -692,6 +741,27 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertTrue(packaging_core._cancel_token)
         self.assertEqual(1, proc.terminate.call_count)
+
+    async def test_get_dependencies_and_invalid_assets_cancel_should_skip_invalid_reference_scan(self):
+        # Arrange
+        packaging_core = PackagingCore()
+        stage_mock = Mock()
+        root_layer_mock = Mock()
+
+        async def get_dependencies(_root_layer):
+            packaging_core.cancel()
+            return [], [], []
+
+        with (
+            patch.object(PackagingCore, "_get_dependencies", AsyncMock(side_effect=get_dependencies)),
+            patch.object(PackagingCore, "_get_invalid_assets", AsyncMock(return_value=[])) as invalid_assets_mock,
+        ):
+            # Act
+            result = await packaging_core._get_dependencies_and_invalid_assets(stage_mock, root_layer_mock, [])
+
+        # Assert
+        self.assertEqual(([], [], []), result)
+        invalid_assets_mock.assert_not_awaited()
 
     async def test_current_count_should_return_current_count(self):
         # Arrange
@@ -995,25 +1065,56 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             progress_mock.call_args_list,
         )
 
+    async def test_flatten_temp_root_layer_export_failure_should_raise_runtime_error(self):
+        # Arrange
+        packaging_core = PackagingCore()
+
+        temp_root_layer = Mock()
+        temp_root_layer.identifier = "C:/projects/MainProject/mod_temp.usda"
+        temp_root_layer.customLayerData = {}
+
+        flattened_layer = Mock()
+        flattened_layer.customLayerData = {}
+        flattened_layer.Export.return_value = False
+
+        with (
+            patch.object(Usd.Stage, "Open") as open_stage_mock,
+            patch.object(PackagingCore, "_make_temp_layer") as make_temp_mock,
+        ):
+            stage_mock = Mock()
+            stage_mock.Flatten.return_value = flattened_layer
+            open_stage_mock.return_value = stage_mock
+            if sys.version_info.minor > 7:
+                make_temp_mock.return_value = "C:/projects/MainProject/mod_flattened_temp.usda"
+            else:
+                make_temp_future = asyncio.Future()
+                make_temp_future.set_result("C:/projects/MainProject/mod_flattened_temp.usda")
+                make_temp_mock.return_value = make_temp_future
+
+            # Act
+            with self.assertRaises(RuntimeError) as cm:
+                await packaging_core._flatten_temp_root_layer(temp_root_layer)
+
+        # Assert
+        self.assertEqual(
+            "Unable to write the flattened temporary root layer at path: "
+            "C:/projects/MainProject/mod_flattened_temp.usda",
+            str(cm.exception),
+        )
+
     async def test_get_redirected_dependencies_cancel_token_was_set_should_quick_return(self):
         await self.__run_get_redirected_dependencies(True)
 
     async def test_get_redirected_dependencies_should_return_mod_dependencies_and_known_redirected_dependencies(self):
         await self.__run_get_redirected_dependencies(False)
 
-    async def test_collect_cancel_token_with_unresolved_assets_should_quick_return_errors(self):
-        await self.__run_collect(True, True)
-
-    async def test_collect_cancel_token_without_unresolved_assets_should_quick_return_errors(self):
-        await self.__run_collect(True, False)
-
-    async def test_collect_unresolved_paths_should_quick_return_errors(self):
-        await self.__run_collect(False, True)
+    async def test_collect_cancel_token_should_quick_return_errors(self):
+        await self.__run_collect(True)
 
     async def test_collect_should_modify_asset_paths_create_output_directory_and_export_layers_and_copy_dependencies(
         self,
     ):
-        await self.__run_collect(False, False)
+        await self.__run_collect(False)
 
     async def test_update_layer_metadata_update_dependencies_should_update_metadata(self):
         await self.__run_update_layer_metadata(True, False)
@@ -1235,10 +1336,6 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         if should_cancel:
             packaging_core._cancel_token = True
 
-        root_layer_path_mock = Mock()
-        root_layer_mock = Mock()
-        root_layer_mock.identifier = root_layer_path_mock
-
         external_mod = "C:/game/rtx-remix/mods/ExternalMod_1/mod.usda"
         external_layer = "D:/projects/Project_0/deps/mods/ExternalMod_1/mod.usda"
         external_asset = "C:/game/rtx-remix/mods/ExternalMod_1/assets/mesh_1.usd"
@@ -1252,19 +1349,16 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         asset_mocks = ["D:/projects/Project_0/assets/mesh_0.usd", external_asset]
         external_mod_paths = [Path("C:/game/rtx-remix/mods/ExternalMod_0/mod.usda"), Path(external_mod)]
 
-        with patch.object(UsdUtils, "ComputeAllDependencies") as compute_dependencies_mock:
-            compute_dependencies_mock.return_value = layer_mocks, asset_mocks, []
-
-            # Act
-            mod_dependencies, redirected_dependencies = packaging_core._get_redirected_dependencies(
-                root_layer_mock, external_mod_paths
-            )
+        # Act
+        mod_dependencies, redirected_dependencies = packaging_core._get_redirected_dependencies(
+            layer_mocks, asset_mocks, external_mod_paths
+        )
 
         # Assert
         self.assertSetEqual(set() if should_cancel else {external_mod}, mod_dependencies)
         self.assertSetEqual(set() if should_cancel else {external_layer, external_asset}, redirected_dependencies)
 
-    async def __run_collect(self, should_cancel: bool, has_unresolved_assets: bool):
+    async def __run_collect(self, should_cancel: bool):
         packaging_core = PackagingCore()
         if should_cancel:
             packaging_core._cancel_token = True
@@ -1285,24 +1379,12 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         collected_asset_output = "./assets/cube.usda"
 
         root_layer_mock = Mock()
-        stage_mock = Mock()
-        stage_mock.TraverseAll.return_value = []
-        unresolved_dependencies = {("layer", "prim", "asset")} if has_unresolved_assets else set()
+        root_layer_mock.identifier = layer_0_temp.identifier
 
         with (
             patch.object(PackagingCore, "_get_original_path") as get_original_mock,
             patch.object(PackagingCore, "_make_temp_layer") as make_temp_mock,
-            patch.object(packaging_core._rtxio_core, "collect_invalid_stage_assets") as collect_invalid_mock,
             patch.object(Sdf.Layer, "FindOrOpen", side_effect=[layer_0_temp, layer_1_temp]),
-            patch.object(
-                UsdUtils,
-                "ComputeAllDependencies",
-                return_value=(
-                    [layer_0, layer_1],
-                    [collected_asset, redirected_asset],
-                    [Mock()] if has_unresolved_assets else [],
-                ),
-            ) as compute_dependencies_mock,
             patch.object(UsdUtils, "ModifyAssetPaths") as modify_assets_mock,
             patch.object(
                 MaterialConverterUtils, "get_material_library_shader_urls", return_value=[OmniUrl(skipped_shader)]
@@ -1331,27 +1413,22 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             ]
             exists_mock.side_effect = [True, False, True, True, False]
             make_temp_mock.return_value = self.__async_result(layer_1_temp.identifier)
-            collect_invalid_mock.return_value = unresolved_dependencies
 
             # Act
-            _errors, unresolved_assets = await packaging_core._collect(
-                stage_mock,
+            _errors, failed_assets = await packaging_core._collect(
                 root_layer_mock,
                 [layer_0_temp.identifier],
+                [layer_0, layer_1],
+                [collected_asset, redirected_asset],
                 "S:/mods/ProjectMod",
                 {redirected_asset},
-                [],
                 None,
             )
 
         # Assert
-        self.assertListEqual(list(unresolved_dependencies) if not should_cancel else [], unresolved_assets)
+        self.assertListEqual([], failed_assets)
 
-        self.assertEqual(0 if should_cancel else 1, compute_dependencies_mock.call_count)
-        if not should_cancel:
-            self.assertEqual(call(root_layer_mock.identifier), compute_dependencies_mock.call_args)
-
-        if should_cancel or has_unresolved_assets:
+        if should_cancel:
             self.assertEqual(0, get_shaders_mock.call_count)
             self.assertEqual(0, modify_assets_mock.call_count)
             self.assertEqual(0, delete_folder_mock.call_count)

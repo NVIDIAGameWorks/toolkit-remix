@@ -37,6 +37,7 @@ from lightspeed.trex.packaging.core.enum import get_packaging_mode_description a
 from lightspeed.trex.packaging.core.enum import (
     get_packaging_output_format_description as _get_packaging_output_format_description,
 )
+from lightspeed.trex.packaging.core.packaging import INDETERMINATE_PROGRESS_TOTAL as _INDETERMINATE_PROGRESS_TOTAL
 from lightspeed.trex.packaging.core.packaging import PackagingCore as _PackagingCore
 from lightspeed.trex.rtxio.core import RtxIoSplitSizePreset as _RtxIoSplitSizePreset
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
@@ -113,6 +114,7 @@ class PackagingPane(_WorkspaceWidget):
             "_output_valid": None,
             "_layers_valid": None,
             "_progress_popup": None,
+            "_packaging_cancel_requested": None,
             "_packaging_window": None,
             "root_widget": None,
             "_package_details_collapsable_frame": None,
@@ -155,6 +157,7 @@ class PackagingPane(_WorkspaceWidget):
         self._layers_valid = False
 
         self._progress_popup = None
+        self._packaging_cancel_requested = False
         self._packaging_window = None
 
         self.__create_ui()
@@ -368,6 +371,16 @@ class PackagingPane(_WorkspaceWidget):
             self._export_button.tooltip += "The current layer selection is invalid.\n"
 
     def _on_package_pressed(self, silent: bool = False, ignored_errors: list[tuple[str, str, str]] = None):
+        mod_layers = self._layer_manager.get_layers_of_type(_LayerType.replacement)
+        if not mod_layers:
+            self._update_layers_valid(False)
+            _TrexMessageDialog(
+                "The current project does not contain a valid mod layer and cannot be packaged.",
+                "Invalid Project",
+                disable_cancel_button=True,
+            )
+            return
+
         output_url = _OmniUrl(self._package_output_widget.output_path)
 
         @omni.usd.handle_exception
@@ -391,12 +404,11 @@ class PackagingPane(_WorkspaceWidget):
             if success:
                 if delete_existing_output and not await delete_existing_output_directory():
                     return
+                self._packaging_cancel_requested = False
                 self._packaging_core.package(
                     {
                         "context_name": self._MOD_PACKAGING_CONTEXT,
-                        "mod_layer_paths": [
-                            layer.realPath for layer in self._layer_manager.get_layers_of_type(_LayerType.replacement)
-                        ],
+                        "mod_layer_paths": [layer.realPath for layer in mod_layers],
                         "selected_layer_paths": self._package_layers_widget.packaged_layers,
                         "output_directory": self._package_output_widget.output_path,
                         "packaging_mode": self._get_selected_packaging_mode(),
@@ -518,20 +530,33 @@ class PackagingPane(_WorkspaceWidget):
 
     def _on_packaging_progress(self, current: int, total: int, status: str):
         """Packaging progress callback - subscription destroyed when window invisible."""
+        cancel_requested = getattr(self, "_packaging_cancel_requested", False)
+        self._show_packaging_progress(current, total, status, not cancel_requested)
+
+    def _show_packaging_progress(self, current: int, total: int, status: str, cancel_enabled: bool):
         if not self._progress_popup:
             self._progress_popup = _ProgressPopup(title="Packaging Mod")
-            self._progress_popup.set_cancel_fn(self._packaging_core.cancel)
+        self._progress_popup.set_cancel_fn(self._cancel_packaging if cancel_enabled else None)
+        self._progress_popup.set_cancel_enabled(cancel_enabled)
 
         if not self._progress_popup.is_visible():
             self._progress_popup.show()
 
+        is_indeterminate_stage = total == _INDETERMINATE_PROGRESS_TOTAL
+
         status_text = status
-        if total > 0:
+        if total > 0 and not is_indeterminate_stage:
             status_text = f"{status}\n{current} / {total}"
         if self._progress_popup.status_text != status_text:
             self._progress_popup.set_status_text(status_text)
 
-        self._progress_popup.set_progress(current / total if total > 0 else 0)
+        progress = 0.5 if is_indeterminate_stage else current / total if total > 0 else 0
+        self._progress_popup.set_progress(progress)
+
+    def _cancel_packaging(self):
+        self._packaging_cancel_requested = True
+        self._show_packaging_progress(0, _INDETERMINATE_PROGRESS_TOTAL, "Cancelling packaging...", False)
+        self._packaging_core.cancel()
 
     @omni.usd.handle_exception
     async def _on_packaging_completed(
@@ -540,6 +565,7 @@ class PackagingPane(_WorkspaceWidget):
         if self._progress_popup:
             self._progress_popup.hide()
             self._progress_popup = None
+        self._packaging_cancel_requested = False
 
         # Wait for the progress popup to be hidden to center the following message dialog
         await omni.kit.app.get_app().next_update_async()
@@ -574,6 +600,15 @@ class PackagingPane(_WorkspaceWidget):
     async def _retry_packaging(self, ignored_errors: list[tuple[str, str, str]]):
         # Wait 1 frame to make sure the dialogs are centered
         await omni.kit.app.get_app().next_update_async()
+
+        if ignored_errors and self._get_selected_packaging_mode() == _ModPackagingMode.FLATTEN:
+            _TrexMessageDialog(
+                "Ignoring unresolved reference errors will stop the packaging process. This project cannot be flattened "
+                "while references are missing.",
+                "Packaging Cannot Continue",
+                disable_cancel_button=True,
+            )
+            return
 
         self._on_package_pressed(silent=True, ignored_errors=ignored_errors)
 
