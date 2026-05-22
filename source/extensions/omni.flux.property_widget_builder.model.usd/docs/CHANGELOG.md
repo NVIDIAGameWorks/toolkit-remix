@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.34.2]
+### Fixed
+- Made hardcoded light and Aperture PBR drag-field bounds explicit so soft ranges and typed clamps stay separate
+
 ## [2.34.1]
 ### Fixed
 - REMIX-4585: Fixed property copy/paste so multichannel transforms and unresolved asset paths (e.g. textures pending ingestion) round-trip to the target prim

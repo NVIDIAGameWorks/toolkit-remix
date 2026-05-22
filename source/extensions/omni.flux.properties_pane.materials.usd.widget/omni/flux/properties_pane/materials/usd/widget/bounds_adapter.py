@@ -68,7 +68,24 @@ class MaterialBoundsAdapter(BoundsAdapter):
             return None
 
         custom_data = raw_bounds_step_data.get(Sdf.AttributeSpec.CustomDataKey)
-        custom_normalized = super()._normalize_bounds_step_data(custom_data) if isinstance(custom_data, dict) else None
+        custom_normalized = None
+        if isinstance(custom_data, dict):
+            # Material placeholders map MDL/Sdr hard_range hints into customData.range
+            # for legacy UI compatibility, so nested range is material-hard here.
+            custom_soft_min, custom_soft_max = self._extract_range(custom_data.get(_SOFT_RANGE_KEY))
+            custom_hard_min, custom_hard_max = self._extract_range(custom_data.get("range"))
+            custom_step = custom_data.get("ui:step")
+            if any(
+                value is not None
+                for value in (custom_soft_min, custom_soft_max, custom_hard_min, custom_hard_max, custom_step)
+            ):
+                custom_normalized = {
+                    "soft_min": custom_soft_min,
+                    "soft_max": custom_soft_max,
+                    "hard_min": custom_hard_min,
+                    "hard_max": custom_hard_max,
+                    "step": custom_step,
+                }
 
         sdr_metadata = raw_bounds_step_data.get(UsdShade.Tokens.sdrMetadata)
         if not isinstance(sdr_metadata, dict):

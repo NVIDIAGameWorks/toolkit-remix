@@ -44,8 +44,10 @@ class _MockModel:
 
 class _MockWidgetBase:
     def __init__(self, model=None, **kwargs):
-        del kwargs
         self.model = model
+        self.kwargs = kwargs
+        self.min = kwargs.get("min")
+        self.max = kwargs.get("max")
         self._pressed_fn = None
         self._released_fn = None
 
@@ -114,6 +116,40 @@ class TestHardClampedDragMixin(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(model.last_value, 0.0)
+
+    async def test_hard_min_fills_missing_drag_min(self):
+        # Arrange / Act
+        widget = _MockDrag(model=_MockModel(), hard_min_value=0.0, max=10.0)
+
+        # Assert
+        self.assertEqual(widget.min, 0.0)
+        self.assertEqual(widget.max, 10.0)
+
+    async def test_hard_max_fills_missing_drag_max(self):
+        # Arrange / Act
+        widget = _MockDrag(model=_MockModel(), min=0.0, hard_max_value=10.0)
+
+        # Assert
+        self.assertEqual(widget.min, 0.0)
+        self.assertEqual(widget.max, 10.0)
+
+    async def test_explicit_drag_bounds_are_not_overridden_by_hard_bounds(self):
+        # Arrange / Act
+        widget = _MockDrag(model=_MockModel(), min=0.0, max=10.0, hard_min_value=5.0, hard_max_value=8.0)
+
+        # Assert
+        self.assertEqual(widget.min, 0.0)
+        self.assertEqual(widget.max, 10.0)
+
+    async def test_invalid_hard_bound_drag_fallback_is_ignored(self):
+        # Arrange / Act
+        with patch("omni.flux.utils.widget.drag_field.carb.log_warn") as mock_log_warn:
+            widget = _MockDrag(model=_MockModel(), hard_min_value=20.0, max=10.0)
+
+        # Assert
+        self.assertIsNone(widget.min)
+        self.assertEqual(widget.max, 10.0)
+        mock_log_warn.assert_called_once()
 
     async def test_preserves_input_type(self):
         # Arrange

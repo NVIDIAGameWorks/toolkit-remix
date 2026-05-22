@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.2]
+### Fixed
+- Updated drag widget e2e coverage to expect soft bounds to allow typed values outside the drag range
+
 ## [2.12.1]
 ### Fixed
 - REMIX-4585: `Item.apply_serialized_data` now opens a paste window around the deserialize loop so multichannel USD value models can refresh sibling caches between sequential channel writes

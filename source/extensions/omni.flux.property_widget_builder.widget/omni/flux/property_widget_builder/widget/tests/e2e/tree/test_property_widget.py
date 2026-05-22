@@ -143,8 +143,9 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
             self.assertAlmostEqual(item.get_value()[0], max_value)
 
             # Test manually entering value outside the soft range:
-            # typed value should clamp to max (main behavior).
+            # typed values are accepted unless explicit hard bounds are provided.
+            typed_value = 2.2
             await widget_ref.double_click()
-            await omni.kit.ui_test.emulate_char_press("2.2")
+            await omni.kit.ui_test.emulate_char_press(str(typed_value))
             await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
-            self.assertAlmostEqual(item.get_value()[0], max_value)
+            self.assertAlmostEqual(item.get_value()[0], typed_value)

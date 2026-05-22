@@ -34,6 +34,7 @@ class _StubDragField(AbstractDragFieldGroup):
     def __init__(self, **kwargs):
         kwargs.setdefault("style_name", "StubDragField")
         super().__init__(**kwargs)
+        self.build_drag_widget_calls: list[dict[str, Any]] = []
 
     def build_drag_widget(
         self,
@@ -46,6 +47,15 @@ class _StubDragField(AbstractDragFieldGroup):
         hard_max_val: float | int | None,
         step: float | int | None,
     ) -> Any:
+        self.build_drag_widget_calls.append(
+            {
+                "min_value": min_val,
+                "max_value": max_val,
+                "hard_min_value": hard_min_val,
+                "hard_max_value": hard_max_val,
+                "step": step,
+            }
+        )
         kwargs: dict[str, Any] = {
             "model": model,
             "style_type_name_override": style_type_name_override,
@@ -244,8 +254,8 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(model.end_batch_edit_calls, 1)
         self.assertFalse(model.is_batch_editing)
 
-    async def test_build_ui_falls_back_hard_bounds_to_soft_bounds_for_typed_values(self):
-        """Missing hard bounds should fall back to soft bounds for typed clamping."""
+    async def test_build_ui_keeps_soft_bounds_out_of_typed_value_clamping(self):
+        """Missing hard bounds should leave typed values unclamped."""
         # Arrange
         field = _StubDragField(min_value=0.0, max_value=10.0)
         model = MockValueModel(value=0.0)
@@ -257,12 +267,12 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(len(widgets), 1)
-        self.assertEqual(getattr(widgets[0], "hard_min_value", None), 0.0)
-        self.assertEqual(getattr(widgets[0], "hard_max_value", None), 10.0)
-        self.assertEqual(model.get_value_as_float(), 10.0)
+        self.assertIsNone(getattr(widgets[0], "hard_min_value", None))
+        self.assertIsNone(getattr(widgets[0], "hard_max_value", None))
+        self.assertEqual(model.get_value_as_float(), 999.0)
 
-    async def test_build_ui_prefers_explicit_hard_bounds_over_soft_fallback(self):
-        """Explicit hard bounds should override soft min/max fallback for typed clamping."""
+    async def test_build_ui_uses_explicit_hard_bounds_for_typed_clamping(self):
+        """Explicit hard bounds should control typed clamping independently from soft min/max."""
         # Arrange
         field = _StubDragField(min_value=0.0, max_value=10.0, hard_min_value=-5.0, hard_max_value=5.0)
         model = MockValueModel(value=0.0)
@@ -277,6 +287,80 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(getattr(widgets[0], "hard_min_value", None), -5.0)
         self.assertEqual(getattr(widgets[0], "hard_max_value", None), 5.0)
         self.assertEqual(model.get_value_as_float(), 5.0)
+
+    async def test_build_ui_allows_hard_min_with_soft_max(self):
+        """Mixed bounds should clamp below hard_min while allowing values above soft max."""
+        # Arrange
+        field = _StubDragField(hard_min_value=0.0, max_value=10.0)
+        model = MockValueModel(value=0.0)
+        item = _StubItem([model])
+
+        # Act
+        widgets = field.build_ui(item)
+        model.set_value(-5.0)
+        clamped_value = model.get_value_as_float()
+        model.set_value(999.0)
+
+        # Assert
+        self.assertEqual(len(widgets), 1)
+        self.assertEqual(getattr(widgets[0], "hard_min_value", None), 0.0)
+        self.assertIsNone(getattr(widgets[0], "hard_max_value", None))
+        self.assertEqual(clamped_value, 0.0)
+        self.assertEqual(model.get_value_as_float(), 999.0)
+
+    async def test_build_ui_uses_hard_min_as_missing_drag_min(self):
+        """A hard lower bound should also bound dragging when no soft min is provided."""
+        # Arrange
+        field = _StubDragField(hard_min_value=0.0, max_value=10.0)
+        model = MockValueModel(value=0.0)
+        item = _StubItem([model])
+
+        # Act
+        widgets = field.build_ui(item)
+
+        # Assert
+        self.assertEqual(len(widgets), 1)
+        self.assertEqual(widgets[0].min, 0.0)
+        self.assertEqual(widgets[0].max, 10.0)
+        self.assertEqual(getattr(widgets[0], "hard_min_value", None), 0.0)
+        self.assertIsNone(getattr(widgets[0], "hard_max_value", None))
+
+    async def test_build_ui_uses_hard_max_as_missing_drag_max(self):
+        """A hard upper bound should also bound dragging when no soft max is provided."""
+        # Arrange
+        field = _StubDragField(min_value=0.0, hard_max_value=10.0)
+        model = MockValueModel(value=0.0)
+        item = _StubItem([model])
+
+        # Act
+        widgets = field.build_ui(item)
+
+        # Assert
+        self.assertEqual(len(widgets), 1)
+        self.assertEqual(widgets[0].min, 0.0)
+        self.assertEqual(widgets[0].max, 10.0)
+        self.assertIsNone(getattr(widgets[0], "hard_min_value", None))
+        self.assertEqual(getattr(widgets[0], "hard_max_value", None), 10.0)
+
+    async def test_build_ui_forwards_invalid_mixed_bounds_without_promoting_soft_to_hard(self):
+        """Invalid mixed drag bounds should not affect hard typed-value clamps."""
+        # Arrange
+        field = _StubDragField(hard_min_value=20.0, max_value=10.0)
+        model = MockValueModel(value=0.0)
+        item = _StubItem([model])
+
+        # Act
+        widgets = field.build_ui(item)
+        model.set_value(15.0)
+        clamped_value = model.get_value_as_float()
+
+        # Assert
+        self.assertEqual(len(widgets), 1)
+        self.assertIsNone(field.build_drag_widget_calls[0]["min_value"])
+        self.assertEqual(field.build_drag_widget_calls[0]["max_value"], 10.0)
+        self.assertEqual(getattr(widgets[0], "hard_min_value", None), 20.0)
+        self.assertIsNone(getattr(widgets[0], "hard_max_value", None))
+        self.assertEqual(clamped_value, 20.0)
 
     async def test_resolve_scalar_component_returns_value_when_scalar_index_none(self):
         """None scalar index should return the bounds payload unchanged."""
