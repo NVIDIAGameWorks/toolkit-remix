@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5442: Fixed skinned replacement assets and skeletons with large bind-space scale appearing oversized in the Toolkit viewport while preserving runtime in-game scale.
 - Fixed Codex stop hook completion-gate failures by formatting stop-hook remediation through the agent-specific contract.
 - REMIX-5506: Fix nested referenced light selection - fixed Selection panel and light-property targeting for nested referenced USD lights under mesh replacement hierarchies
+- REMIX-5518: Fixed packaging validation by blocking invalid projects, applying fallback mod-name metadata without saving source layers, validating missing references before mode-specific packaging work, reporting failed exports directly, keeping reference progress accurate, and showing cancellation cleanup clearly.
 
 ## [1.5.0-0]
 

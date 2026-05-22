@@ -104,3 +104,7 @@ rtx.io.enabled = True
 Packaging is non-destructive: it only mutates temporary packaging layers and the packaged output directory. The source
 project root layer and project sublayers are left unchanged during packaging. The only exception is the unresolved
 reference fix workflow, where the user explicitly chooses to replace or remove broken references in the project.
+
+Packaging validates unresolved references after layer filtering and before mode-specific work, so missing references are
+reported before flattening or dependency collection starts.
+Packaging reports reference listing before dependency scanning begins, then advances while invalid references are checked.

@@ -14,6 +14,11 @@ Widget for packaging RTX Remix mods for distribution.
 - Keep packaging non-destructive for the source project; only the packaged output and temporary packaging layers are modified
 - Compress DDS textures into RTX IO `.pkg` files for optimized streaming
 
+Flatten mode requires missing references to be fixed before packaging can continue. If the user ignores unresolved
+reference errors in flatten mode, the retry is stopped and the widget explains that flattening cannot proceed with
+missing references.
+Projects without a valid mod layer are marked invalid and cannot be packaged.
+
 ## RTX IO Packaging
 
 The **RTX IO PACKAGING** section adds RTX IO controls to the existing packaging
