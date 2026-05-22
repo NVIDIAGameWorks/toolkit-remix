@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from typing import ClassVar
+
 from omni import ui
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -24,6 +26,8 @@ from .base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
 
 
 class IgnorePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
+    _filter_active_fields: ClassVar[tuple[str, ...]] = ("ignore_prim_paths",)
+
     display_name: str = Field(default="Ignore Prims", exclude=True)
     tooltip: str = Field(
         default="Filter out Omniverse prims.\nInput a comma-separated list of prim paths to ignore.", exclude=True
@@ -39,7 +43,13 @@ class IgnorePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
     _string_field: ui.StringField = PrivateAttr(default=None)
     _value_changed_sub: _EventSubscription | None = PrivateAttr(default=None)
 
+    def _refresh_filter_active(self) -> None:
+        self.filter_active = bool(self.ignore_prim_paths)
+
     def filter_predicate(self, item: _StageManagerItem) -> bool:
+        if not self.filter_active:
+            return True
+
         is_valid = True
         for ignore_prim_path in self.ignore_prim_paths:
             if item.data.GetPath().HasPrefix(ignore_prim_path):
@@ -57,5 +67,5 @@ class IgnorePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
         self._value_changed_sub = self._string_field.model.subscribe_end_edit_fn(self._on_ignore_value_changed)
 
     def _on_ignore_value_changed(self, model: ui.AbstractValueModel):
-        self.ignore_prim_paths = {p.strip() for p in model.as_string.split(",")}
+        self.ignore_prim_paths = {p.strip() for p in model.as_string.split(",") if p.strip()}
         self._filter_items_changed()

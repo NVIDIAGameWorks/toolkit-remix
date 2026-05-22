@@ -46,6 +46,10 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     display: bool = Field(default=True, description="Whether the filter plugin should be displayed in the UI")
     filter_category: FilterCategory = Field(default=FilterCategory.OTHER)
+    filter_active: bool = Field(
+        default=True,
+        description="Whether this filter should currently affect the item set",
+    )
 
     _on_filter_items_changed: _Event = PrivateAttr(default=_Event())
 

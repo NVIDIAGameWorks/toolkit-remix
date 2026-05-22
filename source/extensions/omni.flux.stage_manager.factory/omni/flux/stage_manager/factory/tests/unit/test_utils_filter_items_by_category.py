@@ -44,24 +44,37 @@ def _single_predicate_result(items, predicate):
 class _TestFilterPlugin(StageManagerFilterPlugin):
     """Minimal filter plugin for tests."""
 
-    def __init__(self, predicate, category=FilterCategory.OTHER, active=True, **kwargs):
+    def __init__(self, predicate, category=FilterCategory.OTHER, **kwargs):
         super().__init__(display_name="TestFilter", tooltip="For tests", **kwargs)
         self._predicate = predicate
         self.filter_category = category
-        self._filter_active = active
 
     def filter_predicate(self, item):
         return self._predicate(item)
-
-    @property
-    def filter_active(self):
-        return self._filter_active
 
     def build_ui(self, *args, **kwargs):
         pass
 
 
+class _TestPropertyOnlyFilterPlugin:
+    """Filter plugin-like object that only exposes filter_active state."""
+
+    def __init__(self, predicate, category=FilterCategory.OTHER, filter_active=True):
+        self.filter_category = category
+        self.filter_active = filter_active
+        self.filter_predicate = predicate
+
+
 class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
+    async def test_filter_plugins_expose_filter_active_state(self):
+        # Arrange
+        plugin = _TestFilterPlugin(lambda item: True)
+
+        # Act / Assert
+        self.assertIn("filter_active", plugin.model_fields)
+        self.assertFalse(plugin.model_fields["filter_active"].exclude)
+        self.assertTrue(plugin.filter_active)
+
     async def test_filter_result_closed_matches_single_predicate_filter_items(self):
         # Arrange: root -> a -> b -> c, predicate keeps only "b"
         def predicate(item):
@@ -239,14 +252,67 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
         items = _make_tree([("r", None), ("a", 0)])
         called = []
 
-        active_plugin = _TestFilterPlugin(track, category=FilterCategory.PRIMS, active=True)
-        inactive_plugin = _TestFilterPlugin(predicate_none, category=FilterCategory.PRIMS, active=False)
+        active_plugin = _TestFilterPlugin(track, category=FilterCategory.PRIMS, filter_active=True)
+        inactive_plugin = _TestFilterPlugin(predicate_none, category=FilterCategory.PRIMS, filter_active=False)
 
         # Act
         StageManagerUtils.filter_items_by_category(items, [active_plugin, inactive_plugin])
 
         # Assert
         self.assertEqual(len(called), 2)
+
+    async def test_filter_items_by_category_inactive_filter_should_not_run_predicate(self):
+        # Arrange
+        def predicate(item):
+            called.append(item)
+            return False
+
+        items = _make_tree([("r", None), ("a", 0)])
+        called = []
+        plugin = _TestFilterPlugin(predicate, category=FilterCategory.OTHER, filter_active=False)
+
+        # Act
+        result = StageManagerUtils.filter_items_by_category(items, [plugin])
+
+        # Assert
+        self.assertEqual(set(items), set(result))
+        self.assertEqual([0, 1], [StageManagerUtils._get_depth(item) for item in result])
+        self.assertEqual([], called)
+
+    async def test_filter_items_by_category_inactive_filter_active_state_takes_precedence(self):
+        # Arrange
+        def predicate(item):
+            called.append(item)
+            return item.identifier == "a"
+
+        items = _make_tree([("r", None), ("a", 0), ("b", 0)])
+        called = []
+        plugin = _TestFilterPlugin(predicate, category=FilterCategory.OTHER, filter_active=False)
+
+        # Act
+        result = StageManagerUtils.filter_items_by_category(items, [plugin])
+
+        # Assert
+        self.assertEqual(set(items), set(result))
+        self.assertEqual([0, 1, 1], [StageManagerUtils._get_depth(item) for item in result])
+        self.assertEqual([], called)
+
+    async def test_filter_items_by_category_uses_filter_active_property(self):
+        # Arrange
+        def predicate(item):
+            called.append(item)
+            return False
+
+        items = _make_tree([("r", None), ("a", 0)])
+        called = []
+        plugin = _TestPropertyOnlyFilterPlugin(predicate, category=FilterCategory.OTHER, filter_active=False)
+
+        # Act
+        result = StageManagerUtils.filter_items_by_category(items, [plugin])
+
+        # Assert
+        self.assertEqual(items, result)
+        self.assertEqual([], called)
 
     async def test_filter_items_by_category_named_categories_union_sibling_filter_results(self):
         for category in (FilterCategory.PRIMS, FilterCategory.GROUP, FilterCategory.TAGS):

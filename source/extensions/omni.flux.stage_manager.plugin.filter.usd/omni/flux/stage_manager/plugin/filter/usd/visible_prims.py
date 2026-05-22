@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from omni import ui
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
@@ -31,8 +31,19 @@ if TYPE_CHECKING:
 
 
 class VisiblePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
+    _filter_active_fields: ClassVar[tuple[str, ...]] = ("visible_prims_type",)
+
     display_name: str = Field(default="Visibility Filter", exclude=True)
-    tooltip: str = Field(default="Filter prims by their visibility status.", exclude=True)
+    tooltip: str = Field(
+        default=(
+            "Filter prims by their visibility status.\n\n"
+            "Options:\n"
+            "- All Prims: Show every prim.\n"
+            "- Visible Prims: Show imageable prims that resolve visible.\n"
+            "- Hidden Prims: Show imageable prims that resolve invisible."
+        ),
+        exclude=True,
+    )
 
     visible_prims_type: str = Field(default="All Prims", description="Filter prims by their visibility status.")
 
@@ -42,6 +53,9 @@ class VisiblePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
     _COMBO_BOX_WIDTH: int = PrivateAttr(default=130)
     _visible_prims_combobox: ui.ComboBox | None = PrivateAttr(default=None)
     _current_attr: str | None = PrivateAttr(default=None)
+
+    def _refresh_filter_active(self) -> None:
+        self.filter_active = self.visible_prims_type != "All Prims"
 
     def filter_predicate(self, item: _StageManagerItem) -> bool:
         if self.visible_prims_type == "All Prims":

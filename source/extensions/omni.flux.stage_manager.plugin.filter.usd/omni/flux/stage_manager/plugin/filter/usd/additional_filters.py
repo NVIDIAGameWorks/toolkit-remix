@@ -306,7 +306,7 @@ class AdditionalFiltersPopupMenuDelegate(PopupMenuDelegate):
 
                 # Reset all field values and rebuild this item's UI
                 for field_name, field_info in filter_obj.model_fields.items():
-                    if field_name in {"display_name", "tooltip", "enabled", "filter_active"}:
+                    if field_name in {"display", "display_name", "tooltip", "enabled", "filter_active"}:
                         continue
                     # Skip private or excluded fields
                     if field_name.startswith("_") or field_info.exclude:
@@ -346,6 +346,9 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
         # This filter is not used, it is only here to satisfy the interface
         return True
 
+    def _refresh_filter_active(self) -> None:
+        self.filter_active = False
+
     def _update_active_filters(self):
         """Sync the value dictionary with current filter states before reopening popup"""
         self._modified_filters = []
@@ -371,10 +374,10 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
         """
         is_modified = False
         for field_name, field_info in filter_obj.model_fields.items():
-            if field_name in {"display_name", "tooltip", "enabled"}:
+            if field_name in {"display", "display_name", "tooltip", "enabled"}:
                 continue
-            # Skip private or excluded fields
-            if field_name.startswith("_") or field_info.exclude:
+            # Skip private fields
+            if field_name.startswith("_"):
                 continue
 
             current_value = getattr(filter_obj, field_name, None)
@@ -384,11 +387,19 @@ class AdditionalFilterPlugin(_StageManagerUSDFilterPlugin):
             if default_value is None and field_info.default_factory:
                 default_value = field_info.default_factory()
 
-            # Skip filter_active if it's False, since that is the default state
-            if field_name == "filter_active" and current_value is False:
+            if field_name == "filter_active":
+                if current_value is True and (
+                    isinstance(filter_obj, _ToggleableUSDFilterPlugin) or default_value is False
+                ):
+                    is_modified = True
+                    break
                 continue
 
-            if (field_name == "filter_active" and current_value is True) or (current_value != default_value):
+            # Skip excluded fields after handling filter_active, which Additional Filters uses as runtime state.
+            if field_info.exclude:
+                continue
+
+            if current_value != default_value:
                 is_modified = True
                 break
 

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.16.4]
+### Fixed
+- Fixed hidden filter UI placement state triggering Stage Manager result expansion
+
 ## [2.16.3]
 ### Added
 - Added `CustomTagsFilterPlugin` to `compatible_filters` for all interaction plugins

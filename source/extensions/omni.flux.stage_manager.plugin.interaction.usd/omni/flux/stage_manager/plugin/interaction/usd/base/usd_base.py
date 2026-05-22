@@ -370,9 +370,9 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         def is_filter_modified(filter_obj):
             """Check if any field in the filter has been modified from its default value."""
             for field_name, field_info in filter_obj.model_fields.items():
-                # Skip standard or excluded fields
+                # Skip standard, UI placement, or excluded fields that do not represent user filter intent.
                 if (
-                    field_name in {"display_name", "tooltip", "enabled"}
+                    field_name in {"display", "display_name", "tooltip", "enabled"}
                     or field_name.startswith("_")
                     or field_info.exclude is True
                 ):

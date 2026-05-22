@@ -16,12 +16,15 @@
 """
 
 import abc
+from typing import ClassVar
 
 from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin as _StageManagerFilterPlugin
 from pydantic import PrivateAttr
 
 
 class StageManagerUSDFilterPlugin(_StageManagerFilterPlugin, abc.ABC):
+    _filter_active_fields: ClassVar[tuple[str, ...]] = ()
+
     # Shared UI constants for consistent alignment across all filter plugins
     _LABEL_WIDTH: int = PrivateAttr(default=140)  # Width in pixels for filter labels
 
@@ -30,3 +33,14 @@ class StageManagerUSDFilterPlugin(_StageManagerFilterPlugin, abc.ABC):
     def set_context_name(self, name: str):
         """Set usd context to initialize plugin before items are rebuilt."""
         self._context_name = name
+
+    def model_post_init(self, _context: object) -> None:
+        self._refresh_filter_active()
+
+    def __setattr__(self, name: str, value) -> None:
+        super().__setattr__(name, value)
+        if name in self._filter_active_fields:
+            self._refresh_filter_active()
+
+    def _refresh_filter_active(self) -> None:
+        """Update filter_active after initialization or watched-field assignment."""

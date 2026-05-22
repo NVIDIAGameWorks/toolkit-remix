@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.2]
+### Changed
+- Added hyphenated option descriptions to Remix Stage Manager combobox filter tooltips
+- Included Remix Stage Manager `filter_active` runtime state in filter serialization for modified-state checks
+- Updated Remix Stage Manager filters to share `filter_active` refresh wiring
+
+### Fixed
+- Fixed neutral/default Remix combobox filters participating in Stage Manager filtering
+
 ## [2.5.1]
 ### Changed
 - Updated documentation index to include filter submodules

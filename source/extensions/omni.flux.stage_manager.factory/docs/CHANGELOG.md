@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.12.3]
+### Added
+- Added `StageManagerFilterPlugin.filter_active` so filters can report whether they can affect the item set
+- Included `StageManagerFilterPlugin.filter_active` in filter model serialization so modified-state checks can inspect it
+
+### Fixed
+- Fixed Stage Manager category filtering running inactive no-op filter predicates
+- Fixed Stage Manager category filtering to skip inactive filters through `filter_active`
+
 ## [4.12.2]
 ### Added
 - Add `FilterCategory.TAGS` for tag/label-based filters distinct from prim-type filters
