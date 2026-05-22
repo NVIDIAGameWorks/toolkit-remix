@@ -26,6 +26,14 @@ Name them for what they do: `_push_settings_changed`, `_validate_host`, `_start_
 
 This applies everywhere: variables, parameters, loop variables, and comprehension variables.
 
+## Constants Vs Inline Values
+
+Use constants for values that are reused, shared across modules, or carry domain meaning beyond their literal value.
+Keep one-off values inline when extracting them only adds indirection.
+
+Dialog messages and titles that are used once can be inline at the call site. Extract them only when reused or when a
+name clarifies behavior that the literal text cannot.
+
 ## omni.ui Layout Rules
 
 See `docs_dev/patterns/ui-style.md` for all omni.ui layout rules including:
