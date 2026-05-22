@@ -119,6 +119,50 @@ class TestFloatDragFieldUnit(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertAlmostEqual(step_value, 1.0)
 
+    async def test_default_step_uses_hard_min_with_soft_max(self):
+        """Default step should derive from hard min and soft max when soft min is absent."""
+        # Arrange
+        field = FloatDragFieldGroup(hard_min_value=0.0, max_value=10.0)
+
+        # Act
+        step_value = cast(float, field.step)
+
+        # Assert
+        self.assertAlmostEqual(step_value, 0.05)
+
+    async def test_default_step_uses_soft_min_with_hard_max(self):
+        """Default step should derive from soft min and hard max when soft max is absent."""
+        # Arrange
+        field = FloatDragFieldGroup(min_value=0.0, hard_max_value=10.0)
+
+        # Act
+        step_value = cast(float, field.step)
+
+        # Assert
+        self.assertAlmostEqual(step_value, 0.05)
+
+    async def test_default_step_uses_hard_only_bounds(self):
+        """Default step should derive from hard-only bounds."""
+        # Arrange
+        field = FloatDragFieldGroup(hard_min_value=0.0, hard_max_value=1.0)
+
+        # Act
+        step_value = cast(float, field.step)
+
+        # Assert
+        self.assertAlmostEqual(step_value, 0.005)
+
+    async def test_default_step_invalid_effective_range_falls_back(self):
+        """Invalid effective step ranges should fall back to 1.0."""
+        # Arrange
+        field = FloatDragFieldGroup(min_value=0.0, max_value=10.0, hard_min_value=20.0)
+
+        # Act
+        step_value = cast(float, field.step)
+
+        # Assert
+        self.assertAlmostEqual(step_value, 1.0)
+
     async def test_custom_step_overrides_default(self):
         """An explicitly provided step should override the computed default."""
         # Arrange

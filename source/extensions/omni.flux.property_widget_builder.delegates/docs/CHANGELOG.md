@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.1]
+### Fixed
+- Kept soft drag bounds from hard-clamping typed drag-field values unless explicit hard bounds are provided
+
 ## [1.15.0]
 ### Changed
 - Renamed drag delegate APIs to `*DragFieldGroup`; groups now resolve per-channel scalar bounds/step and forward canonical soft/hard inputs to shared drag widgets for clamping

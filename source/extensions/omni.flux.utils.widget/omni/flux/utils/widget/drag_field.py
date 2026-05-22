@@ -75,6 +75,7 @@ class _HardLimitDragMixin:
         enable_batch_edit: bool = True,
         **kwargs,
     ):
+        self._apply_hard_bounds_to_missing_drag_bounds(kwargs, hard_min_value, hard_max_value)
         super().__init__(*args, **kwargs)
         self._hard_min_value: float | int | None = None
         self._hard_max_value: float | int | None = None
@@ -110,6 +111,31 @@ class _HardLimitDragMixin:
         self._hard_min_value = hard_min_value if isinstance(hard_min_value, (int, float)) else None
         self._hard_max_value = hard_max_value if isinstance(hard_max_value, (int, float)) else None
         self._sync_hard_clamp_callback()
+
+    @staticmethod
+    def _apply_hard_bounds_to_missing_drag_bounds(
+        kwargs: dict[str, Any], hard_min_value: float | int | None, hard_max_value: float | int | None
+    ) -> None:
+        """Use hard bounds as drag bounds when the matching soft side is omitted."""
+        has_soft_min = kwargs.get("min") is not None
+        has_soft_max = kwargs.get("max") is not None
+        has_hard_min = isinstance(hard_min_value, (int, float))
+        has_hard_max = isinstance(hard_max_value, (int, float))
+        should_fill_min = not has_soft_min and has_hard_min
+        should_fill_max = not has_soft_max and has_hard_max
+        if not should_fill_min and not should_fill_max:
+            return
+
+        drag_min = hard_min_value if should_fill_min else kwargs.get("min")
+        drag_max = hard_max_value if should_fill_max else kwargs.get("max")
+        if isinstance(drag_min, (int, float)) and isinstance(drag_max, (int, float)) and drag_min >= drag_max:
+            carb.log_warn(f"Drag bounds ignored: min ({drag_min}) must be less than max ({drag_max}).")
+            return
+
+        if should_fill_min:
+            kwargs["min"] = hard_min_value
+        if should_fill_max:
+            kwargs["max"] = hard_max_value
 
     def _sync_hard_clamp_callback(self) -> None:
         """Install hard-clamp pre-set callback on the widget model."""

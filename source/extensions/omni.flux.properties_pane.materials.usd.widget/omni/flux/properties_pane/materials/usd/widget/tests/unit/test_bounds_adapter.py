@@ -83,7 +83,7 @@ class TestMaterialBoundsAdapter(omni.kit.test.AsyncTestCase):
         self.assertEqual(bounds, (1.0, 3.0, 1.0, 3.0))
         self.assertEqual(step, 0.25)
 
-    async def test_legacy_custom_data_range_is_used_when_mdl_ranges_are_absent(self):
+    async def test_custom_data_range_from_material_hints_sets_hard_bounds(self):
         # Arrange
         adapter = MaterialBoundsAdapter(
             {
@@ -99,8 +99,41 @@ class TestMaterialBoundsAdapter(omni.kit.test.AsyncTestCase):
         step = adapter.step
 
         # Assert
-        self.assertEqual(bounds, (-2.0, 12.0, None, None))
+        self.assertEqual(bounds, (-2.0, 12.0, -2.0, 12.0))
         self.assertEqual(step, 0.5)
+
+    async def test_custom_data_soft_range_and_range_from_material_hints_remain_separate(self):
+        # Arrange
+        adapter = MaterialBoundsAdapter(
+            {
+                Sdf.AttributeSpec.CustomDataKey: {
+                    _SOFT_RANGE_KEY: {"min": 1.0, "max": 4.0},
+                    "range": {"min": 0.0, "max": 10.0},
+                }
+            }
+        )
+
+        # Act
+        bounds = adapter.bounds
+
+        # Assert
+        self.assertEqual(bounds, (1.0, 4.0, 0.0, 10.0))
+
+    async def test_custom_data_soft_range_only_sets_soft_bounds(self):
+        # Arrange
+        adapter = MaterialBoundsAdapter(
+            {
+                Sdf.AttributeSpec.CustomDataKey: {
+                    _SOFT_RANGE_KEY: {"min": 1.0, "max": 4.0},
+                }
+            }
+        )
+
+        # Act
+        bounds = adapter.bounds
+
+        # Assert
+        self.assertEqual(bounds, (1.0, 4.0, None, None))
 
     async def test_top_level_legacy_range_is_used_when_custom_data_is_absent(self):
         # Arrange
@@ -153,7 +186,7 @@ class TestMaterialBoundsAdapter(omni.kit.test.AsyncTestCase):
         bounds = adapter.bounds
 
         # Assert
-        self.assertEqual(bounds, (0.0, 1.0, None, None))
+        self.assertEqual(bounds, (0.0, 1.0, 0.0, 1.0))
 
     async def test_empty_sdr_metadata_falls_back_to_custom_data(self):
         # Arrange
@@ -170,7 +203,7 @@ class TestMaterialBoundsAdapter(omni.kit.test.AsyncTestCase):
         bounds = adapter.bounds
 
         # Assert
-        self.assertEqual(bounds, (0.0, 1.0, None, None))
+        self.assertEqual(bounds, (0.0, 1.0, 0.0, 1.0))
 
     async def test_non_dict_mdl_ranges_are_ignored_and_fall_back_to_custom_data(self):
         # Arrange
@@ -190,7 +223,7 @@ class TestMaterialBoundsAdapter(omni.kit.test.AsyncTestCase):
         bounds = adapter.bounds
 
         # Assert
-        self.assertEqual(bounds, (0.0, 1.0, None, None))
+        self.assertEqual(bounds, (0.0, 1.0, 0.0, 1.0))
 
     async def test_partial_mdl_hard_range_preserves_available_bound(self):
         # Arrange

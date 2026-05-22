@@ -86,13 +86,11 @@ class AbstractDragFieldGroup(AbstractField):
     drag widget instance. Edit events are grouped for undo via
     :meth:`begin_edit` and :meth:`end_edit`.
 
-    When ``min_value`` and ``max_value`` are both provided the widget displays
-    a bounded drag range.  Either (or both) may be ``None`` for an unbounded
-    field; in that case the corresponding bound is simply not passed to the
-    underlying ``omni.ui`` widget.
-
     Hard bounds (``hard_min_value`` / ``hard_max_value``) are forwarded to the
-    widget, which is responsible for value clamping behavior.
+    widget, which is responsible for value clamping behavior. Soft bounds are
+    drag-range hints only and are not promoted to typed-value clamps. Bounded
+    drag widgets also use a matching hard bound as the drag bound when that
+    soft side is omitted.
 
     API note:
         This class was renamed from ``AbstractDragField`` to
@@ -249,8 +247,8 @@ class AbstractDragFieldGroup(AbstractField):
                 if step_value is not None:
                     step_value = abs(step_value)
 
-                effective_hard_min = hard_min_value if hard_min_value is not None else min_value
-                effective_hard_max = hard_max_value if hard_max_value is not None else max_value
+                effective_hard_min = hard_min_value
+                effective_hard_max = hard_max_value
                 if (
                     effective_hard_min is not None
                     and effective_hard_max is not None

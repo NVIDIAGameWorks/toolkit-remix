@@ -150,6 +150,50 @@ class TestIntDragFieldUnit(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(step_value, 1)
 
+    async def test_default_step_uses_hard_min_with_soft_max(self):
+        """Default step should derive from hard min and soft max when soft min is absent."""
+        # Arrange
+        field = IntDragFieldGroup(hard_min_value=0, max_value=200)
+
+        # Act
+        step_value = field.step
+
+        # Assert
+        self.assertEqual(step_value, 2)
+
+    async def test_default_step_uses_soft_min_with_hard_max(self):
+        """Default step should derive from soft min and hard max when soft max is absent."""
+        # Arrange
+        field = IntDragFieldGroup(min_value=0, hard_max_value=200)
+
+        # Act
+        step_value = field.step
+
+        # Assert
+        self.assertEqual(step_value, 2)
+
+    async def test_default_step_uses_hard_only_bounds(self):
+        """Default step should derive from hard-only bounds."""
+        # Arrange
+        field = IntDragFieldGroup(hard_min_value=0, hard_max_value=1000)
+
+        # Act
+        step_value = field.step
+
+        # Assert
+        self.assertEqual(step_value, 10)
+
+    async def test_default_step_invalid_effective_range_falls_back(self):
+        """Invalid effective step ranges should fall back to 1."""
+        # Arrange
+        field = IntDragFieldGroup(min_value=0, max_value=100, hard_min_value=200)
+
+        # Act
+        step_value = field.step
+
+        # Assert
+        self.assertEqual(step_value, 1)
+
     async def test_custom_step_overrides_default(self):
         """An explicitly provided step should override the computed default."""
         # Arrange

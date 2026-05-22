@@ -24,11 +24,27 @@ from .base import USDBuilderList
 LIGHT_FIELD_BUILDERS = USDBuilderList()
 
 
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:colorTemperature", FloatDragFieldGroup(2500.0, 8500.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:exposure", FloatDragFieldGroup(0.0, 10.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:intensity", FloatDragFieldGroup(0.0, 65000.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:radius", FloatDragFieldGroup(0.0, 65000.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:cone:angle", FloatDragFieldGroup(0.0, 360.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:cone:softness", FloatDragFieldGroup(0.0, 10.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:shaping:focus", FloatDragFieldGroup(0.0, 10.0))
-LIGHT_FIELD_BUILDERS.append_builder_by_attr_name("inputs:volumetric_radiance_scale", FloatDragFieldGroup(0.0, 10.0))
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name(
+    "inputs:colorTemperature", FloatDragFieldGroup(min_value=2500.0, max_value=8500.0)
+)
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name(
+    "inputs:exposure", FloatDragFieldGroup(hard_min_value=0.0, max_value=10.0)
+)
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name(
+    "inputs:intensity", FloatDragFieldGroup(hard_min_value=0.0, max_value=65000.0)
+)
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name(
+    "inputs:radius", FloatDragFieldGroup(hard_min_value=0.0, max_value=65000.0)
+)
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name(
+    "inputs:shaping:cone:angle", FloatDragFieldGroup(hard_min_value=0.0, hard_max_value=360.0)
+)
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name(
+    "inputs:shaping:cone:softness", FloatDragFieldGroup(hard_min_value=0.0, max_value=10.0)
+)
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name(
+    "inputs:shaping:focus", FloatDragFieldGroup(hard_min_value=0.0, max_value=10.0)
+)
+LIGHT_FIELD_BUILDERS.append_builder_by_attr_name(
+    "inputs:volumetric_radiance_scale", FloatDragFieldGroup(hard_min_value=0.0, max_value=10.0)
+)

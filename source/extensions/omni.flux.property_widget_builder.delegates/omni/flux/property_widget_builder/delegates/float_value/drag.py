@@ -50,8 +50,9 @@ class FloatDragFieldGroup(AbstractDragFieldGroup):
                 typed-value clamping via widget pre-set callbacks. May be scalar
                 or sequence-like for per-channel resolution.
             step: Optional step size; explicit values may be scalar or
-                sequence-like. If unset and both scalar bounds are set, computed
-                as ``(max_value - min_value) * 0.005``; otherwise ``1.0``.
+                sequence-like. If unset, defaults from the effective scalar
+                range using hard bounds first and soft bounds for missing sides;
+                otherwise ``1.0``.
             **kwargs: Passed to AbstractDragFieldGroup (e.g. style_name, default "DragField").
         """
         style_name = kwargs.get("style_name", "DragField")
@@ -67,11 +68,17 @@ class FloatDragFieldGroup(AbstractDragFieldGroup):
 
     @property
     def step(self) -> BoundsValue:
-        """Step size; uses explicit step if set, else derives from range or falls back to 1.0."""
+        """Step size; uses explicit step if set, else derives from effective range or falls back to 1.0."""
         if self._step is not None:
             return self._step
-        if isinstance(self.min_value, RealNumber) and isinstance(self.max_value, RealNumber):
-            return (self.max_value - self.min_value) * 0.005
+        effective_min = self.hard_min_value if isinstance(self.hard_min_value, RealNumber) else self.min_value
+        effective_max = self.hard_max_value if isinstance(self.hard_max_value, RealNumber) else self.max_value
+        if (
+            isinstance(effective_min, RealNumber)
+            and isinstance(effective_max, RealNumber)
+            and effective_min < effective_max
+        ):
+            return (effective_max - effective_min) * 0.005
         return 1.0
 
     @step.setter
