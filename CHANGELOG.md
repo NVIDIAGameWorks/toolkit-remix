@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- REMIX-5518: Fixed packaging validation by blocking invalid projects, applying fallback mod-name metadata without saving source layers, validating missing references before mode-specific packaging work, reporting failed exports directly, keeping reference progress accurate, and showing cancellation cleanup clearly.
 
 ### Removed
 

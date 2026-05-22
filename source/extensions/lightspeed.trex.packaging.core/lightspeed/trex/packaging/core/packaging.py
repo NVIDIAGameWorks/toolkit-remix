@@ -17,7 +17,10 @@
 
 from __future__ import annotations
 
+import asyncio
+import concurrent.futures
 import re
+import threading
 import uuid
 from asyncio import ensure_future
 from collections.abc import Callable
@@ -27,6 +30,7 @@ from typing import Any
 
 import carb
 import omni.client
+import omni.kit.app
 import omni.usd
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
 from lightspeed.common.constants import REMIX_DEPENDENCIES_FOLDER as _REMIX_DEPENDENCIES_FOLDER
@@ -53,6 +57,9 @@ from .enum import ModPackagingMode as _ModPackagingMode
 from .items import ModPackagingSchema as _ModPackagingSchema
 
 
+INDETERMINATE_PROGRESS_TOTAL = -1
+
+
 class PackagingCore:
     def __init__(self):
         self.default_attr = {
@@ -60,6 +67,7 @@ class PackagingCore:
             "_current_count": None,
             "_total_count": None,
             "_temp_files": None,
+            "_package_task": None,
             "_rtxio_core": None,
             "_rtxio_progress_sub": None,
             "_status": None,
@@ -72,6 +80,7 @@ class PackagingCore:
         self._total_count = 0
         self._status = "Initializing..."
         self._temp_files = {}
+        self._package_task = None
         self._rtxio_core = _RtxIoCore()
         self._rtxio_progress_sub = self._rtxio_core.subscribe_progress(self._on_rtxio_progress)
 
@@ -83,6 +92,13 @@ class PackagingCore:
         Cancel the packaging process.
         """
         self._cancel_token = True
+        package_task = self._package_task
+        try:
+            current_task = asyncio.current_task()
+        except RuntimeError:
+            current_task = None
+        if package_task is not None and package_task is not current_task and not package_task.done():
+            package_task.cancel()
         rtxio_core = self._rtxio_core
         if rtxio_core is not None:
             rtxio_core.cancel()
@@ -142,7 +158,8 @@ class PackagingCore:
             >>>    }
             >>>)
         """
-        return ensure_future(self.package_async(schema))
+        self._package_task = ensure_future(self.package_async(schema))
+        return self._package_task
 
     def _on_rtxio_progress(self, current: int, total: int, status: str):
         self._current_count = current
@@ -161,6 +178,9 @@ class PackagingCore:
         """
         Asynchronous implementation of package, but async without error handling.  This is meant for testing.
         """
+        package_task = asyncio.current_task()
+        if self._package_task is None:
+            self._package_task = package_task
         errors = []
         failed_assets = []
         try:
@@ -173,11 +193,15 @@ class PackagingCore:
             stage = await self._initialize_usd_stage(model.context_name, str(model.mod_layer_paths[0]))
             if not stage:
                 raise RuntimeError("No stage is available in the current context.")
+            if self._cancel_token:
+                return
 
             root_mod_layer = Sdf.Layer.FindOrOpen(str(model.mod_layer_paths[0]))
             if not root_mod_layer:
                 raise RuntimeError(f"Unable to open the root mod layer at path: {model.mod_layer_paths[0]}")
             temp_root_mod_layer = Sdf.Layer.FindOrOpen(await self._make_temp_layer(root_mod_layer.identifier))
+            if self._cancel_token:
+                return
 
             # Remove all deselected sublayers
             self._packaging_new_stage("Filtering the selected layers...", 1)
@@ -187,43 +211,67 @@ class PackagingCore:
                 temp_root_mod_layer,
                 [_OmniUrl(p).path.lower() for p in model.selected_layer_paths],
             )
+            if self._cancel_token:
+                return
             self.current_count += 1
 
             packaging_root_layer = temp_root_mod_layer
             packaging_temp_layers = temp_layers
 
+            stage = await self._initialize_usd_stage(model.context_name, packaging_root_layer.identifier)
+            if not stage:
+                raise RuntimeError("Unable to open the filtered temporary root stage.")
+            if self._cancel_token:
+                return
+
+            all_layers, all_assets, failed_assets = await self._get_dependencies_and_invalid_assets(
+                stage, packaging_root_layer, model.ignored_errors
+            )
+            if failed_assets or self._cancel_token:
+                return
+
             # Get the updated external mods dependencies pointing to the installed external mods
             if model.packaging_mode == _ModPackagingMode.REDIRECT:
                 mod_dependencies, redirected_dependencies = self._get_redirected_dependencies(
-                    temp_root_mod_layer, [m for m in model.mod_layer_paths if m not in model.selected_layer_paths]
+                    all_layers,
+                    all_assets,
+                    [m for m in model.mod_layer_paths if m not in model.selected_layer_paths],
                 )
             else:
                 mod_dependencies = set()
                 redirected_dependencies = set()
 
+            if self._cancel_token:
+                return
+
             if model.packaging_mode == _ModPackagingMode.FLATTEN:
                 packaging_root_layer = await self._flatten_temp_root_layer(temp_root_mod_layer)
                 if self._cancel_token:
                     return
+                if not packaging_root_layer:
+                    raise RuntimeError("Unable to create the flattened temporary root layer.")
                 packaging_temp_layers = [packaging_root_layer.identifier]
                 stage = await self._initialize_usd_stage(model.context_name, packaging_root_layer.identifier)
                 if not stage:
                     raise RuntimeError("Unable to open the flattened temporary root stage.")
+                all_layers, all_assets, _ = await self._get_dependencies(packaging_root_layer)
+                if self._cancel_token:
+                    return
 
             # Don't use the omni collector because it's not flexible enough
             collect_errors, collected_failed_assets = await self._collect(
-                stage,
                 packaging_root_layer,
                 packaging_temp_layers,
+                all_layers,
+                all_assets,
                 model.output_directory,
                 redirected_dependencies,
-                model.ignored_errors,
                 model.output_format,
             )
             errors.extend(collect_errors)
             failed_assets = collected_failed_assets
 
-            if not failed_assets:
+            if not failed_assets and not self._cancel_token:
                 exported_mod_layer = Sdf.Layer.FindOrOpen(
                     str(
                         _OmniUrl(model.output_directory)
@@ -242,6 +290,8 @@ class PackagingCore:
                 if not errors and model.rtxio_delete_dds_after_pack:
                     await self._rtxio_core.delete_dds_files(model.output_directory)
 
+        except asyncio.CancelledError:
+            pass
         except Exception as e:  # noqa: BLE001
             errors.append(str(e))
         finally:
@@ -249,6 +299,8 @@ class PackagingCore:
             await self._clean_temp_files()
             # Reset the cancel state
             self._packaging_completed(errors, failed_assets)
+            if self._package_task is package_task:
+                self._package_task = None
 
     @omni.usd.handle_exception
     async def _make_temp_layer(self, layer_path: str) -> str:
@@ -278,13 +330,134 @@ class PackagingCore:
         is_packaged_root: bool = False,
     ):
         if not is_packaged_root or output_format is None:
-            layer.Export(str(output_path))
-            return
-        export_args = _get_packaged_root_export_args(output_format)
-        if export_args:
-            layer.Export(str(output_path), args=export_args)
-            return
-        layer.Export(str(output_path))
+            export_success = layer.Export(str(output_path))
+        else:
+            export_args = _get_packaged_root_export_args(output_format)
+            if export_args:
+                export_success = layer.Export(str(output_path), args=export_args)
+            else:
+                export_success = layer.Export(str(output_path))
+
+        if not export_success:
+            raise RuntimeError(f"Unable to export packaged layer to path: {output_path}")
+
+    async def _get_invalid_assets(
+        self,
+        stage: Usd.Stage,
+        unresolved_paths: list[str],
+        ignored_errors: list[tuple[str, str, str]] | None,
+    ) -> list[tuple[str, str, str]]:
+        self._packaging_new_stage("Looking for invalid references...", 0)
+        if self._cancel_token:
+            return []
+        loop = asyncio.get_event_loop()
+        app = omni.kit.app.get_app()
+        progress_done = threading.Event()
+        progress_lock = threading.Lock()
+        latest_current = 0
+        latest_total = None
+        progress_changed = False
+
+        def queue_progress(current: int, total: int | None = None):
+            nonlocal latest_current, latest_total, progress_changed
+            with progress_lock:
+                latest_current = current
+                if total is not None:
+                    latest_total = total
+                progress_changed = True
+
+        def pop_latest_progress() -> tuple[int, int] | None:
+            nonlocal progress_changed
+            with progress_lock:
+                if not progress_changed or latest_total is None:
+                    return None
+                progress_changed = False
+                return latest_current, latest_total
+
+        def scan_invalid_assets():
+            try:
+                stage_prims = list(stage.TraverseAll())
+                total_prims = len(stage_prims)
+                queue_progress(0, total_prims)
+
+                processed_prim_count = 0
+
+                def on_prim_processed():
+                    nonlocal processed_prim_count
+                    processed_prim_count += 1
+                    queue_progress(processed_prim_count)
+
+                return self._rtxio_core.collect_invalid_stage_assets(
+                    stage_prims,
+                    unresolved_paths,
+                    is_cancelled=lambda: self._cancel_token,
+                    on_prim_processed=on_prim_processed,
+                )
+            finally:
+                progress_done.set()
+
+        def apply_progress(progress: tuple[int, int] | None):
+            if progress is None:
+                return
+            current, total = progress
+            self._status = "Looking for invalid references..."
+            self._total_count = total
+            self._current_count = min(current, total)
+            self._packaging_progress()
+
+        executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="packaging_reference_validation"
+        )
+        try:
+            scan_future = loop.run_in_executor(executor, scan_invalid_assets)
+            while not progress_done.is_set():
+                await app.next_update_async()
+                if self._cancel_token:
+                    scan_future.cancel()
+                    return []
+                apply_progress(pop_latest_progress())
+
+            if self._cancel_token:
+                scan_future.cancel()
+                return []
+            apply_progress(pop_latest_progress())
+            invalid_assets = await scan_future
+        finally:
+            executor.shutdown(wait=not self._cancel_token)
+
+        invalid_assets.difference_update(ignored_errors or [])
+        return sorted(invalid_assets)
+
+    async def _get_dependencies(self, root_layer: Sdf.Layer) -> tuple[list[Sdf.Layer], list[str], list[str]]:
+        self._packaging_new_stage("Listing references...", INDETERMINATE_PROGRESS_TOTAL)
+        if self._cancel_token:
+            return [], [], []
+        loop = asyncio.get_event_loop()
+        app = omni.kit.app.get_app()
+        executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="packaging_reference_listing"
+        )
+        try:
+            dependencies_future = loop.run_in_executor(executor, UsdUtils.ComputeAllDependencies, root_layer.identifier)
+            while not dependencies_future.done():
+                await app.next_update_async()
+                if self._cancel_token:
+                    dependencies_future.cancel()
+                    return [], [], []
+            return await dependencies_future
+        finally:
+            executor.shutdown(wait=not self._cancel_token)
+
+    async def _get_dependencies_and_invalid_assets(
+        self,
+        stage: Usd.Stage,
+        root_layer: Sdf.Layer,
+        ignored_errors: list[tuple[str, str, str]] | None,
+    ) -> tuple[list[Sdf.Layer], list[str], list[tuple[str, str, str]]]:
+        all_layers, all_assets, unresolved_paths = await self._get_dependencies(root_layer)
+        if self._cancel_token:
+            return all_layers, all_assets, []
+        return all_layers, all_assets, await self._get_invalid_assets(stage, unresolved_paths, ignored_errors)
 
     @omni.usd.handle_exception
     async def _clean_temp_files(self):
@@ -298,7 +471,6 @@ class PackagingCore:
             self.current_count += 1
         self._temp_files.clear()
 
-    @omni.usd.handle_exception
     async def _flatten_temp_root_layer(self, temp_root_layer: Sdf.Layer) -> Sdf.Layer:
         if self._cancel_token:
             return temp_root_layer
@@ -331,7 +503,8 @@ class PackagingCore:
         original_root_path = self._get_original_path(temp_root_layer.identifier)
         if original_root_path:
             self._temp_files[_OmniUrl(flattened_temp_path).path] = _OmniUrl(original_root_path).name
-        flattened_layer.Export(flattened_temp_path)
+        if not flattened_layer.Export(flattened_temp_path):
+            raise RuntimeError(f"Unable to write the flattened temporary root layer at path: {flattened_temp_path}")
         self.current_count += 1
 
         if self._cancel_token:
@@ -400,34 +573,18 @@ class PackagingCore:
     @omni.usd.handle_exception
     async def _collect(
         self,
-        stage: Usd.Stage,
         temp_root_layer: Sdf.Layer,
         existing_temp_layers: list[str],
+        all_layers: list[Sdf.Layer],
+        all_assets: list[str],
         output_directory: Path | str,
         redirected_dependencies: set[str],
-        ignored_errors: list[tuple[str, str, str]] | None,
         output_format: _UsdExtensions | None,
     ) -> tuple[list[str], list[tuple[str, str, str]]]:
         errors = []
         failed_assets = []
         if self._cancel_token:
             return errors, failed_assets
-
-        all_layers, all_assets, unresolved_paths = UsdUtils.ComputeAllDependencies(temp_root_layer.identifier)
-
-        stage_prims = list(stage.TraverseAll())
-        self._packaging_new_stage("Resolving invalid references...", len(stage_prims))
-
-        invalid_assets = self._rtxio_core.collect_invalid_stage_assets(
-            stage_prims,
-            unresolved_paths,
-            is_cancelled=lambda: self._cancel_token,
-            on_prim_processed=lambda: setattr(self, "current_count", self.current_count + 1),
-        )
-
-        invalid_assets.difference_update(ignored_errors or [])
-        if invalid_assets:
-            return errors, list(invalid_assets)
 
         self._packaging_new_stage("Creating temporary layers...", len(all_layers))
 
@@ -561,32 +718,16 @@ class PackagingCore:
 
         return errors, failed_assets
 
-    @omni.usd.handle_exception
-    async def _get_unresolved_assets_prim_paths(
-        self, stage: Usd.Stage, unresolved_paths: list[str]
-    ) -> list[tuple[str, str, str]]:
-        prims = list(stage.TraverseAll())
-        return list(
-            self._rtxio_core.collect_invalid_stage_assets(
-                prims,
-                unresolved_paths,
-                include_missing_authored_textures=False,
-                is_cancelled=lambda: self._cancel_token,
-                on_prim_processed=lambda: setattr(self, "current_count", self.current_count + 1),
-            )
-        )
-
     def _get_original_path(self, temp_layer_path: str) -> str | None:
         original_name = self._temp_files.get(_OmniUrl(temp_layer_path).path)
         return _OmniUrl(temp_layer_path).with_name(original_name).path if original_name else None
 
     def _get_redirected_dependencies(
-        self, temp_root_layer: Sdf.Layer, external_mod_paths: list[Path]
+        self, all_layers: list[Sdf.Layer], all_assets: list[str], external_mod_paths: list[Path]
     ) -> tuple[set[str], set[str]]:
         mod_dependencies = set()
         redirected_dependencies = set()
 
-        all_layers, all_assets, _ = UsdUtils.ComputeAllDependencies(temp_root_layer.identifier)
         all_dependencies = [*[layer.identifier for layer in all_layers], *all_assets]
 
         self._packaging_new_stage("Redirecting dependencies...", len(all_dependencies))

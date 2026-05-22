@@ -3,6 +3,7 @@
     customLayerData = {
         string lightspeed_game_name = "TestGame"
         string lightspeed_layer_type = "replacement"
+        string lightspeed_mod_name = "project"
     }
     subLayers = [
     ]

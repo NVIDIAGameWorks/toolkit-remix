@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.1]
+### Fixed
+- Validate unresolved references before mode-specific packaging steps, report failed layer exports directly, and keep reference listing, invalid reference progress, and cancellation responsive.
+
 ## [2.1.0]
 ### Added
 - Added optional RTX IO compression and split-size presets to the standard packaging flow.

@@ -62,6 +62,7 @@ class ProgressPopup:
         self._modal = False
         self._popup = None
         self._buttons = []
+        self._cancel_enabled = True
         self._build_ui()
 
     def destroy(self):
@@ -80,6 +81,11 @@ class ProgressPopup:
 
     def set_cancel_fn(self, on_cancel_button_clicked):
         self._cancel_button_fn = on_cancel_button_clicked
+
+    def set_cancel_enabled(self, enabled: bool):
+        self._cancel_enabled = enabled
+        for button in self._buttons:
+            button.enabled = enabled
 
     def set_progress(self, progress):
         self._progress_bar.model.set_value(progress)
@@ -107,6 +113,8 @@ class ProgressPopup:
         return self._popup.visible
 
     def _on_cancel_button_fn(self):
+        if not self._cancel_enabled:
+            return
         self.hide()
         if self._cancel_button_fn:
             self._cancel_button_fn()

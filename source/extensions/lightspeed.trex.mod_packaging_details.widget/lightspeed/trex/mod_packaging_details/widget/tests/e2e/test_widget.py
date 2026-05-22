@@ -15,6 +15,11 @@
 * limitations under the License.
 """
 
+import shutil
+import tempfile
+from pathlib import Path
+from unittest.mock import Mock, patch
+
 import omni.kit.test
 import omni.usd
 from carb.input import KeyboardInput
@@ -115,6 +120,115 @@ class TestModPackagingDetailsWidget(omni.kit.test.AsyncTestCase):
         self.assertEqual(mod_details, widget.mod_details)
 
         await self.__destroy_widget(window, widget)
+
+    async def test_missing_replacement_layer_should_populate_safe_default_values(self):
+        # Arrange
+        widget = ModPackagingDetailsWidget.__new__(ModPackagingDetailsWidget)
+        widget._context_name = ""
+        widget._layer_manager = Mock()
+        widget._layer_manager.get_layer_of_type.return_value = None
+
+        name_model = Mock()
+        version_model = Mock()
+        details_model = Mock()
+        widget._name_field = Mock(model=name_model)
+        widget._version_field = Mock(model=version_model)
+        widget._details_field = Mock(model=details_model)
+
+        root_layer = Mock()
+        root_layer.realPath = "C:/projects/InvalidProject/project.usda"
+        stage = Mock()
+        stage.GetRootLayer.return_value = root_layer
+        context = Mock()
+        context.get_stage.return_value = stage
+
+        with patch("lightspeed.trex.mod_packaging_details.widget.setup_ui.omni.usd.get_context", return_value=context):
+            # Act
+            widget._update_default_values()
+
+        # Assert
+        name_model.set_value.assert_called_once_with("project")
+        version_model.set_value.assert_called_once_with("1.0.0")
+        details_model.set_value.assert_called_once_with("")
+
+    async def test_missing_mod_name_should_update_replacement_layer_metadata(self):
+        # Arrange
+        widget = ModPackagingDetailsWidget.__new__(ModPackagingDetailsWidget)
+        widget._context_name = ""
+        widget._layer_manager = Mock()
+
+        replacement_layer = Mock()
+        replacement_layer.realPath = "C:/projects/InvalidProject/mod.usda"
+        replacement_layer.customLayerData = {LSS_LAYER_MOD_VERSION: "1.2.3"}
+        widget._layer_manager.get_layer_of_type.return_value = replacement_layer
+
+        name_model = Mock()
+        version_model = Mock()
+        details_model = Mock()
+        widget._name_field = Mock(model=name_model)
+        widget._version_field = Mock(model=version_model)
+        widget._details_field = Mock(model=details_model)
+
+        root_layer = Mock()
+        root_layer.realPath = "C:/projects/InvalidProject/project.usda"
+        stage = Mock()
+        stage.GetRootLayer.return_value = root_layer
+        context = Mock()
+        context.get_stage.return_value = stage
+
+        with patch("lightspeed.trex.mod_packaging_details.widget.setup_ui.omni.usd.get_context", return_value=context):
+            # Act
+            widget._update_default_values()
+
+        # Assert
+        self.assertEqual("project", replacement_layer.customLayerData[LSS_LAYER_MOD_NAME])
+        replacement_layer.Save.assert_not_called()
+        name_model.set_value.assert_called_once_with("project")
+        version_model.set_value.assert_called_once_with("1.2.3")
+        details_model.set_value.assert_called_once_with("")
+
+    async def test_missing_mod_name_should_update_live_metadata_without_saving_dirty_layer_changes(self):
+        # Arrange
+        await self.context.close_stage_async()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            project_path = temp_path / "project.usda"
+            mod_path = temp_path / "mod.usda"
+
+            shutil.copy(Path(get_test_data_path(__name__, "usd/project.usda")), project_path)
+            shutil.copy(Path(get_test_data_path(__name__, "usd/mod.usda")), mod_path)
+            mod_path.write_text(
+                mod_path.read_text(encoding="utf-8").replace('        string lightspeed_mod_name = "project"\n', ""),
+                encoding="utf-8",
+            )
+
+            await self.context.open_stage_async(str(project_path))
+            project_layer = self.context.get_stage().GetRootLayer()
+            mod_layer = Sdf.Layer.FindOrOpen(project_layer.ComputeAbsolutePath(project_layer.subLayerPaths[0]))
+
+            unsaved_custom_data = dict(mod_layer.customLayerData)
+            unsaved_custom_data["unsaved_side_effect"] = "should_not_save"
+            mod_layer.customLayerData = unsaved_custom_data
+
+            window = None
+            widget = None
+            try:
+                # Act
+                window, widget = await self.__setup_widget()
+
+                # Assert
+                self.assertEqual("project", widget.mod_name)
+                self.assertEqual("project", mod_layer.customLayerData[LSS_LAYER_MOD_NAME])
+
+                mod_layer_contents = mod_path.read_text(encoding="utf-8")
+                self.assertNotIn("lightspeed_mod_name", mod_layer_contents)
+                self.assertNotIn("unsaved_side_effect", mod_layer_contents)
+
+            finally:
+                if window and widget:
+                    await self.__destroy_widget(window, widget)
+                await self.context.close_stage_async()
 
     async def test_invalid_values_should_reset_to_last_known_valid_value(self):
         mod_name = "Valid Project"

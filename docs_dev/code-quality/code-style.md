@@ -12,6 +12,36 @@ Run: `.\format_code.bat` (formatter) | `.\lint_code.bat all` (linter)
 Names must be descriptive and self-explanatory. Avoid vague names like `_push`, `_do`, `_run_it`.
 Name them for what they do: `_push_settings_changed`, `_validate_host`, `_start_server`.
 
+**Never use shorthand abbreviations.** Spell out full words in all identifiers — variable names, style names,
+`omni.ui` style identifiers, constants, and class names.
+
+| Do                      | Don't               |
+|-------------------------|----------------------|
+| `InputRowBackground`    | `InputRowBg`         |
+| `_section_header`       | `_sec_hdr`           |
+| `Button`                | `Btn`                |
+| `Separator`             | `Sep`                |
+| `_selected_index`       | `_sel_idx`           |
+| `workflow_input`        | `inp`                |
+
+This applies everywhere: variables, parameters, loop variables, and comprehension variables.
+
+## Constants Vs Inline Values
+
+Use constants for values that are reused, shared across modules, or carry domain meaning beyond their literal value.
+Keep one-off values inline when extracting them only adds indirection.
+
+Dialog messages and titles that are used once can be inline at the call site. Extract them only when reused or when a
+name clarifies behavior that the literal text cannot.
+
+## omni.ui Layout Rules
+
+See `docs_dev/patterns/ui-style.md` for all omni.ui layout rules including:
+- Layout constants (class-level `ui.Pixel` definitions)
+- Layout spacing (no `style={}` — use stacks + spacers)
+- Background patterns (ZStack + Rectangle)
+- Tree widget patterns
+
 ## Class Member Ordering
 
 Order members by visibility.
