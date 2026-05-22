@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4869: Show an informational dialog when opening a legacy project missing required metadata, directing users to the Open > Edit workflow
 - Update hdremix and omni_core_materials to `ext-52b73a1-main`
 - Update hdremix and omni_core_materials to `ext-3b0f644-main`
+- Made the Windows package build available as a non-blocking manual job in merge request pipelines
 
 ### Fixed
 
