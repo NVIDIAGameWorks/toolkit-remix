@@ -18,6 +18,7 @@
 __all__ = ["FilterTypes", "RemixLogicPrimsFilterPlugin"]
 
 from enum import Enum
+from typing import ClassVar
 
 from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPES, OMNI_GRAPH_TYPE
 from omni import ui
@@ -33,14 +34,28 @@ class FilterTypes(Enum):
 
 
 class RemixLogicPrimsFilterPlugin(StageManagerUSDFilterPlugin):
+    _filter_active_fields: ClassVar[tuple[str, ...]] = ("current_filter_type",)
+
     display_name: str = Field(default="Remix Logic", exclude=True)
-    tooltip: str = Field(default="Filters For Remix Logic", exclude=True)
+    tooltip: str = Field(
+        default=(
+            "Filter Remix Logic prims.\n\n"
+            "Options:\n"
+            "- No Filter: Show every prim.\n"
+            "- Graphs Only: Show only OmniGraph graph prims.\n"
+            "- Graphs + Nodes: Show OmniGraph graph and node prims."
+        ),
+        exclude=True,
+    )
 
     _COMBO_BOX_WIDTH: int = PrivateAttr(default=130)
     _filter_combobox: ui.ComboBox | None = PrivateAttr(default=None)
     current_filter_type: FilterTypes = Field(
         default=FilterTypes.NO_FILTERS, description="The type of logic to filter by"
     )
+
+    def _refresh_filter_active(self) -> None:
+        self.filter_active = self.current_filter_type != FilterTypes.NO_FILTERS
 
     def filter_predicate(self, item: StageManagerItem) -> bool:
         match self.current_filter_type:

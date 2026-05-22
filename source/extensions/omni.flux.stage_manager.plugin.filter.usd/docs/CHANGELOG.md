@@ -1,6 +1,25 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.9.1]
+### Added
+- Added automatic Prim Path matching before regex evaluation for path-like Stage Manager Search terms
+
+### Changed
+- Added hyphenated option descriptions to Stage Manager visibility filter tooltips
+- Optimized Stage Manager Search filtering with precomputed regex state and literal matching
+- Documented the `filter_active` model field for Stage Manager filters
+- Included `filter_active` in filter serialization so Additional Filters can inspect modified state
+- Updated USD Stage Manager filters to share `filter_active` refresh wiring
+
+### Fixed
+- Fixed Additional Filters counting hidden filter UI placement as an active user filter
+- Fixed empty Search, Additional Filters menu, and neutral/default USD filter predicates participating in Stage Manager filtering
+- Fixed Reset All preserving hidden Additional Filters display state
+- Fixed explicit Search regex escapes like `\d` not being detected as regex patterns
+- Fixed direct Search filter term assignment using stale prepared match state
+- Fixed Search filter initialization bypassing shared USD filter post-init state refresh
+
 ## [2.9.0]
 ### Added
 - REMIX-5208: Added `CustomTagsFilterPlugin` and `CheckboxGroupFilterPlugin` base class with per-tag checkboxes, prim counts, cross-tab selection preservation, `FilterCategory.TAGS` support, and reusable Select All / Deselect All actions for any OR-checkbox filter group

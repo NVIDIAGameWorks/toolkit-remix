@@ -19,19 +19,58 @@ from types import SimpleNamespace
 from unittest import mock
 
 from omni.kit.test import AsyncTestCase
+from omni.flux.stage_manager.factory import StageManagerItem
+from omni.flux.stage_manager.factory.plugins.filter_plugin import StageManagerFilterPlugin as _StageManagerFilterPlugin
 from omni.flux.stage_manager.factory.plugins.interaction_plugin import (
     StageManagerInteractionPlugin as _StageManagerInteractionPlugin,
 )
 from omni.flux.stage_manager.plugin.interaction.usd.base import (
     StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin,
 )
+from pydantic import Field
 
 
 class _TestInteractionPlugin(_StageManagerUSDInteractionPlugin):
     pass
 
 
+class _TestFilterPlugin(_StageManagerFilterPlugin):
+    display_name: str = Field(default="Test Filter", exclude=True)
+    tooltip: str = Field(default="", exclude=True)
+
+    def filter_predicate(self, item: StageManagerItem) -> bool:
+        return True
+
+    def build_ui(self, *args, **kwargs):
+        pass
+
+
 class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
+    async def test_expand_filtered_items_ignores_hidden_filter_display_state(self):
+        # Arrange: display controls UI placement only and should not make the interaction expand filtered results
+        child_item = mock.MagicMock()
+        tree_model = mock.MagicMock()
+        tree_model.get_item_children.return_value = [child_item]
+        tree_widget = mock.MagicMock()
+        plugin = _TestInteractionPlugin.model_construct(
+            tree=SimpleNamespace(model=tree_model),
+            filters=[_TestFilterPlugin(display=False, filter_active=False)],
+            context_filters=[],
+            internal_context_filters=[],
+            columns=[],
+            additional_filters=[],
+            compatible_filters=[],
+            compatible_widgets=[],
+            compatible_trees=[],
+            _tree_widget=tree_widget,
+        )
+
+        # Act
+        plugin._expand_filtered_items()
+
+        # Assert
+        tree_widget.set_expanded.assert_not_called()
+
     async def test_on_selection_changed_does_not_write_back_for_order_only_difference(self):
         # Arrange
         plugin = _TestInteractionPlugin.model_construct(

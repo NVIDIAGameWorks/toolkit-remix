@@ -141,6 +141,13 @@ class TestAdditionalFiltersUnit(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertTrue(result)
 
+    async def test_filter_active_should_return_false(self):
+        # Arrange
+        plugin = AdditionalFilterPlugin()
+
+        # Assert
+        self.assertFalse(plugin.filter_active)
+
     # ------------------------------------------------------------------
     # Group 2 — AdditionalFilterPlugin._is_filter_modified
     # ------------------------------------------------------------------
@@ -189,11 +196,34 @@ class TestAdditionalFiltersUnit(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertTrue(result)
 
+    async def test_is_filter_modified_filter_active_field_true_should_return_true(self):
+        # Arrange: filter_active is runtime state, but Additional Filters still uses it as modified state
+        plugin = AdditionalFilterPlugin()
+        filter_obj = _TestToggleableFilter(filter_active=True)
+
+        # Act
+        result = plugin._is_filter_modified(filter_obj)
+
+        # Assert
+        self.assertFalse(filter_obj.model_fields["filter_active"].exclude)
+        self.assertTrue(result)
+
     async def test_is_filter_modified_excluded_fields_should_not_affect_result(self):
         # Arrange: display_name, tooltip, and enabled are in the skip set
         plugin = AdditionalFilterPlugin()
         filter_obj = _TestToggleableFilter(filter_active=False)
         filter_obj.display_name = "Changed Name"  # excluded field — should not count
+
+        # Act
+        result = plugin._is_filter_modified(filter_obj)
+
+        # Assert
+        self.assertFalse(result)
+
+    async def test_is_filter_modified_display_false_should_return_false(self):
+        # Arrange: display=False is UI placement configuration and should not count as user-edited filter state
+        plugin = AdditionalFilterPlugin()
+        filter_obj = _TestFilter(display=False)
 
         # Act
         result = plugin._is_filter_modified(filter_obj)
@@ -778,6 +808,21 @@ class TestAdditionalFiltersUnit(omni.kit.test.AsyncTestCase):
             delegate.on_reset_all()
 
         # Assert
+        self.assertEqual("default", filter_obj.some_value)
+
+    async def test_on_reset_all_preserves_hidden_filter_display_state(self):
+        # Arrange: display controls whether the filter appears in this UI, so Reset All should not alter it
+        filter_obj = _TestToggleableFilter(display=False, some_value="changed")
+        delegate = AdditionalFiltersPopupMenuDelegate(
+            filters=[[filter_obj, {}]],
+        )
+
+        with patch.object(AdditionalFiltersPopupMenuItemDelegate, "build_item"):
+            # Act
+            delegate.on_reset_all()
+
+        # Assert
+        self.assertFalse(filter_obj.display)
         self.assertEqual("default", filter_obj.some_value)
 
     async def test_on_reset_all_calls_on_filter_changed_fn(self):

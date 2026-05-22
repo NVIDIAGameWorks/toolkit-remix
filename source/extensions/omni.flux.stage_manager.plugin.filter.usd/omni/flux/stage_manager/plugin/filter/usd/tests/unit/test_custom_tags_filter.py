@@ -77,6 +77,36 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertFalse(result)
 
+    async def test_filter_active_should_be_false_by_default(self):
+        # Arrange
+        plugin = CustomTagsFilterPlugin()
+
+        # Act / Assert
+        self.assertFalse(plugin.filter_active)
+
+    async def test_filter_active_should_be_true_when_schema_has_selected_tags(self):
+        # Arrange
+        plugin = CustomTagsFilterPlugin(selected_tags=[_TAG_CAR])
+
+        # Act / Assert
+        self.assertTrue(plugin.filter_active)
+
+    async def test_filter_active_should_track_non_default_tag_values(self):
+        # Arrange
+        plugin = CustomTagsFilterPlugin()
+
+        # Act
+        plugin.include_untagged = True
+
+        # Assert
+        self.assertTrue(plugin.filter_active)
+
+        # Act
+        plugin.include_untagged = False
+
+        # Assert
+        self.assertFalse(plugin.filter_active)
+
     async def test_filter_category_should_be_tags_by_default(self):
         # Arrange
         plugin = CustomTagsFilterPlugin()

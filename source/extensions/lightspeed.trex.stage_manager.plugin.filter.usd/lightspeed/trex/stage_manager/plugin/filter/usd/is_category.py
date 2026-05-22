@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from lightspeed.common.constants import REMIX_CATEGORIES_DISPLAY_NAMES as _REMIX_CATEGORIES_DISPLAY_NAMES
 from omni import ui
@@ -29,8 +29,18 @@ if TYPE_CHECKING:
 
 
 class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
+    _filter_active_fields: ClassVar[tuple[str, ...]] = ("category_type",)
+
     display_name: str = Field(default="Remix Category Filter", exclude=True)
-    tooltip: str = Field(default="Filter prims by their assigned Render Categories", exclude=True)
+    tooltip: str = Field(
+        default=(
+            "Filter prims by their assigned render category.\n\n"
+            "Options:\n"
+            "- All Categories: Show every prim.\n"
+            "- Individual categories: Show prims assigned to the selected render category."
+        ),
+        exclude=True,
+    )
 
     category_type: str = Field(
         default="All Categories", description="Whether to keep all categories or filter by category type."
@@ -40,6 +50,13 @@ class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
     _COMBO_BOX_WIDTH: int = PrivateAttr(default=130)
     _cat_type_combobox: ui.ComboBox | None = PrivateAttr(default=None)
     _current_attr: str | None = PrivateAttr(default=None)
+
+    def _refresh_filter_active(self) -> None:
+        self.filter_active = self.category_type != "All Categories"
+        self._current_attr = next(
+            (attr for attr, label in self._CATEGORY_DISPLAY_LABELS.items() if label == self.category_type),
+            None,
+        )
 
     def filter_predicate(self, item: _StageManagerItem) -> bool:
         if self.category_type == "All Categories":
@@ -60,6 +77,5 @@ class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
     def _on_cat_type_changed(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem"):
         selected_index = model.get_item_value_model().get_value_as_int()
         self.category_type = list(self._CATEGORY_DISPLAY_LABELS.values())[selected_index]
-        self._current_attr = list(self._CATEGORY_DISPLAY_LABELS.keys())[selected_index]
 
         self._filter_items_changed()

@@ -120,17 +120,18 @@ class StageManagerUtils:
             category_filters = filters_by_category.get(category, [])
             if not category_filters:
                 continue
+            # Neutral filters return a pass-through predicate. Skip them through
+            # the public filter_active state before building closed result sets.
+            active_filters = [f for f in category_filters if f.filter_active]
+            if not active_filters:
+                continue
 
             if category.is_or:
-                closed_sets = [
-                    _filter_result_closed(candidates, f.filter_predicate)
-                    for f in category_filters
-                    if getattr(f, "filter_active", True)
-                ]
+                closed_sets = [_filter_result_closed(candidates, f.filter_predicate) for f in active_filters]
                 if closed_sets:
                     candidates = set().union(*closed_sets)
             else:
-                for f in category_filters:
+                for f in active_filters:
                     candidates = _filter_result_closed(candidates, f.filter_predicate)
                     if not candidates:
                         break

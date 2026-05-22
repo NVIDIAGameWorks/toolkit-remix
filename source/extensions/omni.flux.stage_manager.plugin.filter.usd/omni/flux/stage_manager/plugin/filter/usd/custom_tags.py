@@ -76,6 +76,8 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
 
     def model_post_init(self, _context: object) -> None:
         self._selected_tag_paths = [Sdf.Path(t) for t in self.selected_tags]
+        self._filter_enabled = bool(self.selected_tags) or self.include_untagged
+        self.filter_active = self._filter_enabled
         self._model_ready = True
 
     def set_context_name(self, name: str) -> None:
@@ -88,6 +90,9 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
 
     def __setattr__(self, name: str, value) -> None:
         super().__setattr__(name, value)
+        if name == "_filter_enabled":
+            self.filter_active = bool(value)
+            return
         if name not in _CACHE_INVALIDATING_FIELDS:
             return
         # Skip side effects during Pydantic __init__: fields are set one by one so
@@ -99,9 +104,8 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
             self._selected_tag_paths = [Sdf.Path(t) for t in value]
         self._all_tag_paths = None
         self._prim_counts = None
-        if not self.selected_tags and not self.include_untagged:
-            self._filter_enabled = False
-            self.enabled = False
+        self._filter_enabled = bool(self.selected_tags) or self.include_untagged
+        self.enabled = self._filter_enabled
 
     def filter_predicate(self, item: _StageManagerItem) -> bool:
         if not self._filter_enabled:

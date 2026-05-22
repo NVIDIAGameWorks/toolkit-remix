@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5506: Fix nested referenced light selection - fixed Selection panel and light-property targeting for nested referenced USD lights under mesh replacement hierarchies
 - REMIX-5518: Fixed packaging validation by blocking invalid projects, applying fallback mod-name metadata without saving source layers, validating missing references before mode-specific packaging work, reporting failed exports directly, keeping reference progress accurate, and showing cancellation cleanup clearly.
 - REMIX-5519: Fixed typed light property values such as volumetric radiance scale no longer being capped by soft drag-field maxima
+- Fixed Stage Manager filtering so neutral Search, Additional Filters, and combobox controls skip no-op predicates, Search reuses prepared match state, literal backslash Search terms stay literal, combobox filter tooltips describe each option, and hidden filter display state is preserved during reset and expansion checks
 
 ## [1.5.0-0]
 

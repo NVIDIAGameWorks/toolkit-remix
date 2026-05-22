@@ -34,7 +34,6 @@ if TYPE_CHECKING:
 
 
 class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
-    filter_active: bool = Field(default=True)
     include_results: bool = Field(default=True, description="Include or exclude prims")
     filter_category: _FilterCategory = Field(default=_FilterCategory.PRIMS)
 
@@ -48,6 +47,7 @@ class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
         self._value_changed_sub = None
 
     def filter_predicate(self, item: _StageManagerItem) -> bool:
+        # Self-contained: filter_items_by_category pre-checks this, but async filter_items and direct callers do not.
         if not self.filter_active:
             return True
 

@@ -15,18 +15,23 @@
 * limitations under the License.
 """
 
-from .unit.test_additional_filters import TestAdditionalFiltersUnit
-from .unit.test_custom_tags_filter import TestCustomTagsFilterPluginUnit
-from .unit.test_ignore_prims_filter import TestIgnorePrimsFilterPluginUnit
-from .unit.test_search_filter import TestSearchFilterPluginUnit
-from .unit.test_usd_base_filter import TestStageManagerUSDFilterPluginUnit
-from .unit.test_visible_prims_filter_tooltip import TestVisiblePrimsFilterTooltipUnit
+import omni.kit.test
+from omni.flux.stage_manager.plugin.filter.usd.ignore_prims import IgnorePrimsFilterPlugin
 
-__all__ = [
-    "TestAdditionalFiltersUnit",
-    "TestCustomTagsFilterPluginUnit",
-    "TestIgnorePrimsFilterPluginUnit",
-    "TestSearchFilterPluginUnit",
-    "TestStageManagerUSDFilterPluginUnit",
-    "TestVisiblePrimsFilterTooltipUnit",
-]
+__all__ = ["TestIgnorePrimsFilterPluginUnit"]
+
+
+class TestIgnorePrimsFilterPluginUnit(omni.kit.test.AsyncTestCase):
+    async def test_filter_active_should_be_false_with_empty_ignore_paths(self):
+        # Arrange / Act
+        plugin = IgnorePrimsFilterPlugin()
+
+        # Assert
+        self.assertFalse(plugin.filter_active)
+
+    async def test_filter_active_should_be_true_with_ignore_paths(self):
+        # Arrange / Act
+        plugin = IgnorePrimsFilterPlugin(ignore_prim_paths={"/World/Omni"})
+
+        # Assert
+        self.assertTrue(plugin.filter_active)

@@ -18,7 +18,7 @@
 __all__ = ["IsCaptureFilterPlugin", "ReferenceType"]
 
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from lightspeed.layer_manager.core import LayerManagerCore
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementCore
@@ -42,8 +42,20 @@ class ReferenceType(Enum):
 
 
 class IsCaptureFilterPlugin(StageManagerUSDFilterPlugin):
+    _filter_active_fields: ClassVar[tuple[str, ...]] = ("reference_type",)
+
     display_name: str = Field(default="Asset State", exclude=True)
-    tooltip: str = Field(default="Filter by prim reference type (captured, replaced, or deleted)", exclude=True)
+    tooltip: str = Field(
+        default=(
+            "Filter by prim reference type.\n\n"
+            "Options:\n"
+            "- All: Show every prim.\n"
+            "- Captured: Show prims that still reference captured assets.\n"
+            "- Replaced: Show prims using replacement assets instead of captured references.\n"
+            "- Deleted: Show captured prims whose reference was removed."
+        ),
+        exclude=True,
+    )
 
     reference_type: ReferenceType = Field(
         default=ReferenceType.ALL,
@@ -66,6 +78,9 @@ class IsCaptureFilterPlugin(StageManagerUSDFilterPlugin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._layer_manager = LayerManagerCore(self._context_name)
+
+    def _refresh_filter_active(self) -> None:
+        self.filter_active = self.reference_type != ReferenceType.ALL
 
     def __del__(self):
         if self._layer_manager is not None:

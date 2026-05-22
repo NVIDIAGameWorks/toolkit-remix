@@ -15,10 +15,12 @@
 * limitations under the License.
 """
 
+from .unit.test_combobox_filter_tooltips import TestComboboxFilterTooltipsUnit
 from .unit.test_geometry_prims_filter import TestGeometryPrimsFilterUnit
 from .unit.test_is_capture_filter import TestIsCaptureFilterUnit
 
 __all__ = [
+    "TestComboboxFilterTooltipsUnit",
     "TestGeometryPrimsFilterUnit",
     "TestIsCaptureFilterUnit",
 ]
