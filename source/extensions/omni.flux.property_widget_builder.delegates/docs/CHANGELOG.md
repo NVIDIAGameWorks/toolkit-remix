@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.2]
+### Changed
+- Numeric drag delegates now use the shared numeric edit controller and the drag widget step for keyboard arrow edits
+
 ## [1.15.1]
 ### Fixed
 - Kept soft drag bounds from hard-clamping typed drag-field values unless explicit hard bounds are provided

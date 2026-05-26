@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.15.1"
+version = "1.15.2"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -33,6 +33,7 @@ icon = "data/images/icon.png"
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 "omni.client" = {}
+"omni.kit.commands" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 
@@ -42,6 +43,7 @@ name = "omni.flux.property_widget_builder.delegates"
 dependencies = [
     "omni.flux.tests.dependencies",
     "omni.flux.property_widget_builder.model.usd",
+    "omni.appwindow",
 ]
 
 

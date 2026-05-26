@@ -15,7 +15,8 @@
 * limitations under the License.
 """
 
-__all__ = ("TestClipboard", "TestItemGroupExpansion")
+__all__ = ("TestClipboard", "TestDelegate", "TestItemGroupExpansion", "TestItemValueModel")
 
 from .test_expansion_with_existing_items import TestItemGroupExpansion
-from .tree import TestClipboard
+from .test_item_model import TestItemValueModel
+from .tree import TestClipboard, TestDelegate

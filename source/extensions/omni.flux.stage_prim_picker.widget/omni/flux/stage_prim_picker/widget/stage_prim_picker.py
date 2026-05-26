@@ -33,6 +33,7 @@ from omni.flux.utils.widget.tree_widget import AlternatingRowWidget
 from pxr import Usd
 
 from .prim_collection import PrimCollection
+from .prim_item import PrimItem
 from .prim_list_delegate import PrimListDelegate
 from .prim_list_model import PrimListModel
 
@@ -76,6 +77,8 @@ class _SinglePrimPicker:
         header_tooltip: Optional tooltip shown on info icon on the right side of the header.
         row_build_fn: Optional custom row builder function. Signature:
                       (prim_path: str, prim_type: str, clicked_fn: Callable | None, row_height: int) -> None
+        begin_edit_fn: Optional callback when the picker starts a bracketed edit.
+        end_edit_fn: Optional callback when the picker ends a bracketed edit.
     """
 
     DEBOUNCE_DELAY_SECONDS = 0.3
@@ -100,6 +103,8 @@ class _SinglePrimPicker:
         header_text: str | Callable[[], None] | None = None,
         header_tooltip: str | None = None,
         row_build_fn: Callable[[str, str, Callable | None, int], None] | None = None,
+        begin_edit_fn: Callable[[], None] | None = None,
+        end_edit_fn: Callable[[], None] | None = None,
     ):
         self._value_model = value_model
         self._prim_collection = PrimCollection(
@@ -117,6 +122,9 @@ class _SinglePrimPicker:
         self._header_text = header_text
         self._header_tooltip = header_tooltip
         self._row_build_fn = row_build_fn
+        self._begin_edit_fn = begin_edit_fn
+        self._end_edit_fn = end_edit_fn
+        self._is_editing = False
 
         # UI elements (created in build_ui / _create_dropdown_window)
         self._dropdown_window: ui.Window | None = None
@@ -134,6 +142,7 @@ class _SinglePrimPicker:
         self._search_model: ui.SimpleStringModel | None = None
         self._search_placeholder: ui.Label | None = None
         self._debounce_task: asyncio.Task | None = None
+        self._load_more_task: asyncio.Task | None = None
         self._has_more: bool = False
         self._ignore_selection_change: bool = False
 
@@ -248,15 +257,87 @@ class _SinglePrimPicker:
             self._clear_container.visible = bool(value)
 
     def _clear_selection(self):
-        self._value_model.set_value("")
+        try:
+            self._begin_edit()
+            self._value_model.set_value("")
+        finally:
+            self._hide_dropdown()
 
     def _toggle_dropdown(self):
         if self._dropdown_window and self._dropdown_window.visible:
-            self._dropdown_window.visible = False
+            self._hide_dropdown()
             return
 
-        self._prim_collection.reset_limit()
-        self._create_dropdown_window()
+        opened = False
+        try:
+            self._begin_edit()
+            self._prim_collection.reset_limit()
+            self._create_dropdown_window()
+            opened = True
+        finally:
+            if not opened:
+                self._hide_dropdown()
+
+    def _hide_dropdown(self):
+        try:
+            self._close_dropdown_window()
+        finally:
+            self._end_edit()
+
+    def _close_dropdown_window(self):
+        if self._debounce_task and not self._debounce_task.done():
+            self._debounce_task.cancel()
+            self._debounce_task = None
+        if self._load_more_task and not self._load_more_task.done():
+            self._load_more_task.cancel()
+            self._load_more_task = None
+        dropdown_window = self._dropdown_window
+        self._dropdown_window = None
+        if dropdown_window:
+            dropdown_window.visible = False
+        self._destroy_dropdown_content()
+        if dropdown_window:
+            asyncio.ensure_future(self._destroy_dropdown_window_async(dropdown_window))
+
+    async def _destroy_dropdown_window_async(self, dropdown_window: ui.Window):
+        await omni.kit.app.get_app().next_update_async()
+        dropdown_window.destroy()
+
+    def _destroy_dropdown_content(self):
+        if self._prim_model:
+            self._prim_model.destroy()
+        if self._prim_delegate:
+            self._prim_delegate.destroy()
+        if self._alternating_row_widget:
+            self._alternating_row_widget.destroy()
+        self._prim_model = None
+        self._prim_delegate = None
+        self._prim_tree = None
+        self._tree_container = None
+        self._no_prims_container = None
+        self._alternating_row_widget = None
+        self._show_more_container = None
+        self._show_more_button = None
+        self._search_model = None
+        self._search_placeholder = None
+
+    def _begin_edit(self):
+        if self._is_editing:
+            return
+        self._is_editing = True
+        try:
+            if self._begin_edit_fn is not None:
+                self._begin_edit_fn()
+        except Exception:
+            self._is_editing = False
+            raise
+
+    def _end_edit(self):
+        if not self._is_editing:
+            return
+        self._is_editing = False
+        if self._end_edit_fn is not None:
+            self._end_edit_fn()
 
     def _create_dropdown_window(self):
         window_id = f"StagePrimPickerDropdown_{self._identifier}_{self._element_idx}"
@@ -271,7 +352,14 @@ class _SinglePrimPicker:
             padding_y=0,
             exclusive_keyboard=True,
         )
-        self._dropdown_window.set_key_pressed_fn(self._on_key_pressed)
+        dropdown_window = self._dropdown_window
+        dropdown_window.set_key_pressed_fn(self._on_key_pressed)
+
+        def on_dropdown_visibility_changed(visible: bool) -> None:
+            if self._dropdown_window is dropdown_window:
+                self._on_dropdown_visibility_changed(visible)
+
+        dropdown_window.set_visibility_changed_fn(on_dropdown_visibility_changed)
 
         # Position dropdown - open upwards if it would clip below screen bottom
         button_x = self._dropdown_button_label.screen_position_x
@@ -415,7 +503,11 @@ class _SinglePrimPicker:
     def _on_key_pressed(self, key: int, modifiers: int, is_down: bool):
         """Handle key press events. Close dropdown on Escape."""
         if key == int(carb.input.KeyboardInput.ESCAPE) and is_down:
-            self._dropdown_window.visible = False
+            self._hide_dropdown()
+
+    def _on_dropdown_visibility_changed(self, visible: bool):
+        if not visible:
+            self._hide_dropdown()
 
     def _on_content_size_changed(self):
         """Sync alternating row widget with TreeView content size."""
@@ -434,7 +526,6 @@ class _SinglePrimPicker:
 
         async def execute_search_after_delay():
             await asyncio.sleep(self.DEBOUNCE_DELAY_SECONDS)
-
             self._prim_collection.reset_limit()
 
             if self._dropdown_window and self._dropdown_window.visible:
@@ -443,6 +534,8 @@ class _SinglePrimPicker:
         self._debounce_task = asyncio.ensure_future(execute_search_after_delay())
 
     def _populate_prim_list(self, search_text: str):
+        if self._prim_model is None:
+            return
         prim_items, self._has_more = self._prim_collection.get_prim_paths(search_text)
 
         # Update model with new items
@@ -476,13 +569,22 @@ class _SinglePrimPicker:
                         break
 
     def _load_more_prims(self):
-        async def load_more_async():
-            await omni.kit.app.get_app().next_update_async()
-            self._prim_collection.load_more()
-            search_text = self._search_model.get_value_as_string() if self._search_model else ""
-            self._populate_prim_list(search_text)
+        if self._load_more_task and not self._load_more_task.done():
+            self._load_more_task.cancel()
 
-        asyncio.ensure_future(load_more_async())
+        async def load_more_async():
+            try:
+                await omni.kit.app.get_app().next_update_async()
+                if not self._dropdown_window or not self._dropdown_window.visible or self._prim_model is None:
+                    return
+                self._prim_collection.load_more()
+                search_text = self._search_model.get_value_as_string() if self._search_model else ""
+                self._populate_prim_list(search_text)
+            finally:
+                if asyncio.current_task() is self._load_more_task:
+                    self._load_more_task = None
+
+        self._load_more_task = asyncio.ensure_future(load_more_async())
 
     def _on_selection_changed(self, items: list):
         """Handle TreeView selection changes."""
@@ -490,44 +592,30 @@ class _SinglePrimPicker:
             return
         if items and len(items) > 0:
             selected_item = items[0]
-            if hasattr(selected_item, "prim_path"):
-                self._value_model.set_value(selected_item.prim_path)
-                if self._dropdown_window:
-                    self._dropdown_window.visible = False
+            if isinstance(selected_item, PrimItem):
+                try:
+                    self._value_model.set_value(selected_item.prim_path)
+                finally:
+                    self._hide_dropdown()
 
     def destroy(self):
         """Clean up all resources."""
         if self._debounce_task and not self._debounce_task.done():
             self._debounce_task.cancel()
+        if self._load_more_task and not self._load_more_task.done():
+            self._load_more_task.cancel()
 
         if self._dropdown_window:
-            self._dropdown_window.visible = False
-            self._dropdown_window.destroy()
+            self._hide_dropdown()
 
-        if self._prim_model:
-            self._prim_model.destroy()
-
-        if self._prim_delegate:
-            self._prim_delegate.destroy()
-
-        if self._alternating_row_widget:
-            self._alternating_row_widget.destroy()
+        self._destroy_dropdown_content()
 
         self._dropdown_window = None
         self._dropdown_button_label = None
         self._clear_button = None
         self._clear_container = None
-        self._prim_model = None
-        self._prim_delegate = None
-        self._prim_tree = None
-        self._tree_container = None
-        self._no_prims_container = None
-        self._alternating_row_widget = None
-        self._show_more_container = None
-        self._show_more_button = None
-        self._search_model = None
-        self._search_placeholder = None
         self._debounce_task = None
+        self._load_more_task = None
 
 
 # ============================================================================
@@ -556,6 +644,8 @@ class StagePrimPickerField(AbstractField):
         row_build_fn: Optional custom row builder function. Signature:
                       (prim_path: str, prim_type: str, clicked_fn: Callable | None, row_height: int) -> None
                       If not provided, a default row layout is used.
+        begin_edit_fn: Optional callback when the picker starts a bracketed edit.
+        end_edit_fn: Optional callback when the picker ends a bracketed edit.
     """
 
     def __init__(
@@ -571,6 +661,8 @@ class StagePrimPickerField(AbstractField):
         header_text: str | Callable[[], None] | None = None,
         header_tooltip: str | None = None,
         row_build_fn: Callable[[str, str, Callable | None, int], None] | None = None,
+        begin_edit_fn: Callable[[], None] | None = None,
+        end_edit_fn: Callable[[], None] | None = None,
     ):
         super().__init__(style_name="StagePrimPickerField", identifier=identifier)
         self._context_name = context_name
@@ -583,6 +675,8 @@ class StagePrimPickerField(AbstractField):
         self._header_text = header_text
         self._header_tooltip = header_tooltip
         self._row_build_fn = row_build_fn
+        self._begin_edit_fn = begin_edit_fn
+        self._end_edit_fn = end_edit_fn
         self._pickers = []
 
     def build_ui(self, item) -> list[ui.Widget]:
@@ -610,6 +704,8 @@ class StagePrimPickerField(AbstractField):
                         header_text=self._header_text,
                         header_tooltip=self._header_tooltip,
                         row_build_fn=self._row_build_fn,
+                        begin_edit_fn=self._begin_edit_fn,
+                        end_edit_fn=self._end_edit_fn,
                     )
 
                     widget = picker.build_ui()

@@ -243,21 +243,24 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         changed_info_only_paths = notice.GetChangedInfoOnlyPaths()
         resynced_paths = notice.GetResyncedPaths()
 
+        def is_nickname_path(path):
+            return path.IsPropertyPath() and path.name == "nickname"
+
         # Check for nickname-only changes and handle with lightweight update
         nickname_prim_paths = set()
         for path in changed_info_only_paths:
-            if path.name == "nickname":
+            if is_nickname_path(path):
                 nickname_prim_paths.add(path.GetPrimPath())
 
         # Also check resynced paths for nickname attribute creation
         for path in resynced_paths:
-            if str(path).endswith("nickname"):
+            if is_nickname_path(path):
                 nickname_prim_paths.add(path.GetPrimPath())
 
         if nickname_prim_paths:
             # Filter out nickname changes from the paths we'll check below
-            non_nickname_info_paths = [p for p in changed_info_only_paths if p.name != "nickname"]
-            non_nickname_resync_paths = [p for p in resynced_paths if not str(p).endswith("nickname")]
+            non_nickname_info_paths = [p for p in changed_info_only_paths if not is_nickname_path(p)]
+            non_nickname_resync_paths = [p for p in resynced_paths if not is_nickname_path(p)]
 
             # If only nicknames changed, do lightweight update and return
             if not non_nickname_info_paths and not non_nickname_resync_paths:
@@ -270,7 +273,8 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             changed_info_only_paths = non_nickname_info_paths
             resynced_paths = non_nickname_resync_paths
 
-        def should_refresh(paths: list, exclude_list: set | None = None):
+        def get_refreshable_paths(paths: list):
+            result = []
             for path in paths:
                 if path.IsPropertyPath():
                     # Don't refresh if the update comes from ignored properties
@@ -286,9 +290,6 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
                         continue
                 # Get the prim path for the changed path
                 prim_path = path.GetPrimPath()
-                # If the path is in the exclude list, don't refresh
-                if exclude_list is not None and prim_path in exclude_list:
-                    continue
                 # Don't refresh if the update comes from ignored paths
                 if str(prim_path) in self.filtering_rules.ignore_paths_events:
                     continue
@@ -306,24 +307,25 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
                     and all(field == "customLayerData" for field in changed_fields)
                 ):
                     continue
-                return True
-            return False
+                result.append(path)
+            return result
 
-        # Check if the context items should be updated first
-        # If `resynced_paths` is empty, no need to compute the exclude list
-        if resynced_paths and should_refresh(
-            resynced_paths, exclude_list={p.GetPrimPath() for p in changed_info_only_paths}
-        ):
-            self._queue_update(update_context_items=True)
-        # If not, check if the delegates should be updated
-        # If `changed_info_only_paths` is empty, no need to compute the exclude list
-        elif changed_info_only_paths and should_refresh(
-            changed_info_only_paths, exclude_list={p.GetPrimPath() for p in resynced_paths}
-        ):
-            update_context_items = False
-            if any(p for p in changed_info_only_paths if self._evaluate_filtering_rules(p)):
-                update_context_items = True
-            self._queue_update(update_context_items=update_context_items)
+        def forces_context_item_refresh(path: Sdf.Path):
+            if not path.IsPropertyPath():
+                return True
+            return self._evaluate_filtering_rules(path)
+
+        refreshable_resynced_paths = get_refreshable_paths(resynced_paths) if resynced_paths else []
+        refreshable_changed_info_only_paths = (
+            get_refreshable_paths(changed_info_only_paths) if changed_info_only_paths else []
+        )
+        if not refreshable_resynced_paths and not refreshable_changed_info_only_paths:
+            return
+
+        update_context_items = any(forces_context_item_refresh(p) for p in refreshable_resynced_paths) or any(
+            forces_context_item_refresh(p) for p in refreshable_changed_info_only_paths
+        )
+        self._queue_update(update_context_items=update_context_items)
 
     def _evaluate_filtering_rules(self, prim_path: Sdf.Path) -> bool:
         for rule in self.filtering_rules.force_refresh_rules:
@@ -336,7 +338,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
                 if value.startswith(rule.start):
                     return True
             elif rule.end:  # noqa: SIM102
-                if value.endswith(rule.start):
+                if value.endswith(rule.end):
                     return True
         return False
 

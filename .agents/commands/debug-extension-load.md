@@ -26,7 +26,7 @@ fail. Ref: `docs_dev/architecture/extension-guide.md` Directory Layout.
 Run without `-n default`:
 
 ```powershell
-.\_build\windows-x86_64\release\tests-<extension-name>.bat
+.\_build\windows-x86_64\release\tests-<extension-name>.bat -- --no-window
 ```
 
 Check stdout + `_testoutput/exttest_<sanitized_name>/` for traceback. `ImportError`/`ModuleNotFoundError` -> missing dep

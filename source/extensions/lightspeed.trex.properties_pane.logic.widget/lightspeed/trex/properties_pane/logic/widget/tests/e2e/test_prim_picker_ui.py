@@ -24,6 +24,7 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.trex.properties_pane.logic.widget import LogicPropertyWidget
 from omni.flux.property_widget_builder.model.usd import USDRelationshipItem
+from omni.flux.utils.common.interactive_usd_notices import register_objects_changed_listener as _register_listener
 from omni.kit import ui_test
 from omni.kit.test_suite.helpers import arrange_windows
 from pxr import Sdf
@@ -34,10 +35,19 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
 
     async def setUp(self):
         await arrange_windows()
+        self._test_widget = None
+        self._test_window = None
         context = omni.usd.get_context()
         await context.new_stage_async()
 
     async def tearDown(self):
+        if self._test_widget is not None:
+            self._test_widget.destroy()
+            self._test_widget = None
+            await ui_test.wait_n_updates(1)
+        if self._test_window is not None:
+            self._test_window.destroy()
+            self._test_window = None
         context = omni.usd.get_context()
         await context.close_stage_async()
 
@@ -45,7 +55,7 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
         """
         COMPLETE UI TEST:
         Arrange: Render widget with OmniGraph node
-        Act: Click picker → select mesh from dropdown → save → reload
+        Act: Click picker, select mesh from dropdown, save, reload
         Assert: Relationship set in USD, saved to file, persists after reload
         """
         # Arrange
@@ -69,9 +79,11 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
 
         # Create UI with proper sizing
         window = ui.Window("TestLogicWidgetUI", height=600, width=400)
+        self._test_window = window
         with window.frame:
             with ui.Frame(width=400, height=600):
                 widget = LogicPropertyWidget("")
+                self._test_widget = widget
                 widget.show(True)
 
         await ui_test.human_delay()
@@ -93,41 +105,94 @@ class TestLogicWidgetUIComplete(omni.kit.test.AsyncTestCase):
         # Groups are expanded by default (ItemGroup.expanded=True in setup_ui.py)
         await ui_test.human_delay(human_delay_speed=3)
 
-        # ASSERT - The picker field renders in UI
+        # Find the visible picker field before opening the real dropdown.
         picker_field = ui_test.find(f"{window.title}//Frame/**/StringField[*].name=='StagePrimPickerField'")
         self.assertIsNotNone(picker_field, "StagePrimPickerField must render in UI")
 
-        # Act - Set target via value model (this is what the picker does internally when user selects)
-        target_item = relationship_items[0]
-        target_item.value_models[0].set_value("/World/Mesh1")
-        await omni.kit.app.get_app().next_update_async()
+        async def select_target(prim_path):
+            await picker_field.click()
+            await ui_test.wait_n_updates(1)
+            dropdown_id = "StagePrimPickerDropdown_prim_picker_0"
+            search_field = ui_test.find(f"{dropdown_id}//Frame/**/StringField[*].name=='StagePrimPickerSearch'")
+            self.assertIsNotNone(search_field, "StagePrimPickerSearch must render in dropdown")
+            await search_field.click()
+            await search_field.input(prim_path.split("/")[-1])
 
-        # Assert - USD relationship updated
-        relationship = node_prim.GetRelationship("inputs:target")
-        targets = relationship.GetTargets()
-        self.assertEqual(len(targets), 1, "Should have one target set")
-        self.assertEqual(str(targets[0]), "/World/Mesh1", "Target should be /World/Mesh1")
+            prim_button = None
+            for _ in range(20):
+                await ui_test.human_delay(human_delay_speed=1)
+                prim_buttons = ui_test.find_all(f"{dropdown_id}//Frame/**/Label[*]")
+                prim_button = next(
+                    (
+                        button
+                        for button in prim_buttons
+                        if button.widget.text == prim_path
+                        or (button.widget.tooltip and button.widget.tooltip.endswith(prim_path))
+                    ),
+                    None,
+                )
+                if prim_button is not None:
+                    break
+            self.assertIsNotNone(prim_button, f"{prim_path} must be selectable in dropdown")
+            await prim_button.click()
+            await ui_test.wait_n_updates(1)
 
-        # Act - save
         with tempfile.TemporaryDirectory() as temp_dir:
             test_file = Path(temp_dir) / "ui_test.usda"
-            stage.GetRootLayer().Export(str(test_file))
+            notices = []
+            subscription = _register_listener(stage, lambda notice, stage: notices.append((notice, stage)))
+            notice_counts_when_value_changed = []
+            relationship_items[0].value_models[0].add_value_changed_fn(
+                lambda _: notice_counts_when_value_changed.append(len(notices))
+            )
+            try:
+                # Choose a target through the real picker dropdown so the UI write path runs.
+                await select_target("/World/Mesh1")
 
-            # Assert - file contains relationship
+                # The relationship updates immediately, but the refresh notice waits for the picker dropdown to close.
+                relationship = node_prim.GetRelationship("inputs:target")
+                targets = relationship.GetTargets()
+                self.assertEqual(len(targets), 1, "Should have one target set")
+                self.assertEqual(str(targets[0]), "/World/Mesh1", "Target should be /World/Mesh1")
+                self.assertTrue(notice_counts_when_value_changed)
+                self.assertEqual(notice_counts_when_value_changed[0], 0)
+                for _ in range(20):
+                    if len(notices) >= 1:
+                        break
+                    await ui_test.human_delay(human_delay_speed=1)
+                self.assertEqual(len(notices), 1)
+
+                # Save the selected relationship before clearing it through the UI.
+                stage.GetRootLayer().Export(str(test_file))
+
+                clear_button = ui_test.find(f"{window.title}//Frame/**/Image[*].name=='StagePrimPickerClear'")
+                self.assertIsNotNone(clear_button, "StagePrimPickerClear must render after selection")
+                await clear_button.click()
+                for _ in range(20):
+                    if len(notices) >= 2:
+                        break
+                    await ui_test.human_delay(human_delay_speed=1)
+                self.assertEqual(relationship.GetTargets(), [])
+                self.assertEqual(len(notices), 2)
+            finally:
+                subscription.Revoke()
+
+            # The exported layer keeps the selected target.
             usda_content = test_file.read_text()
             self.assertIn("inputs:target = </World/Mesh1>", usda_content)
 
-            # Act - reload
-            # Cleanup widget first to cancel any pending refreshes
+            # Destroy the first widget and reload the saved layer to check persistence.
             widget.destroy()
-            await omni.kit.app.get_app().next_update_async()
+            self._test_widget = None
+            await ui_test.wait_n_updates(1)
 
             window.destroy()
+            self._test_window = None
 
             await context.close_stage_async()
             await context.open_stage_async(str(test_file))
 
-            # Assert - persisted
+            # The reloaded relationship still points at the selected prim.
             loaded_stage = context.get_stage()
             loaded_node = loaded_stage.GetPrimAtPath(node.get_prim_path())
             loaded_rel = loaded_node.GetRelationship("inputs:target")

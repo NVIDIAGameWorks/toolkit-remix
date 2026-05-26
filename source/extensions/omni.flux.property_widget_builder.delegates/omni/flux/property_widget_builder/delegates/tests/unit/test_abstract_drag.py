@@ -21,6 +21,7 @@ from typing import Any, cast
 from unittest.mock import patch
 
 import omni.kit.test
+import omni.kit.ui_test
 import omni.ui as ui
 from omni.flux.property_widget_builder.delegates.base import AbstractDragFieldGroup
 from omni.flux.utils.widget import FloatBoundedDrag
@@ -46,7 +47,7 @@ class _StubDragField(AbstractDragFieldGroup):
         hard_min_val: float | int | None,
         hard_max_val: float | int | None,
         step: float | int | None,
-    ) -> Any:
+    ) -> ui.Widget:
         self.build_drag_widget_calls.append(
             {
                 "min_value": min_val,
@@ -103,6 +104,20 @@ class _BatchEditValueModel(MockValueModel):
 
 
 class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
+    async def setUp(self):
+        self._fields: list[_StubDragField] = []
+
+    async def tearDown(self):
+        for field in self._fields:
+            field.destroy()
+        self._fields.clear()
+        await omni.kit.ui_test.wait_n_updates(2)
+
+    def _make_field(self, *args, **kwargs) -> _StubDragField:
+        field = _StubDragField(*args, **kwargs)
+        self._fields.append(field)
+        return field
+
     # ------------------------------------------------------------------
     # Constructor & property tests
     # ------------------------------------------------------------------
@@ -110,7 +125,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     async def test_stores_min_max_step(self):
         """Constructor should persist min_value, max_value, and _step."""
         # Arrange
-        field = _StubDragField(min_value=-5.0, max_value=5.0, step=0.25)
+        field = self._make_field(min_value=-5.0, max_value=5.0, step=0.25)
 
         # Act
         min_value = field.min_value
@@ -125,7 +140,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     async def test_step_property_returns_none_when_unset(self):
         """The base step property should return None when _step is not set."""
         # Arrange
-        field = _StubDragField(min_value=0.0, max_value=100.0)
+        field = self._make_field(min_value=0.0, max_value=100.0)
 
         # Act
         step_value = field.step
@@ -136,7 +151,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     async def test_custom_style_name(self):
         """style_name should be forwarded through kwargs."""
         # Arrange
-        field = _StubDragField(min_value=0.0, max_value=1.0, style_name="Custom")
+        field = self._make_field(min_value=0.0, max_value=1.0, style_name="Custom")
 
         # Act
         style_name = field.style_name
@@ -159,7 +174,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     async def test_identifier_forwarded(self):
         """The identifier kwarg defined in AbstractField should propagate."""
         # Arrange
-        field = _StubDragField(min_value=0.0, max_value=1.0, identifier="my_id")
+        field = self._make_field(min_value=0.0, max_value=1.0, identifier="my_id")
 
         # Act
         identifier = field.identifier
@@ -174,7 +189,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     async def test_unbounded_construction(self):
         """Both min_value and max_value should default to None (unbounded)."""
         # Arrange
-        field = _StubDragField()
+        field = self._make_field()
 
         # Act
         min_value = field.min_value
@@ -187,7 +202,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     async def test_single_bound_min_only(self):
         """Only min_value can be set, leaving max_value as None."""
         # Arrange
-        field = _StubDragField(min_value=0.0)
+        field = self._make_field(min_value=0.0)
 
         # Act
         min_value = field.min_value
@@ -200,7 +215,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     async def test_single_bound_max_only(self):
         """Only max_value can be set, leaving min_value as None."""
         # Arrange
-        field = _StubDragField(max_value=100.0)
+        field = self._make_field(max_value=100.0)
 
         # Act
         min_value = field.min_value
@@ -217,7 +232,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     async def test_hard_bounds_stored(self):
         """Constructor should persist hard_min_value and hard_max_value."""
         # Arrange
-        field = _StubDragField(min_value=0.0, max_value=100.0, hard_min_value=-10.0, hard_max_value=110.0)
+        field = self._make_field(min_value=0.0, max_value=100.0, hard_min_value=-10.0, hard_max_value=110.0)
 
         # Act
         hard_min_value = field.hard_min_value
@@ -230,7 +245,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     async def test_hard_bounds_default_none(self):
         """Hard bounds should default to None when omitted."""
         # Arrange
-        field = _StubDragField(min_value=0.0, max_value=100.0)
+        field = self._make_field(min_value=0.0, max_value=100.0)
 
         # Act
         hard_min_value = field.hard_min_value
@@ -243,7 +258,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     async def test_end_edit_closes_active_batch_edit(self):
         """end_edit should close an active batch edit when widget mouse release is missed."""
         # Arrange
-        field = _StubDragField()
+        field = self._make_field()
         model = _BatchEditValueModel(value=5.0)
         model.begin_batch_edit()
 
@@ -257,7 +272,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
     async def test_build_ui_keeps_soft_bounds_out_of_typed_value_clamping(self):
         """Missing hard bounds should leave typed values unclamped."""
         # Arrange
-        field = _StubDragField(min_value=0.0, max_value=10.0)
+        field = self._make_field(min_value=0.0, max_value=10.0)
         model = MockValueModel(value=0.0)
         item = _StubItem([model])
 
@@ -267,14 +282,15 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(len(widgets), 1)
-        self.assertIsNone(getattr(widgets[0], "hard_min_value", None))
-        self.assertIsNone(getattr(widgets[0], "hard_max_value", None))
+        widget = cast(FloatBoundedDrag, widgets[0])
+        self.assertIsNone(widget.hard_min_value)
+        self.assertIsNone(widget.hard_max_value)
         self.assertEqual(model.get_value_as_float(), 999.0)
 
     async def test_build_ui_uses_explicit_hard_bounds_for_typed_clamping(self):
         """Explicit hard bounds should control typed clamping independently from soft min/max."""
         # Arrange
-        field = _StubDragField(min_value=0.0, max_value=10.0, hard_min_value=-5.0, hard_max_value=5.0)
+        field = self._make_field(min_value=0.0, max_value=10.0, hard_min_value=-5.0, hard_max_value=5.0)
         model = MockValueModel(value=0.0)
         item = _StubItem([model])
 
@@ -284,8 +300,9 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(len(widgets), 1)
-        self.assertEqual(getattr(widgets[0], "hard_min_value", None), -5.0)
-        self.assertEqual(getattr(widgets[0], "hard_max_value", None), 5.0)
+        widget = cast(FloatBoundedDrag, widgets[0])
+        self.assertEqual(widget.hard_min_value, -5.0)
+        self.assertEqual(widget.hard_max_value, 5.0)
         self.assertEqual(model.get_value_as_float(), 5.0)
 
     async def test_build_ui_allows_hard_min_with_soft_max(self):
@@ -303,8 +320,9 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(len(widgets), 1)
-        self.assertEqual(getattr(widgets[0], "hard_min_value", None), 0.0)
-        self.assertIsNone(getattr(widgets[0], "hard_max_value", None))
+        widget = cast(FloatBoundedDrag, widgets[0])
+        self.assertEqual(widget.hard_min_value, 0.0)
+        self.assertIsNone(widget.hard_max_value)
         self.assertEqual(clamped_value, 0.0)
         self.assertEqual(model.get_value_as_float(), 999.0)
 
@@ -322,8 +340,9 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(len(widgets), 1)
         self.assertEqual(widgets[0].min, 0.0)
         self.assertEqual(widgets[0].max, 10.0)
-        self.assertEqual(getattr(widgets[0], "hard_min_value", None), 0.0)
-        self.assertIsNone(getattr(widgets[0], "hard_max_value", None))
+        widget = cast(FloatBoundedDrag, widgets[0])
+        self.assertEqual(widget.hard_min_value, 0.0)
+        self.assertIsNone(widget.hard_max_value)
 
     async def test_build_ui_uses_hard_max_as_missing_drag_max(self):
         """A hard upper bound should also bound dragging when no soft max is provided."""
@@ -339,8 +358,9 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(len(widgets), 1)
         self.assertEqual(widgets[0].min, 0.0)
         self.assertEqual(widgets[0].max, 10.0)
-        self.assertIsNone(getattr(widgets[0], "hard_min_value", None))
-        self.assertEqual(getattr(widgets[0], "hard_max_value", None), 10.0)
+        widget = cast(FloatBoundedDrag, widgets[0])
+        self.assertIsNone(widget.hard_min_value)
+        self.assertEqual(widget.hard_max_value, 10.0)
 
     async def test_build_ui_forwards_invalid_mixed_bounds_without_promoting_soft_to_hard(self):
         """Invalid mixed drag bounds should not affect hard typed-value clamps."""
@@ -358,8 +378,9 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(len(widgets), 1)
         self.assertIsNone(field.build_drag_widget_calls[0]["min_value"])
         self.assertEqual(field.build_drag_widget_calls[0]["max_value"], 10.0)
-        self.assertEqual(getattr(widgets[0], "hard_min_value", None), 20.0)
-        self.assertIsNone(getattr(widgets[0], "hard_max_value", None))
+        widget = cast(FloatBoundedDrag, widgets[0])
+        self.assertEqual(widget.hard_min_value, 20.0)
+        self.assertIsNone(widget.hard_max_value)
         self.assertEqual(clamped_value, 20.0)
 
     async def test_resolve_scalar_component_returns_value_when_scalar_index_none(self):
@@ -396,3 +417,28 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
             # Assert
             self.assertIsNone(result)
             mock_log_error.assert_called_once()
+
+    async def test_build_ui_passes_configured_step_to_drag(self):
+        """Configured delegate step should drive the drag widget."""
+        # Arrange
+        field = self._make_field(step=0.25)
+        item = _StubItem([MockValueModel(value=0.0)])
+
+        # Act
+        widgets = field.build_ui(item)
+
+        # Assert
+        self.assertEqual(len(widgets), 1)
+        self.assertEqual(cast(FloatBoundedDrag, widgets[0]).step, 0.25)
+
+    async def test_build_ui_passes_per_component_steps(self):
+        """Vector step metadata should be resolved per component."""
+        # Arrange
+        field = self._make_field(step=[0.25, 0.5, 0.75])
+        item = _StubItem([MockValueModel(value=0.0), MockValueModel(value=0.0), MockValueModel(value=0.0)])
+
+        # Act
+        widgets = field.build_ui(item)
+
+        # Assert
+        self.assertEqual([cast(FloatBoundedDrag, widget).step for widget in widgets], [0.25, 0.5, 0.75])

@@ -72,7 +72,7 @@ The `omni.kit.debug.python` extension provides a `break` option that forces the 
 continuing:
 
 ```batch
-.\_build\windows-x86_64\release\tests-omni.flux.property_widget_builder.widget.bat -- --enable omni.kit.debug.python --/exts/omni.kit.debug.python/break=1
+.\_build\windows-x86_64\release\tests-omni.flux.property_widget_builder.widget.bat -- --no-window --enable omni.kit.debug.python --/exts/omni.kit.debug.python/break=1
 ```
 
 Arguments are passed after a lone `--`, so they are forwarded from the `.bat` to `kit.exe` to the test subprocess.

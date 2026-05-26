@@ -4,6 +4,8 @@ check-changelog:
     - .defaults
     - .windows_build_agent
     - .soak_check_rules
+  variables:
+    GIT_DEPTH: "0"
   needs: []
   script:
     - .\repo.bat check_changelog -s "$CI_COMMIT_SHA" -t "$CI_MERGE_REQUEST_DIFF_BASE_SHA"

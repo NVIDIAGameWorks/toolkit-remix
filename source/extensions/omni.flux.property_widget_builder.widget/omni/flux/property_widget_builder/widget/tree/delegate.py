@@ -26,13 +26,13 @@ __all__ = (
 import abc
 import asyncio
 import dataclasses
-from typing import TYPE_CHECKING
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import carb
 import omni.ui as ui
 import omni.usd
-from omni.flux.property_widget_builder.delegates import NameField
+from omni.flux.property_widget_builder.delegates import AbstractDragFieldGroup, NameField
 from omni.flux.property_widget_builder.delegates.default import DefaultField
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 
@@ -77,7 +77,8 @@ class FieldBuilder:
     """
 
     claim_func: Callable[[list[Item]], ClaimResult]
-    build_func: Callable[[Item], ui.Widget | list[ui.Widget] | None]
+    build_func: Callable[..., ui.Widget | list[ui.Widget] | None]
+    supports_field_cleanup: bool = False
 
 
 class FieldBuilderList(list[FieldBuilder]):
@@ -85,16 +86,22 @@ class FieldBuilderList(list[FieldBuilder]):
     A simple list of FieldBuilder with some helper methods to assist in constructing FieldBuilder instances.
     """
 
-    def register_build(self, predicate: Callable[[Item], bool]):
+    def register_build(self, predicate: Callable[[Item], bool], *, supports_field_cleanup: bool = False):
         """
         Decorator for simplifying the construction of a FieldBuilder wrapping a per-item predicate
         with a build method.
         """
 
         def _deco(
-            build_func: Callable[[Item], ui.Widget | list[ui.Widget] | None],
-        ) -> Callable[[Item], ui.Widget | list[ui.Widget] | None]:
-            self.append(FieldBuilder(claim_func=claim_each(predicate), build_func=build_func))
+            build_func: Callable[..., ui.Widget | list[ui.Widget] | None],
+        ) -> Callable[..., ui.Widget | list[ui.Widget] | None]:
+            self.append(
+                FieldBuilder(
+                    claim_func=claim_each(predicate),
+                    build_func=build_func,
+                    supports_field_cleanup=supports_field_cleanup,
+                )
+            )
             return build_func
 
         return _deco
@@ -120,6 +127,7 @@ class Delegate(_TreeDelegateBase):
         # previous companions without clearing visibility state owned by other systems.
         self._claim_hidden_companion_items: set[Item] = set()
         self._subscriptions: list[carb.Subscription] = []
+        self._field_cleanup_callbacks: list[Callable[[], None]] = []
 
         # This is populated during a right click event within `_show_menu`. We store this Menu instance to avoid it
         # being garbage collected while it's displayed.
@@ -137,6 +145,7 @@ class Delegate(_TreeDelegateBase):
                 "_builder_map": None,
                 "_claim_hidden_companion_items": None,
                 "_subscriptions": None,
+                "_field_cleanup_callbacks": None,
                 "_context_menu": None,
             }
         )
@@ -148,6 +157,9 @@ class Delegate(_TreeDelegateBase):
 
         This method is called when the parent widget is hidden.
         """
+        for cleanup in tuple(self._field_cleanup_callbacks):
+            cleanup()
+        self._field_cleanup_callbacks.clear()
         self._name_widgets.clear()
         self._builder_map.clear()
         self._claim_hidden_companion_items.clear()
@@ -214,12 +226,34 @@ class Delegate(_TreeDelegateBase):
         """
         Get the build callable for the provided ``item`` from the stored claim mapping.
         """
+        return self.get_field_builder(item, default).build_func
+
+    def get_field_builder(
+        self,
+        item,
+        default: Callable[[Item], ui.Widget | list[ui.Widget] | None] = None,
+    ) -> FieldBuilder:
+        """
+        Get the full builder for the provided ``item`` from the stored claim mapping.
+        """
         builder = self._builder_map.get(id(item))
         if builder is not None:
-            return builder.build_func
+            return builder
         if default is None:
             raise ValueError(f"No custom field builder found for {item}")
-        return default
+        return FieldBuilder(claim_func=claim_each(lambda _: True), build_func=default)
+
+    def _build_field_widgets(
+        self,
+        builder: FieldBuilder,
+        item: Item,
+    ) -> ui.Widget | list[ui.Widget] | None:
+        build_func = builder.build_func
+        if builder.supports_field_cleanup:
+            return build_func(item, register_cleanup=self._field_cleanup_callbacks.append)
+        if isinstance(build_func, AbstractDragFieldGroup):
+            return build_func(item, register_cleanup=self._field_cleanup_callbacks.append)
+        return build_func(item)
 
     @abc.abstractmethod
     def _build_item_widgets(
@@ -228,7 +262,9 @@ class Delegate(_TreeDelegateBase):
         if column_id == 0:
             widgets = NameField()(item, right_aligned=self._right_aligned_labels)
         elif column_id == 1:
-            widgets = self.get_widget_builder(item, default=DefaultField(ui.StringField))(item)
+            widgets = self._build_field_widgets(
+                self.get_field_builder(item, default=DefaultField(ui.StringField)), item
+            )
         else:
             return None
         return widgets

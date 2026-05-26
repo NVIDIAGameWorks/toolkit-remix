@@ -28,6 +28,7 @@ import omni.usd
 from omni.flux.property_widget_builder.widget import ItemValueModel as _ItemValueModel
 from omni.flux.property_widget_builder.widget import Serializable as _Serializable
 from omni.flux.utils.common import path_utils as _path_utils
+from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices as _defer_usd_notices
 from pxr import Gf, Sdf, Usd
 
 from ..mapping import GF_TO_PYTHON_TYPE, MULTICHANNEL_BUILDER_TABLE, VEC_TYPES, VecType
@@ -245,7 +246,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _set_attribute_value(self, attr, new_value):
+    def _set_attribute_value(self, attr, new_value) -> bool:
         pass
 
     def _get_value_as_string(self) -> str:
@@ -400,17 +401,27 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         if not self._stage:
             return False
         wrote_any = False
-        for attribute_path in self._attribute_paths:
-            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
-            if prim.IsValid():
-                attr = prim.GetAttribute(attribute_path.name)
-                if not attr.IsValid() and not self._is_virtual:
-                    continue
-                if self._get_attribute_value(attr) != self._value:
-                    wrote_any = True
-                    self._ignore_refresh = True
-                    self._set_attribute_value(attr, self._value)
-                    self._ignore_refresh = False
+        self._ignore_refresh = True
+        try:
+            with _defer_usd_notices(self._stage):
+                for attribute_path in self._attribute_paths:
+                    prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
+                    if prim.IsValid():
+                        attr = prim.GetAttribute(attribute_path.name)
+                        if attr.IsValid():
+                            current_value = self._get_attribute_value(attr)
+                        elif self._is_virtual:
+                            current_value = self._get_default_value(attr)
+                        else:
+                            continue
+                        if current_value != self._value:
+                            wrote_any = self._set_attribute_value(attr, self._value) or wrote_any
+        except Exception:
+            if self._read_value_from_usd():
+                self._on_dirty()
+            raise
+        finally:
+            self._ignore_refresh = False
         return wrote_any
 
     def begin_batch_edit(self):
@@ -428,6 +439,37 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         finally:
             self._is_batch_editing = False
             omni.kit.undo.end_group()
+
+    def _cancel_batch_edit(self):
+        try:
+            if self._stage and self._read_value_from_usd():
+                self._value_changed()
+        finally:
+            self._is_batch_editing = False
+            omni.kit.undo.end_group()
+
+    def _refresh_after_cancel_property_edit(self) -> None:
+        pass
+
+    def cancel_property_edit_interaction(self) -> None:
+        first_error: Exception | None = None
+        try:
+            if self.is_batch_editing:
+                self._cancel_batch_edit()
+        except Exception as exc:  # noqa: BLE001 - parent cancel callbacks must still run.
+            first_error = exc
+        try:
+            self._refresh_after_cancel_property_edit()
+        except Exception as exc:  # noqa: BLE001 - parent cancel callbacks must still run.
+            if first_error is None:
+                first_error = exc
+        try:
+            super().cancel_property_edit_interaction()
+        except Exception as exc:  # noqa: BLE001 - preserve the first lifecycle failure.
+            if first_error is None:
+                first_error = exc
+        if first_error is not None:
+            raise first_error
 
 
 class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
@@ -552,12 +594,34 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             self._value_changed()
 
     def end_edit(self):
-        if self.is_batch_editing:
-            self.end_batch_edit()
-        # we set back to the USD value
-        if self._has_wrong_value and self._read_value_from_usd():
+        first_error: Exception | None = None
+        try:
+            if self.is_batch_editing:
+                self.end_batch_edit()
+        except Exception as exc:  # noqa: BLE001 - parent end callback must still run.
+            first_error = exc
+        try:
+            # we set back to the USD value
+            should_refresh = self._has_wrong_value
+            self._has_wrong_value = False
+            if should_refresh and self._read_value_from_usd():
+                self._value_changed()
+        except Exception as exc:  # noqa: BLE001 - parent end callback must still run.
+            if first_error is None:
+                first_error = exc
+        try:
+            super().end_edit()
+        except Exception as exc:  # noqa: BLE001 - preserve the first lifecycle failure.
+            if first_error is None:
+                first_error = exc
+        if first_error is not None:
+            raise first_error
+
+    def _refresh_after_cancel_property_edit(self) -> None:
+        should_refresh = self._has_wrong_value
+        self._has_wrong_value = False
+        if should_refresh and self._read_value_from_usd():
             self._value_changed()
-        super().end_edit()
 
     # TODO: Remove usages after dealing with Asset path type. Most cases would be better served with get_value().
     def get_attributes_raw_value(self, element_current_idx) -> Any | None:
@@ -577,29 +641,39 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             return _safe_deepcopy(self._default_value)
         return value
 
-    def _set_attribute_value(self, attr, new_value):
-        attribute_path = str(attr.GetPath())
-        if self._value_type_name == Sdf.ValueTypeNames.Asset:
-            if isinstance(new_value, str):
-                # Force textures to always use forward slashes, and check that the path is valid
-                new_value = new_value.strip()
-                if self.metadata and self.metadata.get("colorSpace"):
-                    edit_target_layer = self._stage.GetEditTarget().GetLayer()
-                    is_valid = new_value == "" or _path_utils.is_file_path_valid(new_value, layer=edit_target_layer)
-                    if not is_valid:
-                        self._has_wrong_value = True
-                        return
-                    absolute_path = omni.client.normalize_url(edit_target_layer.ComputeAbsolutePath(new_value))
-                    new_value = Sdf.AssetPath(new_value.replace("\\", "/"), absolute_path.replace("\\", "/"))
-            elif isinstance(new_value, Sdf.AssetPath):
-                if self.metadata and self.metadata.get("colorSpace"):
-                    edit_target_layer = self._stage.GetEditTarget().GetLayer()
-                    if not _path_utils.is_file_path_valid(new_value.path, layer=edit_target_layer):
-                        self._has_wrong_value = True
-                        return
-            else:
-                raise NotImplementedError(f"Unknown type {new_value}")
+    def _prepare_attribute_value(self, new_value) -> tuple[bool, Any]:
+        if self._value_type_name != Sdf.ValueTypeNames.Asset:
+            self._has_wrong_value = False
+            return True, new_value
+        if isinstance(new_value, str):
+            # Force textures to always use forward slashes, and check that the path is valid
+            new_value = new_value.strip()
+            if self.metadata and self.metadata.get("colorSpace"):
+                edit_target_layer = self._stage.GetEditTarget().GetLayer()
+                is_valid = new_value == "" or _path_utils.is_file_path_valid(new_value, layer=edit_target_layer)
+                if not is_valid:
+                    self._has_wrong_value = True
+                    return False, new_value
+                absolute_path = omni.client.normalize_url(edit_target_layer.ComputeAbsolutePath(new_value))
+                new_value = Sdf.AssetPath(new_value.replace("\\", "/"), absolute_path.replace("\\", "/"))
+        elif isinstance(new_value, Sdf.AssetPath):
+            if self.metadata and self.metadata.get("colorSpace"):
+                edit_target_layer = self._stage.GetEditTarget().GetLayer()
+                if not _path_utils.is_file_path_valid(new_value.path, layer=edit_target_layer):
+                    self._has_wrong_value = True
+                    return False, new_value
+        else:
+            raise NotImplementedError(f"Unknown type {new_value}")
         self._has_wrong_value = False
+        return True, new_value
+
+    def _set_attribute_value(self, attr, new_value) -> bool:
+        if not attr.IsValid():
+            return False
+        attribute_path = str(attr.GetPath())
+        is_valid, new_value = self._prepare_attribute_value(new_value)
+        if not is_valid:
+            return False
 
         # OM-75480: For props inside session layer, it will always change specs
         # in the session layer to avoid shadowing. Why it needs to be def is that
@@ -622,6 +696,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             prev=None,
             usd_context_name=self._context_name,
         )
+        return True
 
     def _on_dirty(self):
         self._value_changed()
@@ -691,10 +766,13 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         # If virtual attributes don't exist, they take on the default value.
         return self._default_value
 
-    def _create_and_set_attribute_value(self, attr, new_value):
+    def _create_and_set_attribute_value(self, attr, new_value) -> bool:
         # If it's the default value, no need to create anything
         if new_value == self._default_value:
-            return
+            return False
+        is_valid, new_value = self._prepare_attribute_value(new_value)
+        if not is_valid:
+            return False
         # If a create_callback is set, use that
         if self._create_callback:
             self._create_callback(attr, new_value)
@@ -702,7 +780,7 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         else:
             path = attr.GetPath()
             if not path.IsPropertyPath():
-                return
+                raise ValueError(f"Cannot create virtual attribute from invalid property path: {path}")
             prim = self._stage.GetPrimAtPath(path.GetPrimPath())
             omni.kit.commands.execute(
                 "CreateUsdAttributeCommand",
@@ -711,14 +789,14 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
                 attr_type=self._value_type_name,
                 attr_value=new_value,
             )
+        return True
 
-    def _set_attribute_value(self, attr, new_value):
+    def _set_attribute_value(self, attr, new_value) -> bool:
         """
         Override to set the attribute value.
 
         If a virtual attribute is changed we need to first create it.
         """
-        if attr:
-            super()._set_attribute_value(attr, new_value)
-        else:
-            self._create_and_set_attribute_value(attr, new_value)
+        if attr.IsValid():
+            return super()._set_attribute_value(attr, new_value)
+        return self._create_and_set_attribute_value(attr, new_value)

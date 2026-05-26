@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.1]
+### Fixed
+- Deactivate Stage Manager interactions while the workspace window is hidden so queued refreshes cannot rebuild stale stage items
+
 ## [1.4.0]
 ### Changed
 - Use Remix Proxies for Stage Manager Interaction & Context Plugins to allow for Remix-specific functionality

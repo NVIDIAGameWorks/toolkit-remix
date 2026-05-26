@@ -246,8 +246,8 @@ class USDDelegate(_Delegate):
                         ui.Spacer()
                     widgets = [outer]
                 elif column_id == 1 and item.value_models:
-                    builder = self.get_widget_builder(item)
-                    widgets = builder(item)
+                    builder = self.get_field_builder(item)
+                    widgets = self._build_field_widgets(builder, item)
 
         if widgets:
             row.attribute_widgets.extend(widgets)

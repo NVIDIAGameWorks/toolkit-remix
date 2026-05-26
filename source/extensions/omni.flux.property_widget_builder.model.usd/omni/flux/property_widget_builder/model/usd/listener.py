@@ -83,7 +83,7 @@ class USDListener:
 
         self._tmp_models = list(self._models)
         for model in self._tmp_models:
-            self.remove_model(model)
+            self.remove_model(model, cancel_edit_interaction=False)
 
     def _enable_listener(self, stage: Usd.Stage):
         """Enable the USD listener for a stage.
@@ -174,26 +174,66 @@ class USDListener:
 
         self._models.append(model)
 
-    def remove_model(self, model: "_USDModel"):
+    def remove_model(self, model: "_USDModel", *, cancel_edit_interaction: bool = True):
         """Remove a model that was being listened to.
 
         Args:
             model: Model whose stage may no longer need a listener.
+            cancel_edit_interaction: Whether an active property edit should be canceled.
         """
 
-        if not model or not self._models:
+        if not model:
             return
+        removed_from_models = False
+        removed_from_tmp_models = False
         if model in self._models:
             self._models.remove(model)
+            removed_from_models = True
+        elif model in self._tmp_models:
+            self._tmp_models.remove(model)
+            removed_from_tmp_models = True
+        if not removed_from_models and not removed_from_tmp_models:
+            return
         stage = model.stage
-        if stage and not any(f for f in self._models if f.stage == stage):
+        cancel_error = None
+        if cancel_edit_interaction:
+            try:
+                model.cancel_property_edit_interaction()
+            except Exception as exc:  # noqa: BLE001 - keep listener cleanup reliable before re-raising.
+                cancel_error = exc
+        if removed_from_models and stage and not any(f for f in self._models if f.stage == stage):
+            self._disable_listener(stage)
+        if (
+            removed_from_tmp_models
+            and stage
+            and not any(f for f in self._models if f.stage == stage)
+            and not any(f for f in self._tmp_models if f.stage == stage)
+        ):
             self._disable_listener(stage)
         self._purge_stale_listeners()
+        if cancel_error is not None:
+            raise cancel_error
 
     def destroy(self):
         """Revoke all registered stage listeners and reset listener state."""
+
+        cancel_error = None
+        for model in tuple(self._models):
+            try:
+                self.remove_model(model)
+            except Exception as exc:  # noqa: BLE001 - keep listener cleanup reliable before re-raising.
+                if cancel_error is None:
+                    cancel_error = exc
+        for model in tuple(self._tmp_models):
+            try:
+                self.remove_model(model)
+            except Exception as exc:  # noqa: BLE001 - keep listener cleanup reliable before re-raising.
+                if cancel_error is None:
+                    cancel_error = exc
 
         for listener in self._listeners.values():
             listener.Revoke()
 
         _reset_default_attrs(self)
+        if cancel_error is not None:
+            raise cancel_error

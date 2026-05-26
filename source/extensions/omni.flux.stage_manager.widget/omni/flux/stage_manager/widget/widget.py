@@ -144,9 +144,13 @@ class StageManagerWidget:
         """
         Fire and forget the `_select_tab_deferred` asynchronous method
         """
+        self._cancel_deferred_tab_selection()
+        self.__select_tab_task = ensure_future(self._select_tab_deferred(index, *args))
+
+    def _cancel_deferred_tab_selection(self):
         if self.__select_tab_task:
             self.__select_tab_task.cancel()
-        self.__select_tab_task = ensure_future(self._select_tab_deferred(index, *args))
+            self.__select_tab_task = None
 
     @usd.handle_exception
     async def _resize_tabs_deferred(self):
@@ -215,9 +219,7 @@ class StageManagerWidget:
             enabled_interaction.set_active(enabled_interaction == interaction)
 
     def destroy(self):
-        if self.__select_tab_task:
-            self.__select_tab_task.cancel()
-            self.__select_tab_task = None
+        self._cancel_deferred_tab_selection()
 
         if self.__resize_task:
             self.__resize_task.cancel()

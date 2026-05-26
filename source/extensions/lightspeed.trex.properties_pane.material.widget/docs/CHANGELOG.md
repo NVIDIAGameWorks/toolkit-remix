@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.6]
+### Added
+- Added real material texture field E2E coverage for deferred refresh on edit completion
+
 ## [2.1.5]
 ### Changed
 - Update test setup to use renamed `LayerManagerCore.set_edit_target_layer_of_type()` (was `set_edit_target_layer`)

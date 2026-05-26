@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from unittest.mock import patch
+
 import omni.kit.test
 import omni.usd
 from omni.flux.property_widget_builder.model.usd.item_model.relationship_value import UsdRelationshipValueModel
@@ -97,6 +99,31 @@ class TestUsdRelationshipValueModel(omni.kit.test.AsyncTestCase):
         targets = relationship.GetTargets()
         self.assertEqual(len(targets), 0, "Should have no targets")
         self.assertEqual(model.get_value(), "", "Model value should be empty")
+
+    async def test_set_value_with_invalid_path_keeps_existing_targets(self):
+        """Arrange: Relationship with target, Act: Set invalid path, Assert: Target unchanged."""
+        # Arrange
+        prim = self.stage.DefinePrim("/TestPrim")
+        relationship = prim.CreateRelationship("testRel")
+        relationship.SetTargets([Sdf.Path("/TargetPrim")])
+
+        model = UsdRelationshipValueModel(
+            context_name="",
+            relationship_paths=[Sdf.Path("/TestPrim.testRel")],
+            read_only=False,
+        )
+
+        # Act
+        with patch.object(model, "_value_changed") as value_changed:
+            model.set_value("/Invalid Path")
+            await omni.kit.app.get_app().next_update_async()
+
+        # Assert
+        targets = relationship.GetTargets()
+        self.assertEqual(len(targets), 1, "Should keep one target")
+        self.assertEqual(str(targets[0]), "/TargetPrim", "Target should not change")
+        self.assertEqual(model.get_value(), "/TargetPrim", "Model value should stay unchanged")
+        value_changed.assert_called_once_with()
 
     async def test_refresh_reads_current_target_from_usd(self):
         """Arrange: Set target externally, Act: Refresh model, Assert: Model updated."""
@@ -208,6 +235,46 @@ class TestUsdRelationshipValueModel(omni.kit.test.AsyncTestCase):
         self.assertEqual(len(targets2), 1, "Second rel should have target")
         self.assertEqual(str(targets1[0]), "/NewTarget", "First target should match")
         self.assertEqual(str(targets2[0]), "/NewTarget", "Second target should match")
+
+    async def test_failed_multiselect_write_resyncs_cached_value(self):
+        """Arrange: 2 rels, Act: second write fails, Assert: Model reflects partial USD state."""
+        # Arrange
+        prim1 = self.stage.DefinePrim("/Prim1")
+        rel1 = prim1.CreateRelationship("rel")
+        rel1.SetTargets([Sdf.Path("/OldTarget")])
+
+        prim2 = self.stage.DefinePrim("/Prim2")
+        rel2 = prim2.CreateRelationship("rel")
+        rel2.SetTargets([Sdf.Path("/OldTarget")])
+
+        model = UsdRelationshipValueModel(
+            context_name="",
+            relationship_paths=[Sdf.Path("/Prim1.rel"), Sdf.Path("/Prim2.rel")],
+            read_only=False,
+        )
+        execute_command = omni.kit.commands.execute
+        call_count = 0
+
+        def fail_second_write(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 2:
+                raise RuntimeError("relationship write failed")
+            return execute_command(*args, **kwargs)
+
+        with patch(
+            "omni.flux.property_widget_builder.model.usd.item_model.relationship_value.omni.kit.commands.execute",
+            side_effect=fail_second_write,
+        ):
+            # Act
+            with self.assertRaisesRegex(RuntimeError, "relationship write failed"):
+                model.set_value("/NewTarget")
+
+        # Assert
+        self.assertTrue(model.is_mixed)
+        self.assertEqual(model.get_value(), "/NewTarget")
+        self.assertEqual(str(rel1.GetTargets()[0]), "/NewTarget")
+        self.assertEqual(str(rel2.GetTargets()[0]), "/OldTarget")
 
     async def test_set_value_multiple_times_updates_correctly(self):
         """Arrange: Create model, Act: Set value twice, Assert: Second value persists."""

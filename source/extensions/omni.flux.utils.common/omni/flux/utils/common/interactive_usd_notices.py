@@ -17,10 +17,12 @@
 
 from __future__ import annotations
 
+import contextlib
 import itertools
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+import carb
 from pxr import Sdf, Tf, Usd
 
 __all__ = [
@@ -29,6 +31,7 @@ __all__ = [
     "InteractiveUsdNoticeService",
     "ListenerSubscription",
     "begin_interaction",
+    "defer_usd_notices",
     "end_interaction",
     "get_interactive_usd_notice_service",
     "is_any_interaction_active",
@@ -236,7 +239,14 @@ class InteractiveUsdNoticeService:
         self._active_tokens.pop(stage_key, None)
         self._flush_pending_notices(stage_key)
         for callback in tuple(self._interaction_end_listeners.values()):
-            callback(token.stage)
+            try:
+                callback(token.stage)
+            except Exception as exc:  # noqa: BLE001 - keep cleanup reliable after arbitrary listener failures.
+                carb.log_error(f"Interactive USD interaction-end listener failed: {exc}")
+        if self._active_tokens.get(stage_key):
+            return
+        if not any(listener.stage_key == stage_key for listener in self._listeners.values()):
+            self._revoke_stage_listener(stage_key)
 
     def register_objects_changed_listener(
         self,
@@ -291,6 +301,9 @@ class InteractiveUsdNoticeService:
         record = self._listeners.pop(listener_id, None)
         if record is None or any(listener.stage_key == record.stage_key for listener in self._listeners.values()):
             return
+        if self._active_tokens.get(record.stage_key):
+            return
+        self._pending_notices.pop(record.stage_key, None)
         self._revoke_stage_listener(record.stage_key)
 
     def revoke_interaction_end_listener(self, listener_id: int) -> None:
@@ -359,14 +372,12 @@ class InteractiveUsdNoticeService:
         if stage_key is None:
             return
         listeners = [listener for listener in tuple(self._listeners.values()) if listener.stage_key == stage_key]
-        if not listeners:
+        if self._active_tokens.get(stage_key):
+            self._pending_notices.setdefault(stage_key, _PendingNotice()).extend(notice)
             return
-        if not self._active_tokens.get(stage_key):
+        if listeners:
             for listener in listeners:
                 listener.callback(notice, listener.stage)
-            return
-
-        self._pending_notices.setdefault(stage_key, _PendingNotice()).extend(notice)
 
     def _flush_pending_notices(self, stage_key: _StageKey) -> None:
         """Flush accumulated notices for one stage key.
@@ -452,6 +463,17 @@ def end_interaction(token: InteractionToken | None) -> None:
     """
 
     get_interactive_usd_notice_service().end_interaction(token)
+
+
+@contextlib.contextmanager
+def defer_usd_notices(stage: Usd.Stage | None):
+    """Defer USD object notices until the enclosed write scope completes."""
+
+    token = begin_interaction(stage)
+    try:
+        yield
+    finally:
+        end_interaction(token)
 
 
 def register_objects_changed_listener(

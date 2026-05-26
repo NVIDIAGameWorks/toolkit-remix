@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.2]
+### Added
+- Added a shared USD light utility for typed and schema-applied light prim detection
+
 ## [2.3.1]
 ### Fixed
 - Fixed reference child discovery for over-only mesh prims with authored Remix reference children

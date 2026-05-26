@@ -17,10 +17,10 @@ Use `-b` to select an extension bucket and `--` to pass extra args to the underl
 ### Via test scripts (direct)
 
 ```text
-.\_build\windows-x86_64\release\tests-<extension.name>.bat             # all groups
-.\_build\windows-x86_64\release\tests-<extension.name>.bat -n default  # user tests only (preferred)
-.\_build\windows-x86_64\release\tests-<extension.name>.bat -n default -f <pattern>  # filter by name
-.\_build\windows-x86_64\release\tests-<extension.name>.bat -n default --coverage    # with coverage
+.\_build\windows-x86_64\release\tests-<extension.name>.bat -- --no-window             # all groups, headless
+.\_build\windows-x86_64\release\tests-<extension.name>.bat -n default -- --no-window  # user tests only, headless
+.\_build\windows-x86_64\release\tests-<extension.name>.bat -n default -f <pattern> -- --no-window  # filtered, headless
+.\_build\windows-x86_64\release\tests-<extension.name>.bat -n default --coverage -- --no-window    # coverage, headless
 ```
 
 | Flag           | Description                                                                             |
@@ -35,13 +35,14 @@ Test output lands in `_testoutput/exttest_<sanitized_name>/` (dots replaced with
 
 ### Local E2E execution
 
-When you run an extension's `tests-<extension>.bat` locally and it includes E2E tests, **do not run multiple test
-scripts in parallel**. These tests open real Kit windows and dialogs, and parallel local runs can steal focus, click
-the wrong window, or leave modal dialogs open for another test process.
+Use `-- --no-window` when running local extension test scripts. It keeps Kit headless and avoids opening test windows.
+Omit it when you need visible UI to debug widget focus, rendering, or modal behavior. This matches the `repo.toml`
+`repo_test` suites, which already pass `--no-window` after the repo-test argument separator.
 
-- Run one extension BAT at a time for local E2E workflows
-- If you need to isolate a failure, use `-n default -f <pattern>` instead of starting a second BAT in parallel
-- Treat conflicting windows, missing button queries, and unexpected modal state as likely parallel-run interference first
+- The first `--` separates test-runner flags from Kit flags; `--no-window` is passed to Kit.
+- Use `--dev` when you intentionally want to see local E2E tests run in a visible Kit window during development.
+- Use `-n default -f <pattern>` when you need to isolate a specific failure.
+- If a visible window opens unexpectedly, check the launch command because Kit probably did not receive `--no-window`.
 
 ### Troubleshooting
 
@@ -270,8 +271,8 @@ a complete multi-step workflow (open a window, fill fields, click buttons, verif
 - **Trigger actions through UI elements** — not by calling internal methods directly
 - **Verify results** through UI state, filesystem checks, or USD stage values as appropriate
 - Use `await ui_test.human_delay()` for frame waits — **never** `time.sleep()` or `next_update_async()`
-- When running locally through an extension `tests-<extension>.bat`, never run multiple E2E test processes in parallel.
-  These tests open real windows and can interfere with each other across processes.
+- Local `tests-<extension.name>.bat` runs can stay headless by adding `-- --no-window`. Omit it when visible UI helps
+  debug widget focus, rendering, or modal behavior. Add `--dev` when you intentionally want to watch local E2E tests run.
 - Reserved for behaviors that cannot be meaningfully tested with mocks
 - For UI automation details, see
   the [Kit UI test framework](https://docs.omniverse.nvidia.com/kit/docs/kit-manual/latest/guide/testing_exts_python.html#omni-kit-ui-test-writing-ui-tests)

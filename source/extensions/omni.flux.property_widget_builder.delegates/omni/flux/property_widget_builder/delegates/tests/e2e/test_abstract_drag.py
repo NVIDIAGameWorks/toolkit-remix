@@ -21,15 +21,68 @@ import uuid
 from typing import cast
 
 import carb.input
+import omni.appwindow
 import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
 from omni.flux.property_widget_builder.delegates.float_value.drag import FloatDragFieldGroup
+from omni.flux.property_widget_builder.widget import Delegate, FieldBuilderList, Model, PropertyWidget
 
 from .mocks import MockItem
 
 
 class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
+    async def setUp(self):
+        self._fields: list[FloatDragFieldGroup] = []
+
+    async def tearDown(self):
+        for field in self._fields:
+            field.destroy()
+        self._fields.clear()
+        await omni.kit.ui_test.wait_n_updates(2)
+
+    def _make_field(self, *args, **kwargs) -> FloatDragFieldGroup:
+        field = FloatDragFieldGroup(*args, **kwargs)
+        self._fields.append(field)
+        return field
+
+    def _make_property_widget(self, values: list[float], *, step=None, width: int = 500):
+        window = ui.Window(
+            f"TestAbstractDrag_{str(uuid.uuid1())}",
+            height=240,
+            width=width,
+            position_x=0,
+            position_y=100,
+        )
+        item = MockItem(values)
+        model = Model()
+        field_builders = FieldBuilderList()
+
+        @field_builders.register_build(lambda _: True)
+        def build_field(item):
+            return self._make_field(step=step)(item)
+
+        delegate = Delegate(field_builders=field_builders)
+        with window.frame:
+            widget = PropertyWidget(model=model, delegate=delegate)
+        model.set_items([item])
+        return window, widget, item
+
+    @staticmethod
+    async def _type_text(text: str) -> None:
+        await omni.kit.ui_test.emulate_char_press(text)
+        await omni.kit.ui_test.human_delay(human_delay_speed=1)
+
+    @staticmethod
+    async def _press_key(key: carb.input.KeyboardInput) -> None:
+        await omni.kit.ui_test.emulate_keyboard_press(key)
+        await omni.kit.ui_test.human_delay(human_delay_speed=1)
+
+    def _find_float_drag_widgets(self, window_title: str, expected_count: int):
+        widget_refs = omni.kit.ui_test.find_all(f"{window_title}//Frame/**/FloatBoundedDrag[*]")
+        self.assertEqual(len(widget_refs), expected_count)
+        return widget_refs
+
     # ------------------------------------------------------------------
     # __call__ delegation
     # ------------------------------------------------------------------
@@ -41,10 +94,10 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
             height=200,
             width=400,
             position_x=0,
-            position_y=0,
+            position_y=100,
         )
         item = MockItem(values=[1.0])
-        field = FloatDragFieldGroup(min_value=0.0, max_value=10.0)
+        field = self._make_field(min_value=0.0, max_value=10.0)
 
         with window.frame:
             widgets = cast(list[ui.Widget], field(item))
@@ -69,10 +122,10 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
             height=200,
             width=400,
             position_x=0,
-            position_y=0,
+            position_y=100,
         )
         item = MockItem(values=[42.0])
-        field = FloatDragFieldGroup(min_value=0.0, max_value=100.0)
+        field = self._make_field(min_value=0.0, max_value=100.0)
 
         with window.frame:
             widgets = field.build_ui(item)
@@ -92,10 +145,10 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
             height=200,
             width=400,
             position_x=0,
-            position_y=0,
+            position_y=100,
         )
         item = MockItem(values=[1.0, 2.0, 3.0])
-        field = FloatDragFieldGroup(min_value=0.0, max_value=10.0)
+        field = self._make_field(min_value=0.0, max_value=10.0)
 
         with window.frame:
             widgets = field.build_ui(item)
@@ -108,37 +161,21 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
             w.destroy()
         window.destroy()
 
-    async def test_build_ui_subscribes_begin_end_edit(self):
-        """build_ui should subscribe to begin_edit and end_edit on each value model."""
-        window = ui.Window(
-            f"TestAbstractDrag_{str(uuid.uuid1())}",
-            height=200,
-            width=400,
-            position_x=0,
-            position_y=0,
-        )
-        item = MockItem(values=[1.0, 2.0])
-        field = FloatDragFieldGroup(min_value=0.0, max_value=10.0)
-
-        with window.frame:
-            widgets = field.build_ui(item)
-
-        await omni.kit.ui_test.human_delay(human_delay_speed=1)
-
-        # 2 elements x 2 subscriptions (begin + end) = 4
-        self.assertEqual(len(field._subs), 4)
-
-        for w in widgets:
-            w.destroy()
-        window.destroy()
-
     async def test_build_ui_read_only_appends_read_suffix(self):
         """When a value model is read-only, the style override should end with 'Read'."""
         build_calls: list[dict] = []
         original_build = FloatDragFieldGroup.build_drag_widget
 
         def spy_build(
-            self_inner, model, style_type_name_override, read_only, min_val, max_val, hard_min_val, hard_max_val, step
+            self_inner,
+            model,
+            style_type_name_override,
+            read_only,
+            min_val,
+            max_val,
+            hard_min_val,
+            hard_max_val,
+            step,
         ):
             build_calls.append({"style": style_type_name_override, "read_only": read_only})
             return original_build(
@@ -161,7 +198,7 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[5.0], read_only=True)
-        field = FloatDragFieldGroup(min_value=0.0, max_value=10.0)
+        field = self._make_field(min_value=0.0, max_value=10.0)
         field.build_drag_widget = lambda *a, **kw: spy_build(field, *a, **kw)
 
         with window.frame:
@@ -183,7 +220,15 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
         original_build = FloatDragFieldGroup.build_drag_widget
 
         def spy_build(
-            self_inner, model, style_type_name_override, read_only, min_val, max_val, hard_min_val, hard_max_val, step
+            self_inner,
+            model,
+            style_type_name_override,
+            read_only,
+            min_val,
+            max_val,
+            hard_min_val,
+            hard_max_val,
+            step,
         ):
             build_calls.append({"style": style_type_name_override, "read_only": read_only})
             return original_build(
@@ -206,7 +251,7 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[5.0], read_only=False)
-        field = FloatDragFieldGroup(min_value=0.0, max_value=10.0)
+        field = self._make_field(min_value=0.0, max_value=10.0)
         field.build_drag_widget = lambda *a, **kw: spy_build(field, *a, **kw)
 
         with window.frame:
@@ -228,7 +273,15 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
         original_build = FloatDragFieldGroup.build_drag_widget
 
         def spy_build(
-            self_inner, model, style_type_name_override, read_only, min_val, max_val, hard_min_val, hard_max_val, step
+            self_inner,
+            model,
+            style_type_name_override,
+            read_only,
+            min_val,
+            max_val,
+            hard_min_val,
+            hard_max_val,
+            step,
         ):
             build_calls.append({"min": min_val, "max": max_val, "step": step})
             return original_build(
@@ -251,7 +304,7 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[5.0])
-        field = FloatDragFieldGroup(min_value=-10.0, max_value=10.0, step=0.5)
+        field = self._make_field(min_value=-10.0, max_value=10.0, step=0.5)
         field.build_drag_widget = lambda *a, **kw: spy_build(field, *a, **kw)
 
         with window.frame:
@@ -274,7 +327,15 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
         original_build = FloatDragFieldGroup.build_drag_widget
 
         def spy_build(
-            self_inner, model, style_type_name_override, read_only, min_val, max_val, hard_min_val, hard_max_val, step
+            self_inner,
+            model,
+            style_type_name_override,
+            read_only,
+            min_val,
+            max_val,
+            hard_min_val,
+            hard_max_val,
+            step,
         ):
             build_calls.append({"min": min_val, "max": max_val, "step": step})
             return original_build(
@@ -297,7 +358,7 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[5.0])
-        field = FloatDragFieldGroup()
+        field = self._make_field()
         field.build_drag_widget = lambda *a, **kw: spy_build(field, *a, **kw)
 
         with window.frame:
@@ -317,8 +378,8 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
     # Hard-bounds clamping via drag and typed entry
     # ------------------------------------------------------------------
 
-    async def test_hard_bounds_clamp_on_drag_and_type(self):
-        """Dragging should clamp to soft bounds; typing should clamp to hard bounds via widget pre-set callbacks."""
+    async def test_hard_bounds_clamp_on_drag(self):
+        """Dragging should clamp to soft bounds."""
         window = ui.Window(
             f"TestAbstractDrag_{str(uuid.uuid1())}",
             height=200,
@@ -327,7 +388,7 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         item = MockItem(values=[50.0])
-        field = FloatDragFieldGroup(
+        field = self._make_field(
             min_value=0.0,
             max_value=100.0,
             hard_min_value=-10.0,
@@ -360,103 +421,122 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
         await omni.kit.ui_test.wait_n_updates(2)
         self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 100.0)
 
-        # Type value above hard_max -- end_edit clamps to hard_max_value
-        await widget_ref.double_click()
-        await omni.kit.ui_test.emulate_char_press("200")
-        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
-        await omni.kit.ui_test.wait_n_updates(2)
-        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 110.0)
-
-        # Type value below hard_min -- end_edit clamps to hard_min_value
-        await widget_ref.double_click()
-        await omni.kit.ui_test.emulate_char_press("-50")
-        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
-        await omni.kit.ui_test.wait_n_updates(2)
-        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), -10.0)
-
-        # Type value between soft max and hard max -- within hard bounds, not clamped
-        await widget_ref.double_click()
-        await omni.kit.ui_test.emulate_char_press("105")
-        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
-        await omni.kit.ui_test.wait_n_updates(2)
-        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 105.0)
-
         window.destroy()
 
-    # ------------------------------------------------------------------
-    # One-sided hard-bound clamping via typed entry
-    # ------------------------------------------------------------------
+    async def test_double_click_numeric_field_selects_existing_value_for_replacement(self):
+        """Double-clicking a delegate numeric field should prefill the editor with selected existing text."""
+        window, property_widget, item = self._make_property_widget([8.0])
+        try:
+            await omni.kit.ui_test.human_delay(human_delay_speed=10)
+            widgets = self._find_float_drag_widgets(window.title, 1)
 
-    async def test_one_sided_hard_min_clamp_on_type(self):
-        """With only hard_min set, values below min should be clamped but no upper limit enforced."""
-        window = ui.Window(
-            f"TestAbstractDrag_{str(uuid.uuid1())}",
-            height=200,
-            width=400,
-            position_x=0,
-            position_y=0,
-        )
-        item = MockItem(values=[50.0])
-        field = FloatDragFieldGroup(hard_min_value=10.0)
+            # Double-click into the field and type a new value through the real UI input path.
+            await widgets[0].click()
+            await widgets[0].double_click()
+            await self._type_text("12")
+            self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 12.0, places=5)
 
-        with window.frame:
-            field.build_ui(item)
+            await self._press_key(carb.input.KeyboardInput.ENTER)
+        finally:
+            property_widget.destroy()
+            window.destroy()
 
-        await omni.kit.ui_test.human_delay(human_delay_speed=1)
+    async def test_math_expression_and_arrow_step_update_delegate_field(self):
+        """Typed math should update the delegate model immediately; Arrow Up should step from that result."""
+        window, property_widget, item = self._make_property_widget([0.0], step=0.25)
+        try:
+            await omni.kit.ui_test.human_delay(human_delay_speed=10)
+            widgets = self._find_float_drag_widgets(window.title, 1)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
-        self.assertTrue(len(widget_refs) > 0, "No FloatBoundedDrag widgets found")
-        widget_ref = widget_refs[0]
+            # Enter a math expression and verify the model changes while the text editor is still active.
+            await widgets[0].click()
+            await widgets[0].double_click()
+            await self._type_text("2*100")
+            self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 200.0, places=5)
 
-        # Type below hard_min -- should clamp
-        await widget_ref.double_click()
-        await omni.kit.ui_test.emulate_char_press("5")
-        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
-        await omni.kit.ui_test.wait_n_updates(2)
-        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 10.0)
+            # Arrow Up uses the widget step and continues from the evaluated expression result.
+            await self._press_key(carb.input.KeyboardInput.UP)
+            self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 200.25, places=5)
 
-        # Type above -- no upper clamp, value accepted
-        await widget_ref.double_click()
-        await omni.kit.ui_test.emulate_char_press("9999")
-        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
-        await omni.kit.ui_test.wait_n_updates(2)
-        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 9999.0)
+            await self._press_key(carb.input.KeyboardInput.ENTER)
+        finally:
+            property_widget.destroy()
+            window.destroy()
 
-        window.destroy()
+    async def test_tab_after_expression_focuses_next_delegate_field(self):
+        """Tab after a math expression should commit it and focus the next vector component."""
+        window, property_widget, item = self._make_property_widget([5.0, 6.0, 7.0])
+        try:
+            await omni.kit.ui_test.human_delay(human_delay_speed=10)
+            widgets = self._find_float_drag_widgets(window.title, 3)
 
-    async def test_one_sided_hard_max_clamp_on_type(self):
-        """With only hard_max set, values above max should be clamped but no lower limit enforced."""
-        window = ui.Window(
-            f"TestAbstractDrag_{str(uuid.uuid1())}",
-            height=200,
-            width=400,
-            position_x=0,
-            position_y=0,
-        )
-        item = MockItem(values=[50.0])
-        field = FloatDragFieldGroup(hard_max_value=100.0)
+            # Type an expression in X, then Tab once.
+            await widgets[0].click()
+            await widgets[0].double_click()
+            await self._type_text("3*10")
+            self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 30.0, places=5)
 
-        with window.frame:
-            field.build_ui(item)
+            # The same Tab press should move focus to Y; no second Tab should be needed.
+            await self._press_key(carb.input.KeyboardInput.TAB)
+            self.assertAlmostEqual(widgets[0].widget.model.get_value_as_float(), 30.0, places=5)
 
-        await omni.kit.ui_test.human_delay(human_delay_speed=1)
+            # Typing now should replace Y, proving focus moved to the next delegate field.
+            await self._type_text("12")
+            self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 30.0, places=5)
+            self.assertAlmostEqual(item.value_models[1].get_value_as_float(), 12.0, places=5)
+            self.assertAlmostEqual(item.value_models[2].get_value_as_float(), 7.0, places=5)
 
-        widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
-        self.assertTrue(len(widget_refs) > 0, "No FloatBoundedDrag widgets found")
-        widget_ref = widget_refs[0]
+            await self._press_key(carb.input.KeyboardInput.ENTER)
+        finally:
+            property_widget.destroy()
+            window.destroy()
 
-        # Type above hard_max -- should clamp
-        await widget_ref.double_click()
-        await omni.kit.ui_test.emulate_char_press("200")
-        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
-        await omni.kit.ui_test.wait_n_updates(2)
-        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 100.0)
+    async def test_vector_tab_loop_and_hold_arrow_step_focused_delegate_field(self):
+        """Tabbing X/Y/Z/X and holding Arrow Up should keep editing the focused field, not the hovered field."""
+        window, property_widget, item = self._make_property_widget([1.0, 2.0, 3.0], step=[0.1, 0.2, 0.3])
+        try:
+            await omni.kit.ui_test.human_delay(human_delay_speed=10)
+            widgets = self._find_float_drag_widgets(window.title, 3)
 
-        # Type below -- no lower clamp, value accepted
-        await widget_ref.double_click()
-        await omni.kit.ui_test.emulate_char_press("-9999")
-        await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
-        await omni.kit.ui_test.wait_n_updates(2)
-        self.assertAlmostEqual(item.value_models[0].get_value_as_float(), -9999.0)
+            # Step X, then Tab to Y and Z through real keyboard focus.
+            await widgets[0].click()
+            await widgets[0].double_click()
+            await self._press_key(carb.input.KeyboardInput.UP)
+            self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 1.1, places=5)
 
-        window.destroy()
+            await self._press_key(carb.input.KeyboardInput.TAB)
+            await self._press_key(carb.input.KeyboardInput.UP)
+            self.assertAlmostEqual(item.value_models[1].get_value_as_float(), 2.2, places=5)
+
+            await self._press_key(carb.input.KeyboardInput.TAB)
+            await self._press_key(carb.input.KeyboardInput.DOWN)
+            self.assertAlmostEqual(item.value_models[2].get_value_as_float(), 2.7, places=5)
+
+            # Tabbing after Z loops back to X.
+            await self._press_key(carb.input.KeyboardInput.TAB)
+
+            # Move the cursor over Y, then hold Arrow Up; the focused X field should receive every repeat.
+            await omni.kit.ui_test.emulate_mouse_move(widgets[1].position + omni.kit.ui_test.Vec2(3, 3))
+            keyboard = omni.appwindow.get_default_app_window().get_keyboard()
+            input_provider = carb.input.acquire_input_provider()
+            input_provider.buffer_keyboard_key_event(
+                keyboard, carb.input.KeyboardEventType.KEY_PRESS, carb.input.KeyboardInput.UP, 0
+            )
+            for _ in range(4):
+                input_provider.buffer_keyboard_key_event(
+                    keyboard, carb.input.KeyboardEventType.KEY_REPEAT, carb.input.KeyboardInput.UP, 0
+                )
+                await omni.kit.ui_test.human_delay(human_delay_speed=1)
+            input_provider.buffer_keyboard_key_event(
+                keyboard, carb.input.KeyboardEventType.KEY_RELEASE, carb.input.KeyboardInput.UP, 0
+            )
+            await omni.kit.ui_test.human_delay(human_delay_speed=1)
+
+            self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 1.6, places=5)
+            self.assertAlmostEqual(item.value_models[1].get_value_as_float(), 2.2, places=5)
+            self.assertAlmostEqual(item.value_models[2].get_value_as_float(), 2.7, places=5)
+
+            await self._press_key(carb.input.KeyboardInput.ENTER)
+        finally:
+            property_widget.destroy()
+            window.destroy()

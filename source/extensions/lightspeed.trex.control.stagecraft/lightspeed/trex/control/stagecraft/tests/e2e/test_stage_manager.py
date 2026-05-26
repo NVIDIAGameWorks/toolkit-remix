@@ -22,6 +22,7 @@ import omni.usd as usd
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import WindowNames as _WindowNames
 from lightspeed.trex.utils.widget.quicklayout import load_layout
+from omni.flux.custom_tags.core import CustomTagsCore as _CustomTagsCore
 from omni.flux.stage_manager.core import get_instance as _get_stage_manager_core_instance
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
@@ -54,6 +55,42 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         if usd_context.can_close_stage():
             await usd_context.close_stage_async()
             await ui_test.human_delay(2)
+
+    async def _select_stage_manager_tab(self, display_name: str, interaction_name: str):
+        core = _get_stage_manager_core_instance()
+        self.assertIsNotNone(core)
+
+        tab_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Label[*].name=='PropertiesWidgetLabel'"
+        for _ in range(40):
+            tabs = [
+                tab for tab in ui_test.find_all(tab_selector) if tab.widget.visible and tab.widget.text == display_name
+            ]
+            if tabs:
+                tab = tabs[0]
+                await ui_test.emulate_mouse_move(tab.position + (tab.size / 2))
+                await ui_test.emulate_mouse_click()
+                break
+            await ui_test.human_delay()
+        else:
+            self.fail(f"Stage Manager tab '{display_name}' was not visible")
+
+        for _ in range(80):
+            interaction = core.get_active_interaction()
+            if interaction and interaction.name == interaction_name:
+                return interaction
+            await ui_test.wait_n_updates(2)
+        self.fail(f"Stage Manager did not activate {interaction_name}")
+        return None
+
+    @staticmethod
+    def _find_tagged_items(interaction, prim_path: str, tag_name: str):
+        return interaction.tree.model.find_items(
+            lambda item: item.data
+            and item.data.IsValid()
+            and str(item.data.GetPath()) == prim_path
+            and item.parent
+            and item.parent.display_name == tag_name
+        )
 
     async def test_material_properties_update_stage_manager_should_not_refresh(self):
         selection_prim_path = (
@@ -148,3 +185,40 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
             for item in interaction.tree.model.find_items(lambda item: item.data and item.data.IsValid())
         }
         self.assertEqual(stage_manager_paths_before, stage_manager_paths_after)
+
+    async def test_custom_tag_assignment_updates_active_stage_manager_tab(self):
+        selection_prim_path = (
+            "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
+        )
+        usd_context = usd.get_context()
+        stage = usd_context.get_stage()
+        prim = stage.GetPrimAtPath(selection_prim_path)
+        self.assertTrue(prim.IsValid())
+
+        # Create a real tag before opening the tag-grouped view, so the active tree starts without the prim assigned.
+        tags_core = _CustomTagsCore()
+        tag_path = tags_core.get_unique_tag_path("Codex_Refresh_Tag", existing_tag_paths=tags_core.get_all_tags())
+        tag_name = tags_core.get_tag_name(tag_path)
+        self.assertIsNotNone(tag_name)
+        tags_core.create_tag(tag_name, use_undo_group=False)
+        await ui_test.wait_n_updates(10)
+
+        # Switch to the real Stage Manager Custom Tags tab and wait for its initial tree build.
+        interaction = await self._select_stage_manager_tab("Custom Tags", "RemixAllTagsInteractionPlugin")
+        for _ in range(80):
+            if not self._find_tagged_items(interaction, selection_prim_path, tag_name):
+                break
+            await ui_test.wait_n_updates(2)
+        else:
+            self.fail(f"{selection_prim_path} already had tag {tag_name}")
+
+        # Assign the tag through the same USD collection command path used by the tag editing UI.
+        tags_core.add_tag_to_prim(selection_prim_path, tag_path)
+
+        # The active Custom Tags tab must rebuild its context items, not only dirty existing widgets.
+        for _ in range(120):
+            if self._find_tagged_items(interaction, selection_prim_path, tag_name):
+                break
+            await ui_test.wait_n_updates(2)
+        else:
+            self.fail(f"Stage Manager did not refresh {tag_name} membership for {selection_prim_path}")

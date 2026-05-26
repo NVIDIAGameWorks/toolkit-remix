@@ -1,19 +1,20 @@
 # kit-test
 
-Command rules in `.agents/context/project.md`; no extra flags.
+Rules in `.agents/context/project.md`. Direct ext BAT -> add `-- --no-window`; visible UI only on ask.
+`repo.toml` `repo_test` already headless.
 
 Run:
 
 ```bat
-.\_build\windows-x86_64\release\tests-<extension-name>.bat
+.\_build\windows-x86_64\release\tests-<extension-name>.bat -- --no-window
 ```
 
-E2E present -> one extension BAT at a time; real windows/dialogs conflict.
+E2E -> headless; no focus steal.
 
 Filter:
 
 ```bat
-.\_build\windows-x86_64\release\tests-<extension-name>.bat -n default -f test_gradient
+.\_build\windows-x86_64\release\tests-<extension-name>.bat -n default -f test_gradient -- --no-window
 ```
 
 Output: `_testoutput/exttest_<sanitized_name>/` (dots -> underscores).

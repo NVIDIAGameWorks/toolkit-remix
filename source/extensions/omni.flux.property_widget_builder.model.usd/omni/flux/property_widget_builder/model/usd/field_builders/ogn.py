@@ -90,16 +90,16 @@ OGN_FIELD_BUILDERS.append_builder_by_attr_name(
 )
 
 
-@OGN_FIELD_BUILDERS.register_build(_is_float_type)
-def _float_builder(item):
+@OGN_FIELD_BUILDERS.register_build(_is_float_type, supports_field_cleanup=True)
+def _float_builder(item, *, register_cleanup=None):
     """Build a float drag for OGN float attributes (bounds applied from metadata)."""
-    return USDFloatDragField().build_ui(item)
+    return USDFloatDragField().build_ui(item, register_cleanup=register_cleanup)
 
 
-@OGN_FIELD_BUILDERS.register_build(_is_int_type)
-def _int_builder(item):
+@OGN_FIELD_BUILDERS.register_build(_is_int_type, supports_field_cleanup=True)
+def _int_builder(item, *, register_cleanup=None):
     """Build an int drag for OGN int attributes (bounds applied from metadata)."""
-    return USDIntDragField().build_ui(item)
+    return USDIntDragField().build_ui(item, register_cleanup=register_cleanup)
 
 
 @OGN_FIELD_BUILDERS.register_build(lambda item: isinstance(item, USDRelationshipItem))
@@ -118,6 +118,7 @@ def _relationship_builder(item):
                         (prim_path: str, prim_type: str, clicked_fn: Callable | None, row_height: int) -> None
     """
     ui_metadata = item.ui_metadata
+    value_model = item.value_models[0]
     return StagePrimPickerField(
         context_name=item.context_name,
         path_patterns=ui_metadata.get("path_patterns"),
@@ -127,4 +128,6 @@ def _relationship_builder(item):
         header_text=ui_metadata.get("header_text"),
         header_tooltip=ui_metadata.get("header_tooltip"),
         row_build_fn=ui_metadata.get("row_build_fn"),
+        begin_edit_fn=value_model.begin_edit,
+        end_edit_fn=value_model.end_edit,
     ).build_ui(item)

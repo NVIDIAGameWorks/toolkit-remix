@@ -21,6 +21,8 @@ from __future__ import annotations
 __all__ = ("AbstractDragFieldGroup", "AbstractField", "BoundsValue", "RealNumber")
 
 import abc
+from collections.abc import Callable
+from contextlib import suppress
 from typing import TYPE_CHECKING, Generic, Protocol, TypeAlias, TypeVar, cast, overload
 
 import carb
@@ -31,6 +33,7 @@ import omni.ui as ui
 if TYPE_CHECKING:
     from omni.flux.property_widget_builder.widget import Item
     from omni.flux.property_widget_builder.widget.tree.item_model import ItemModelBase
+    from omni.flux.property_widget_builder.widget.tree.item_model import ItemValueModel
 
 
 ItemT = TypeVar("ItemT", bound="Item")
@@ -43,11 +46,28 @@ class _BoundsSequenceLike(Protocol):
     def __getitem__(self, index: int) -> object: ...
 
 
+class _NumericDragWidget(Protocol):
+    enabled: bool
+
+    def step_keyboard_value(self, model: ItemValueModel, key: int, expression: str | None = None) -> None: ...
+    def set_numeric_edit_widgets(self, widgets: dict[int, _NumericDragWidget], index: int) -> None: ...
+
+
 BoundsValue: TypeAlias = RealNumber | _BoundsSequenceLike
 
 _PRIMARY_FRAME_HEIGHT = 24
 _PER_ELEMENT_SPACER_WIDTH = 8
 _VSTACK_SPACER_HEIGHT = 2
+
+
+class _DragFieldBuildState:
+    def __init__(self) -> None:
+        self.subs: list[carb.Subscription] = []
+        self.numeric_edit_widgets: dict[int, _NumericDragWidget] = {}
+
+    def destroy(self) -> None:
+        self.numeric_edit_widgets.clear()
+        self.subs.clear()
 
 
 class AbstractField(Generic[ItemT]):
@@ -126,7 +146,7 @@ class AbstractDragFieldGroup(AbstractField):
             **kwargs: Passed to AbstractField (e.g. style_name, identifier).
         """
         super().__init__(**kwargs)
-        self._subs: list[carb.Subscription] = []
+        self._build_states: list[_DragFieldBuildState] = []
 
         if isinstance(min_value, RealNumber) and isinstance(max_value, RealNumber) and min_value >= max_value:
             raise ValueError(f"min_value ({min_value}) must be less than max_value ({max_value})")
@@ -164,7 +184,7 @@ class AbstractDragFieldGroup(AbstractField):
     @abc.abstractmethod
     def build_drag_widget(
         self,
-        model: ui.AbstractValueModel,
+        model: ItemValueModel,
         style_type_name_override: str,
         read_only: bool,
         min_val: RealNumber | None,
@@ -172,7 +192,7 @@ class AbstractDragFieldGroup(AbstractField):
         hard_min_val: RealNumber | None,
         hard_max_val: RealNumber | None,
         step: RealNumber | None,
-    ) -> ui.Widget:
+    ) -> _NumericDragWidget:
         """Build the drag widget for one value model.
 
         Args:
@@ -221,15 +241,39 @@ class AbstractDragFieldGroup(AbstractField):
             carb.log_error(f"Failed to resolve bounds component at index {scalar_index} from value {value!r}")
             return None
 
+    def destroy(self) -> None:
+        for state in tuple(self._build_states):
+            state.destroy()
+        self._build_states.clear()
+
+    def _create_build_state(
+        self,
+        register_cleanup: Callable[[Callable[[], None]], None] | None,
+    ) -> _DragFieldBuildState:
+        if register_cleanup is None:
+            self.destroy()
+        state = _DragFieldBuildState()
+        self._build_states.append(state)
+
+        def cleanup() -> None:
+            state.destroy()
+            with suppress(ValueError):
+                self._build_states.remove(state)
+
+        if register_cleanup is not None:
+            register_cleanup(cleanup)
+        return state
+
     def build_ui(self, item, **kwargs) -> list[ui.Widget]:  # PLW0221
         """Build drag widgets for each element of the item, with undo grouping and tooltips."""
-        self._subs.clear()
-        widgets = []
+        register_cleanup = kwargs.pop("register_cleanup", None)
+        state = self._create_build_state(register_cleanup)
+        widgets: list[ui.Widget] = []
         with ui.HStack(height=ui.Pixel(_PRIMARY_FRAME_HEIGHT)):
             for i in range(item.element_count):
                 value_model = item.value_models[i]
-                self._subs.append(value_model.subscribe_begin_edit_fn(self.begin_edit))
-                self._subs.append(value_model.subscribe_end_edit_fn(self.end_edit))
+                state.subs.append(value_model.subscribe_begin_edit_fn(self.begin_edit))
+                state.subs.append(value_model.subscribe_end_edit_fn(self.end_edit))
 
                 min_value = self._resolve_scalar_component(self.min_value, i)
                 max_value = self._resolve_scalar_component(self.max_value, i)
@@ -264,23 +308,28 @@ class AbstractDragFieldGroup(AbstractField):
                 ui.Spacer(width=ui.Pixel(_PER_ELEMENT_SPACER_WIDTH))
                 with ui.VStack():
                     ui.Spacer(height=ui.Pixel(_VSTACK_SPACER_HEIGHT))
-                    style_type_name_override = (
-                        f"{self.style_name}Read" if item.value_models[i].read_only else self.style_name
-                    )
-                    widget = self.build_drag_widget(
-                        value_model,
-                        style_type_name_override,
-                        value_model.read_only,
-                        min_value,
-                        max_value,
-                        effective_hard_min,
-                        effective_hard_max,
-                        step_value,
-                    )
-                    self.set_dynamic_tooltip_fn(widget, value_model)
-                    widgets.append(widget)
+                    style_type_name_override = f"{self.style_name}Read" if value_model.read_only else self.style_name
+                    with ui.ZStack():
+                        widget = self.build_drag_widget(
+                            value_model,
+                            style_type_name_override,
+                            value_model.read_only,
+                            min_value,
+                            max_value,
+                            effective_hard_min,
+                            effective_hard_max,
+                            step_value,
+                        )
+                        if not value_model.read_only:
+                            state.numeric_edit_widgets[i] = widget
+                    ui_widget = cast(ui.Widget, widget)
+                    self.set_dynamic_tooltip_fn(ui_widget, value_model)
+                    widgets.append(ui_widget)
                     ui.Spacer(height=ui.Pixel(_VSTACK_SPACER_HEIGHT))
+        if len(state.numeric_edit_widgets) > 1:
+            for index, widget in state.numeric_edit_widgets.items():
+                widget.set_numeric_edit_widgets(state.numeric_edit_widgets, index)
         return widgets
 
     def __del__(self):
-        self._subs.clear()
+        self.destroy()

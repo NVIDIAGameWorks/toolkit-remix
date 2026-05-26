@@ -21,6 +21,7 @@ __all__ = [
     "TestOptimization",
     "TestPathPatterns",
     "TestPrimCollection",
+    "TestStagePrimPickerEditLifecycle",
 ]
 
 from .e2e.test_core_functionality import TestCoreFunctionality
@@ -28,3 +29,4 @@ from .e2e.test_filtering import TestFiltering
 from .e2e.test_optimization import TestOptimization
 from .e2e.test_path_patterns import TestPathPatterns
 from .unit.test_prim_collection import TestPrimCollection
+from .unit.test_stage_prim_picker_edit_lifecycle import TestStagePrimPickerEditLifecycle
