@@ -85,6 +85,7 @@ class PackagingErrorDelegate(ui.AbstractItemDelegate):
                     action_combobox = ui.ComboBox(
                         list(PackagingActions).index(item.action),
                         *[action.value for action in PackagingActions],
+                        identifier=f"packaging_action_combo_{OmniUrl(item.asset_path).stem}",
                     )
                     action_combobox.model.add_item_changed_fn(partial(self._on_action_changed, model, item))
 

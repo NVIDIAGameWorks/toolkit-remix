@@ -16,9 +16,10 @@
 # Make sure shell scripts have LF line endings, even when checked out on a Windows client with autocrlf=true
 *.sh text eol=lf
 
-# JSON and USDA files should not be tracked in Git LFS
+# JSON and USD files should not be tracked in Git LFS. Text USD stays LF so sidecar metadata hashes are stable.
 **/*.json !filter !diff !merge text
-**/*.usda !filter !diff !merge text
+**/*.usda !filter !diff !merge text eol=lf
+**/*.usd !filter !diff !merge -text
 
 # Documentation videos and zips
 docs/data/videos/** filter=lfs diff=lfs merge=lfs -text

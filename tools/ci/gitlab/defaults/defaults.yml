@@ -11,6 +11,39 @@
   variables:
     GIT_STRATEGY: fetch
 
+.refresh_usd_asset_checkout_windows:
+  before_script:
+    - |
+      $staleUsdAssets = @(git ls-files --eol -- "*.usda" "*.usd" | Select-String "w/crlf")
+      if ($staleUsdAssets.Count -gt 0) {
+        Write-Host "Refreshing tracked USD asset files so .gitattributes line ending rules are applied"
+        git ls-files -- "*.usda" "*.usd" | ForEach-Object { Remove-Item -LiteralPath $_ -Force }
+        git restore --source=HEAD --worktree -- "*.usda" "*.usd"
+      }
+
+      $staleUsdAssets = @(git ls-files --eol -- "*.usda" "*.usd" | Select-String "w/crlf")
+      if ($staleUsdAssets.Count -gt 0) {
+        $staleUsdAssets | ForEach-Object { Write-Host $_ }
+        throw "Tracked USD asset files still have CRLF worktree line endings"
+      }
+
+.refresh_usd_asset_checkout_linux:
+  before_script:
+    - |
+      stale_usd_assets="$(git ls-files --eol -- "*.usda" "*.usd" | grep "w/crlf" || true)"
+      if [ -n "$stale_usd_assets" ]; then
+        echo "Refreshing tracked USD asset files so .gitattributes line ending rules are applied"
+        git ls-files -z -- "*.usda" "*.usd" | xargs -0 -r rm -f --
+        git restore --source=HEAD --worktree -- "*.usda" "*.usd"
+      fi
+
+      stale_usd_assets="$(git ls-files --eol -- "*.usda" "*.usd" | grep "w/crlf" || true)"
+      if [ -n "$stale_usd_assets" ]; then
+        printf '%s\n' "$stale_usd_assets"
+        echo "Tracked USD asset files still have CRLF worktree line endings"
+        exit 1
+      fi
+
 # GitHub mirror runs only on default branch, release branches, and tags; never on scheduled pipelines
 .github_mirror_defaults:
   rules:

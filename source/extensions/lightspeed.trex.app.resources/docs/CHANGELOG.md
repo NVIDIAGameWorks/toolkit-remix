@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.28.8]
+### Fixed
+- Fixed ingested asset metadata hashes to match LF-normalized USD fixtures
+
 ## [1.28.7]
 ### Added
 - Added a centralized nested referenced light test project fixture

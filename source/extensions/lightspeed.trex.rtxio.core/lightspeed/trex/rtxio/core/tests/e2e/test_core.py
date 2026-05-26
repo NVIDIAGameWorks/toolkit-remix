@@ -53,6 +53,50 @@ class TestRtxIoCoreE2E(omni.kit.test.AsyncTestCase):
             self.assertEqual("/RootNode/Looks/mat_001/Shader.inputs:diffuse_texture", prop_path)
             self.assertEqual(missing_posix, abs_path)
 
+    async def test_collect_invalid_stage_assets_reports_composed_path_for_referenced_layer_reference(self):
+        rtxio_core = RtxIoCore()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp = Path(tmp_dir)
+
+            asset_layer = Sdf.Layer.CreateNew(str(tmp / "asset.usda"))
+            asset_layer.defaultPrim = "ReferencedAsset"
+            with Sdf.ChangeBlock():
+                root_spec = Sdf.CreatePrimInLayer(asset_layer, "/ReferencedAsset")
+                root_spec.specifier = Sdf.SpecifierDef
+                root_spec.typeName = "Xform"
+                missing_ref_spec = Sdf.CreatePrimInLayer(asset_layer, "/ReferencedAsset/MissingReference")
+                missing_ref_spec.specifier = Sdf.SpecifierDef
+                missing_ref_spec.typeName = "Xform"
+                missing_ref_spec.referenceList.Append(Sdf.Reference("./missing_asset.usda"))
+            asset_layer.Save()
+
+            root_layer = Sdf.Layer.CreateNew(str(tmp / "mod.usda"))
+            root_layer.defaultPrim = "RootNode"
+            with Sdf.ChangeBlock():
+                root_spec = Sdf.CreatePrimInLayer(root_layer, "/RootNode")
+                root_spec.specifier = Sdf.SpecifierDef
+                root_spec.typeName = "Xform"
+                ref_spec = Sdf.CreatePrimInLayer(root_layer, "/RootNode/Asset")
+                ref_spec.specifier = Sdf.SpecifierDef
+                ref_spec.typeName = "Xform"
+                ref_spec.referenceList.Append(Sdf.Reference("./asset.usda"))
+            root_layer.Save()
+
+            usd_stage = Usd.Stage.Open(root_layer.identifier)
+            missing_posix = Path(asset_layer.ComputeAbsolutePath("./missing_asset.usda")).as_posix()
+            result = rtxio_core.collect_invalid_stage_assets(
+                list(usd_stage.TraverseAll()),
+                [missing_posix],
+                include_missing_authored_textures=False,
+            )
+            usd_stage = None
+
+            self.assertEqual(1, len(result))
+            layer_id, prim_path, abs_path = next(iter(result))
+            self.assertEqual(asset_layer.identifier, layer_id)
+            self.assertEqual("/RootNode/Asset/MissingReference", prim_path)
+            self.assertEqual(missing_posix, abs_path)
+
     async def test_collect_invalid_stage_assets_detects_missing_texture_masked_by_valid_stronger_sublayer(self):
         rtxio_core = RtxIoCore()
         with tempfile.TemporaryDirectory() as tmp_dir:
