@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 import re
 import typing
 import uuid
@@ -172,22 +173,16 @@ class Setup:
             else:
                 current_ref, current_layer = references[0]
 
-            # Remove the existing reference
-            self.remove_reference(stage, prim_path, current_ref, current_layer, remove_if_remix_ref=False)
-
-            # Get the new reference prim path
-            ref_prim_path = self.get_reference_prim_path_from_asset_path(
-                str(body.asset_file_path), current_layer, edit_target_layer, current_ref
-            )
-
-            # Add the new reference prim path
-            reference, child_prim_path = self.add_new_reference(
+            reference, child_prim_path = self.replace_reference(
                 stage,
                 prim_path,
+                current_ref,
+                current_layer,
                 self.switch_ref_abs_to_rel_path(stage, str(body.asset_file_path)),
-                ref_prim_path,
                 edit_target_layer,
+                remove_if_remix_ref=False,
                 create_if_remix_ref=False,
+                use_undo_group=False,
             )
 
         return ReferenceResponseModel(
@@ -982,6 +977,53 @@ class Setup:
             popup.show()
         return new_ref, child_prim_path
 
+    def replace_reference(
+        self,
+        stage: Usd.Stage,
+        prim_path: Sdf.Path,
+        current_ref: Sdf.Reference,
+        current_layer: Sdf.Layer,
+        asset_path: str,
+        edit_target_layer: Sdf.Layer,
+        remove_if_remix_ref: bool = True,
+        create_if_remix_ref: bool = True,
+        use_undo_group: bool = True,
+    ) -> tuple[Sdf.Reference, str]:
+        """Remove one authored reference and add a replacement reference.
+
+        Args:
+            stage: Stage containing the prim whose reference should be replaced.
+            prim_path: Path to the prim where the current reference is authored.
+            current_ref: Reference to remove before adding the replacement.
+            current_layer: Layer that introduced ``current_ref``.
+            asset_path: Replacement asset path, resolved relative to ``edit_target_layer``.
+            edit_target_layer: Layer where the replacement reference should be authored.
+            remove_if_remix_ref: Whether Remix reference prims should be deleted instead of only unreferenced.
+            create_if_remix_ref: Whether replacement references on Remix reference prims should be authored on a new child.
+            use_undo_group: Whether to wrap the remove and add operations in one undo group. Disable this when the caller
+                already owns the outer undo group.
+
+        Returns:
+            The replacement reference and the prim path where it was authored.
+
+        Raises:
+            Exception: Propagates errors raised while removing the old reference, resolving the replacement prim path,
+                or adding the replacement reference.
+        """
+        with omni.kit.undo.group() if use_undo_group else nullcontext():
+            self.remove_reference(stage, prim_path, current_ref, current_layer, remove_if_remix_ref=remove_if_remix_ref)
+            ref_prim_path = self.get_reference_prim_path_from_asset_path(
+                asset_path, current_layer, edit_target_layer, current_ref
+            )
+            return self.add_new_reference(
+                stage,
+                prim_path,
+                asset_path,
+                ref_prim_path,
+                edit_target_layer,
+                create_if_remix_ref=create_if_remix_ref,
+            )
+
     def __anchor_reference_asset_path_to_layer(
         self, ref: Sdf.Reference, intro_layer: Sdf.Layer, anchor_layer: Sdf.Layer
     ) -> Sdf.Reference:
@@ -1015,6 +1057,10 @@ class Setup:
         # not introducing layer
         if intro_layer and intro_layer != edit_target_layer:
             ref = self.__anchor_reference_asset_path_to_layer(ref, intro_layer, edit_target_layer)
+            prim_spec = edit_target_layer.GetPrimAtPath(prim_path)
+            if not prim_spec:
+                prim_spec = Sdf.CreatePrimInLayer(edit_target_layer, prim_path)
+                prim_spec.specifier = Sdf.SpecifierOver
         # get prim
         prim = stage.GetPrimAtPath(prim_path)
         is_remix_ref = prim.GetAttribute(constants.IS_REMIX_REF_ATTR)
@@ -1048,7 +1094,7 @@ class Setup:
         # When masking a reference from another layer (e.g. capture), the
         # override alone is sufficient.  Child cleanup must be skipped because
         # the children belong to the introducing layer, and running
-        # delete_prim → RemoveOverride on the parent would remove the
+        # delete_prim then RemoveOverride on the parent would remove the
         # reference override we just wrote.
         if intro_layer and intro_layer != edit_target_layer:
             return

@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - REMIX-5518: Fixed packaging validation by blocking invalid projects, applying fallback mod-name metadata without saving source layers, validating missing references before mode-specific packaging work, reporting failed exports directly, keeping reference progress accurate, and showing cancellation cleanup clearly.
+- Fixed package flatten soak failures by loading USD MDL support with Packman-provided Remix resource materials.
+- REMIX-5518: Fixed packaging missing-reference repairs so external referenced USD layers are cleaned up through mod-layer overrides instead of failing edit-target validation, with atomic reference-replace undo grouping and real flatten-mode e2e regressions for ignore, remove, replace, scan-directory, cancel, save, and completion flows.
+- REMIX-5518: Fixed GitLab test jobs to refresh stale USD asset checkout line endings before build/test steps and conform ingested asset metadata hashes to LF-normalized USD test fixtures.
 
 ### Removed
 
@@ -81,7 +84,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3614: Fixed capture image path calculation to check images with and without the .usd extension in the filename
 - Fixed GitHub mirror filtering so branch-specific private paths and glob-prefixed entries are checked correctly
 - Fixed GitHub toolkit package downloads to use the GitLab-dispatched version when constructing Packman package names
-- Fixed package flatten soak failures by loading USD MDL support with Packman-provided Remix resource materials
 
 ## [1.4.2-1]
 

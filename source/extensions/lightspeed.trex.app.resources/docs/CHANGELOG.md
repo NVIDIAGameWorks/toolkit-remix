@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.9]
+### Fixed
+- Fixed ingested asset metadata hashes to match LF-normalized USD fixtures
+
 ## [1.27.8]
 ### Fixed
 - Loaded USD MDL support with Remix resources so Packman-provided core materials can resolve

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.2]
+### Fixed
+- Match ignored unresolved reference errors against original source layers after temporary packaging layers are created.
+
 ## [2.1.1]
 ### Fixed
 - Validate unresolved references before mode-specific packaging steps, report failed layer exports directly, and keep reference listing, invalid reference progress, and cancellation responsive.
