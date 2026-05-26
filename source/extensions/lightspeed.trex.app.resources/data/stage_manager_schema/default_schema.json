@@ -37,6 +37,14 @@
                 "force_refresh_rules": [
                     {
                         "use_name": true,
+                        "start": "collection:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "visibility"
+                    },
+                    {
+                        "use_name": true,
                         "start": "remix_category:"
                     },
                     {
@@ -161,6 +169,14 @@
                 "force_refresh_rules": [
                     {
                         "use_name": true,
+                        "start": "collection:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "visibility"
+                    },
+                    {
+                        "use_name": true,
                         "start": "remix_category:"
                     },
                     {
@@ -283,6 +299,14 @@
                 "force_refresh_rules": [
                     {
                         "use_name": true,
+                        "start": "collection:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "visibility"
+                    },
+                    {
+                        "use_name": true,
                         "start": "remix_category:"
                     },
                     {
@@ -388,6 +412,14 @@
             "name": "RemixAllLightsInteractionPlugin",
             "filtering_rules": {
                 "force_refresh_rules": [
+                    {
+                        "use_name": true,
+                        "start": "collection:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "visibility"
+                    },
                     {
                         "use_name": true,
                         "start": "remix_category:"
@@ -507,6 +539,14 @@
             "include_invalid_parents": false,
             "filtering_rules": {
                 "force_refresh_rules": [
+                    {
+                        "use_name": true,
+                        "start": "collection:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "visibility"
+                    },
                     {
                         "use_name": true,
                         "start": "remix_category:"
@@ -650,6 +690,14 @@
                 "force_refresh_rules": [
                     {
                         "use_name": true,
+                        "start": "collection:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "visibility"
+                    },
+                    {
+                        "use_name": true,
                         "start": "remix_category:"
                     },
                     {
@@ -777,8 +825,11 @@
                 "force_refresh_rules": [
                     {
                         "use_name": true,
-                        "start": "collection:",
-                        "end": ":includes"
+                        "start": "collection:"
+                    },
+                    {
+                        "use_name": true,
+                        "start": "visibility"
                     },
                     {
                         "use_name": true,

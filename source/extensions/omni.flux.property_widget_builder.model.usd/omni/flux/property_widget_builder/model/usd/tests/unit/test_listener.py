@@ -82,6 +82,7 @@ class TestUSDListener(omni.kit.test.AsyncTestCase):
 
         model = Mock()
         model.stage = current_stage
+        model.cancel_property_edit_interaction = Mock()
 
         listener = USDListener()
         listener._listeners = {current_stage: Mock(), stale_stage: stale_listener}
@@ -97,6 +98,28 @@ class TestUSDListener(omni.kit.test.AsyncTestCase):
         stale_listener.Revoke.assert_called_once_with()
         self.assertNotIn(current_stage, listener._listeners)
         self.assertNotIn(stale_stage, listener._listeners)
+        self.assertEqual([], listener._models)
+        model.cancel_property_edit_interaction.assert_called_once_with()
+
+    async def test_remove_model_cleans_up_listener_when_cancel_raises(self):
+        # Arrange
+        current_stage = Mock()
+        current_stage.GetRootLayer.return_value = Mock()
+        subscription = Mock()
+
+        model = Mock()
+        model.stage = current_stage
+        model.cancel_property_edit_interaction.side_effect = RuntimeError("cancel failed")
+
+        listener = USDListener()
+        listener._listeners = {current_stage: subscription}
+        listener._models = [model]
+
+        # Act / Assert
+        with self.assertRaises(RuntimeError):
+            listener.remove_model(model)
+        subscription.Revoke.assert_called_once_with()
+        self.assertNotIn(current_stage, listener._listeners)
         self.assertEqual([], listener._models)
 
     async def test_disable_all_listeners_block_disables_and_enables_listeners_for_scope(self):
@@ -131,9 +154,35 @@ class TestUSDListener(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual([model_1, model_2], tmp_models_after_disable)
-        remove_model_mock.assert_has_calls([call(model_1), call(model_2)])
+        remove_model_mock.assert_has_calls(
+            [
+                call(model_1, cancel_edit_interaction=False),
+                call(model_2, cancel_edit_interaction=False),
+            ]
+        )
         add_model_mock.assert_has_calls([call(model_1), call(model_2)])
         self.assertEqual([], listener._tmp_models)
+
+    async def test_remove_model_removes_parked_tmp_model(self):
+        # Arrange
+        stage = Mock()
+        stage.GetRootLayer.return_value = Mock()
+        subscription = Mock()
+        model = Mock()
+        model.stage = stage
+        model.cancel_property_edit_interaction = Mock()
+        listener = USDListener()
+        listener._listeners = {stage: subscription}
+        listener._tmp_models = [model]
+
+        # Act
+        listener.remove_model(model)
+
+        # Assert
+        model.cancel_property_edit_interaction.assert_called_once_with()
+        self.assertEqual([], listener._tmp_models)
+        subscription.Revoke.assert_called_once_with()
+        self.assertNotIn(stage, listener._listeners)
 
     async def test_purge_stale_listeners_removes_stage_when_root_layer_lookup_raises(self):
         # Arrange
@@ -166,28 +215,78 @@ class TestUSDListener(omni.kit.test.AsyncTestCase):
     async def test_remove_model_noops_when_model_is_missing_or_listener_has_no_models(self):
         # Arrange
         listener = USDListener()
+        missing_model = Mock()
+        listener._models = [Mock()]
 
         # Act
         with patch.object(listener, "_disable_listener") as disable_listener_mock:
             listener.remove_model(None)
-            listener.remove_model(Mock())
+            listener.remove_model(missing_model)
 
         # Assert
         disable_listener_mock.assert_not_called()
+        missing_model.cancel_property_edit_interaction.assert_not_called()
+
+        # Arrange
+        listener._models = []
+
+        # Act
+        with patch.object(listener, "_disable_listener") as disable_listener_mock:
+            listener.remove_model(missing_model)
+
+        # Assert
+        disable_listener_mock.assert_not_called()
+        missing_model.cancel_property_edit_interaction.assert_not_called()
 
     async def test_destroy_revokes_all_registered_stage_listeners(self):
         # Arrange
         listener = USDListener()
+        model = Mock()
+        model.stage = Mock()
+        model.cancel_property_edit_interaction = Mock()
         subscriptions = [Mock(), Mock()]
-        listener._listeners = {Mock(): subscriptions[0], Mock(): subscriptions[1]}
+        listener._listeners = {model.stage: subscriptions[0], Mock(): subscriptions[1]}
+        listener._models = [model]
 
         # Act
         listener.destroy()
 
         # Assert
+        model.cancel_property_edit_interaction.assert_called_once_with()
         for subscription in subscriptions:
             subscription.Revoke.assert_called_once_with()
         self.assertIsNone(listener._listeners)
+
+    async def test_destroy_revokes_listeners_when_cancel_raises(self):
+        # Arrange
+        listener = USDListener()
+        model = Mock()
+        model.stage = Mock()
+        model.cancel_property_edit_interaction.side_effect = RuntimeError("cancel failed")
+        subscription = Mock()
+        listener._listeners = {model.stage: subscription}
+        listener._models = [model]
+
+        # Act / Assert
+        with self.assertRaises(RuntimeError):
+            listener.destroy()
+        subscription.Revoke.assert_called_once_with()
+        self.assertIsNone(listener._listeners)
+
+    async def test_destroy_cancels_parked_tmp_models(self):
+        # Arrange
+        listener = USDListener()
+        model = Mock()
+        model.stage = Mock()
+        model.cancel_property_edit_interaction = Mock()
+        listener._tmp_models = [model]
+
+        # Act
+        listener.destroy()
+
+        # Assert
+        model.cancel_property_edit_interaction.assert_called_once_with()
+        self.assertIsNone(listener._tmp_models)
 
     async def test_on_usd_changed_ignores_suppressed_models(self):
         # Arrange

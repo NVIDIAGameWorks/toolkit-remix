@@ -38,6 +38,7 @@ from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemRefer
 from lightspeed.trex.utils.common.file_utils import (
     is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
 )
+from lightspeed.trex.utils.common.prim_utils import is_light as _is_light
 from lightspeed.trex.utils.widget import RemixCategoriesDialog as _RemixCategoriesDialog
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
@@ -248,7 +249,7 @@ class SetupUI:
                     ui.Spacer(height=ui.Pixel(8))
 
                     def should_show_light_attr(prim):
-                        return prim.HasAPI(UsdLux.LightAPI)
+                        return _is_light(prim)
 
                     self._property_widget = _PropertyWidget(
                         self._context_name,
@@ -445,7 +446,7 @@ class SetupUI:
                 for candidate_paths in (property_prim_paths, xformable_prims):
                     for path in dict.fromkeys(candidate_paths):
                         prim = stage.GetPrimAtPath(path)
-                        if prim.IsValid() and prim.HasAPI(UsdLux.LightAPI):
+                        if prim.IsValid() and _is_light(prim):
                             property_prims.append(path)
                     if property_prims:
                         break

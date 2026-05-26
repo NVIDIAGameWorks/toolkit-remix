@@ -17,6 +17,8 @@ import omni.ui as ui
 from omni.flux.curve_editor.widget import CurveEditorLayout, CurveEditorWidget, PrimvarCurveModel
 from omni.flux.fcurve.widget import CurveBounds, FCurve, FCurveKey
 from omni.flux.property_widget_builder.widget import ClaimResult, FieldBuilder, Item
+from omni.flux.utils.common.interactive_usd_notices import begin_interaction as _begin_interaction
+from omni.flux.utils.common.interactive_usd_notices import end_interaction as _end_interaction
 
 from ..extension import get_usd_listener_instance as _get_usd_listener_instance
 from ..items import USDAttributeEditGroupItem, _BaseUSDAttributeItem
@@ -63,7 +65,7 @@ def _claim_curves(items: list[Item]) -> ClaimResult:
     for item in items:
         if not isinstance(item, _BaseUSDAttributeItem):
             continue
-        paths = getattr(item, "_attribute_paths", None)
+        paths = item.attribute_paths
         if not paths:
             continue
         parts = paths[0].name.rsplit(":", 1)
@@ -146,8 +148,31 @@ def _panel_to_editor_layout(layout: dict) -> dict:
 class _QuietPrimvarCurveModel(PrimvarCurveModel):
     """Suppresses property panel USD listener during interactive writes."""
 
+    def __init__(self, *args, **kwargs):
+        self._usd_notice_token = None
+        super().__init__(*args, **kwargs)
+        self._usd_notice_token = _begin_interaction(self._get_stage())
+
+    def destroy(self) -> None:
+        self._end_usd_notice_interaction()
+        super().destroy()
+
+    def _end_usd_notice_interaction(self) -> None:
+        if self._usd_notice_token is None:
+            return
+        token = self._usd_notice_token
+        self._usd_notice_token = None
+        _end_interaction(token)
+
+    def __del__(self):
+        self._end_usd_notice_interaction()
+
     def commit_curve(self, curve_id: str, curve: FCurve) -> None:
-        with _DisableAllListenersBlock(_get_usd_listener_instance()):
+        listener = _get_usd_listener_instance()
+        if listener is None:
+            super().commit_curve(curve_id, curve)
+            return
+        with _DisableAllListenersBlock(listener):
             super().commit_curve(curve_id, curve)
 
 
@@ -185,25 +210,56 @@ def _open_curve_editor(
         padding_y=0,
         exclusive_keyboard=True,
     )
-    window.set_key_pressed_fn(
-        lambda key, mod, down: setattr(window, "visible", False)
-        if key == int(carb.input.KeyboardInput.ESCAPE) and down
-        else None
-    )
-    model = _QuietPrimvarCurveModel(
-        prim_path=prim_path,
-        curve_ids=curve_ids,
-        usd_context_name=context_name,
-    )
-    with window.frame:
-        widget = CurveEditorWidget(
-            model=model,
-            layout=editor_layout,
-            per_curve_bounds=per_curve_bounds or {},
-            on_create_curve=lambda cid: _create_default_curve(model, cid),
-            on_delete_curve=lambda cid: _delete_curve(model, cid),
+
+    def close_on_escape(key, _mod, down):
+        if key == int(carb.input.KeyboardInput.ESCAPE) and down:
+            window.visible = False
+
+    window.set_key_pressed_fn(close_on_escape)
+    try:
+        model = _QuietPrimvarCurveModel(
+            prim_path=prim_path,
+            curve_ids=curve_ids,
+            usd_context_name=context_name,
         )
-    widget.fit_all()
+    except Exception:
+        window.destroy()
+        raise
+    model_destroyed = False
+    window_destroyed = False
+
+    def destroy_model():
+        nonlocal model_destroyed
+        if not model_destroyed:
+            model_destroyed = True
+            model.destroy()
+
+    def destroy_window():
+        nonlocal window_destroyed
+        if not window_destroyed:
+            window_destroyed = True
+            window.destroy()
+
+    def destroy_model_on_close(visible: bool):
+        if not visible:
+            destroy_model()
+            destroy_window()
+
+    window.set_visibility_changed_fn(destroy_model_on_close)
+    try:
+        with window.frame:
+            widget = CurveEditorWidget(
+                model=model,
+                layout=editor_layout,
+                per_curve_bounds=per_curve_bounds or {},
+                on_create_curve=lambda cid: _create_default_curve(model, cid),
+                on_delete_curve=lambda cid: _delete_curve(model, cid),
+            )
+        widget.fit_all()
+    except Exception:
+        destroy_model()
+        destroy_window()
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -294,7 +350,10 @@ def _build_edit_group_button(item: USDAttributeEditGroupItem):
 
 def _build_single_curve_button(item):
     identifier = _generate_identifier(item)
-    attr_path = item._attribute_paths[0]  # noqa: SLF001
+    attr_paths = item.attribute_paths
+    if not attr_paths:
+        return []
+    attr_path = attr_paths[0]
     prim_path = str(attr_path.GetPrimPath())
     curve_id = attr_path.name.rsplit(":", 1)[0]
     curve_id = curve_id.removeprefix(_PRIMVAR_PREFIX)

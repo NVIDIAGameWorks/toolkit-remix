@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.2]
+### Fixed
+- Added a shared cancellation path for deferred tab selection tasks
+
 ## [1.7.1]
 ### Fixed
 - Fixed filter plugins leaking subscriptions on tab switch by calling `on_hidden()` before frame destruction

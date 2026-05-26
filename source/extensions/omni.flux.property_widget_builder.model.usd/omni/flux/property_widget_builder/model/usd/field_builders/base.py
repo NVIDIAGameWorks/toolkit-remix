@@ -72,16 +72,22 @@ class USDBuilderList(FieldBuilderList):
 
         return claim_each(_predicate)
 
-    def _build_func_decorator(self, claim_func) -> Callable:
+    def _build_func_decorator(self, claim_func, *, supports_field_cleanup: bool = False) -> Callable:
         def _deco(
-            build_func: Callable[[_Item], ui.Widget | list[ui.Widget] | None],
-        ) -> Callable[[_Item], ui.Widget | list[ui.Widget] | None]:
-            self.append(FieldBuilder(claim_func=claim_func, build_func=build_func))
+            build_func: Callable[..., ui.Widget | list[ui.Widget] | None],
+        ) -> Callable[..., ui.Widget | list[ui.Widget] | None]:
+            self.append(
+                FieldBuilder(
+                    claim_func=claim_func,
+                    build_func=build_func,
+                    supports_field_cleanup=supports_field_cleanup,
+                )
+            )
             return build_func
 
         return _deco
 
-    def register_by_type(self, *types):
+    def register_by_type(self, *types, supports_field_cleanup: bool = False):
         """
         Decorator to simplify registering a build function for USDAttributeItem of specific type(s).
         """
@@ -93,16 +99,20 @@ class USDBuilderList(FieldBuilderList):
                 return False
             return _get_type_name(metadata) in types
 
-        return self._build_func_decorator(claim_each(_predicate))
+        return self._build_func_decorator(claim_each(_predicate), supports_field_cleanup=supports_field_cleanup)
 
-    def register_by_name(self, *names):
+    def register_by_name(self, *names, supports_field_cleanup: bool = False):
         """
         Decorator to simplify registering a build function for USDAttributeItem for specific attribute name(s).
         """
-        return self._build_func_decorator(self.claim_by_name(*names))
+        return self._build_func_decorator(self.claim_by_name(*names), supports_field_cleanup=supports_field_cleanup)
 
     def append_builder_by_attr_name(
-        self, names: str | Iterable[str], build_func: Callable[[_Item], ui.Widget | list[ui.Widget] | None]
+        self,
+        names: str | Iterable[str],
+        build_func: Callable[[_Item], ui.Widget | list[ui.Widget] | None],
+        *,
+        supports_field_cleanup: bool = False,
     ):
         """
         A simple helper which allows users to register a FieldBuilder with just attribute names and a build_func.
@@ -110,7 +120,13 @@ class USDBuilderList(FieldBuilderList):
         if isinstance(names, str):
             names = [names]
 
-        self.append(FieldBuilder(claim_func=self.claim_by_name(*names), build_func=build_func))
+        self.append(
+            FieldBuilder(
+                claim_func=self.claim_by_name(*names),
+                build_func=build_func,
+                supports_field_cleanup=supports_field_cleanup,
+            )
+        )
 
 
 def _generate_identifier(item) -> str:
@@ -143,10 +159,11 @@ def _fallback_builder(item) -> None:
     mapping.tf_gf_vec3d,
     mapping.tf_gf_vec4f,
     mapping.tf_gf_vec4d,
+    supports_field_cleanup=True,
 )
-def _floating_point_builder(item) -> list[ui.Widget]:
+def _floating_point_builder(item, *, register_cleanup=None) -> list[ui.Widget]:
     builder = USDFloatDragField(identifier=_generate_identifier(item))
-    return builder(item)
+    return builder(item, register_cleanup=register_cleanup)
 
 
 @DEFAULT_FIELD_BUILDERS.register_by_type(
@@ -161,10 +178,11 @@ def _floating_point_builder(item) -> list[ui.Widget]:
     mapping.tf_gf_vec3h,
     mapping.tf_gf_vec4i,
     mapping.tf_gf_vec4h,
+    supports_field_cleanup=True,
 )
-def _integer_builder(item) -> list[ui.Widget]:
+def _integer_builder(item, *, register_cleanup=None) -> list[ui.Widget]:
     builder = USDIntDragField(identifier=_generate_identifier(item))
-    return builder(item)
+    return builder(item, register_cleanup=register_cleanup)
 
 
 @DEFAULT_FIELD_BUILDERS.register_by_type(

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.28.3]
+### Added
+- Added safe math expression evaluation, keyboard step handling, and reusable text editing to shared bounded numeric drag widgets
+
 ## [1.28.2]
 ### Fixed
 - Fixed bounded drag widgets using matching hard bounds as drag bounds when soft bounds are omitted.

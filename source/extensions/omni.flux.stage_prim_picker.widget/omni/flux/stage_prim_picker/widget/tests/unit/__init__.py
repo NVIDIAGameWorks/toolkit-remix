@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["TestPrimCollection"]
+__all__ = ["TestPrimCollection", "TestStagePrimPickerEditLifecycle"]
 
 from .test_prim_collection import TestPrimCollection
+from .test_stage_prim_picker_edit_lifecycle import TestStagePrimPickerEditLifecycle

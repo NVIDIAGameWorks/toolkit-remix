@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.34.3]
+### Fixed
+- USD property value models now coalesce refresh notices across active edits, direct writes, relationships, gradient edits, and curve edits
+
 ## [2.34.2]
 ### Fixed
 - Made hardcoded light and Aperture PBR drag-field bounds explicit so soft ranges and typed clamps stay separate

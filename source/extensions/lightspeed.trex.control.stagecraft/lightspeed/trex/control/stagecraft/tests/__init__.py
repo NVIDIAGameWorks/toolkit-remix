@@ -21,6 +21,7 @@ from .e2e.test_stage_manager import TestStageManagerPropertiesInteraction
 from .unit.test_check_capture_on_open import TestCheckCaptureOnOpen
 from .unit.test_commands import TestCommands
 from .unit.test_setup import TestSetup as TestSetupUnit
+from .unit.test_stage_manager_schema import TestStageManagerSchema
 
 __all__ = [
     "TestCaptureSwapUndo",
@@ -29,4 +30,5 @@ __all__ = [
     "TestHotkeys",
     "TestSetupUnit",
     "TestStageManagerPropertiesInteraction",
+    "TestStageManagerSchema",
 ]

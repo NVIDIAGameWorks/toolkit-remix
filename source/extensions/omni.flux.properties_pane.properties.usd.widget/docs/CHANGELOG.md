@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.2]
+### Added
+- Added object property E2E coverage for vector tab deferral, numeric expressions, and keyboard arrow edits
+
 ## [2.12.1]
 ### Changed
 - Updated multi-selection property coverage to assert that mixed-value widgets display the last selected prim as the baseline value

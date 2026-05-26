@@ -7,8 +7,10 @@ RTX Remix Toolkit (`lightspeed-kit`) = Omniverse Kit SDK app for RTX-remastering
 
 Refs: commands `docs_dev/tools/repo-tools.md`; tests `docs_dev/code-quality/testing.md`.
 
-Run scripts as-is. No extra flags unless user asks: no `--no-window`, `--/app/extensions/registryEnabled=0`,
-`--/app/auto_load_usd=""`. User may need visible app. Background ok; watch relevant `[Error]`.
+Run scripts as-is. Tests: direct ext BAT -> add `-- --no-window`; visible UI only on ask. `repo.toml` `repo_test`
+already headless. Non-test app scripts: no extra flags unless user asks; no `--no-window`,
+`--/app/extensions/registryEnabled=0`, `--/app/auto_load_usd=""`. User may need visible app. Background ok; watch
+relevant `[Error]`.
 Run only full/dev app; no StageCraft/layout launchers unless user asks.
 
 Use Packman Python only: never system `python`, `python3`, `py`.

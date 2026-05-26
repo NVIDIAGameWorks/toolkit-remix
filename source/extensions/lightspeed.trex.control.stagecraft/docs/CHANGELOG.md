@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.5]
+### Changed
+- Added Stage Manager coverage for tag assignment refreshes and force-refresh schema rules.
+
 ## [1.7.4]
 ### Changed
 - Improved disabled Modding sidebar tooltip copy.

@@ -19,10 +19,16 @@ from .unit.test_clipboard_roundtrip import TestClipboardRoundtrip
 from .unit.test_delegate_alignment import TestDelegateAlignment
 from .unit.test_bounds_adapter import TestBoundsAdapter
 from .unit.test_conditional_visibility_orchestrator import TestConditionalVisibilityOrchestrator
-from .unit.test_drag_write_throttling import TestDragWriteThrottling
+from .unit.test_drag_write_throttling import (
+    TestCurveEditorInteractiveNotices,
+    TestDragWriteThrottling,
+    TestUSDModelInteractiveNotices,
+    TestVirtualAttributeWrites,
+)
 from .unit.test_expression_evaluator import TestExpressionEvaluator
 from .unit.test_field_builder_bounds import TestFieldBuilderBounds
 from .unit.test_file_texture_picker import TestFileTexturePicker
+from .unit.test_gradient_widget import TestUsdGradientWidgetDragLifecycle
 from .unit.test_listener import TestUSDListener
 from .unit.test_multichannel_paste import TestMultichannelPaste
 from .unit.test_relationship_item import TestUSDRelationshipItem
@@ -41,6 +47,7 @@ __all__ = [
     "TestBoundsAdapter",
     "TestClipboardRoundtrip",
     "TestConditionalVisibilityOrchestrator",
+    "TestCurveEditorInteractiveNotices",
     "TestDelegateAlignment",
     "TestDragWriteThrottling",
     "TestExpressionEvaluator",
@@ -53,7 +60,10 @@ __all__ = [
     "TestUSDAttributeItemBounds",
     "TestUSDAttributeValueTooltips",
     "TestUSDListener",
+    "TestUSDModelInteractiveNotices",
     "TestUSDRelationshipItem",
+    "TestUsdGradientWidgetDragLifecycle",
     "TestUsdGradientWidgetLifecycle",
     "TestUsdRelationshipValueModel",
+    "TestVirtualAttributeWrites",
 ]

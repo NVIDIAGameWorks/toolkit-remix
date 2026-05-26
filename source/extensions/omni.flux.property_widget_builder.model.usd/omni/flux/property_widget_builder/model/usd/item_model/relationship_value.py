@@ -20,6 +20,7 @@ __all__ = ["UsdRelationshipValueModel"]
 import omni.kit.commands
 import omni.usd
 from omni.flux.property_widget_builder.widget import ItemValueModel as _ItemValueModel
+from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices as _defer_usd_notices
 from pxr import Sdf
 
 from ..utils import get_item_relationships as _get_item_relationships
@@ -133,26 +134,40 @@ class UsdRelationshipValueModel(_ItemValueModel):
         if self._read_only or not self._stage:
             return
 
-        self._value = value if value else ""
+        target_value = value.strip() if value else ""
+        if target_value and not Sdf.Path.IsValidPathString(target_value):
+            self._read_value_from_usd()
+            self._value_changed()
+            return
+        wrote_target = False
+        target_paths = [Sdf.Path(target_value)] if target_value else []
 
-        for rel_path in self._relationship_paths:
-            prim = self._stage.GetPrimAtPath(rel_path.GetPrimPath())
-            if not prim.IsValid():
-                continue
+        try:
+            with _defer_usd_notices(self._stage):
+                for rel_path in self._relationship_paths:
+                    prim = self._stage.GetPrimAtPath(rel_path.GetPrimPath())
+                    if not prim.IsValid():
+                        continue
 
-            rel = prim.GetRelationship(rel_path.name)
-            if not rel or not rel.IsValid():
-                continue
+                    rel = prim.GetRelationship(rel_path.name)
+                    if not rel or not rel.IsValid():
+                        continue
 
-            target_paths = [Sdf.Path(value)] if value and value.strip() else []
+                    omni.kit.commands.execute(
+                        "SetRelationshipTargets",
+                        relationship=rel,
+                        targets=target_paths,
+                    )
+                    wrote_target = True
+        except Exception:
+            if self._read_value_from_usd():
+                self._value_changed()
+            raise
 
-            omni.kit.commands.execute(
-                "SetRelationshipTargets",
-                relationship=rel,
-                targets=target_paths,
-            )
-
-        self._value_changed()
+        if wrote_target:
+            value_changed = self._read_value_from_usd()
+            if value != target_value or value_changed:
+                self._value_changed()
 
     def get_value(self) -> str:
         """Get current relationship target as string."""

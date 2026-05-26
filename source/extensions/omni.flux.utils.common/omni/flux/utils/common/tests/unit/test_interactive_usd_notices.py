@@ -20,6 +20,7 @@ from unittest.mock import Mock, patch
 
 import omni.kit.test
 from omni.flux.utils.common import interactive_usd_notices as _interactive_usd_notices
+from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices
 from omni.flux.utils.common.interactive_usd_notices import InteractiveUsdNoticeService
 from pxr import Sdf
 
@@ -87,6 +88,23 @@ def _patch_service_dependencies(listener=None, *, register_side_effect=None):
 
 
 class TestInteractiveUsdNoticeService(omni.kit.test.AsyncTestCase):
+    async def test_defer_usd_notices_ends_interaction_after_scope(self):
+        # Arrange
+        stage = _make_stage()
+        token = object()
+
+        # Act
+        with (
+            patch.object(_interactive_usd_notices, "begin_interaction", return_value=token) as begin,
+            patch.object(_interactive_usd_notices, "end_interaction") as end,
+        ):
+            with defer_usd_notices(stage):
+                pass
+
+        # Assert
+        begin.assert_called_once_with(stage)
+        end.assert_called_once_with(token)
+
     async def test_end_interaction_last_token_flushes_merged_notice_once(self):
         # Arrange
         stage = _make_stage()
@@ -169,6 +187,34 @@ class TestInteractiveUsdNoticeService(omni.kit.test.AsyncTestCase):
         # Assert
         callback.assert_called_once_with(stage)
 
+    async def test_end_interaction_listener_failure_does_not_skip_cleanup(self):
+        # Arrange
+        stage = _FakeStage("anon:root", "anon:session")
+        callback = Mock()
+        first_end_callback = Mock(side_effect=RuntimeError("end failed"))
+        second_end_callback = Mock()
+        backend_listener = Mock()
+        with (
+            _patch_service_dependencies(backend_listener),
+            patch.object(_interactive_usd_notices.carb, "log_error") as log_error_mock,
+        ):
+            service = InteractiveUsdNoticeService()
+            subscription = service.register_objects_changed_listener(stage, callback)
+            service.register_interaction_end_listener(first_end_callback)
+            service.register_interaction_end_listener(second_end_callback)
+            token = service.begin_interaction(stage)
+            subscription.Revoke()
+
+            # Act
+            service.end_interaction(token)
+
+        # Assert
+        first_end_callback.assert_called_once_with(stage)
+        second_end_callback.assert_called_once_with(stage)
+        log_error_mock.assert_called_once()
+        self.assertIn("interaction-end listener failed", log_error_mock.call_args.args[0])
+        backend_listener.Revoke.assert_called_once_with()
+
     async def test_register_objects_changed_listener_without_stage_returns_noop_subscription(self):
         # Arrange
         callback = Mock()
@@ -213,6 +259,49 @@ class TestInteractiveUsdNoticeService(omni.kit.test.AsyncTestCase):
         flushed_notice, flushed_stage = callback.call_args.args
         self.assertEqual((path,), flushed_notice.GetChangedInfoOnlyPaths())
         self.assertIs(flushed_stage, register_stage)
+
+    async def test_active_interaction_preserves_pending_notices_for_restored_listener(self):
+        # Arrange
+        stage = _FakeStage("anon:root", "anon:session")
+        original_callback = Mock()
+        restored_callback = Mock()
+        listener = Mock()
+        path = Sdf.Path("/Root/Cube.xformOp:translate")
+        notice = _FakeNotice(changed_info_only_paths=(path,))
+        with _patch_service_dependencies(listener):
+            service = InteractiveUsdNoticeService()
+            subscription = service.register_objects_changed_listener(stage, original_callback)
+            token = service.begin_interaction(stage)
+            subscription.Revoke()
+            service._on_objects_changed(notice, stage)
+            service.register_objects_changed_listener(stage, restored_callback)
+
+            # Act
+            service.end_interaction(token)
+
+        # Assert
+        listener.Revoke.assert_not_called()
+        original_callback.assert_not_called()
+        restored_callback.assert_called_once()
+        flushed_notice, flushed_stage = restored_callback.call_args.args
+        self.assertEqual((path,), flushed_notice.GetChangedInfoOnlyPaths())
+        self.assertIs(flushed_stage, stage)
+
+    async def test_interaction_end_listener_can_start_next_interaction(self):
+        # Arrange
+        stage = _FakeStage("anon:root", "anon:session")
+        backend_listener = Mock()
+        with _patch_service_dependencies(backend_listener):
+            service = InteractiveUsdNoticeService()
+            token = service.begin_interaction(stage)
+            service.register_interaction_end_listener(lambda _: service.begin_interaction(stage))
+
+            # Act
+            service.end_interaction(token)
+
+        # Assert
+        backend_listener.Revoke.assert_not_called()
+        self.assertTrue(service._active_tokens[token.stage_key])
 
     async def test_same_stage_key_rebinds_backend_notice_listener_for_new_stage_object(self):
         # Arrange

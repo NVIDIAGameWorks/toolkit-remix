@@ -25,8 +25,8 @@ __all__ = (
 )
 
 import abc
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 import omni.ui as ui
 
@@ -269,6 +269,19 @@ class ItemModelBase(Serializable, abc.ABC):
         """End a batch edit when supported; the default implementation is a no-op."""
         pass
 
+    def set_property_edit_callbacks(
+        self,
+        begin_callback: Callable[["ItemModelBase"], None] | None,
+        end_callback: Callable[["ItemModelBase"], None] | None,
+    ) -> None:
+        pass
+
+    def subscribe_property_edit_cancel_fn(self, callback: Callable[[], None]) -> Callable[[], None]:
+        return lambda: None
+
+    def cancel_property_edit_interaction(self) -> None:
+        pass
+
     def __repr__(self):
         return f"{self.__class__.__name__}({self.get_value()!r})"
 
@@ -289,6 +302,64 @@ class ItemValueModel(ItemModelBase, ui.AbstractValueModel, metaclass=AbstractVal
     def __init__(self):
         super().__init__()
         self.__display_fn = None
+        self.__property_edit_begin_callback: Callable[[ItemModelBase], None] | None = None
+        self.__property_edit_end_callback: Callable[[ItemModelBase], None] | None = None
+        self.__property_edit_cancel_callbacks: list[Callable[[], None]] = []
+        self.__property_edit_depth = 0
+
+    def set_property_edit_callbacks(
+        self,
+        begin_callback: Callable[[ItemModelBase], None] | None,
+        end_callback: Callable[[ItemModelBase], None] | None,
+    ) -> None:
+        self.__property_edit_begin_callback = begin_callback
+        self.__property_edit_end_callback = end_callback
+
+    def subscribe_property_edit_cancel_fn(self, callback: Callable[[], None]) -> Callable[[], None]:
+        self.__property_edit_cancel_callbacks.append(callback)
+
+        def unsubscribe() -> None:
+            if callback in self.__property_edit_cancel_callbacks:
+                self.__property_edit_cancel_callbacks.remove(callback)
+
+        return unsubscribe
+
+    def cancel_property_edit_interaction(self) -> None:
+        first_error: Exception | None = None
+        for callback in tuple(self.__property_edit_cancel_callbacks):
+            try:
+                callback()
+            except Exception as exc:  # noqa: BLE001 - run every cancel callback before re-raising.
+                if first_error is None:
+                    first_error = exc
+        if first_error is not None:
+            raise first_error
+
+    def begin_edit(self):
+        began_property_edit = False
+        if self.__property_edit_begin_callback is not None:
+            self.__property_edit_begin_callback(self)
+            self.__property_edit_depth += 1
+            began_property_edit = True
+        try:
+            super().begin_edit()
+        except Exception:
+            if began_property_edit:
+                self.__property_edit_depth -= 1
+                if self.__property_edit_end_callback is not None:
+                    self.__property_edit_end_callback(self)
+            raise
+
+    def end_edit(self):
+        has_property_edit_depth = self.__property_edit_depth > 0
+        should_end_property_edit = has_property_edit_depth or self.is_batch_editing
+        try:
+            super().end_edit()
+        finally:
+            if has_property_edit_depth:
+                self.__property_edit_depth -= 1
+            if should_end_property_edit and self.__property_edit_end_callback is not None:
+                self.__property_edit_end_callback(self)
 
     def get_value_as_string(self) -> str:
         value = self._get_value_as_string()

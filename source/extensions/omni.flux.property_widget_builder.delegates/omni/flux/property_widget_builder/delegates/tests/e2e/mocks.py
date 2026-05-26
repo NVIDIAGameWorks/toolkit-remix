@@ -17,20 +17,23 @@
 
 __all__ = ("MockItem", "MockValueModel")
 
-import omni.ui as ui
+from typing import Any
+
+from omni.flux.property_widget_builder.widget import Item
 
 from ..unit.mocks import MockValueModel
 
 
-class MockItem(ui.AbstractItem):
+class MockItem(Item):
     """Minimal item with a configurable number of value models."""
 
-    def __init__(self, values: list[float | int] | None = None, read_only: bool = False):
+    def __init__(self, values: list[Any] | None = None, read_only: bool = False):
         super().__init__()
         if values is None:
             values = [0.0]
-        self.value_models = [MockValueModel(v, read_only=read_only) for v in values]
+        self._name_models = [MockValueModel("Value")]
+        self._value_models = [MockValueModel(v, read_only=read_only) for v in values]
 
     @property
-    def element_count(self) -> int:
-        return len(self.value_models)
+    def default_attr(self) -> dict[str, None]:
+        return super().default_attr

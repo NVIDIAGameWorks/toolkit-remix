@@ -63,7 +63,7 @@ see [Repo Tools → Root Scripts](tools/repo-tools.md#root-scripts).
 ### Run Tests
 
 ```batch
-.\_build\windows-x86_64\release\tests-<extension.name>.bat -n default
+.\_build\windows-x86_64\release\tests-<extension.name>.bat -n default -- --no-window
 ```
 
 Runs user-written tests for a single extension. See [Running Tests](code-quality/testing.md) for filtering, coverage,

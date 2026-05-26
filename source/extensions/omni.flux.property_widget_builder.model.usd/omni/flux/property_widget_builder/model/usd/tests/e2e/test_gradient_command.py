@@ -17,9 +17,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
-import omni.kit.app
 import omni.kit.commands
 import omni.kit.test
 import omni.kit.ui_test as ui_test
@@ -30,20 +27,15 @@ from omni.flux.property_widget_builder.model.usd.field_builders.gradient import 
     UsdColorGradientWidget,
     _snapshot_gradient,
 )
+from omni.flux.utils.common.interactive_usd_notices import register_objects_changed_listener as _register_listener
+from omni.kit.ui_test import wait_n_updates as _wait
 from pxr import Gf, Sdf, Tf, Usd, Vt
-
-_GRADIENT_MODULE = "omni.flux.property_widget_builder.model.usd.field_builders.gradient"
 
 _INITIAL_TIMES = Vt.DoubleArray([0.0, 1.0])
 _INITIAL_VALUES = Vt.Vec4fArray([Gf.Vec4f(1, 0, 0, 1), Gf.Vec4f(0, 0, 1, 1)])
 
 _NEW_TIMES = Vt.DoubleArray([0.0, 0.5, 1.0])
 _NEW_VALUES = Vt.Vec4fArray([Gf.Vec4f(0, 1, 0, 1), Gf.Vec4f(1, 1, 0, 1), Gf.Vec4f(0, 0, 1, 1)])
-
-
-async def _wait(frames: int = 2):
-    for _ in range(frames):
-        await omni.kit.app.get_app().next_update_async()
 
 
 # ============================================================================
@@ -66,14 +58,7 @@ class TestSetGradientPrimvarsCommand(omni.kit.test.AsyncTestCase):
 
         self._base_name = "primvars:test"
 
-        self._listener_patcher = patch(f"{_GRADIENT_MODULE}._get_usd_listener_instance", return_value=MagicMock())
-        self._block_patcher = patch(f"{_GRADIENT_MODULE}._DisableAllListenersBlock", MagicMock)
-        self._listener_patcher.start()
-        self._block_patcher.start()
-
     async def tearDown(self):
-        self._block_patcher.stop()
-        self._listener_patcher.stop()
         await self._context.close_stage_async()
 
     def _read_times(self) -> list[float]:
@@ -274,12 +259,23 @@ class TestGradientEditorUndo(omni.kit.test.AsyncTestCase):
 
         self.assertEqual(len(self._read_times()), 2)
         self.assertEqual(len(self._find_markers()), 2)
+        notices = []
+        subscription = _register_listener(self._stage, lambda notice, stage: notices.append((notice, stage)))
 
-        self._click_overlay_at(0.5)
-        await _wait()
+        try:
+            self._click_overlay_at(0.5)
+            await _wait()
 
-        self.assertEqual(len(self._read_times()), 3, "USD should have 3 keyframes after click-to-add")
-        self.assertEqual(len(self._find_markers()), 3, "Popup should show 3 markers")
+            self.assertEqual(len(self._read_times()), 3, "USD should have 3 keyframes after click-to-add")
+            self.assertEqual(len(self._find_markers()), 3, "Popup should show 3 markers")
+            self.assertEqual(len(notices), 0)
+
+            self._widget._hide_popup()
+            await _wait(3)
+
+            self.assertEqual(len(notices), 1)
+        finally:
+            subscription.Revoke()
 
     async def test_add_keyframe_then_undo(self):
         """Click-to-add, then undo: USD and widget both revert to 2 keyframes."""
@@ -385,33 +381,76 @@ class TestGradientEditorUndo(omni.kit.test.AsyncTestCase):
 
         original_times = self._read_times()
         self.assertEqual(len(original_times), 2)
+        notices = []
+        subscription = _register_listener(self._stage, lambda notice, stage: notices.append((notice, stage)))
 
-        # Simulate full drag cycle via widget callbacks
-        markers = self._find_markers()
-        self.assertGreaterEqual(len(markers), 2)
-        # Left-press the second marker (starts drag, captures snapshot)
-        markers[1].widget.call_mouse_pressed_fn(0, 0, 0, 0)
-        await _wait()
+        try:
+            # Simulate full drag cycle via widget callbacks
+            markers = self._find_markers()
+            self.assertGreaterEqual(len(markers), 2)
+            # Left-press the second marker (starts drag, captures snapshot)
+            markers[1].widget.call_mouse_pressed_fn(0, 0, 0, 0)
+            await _wait()
+            self.assertEqual(len(notices), 0)
 
-        # Simulate placer offset change (the marker moves)
-        uid = self._widget._keyframes[-1].uid
-        placer = self._widget._marker_placers.get(uid)
-        if placer:
-            placer.offset_x = ui.Percent(80.0)
-        await _wait()
+            # Simulate placer offset change (the marker moves)
+            uid = self._widget._keyframes[-1].uid
+            placer = self._widget._marker_placers.get(uid)
+            if placer:
+                placer.offset_x = ui.Percent(80.0)
+            await _wait()
+            self.assertEqual(len(notices), 0)
 
-        # Release (commits command + fires changed)
-        markers = self._find_markers()
-        markers[-1].widget.call_mouse_released_fn(0, 0, 0, 0)
-        await _wait()
+            # Release commits the undo entry but keeps Stage Manager quiet while the popup stays open
+            markers = self._find_markers()
+            markers[-1].widget.call_mouse_released_fn(0, 0, 0, 0)
+            await _wait()
 
-        moved_times = self._read_times()
-        self.assertNotEqual(original_times, moved_times, "Times should change after drag")
+            moved_times = self._read_times()
+            self.assertNotEqual(original_times, moved_times, "Times should change after drag")
+            self.assertEqual(len(notices), 0)
+
+            self._widget._hide_popup()
+            await _wait(3)
+
+            self.assertEqual(len(notices), 1)
+        finally:
+            subscription.Revoke()
 
         # Single undo should restore to original
         omni.kit.undo.undo()
         await _wait(3)
         self.assertEqual(self._read_times(), original_times, "Single undo should restore original times")
+
+    async def test_popup_close_during_marker_drag_flushes_notice_once(self):
+        """Closing the popup during a drag ends the deferred USD notice."""
+        self._build_widget()
+        await _wait(3)
+        await self._open_popup()
+
+        notices = []
+        subscription = _register_listener(self._stage, lambda notice, stage: notices.append((notice, stage)))
+        try:
+            markers = self._find_markers()
+            self.assertGreaterEqual(len(markers), 2)
+            markers[1].widget.call_mouse_pressed_fn(0, 0, 0, 0)
+            await _wait()
+
+            uid = self._widget._keyframes[-1].uid
+            placer = self._widget._marker_placers.get(uid)
+            self.assertIsNotNone(placer)
+            placer.offset_x = ui.Percent(80.0)
+            await _wait()
+
+            self.assertEqual(len(notices), 0)
+
+            self._widget._hide_popup()
+            await _wait(3)
+
+            self.assertIsNone(self._widget._usd_notice_token)
+            self.assertEqual(len(notices), 1)
+        finally:
+            subscription.Revoke()
 
 
 # ============================================================================

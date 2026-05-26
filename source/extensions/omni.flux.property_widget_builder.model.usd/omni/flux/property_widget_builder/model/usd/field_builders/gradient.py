@@ -20,10 +20,14 @@ from __future__ import annotations
 import contextlib
 from typing import Any
 
+import carb
 import omni.kit.commands
 import omni.ui as ui
 import omni.usd
 from omni.flux.property_widget_builder.widget import ClaimResult, FieldBuilder, Item
+from omni.flux.utils.common.interactive_usd_notices import begin_interaction as _begin_interaction
+from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices as _defer_usd_notices
+from omni.flux.utils.common.interactive_usd_notices import end_interaction as _end_interaction
 from omni.flux.utils.widget.color_gradient import ColorGradientWidget
 from pxr import Sdf, Tf, Usd
 
@@ -63,7 +67,7 @@ def _claim_gradients(items: list[Item]) -> ClaimResult:
     for item in items:
         if not isinstance(item, _BaseUSDAttributeItem):
             continue
-        attr_paths = getattr(item, "_attribute_paths", None)
+        attr_paths = item.attribute_paths
         if not attr_paths:
             continue
         parts = attr_paths[0].name.rsplit(":", 1)
@@ -116,10 +120,7 @@ def _suppress_panel_listener():
     """Suppress the property panel's USD listener if available."""
     listener = _get_usd_listener_instance()
     if listener:
-        try:
-            with _DisableAllListenersBlock(listener):
-                yield
-        except AttributeError:
+        with _DisableAllListenersBlock(listener):
             yield
     else:
         yield
@@ -127,8 +128,8 @@ def _suppress_panel_listener():
 
 def _write_gradient_direct(context_name: str, prim_path: str, base_name: str, times, values):
     """Write gradient to USD directly (no command, no undo entry). Suppresses panel listener."""
-    with _suppress_panel_listener():
-        stage = omni.usd.get_context(context_name).get_stage()
+    stage = omni.usd.get_context(context_name).get_stage()
+    with _defer_usd_notices(stage), _suppress_panel_listener():
         prim = stage.GetPrimAtPath(prim_path)
         prim.GetAttribute(f"{base_name}:times").Set(times)
         prim.GetAttribute(f"{base_name}:values").Set(values)
@@ -136,8 +137,8 @@ def _write_gradient_direct(context_name: str, prim_path: str, base_name: str, ti
 
 def _restore_gradient(context_name: str, prim_path: str, base_name: str, old_values: dict[str, Any]):
     """Restore snapshotted gradient values (for undo). Suppresses panel listener."""
-    with _suppress_panel_listener():
-        stage = omni.usd.get_context(context_name).get_stage()
+    stage = omni.usd.get_context(context_name).get_stage()
+    with _defer_usd_notices(stage), _suppress_panel_listener():
         prim = stage.GetPrimAtPath(prim_path)
         for suffix, value in old_values.items():
             attr = prim.GetAttribute(f"{base_name}:{suffix}")
@@ -201,6 +202,7 @@ class UsdColorGradientWidget(ColorGradientWidget):
     RAII: registers Tf.Notice on popup open, revokes on popup close.
     All USD writes go through Kit commands for undo/redo.
     Continuous edits (drag, color picker) are grouped into single undo entries.
+    Stage Manager notices stay deferred until the popup edit ends.
     """
 
     def __init__(self, context_name: str, prim_path: str, base_name: str, **kwargs):
@@ -212,6 +214,7 @@ class UsdColorGradientWidget(ColorGradientWidget):
         self._is_dragging = False
         self._drag_committed = False
         self._drag_snapshot: dict[str, Any] = {}
+        self._usd_notice_token = None
 
         keyframes = _read_gradient(context_name, prim_path, base_name)
         super().__init__(
@@ -224,6 +227,9 @@ class UsdColorGradientWidget(ColorGradientWidget):
 
     def _show_popup(self) -> None:
         super()._show_popup()
+        self._drag_committed = False
+        if self._usd_notice_token is None:
+            self._usd_notice_token = _begin_interaction(omni.usd.get_context(self._usd_context_name).get_stage())
         if not self._usd_listener:
             self._usd_listener = Tf.Notice.Register(
                 Usd.Notice.ObjectsChanged,
@@ -232,8 +238,39 @@ class UsdColorGradientWidget(ColorGradientWidget):
             )
 
     def _hide_popup(self) -> None:
-        super()._hide_popup()
+        try:
+            super()._hide_popup()
+        finally:
+            try:
+                self._revoke_usd_listener()
+            finally:
+                self._finish_gradient_edit()
+
+    def _on_window_close(self, visible: bool) -> None:
+        super()._on_window_close(visible)
+        if not visible:
+            try:
+                self._revoke_usd_listener()
+            finally:
+                self._finish_gradient_edit()
+
+    def destroy(self):
+        try:
+            self._revoke_usd_listener()
+        finally:
+            try:
+                self._finish_gradient_edit()
+            finally:
+                super().destroy()
+
+    def _revoke_usd_listener(self) -> None:
+        listener = self._usd_listener
         self._usd_listener = None
+        if listener is not None:
+            try:
+                listener.Revoke()
+            except (Tf.ErrorException, RuntimeError) as exc:
+                carb.log_warn(f"Failed to revoke gradient USD notice listener: {exc}")
 
     def _on_usd_changed_callback(self, times, values):
         # The base widget fires _fire_changed() immediately after _fire_drag_ended().
@@ -266,10 +303,18 @@ class UsdColorGradientWidget(ColorGradientWidget):
         self._drag_snapshot = _snapshot_gradient(self._usd_context_name, self._usd_prim_path, self._usd_base_name)
 
     def _on_usd_drag_ended(self):
+        self._finish_usd_drag()
+
+    def _finish_usd_drag(self) -> None:
         self._is_dragging = False
         if not self._drag_snapshot:
+            self._drag_committed = False
             return
         current = _snapshot_gradient(self._usd_context_name, self._usd_prim_path, self._usd_base_name)
+        if current == self._drag_snapshot:
+            self._drag_snapshot = {}
+            self._drag_committed = False
+            return
         self._is_writing = True
         try:
             omni.kit.commands.execute(
@@ -285,6 +330,15 @@ class UsdColorGradientWidget(ColorGradientWidget):
             self._is_writing = False
         self._drag_snapshot = {}
         self._drag_committed = True
+
+    def _finish_gradient_edit(self) -> None:
+        try:
+            self._finish_usd_drag()
+        finally:
+            token = self._usd_notice_token
+            self._usd_notice_token = None
+            if token is not None:
+                _end_interaction(token)
 
     def _on_usd_notice(self, notice: Usd.Notice.ObjectsChanged, stage: Usd.Stage):
         if self._is_writing:
@@ -313,7 +367,10 @@ class UsdColorGradientWidget(ColorGradientWidget):
 
 def _gradient_builder(item):
     identifier = _generate_identifier(item)
-    attr_path = item._attribute_paths[0]  # noqa: SLF001
+    attr_paths = item.attribute_paths
+    if not attr_paths:
+        return []
+    attr_path = attr_paths[0]
     prim_path = str(attr_path.GetPrimPath())
     base_name = attr_path.name.rsplit(":", 1)[0]
 

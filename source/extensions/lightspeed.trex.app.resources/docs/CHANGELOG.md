@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.28.9]
+### Fixed
+- Added custom tag collection and visibility force-refresh rules to every Stage Manager interaction that can filter by them
+
 ## [1.28.8]
 ### Fixed
 - Fixed ingested asset metadata hashes to match LF-normalized USD fixtures

@@ -32,6 +32,7 @@ __all__ = [
     "is_in_light_group",
     "is_in_mesh_group",
     "is_instance",
+    "is_light",
     "is_light_asset",
     "is_light_prototype",
     "is_material_prototype",
@@ -46,7 +47,8 @@ from collections.abc import Callable
 
 import omni.usd
 from lightspeed.common import constants
-from pxr import Sdf, Usd, UsdGeom, UsdLux, UsdShade
+from omni.flux.utils.common.lights import get_light_type as _get_light_type
+from pxr import Sdf, Usd, UsdGeom, UsdShade
 
 
 class PrimTypes(Enum):
@@ -195,11 +197,24 @@ def includes_hash(prim: Usd.Prim, prim_hashes: set[str]) -> bool:
 def is_light_prototype(prim: Usd.Prim) -> bool:
     """
     Returns:
-        Whether the prims is a light prototype prim or not
+        Whether the prim is a light prototype prim or not. This is narrower than is_light() because
+        prototype queries exclude light prims under instance paths.
     """
     if not prim:
         return False
-    return bool(prim.HasAPI(UsdLux.LightAPI) and not is_instance(prim))
+    return is_light(prim) and not is_instance(prim)
+
+
+def is_light(prim: Usd.Prim) -> bool:
+    """
+    Returns:
+        Whether the prim is a USD Lux light or not, including nested or referenced lights. This does
+        not filter instance paths; callers that need a non-instance prototype light should use
+        is_light_prototype().
+    """
+    if not prim:
+        return False
+    return _get_light_type(prim.GetTypeName()) is not None or "LightAPI" in prim.GetAppliedSchemas()
 
 
 def is_material_prototype(prim: Usd.Prim) -> bool:

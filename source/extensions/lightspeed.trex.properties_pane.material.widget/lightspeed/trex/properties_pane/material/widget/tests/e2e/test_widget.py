@@ -35,6 +35,7 @@ from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from lightspeed.trex.properties_pane.material.widget import SetupUI as _MaterialPropertiesWidget
 from omni.flux.utils.common import path_utils as _path_utils
+from omni.flux.utils.common.interactive_usd_notices import register_objects_changed_listener as _register_listener
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.flux.validator.factory import BASE_HASH_KEY
@@ -204,10 +205,17 @@ class TestMaterialPropertyWidget(AsyncTestCase):
         return texture_file_fields
 
     async def _get_group_texture_file_fields(self, _window, group):
-        property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+        group_index = list(PROPERTY_BRANCHES_MAP.keys()).index(group)
+        property_branches = []
+        for _ in range(20):
+            property_branches = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_branch'")
+            if len(property_branches) > group_index:
+                break
+            await ui_test.wait_n_updates(1)
 
         # We expand
-        await property_branches[list(PROPERTY_BRANCHES_MAP.keys()).index(group)].click()
+        self.assertGreater(len(property_branches), group_index)
+        await property_branches[group_index].click()
         await ui_test.human_delay(human_delay_speed=10)
         texture_file_fields = ui_test.find_all(
             f"{_window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
@@ -235,6 +243,44 @@ class TestMaterialPropertyWidget(AsyncTestCase):
                 self.assertFalse(frame_none.widget.visible)
             self.assertTrue(frame_material.widget.visible)
 
+        finally:
+            await self.__destroy(_window, _material_property_wid)
+
+    async def test_material_texture_string_field_emits_one_refresh_on_enter(self):
+        _window, _material_property_wid = await self.__setup_widget()
+
+        try:
+            # Select a real material prim so the texture field group is populated.
+            usd_context = omni.usd.get_context()
+            usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+            await ui_test.human_delay(human_delay_speed=3)
+
+            # Open the Base Material group and use an existing ingested texture path.
+            texture_file_fields = await self._get_group_texture_file_fields(_window, "Base Material")
+            asset_path = _get_test_data("usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds")
+            notices = []
+            subscription = _register_listener(
+                usd_context.get_stage(), lambda notice, stage: notices.append((notice, stage))
+            )
+            try:
+                # Type into the actual texture StringField and commit with Enter.
+                await texture_file_fields[0].click()
+                await ui_test.emulate_keyboard_press(
+                    carb.input.KeyboardInput.A, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL
+                )
+                await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
+                await texture_file_fields[0].input(asset_path, end_key=KeyboardInput.ENTER)
+                for _ in range(60):
+                    if notices:
+                        break
+                    await ui_test.wait_n_updates(1)
+
+                # The committed edit should emit one grouped refresh notice.
+                self.assertEqual(len(notices), 1)
+                await ui_test.wait_n_updates(10)
+                self.assertEqual(len(notices), 1)
+            finally:
+                subscription.Revoke()
         finally:
             await self.__destroy(_window, _material_property_wid)
 

@@ -15,19 +15,27 @@
 * limitations under the License.
 """
 
+from decimal import Decimal
 from typing import Any, cast
 from unittest.mock import patch
 
+import carb
 import omni.kit.test
-from omni.flux.utils.widget.drag_field import IntBoundedDrag, _HardLimitDragMixin
+from omni.flux.utils.widget.drag_field import (
+    FloatBoundedDrag,
+    IntBoundedDrag,
+    _BoundedNumericDragBase,
+    _safe_eval_numeric_expression,
+)
 
 
 class _MockModel:
-    def __init__(self):
+    def __init__(self, value=0.0, string_value=None):
         self.supports_batch_edit = False
         self.is_batch_editing = False
         self._callback = None
-        self.last_value = None
+        self.last_value = value
+        self.string_value = string_value
 
     def set_callback_pre_set_value(self, callback):
         self._callback = callback
@@ -41,10 +49,20 @@ class _MockModel:
     def _set(self, value):
         self.last_value = value
 
+    def set_value(self, value):
+        self.apply(value)
+
+    def get_value_as_float(self):
+        return float(self.last_value)
+
+    def get_value_as_string(self):
+        return self.string_value if self.string_value is not None else str(self.last_value)
+
 
 class _MockWidgetBase:
     def __init__(self, model=None, **kwargs):
         self.model = model
+        self.step = kwargs.pop("step", None)
         self.kwargs = kwargs
         self.min = kwargs.get("min")
         self.max = kwargs.get("max")
@@ -65,9 +83,25 @@ class _MockWidgetBase:
         if self._released_fn is not None:
             self._released_fn(0.0, 0.0, button, 0)
 
+    def destroy(self):
+        pass
 
-class _MockDrag(_HardLimitDragMixin, _MockWidgetBase):
-    pass
+
+class _MockDrag(_BoundedNumericDragBase, _MockWidgetBase):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("enable_numeric_edit", False)
+        super().__init__(*args, **kwargs)
+
+
+class _MockFloatDrag(_MockDrag):
+    _NUMERIC_VALUE_TYPE = float
+    _KEYBOARD_STEP_VALUE_TYPE = float
+
+
+class _MockIntDrag(_MockDrag):
+    _NUMERIC_VALUE_TYPE = int
+    _KEYBOARD_STEP_VALUE_TYPE = int
+    _MIN_KEYBOARD_STEP = 1
 
 
 class _BatchModel(_MockModel):
@@ -85,6 +119,12 @@ class _BatchModel(_MockModel):
     def end_batch_edit(self):
         self.end_count += 1
         self.is_batch_editing = False
+
+
+class _ReentrantEndBatchModel(_BatchModel):
+    def end_batch_edit(self):
+        super().end_batch_edit()
+        self.apply(4.0)
 
 
 class _ModelWithoutBatchFlag:
@@ -105,7 +145,31 @@ class _ModelWithoutBatchFlag:
         self.last_value = value
 
 
-class TestHardClampedDragMixin(omni.kit.test.AsyncTestCase):
+class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
+    async def test_concrete_drag_widgets_reuse_shared_numeric_edit_hooks(self):
+        # Arrange
+        shared_methods = {
+            "__init__",
+            "_coerce_numeric_value",
+            "_get_keyboard_step",
+            "begin_deferred_numeric_undo_group",
+            "begin_numeric_text_edit",
+            "set_numeric_expression_value",
+            "set_numeric_edit_widgets",
+            "step_keyboard_value",
+        }
+
+        # Act
+        duplicated_methods = {
+            cls.__name__: sorted(shared_methods.intersection(cls.__dict__))
+            for cls in (FloatBoundedDrag, IntBoundedDrag)
+        }
+
+        # Assert
+        self.assertTrue(issubclass(FloatBoundedDrag, _BoundedNumericDragBase))
+        self.assertTrue(issubclass(IntBoundedDrag, _BoundedNumericDragBase))
+        self.assertEqual(duplicated_methods, {"FloatBoundedDrag": [], "IntBoundedDrag": []})
+
     async def test_clamps_to_hard_bounds(self):
         # Arrange
         model = _MockModel()
@@ -163,6 +227,16 @@ class TestHardClampedDragMixin(omni.kit.test.AsyncTestCase):
         self.assertIsInstance(model.last_value, int)
         self.assertEqual(model.last_value, 10)
 
+    async def test_float_drag_does_not_coerce_bool_as_number(self):
+        # Arrange
+        drag = _MockFloatDrag(model=_MockModel())
+
+        # Act
+        result = drag._coerce_numeric_value(True)
+
+        # Assert
+        self.assertIs(result, True)
+
     async def test_drag_int_normalizes_fractional_hard_min_with_ceiling(self):
         # Arrange
         value = 0
@@ -173,6 +247,114 @@ class TestHardClampedDragMixin(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertIsInstance(result, int)
         self.assertEqual(result, 1)
+
+    async def test_numeric_expression_parser_accepts_basic_arithmetic(self):
+        # Arrange
+        expressions = ("2*100", "-(5 + 3) / 2")
+
+        # Act
+        results = [_safe_eval_numeric_expression(expression) for expression in expressions]
+
+        # Assert
+        self.assertEqual(results, [200, -4.0])
+
+    async def test_numeric_expression_parser_preserves_large_integer_precision(self):
+        # Arrange
+        expression = "9007199254740993 + 1"
+
+        # Act
+        result = _safe_eval_numeric_expression(expression)
+
+        # Assert
+        self.assertEqual(result, 9007199254740994)
+
+    async def test_numeric_expression_parser_rejects_unsafe_input(self):
+        # Arrange
+        unsafe_expressions = ("__import__('os').system('echo unsafe')", "2**10", "1e999")
+
+        # Act
+        for expression in unsafe_expressions:
+            with self.subTest(expression=expression):
+                # Assert
+                with self.assertRaises(ValueError):
+                    _safe_eval_numeric_expression(expression)
+
+    async def test_numeric_expression_parser_rejects_deep_expressions(self):
+        # Arrange
+        expression = "+" * 25 + "1"
+
+        # Act
+        with self.assertRaises(ValueError):
+            # Assert
+            _safe_eval_numeric_expression(expression)
+
+    async def test_arrow_up_evaluates_expression_and_adds_widget_step(self):
+        # Arrange
+        model = _MockModel(value=0.0, string_value="2*100")
+        widget = _MockDrag(model=model, step=0.1)
+
+        # Act
+        widget.step_keyboard_value(model, int(carb.input.KeyboardInput.UP))
+
+        # Assert
+        self.assertAlmostEqual(model.last_value, 200.1)
+
+    async def test_numeric_expression_value_sets_evaluated_number_on_model(self):
+        # Arrange
+        model = _MockModel()
+        widget = _MockFloatDrag(model=model)
+
+        # Act
+        with patch.object(model, "set_value", wraps=model.set_value) as set_value:
+            widget.set_numeric_expression_value(model, "2*100")
+
+        # Assert
+        set_value.assert_called_once_with(200.0)
+        self.assertEqual(model.last_value, 200.0)
+
+    async def test_repeated_arrow_steps_do_not_propagate_float_rounding_errors(self):
+        # Arrange
+        model = _MockModel(value=0.0)
+        widget = _MockDrag(model=model, step=0.1)
+
+        # Act
+        for _ in range(84):
+            widget.step_keyboard_value(model, int(carb.input.KeyboardInput.UP))
+
+        # Assert
+        self.assertEqual(model.last_value, 8.4)
+
+    async def test_arrow_step_snaps_existing_float_noise_to_step_grid(self):
+        # Arrange
+        model = _MockModel(value=8.399999999999988)
+        widget = _MockDrag(model=model, step=0.1)
+
+        # Act
+        widget.step_keyboard_value(model, int(carb.input.KeyboardInput.UP))
+
+        # Assert
+        self.assertEqual(model.last_value, 8.5)
+
+    async def test_arrow_step_handles_large_decimal_values(self):
+        # Arrange
+        value = Decimal("1e100")
+
+        # Act
+        result = _MockDrag._calculate_keyboard_step_value(value, 0.1, 1)
+
+        # Assert
+        self.assertEqual(result, 1e100)
+
+    async def test_arrow_step_preserves_value_precision_when_not_float_noise(self):
+        # Arrange
+        model = _MockModel(value=0.015)
+        widget = _MockDrag(model=model, step=0.1)
+
+        # Act
+        widget.step_keyboard_value(model, int(carb.input.KeyboardInput.UP))
+
+        # Assert
+        self.assertEqual(model.last_value, 0.115)
 
     async def test_drag_int_normalizes_fractional_hard_max_with_floor(self):
         # Arrange
@@ -195,6 +377,17 @@ class TestHardClampedDragMixin(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertIsInstance(result, int)
         self.assertEqual(result, 3)
+
+    async def test_drag_int_rejects_fractional_value_without_truncating(self):
+        # Arrange
+        model = _MockModel(value=5)
+        _MockIntDrag(model=model)
+
+        # Act
+        model.apply("3/2")
+
+        # Assert
+        self.assertEqual(model.last_value, 5)
 
     async def test_drag_int_ignores_inverted_bounds_after_integer_normalization(self):
         # Arrange
@@ -219,7 +412,7 @@ class TestHardClampedDragMixin(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(result, "abc")
 
-    async def test_ignores_non_numeric_values(self):
+    async def test_rejects_non_numeric_string_values(self):
         # Arrange
         model = _MockModel()
         _MockDrag(model=model, hard_min_value=0.0, hard_max_value=1.0)
@@ -228,7 +421,104 @@ class TestHardClampedDragMixin(omni.kit.test.AsyncTestCase):
         model.apply("abc")
 
         # Assert
-        self.assertEqual(model.last_value, "abc")
+        self.assertEqual(model.last_value, 0.0)
+
+    async def test_rejects_empty_numeric_string_values(self):
+        # Arrange
+        model = _MockModel(value=3.0)
+        _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
+
+        # Act
+        model.apply(" ")
+
+        # Assert
+        self.assertEqual(model.last_value, 3.0)
+
+    async def test_float_drag_accepts_integer_text(self):
+        # Arrange
+        model = _MockModel()
+        _MockFloatDrag(model=model, hard_min_value=0.0, hard_max_value=100.0)
+
+        # Act
+        model.apply("12")
+
+        # Assert
+        self.assertEqual(model.last_value, 12.0)
+
+    async def test_float_drag_ignores_incomplete_expression(self):
+        # Arrange
+        model = _MockModel(value=3.0)
+        _MockFloatDrag(model=model, hard_min_value=0.0, hard_max_value=100.0)
+
+        # Act
+        model.apply("2*")
+
+        # Assert
+        self.assertEqual(model.last_value, 3.0)
+
+    async def test_float_drag_ignores_leading_decimal_prefix(self):
+        # Arrange
+        expressions = (".", "+.", "-.")
+
+        # Act
+        for expression in expressions:
+            with self.subTest(expression=expression):
+                model = _MockModel(value=3.0)
+                _MockFloatDrag(model=model, hard_min_value=-100.0, hard_max_value=100.0)
+                model.apply(expression)
+
+                # Assert
+                self.assertEqual(model.last_value, 3.0)
+
+    async def test_float_drag_ignores_incomplete_exponent(self):
+        # Arrange
+        expressions = ("1e", "1e+", "1e-")
+
+        # Act
+        for expression in expressions:
+            with self.subTest(expression=expression):
+                model = _MockModel(value=3.0)
+                _MockFloatDrag(model=model, hard_min_value=0.0, hard_max_value=100.0)
+                model.apply(expression)
+
+                # Assert
+                self.assertEqual(model.last_value, 3.0)
+
+    async def test_float_drag_ignores_complete_invalid_expression(self):
+        # Arrange
+        invalid_expressions = ("1/0", "2**10", "1e999", "2*/3")
+
+        # Act
+        for expression in invalid_expressions:
+            with self.subTest(expression=expression):
+                model = _MockModel(value=3.0)
+                _MockFloatDrag(model=model, hard_min_value=0.0, hard_max_value=100.0)
+                model.apply(expression)
+
+                # Assert
+                self.assertEqual(model.last_value, 3.0)
+
+    async def test_float_drag_rejects_oversized_numeric_string_values(self):
+        # Arrange
+        model = _MockModel(value=3.0)
+        _MockFloatDrag(model=model, hard_min_value=0.0, hard_max_value=100.0)
+
+        # Act
+        model.apply("9" * 400)
+
+        # Assert
+        self.assertEqual(model.last_value, 3.0)
+
+    async def test_arrow_step_falls_back_when_expression_overflows_float(self):
+        # Arrange
+        model = _MockModel(value=1.0, string_value="9" * 400)
+        widget = _MockFloatDrag(model=model, step=0.1)
+
+        # Act
+        widget.step_keyboard_value(model, int(carb.input.KeyboardInput.UP))
+
+        # Assert
+        self.assertEqual(model.last_value, 1.1)
 
     async def test_drag_starts_batch_edit_before_setting_value(self):
         # Arrange
@@ -257,6 +547,35 @@ class TestHardClampedDragMixin(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(model.end_count, 1)
         self.assertFalse(model.is_batch_editing)
+
+    async def test_destroy_clears_mouse_pressed_before_ending_batch_edit(self):
+        # Arrange
+        model = _ReentrantEndBatchModel()
+        widget = _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
+        widget.emit_mouse_pressed(button=0)
+        model.apply(7.0)
+
+        # Act
+        widget.destroy()
+
+        # Assert
+        self.assertEqual(model.end_count, 1)
+        self.assertFalse(model.is_batch_editing)
+        self.assertEqual(model.last_value, 4.0)
+
+    async def test_non_left_mouse_release_keeps_active_batch_edit_open(self):
+        # Arrange
+        model = _BatchModel()
+        widget = _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
+        widget.emit_mouse_pressed(button=0)
+        model.apply(7.0)
+
+        # Act
+        widget.emit_mouse_released(button=1)
+
+        # Assert
+        self.assertEqual(model.end_count, 0)
+        self.assertTrue(model.is_batch_editing)
 
     async def test_missing_batch_flag_logs_warning_and_disables_batch_behavior(self):
         # Arrange

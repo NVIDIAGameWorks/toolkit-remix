@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.16.5]
+### Fixed
+- Updated property-only USD resync handling to dirty Stage Manager widgets instead of rebuilding context items unless force-refresh rules require it.
+
 ## [2.16.4]
 ### Fixed
 - Fixed hidden filter UI placement state triggering Stage Manager result expansion

@@ -32,11 +32,12 @@ from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
 from lightspeed.trex.utils.common.prim_utils import get_reference_file_paths as _get_reference_file_paths
+from lightspeed.trex.utils.common.prim_utils import is_light as _is_light
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.widget.usd.prims.string_field import UsdPrimNameField as _UsdPrimNameField
 from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
-from pxr import Sdf, Usd, UsdGeom, UsdLux, UsdShade
+from pxr import Sdf, Usd, UsdGeom, UsdShade
 
 from .listener import USDListener as _USDListener
 
@@ -131,7 +132,7 @@ class ItemLiveLightGroup(ui.AbstractItem):
         children = core.get_children_from_prim(
             self.parent.prim, only_prim_not_from_ref=True, level=1, skip_remix_ref=True
         )
-        return [child for child in children if child.HasAPI(UsdLux.LightAPI)]
+        return [child for child in children if _is_light(child)]
 
     @property
     def parent(self):
@@ -246,7 +247,7 @@ class ItemPrim(ui.AbstractItem):
         return self._from_live_light_group
 
     def is_usd_light(self):
-        return self._prim.HasAPI(UsdLux.LightAPI)
+        return _is_light(self._prim)
 
     @property
     def reference_item(self):
