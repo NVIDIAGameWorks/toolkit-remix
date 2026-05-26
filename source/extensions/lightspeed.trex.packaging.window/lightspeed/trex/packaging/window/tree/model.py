@@ -22,6 +22,7 @@ from enum import Enum
 from typing import Any
 
 import omni.kit.undo
+import omni.usd
 from lightspeed.common.constants import USD_EXTENSIONS
 from lightspeed.trex.asset_replacements.core.shared import Setup as AssetReplacementsCore
 from lightspeed.trex.texture_replacements.core.shared import TextureReplacementsCore
@@ -123,34 +124,47 @@ class PackagingErrorModel(ui.AbstractItemModel):
                     ignored_items.append((item.layer_identifier, str(item.prim_path), item.asset_path))
                     continue
 
-                with Usd.EditContext(stage, target_layer):
-                    if item.action == PackagingActions.REPLACE_ASSET:
-                        if is_reference:
-                            self._asset_core.remove_reference(
+                if is_reference:
+                    edit_target_layer = (
+                        target_layer
+                        if self.__is_stage_local_layer(stage, target_layer)
+                        else stage.GetEditTarget().GetLayer()
+                    )
+                    with Usd.EditContext(stage, edit_target_layer):
+                        prim_path, current_ref = self.__find_authored_reference(stage, item, target_layer)
+                        if item.action == PackagingActions.REPLACE_ASSET:
+                            new_ref_asset_path = self._asset_core.switch_ref_abs_to_rel_path(
+                                stage, item.fixed_asset_path
+                            )
+                            new_ref_prim_path = self._asset_core.get_reference_prim_path_from_asset_path(
+                                new_ref_asset_path,
+                                target_layer,
+                                edit_target_layer,
+                                current_ref,
+                            )
+                            self._asset_core.on_reference_edited(
                                 stage,
-                                item.prim_path,
-                                Sdf.Reference(assetPath=item.asset_path, primPath=item.prim_path),
+                                prim_path,
+                                current_ref,
+                                new_ref_asset_path,
+                                new_ref_prim_path,
                                 target_layer,
                             )
-                            self._asset_core.add_new_reference(
-                                stage,
-                                item.prim_path,
-                                item.fixed_asset_path,
-                                self._asset_core.get_ref_default_prim_tag(),
-                                target_layer,
-                            )
-                        else:
-                            self._texture_core.replace_textures(
-                                [(str(item.prim_path), item.fixed_asset_path)],
-                                use_undo_group=False,
-                                target_layer=target_layer,
-                            )
-                    elif is_reference:
+                            continue
                         self._asset_core.remove_reference(
                             stage,
-                            item.prim_path,
-                            Sdf.Reference(assetPath=item.asset_path, primPath=item.prim_path),
+                            prim_path,
+                            current_ref,
                             target_layer,
+                        )
+                    continue
+
+                with Usd.EditContext(stage, target_layer):
+                    if item.action == PackagingActions.REPLACE_ASSET:
+                        self._texture_core.replace_textures(
+                            [(str(item.prim_path), item.fixed_asset_path)],
+                            use_undo_group=False,
+                            target_layer=target_layer,
                         )
                     else:
                         self._texture_core.replace_textures(
@@ -163,6 +177,35 @@ class PackagingErrorModel(ui.AbstractItemModel):
         self.__on_action_changed()
 
         return ignored_items
+
+    @staticmethod
+    def __is_stage_local_layer(stage: Usd.Stage, layer: Sdf.Layer | None) -> bool:
+        if not stage or not layer:
+            return False
+        return any(stack_layer.identifier == layer.identifier for stack_layer in stage.GetLayerStack())
+
+    @staticmethod
+    def __reference_matches_asset_path(layer: Sdf.Layer, reference: Sdf.Reference, asset_path: str) -> bool:
+        return OmniUrl(layer.ComputeAbsolutePath(reference.assetPath)).path.lower() == OmniUrl(asset_path).path.lower()
+
+    def __find_authored_reference(
+        self, stage: Usd.Stage, item: PackagingErrorItem, target_layer: Sdf.Layer | None
+    ) -> tuple[Sdf.Path, Sdf.Reference]:
+        if not target_layer:
+            raise RuntimeError(f"Unable to open target layer '{item.layer_identifier}'")
+
+        prim = stage.GetPrimAtPath(item.prim_path)
+        if not prim:
+            raise RuntimeError(f"Unable to find composed prim '{item.prim_path}'")
+
+        for prim_spec in prim.GetPrimStack():
+            if prim_spec.layer.identifier != target_layer.identifier:
+                continue
+            for reference in prim_spec.referenceList.GetAddedOrExplicitItems():
+                if self.__reference_matches_asset_path(target_layer, reference, item.asset_path):
+                    return prim.GetPath(), reference
+
+        raise RuntimeError(f"Unable to find reference '{item.asset_path}' on prim '{item.prim_path}'")
 
     def validate_selected_path(
         self, item: PackagingErrorItem, is_reference: bool, directory: str, filename: str

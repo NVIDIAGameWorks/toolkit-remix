@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.6]
+### Fixed
+- Route missing-reference repairs through the asset replacement core, using local mod-layer overrides for external referenced layers.
+
 ## [1.1.5]
 ### Changed
 - Update tests to include `target_layer` kwarg in `replace_textures` call assertions

@@ -73,6 +73,44 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual("mod.usdc", result)
 
+    async def test_get_invalid_assets_with_ignored_errors_should_match_original_layer_paths(self):
+        # Arrange
+        packaging_core = PackagingCore()
+        stage_mock = Mock()
+        stage_mock.TraverseAll.return_value = [Mock()]
+
+        temp_layer = "C:/projects/MainProject/sublayer_temp.usda"
+        source_layer = "C:/projects/MainProject/sublayer.usda"
+        ignored_asset = "C:/projects/MainProject/missing.usda"
+        remaining_layer = "C:/projects/MainProject/remaining_temp.usda"
+        remaining_asset = "C:/projects/MainProject/remaining_missing.usda"
+
+        invalid_assets = [
+            (temp_layer, "/Root/Missing", ignored_asset),
+            (remaining_layer, "/Root/Remaining", remaining_asset),
+        ]
+        ignored_errors = [(source_layer, "/Root/Missing", ignored_asset)]
+
+        def get_original_path(layer_identifier: str):
+            return source_layer if layer_identifier == temp_layer else None
+
+        try:
+            with (
+                patch.object(
+                    packaging_core._rtxio_core,
+                    "collect_invalid_stage_assets",
+                    return_value=invalid_assets,
+                ),
+                patch.object(packaging_core, "_get_original_path", side_effect=get_original_path),
+            ):
+                # Act
+                result = await packaging_core._get_invalid_assets(stage_mock, [ignored_asset], ignored_errors)
+        finally:
+            packaging_core.destroy()
+
+        # Assert
+        self.assertEqual([(remaining_layer, "/Root/Remaining", remaining_asset)], result)
+
     async def test_export_packaged_layer_should_use_usdc_args_for_packaged_root(self):
         # Arrange
         layer_mock = Mock()

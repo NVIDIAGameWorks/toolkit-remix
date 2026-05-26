@@ -162,3 +162,67 @@ class TestPackagingErrorModelUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(call(stage_mock, layer_mock_b), edit_context_mock.call_args_list[1])
         self.assertEqual(2, model._texture_core.replace_textures.call_count)
         self.assertEqual([], result)
+
+    async def test_apply_new_paths_replace_reference_should_call_asset_core_on_reference_edited(self):
+        # Arrange
+        layer_identifier = "/path/to/layer_a.usda"
+        prim_path = "/RootNode/Asset/MissingReference"
+        asset_path = "/missing/model.usda"
+        fixed_asset_path = "/replacement/model.usda"
+        current_ref = Sdf.Reference("./model.usda")
+
+        item = PackagingErrorItem(layer_identifier, prim_path, asset_path)
+        item.fixed_asset_path = fixed_asset_path
+
+        stage_mock = Mock()
+        layer_mock = Mock()
+        layer_mock.identifier = layer_identifier
+        layer_mock.ComputeAbsolutePath.return_value = asset_path
+        stage_mock.GetLayerStack.return_value = [layer_mock]
+        prim_mock = Mock()
+        prim_mock.GetPath.return_value = Sdf.Path(prim_path)
+        prim_spec_mock = Mock()
+        prim_spec_mock.layer = layer_mock
+        prim_spec_mock.referenceList.GetAddedOrExplicitItems.return_value = [current_ref]
+        prim_mock.GetPrimStack.return_value = [prim_spec_mock]
+        stage_mock.GetPrimAtPath.return_value = prim_mock
+
+        with (
+            patch.object(AssetReplacementsCore, "__init__", return_value=None),
+            patch.object(TextureReplacementsCore, "__init__", return_value=None),
+            patch.object(omni.usd, "get_context") as get_context_mock,
+            patch.object(Sdf.Layer, "FindOrOpen") as find_open_mock,
+            patch.object(omni.kit.undo, "group"),
+            patch("pxr.Usd.EditContext") as edit_context_mock,
+        ):
+            model = PackagingErrorModel(context_name="")
+            model._texture_core = Mock()
+            model._asset_core = Mock()
+            model._asset_core.switch_ref_abs_to_rel_path.return_value = "./replacement/model.usda"
+            model._asset_core.get_reference_prim_path_from_asset_path.return_value = "<Default Prim>"
+            get_context_mock.return_value.get_stage.return_value = stage_mock
+            find_open_mock.return_value = layer_mock
+
+            # Act
+            result = model.apply_new_paths(items=[item])
+
+        # Assert
+        self.assertEqual([], result)
+        self.assertEqual(call(stage_mock, layer_mock), edit_context_mock.call_args)
+        self.assertEqual(
+            call(stage_mock, fixed_asset_path),
+            model._asset_core.switch_ref_abs_to_rel_path.call_args,
+        )
+        self.assertEqual(
+            call("./replacement/model.usda", layer_mock, layer_mock, current_ref),
+            model._asset_core.get_reference_prim_path_from_asset_path.call_args,
+        )
+        self.assertEqual(
+            call(
+                stage_mock, Sdf.Path(prim_path), current_ref, "./replacement/model.usda", "<Default Prim>", layer_mock
+            ),
+            model._asset_core.on_reference_edited.call_args,
+        )
+        self.assertEqual(0, model._asset_core.replace_reference.call_count)
+        self.assertEqual(0, model._asset_core.remove_reference.call_count)
+        self.assertEqual(0, model._texture_core.replace_textures.call_count)

@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5518: Fixed packaging validation by blocking invalid projects, applying fallback mod-name metadata without saving source layers, validating missing references before mode-specific packaging work, reporting failed exports directly, keeping reference progress accurate, and showing cancellation cleanup clearly.
 - REMIX-5519: Fixed typed light property values such as volumetric radiance scale no longer being capped by soft drag-field maxima
 - Fixed Stage Manager filtering so neutral Search, Additional Filters, and combobox controls skip no-op predicates, Search reuses prepared match state, literal backslash Search terms stay literal, combobox filter tooltips describe each option, and hidden filter display state is preserved during reset and expansion checks
+- REMIX-5518: Fixed packaging missing-reference repairs so external referenced USD layers are cleaned up through mod-layer overrides instead of failing edit-target validation, with atomic reference-replace undo grouping and real flatten-mode e2e regressions for ignore, remove, replace, scan-directory, cancel, save, and completion flows.
+- REMIX-5518: Fixed GitLab test jobs to refresh stale USD asset checkout line endings before build/test steps and conform ingested asset metadata hashes to LF-normalized USD test fixtures.
 
 ## [1.5.0-0]
 

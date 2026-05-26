@@ -425,6 +425,10 @@ class PackagingCore:
         finally:
             executor.shutdown(wait=not self._cancel_token)
 
+        invalid_assets = {
+            (self._get_original_path(layer_identifier) or layer_identifier, prim_path, asset_path)
+            for layer_identifier, prim_path, asset_path in invalid_assets
+        }
         invalid_assets.difference_update(ignored_errors or [])
         return sorted(invalid_assets)
 

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.3]
+### Fixed
+- Added flatten packaging e2e regressions for missing-reference ignore, remove, replace, scan-directory, cancel, save, and completion flows.
+
 ## [1.5.2]
 ### Fixed
 - Block packaging for projects without a valid mod layer, stop flatten-mode retries when unresolved reference errors are ignored, and keep cancellation cleanup visible with cancel disabled.

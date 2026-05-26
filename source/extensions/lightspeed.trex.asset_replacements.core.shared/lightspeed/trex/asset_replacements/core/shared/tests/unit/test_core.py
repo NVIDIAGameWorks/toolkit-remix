@@ -398,6 +398,108 @@ class TestAssetReplacementsCore(AsyncTestCase):
         self.assertIsNotNone(edit_target_layer.GetPrimAtPath(test_path))
         self.assertIsNotNone(edit_target_layer.GetPrimAtPath(child_path))
 
+    async def test_remove_reference_creates_override_for_cross_layer_ref_without_existing_spec(self):
+        """remove_reference creates a local override when masking a reference from another layer."""
+        # Arrange
+        core = _AssetReplacementsCore("")
+        stage = self.context.get_stage()
+        edit_target_layer = stage.GetEditTarget().GetLayer()
+        external_layer = Sdf.Layer.CreateAnonymous()
+        stage.GetRootLayer().subLayerPaths.append(external_layer.identifier)
+
+        test_path = "/RootNode/meshes/test_cross_layer_ref_without_override"
+        prim_spec = Sdf.CreatePrimInLayer(external_layer, test_path)
+        prim_spec.specifier = Sdf.SpecifierDef
+        prim_spec.typeName = "Xform"
+        ref = Sdf.Reference("./some_asset.usd")
+        prim_spec.referenceList.Append(ref)
+
+        # Act
+        core.remove_reference(stage, test_path, ref, external_layer)
+
+        # Assert
+        edit_target_prim_spec = edit_target_layer.GetPrimAtPath(test_path)
+        self.assertIsNotNone(edit_target_prim_spec)
+        self.assertEqual([], list(edit_target_prim_spec.referenceList.GetAddedOrExplicitItems()))
+
+    async def test_replace_reference_multiple_commands_should_run_in_single_undo_group(self):
+        # Arrange
+        core = _AssetReplacementsCore("")
+        stage = MagicMock()
+        prim_path = Sdf.Path("/RootNode/meshes/test_ref")
+        current_ref = Sdf.Reference("./old_asset.usd")
+        current_layer = MagicMock()
+        edit_target_layer = MagicMock()
+        asset_path = "./new_asset.usd"
+        new_ref = Sdf.Reference("./new_asset.usd")
+        child_prim_path = "/RootNode/meshes/test_ref/ref_1234"
+        events = []
+
+        class UndoGroup:
+            def __enter__(self):
+                events.append("enter_group")
+
+            def __exit__(self, *_args):
+                events.append("exit_group")
+
+        with (
+            patch.object(omni.kit.undo, "group", return_value=UndoGroup()) as group_mock,
+            patch.object(core, "remove_reference", side_effect=lambda *_args, **_kwargs: events.append("remove")),
+            patch.object(core, "get_reference_prim_path_from_asset_path", return_value="<Default Prim>"),
+            patch.object(
+                core,
+                "add_new_reference",
+                side_effect=lambda *_args, **_kwargs: events.append("add") or (new_ref, child_prim_path),
+            ),
+        ):
+            # Act
+            result = core.replace_reference(
+                stage,
+                prim_path,
+                current_ref,
+                current_layer,
+                asset_path,
+                edit_target_layer,
+            )
+
+        # Assert
+        self.assertEqual((new_ref, child_prim_path), result)
+        self.assertEqual(["enter_group", "remove", "add", "exit_group"], events)
+        self.assertEqual(1, group_mock.call_count)
+
+    async def test_replace_reference_when_caller_owns_undo_group_should_not_open_nested_group(self):
+        # Arrange
+        core = _AssetReplacementsCore("")
+        stage = MagicMock()
+        prim_path = Sdf.Path("/RootNode/meshes/test_ref")
+        current_ref = Sdf.Reference("./old_asset.usd")
+        current_layer = MagicMock()
+        edit_target_layer = MagicMock()
+        asset_path = "./new_asset.usd"
+        new_ref = Sdf.Reference("./new_asset.usd")
+        child_prim_path = "/RootNode/meshes/test_ref/ref_1234"
+
+        with (
+            patch.object(omni.kit.undo, "group") as group_mock,
+            patch.object(core, "remove_reference"),
+            patch.object(core, "get_reference_prim_path_from_asset_path", return_value="<Default Prim>"),
+            patch.object(core, "add_new_reference", return_value=(new_ref, child_prim_path)),
+        ):
+            # Act
+            result = core.replace_reference(
+                stage,
+                prim_path,
+                current_ref,
+                current_layer,
+                asset_path,
+                edit_target_layer,
+                use_undo_group=False,
+            )
+
+        # Assert
+        self.assertEqual((new_ref, child_prim_path), result)
+        self.assertEqual(0, group_mock.call_count)
+
     async def test_is_valid_usd_file_throws(self):
         # Arrange
         temp_dir = TemporaryDirectory()
