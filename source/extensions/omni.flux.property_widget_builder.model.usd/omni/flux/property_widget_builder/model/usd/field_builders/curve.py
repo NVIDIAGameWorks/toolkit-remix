@@ -11,6 +11,8 @@ Handles two modes:
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import carb.input
 import omni.usd
 import omni.ui as ui
@@ -43,6 +45,9 @@ _CURVE_SUFFIXES = frozenset(
 )
 _PRIMARY_SUFFIX = "values"
 _PRIMVAR_PREFIX = "primvars:"
+_FIELD_ROW_HEIGHT = 24
+_FIELD_LEADING_SPACER_WIDTH = 8
+_FIELD_VERTICAL_SPACER_HEIGHT = 2
 _EDITOR_WIDTH = 700
 _EDITOR_HEIGHT = 400
 
@@ -332,20 +337,27 @@ def _build_edit_group_button(item: USDAttributeEditGroupItem):
     editor_layout = _panel_to_editor_layout(layout)
     bounds = _read_per_curve_bounds(item.prim_path, curve_ids, item.context_name)
 
-    return [
-        ui.Button(
-            layout.get("display_name", "Curves"),
-            name="PropertiesWidgetField",
-            tooltip=layout.get("tooltip", ""),
-            clicked_fn=lambda: _open_curve_editor(
-                item.prim_path,
-                curve_ids,
-                item.context_name,
-                editor_layout,
-                bounds,
-            ),
+    def _open():
+        _open_curve_editor(
+            item.prim_path,
+            curve_ids,
+            item.context_name,
+            editor_layout,
+            bounds,
         )
-    ]
+
+    with ui.HStack(height=ui.Pixel(_FIELD_ROW_HEIGHT)):
+        ui.Spacer(width=ui.Pixel(_FIELD_LEADING_SPACER_WIDTH))
+        with ui.VStack():
+            ui.Spacer(height=ui.Pixel(_FIELD_VERTICAL_SPACER_HEIGHT))
+            button = ui.Button(
+                layout.get("display_name", "Curves"),
+                style_type_name_override="PropertiesWidgetField",
+                tooltip=layout.get("tooltip", ""),
+                clicked_fn=_wrap_pre_open_callback(item, _open),
+            )
+            ui.Spacer(height=ui.Pixel(_FIELD_VERTICAL_SPACER_HEIGHT))
+    return [button]
 
 
 def _build_single_curve_button(item):
@@ -361,19 +373,47 @@ def _build_single_curve_button(item):
     display_name = item.name_models[0].get_value_as_string() if item.name_models else curve_id
     bounds = _read_per_curve_bounds(prim_path, [curve_id], context_name)
 
-    return [
-        ui.Button(
-            display_name,
-            name="PropertiesWidgetField",
-            identifier=identifier,
-            clicked_fn=lambda: _open_curve_editor(
-                prim_path,
-                [curve_id],
-                context_name,
-                per_curve_bounds=bounds,
-            ),
+    def _open():
+        _open_curve_editor(
+            prim_path,
+            [curve_id],
+            context_name,
+            per_curve_bounds=bounds,
         )
-    ]
+
+    with ui.HStack(height=ui.Pixel(_FIELD_ROW_HEIGHT)):
+        ui.Spacer(width=ui.Pixel(_FIELD_LEADING_SPACER_WIDTH))
+        with ui.VStack():
+            ui.Spacer(height=ui.Pixel(_FIELD_VERTICAL_SPACER_HEIGHT))
+            button = ui.Button(
+                display_name,
+                style_type_name_override="PropertiesWidgetField",
+                identifier=identifier,
+                clicked_fn=_wrap_pre_open_callback(item, _open),
+            )
+            ui.Spacer(height=ui.Pixel(_FIELD_VERTICAL_SPACER_HEIGHT))
+    return [button]
+
+
+def _wrap_pre_open_callback(item, action: Callable[[], None]):
+    """Wrap an editor action with an optional pre-open callback.
+
+    Args:
+        item: Property widget item that may expose ``pre_open_callback``.
+        action: Editor-opening action to run directly or after pre-open handling.
+
+    Returns:
+        Button click callback.
+    """
+
+    def _clicked():
+        pre_open_callback = getattr(item, "pre_open_callback", None)
+        if callable(pre_open_callback):
+            pre_open_callback(action)
+            return
+        action()
+
+    return _clicked
 
 
 CURVE_FIELD_BUILDERS = [

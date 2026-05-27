@@ -19,7 +19,6 @@ from . import mapping as _mapping
 
 __all__ = [
     "BoundsAdapter",
-    "BoundsValue",
     "ComboboxField",
     "ConditionalVisibilityOrchestrator",
     "DisableAllListenersBlock",
@@ -48,8 +47,8 @@ __all__ = [
 
 
 from . import utils
+from .bounds_adapter import BoundsAdapter
 from .delegate import USDDelegate
-from .bounds_adapter import BoundsAdapter, BoundsValue
 from .conditional_visibility_orchestrator import ConditionalVisibilityOrchestrator
 from .extension import USDPropertyWidgetExtension, get_usd_listener_instance
 from .field_builders import USDBuilderList

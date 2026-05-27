@@ -19,9 +19,10 @@ from unittest.mock import Mock, patch
 
 import omni.kit.test
 import omni.usd
-from omni.flux.property_widget_builder.model.usd import BoundsAdapter, USDAttributeItem
+from omni.flux.property_widget_builder.model.usd import BoundsAdapter, USDAttributeEditGroupItem, USDAttributeItem
 from omni.flux.property_widget_builder.model.usd import items as _items_module
 from omni.flux.property_widget_builder.model.usd.items import VirtualUSDAttributeItem
+from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from pxr import Gf, Sdf
 
 
@@ -389,3 +390,38 @@ class TestUSDAttributeItemBounds(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertIsNone(bounds)
         self.assertIsNone(step)
+
+    async def test_edit_group_item_default_attrs_clear_owned_references(self):
+        # Arrange
+        item = USDAttributeEditGroupItem(
+            edit_group_layout={"display_name": "Particle Size"},
+            context_name="",
+            prim_path="/Particle",
+        )
+        item.pre_open_callback = lambda open_editor_fn: open_editor_fn()
+
+        # Act
+        _reset_default_attrs(item)
+
+        # Assert
+        self.assertIsNone(item.edit_group_layout)
+        self.assertIsNone(item.context_name)
+        self.assertIsNone(item.prim_path)
+        self.assertIsNone(item.pre_open_callback)
+        self.assertIsNone(item._name_models)
+        self.assertIsNone(item._value_models)
+
+    async def test_attribute_item_default_attrs_clear_edit_group_references(self):
+        # Arrange
+        item = _make_item(self.stage)
+        item.edit_group_layout = {"display_name": "Particle Size"}
+        item.edit_group_path = "size"
+        item.pre_open_callback = lambda open_editor_fn: open_editor_fn()
+
+        # Act
+        _reset_default_attrs(item)
+
+        # Assert
+        self.assertIsNone(item.edit_group_layout)
+        self.assertIsNone(item.edit_group_path)
+        self.assertIsNone(item.pre_open_callback)

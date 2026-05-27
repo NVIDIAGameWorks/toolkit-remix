@@ -19,9 +19,10 @@ __all__ = ("FloatDragFieldGroup",)
 
 from typing import Any
 import omni.ui as ui
+from omni.flux.utils.common.types import RealNumber, ScalarValue
 from omni.flux.utils.widget import FloatBoundedDrag
 
-from ..base import AbstractDragFieldGroup, BoundsValue, RealNumber
+from ..base import AbstractDragFieldGroup
 
 
 class FloatDragFieldGroup(AbstractDragFieldGroup):
@@ -29,11 +30,11 @@ class FloatDragFieldGroup(AbstractDragFieldGroup):
 
     def __init__(
         self,
-        min_value: BoundsValue | None = None,
-        max_value: BoundsValue | None = None,
-        hard_min_value: BoundsValue | None = None,
-        hard_max_value: BoundsValue | None = None,
-        step: BoundsValue | None = None,
+        min_value: ScalarValue | None = None,
+        max_value: ScalarValue | None = None,
+        hard_min_value: ScalarValue | None = None,
+        hard_max_value: ScalarValue | None = None,
+        step: ScalarValue | None = None,
         **kwargs,
     ):
         """Initialize the float drag field.
@@ -67,7 +68,7 @@ class FloatDragFieldGroup(AbstractDragFieldGroup):
         )
 
     @property
-    def step(self) -> BoundsValue:
+    def step(self) -> ScalarValue:
         """Step size; uses explicit step if set, else derives from effective range or falls back to 1.0."""
         if self._step is not None:
             return self._step
@@ -82,7 +83,7 @@ class FloatDragFieldGroup(AbstractDragFieldGroup):
         return 1.0
 
     @step.setter
-    def step(self, value: BoundsValue) -> None:
+    def step(self, value: ScalarValue) -> None:
         self._step = value
 
     def build_drag_widget(

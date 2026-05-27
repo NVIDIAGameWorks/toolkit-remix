@@ -2,9 +2,18 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [2.34.3]
+## [2.35.0]
+### Added
+- Added pre-open callbacks for USD curve and gradient editors
+
 ### Fixed
 - USD property value models now coalesce refresh notices across active edits, direct writes, relationships, gradient edits, and curve edits
+- Reloaded USD gradient values before opening editor popups after pre-open callbacks
+- Cleared edit-group references when resetting USD attribute items
+- Aligned USD curve editor buttons and gradient fields with standard property field insets
+
+### Removed
+- Removed the public `BoundsValue` export in favor of shared scalar typing
 
 ## [2.34.2]
 ### Fixed

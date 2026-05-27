@@ -15,8 +15,24 @@
 * limitations under the License.
 """
 
-from .test_bounds_adapter import TestParticleBoundsAdapter
-from .test_legacy_support_helper import TestLegacySupportHelper
-from .test_setup_ui import TestParticleSetupUi
+from __future__ import annotations
 
-__all__ = ["TestLegacySupportHelper", "TestParticleBoundsAdapter", "TestParticleSetupUi"]
+__doc__ = "Shared type aliases for Flux utility consumers."
+
+from typing import Protocol, TypeAlias
+
+__all__ = ["RealNumber", "ScalarSequence", "ScalarValue"]
+
+# NOTE:
+# Keep ``typing.TypeAlias`` while this repo targets Python 3.10 (cp310).
+# Migrate to PEP 695 ``type`` aliases when minimum Python >= 3.12.
+RealNumber: TypeAlias = int | float
+
+
+class ScalarSequence(Protocol):
+    """Indexable per-channel scalar payload."""
+
+    def __getitem__(self, index: int) -> RealNumber: ...
+
+
+ScalarValue: TypeAlias = RealNumber | ScalarSequence

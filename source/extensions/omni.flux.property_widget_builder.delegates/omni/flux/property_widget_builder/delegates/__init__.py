@@ -22,7 +22,6 @@
 __all__ = (
     "AbstractDragFieldGroup",
     "AbstractField",
-    "BoundsValue",
     "BytesToHuman",
     "ColorField",
     "ColorGradientField",
@@ -37,9 +36,12 @@ __all__ = (
     "MultilineField",
     "NameField",
     "RealNumber",
+    "ScalarValue",
 )
 
-from .base import AbstractDragFieldGroup, AbstractField, BoundsValue, RealNumber
+from omni.flux.utils.common.types import RealNumber, ScalarValue
+
+from .base import AbstractDragFieldGroup, AbstractField
 from .default import CreatorField, DefaultField
 from .float_value import ColorField, ColorGradientField, FloatDragFieldGroup
 from .int_value import BytesToHuman, IntDragFieldGroup

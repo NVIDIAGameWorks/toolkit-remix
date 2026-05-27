@@ -2,9 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [1.15.2]
+## [1.16.0]
 ### Changed
 - Numeric drag delegates now use the shared numeric edit controller and the drag widget step for keyboard arrow edits
+- Updated drag field bounds and step typing to use shared scalar aliases
+
+### Removed
+- Removed the public `BoundsValue` export in favor of shared scalar typing
 
 ## [1.15.1]
 ### Fixed

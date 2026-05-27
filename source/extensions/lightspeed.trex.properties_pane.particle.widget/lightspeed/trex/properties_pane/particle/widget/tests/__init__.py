@@ -15,7 +15,16 @@
 * limitations under the License.
 """
 
+from .e2e.test_legacy_silent_upgrade import TestLegacySilentUpgrade
 from .e2e.test_schema_discovery import TestSchemaDiscovery
 from .unit.test_bounds_adapter import TestParticleBoundsAdapter
+from .unit.test_legacy_support_helper import TestLegacySupportHelper
+from .unit.test_setup_ui import TestParticleSetupUi
 
-__all__ = ["TestParticleBoundsAdapter", "TestSchemaDiscovery"]
+__all__ = [
+    "TestLegacySilentUpgrade",
+    "TestLegacySupportHelper",
+    "TestParticleBoundsAdapter",
+    "TestParticleSetupUi",
+    "TestSchemaDiscovery",
+]

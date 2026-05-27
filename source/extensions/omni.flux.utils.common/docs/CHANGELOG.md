@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.14.0]
+### Added
+- Added shared scalar typing aliases for numeric property bounds and particle legacy helpers
+
 ## [3.13.3]
 ### Added
 - Added `defer_usd_notices()` for scoped interactive USD notice coalescing

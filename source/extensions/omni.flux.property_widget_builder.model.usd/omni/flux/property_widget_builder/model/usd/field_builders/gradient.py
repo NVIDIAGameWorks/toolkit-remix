@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import contextlib
+from collections.abc import Callable
 from typing import Any
 
 import carb
@@ -41,6 +42,8 @@ __all__ = ("GRADIENT_FIELD_BUILDERS", "UsdColorGradientWidget")
 _GRADIENT_SUFFIXES = frozenset({"times", "values"})
 _PRIMARY_SUFFIX = "values"
 _PRIMVAR_PREFIX = "primvars:"
+_PreOpenCallback = Callable[[Callable[[], None]], None]
+_FIELD_LEADING_SPACER_WIDTH = 8
 
 _COLOR_ARRAY_TYPES = {
     Sdf.ValueTypeNames.Color3fArray,
@@ -205,10 +208,18 @@ class UsdColorGradientWidget(ColorGradientWidget):
     Stage Manager notices stay deferred until the popup edit ends.
     """
 
-    def __init__(self, context_name: str, prim_path: str, base_name: str, **kwargs):
+    def __init__(
+        self,
+        context_name: str,
+        prim_path: str,
+        base_name: str,
+        pre_open_callback: _PreOpenCallback | None = None,
+        **kwargs,
+    ):
         self._usd_context_name = context_name
         self._usd_prim_path = prim_path
         self._usd_base_name = base_name
+        self._pre_open_callback = pre_open_callback
         self._usd_listener = None
         self._is_writing = False
         self._is_dragging = False
@@ -226,6 +237,18 @@ class UsdColorGradientWidget(ColorGradientWidget):
         self.subscribe_drag_ended_fn(self._on_usd_drag_ended)
 
     def _show_popup(self) -> None:
+        if callable(self._pre_open_callback):
+            self._pre_open_callback(self._show_popup_after_pre_open)
+            return
+
+        self._show_popup_impl()
+
+    def _show_popup_after_pre_open(self) -> None:
+        """Reload authored gradient values before opening after pre-open work."""
+        self._reload_from_usd()
+        self._show_popup_impl()
+
+    def _show_popup_impl(self) -> None:
         super()._show_popup()
         self._drag_committed = False
         if self._usd_notice_token is None:
@@ -255,6 +278,8 @@ class UsdColorGradientWidget(ColorGradientWidget):
                 self._finish_gradient_edit()
 
     def destroy(self):
+        """Release callback references and USD edit listeners owned by this widget."""
+        self._pre_open_callback = None
         try:
             self._revoke_usd_listener()
         finally:
@@ -376,7 +401,14 @@ def _gradient_builder(item):
 
     frame = ui.Frame(identifier=identifier)
     with frame:
-        UsdColorGradientWidget(item.context_name, prim_path, base_name)
+        with ui.HStack(spacing=0):
+            ui.Spacer(width=ui.Pixel(_FIELD_LEADING_SPACER_WIDTH))
+            UsdColorGradientWidget(
+                item.context_name,
+                prim_path,
+                base_name,
+                pre_open_callback=getattr(item, "pre_open_callback", None),
+            )
     return [frame]
 
 

@@ -18,16 +18,17 @@
 from __future__ import annotations
 
 
-__all__ = ("AbstractDragFieldGroup", "AbstractField", "BoundsValue", "RealNumber")
+__all__ = ("AbstractDragFieldGroup", "AbstractField")
 
 import abc
 from collections.abc import Callable
 from contextlib import suppress
-from typing import TYPE_CHECKING, Generic, Protocol, TypeAlias, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, cast, overload
 
 import carb
 import omni.kit.undo
 import omni.ui as ui
+from omni.flux.utils.common.types import RealNumber, ScalarValue
 
 
 if TYPE_CHECKING:
@@ -37,13 +38,6 @@ if TYPE_CHECKING:
 
 
 ItemT = TypeVar("ItemT", bound="Item")
-RealNumber: TypeAlias = int | float
-
-
-class _BoundsSequenceLike(Protocol):
-    """Indexable bounds payload contract for per-channel scalar extraction."""
-
-    def __getitem__(self, index: int) -> object: ...
 
 
 class _NumericDragWidget(Protocol):
@@ -52,8 +46,6 @@ class _NumericDragWidget(Protocol):
     def step_keyboard_value(self, model: ItemValueModel, key: int, expression: str | None = None) -> None: ...
     def set_numeric_edit_widgets(self, widgets: dict[int, _NumericDragWidget], index: int) -> None: ...
 
-
-BoundsValue: TypeAlias = RealNumber | _BoundsSequenceLike
 
 _PRIMARY_FRAME_HEIGHT = 24
 _PER_ELEMENT_SPACER_WIDTH = 8
@@ -121,11 +113,11 @@ class AbstractDragFieldGroup(AbstractField):
 
     def __init__(
         self,
-        min_value: BoundsValue | None = None,
-        max_value: BoundsValue | None = None,
-        hard_min_value: BoundsValue | None = None,
-        hard_max_value: BoundsValue | None = None,
-        step: BoundsValue | None = None,
+        min_value: ScalarValue | None = None,
+        max_value: ScalarValue | None = None,
+        hard_min_value: ScalarValue | None = None,
+        hard_max_value: ScalarValue | None = None,
+        step: ScalarValue | None = None,
         **kwargs,
     ):
         """Initialize the drag field.
@@ -215,14 +207,14 @@ class AbstractDragFieldGroup(AbstractField):
 
     @staticmethod
     @overload
-    def _resolve_scalar_component(value: BoundsValue | None, scalar_index: None) -> BoundsValue | None: ...
+    def _resolve_scalar_component(value: ScalarValue | None, scalar_index: None) -> ScalarValue | None: ...
 
     @staticmethod
     @overload
-    def _resolve_scalar_component(value: BoundsValue | None, scalar_index: int) -> RealNumber | None: ...
+    def _resolve_scalar_component(value: ScalarValue | None, scalar_index: int) -> RealNumber | None: ...
 
     @staticmethod
-    def _resolve_scalar_component(value: BoundsValue | None, scalar_index: int | None) -> BoundsValue | None:
+    def _resolve_scalar_component(value: ScalarValue | None, scalar_index: int | None) -> ScalarValue | None:
         """Resolve a channel scalar from bounds/step, or return input when index is None."""
         if scalar_index is None:
             return value
@@ -236,7 +228,7 @@ class AbstractDragFieldGroup(AbstractField):
             # Keep panel rendering resilient: if one attribute provides malformed
             # bounds metadata, fail this component gracefully instead of crashing
             # the whole properties panel build.
-            return cast(BoundsValue, value[scalar_index])
+            return cast(ScalarValue, value[scalar_index])
         except (IndexError, KeyError, TypeError):
             carb.log_error(f"Failed to resolve bounds component at index {scalar_index} from value {value!r}")
             return None
