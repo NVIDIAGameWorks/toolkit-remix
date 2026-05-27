@@ -19,6 +19,8 @@ __all__ = ["TestDeleteRestoreActionWidgetPlugin"]
 
 from tempfile import TemporaryDirectory
 
+import omni.kit.commands
+import omni.kit.undo
 import omni.graph.core as og
 from lightspeed.trex.stage_manager.plugin.widget.usd.action_delete_restore import DeleteRestoreActionWidgetPlugin
 from omni import client, ui, usd
@@ -28,7 +30,7 @@ from omni.flux.utils.widget.resources import get_test_data
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows
-from pxr import Sdf, Usd
+from pxr import Sdf, Usd, UsdLux
 
 
 class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
@@ -105,6 +107,14 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         replacement = self._find_replacement_layer()
         self.assertIsNotNone(replacement)
         self.stage.SetEditTarget(Usd.EditTarget(replacement))
+
+    @staticmethod
+    def _get_light_intensity_attr(prim: Usd.Prim) -> Usd.Attribute:
+        """Return the intensity attribute for the given test light prim."""
+        intensity_attr = UsdLux.LightAPI(prim).GetIntensityAttr()
+        if not intensity_attr:
+            raise AssertionError(f"{prim.GetPath()} does not have an intensity attribute")
+        return intensity_attr
 
     # ------------------------------------------------------------------
     # State classification tests
@@ -419,6 +429,119 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
         # Assert
         self.assertEqual(len(usd.get_composed_references_from_prim(prim, False)), 0)
+
+    async def test_delete_capture_light_removes_reference_and_sets_intensity_to_zero(self):
+        """Deleting a capture light removes its reference and authors a zero intensity override."""
+        # Arrange
+        test_prim_path = "/RootNode/lights/light_9907D0B07D040077"
+        prim = self.stage.GetPrimAtPath(test_prim_path)
+        self.assertTrue(prim.IsValid())
+        self.assertTrue(len(usd.get_composed_references_from_prim(prim, False)) > 0)
+        intensity_attr = self._get_light_intensity_attr(prim)
+        self.assertNotEqual(intensity_attr.Get(), 0.0)
+        self._set_edit_target_to_replacement()
+        replacement_layer = self._find_replacement_layer()
+        self.assertIsNotNone(replacement_layer)
+        _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+        usd.get_context().get_selection().set_selected_prim_paths([test_prim_path], False)
+
+        # Act
+        widget._delete_capture_prim_cb()
+
+        # Assert
+        self.assertEqual(len(usd.get_composed_references_from_prim(prim, False)), 0)
+        self.assertEqual(intensity_attr.Get(), 0.0)
+        self.assertIsNotNone(replacement_layer.GetPropertyAtPath(f"{test_prim_path}.inputs:intensity"))
+
+    async def test_delete_capture_light_undo_restores_user_intensity(self):
+        """Undoing a capture light delete restores the pre-delete user intensity value."""
+        # Arrange
+        test_prim_path = "/RootNode/lights/light_9907D0B07D040077"
+        prim = self.stage.GetPrimAtPath(test_prim_path)
+        self.assertTrue(prim.IsValid())
+        intensity_attr = self._get_light_intensity_attr(prim)
+        self._set_edit_target_to_replacement()
+        replacement_layer = self._find_replacement_layer()
+        self.assertIsNotNone(replacement_layer)
+        user_intensity = 123.0
+        omni.kit.commands.execute(
+            "ChangeProperty",
+            prop_path=intensity_attr.GetPath(),
+            value=user_intensity,
+            prev=intensity_attr.Get(),
+            target_layer=replacement_layer,
+            usd_context_name="",
+        )
+        _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+        usd.get_context().get_selection().set_selected_prim_paths([test_prim_path], False)
+        widget._delete_capture_prim_cb()
+        self.assertEqual(intensity_attr.Get(), 0.0)
+
+        # Act
+        omni.kit.undo.undo()
+
+        # Assert
+        self.assertTrue(len(usd.get_composed_references_from_prim(prim, False)) > 0)
+        self.assertEqual(intensity_attr.Get(), user_intensity)
+
+    async def test_restore_capture_light_removes_intensity_override(self):
+        """Restoring a deleted capture light returns intensity to the original capture value."""
+        # Arrange
+        test_prim_path = "/RootNode/lights/light_9907D0B07D040077"
+        prim = self.stage.GetPrimAtPath(test_prim_path)
+        self.assertTrue(prim.IsValid())
+        intensity_attr = self._get_light_intensity_attr(prim)
+        capture_intensity = intensity_attr.Get()
+        self._set_edit_target_to_replacement()
+        replacement_layer = self._find_replacement_layer()
+        self.assertIsNotNone(replacement_layer)
+        omni.kit.commands.execute(
+            "ChangeProperty",
+            prop_path=intensity_attr.GetPath(),
+            value=123.0,
+            prev=capture_intensity,
+            target_layer=replacement_layer,
+            usd_context_name="",
+        )
+        _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+        usd.get_context().get_selection().set_selected_prim_paths([test_prim_path], False)
+        widget._delete_capture_prim_cb()
+        self.assertEqual(intensity_attr.Get(), 0.0)
+        self.assertIsNotNone(replacement_layer.GetPropertyAtPath(f"{test_prim_path}.inputs:intensity"))
+
+        # Act
+        widget._delete_ref_overrides()
+
+        # Assert
+        self.assertTrue(len(usd.get_composed_references_from_prim(prim, False)) > 0)
+        self.assertEqual(intensity_attr.Get(), capture_intensity)
+        self.assertIsNone(replacement_layer.GetPropertyAtPath(f"{test_prim_path}.inputs:intensity"))
+
+    async def test_delete_capture_mixed_mesh_and_light_only_sets_light_intensity(self):
+        """Deleting mixed capture prims sets intensity only on selected capture lights."""
+        # Arrange
+        mesh_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B"
+        light_path = "/RootNode/lights/light_9907D0B07D040077"
+        mesh = self.stage.GetPrimAtPath(mesh_path)
+        light = self.stage.GetPrimAtPath(light_path)
+        self.assertTrue(mesh.IsValid())
+        self.assertTrue(light.IsValid())
+        intensity_attr = self._get_light_intensity_attr(light)
+        self._set_edit_target_to_replacement()
+        replacement_layer = self._find_replacement_layer()
+        self.assertIsNotNone(replacement_layer)
+        _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+        usd.get_context().get_selection().set_selected_prim_paths([mesh_path, light_path], False)
+
+        # Act
+        widget._delete_capture_prim_cb()
+
+        # Assert
+        self.assertEqual(len(usd.get_composed_references_from_prim(mesh, False)), 0)
+        self.assertEqual(len(usd.get_composed_references_from_prim(light, False)), 0)
+        self.assertEqual(intensity_attr.Get(), 0.0)
+        self.assertIsNone(replacement_layer.GetPropertyAtPath(f"{mesh_path}.inputs:intensity"))
+        self.assertIsNotNone(replacement_layer.GetPropertyAtPath(f"{light_path}.inputs:intensity"))
 
     async def test_delete_ref_overrides_clears_replacement_references(self):
         """_delete_ref_overrides clears reference list edits but preserves attribute opinions."""
