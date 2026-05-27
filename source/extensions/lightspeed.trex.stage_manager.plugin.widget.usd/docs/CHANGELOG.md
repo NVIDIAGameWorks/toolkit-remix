@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.3]
+### Fixed
+- Set deleted capture light intensity to zero and restore capture light intensity back to the capture value
+
 ## [2.7.2]
 ### Added
 - Added AI Tools job submission action with submenu for submitting selections to the job queue

@@ -32,7 +32,7 @@ from lightspeed.trex.utils.widget.dialogs import confirm_remove_prim_overrides
 from omni import ui
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem, StageManagerTreeModel
 from omni.flux.stage_manager.plugin.widget.usd.base import StageManagerStateWidgetPlugin
-from pxr import Sdf, Usd
+from pxr import Sdf, Usd, UsdLux
 
 PROTECTED_PATHS = {
     Sdf.Path("/RootNode"),
@@ -241,6 +241,32 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
                     if not success:
                         carb.log_error(f"Failed to remove prim spec '{path}' from layer '{layer.identifier}'")
 
+    @staticmethod
+    def _get_light_intensity_attr(prim: Usd.Prim) -> Usd.Attribute | None:
+        """Return the intensity attribute for a valid UsdLux light prim."""
+        if not prim or not prim.IsValid():
+            return None
+        if not prim_utils.is_light(prim):
+            return None
+        intensity_attr = UsdLux.LightAPI(prim).GetIntensityAttr()
+        if not intensity_attr:
+            return None
+        return intensity_attr
+
+    def _set_capture_light_intensity_to_zero(self, prim: Usd.Prim, edit_target_layer: Sdf.Layer) -> None:
+        """Author a zero intensity override for a capture light using the current delete undo group."""
+        intensity_attr = self._get_light_intensity_attr(prim)
+        if intensity_attr is None:
+            return
+        omni.kit.commands.execute(
+            "ChangeProperty",
+            prop_path=intensity_attr.GetPath(),
+            value=0.0,
+            prev=intensity_attr.Get(),
+            target_layer=edit_target_layer,
+            usd_context_name=self._context_name,
+        )
+
     def _delete_prim_cb(self) -> None:
         """Delete all selected prims classified as DELETE from both the edit target and replacement layers."""
         sel = self._get_selected_by_action(self.ActionType.DELETE)
@@ -275,22 +301,26 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
                 self._delete_ancestral_prims(ancestral_paths, rep_layers)
 
     def _delete_capture_prim_cb(self) -> None:
-        """Remove the capture reference arc for all selected DELETECAPTURE prims.
+        """Delete selected capture prims by removing capture reference arcs.
 
         Only references introduced by non-replacement layers (i.e. the capture
-        layer) are removed; replacement-layer references are left untouched.
+        layer) are removed; replacement-layer references are left untouched. Capture
+        lights also author ``inputs:intensity = 0`` so render runtime stops
+        evaluating stale light attributes after the reference is cleared.
         """
         sel = self._get_selected_by_action(self.ActionType.DELETECAPTURE)
         if not sel:
             return
 
         stage = omni.usd.get_context(self._context_name).get_stage()
+        edit_target_layer = stage.GetEditTarget().GetLayer()
         rep_layers = self._layer_manager.get_replacement_layers()
         with omni.kit.undo.group():
             for path in sel:
                 prim = stage.GetPrimAtPath(path)
                 if not prim or not prim.IsValid():
                     continue
+                self._set_capture_light_intensity_to_zero(prim, edit_target_layer)
                 _, ref_items = prim_utils.find_prim_with_references(prim)
                 for ref_prim, ref, layer, _ in ref_items:
                     if layer in rep_layers:
@@ -321,13 +351,39 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         confirm_remove_prim_overrides(sel_paths, self._context_name)
 
     def _delete_ref_overrides(self) -> None:
-        """Remove only reference overrides from replacement layers for all selected RESTORE prims."""
+        """Restore selected capture references by clearing replacement-layer reference edits.
+
+        Capture lights also remove the delete-authored ``inputs:intensity`` override
+        so they resolve back to the capture-authored intensity.
+        """
         sel_paths = self._get_selected_by_action(self.ActionType.RESTORE)
         if not sel_paths:
             return
+        stage = omni.usd.get_context(self._context_name).get_stage()
+        rep_layers = self._layer_manager.get_replacement_layers()
         with omni.kit.undo.group():
             for path in sel_paths:
-                self._core.remove_prim_reference_overrides(path)
+                prim = stage.GetPrimAtPath(path)
+                if not prim or not prim.IsValid():
+                    continue
+                if self._get_light_intensity_attr(prim) is None:
+                    self._core.remove_prim_reference_overrides(path)
+                else:
+                    self._restore_capture_light_reference_overrides(path, rep_layers)
+
+    def _restore_capture_light_reference_overrides(self, path: str, rep_layers: set[Sdf.Layer]) -> None:
+        """Restore a capture light reference and remove its delete intensity override."""
+        self._core.remove_prim_reference_overrides(path)
+        intensity_attr_path = Sdf.Path(path).AppendProperty("inputs:intensity")
+        for layer in rep_layers:
+            if not layer.GetPropertyAtPath(intensity_attr_path):
+                continue
+            omni.kit.commands.execute(
+                "RemoveProperty",
+                prop_path=intensity_attr_path,
+                usd_context_name=self._context_name,
+                remove_from_layers=[layer],
+            )
 
     def _restore_ghost_prim_cb(self) -> None:
         """Clear stale replacement-layer reference list edits for ghost prims.
