@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added MIRROR_DRY_RUN switch to github-mirror-sync for validating the filter pipeline without pushing to the staging mirror
 - REMIX-4115 / REMIX-2452: Added MDL range and enable-if support to material properties, including conditional row visibility and hidden-row refresh safeguards
 - Added Slack failure notifications to the GitHub toolkit package workflow
+- REMIX-5216: Added silent legacy particle upgrades that hide superseded legacy attrs and seed the currently opened animated control
 
 ### Changed
 
@@ -28,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update hdremix and omni_core_materials to `ext-3b0f644-main`
 - Made the Windows package build available as a non-blocking manual job in merge request pipelines
 - Allowed the manual Windows package build job to run even when earlier merge request pipeline stages fail
+- REMIX-5216: Updated particle curve editor button placement to use runtime schema display-group metadata
+- Update hdremix to `ext-01d57f6-main`
 
 ### Fixed
 

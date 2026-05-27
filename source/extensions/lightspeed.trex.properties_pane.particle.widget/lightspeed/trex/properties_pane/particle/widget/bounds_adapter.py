@@ -17,26 +17,22 @@
 
 from __future__ import annotations
 
-from typing import Any, TypeAlias
+from typing import Any
 
 import carb
 
 from omni.flux.property_widget_builder.model.usd import BoundsAdapter
 from omni.flux.property_widget_builder.model.usd.bounds_adapter import NormalizedBoundsStepData, RawBoundsStepData
+from omni.flux.utils.common.types import RealNumber
 
-# NOTE:
-# Keep ``typing.TypeAlias`` while this repo targets Python 3.10 (cp310).
-# Migrate to PEP 695 ``type`` aliases when minimum Python >= 3.12.
-_RealNumber: TypeAlias = float | int
-_RealNumberSequence: TypeAlias = tuple[_RealNumber, ...] | list[_RealNumber]
-_BoundsValue: TypeAlias = _RealNumber | _RealNumberSequence
+__all__ = ["ParticleBoundsAdapter"]
 
 
 class ParticleBoundsAdapter(BoundsAdapter):
     """Particle-specific adapter reading USD limits metadata."""
 
     @staticmethod
-    def __extract_limits_step(limits: Any) -> _RealNumber | None:
+    def __extract_limits_step(limits: Any) -> RealNumber | None:
         """Resolve particle step with backward-compatible precedence.
 
         Canonical metadata uses ``limits.step``. We still support nested

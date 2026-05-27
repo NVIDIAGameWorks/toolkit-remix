@@ -1,6 +1,17 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0]
+### Added
+- Added silent legacy particle upgrades that seed the currently opened animated size, color, or rotation control from legacy values
+
+### Changed
+- Particle curve editor buttons now use runtime schema display-group metadata for property panel placement
+- Rendered the particle `General` group first so schema-grouped primary controls appear at the top
+
+### Fixed
+- Hid particle curve editor infinity companion attributes from regular property rows when a combined curve editor outlet owns them
+
 ## [1.5.0]
 ### Fixed
 - Resolved particle prim paths so multi-selection counts unique prototype-backed particle targets without duplicating equivalent paths

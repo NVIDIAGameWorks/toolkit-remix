@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Any, TypedDict, TypeAlias
 
-from omni.flux.property_widget_builder.delegates.base import BoundsValue, RealNumber
+from omni.flux.utils.common.types import RealNumber, ScalarValue
 
 RawBoundsStepData: TypeAlias = dict[str, Any] | Any
 
@@ -27,11 +27,11 @@ RawBoundsStepData: TypeAlias = dict[str, Any] | Any
 class NormalizedBoundsStepData(TypedDict):
     """Strict normalized payload contract for bounds adapters."""
 
-    soft_min: BoundsValue | None
-    soft_max: BoundsValue | None
-    hard_min: BoundsValue | None
-    hard_max: BoundsValue | None
-    step: BoundsValue | None
+    soft_min: ScalarValue | None
+    soft_max: ScalarValue | None
+    hard_min: ScalarValue | None
+    hard_max: ScalarValue | None
+    step: ScalarValue | None
 
 
 class BoundsAdapter:
@@ -227,12 +227,12 @@ class BoundsAdapter:
         return self._hard_min is not None or self._hard_max is not None
 
     @property
-    def step(self) -> BoundsValue | None:
+    def step(self) -> ScalarValue | None:
         """Return the normalized step value, if present."""
         return self._step
 
     @property
-    def bounds(self) -> tuple[BoundsValue | None, BoundsValue | None, BoundsValue | None, BoundsValue | None] | None:
+    def bounds(self) -> tuple[ScalarValue | None, ScalarValue | None, ScalarValue | None, ScalarValue | None] | None:
         """Return normalized ``(min, max, hard_min, hard_max)`` tuple.
 
         ``min``/``max`` prefer soft bounds and fall back to hard bounds when

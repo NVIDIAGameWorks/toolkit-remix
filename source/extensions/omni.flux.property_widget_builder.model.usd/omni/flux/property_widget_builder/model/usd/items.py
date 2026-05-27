@@ -31,6 +31,7 @@ import omni.usd
 from omni.flux.property_widget_builder.widget import Item as _Item
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common.types import ScalarValue as _ScalarValue
 from omni.kit.window.popup_dialog import MessageDialog as _MessageDialog
 from pxr import Sdf, UsdGeom
 
@@ -45,8 +46,8 @@ from .item_model.metadata_list_model_value import UsdListModelAttrMetadataValueM
 from .mapping import CHANNEL_ELEMENT_BUILDER_TABLE
 from .mapping import DEFAULT_PRECISION as _DEFAULT_PRECISION
 from .mapping import OPS_ATTR_PRECISION_TABLE as _OPS_ATTR_PRECISION_TABLE
+
 from .bounds_adapter import BoundsAdapter as _BoundsAdapter
-from .bounds_adapter import BoundsValue as _BoundsValue
 from .utils import delete_all_overrides as _delete_all_overrides
 from .utils import delete_layer_override as _delete_layer_override
 from .utils import get_metadata as _get_metadata
@@ -79,6 +80,7 @@ class _BaseUSDAttributeItem(_Item):
         self._name_models = []
         self._value_models = []
 
+        self.pre_open_callback: Callable[[Callable[[], None]], None] | None = None
         self.edit_group_layout: dict | None = None
         self.edit_group_path: str | None = None
 
@@ -93,6 +95,9 @@ class _BaseUSDAttributeItem(_Item):
                 "_context_name": None,
                 "_attribute_paths": None,
                 "_stage": None,
+                "pre_open_callback": None,
+                "edit_group_layout": None,
+                "edit_group_path": None,
             }
         )
         return default_attr
@@ -174,9 +179,6 @@ class _BaseUSDAttributeItem(_Item):
         return _EventSubscription(self.__on_override_removed, function)
 
 
-_BoundsComponent: typing.TypeAlias = _BoundsValue
-
-
 class USDAttributeItem(_BaseUSDAttributeItem):
     """
     Item that represent a USD attribute on the tree
@@ -239,9 +241,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
 
     def get_min_max_bounds(
         self,
-    ) -> (
-        tuple[_BoundsComponent | None, _BoundsComponent | None, _BoundsComponent | None, _BoundsComponent | None] | None
-    ):
+    ) -> tuple[_ScalarValue | None, _ScalarValue | None, _ScalarValue | None, _ScalarValue | None] | None:
         """
         Get normalized bounds metadata from the configured adapter instance.
 
@@ -256,7 +256,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         """
         return self._ui_bounds_adapter.bounds
 
-    def get_step_value(self) -> _BoundsComponent | None:
+    def get_step_value(self) -> _ScalarValue | None:
         """Get the UI step size for this attribute, if any.
 
         Resolves step from the configured adapter instance.
@@ -963,6 +963,7 @@ class USDAttributeEditGroupItem(_Item):
         self.edit_group_layout = edit_group_layout
         self.context_name = context_name
         self.prim_path = prim_path
+        self.pre_open_callback: Callable[[Callable[[], None]], None] | None = None
 
         display = edit_group_layout.get("display_name", "Curves")
         tooltip = edit_group_layout.get("tooltip", "")
@@ -971,7 +972,16 @@ class USDAttributeEditGroupItem(_Item):
 
     @property
     def default_attr(self) -> dict[str, None]:
-        return super().default_attr
+        default_attr = super().default_attr
+        default_attr.update(
+            {
+                "edit_group_layout": None,
+                "context_name": None,
+                "prim_path": None,
+                "pre_open_callback": None,
+            }
+        )
+        return default_attr
 
     @property
     def element_count(self) -> int:

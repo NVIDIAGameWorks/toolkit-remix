@@ -18,6 +18,8 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
+
 import carb
 import omni.kit
 import omni.ui as ui
@@ -41,12 +43,39 @@ from pxr import Sdf, Usd
 
 from .particle_edit_groups import PARTICLE_CURVE_LOOKUP as _PARTICLE_CURVE_LOOKUP
 from .particle_edit_groups import PARTICLE_EDIT_GROUPS as _PARTICLE_EDIT_GROUPS
+from .particle_edit_groups import PARTICLE_LEGACY_ANIMATION_MAPPINGS as _PARTICLE_LEGACY_ANIMATION_MAPPINGS
 from .particle_lookup_table import get_particle_lookup_table as _get_particle_lookup_table
 from .bounds_adapter import ParticleBoundsAdapter as _ParticleBoundsAdapter
+from .legacy_support_helper import seed_current_animated_attr_from_legacy as _seed_current_animated_attr_from_legacy
 
 
-PARTICLE_ATTR_GROUP_ORDER = ("Spawn", "Target", "Visual", "Collision", "Simulation")
-PARTICLE_ATTR_GROUP_FALLBACK = "General"
+PARTICLE_ATTR_GROUP_FALLBACK = "Extra"
+PARTICLE_ATTR_GROUP_ORDER = ("General", "Spawn", "Target", "Visual", "Collision", "Simulation")
+_PreOpenCallback = Callable[[Callable[[], None]], None]
+_CURVE_VALUES_SUFFIX = ":values"
+
+
+def _get_schema_attr_display_group(schema_attr: Sdf.AttributeSpec | None) -> str | None:
+    if schema_attr is None:
+        return None
+    display_group = schema_attr.GetInfo(Sdf.AttributeSpec.DisplayGroupKey)
+    if isinstance(display_group, str):
+        display_group = display_group.strip()
+        if display_group:
+            return display_group
+    return None
+
+
+def _resolve_edit_group_outlet_group(schema_prim: Sdf.PrimSpec, edit_group_layout: dict) -> str | None:
+    curve_map = edit_group_layout.get("curve_map")
+    if not curve_map:
+        return None
+    for curve_id in curve_map:
+        schema_attr = schema_prim.properties.get(f"{curve_id}{_CURVE_VALUES_SUFFIX}")
+        display_group = _get_schema_attr_display_group(schema_attr)
+        if display_group:
+            return display_group
+    return PARTICLE_ATTR_GROUP_FALLBACK
 
 
 class ParticleSystemPropertyWidget:
@@ -264,6 +293,32 @@ class ParticleSystemPropertyWidget:
             group_items = {}
             valid_paths = list(valid_paths_by_key.values())
             num_prims = len(valid_paths)
+            first_prim_path = str(valid_paths[0]) if valid_paths else None
+            single_prim_path = first_prim_path if num_prims == 1 else None
+
+            # Create edit group outlet buttons first so curve outlets (Particle Size, Velocity, etc.)
+            # render at the top of their schema-defined group, before the regular per-attribute rows.
+            if first_prim_path:
+                for group in _PARTICLE_EDIT_GROUPS.values():
+                    outlet_group = _resolve_edit_group_outlet_group(schema_prim, group)
+                    if outlet_group is None:
+                        continue
+                    if outlet_group not in group_items:
+                        group_items[outlet_group] = _ItemGroup(outlet_group)
+                    outlet = _USDAttributeEditGroupItem(
+                        edit_group_layout=group,
+                        context_name=self._context_name,
+                        prim_path=first_prim_path,
+                    )
+                    if single_prim_path:
+                        # Edit group outlets are curve-only today. Gradient-based outlets need their own
+                        # seeding list if they are added to PARTICLE_EDIT_GROUPS later.
+                        animated_attr_names = list(group.get("curve_map", {}))
+                        outlet.pre_open_callback = self._build_pre_open_callback(
+                            animated_attr_names,
+                            single_prim_path,
+                        )
+                    outlet.parent = group_items[outlet_group]
 
             # Sort attribute names for better organization (min/max pairs together, then alphabetical)
             sorted_attr_names = self._sort_particle_attributes(list(attr_added.keys()))
@@ -284,6 +339,11 @@ class ParticleSystemPropertyWidget:
                 display_info = self._lookup_table.get(attr_name, {})
                 display_name = display_info.get("name", attr_name)
                 group_name = display_info.get("group", PARTICLE_ATTR_GROUP_FALLBACK)
+                if attr_name in _PARTICLE_LEGACY_ANIMATION_MAPPINGS:
+                    continue
+                curve_id = self._extract_curve_id(attr_name)
+                if curve_id in _PARTICLE_CURVE_LOOKUP:
+                    continue
 
                 # Get the attribute from the schema prim
                 default_value = None
@@ -318,31 +378,17 @@ class ParticleSystemPropertyWidget:
                         bounds_adapter=bounds_adapter,
                     )
 
-                # Tag items belonging to edit groups
-                curve_id = self._extract_curve_id(attr_name)
-                if curve_id and curve_id in _PARTICLE_CURVE_LOOKUP:
-                    _, layout, path = _PARTICLE_CURVE_LOOKUP[curve_id]
-                    attr_item.edit_group_layout = layout
-                    attr_item.edit_group_path = path
+                if single_prim_path and attr_name.endswith(":values"):
+                    animated_attr_name = attr_name[: -len(":values")]
+                    attr_item.pre_open_callback = self._build_pre_open_callback(
+                        animated_attr_name,
+                        single_prim_path,
+                    )
 
                 # Collect items by group (but don't add to items list yet)
                 if group_name not in group_items:
                     group_items[group_name] = _ItemGroup(group_name)
                 attr_item.parent = group_items[group_name]
-
-            # Create edit group outlet buttons in their specified accessor groups
-            if valid_paths:
-                prim_path = str(valid_paths[0])
-                for group in _PARTICLE_EDIT_GROUPS.values():
-                    for accessor_group in group.get("accessor_groups", []):
-                        if accessor_group not in group_items:
-                            group_items[accessor_group] = _ItemGroup(accessor_group)
-                        outlet = _USDAttributeEditGroupItem(
-                            edit_group_layout=group,
-                            context_name=self._context_name,
-                            prim_path=prim_path,
-                        )
-                        outlet.parent = group_items[accessor_group]
 
             # Add groups to items in the specified order
             items.extend(
@@ -392,6 +438,33 @@ class ParticleSystemPropertyWidget:
             return schema_attr.customData or None
         return None
 
+    def _build_pre_open_callback(
+        self,
+        animated_attr_names: str | list[str] | None,
+        prim_path: str,
+    ) -> _PreOpenCallback:
+        """Build a curve-editor pre-open hook for legacy animated values.
+
+        The returned callback seeds the current animated particle attributes
+        from legacy values before opening the editor. ``None`` intentionally
+        skips seeding while still opening the editor, which lets callers share
+        the same hook shape for controls without legacy animated data.
+        """
+
+        def _callback(open_editor_fn):
+            if animated_attr_names is not None:
+                names_to_seed = [animated_attr_names] if isinstance(animated_attr_names, str) else animated_attr_names
+                with omni.kit.undo.group():  # pyright: ignore[reportAttributeAccessIssue]
+                    for animated_attr_name in names_to_seed:
+                        _seed_current_animated_attr_from_legacy(
+                            animated_attr_name,
+                            self._context_name,
+                            prim_path,
+                        )
+            open_editor_fn()
+
+        return _callback
+
     @staticmethod
     def _extract_curve_id(attr_name: str) -> str | None:
         """Strip the curve suffix (e.g. :values, :times) from an attribute name.
@@ -408,6 +481,8 @@ class ParticleSystemPropertyWidget:
             "outTangentTimes",
             "outTangentValues",
             "outTangentTypes",
+            "preInfinity",
+            "postInfinity",
             "tangentBrokens",
         }:
             return parts[0]
