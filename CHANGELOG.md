@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update hdremix and omni_core_materials to `ext-52b73a1-main`
 - Update hdremix and omni_core_materials to `ext-3b0f644-main`
 - Made the Windows package build available as a non-blocking manual job in merge request pipelines
+- Allowed the manual Windows package build job to run even when earlier merge request pipeline stages fail
 
 ### Fixed
 
