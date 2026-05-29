@@ -266,6 +266,54 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         mock_load_layout.assert_called_once_with("layout")
         self.assertTrue(Setup._DISABLE_STAGE_OPEN_LIGHTING_UNDO)
 
+    async def test_installed_closure_survives_uninstall_resetting_class_attr(self):
+        # Regression: omni.kit.viewport.menubar.lighting subscribes to the
+        # stage-open event and holds a strong reference to whatever closure was
+        # bound to ``_MenuContainer__on_stage_open`` AT SUBSCRIPTION TIME. If
+        # ``__uninstall_stage_open_lighting_undo_patch`` later runs (or the
+        # extension is hot-reloaded) the class attribute
+        # ``_LIGHTING_STAGE_OPEN_ORIGINAL`` is reset to ``None``. An in-flight
+        # event firing after that reset would dereference None and raise
+        # ``TypeError: 'NoneType' object is not callable``, which has been
+        # observed to cascade into a GPU crash during HL2 stage open. The fix
+        # is to capture the original as a closure-local — pin that contract.
+        original_disable_lighting_undo = Setup._DISABLE_STAGE_OPEN_LIGHTING_UNDO
+        original_class_attr = Setup._LIGHTING_STAGE_OPEN_ORIGINAL
+        original_on_stage_open = MagicMock(name="original_on_stage_open", return_value="sentinel")
+        Setup._DISABLE_STAGE_OPEN_LIGHTING_UNDO = False
+        Setup._LIGHTING_STAGE_OPEN_ORIGINAL = None
+        try:
+            with patch(
+                "lightspeed.trex.control.stagecraft.setup._ViewportLightingMenuContainer._MenuContainer__on_stage_open",
+                new=original_on_stage_open,
+            ):
+                # Install captures the original, replaces the attribute with a closure.
+                Setup._Setup__install_stage_open_lighting_undo_patch()
+                installed_closure = _setup_module._ViewportLightingMenuContainer._MenuContainer__on_stage_open
+                self.assertIsNot(installed_closure, original_on_stage_open)
+
+                # Uninstall restores the original AND sets the class attr to None.
+                Setup._Setup__uninstall_stage_open_lighting_undo_patch()
+                self.assertIsNone(Setup._LIGHTING_STAGE_OPEN_ORIGINAL)
+
+                # The closure is what a late event subscription would still hold.
+                # Calling it after uninstall must NOT crash — it should call the
+                # local-captured original, not deref the (now-None) class attr.
+                result = installed_closure(
+                    MagicMock(name="menu_container"),
+                    MagicMock(name="menu_context"),
+                    "stagecraft",
+                    MagicMock(name="usd_context"),
+                    MagicMock(name="prev_mode"),
+                )
+                self.assertEqual(
+                    result, "sentinel", "post-uninstall closure call must delegate to the captured original"
+                )
+                original_on_stage_open.assert_called_once()
+        finally:
+            Setup._DISABLE_STAGE_OPEN_LIGHTING_UNDO = original_disable_lighting_undo
+            Setup._LIGHTING_STAGE_OPEN_ORIGINAL = original_class_attr
+
     async def test_destroy_restores_stage_open_lighting_patch(self):
         # Arrange
         setup = Setup.__new__(Setup)

@@ -53,7 +53,15 @@ class SwitchCaptureCommand(omni.kit.commands.Command):
         usd_context = omni.usd.get_context(self._context_name)
         lighting_mode = self._get_current_lighting_mode(usd_context)
         self._capture_core_setup.import_capture_layer(capture_identifier, do_undo=False)
-        if lighting_mode != self._DEFAULT_LIGHTING_MODE:
+        # ``lighting_mode`` defaults to ``stage`` when no mode is persisted, but a
+        # stale/blank carb setting (e.g. during stage-open races, or before the
+        # lighting menubar plugin has populated its per-stage slot) can still slip
+        # an empty string through. Dispatching SetLightingMenuModeCommand with an
+        # empty ``lighting_mode`` has been observed to put the lighting subsystem
+        # into an undefined state that cascades into a GPU crash on the next frame
+        # (last command in the crash dump: ``SetLightingMenuModeCommand(lighting_mode=)``).
+        # Skip the dispatch when there is nothing meaningful to set.
+        if lighting_mode and lighting_mode != self._DEFAULT_LIGHTING_MODE:
             with omni.kit.undo.disabled():
                 omni.kit.commands.execute(
                     "SetLightingMenuModeCommand",

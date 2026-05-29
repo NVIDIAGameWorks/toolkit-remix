@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4115 / REMIX-2452: Added MDL range and enable-if support to material properties, including conditional row visibility and hidden-row refresh safeguards
 - Added Slack failure notifications to the GitHub toolkit package workflow
 - REMIX-5216: Added silent legacy particle upgrades that hide superseded legacy attrs and seed the currently opened animated control
+- REMIX-5483: Added an Edit > Preferences > HdRemix Renderer page with a live "Integrate Indirect Illumination Mode" combo (Importance Sampled / ReSTIR GI / RTX Neural Radiance Cache) matching the dxvk-remix runtime overlay, an "Override Capture Value" checkbox that gates whether the global setting overrides each loaded capture's integrator preset (off by default so captures win on stage open), forcing `rtx.graphicsPreset=Custom` on user toggles so the User-layer write applies, and stubbing Kit's built-in "Viewport" page with a redirect notice while keeping it registered for the viewport menubar's navigation.
 
 ### Changed
 
@@ -49,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5518: Fixed GitLab test jobs to refresh stale USD asset checkout line endings before build/test steps and conform ingested asset metadata hashes to LF-normalized USD test fixtures.
 - REMIX-5505: Defer property editor USD refreshes - grouped property editor USD refreshes until edit completion while preserving numeric expression and arrow-step updates, and limited property-only Stage Manager resyncs to dirty widgets unless force refresh rules require a rebuild
 - REMIX-5509: Fixed Stage Manager capture light delete and restore so deleted lights stop contributing in render runtime and restore back to capture intensity
+- REMIX-5483: Fixed stage-open crash by tearing down lingering lighting-undo events after their handler is torn down and guarding `SwitchCaptureCommand` against dispatching `SetLightingMenuModeCommand` when `lighting_mode` is empty or already the default, eliminating the HL2 stage-open GPU crash from the empty-value race.
 
 ## [1.5.0-0]
 
