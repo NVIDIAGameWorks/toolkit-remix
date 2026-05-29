@@ -57,6 +57,33 @@ Packaging is non-destructive. The packaging process only writes to temporary pac
 directory. The source project and its sublayers are not modified during packaging. The only exception is when unresolved
 asset fixes are explicitly applied through the fix dialog.
 
+### RTX IO Packaging
+
+The RTX IO Packaging controls optionally compress packaged DDS textures into RTX IO `.pkg` files after the normal
+packaging process completes. Use this when you want the packaged mod to stream texture data through RTX IO in the RTX
+Remix Runtime.
+
+The controls in this section are:
+
+* **Packaging mode:** Enables RTX IO compression for DDS textures in the packaged output. The source project is not
+  modified.
+* **Delete packaged DDS files after compression:** Removes the DDS files from the packaged output only after RTX IO
+  compression succeeds. Leave this disabled if you want to keep the uncompressed DDS files for inspection or fallback
+  testing.
+* **Split package files:** Splits the generated RTX IO package files at the selected size. Use this when a mod has many
+  textures and you want package files capped at a predictable size. Available presets are `1 GB`, `2 GB`, `4 GB`,
+  `8 GB`, and `16 GB`.
+
+After packaging with RTX IO compression, add this setting to the mod's `rtx.conf` so the runtime loads the generated
+`.pkg` files:
+
+```ini
+rtx.io.enabled = True
+```
+
+If the packaged DDS files are deleted but RTX IO is not enabled in `rtx.conf`, the runtime will not have the DDS files
+available as a fallback. Enable RTX IO before distributing a package that relies on the generated `.pkg` files.
+
 ***
 
 ## Fixing Unresolved Assets
