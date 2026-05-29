@@ -602,6 +602,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             model_mock.return_value.ignored_errors = []
             model_mock.return_value.packaging_mode = ModPackagingMode.IMPORT
             model_mock.return_value.output_format = None
+            model_mock.return_value.rtxio_pack = False
 
             if sys.version_info.minor > 7:
                 init_usd_mock.return_value = Mock()
@@ -698,6 +699,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             model_mock.return_value.ignored_errors = []
             model_mock.return_value.packaging_mode = ModPackagingMode.FLATTEN
             model_mock.return_value.output_format = None
+            model_mock.return_value.rtxio_pack = False
 
             if sys.version_info.minor > 7:
                 init_usd_mock.side_effect = [source_stage_mock, temp_stage_mock, flattened_stage_mock]
