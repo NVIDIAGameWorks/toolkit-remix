@@ -1,0 +1,36 @@
+[package]
+version = "1.0.0"
+authors = ["nvidia"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["hdremix", "renderer", "settings", "preferences", "nrc", "restir"]
+title = "Lightspeed HdRemix Renderer Settings"
+description = "Preferences page that exposes live HdRemix renderer toggles such as the GI integrator (NRC / ReSTIR GI / Importance Sampled)."
+category = "internal"
+
+[ui]
+name = "Lightspeed HdRemix Renderer Settings"
+
+[dependencies]
+"lightspeed.hydra.remix.core" = {}
+"omni.flux.utils.common" = {}
+"omni.kit.window.preferences" = {}
+"omni.ui" = {}
+
+[settings]
+persistent.exts."lightspeed.hdremix.renderer_settings".integrateIndirectMode = 2
+persistent.exts."lightspeed.hdremix.renderer_settings".overrideCaptureIntegrator = false
+
+[[python.module]]
+name = "lightspeed.hdremix.renderer_settings"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+    "omni.kit.ui_test",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

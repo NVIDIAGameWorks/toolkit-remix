@@ -194,6 +194,35 @@ class TestCommands(omni.kit.test.AsyncTestCase):
             [(call.args, call.kwargs) for call in mock_execute.call_args_list],
         )
 
+    async def test_do_skips_lighting_dispatch_when_setting_is_blank(self):
+        # Stale/blank carb slot must not trigger SetLightingMenuModeCommand with
+        # an empty lighting_mode, which crashes the GPU on the next frame.
+        settings = self._make_settings("")
+        usd_context = MagicMock()
+        usd_context.get_stage.return_value = None
+        with (
+            self._patch_capture_switch_dependencies() as patched,
+            patch(
+                "lightspeed.trex.control.stagecraft.commands.omni.client.normalize_url",
+                side_effect=lambda path: path,
+            ),
+            patch("lightspeed.trex.control.stagecraft.commands.carb.settings.get_settings", return_value=settings),
+            patch("lightspeed.trex.control.stagecraft.commands.omni.usd.get_context", return_value=usd_context),
+            patch("lightspeed.trex.control.stagecraft.commands.omni.kit.commands.execute") as mock_execute,
+        ):
+            capture_setup = patched["_CaptureCoreSetup"].return_value
+            capture_setup.get_layer.return_value = MagicMock(identifier="/captures/capture_a.usda")
+            command = SwitchCaptureCommand(
+                new_capture_path="/captures/capture_b.usda",
+                context_name="stagecraft",
+            )
+
+            result = command.do()
+
+        self.assertEqual("/captures/capture_b.usda", result)
+        capture_setup.import_capture_layer.assert_called_once_with("/captures/capture_b.usda", do_undo=False)
+        mock_execute.assert_not_called()
+
     async def test_do_returns_none_when_target_matches_current(self):
         # Arrange
         with (

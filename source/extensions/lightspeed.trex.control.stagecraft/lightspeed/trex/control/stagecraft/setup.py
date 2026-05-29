@@ -144,7 +144,16 @@ class Setup:
         if cls._LIGHTING_STAGE_OPEN_ORIGINAL is not None:
             return
 
-        cls._LIGHTING_STAGE_OPEN_ORIGINAL = _ViewportLightingMenuContainer._MenuContainer__on_stage_open  # noqa: SLF001
+        # Capture the original as a local so the closure below is immune to
+        # ``__uninstall_stage_open_lighting_undo_patch`` setting the class
+        # attribute back to ``None``. Event-stream subscriptions hold strong
+        # references to this closure; if it dereferences the class attribute
+        # at call time, an in-flight stage-open event firing after uninstall
+        # crashes with ``TypeError: 'NoneType' object is not callable`` and
+        # corrupts the lighting-menu state, which has been observed to
+        # cascade into a GPU crash on the ImGui pixel-shader pass.
+        original = _ViewportLightingMenuContainer._MenuContainer__on_stage_open  # noqa: SLF001
+        cls._LIGHTING_STAGE_OPEN_ORIGINAL = original
 
         def _on_stage_open_with_undo_disabled(menu_container, menu_context, usd_context_name, usd_context, prev_mode):
             undo_scope = (
@@ -153,9 +162,7 @@ class Setup:
                 else nullcontext()
             )
             with undo_scope:
-                return cls._LIGHTING_STAGE_OPEN_ORIGINAL(
-                    menu_container, menu_context, usd_context_name, usd_context, prev_mode
-                )
+                return original(menu_container, menu_context, usd_context_name, usd_context, prev_mode)
 
         _ViewportLightingMenuContainer._MenuContainer__on_stage_open = _on_stage_open_with_undo_disabled  # noqa: SLF001
 

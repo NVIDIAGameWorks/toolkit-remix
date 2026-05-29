@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.6]
+### Fixed
+- REMIX-5483: Fix stage-open crash from lingering lighting-undo events firing after their handler is torn down.
+- Guard `SwitchCaptureCommand` against dispatching `SetLightingMenuModeCommand` with a blank `lighting_mode`, eliminating the HL2 stage-open GPU crash caused by the empty-value race.
+
 ## [1.7.5]
 ### Changed
 - Added Stage Manager coverage for tag assignment refreshes and force-refresh schema rules.
