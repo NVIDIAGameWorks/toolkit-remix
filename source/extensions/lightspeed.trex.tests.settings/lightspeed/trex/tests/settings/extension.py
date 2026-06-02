@@ -27,6 +27,9 @@ class LightspeedTestSettingsExtension(omni.ext.IExt):
         settings = carb.settings.get_settings()
         settings.set_default_bool("/app/file/ignoreUnsavedStage", True)
         settings.set_default_bool("/app/file/trexIgnoreUnsavedOnExit", True)
+        settings.set_default_string(
+            "/exts/omni.flux.utils.tests/default_test_data_ext", "lightspeed.trex.app.resources"
+        )
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.tests.settings] Lightspeed Test Settings Extension shutdown")

@@ -15,38 +15,24 @@
 * limitations under the License.
 """
 
-__all__ = ["HEADER_DICT", "AssetValidationError", "PackagingErrorModel"]
+__all__ = ["HEADER_DICT", "PackagingErrorModel"]
 
 from collections.abc import Callable
-from enum import Enum
-from typing import Any
 
-import omni.kit.undo
-import omni.usd
-from lightspeed.common.constants import USD_EXTENSIONS
-from lightspeed.trex.asset_replacements.core.shared import Setup as AssetReplacementsCore
-from lightspeed.trex.texture_replacements.core.shared import TextureReplacementsCore
-from lightspeed.trex.utils.common.file_utils import is_usd_file_path_valid_for_filepicker
+import omni.kit.app
+from lightspeed.trex.asset_replacements.core.shared.data_models import (
+    AssetReplacementsValidators,
+    ReplacementAssetType,
+)
+from lightspeed.trex.packaging.core import PackagingRepairCore
+from lightspeed.trex.packaging.core.repair import PackagingRepairProgress, PackagingRepairRequest, PackagingRepairResult
 from omni import ui
 from omni.flux.utils.common import Event, EventSubscription, reset_default_attrs
-from omni.flux.utils.common.omni_url import OmniUrl
-from pxr import Sdf, Usd
+from pxr import Sdf
 
-from .item import PackagingActions, PackagingErrorItem
+from .item import PackagingErrorItem
 
 HEADER_DICT = {0: "Prim Path", 1: "Unresolved Path", 2: "Updated Path", 3: "Action"}
-
-
-class AssetValidationError(Enum):
-    """
-    Enum for the different types of asset validation errors.
-    """
-
-    NONE = 0
-    INVALID_REFERENCE = 1
-    INVALID_TEXTURE = 2
-    NOT_INGESTED = 3
-    NOT_IN_PROJECT = 4
 
 
 class PackagingErrorModel(ui.AbstractItemModel):
@@ -54,208 +40,229 @@ class PackagingErrorModel(ui.AbstractItemModel):
         super().__init__()
 
         self.default_attr = {
-            "_context_name": [],
+            "_context_name": None,
             "_items": [],
-            "_asset_core": [],
-            "_texture_core": [],
+            "_repair_core": None,
         }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
 
         self._context_name = context_name
         self._items = []
-
-        self._asset_core = AssetReplacementsCore(context_name=context_name)
-        self._texture_core = TextureReplacementsCore(context_name=context_name)
+        self._repair_core = PackagingRepairCore(context_name=context_name)
 
         self.__on_action_changed = Event()
 
     def refresh(self, unresolved_assets: list[tuple[str, str, str]]):
-        """
-        Refresh the model with a new list of unresolved assets
+        """Refresh the model with unresolved assets.
 
         Args:
-            unresolved_assets: A list of tuples containing the layer, prim path, and asset path of the unresolved assets
+            unresolved_assets: Tuples containing layer identifier, prim path, and unresolved asset path.
         """
         self._items = [PackagingErrorItem(layer, path, asset) for layer, path, asset in unresolved_assets]
         self._item_changed(None)
 
     def replace_asset_paths(self, items: dict[PackagingErrorItem, str]):
-        """
-        Replace the asset paths for the given items with the given new paths
+        """Replace the selected asset paths.
 
         Args:
-            items: A dictionary of items and their new paths
+            items: Mapping of error items to replacement asset paths.
         """
         for item, new_path in items.items():
             item.fixed_asset_path = new_path
         self.__on_action_changed()
 
     def remove_asset_paths(self, items: list[PackagingErrorItem]):
-        """
-        Remove the fixed asset paths for the given items
+        """Remove the fixed asset paths for the given items.
+
+        Args:
+            items: Error items to remove from the repaired output.
         """
         for item in items:
             item.fixed_asset_path = None
         self.__on_action_changed()
 
-    def reset_asset_paths(self, items: list[PackagingErrorItem]):
+    def reset_asset_paths(self, items: list[PackagingErrorItem] | None):
+        """Reset the fixed asset paths to their original asset paths.
+
+        Args:
+            items: Error items to reset, or ``None`` to reset all items.
         """
-        Reset the fixed asset paths for the given items to the original asset paths
-        """
-        for item in items or self._items:
+        for item in items if items is not None else self._items:
             item.fixed_asset_path = item.asset_path
         self.__on_action_changed()
 
-    def apply_new_paths(self, items: list[PackagingErrorItem] | None = None) -> list:
-        """
-        Apply the fixed asset paths for the given items
-        """
-        ignored_items = []
-
-        stage = omni.usd.get_context(self._context_name).get_stage()
-
-        with omni.kit.undo.group():
-            for item in items or self._items:
-                is_reference = OmniUrl(item.asset_path).suffix in USD_EXTENSIONS
-                target_layer = Sdf.Layer.FindOrOpen(item.layer_identifier)
-
-                if item.action == PackagingActions.IGNORE:
-                    ignored_items.append((item.layer_identifier, str(item.prim_path), item.asset_path))
-                    continue
-
-                if is_reference:
-                    edit_target_layer = (
-                        target_layer
-                        if self.__is_stage_local_layer(stage, target_layer)
-                        else stage.GetEditTarget().GetLayer()
-                    )
-                    with Usd.EditContext(stage, edit_target_layer):
-                        prim_path, current_ref = self.__find_authored_reference(stage, item, target_layer)
-                        if item.action == PackagingActions.REPLACE_ASSET:
-                            new_ref_asset_path = self._asset_core.switch_ref_abs_to_rel_path(
-                                stage, item.fixed_asset_path
-                            )
-                            new_ref_prim_path = self._asset_core.get_reference_prim_path_from_asset_path(
-                                new_ref_asset_path,
-                                target_layer,
-                                edit_target_layer,
-                                current_ref,
-                            )
-                            self._asset_core.on_reference_edited(
-                                stage,
-                                prim_path,
-                                current_ref,
-                                new_ref_asset_path,
-                                new_ref_prim_path,
-                                target_layer,
-                            )
-                            continue
-                        self._asset_core.remove_reference(
-                            stage,
-                            prim_path,
-                            current_ref,
-                            target_layer,
-                        )
-                    continue
-
-                with Usd.EditContext(stage, target_layer):
-                    if item.action == PackagingActions.REPLACE_ASSET:
-                        self._texture_core.replace_textures(
-                            [(str(item.prim_path), item.fixed_asset_path)],
-                            use_undo_group=False,
-                            target_layer=target_layer,
-                        )
-                    else:
-                        self._texture_core.replace_textures(
-                            [(str(item.prim_path), None)],
-                            force=True,
-                            use_undo_group=False,
-                            target_layer=target_layer,
-                        )
-
-        self.__on_action_changed()
-
-        return ignored_items
-
-    @staticmethod
-    def __is_stage_local_layer(stage: Usd.Stage, layer: Sdf.Layer | None) -> bool:
-        if not stage or not layer:
-            return False
-        return any(stack_layer.identifier == layer.identifier for stack_layer in stage.GetLayerStack())
-
-    @staticmethod
-    def __reference_matches_asset_path(layer: Sdf.Layer, reference: Sdf.Reference, asset_path: str) -> bool:
-        return OmniUrl(layer.ComputeAbsolutePath(reference.assetPath)).path.lower() == OmniUrl(asset_path).path.lower()
-
-    def __find_authored_reference(
-        self, stage: Usd.Stage, item: PackagingErrorItem, target_layer: Sdf.Layer | None
-    ) -> tuple[Sdf.Path, Sdf.Reference]:
-        if not target_layer:
-            raise RuntimeError(f"Unable to open target layer '{item.layer_identifier}'")
-
-        prim = stage.GetPrimAtPath(item.prim_path)
-        if not prim:
-            raise RuntimeError(f"Unable to find composed prim '{item.prim_path}'")
-
-        for prim_spec in prim.GetPrimStack():
-            if prim_spec.layer.identifier != target_layer.identifier:
-                continue
-            for reference in prim_spec.referenceList.GetAddedOrExplicitItems():
-                if self.__reference_matches_asset_path(target_layer, reference, item.asset_path):
-                    return prim.GetPath(), reference
-
-        raise RuntimeError(f"Unable to find reference '{item.asset_path}' on prim '{item.prim_path}'")
-
-    def validate_selected_path(
-        self, item: PackagingErrorItem, is_reference: bool, directory: str, filename: str
-    ) -> AssetValidationError:
-        """
-        Validate the selected asset path.
+    async def apply_new_paths_async(
+        self,
+        items: list[PackagingErrorItem] | None = None,
+        progress_callback: Callable[[int, int, PackagingRepairProgress], None] | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
+    ) -> PackagingRepairResult | None:
+        """Apply fixed asset paths while keeping repair authoring off the UI thread.
 
         Args:
-            item: The item to validate the path for
-            is_reference: Whether the asset is a reference or a texture
-            directory: The directory of the selected asset path
-            filename: The filename of the selected asset path
+            items: Error items to apply, or ``None`` to apply all items.
+            progress_callback: Optional callback receiving current item count, total item count, and progress state.
+            is_cancelled: Optional callback returning whether the user requested cancellation.
+
+        Returns:
+            Repair result, or ``None`` when cancelled.
+
+        Raises:
+            RuntimeError: If layers have unsaved edits or a target layer cannot be opened or saved.
         """
-        asset_url = OmniUrl(directory) / filename
+        repair_requests = self.__get_repair_requests(items)
+        self._repair_core.raise_if_layers_dirty()
+        if progress_callback:
+            progress_callback(0, max(len(repair_requests), 1), PackagingRepairProgress.APPLYING)
+            # Let Kit place and paint the progress dialog before the worker starts.
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
 
-        if is_reference:
-            if not is_usd_file_path_valid_for_filepicker(directory, filename):
-                return AssetValidationError.INVALID_REFERENCE
-        elif asset_url.suffix.lower() != ".dds":
-            return AssetValidationError.INVALID_TEXTURE
+        result = await self._repair_core.apply_async(
+            repair_requests, progress_callback=progress_callback, is_cancelled=is_cancelled
+        )
+        if result is None:
+            return None
 
-        if not self._asset_core.was_the_asset_ingested(str(asset_url)):
-            return AssetValidationError.NOT_INGESTED
+        self.__on_action_changed()
+        return result
 
-        if not self._asset_core.asset_is_in_project_dir(
-            str(asset_url), layer=Sdf.Layer.FindOrOpen(item.layer_identifier)
-        ):
-            return AssetValidationError.NOT_IN_PROJECT
+    @property
+    def context_name(self) -> str:
+        """Get the USD context name.
 
-        return AssetValidationError.NONE
+        Returns:
+            The context name used by the repair core.
+        """
+        return self._context_name
+
+    @staticmethod
+    def get_layer(item: PackagingErrorItem) -> Sdf.Layer | None:
+        """Get the layer associated with an error item.
+
+        Args:
+            item: The item whose layer should be opened.
+
+        Returns:
+            The item's layer, or ``None`` if it cannot be opened.
+        """
+        return Sdf.Layer.FindOrOpen(item.layer_identifier)
+
+    def is_file_path_valid(self, path: str, layer: Sdf.Layer, log_error: bool = True) -> bool:
+        """Check whether an asset path points to a readable file.
+
+        Args:
+            path: Asset path to inspect.
+            layer: Layer the path is relative to.
+            log_error: Whether validation failures should be logged.
+
+        Returns:
+            Whether the asset path is readable.
+        """
+        return self._repair_core.is_file_path_valid(layer.identifier, path, log_error=log_error)
+
+    def was_the_asset_ingested(self, asset_path: str, ignore_invalid_paths: bool = True) -> bool:
+        """Check whether an asset has valid ingestion metadata.
+
+        Args:
+            asset_path: Asset path to inspect.
+            ignore_invalid_paths: Whether invalid paths should be treated as ingested.
+
+        Returns:
+            Whether the asset is ingested.
+        """
+        return self._repair_core.was_asset_ingested(asset_path, ignore_invalid_paths=ignore_invalid_paths)
+
+    def asset_is_in_project_dir(self, asset_path: str, layer: Sdf.Layer, include_deps_dir: bool = False) -> bool:
+        """Check whether an asset is inside the current project directory.
+
+        Args:
+            asset_path: Asset path to inspect.
+            layer: Layer the path is relative to.
+            include_deps_dir: Whether to count the project ``deps`` directory as a project path.
+
+        Returns:
+            Whether the asset is inside the project directory.
+        """
+        return self._repair_core.asset_is_in_project_dir(
+            layer.identifier, asset_path, include_deps_dir=include_deps_dir
+        )
+
+    def is_replacement_asset_valid(self, item: PackagingErrorItem, asset_path: str) -> bool:
+        """Check whether a replacement asset can be used for an error item.
+
+        Args:
+            item: The item being repaired.
+            asset_path: Replacement asset path.
+
+        Returns:
+            Whether the asset is readable, ingested, and inside the project.
+        """
+        layer = self.get_layer(item)
+        if layer is None:
+            return False
+        replacement_asset_type = AssetReplacementsValidators.get_replacement_asset_type(item.asset_path)
+        return (
+            self.is_file_path_valid(asset_path, layer, log_error=False)
+            and (
+                replacement_asset_type == ReplacementAssetType.TEXTURE
+                or self.was_the_asset_ingested(asset_path, ignore_invalid_paths=False)
+            )
+            and self.asset_is_in_project_dir(asset_path, layer)
+        )
+
+    def __get_repair_requests(self, items: list[PackagingErrorItem] | None) -> list[PackagingRepairRequest]:
+        return [self.__to_repair_request(item) for item in (items if items is not None else self._items)]
+
+    @staticmethod
+    def __to_repair_request(item: PackagingErrorItem) -> PackagingRepairRequest:
+        return PackagingRepairRequest(
+            layer_identifier=item.layer_identifier,
+            prim_path=item.prim_path,
+            asset_path=item.asset_path,
+            fixed_asset_path=item.fixed_asset_path,
+        )
 
     def get_item_children(self, item: PackagingErrorItem | None):
-        """
-        Return the children of the given item
+        """Get child items.
+
+        Args:
+            item: Parent item, or ``None`` for root items.
+
+        Returns:
+            The child items for the given item.
         """
         if item is None:
             return self._items
         return []
 
     def get_item_value_model_count(self, item: PackagingErrorItem | None):
-        """
-        Return the number of columns in the model
+        """Get the number of value columns for an item.
+
+        Args:
+            item: Item whose columns are requested.
+
+        Returns:
+            The number of value columns in the model.
         """
         return len(HEADER_DICT.keys())
 
-    def subscribe_action_changed(self, callback: Callable[[], Any]):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
+    def subscribe_action_changed(self, callback: Callable[[], None]):
+        """Subscribe to action-changed events.
+
+        Args:
+            callback: Callback invoked when an item's repair action changes.
+
+        Returns:
+            A subscription object that unsubscribes when destroyed.
         """
         return EventSubscription(self.__on_action_changed, callback)
 
     def destroy(self):
+        """Destroy the model and clear subscriptions."""
+        repair_core = self._repair_core
+        self._repair_core = None
+        if repair_core is not None:
+            repair_core.destroy()
         reset_default_attrs(self)

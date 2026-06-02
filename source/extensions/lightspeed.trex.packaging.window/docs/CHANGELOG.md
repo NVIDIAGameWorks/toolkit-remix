@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.7]
+### Fixed
+- Fixed packaging repairs to update owning local layers through packaging core, grouped missing references, stale ingestion and scan errors, and cancellable retry progress.
+
 ## [1.1.6]
 ### Fixed
 - Route missing-reference repairs through the asset replacement core, using local mod-layer overrides for external referenced layers.

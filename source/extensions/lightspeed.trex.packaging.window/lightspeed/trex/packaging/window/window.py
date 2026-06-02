@@ -18,36 +18,47 @@
 __all__ = ["PackagingErrorWindow"]
 
 from asyncio import ensure_future
+from collections.abc import Callable
 from functools import partial
 from typing import Any
-from collections.abc import Callable
 
+import carb
 import omni.kit.app
-from lightspeed.common.constants import USD_EXTENSIONS
+from lightspeed.trex.packaging.core.repair import PackagingRepairFailure, PackagingRepairProgress
 from lightspeed.trex.utils.widget import TrexMessageDialog
 from omni import ui
 from omni.flux.utils.common import Event, EventSubscription, reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl
+from omni.flux.utils.dialog import ProgressPopup as _ProgressPopup
 from omni.flux.utils.widget.file_pickers import open_file_picker
 from omni.flux.utils.widget.tree_widget import AlternatingRowWidget
 
-from .tree import AssetValidationError, PackagingActions, PackagingErrorDelegate, PackagingErrorModel
+from .tree import (
+    PackagingErrorDelegate,
+    PackagingErrorModel,
+)
 
 
 class PackagingErrorWindow:
     _PADDING = ui.Pixel(8)
+    _MAX_FAILED_REPAIRS_IN_DIALOG = 5
 
     def __init__(self, assets: list[tuple[str, str, str]], context_name: str = ""):
         self._default_attr = {
             "_model": None,
             "_delegate": None,
+            "_context_name": None,
             "_action_changed_sub": None,
             "_actions_applied_sub": None,
-            "_file_picker_opened_dub": None,
-            "_file_picker_closed_dub": None,
+            "_file_picker_opened_sub": None,
+            "_file_picker_closed_sub": None,
+            "_on_actions_applied": None,
             "_window": None,
             "_tree": None,
             "_alternating_rows": None,
+            "_progress_popup": None,
+            "_apply_cancel_requested": False,
+            "_apply_cancel_enabled": False,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -61,27 +72,19 @@ class PackagingErrorWindow:
 
         self._action_changed_sub = self._model.subscribe_action_changed(self._refresh_delegates)
 
-        self._file_picker_opened_dub = self._delegate.subscribe_file_picker_opened(self.hide)
-        self._file_picker_closed_dub = self._delegate.subscribe_file_picker_closed(self.show)
+        self._file_picker_opened_sub = self._delegate.subscribe_file_picker_opened(self.hide)
+        self._file_picker_closed_sub = self._delegate.subscribe_file_picker_closed(self.show)
 
-        self._window = None
-        self._tree = None
-        self._alternating_rows = None
-
-        self.__on_actions_applied = Event()
+        self._on_actions_applied = Event()
 
         self._build_ui()
 
     def show(self):
-        """
-        Show the window
-        """
+        """Show the packaging error window."""
         self._window.visible = True
 
     def hide(self):
-        """
-        Hide the window
-        """
+        """Hide the packaging error window."""
         self._window.visible = False
 
     def _build_ui(self):
@@ -161,11 +164,7 @@ class PackagingErrorWindow:
                             )
                             ui.Button(
                                 "Retry Packaging",
-                                tooltip=(
-                                    "Apply the actions to the unresolved assets and retry packaging the mod\n\n"
-                                    "NOTE: Make sure to save the stage before retrying packaging or replaced/removed "
-                                    "references will not be applied. "
-                                ),
+                                tooltip="Apply the actions to the unresolved assets and retry packaging the mod",
                                 clicked_fn=partial(self._apply_actions),
                             )
                         ui.Spacer(height=0, width=0)
@@ -202,12 +201,7 @@ class PackagingErrorWindow:
                 if item.fixed_asset_path and item.fixed_asset_path != item.asset_path:
                     continue
                 # If the file path is invalid, skip it
-                if (
-                    self._model.validate_selected_path(
-                        item, file.suffix in USD_EXTENSIONS, str(file.parent_url), file.name
-                    )
-                    != AssetValidationError.NONE
-                ):
+                if not self._model.is_replacement_asset_valid(item, str(file)):
                     continue
                 asset_path[item] = str(file)
 
@@ -226,29 +220,130 @@ class PackagingErrorWindow:
         """
         Apply the actions to the unresolved assets
         """
-
-        def apply_action(*_):
-            ignored_items = self._model.apply_new_paths()
-            omni.kit.window.file.save(on_save_done=lambda *_: self.__on_actions_applied(ignored_items))
-
         self.hide()
+        self._apply_cancel_requested = False
+        ensure_future(self._apply_actions_async())
 
-        if any(item for item in self._model.get_item_children(None) if item.action != PackagingActions.IGNORE):
-            title = "Retry Packaging the Mod"
-            message = (
-                "The stage must be saved before retrying packaging or replaced/removed references will not be applied."
-                "\n\n"
-                "Do you want to save the stage and retry packaging the mod?"
+    def _show_apply_progress(self, current: int, total: int, status: str, cancel_enabled: bool = False):
+        """
+        Show progress while repaired references are authored and saved.
+        """
+        self._apply_cancel_enabled = cancel_enabled
+        if self._progress_popup is None:
+            self._progress_popup = _ProgressPopup(title="Applying Packaging Repairs")
+        self._progress_popup.set_cancel_fn(self._cancel_apply_actions if cancel_enabled else None)
+        self._progress_popup.set_cancel_enabled(cancel_enabled)
+
+        if not self._progress_popup.is_visible():
+            self._progress_popup.show()
+
+        status_text = status
+        if total > 0:
+            status_text = f"{status}\n{current} / {total}"
+        if self._progress_popup.status_text != status_text:
+            self._progress_popup.set_status_text(status_text)
+        self._progress_popup.set_progress(current / total if total > 0 else 0.5)
+
+    def _hide_apply_progress(self):
+        self._apply_cancel_enabled = False
+        if self._progress_popup is None:
+            return
+        if self._progress_popup.is_visible():
+            self._progress_popup.hide()
+        self._progress_popup = None
+
+    def _cancel_apply_actions(self):
+        if not self._apply_cancel_enabled:
+            return
+        self._apply_cancel_requested = True
+        self._show_apply_progress(0, 0, "Cancelling packaging repairs...")
+
+    def _show_if_apply_cancelled(self) -> bool:
+        if not self._apply_cancel_requested:
+            return False
+        self.show()
+        return True
+
+    async def _next_update_or_apply_cancelled(self) -> bool:
+        await omni.kit.app.get_app().next_update_async()
+        return self._show_if_apply_cancelled()
+
+    @staticmethod
+    def _get_apply_progress_status(progress: PackagingRepairProgress) -> str:
+        if progress == PackagingRepairProgress.APPLYING:
+            return "Applying packaging repairs..."
+        return "Saving repaired layers..."
+
+    def _on_apply_progress(self, current: int, total: int, progress: PackagingRepairProgress):
+        self._show_apply_progress(
+            current,
+            total,
+            self._get_apply_progress_status(progress),
+            progress == PackagingRepairProgress.APPLYING and not self._apply_cancel_requested,
+        )
+
+    async def _wait_apply_completion_frames(self) -> bool:
+        for _ in range(2):
+            if await self._next_update_or_apply_cancelled():
+                return True
+        return False
+
+    async def _apply_actions_async(self):
+        try:
+            # Let Kit settle the error window visibility before centering the progress popup.
+            if await self._next_update_or_apply_cancelled():
+                return
+            self._show_apply_progress(0, 0, self._get_apply_progress_status(PackagingRepairProgress.APPLYING), True)
+            if await self._next_update_or_apply_cancelled():
+                return
+            repair_result = await self._model.apply_new_paths_async(
+                progress_callback=self._on_apply_progress,
+                is_cancelled=lambda: self._apply_cancel_requested,
             )
-            confirm_text = "Save and Retry"
-
+            if repair_result is None:
+                self.show()
+                return
+            if repair_result.failed_repairs:
+                self.show()
+                ensure_future(
+                    self._display_confirmation_dialog(
+                        self._format_failed_repairs_message(repair_result.failed_repairs),
+                        title="Packaging Repair Incomplete",
+                        ok_label="Okay",
+                        disable_cancel_button=True,
+                    )
+                )
+                return
+            if self._show_if_apply_cancelled():
+                return
+            if await self._wait_apply_completion_frames():
+                return
+        except RuntimeError as exc:
+            carb.log_error(str(exc))
+            self.show()
             ensure_future(
                 self._display_confirmation_dialog(
-                    message, title=title, ok_label=confirm_text, ok_handler=apply_action, cancel_handler=self.show
+                    str(exc),
+                    title="Packaging Repair Failed",
+                    ok_label="Okay",
+                    disable_cancel_button=True,
                 )
             )
-        else:
-            apply_action()
+            return
+        finally:
+            self._hide_apply_progress()
+
+        self._on_actions_applied(repair_result.ignored_items)
+
+    def _format_failed_repairs_message(self, failed_repairs: list[PackagingRepairFailure]) -> str:
+        shown_repairs = failed_repairs[: self._MAX_FAILED_REPAIRS_IN_DIALOG]
+        repair_lines = [f"- {repair.prim_path}: {repair.asset_path}\n  {repair.message}" for repair in shown_repairs]
+        remaining_count = len(failed_repairs) - len(shown_repairs)
+        if remaining_count:
+            repair_lines.append(f"- {remaining_count} more repair(s) failed.")
+        return "Some repairs could not be applied. The unresolved assets were left in the list.\n\n" + "\n".join(
+            repair_lines
+        )
 
     def _refresh_delegates(self):
         """
@@ -259,10 +354,21 @@ class PackagingErrorWindow:
         self._tree.dirty_widgets()
 
     def subscribe_actions_applied(self, callback: Callable[[list], Any]):
+        """Subscribe to repair action applied events.
+
+        Args:
+            callback: Callback invoked with ignored unresolved assets that could not be applied.
+
+        Returns:
+            A subscription object that unsubscribes when destroyed.
         """
-        Return the object that will automatically unsubscribe when destroyed.
-        """
-        return EventSubscription(self.__on_actions_applied, callback)
+        return EventSubscription(self._on_actions_applied, callback)
 
     def destroy(self):
+        """Destroy the packaging error window and release UI objects."""
+        self._hide_apply_progress()
+        window = self._window
+        if window is not None:
+            window.visible = False
+            window.destroy()
         reset_default_attrs(self)

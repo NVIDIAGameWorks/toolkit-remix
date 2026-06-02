@@ -16,9 +16,13 @@
 """
 
 from contextlib import nullcontext
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import omni.usd
-from lightspeed.trex.asset_replacements.core.shared.data_models import AssetReplacementsValidators
+from lightspeed.common import constants
+from lightspeed.trex.asset_replacements.core.shared.data_models import AssetReplacementsValidators, ReplacementAssetType
+from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS
 from omni.kit.test import AsyncTestCase
 
 
@@ -59,3 +63,62 @@ class TestAssetReplacementsValidators(AsyncTestCase):
                     self.assertEqual(value, prim_path)
                 else:
                     self.assertEqual(str(cm.exception), f"{message}: {prim_path}")
+
+    async def test_get_replacement_asset_type_should_match_asset_extension(self):
+        # Arrange
+        test_cases = [
+            ("missing.usda", ReplacementAssetType.MESH),
+            ("missing.mdl", ReplacementAssetType.MDL),
+            ("missing.png", ReplacementAssetType.TEXTURE),
+            ("missing.unknown", ReplacementAssetType.ANY),
+        ]
+
+        for asset_path, expected_type in test_cases:
+            with self.subTest(asset_path=asset_path):
+                # Act
+                result = AssetReplacementsValidators.get_replacement_asset_type(asset_path)
+
+                # Assert
+                self.assertEqual(result, expected_type)
+
+    async def test_get_replacement_asset_extensions_should_match_asset_type(self):
+        # Arrange
+        expected_any_extensions = (*constants.USD_EXTENSIONS, ".mdl", *SUPPORTED_TEXTURE_EXTENSIONS)
+        test_cases = [
+            (ReplacementAssetType.MESH, tuple(constants.USD_EXTENSIONS)),
+            (ReplacementAssetType.MDL, (".mdl",)),
+            (ReplacementAssetType.TEXTURE, tuple(SUPPORTED_TEXTURE_EXTENSIONS)),
+            (ReplacementAssetType.ANY, expected_any_extensions),
+        ]
+
+        for asset_type, expected_extensions in test_cases:
+            with self.subTest(asset_type=asset_type):
+                # Act
+                result = AssetReplacementsValidators.get_replacement_asset_extensions(asset_type)
+
+                # Assert
+                self.assertEqual(result, expected_extensions)
+
+    async def test_is_valid_replacement_asset_should_accept_compatible_existing_files(self):
+        # Arrange
+        test_cases = [
+            (ReplacementAssetType.MESH, "replacement.usdc"),
+            (ReplacementAssetType.MDL, "replacement.mdl"),
+            (ReplacementAssetType.TEXTURE, "replacement.dds"),
+            (ReplacementAssetType.ANY, "replacement.usda"),
+        ]
+
+        with TemporaryDirectory() as temp_dir:
+            for asset_type, replacement_filename in test_cases:
+                replacement_path = Path(temp_dir) / replacement_filename
+                replacement_path.touch()
+
+                with self.subTest(asset_type=asset_type, replacement_path=replacement_path):
+                    # Act
+                    result = AssetReplacementsValidators.is_valid_replacement_asset(
+                        str(replacement_path),
+                        asset_type,
+                    )
+
+                    # Assert
+                    self.assertTrue(result)

@@ -29,24 +29,22 @@ import omni.usd
 from lightspeed.common import constants
 from lightspeed.common.constants import PROPERTIES_NAMES_COLUMN_WIDTH
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
-from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_usd_asset as _copy_usd_asset
+from lightspeed.trex.asset_replacements.core.shared.data_models import ReplacementAssetType as _ReplacementAssetType
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemAsset as _ItemAsset
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemInstance as _ItemInstance
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemInstancesGroup as _ItemInstancesGroup
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemPrim as _ItemPrim
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemReferenceFile as _ItemReferenceFile
-from lightspeed.trex.utils.common.file_utils import (
-    is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
-)
 from lightspeed.trex.utils.widget import RemixCategoriesDialog as _RemixCategoriesDialog
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
+from lightspeed.trex.utils.widget import accept_asset_if_valid_for_replacement as _accept_asset_if_valid
+from lightspeed.trex.utils.widget import open_asset_file_picker as _open_asset_file_picker
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.flux.properties_pane.transformation.usd.widget import TransformPropertyWidget as _TransformPropertyWidget
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
-from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from pxr import Sdf, UsdGeom, UsdLux
 
 if typing.TYPE_CHECKING:
@@ -558,21 +556,13 @@ class SetupUI:
             fallback = True
             navigate_to = os.path.dirname(stage.GetRootLayer().identifier)
 
-        _open_file_picker(
+        _open_asset_file_picker(
             "Select a reference file",
+            _ReplacementAssetType.MESH,
             callback=functools.partial(self.set_ref_mesh_field, layer=layer),
             callback_cancel=lambda *args: None,
             current_file=navigate_to,
             fallback=fallback,
-            file_extension_options=constants.READ_USD_FILE_EXTENSIONS_OPTIONS,
-            validate_selection=_is_usd_file_path_valid_for_filepicker,
-            validation_failed_callback=self.__show_error_not_usd_file,
-        )
-
-    def __show_error_not_usd_file(self, dirname: str, filename: str):
-        _TrexMessageDialog(
-            message=f"{dirname}/{filename} is not a USD file",
-            disable_cancel_button=True,
         )
 
     def _on_mesh_ref_field_begin(self, _model):
@@ -591,14 +581,23 @@ class SetupUI:
             value = path
         else:
             value = path.replace("\\", "/")
-            if not self.__ignore_ingest_check and not self.__was_asset_ingested(value):
+            if not self.__ignore_ingest_check and layer is not None:
+                _accept_asset_if_valid(
+                    value,
+                    layer,
+                    self._core,
+                    self._context,
+                    functools.partial(self.__accept_ref_mesh_field, change_prim_field=change_prim_field),
+                    ignore_ingestion_handler=self.__ignore_warning_ingest_asset,
+                    cancel_handler=self.__reset_ingest_asset,
+                    go_to_ingest_handler=functools.partial(self.__reset_ingest_asset, go_to_ingest=True),
+                )
                 return
 
-            if layer is not None and not self._core.asset_is_in_project_dir(value, layer):
-                self.__prompt_user_to_copy_usd_asset(path=value, layer=layer)
-                return
+        self.__accept_ref_mesh_field(value, change_prim_field=change_prim_field)
 
-        self._mesh_ref_field.model.set_value(value)
+    def __accept_ref_mesh_field(self, path: str, change_prim_field: bool = True):
+        self._mesh_ref_field.model.set_value(path)
         if change_prim_field:
             self._ignore_mesh_ref_field_changed = True
             self.__set_ref_mesh_prim_field()
@@ -606,21 +605,15 @@ class SetupUI:
 
     def __prompt_user_to_copy_usd_asset(self, path: str, layer: Sdf.Layer):
         self.__ignore_ingest_check = True
-
-        # Prompt the user copy the asset or cancel
-        _TrexMessageDialog(
-            title=constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE,
-            message=constants.ASSET_OUTSIDE_OF_PROJ_DIR_MESSAGE,
-            disable_ok_button=False,
-            ok_label=constants.ASSET_OUTSIDE_OF_PROJ_DIR_OK_LABEL,
-            ok_handler=functools.partial(
-                _copy_usd_asset,
-                context=self._context,
-                asset_path=path,
-                callback_func=lambda x: self.set_ref_mesh_field(path=x, change_prim_field=True, layer=layer),
-            ),
-            disable_middle_button=True,
-            disable_cancel_button=False,
+        _accept_asset_if_valid(
+            path,
+            layer,
+            self._core,
+            self._context,
+            lambda x: self.set_ref_mesh_field(path=x, change_prim_field=True, layer=layer),
+            ignore_ingestion_handler=self.__ignore_warning_ingest_asset,
+            cancel_handler=self.__reset_ingest_asset,
+            go_to_ingest_handler=functools.partial(self.__reset_ingest_asset, go_to_ingest=True),
         )
 
     def __set_ref_mesh_prim_field(self):

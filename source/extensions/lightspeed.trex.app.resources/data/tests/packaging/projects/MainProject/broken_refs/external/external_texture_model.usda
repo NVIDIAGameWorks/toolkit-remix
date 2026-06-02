@@ -1,0 +1,19 @@
+#usda 1.0
+(
+    defaultPrim = "Asset"
+    upAxis = "Z"
+)
+
+def Xform "Asset"
+{
+    def Scope "Looks"
+    {
+        def Material "Mat"
+        {
+            def Shader "Shader"
+            {
+                asset inputs:diffuse_texture = @./missing_texture.dds@
+            }
+        }
+    }
+}

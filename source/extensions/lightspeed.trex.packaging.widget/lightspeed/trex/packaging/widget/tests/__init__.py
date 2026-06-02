@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from .e2e.test_setup_ui import TestPackagingPaneProgressE2E, TestPackagingPaneReferenceRepairE2E
+from .e2e.test_setup_ui import TestPackagingPaneReferenceRepairE2E
 from .unit.test_setup_ui import (
     TestPackagingPaneCompletion,
     TestPackagingPaneMode,

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.3]
+### Changed
+- Set the default test data extension for shared Lightspeed test projects
+
 ## [1.1.2]
 ### Changed
 - Modernize python style and enable more ruff checks

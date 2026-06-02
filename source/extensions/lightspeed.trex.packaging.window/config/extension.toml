@@ -1,5 +1,5 @@
 [package]
-version = "1.1.6"
+version = "1.1.7"
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "Mod Packaging Window"
 description = "Mod Packaging Window to fix unresolved references"
@@ -14,9 +14,10 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 [dependencies]
 "lightspeed.common" = {}
 "lightspeed.trex.asset_replacements.core.shared" = {}
-"lightspeed.trex.texture_replacements.core.shared" = {}
+"lightspeed.trex.packaging.core" = {}
 "lightspeed.trex.utils.widget" = {}
 "omni.flux.info_icon.widget" = {}
+"omni.flux.utils.dialog" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 "omni.ui" = {}
@@ -25,6 +26,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 [[python.module]]
 name = "lightspeed.trex.packaging.window"
 
+[[test]]
 dependencies = [
     "lightspeed.trex.tests.dependencies",
 ]

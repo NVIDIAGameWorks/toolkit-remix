@@ -18,5 +18,13 @@
 from .e2e.test_packaging import TestPackagingCoreE2E
 from .unit.test_items import TestModPackagingSchema
 from .unit.test_packaging import TestPackagingCoreUnit
+from .unit.test_repair import TestPackagingRepairCoreUnit
+from .unit.test_repair_authoring import TestRepairAuthoringCore
 
-__all__ = ["TestModPackagingSchema", "TestPackagingCoreE2E", "TestPackagingCoreUnit"]
+__all__ = [
+    "TestModPackagingSchema",
+    "TestPackagingCoreE2E",
+    "TestPackagingCoreUnit",
+    "TestPackagingRepairCoreUnit",
+    "TestRepairAuthoringCore",
+]

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.2]
+### Added
+- Added shared typed replacement asset validation helpers
+
 ## [3.3.1]
 ### Added
 - Added a shared `replace_reference` core method for remove-and-add reference replacement flows.

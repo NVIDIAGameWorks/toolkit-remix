@@ -22,9 +22,9 @@ from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCore
 from lightspeed.trex.rtxio.core import RtxIoSplitSizePreset as _RtxIoSplitSizePreset
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .enum import ModPackagingMode
+from .enum import FLATTEN_PACKAGING_OUTPUT_FORMAT, ModPackagingMode
 
 
 class ModPackagingSchema(BaseModel):
@@ -124,3 +124,14 @@ class ModPackagingSchema(BaseModel):
         if not re.search("^(\\d+\\.\\d+(?:\\.\\d+)?)$", v):
             raise ValueError('The version must use the following format: "{MAJOR}.{MINOR}.{PATCH}". Example: 1.0.1')
         return v
+
+    @model_validator(mode="after")
+    def force_flatten_output_format(self):
+        """Force flatten mode to the only output format that is safe for large projects.
+
+        Returns:
+            The validated packaging schema.
+        """
+        if self.packaging_mode == ModPackagingMode.FLATTEN:
+            self.output_format = FLATTEN_PACKAGING_OUTPUT_FORMAT
+        return self
