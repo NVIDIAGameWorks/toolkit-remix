@@ -1,0 +1,25 @@
+[package]
+version = "1.0.0"
+authors = ["NVIDIA"]
+title = "RTX Remix Aftermath Preload"
+description = "Preloads the HdRemix Nsight Aftermath DLL before Kit GPU Foundation initializes."
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.aftermath.preload"
+category = "rendering"
+keywords = ["remix", "aftermath", "gpu crash"]
+changelog = "docs/CHANGELOG.md"
+
+[core]
+order = -200000
+reloadable = false
+
+[settings]
+exts."lightspeed.aftermath.preload".enabled = true
+exts."lightspeed.aftermath.preload".kitAftermathEnabled = false
+exts."lightspeed.aftermath.preload".hdremixAftermathEnabled = true
+exts."lightspeed.aftermath.preload".configureDxvk = true
+exts."lightspeed.aftermath.preload".dxvkConfigPath = ""
+exts."lightspeed.aftermath.preload".dllPath = ""
+
+[[python.module]]
+name = "lightspeed.aftermath.preload"

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5216: Added silent legacy particle upgrades that hide superseded legacy attrs and seed the currently opened animated control
 - REMIX-5483: Added an Edit > Preferences > HdRemix Renderer page with a live "Integrate Indirect Illumination Mode" combo (Importance Sampled / ReSTIR GI / RTX Neural Radiance Cache) matching the dxvk-remix runtime overlay, an "Override Capture Value" checkbox that gates whether the global setting overrides each loaded capture's integrator preset (off by default so captures win on stage open), forcing `rtx.graphicsPreset=Custom` on user toggles so the User-layer write applies, and stubbing Kit's built-in "Viewport" page with a redirect notice while keeping it registered for the viewport menubar's navigation.
 - REMIX-1676: Added public RTX IO packaging documentation covering compression, DDS cleanup, split package presets, and the required runtime setting
+- REMIX-5571: Added RTX Remix Aftermath preload setup, crash artifact bundling, and crash-debug agent guidance for GPU crash investigations
 
 ### Changed
 

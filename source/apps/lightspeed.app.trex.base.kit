@@ -16,6 +16,7 @@ This base experience regroup all extensions shared between all NVIDIA RTX Remix 
 # The Main UI App
 "omni.kit.uiapp" = {}
 "lightspeed.dependencies" = { order = -15000}  # Try to load the splash screen
+"lightspeed.aftermath.preload" = { order = -200000 }
 
 # PIP Archives
 "omni.flux.pip_archive" = { order = -10001 }  # Load before `lightspeed.hydra.remix.core` to ensure we override the pip deps
