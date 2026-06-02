@@ -47,7 +47,8 @@ Never insert at top. Match existing style. No Jira prefix in extension changelog
 
 ## Step 4 - Root Changelog
 
-Update root `CHANGELOG.md`, `## [Unreleased]`, correct section. Append last item. If `<ticket>` set:
+Update root `CHANGELOG.md`, `## [Unreleased]`, correct section. Append as the last item at the bottom of that section
+to preserve chronological order; never insert at the top or reorder existing entries. If `<ticket>` set:
 `<ticket>: <one-line summary>`. Else no prefix.
 
 ## Gotchas

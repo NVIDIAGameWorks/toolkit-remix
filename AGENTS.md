@@ -11,6 +11,7 @@ Commands in `.agents/commands/`:
 - `commit.md` - commit with repo style
 - `create-branch.md` - create feature branch
 - `create-extension.md` - scaffold extension
+- `crash-debug.md` - gather/classify RTX Remix Toolkit crash evidence
 - `debug-extension-load.md` - debug load/test discovery
 - `kit-test.md` - run/debug Kit tests
 - `prepare-mr.md` - prep MR
@@ -19,8 +20,8 @@ Commands in `.agents/commands/`:
 Skills in `.agents/skills/`:
 
 `add-pip-dep`, `agent-config`, `bump-exts-changelog`, `commit`, `completion-gates`, `create-branch`,
-`create-extension`, `debug-extension-load`, `documentation`, `extension-docs`, `kit-test`, `memory-promotion`,
-`prepare-mr`, `remove-extension`.
+`create-extension`, `crash-debug`, `debug-extension-load`, `documentation`, `extension-docs`, `kit-test`,
+`memory-promotion`, `prepare-mr`, `remove-extension`.
 
 Auto-use `completion-gates` before done. Auto-use `memory-promotion` when durable project knowledge appears.
 
