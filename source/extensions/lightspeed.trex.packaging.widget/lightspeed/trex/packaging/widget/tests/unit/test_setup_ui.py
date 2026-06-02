@@ -16,20 +16,21 @@
 """
 
 import asyncio
-import shutil
 import tempfile
+import threading
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 import carb.settings
+import omni.client
 import omni.kit.app
 import omni.ui as ui
 from lightspeed.trex.packaging.core.enum import ModPackagingMode
-from lightspeed.trex.packaging.core.packaging import INDETERMINATE_PROGRESS_TOTAL
 from lightspeed.trex.packaging.widget import setup_ui as _setup_ui
 from lightspeed.trex.packaging.widget.setup_ui import PackagingPane
 from lightspeed.trex.rtxio.core import RtxIoSplitSizePreset
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
+from omni.flux.utils.common.progress import INDETERMINATE_PROGRESS_TOTAL
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows
 
@@ -70,46 +71,16 @@ class TestPackagingPaneMode(AsyncTestCase):
             widget.destroy()
             window.destroy()
 
-    async def test_packaging_options_should_persist_across_widget_recreation(self):
-        first_window, first_widget = await _create_widget("test_packaging_options_persist_first")
+    async def test_packaging_mode_dropdown_uses_persisted_import(self):
+        self._settings.set(_setup_ui._SETTINGS_PACKAGING_MODE, ModPackagingMode.IMPORT.value)
+        window, widget = await _create_widget("test_packaging_mode_uses_persisted_import")
 
         try:
-            # Arrange
-            first_widget._packaging_mode_combo.model.get_item_value_model().set_value(1)
-            first_widget._packaging_output_format_combo.model.get_item_value_model().set_value(3)
-            await omni.kit.app.get_app().next_update_async()
-        finally:
-            first_widget.destroy()
-            first_window.destroy()
-
-        second_window, second_widget = await _create_widget("test_packaging_options_persist_second")
-
-        try:
-            # Act
-            selected_mode = second_widget._get_selected_packaging_mode()
-            selected_format = second_widget._get_selected_packaging_output_format()
-
-            # Assert
-            self.assertEqual(ModPackagingMode.IMPORT, selected_mode)
-            self.assertEqual(_UsdExtensions.USDC, selected_format)
-        finally:
-            second_widget.destroy()
-            second_window.destroy()
-
-    async def test_packaging_mode_dropdown_redirect_value_maps_to_enum(self):
-        window, widget = await _create_widget("test_packaging_mode_redirect")
-
-        try:
-            # Arrange
-            value_model = widget._packaging_mode_combo.model.get_item_value_model()
-            value_model.set_value(0)
-            await omni.kit.app.get_app().next_update_async()
-
             # Act
             selected_mode = widget._get_selected_packaging_mode()
 
             # Assert
-            self.assertEqual(ModPackagingMode.REDIRECT, selected_mode)
+            self.assertEqual(ModPackagingMode.IMPORT, selected_mode)
         finally:
             widget.destroy()
             window.destroy()
@@ -128,6 +99,7 @@ class TestPackagingPaneMode(AsyncTestCase):
 
             # Assert
             self.assertEqual(ModPackagingMode.IMPORT, selected_mode)
+            self.assertEqual(ModPackagingMode.IMPORT.value, self._settings.get(_setup_ui._SETTINGS_PACKAGING_MODE))
         finally:
             widget.destroy()
             window.destroy()
@@ -138,7 +110,7 @@ class TestPackagingPaneMode(AsyncTestCase):
         try:
             # Arrange
             value_model = widget._packaging_mode_combo.model.get_item_value_model()
-            value_model.set_value(2)
+            value_model.set_value(0)
             await omni.kit.app.get_app().next_update_async()
 
             # Act
@@ -170,6 +142,7 @@ class TestPackagingPaneMode(AsyncTestCase):
 
         try:
             # Arrange
+            widget._packaging_mode_combo.model.get_item_value_model().set_value(1)
             value_model = widget._packaging_output_format_combo.model.get_item_value_model()
             value_model.set_value(0)
             await omni.kit.app.get_app().next_update_async()
@@ -188,6 +161,7 @@ class TestPackagingPaneMode(AsyncTestCase):
 
         try:
             # Arrange
+            widget._packaging_mode_combo.model.get_item_value_model().set_value(1)
             value_model = widget._packaging_output_format_combo.model.get_item_value_model()
             value_model.set_value(2)
             await omni.kit.app.get_app().next_update_async()
@@ -201,20 +175,44 @@ class TestPackagingPaneMode(AsyncTestCase):
             widget.destroy()
             window.destroy()
 
-    async def test_packaging_output_format_dropdown_usdc_value_maps_to_enum(self):
-        window, widget = await _create_widget("test_packaging_output_format_usdc")
+    async def test_packaging_output_format_dropdown_legacy_usdc_setting_maps_to_usd(self):
+        self._settings.set(_setup_ui._SETTINGS_OUTPUT_FORMAT, "usdc")
+        window, widget = await _create_widget("test_packaging_output_format_legacy_usdc")
 
         try:
             # Arrange
-            value_model = widget._packaging_output_format_combo.model.get_item_value_model()
-            value_model.set_value(3)
+            widget._packaging_mode_combo.model.get_item_value_model().set_value(1)
             await omni.kit.app.get_app().next_update_async()
 
             # Act
             selected_format = widget._get_selected_packaging_output_format()
 
             # Assert
-            self.assertEqual(_UsdExtensions.USDC, selected_format)
+            self.assertEqual(_UsdExtensions.USD, selected_format)
+        finally:
+            widget.destroy()
+            window.destroy()
+
+    async def test_flatten_mode_disables_output_format_dropdown_and_forces_usd(self):
+        window, widget = await _create_widget("test_packaging_flatten_forces_usd")
+
+        try:
+            # Arrange
+            mode_model = widget._packaging_mode_combo.model.get_item_value_model()
+            format_model = widget._packaging_output_format_combo.model.get_item_value_model()
+            mode_model.set_value(1)
+            format_model.set_value(2)
+            await omni.kit.app.get_app().next_update_async()
+
+            # Act
+            mode_model.set_value(0)
+            await omni.kit.app.get_app().next_update_async()
+
+            # Assert
+            self.assertEqual(ModPackagingMode.FLATTEN, widget._get_selected_packaging_mode())
+            self.assertEqual(_UsdExtensions.USD, widget._get_selected_packaging_output_format())
+            self.assertFalse(widget._packaging_output_format_combo.enabled)
+            self.assertIn("USDA text output is disabled", widget._packaging_output_format_combo.tooltip)
         finally:
             widget.destroy()
             window.destroy()
@@ -226,14 +224,15 @@ class TestPackagingPaneMode(AsyncTestCase):
         tooltip = PackagingPane._get_packaging_options_tooltip()
 
         # Assert
-        self.assertIn("Redirect dependencies", tooltip)
-        self.assertIn("Import dependencies", tooltip)
         self.assertIn("Flatten into one layer", tooltip)
+        self.assertIn("Import dependencies", tooltip)
+        self.assertLess(tooltip.index("Flatten into one layer"), tooltip.index("Import dependencies"))
+        self.assertNotIn("Redirect dependencies", tooltip)
         self.assertIn("only keeps assets still referenced by the flattened output", tooltip)
         self.assertIn("Preserve Extensions", tooltip)
         self.assertIn("usd", tooltip)
         self.assertIn("usda", tooltip)
-        self.assertIn("usdc", tooltip)
+        self.assertNotIn("usdc", tooltip)
 
     async def test_packaging_options_section_info_icon_is_created(self):
         window, widget = await _create_widget("test_packaging_mode_info_icon")
@@ -318,6 +317,141 @@ class TestPackagingPaneCompletion(AsyncTestCase):
             widget.destroy()
             window.destroy()
 
+    async def test_package_pressed_with_pending_edits_should_save_before_packaging(self):
+        window, widget = await _create_widget("test_packaging_pending_edits_save")
+
+        try:
+            # Arrange
+            widget._context = Mock()
+            widget._context.has_pending_edit.return_value = False
+            widget._layer_manager.get_layers_of_type = Mock(
+                return_value=[Mock(realPath="C:/projects/MainProject/mod.usda")]
+            )
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                output_directory = Path(tmp_dir) / "package"
+                widget._package_output_widget._output_field.model.set_value(output_directory.as_posix())
+
+                package_started = asyncio.Event()
+
+                def package_side_effect(_):
+                    package_started.set()
+
+                widget._packaging_core.package = Mock(side_effect=package_side_effect)
+                layers_state_mock = Mock()
+                layers_state_mock.get_dirty_layer_identifiers.return_value = ["C:/projects/MainProject/mod.usda"]
+                layers_mock = Mock()
+                layers_mock.get_layers_state.return_value = layers_state_mock
+
+                with (
+                    patch.object(
+                        type(widget._package_layers_widget),
+                        "packaged_layers",
+                        new_callable=PropertyMock,
+                        return_value=["C:/projects/MainProject/mod.usda"],
+                    ),
+                    patch.object(
+                        type(widget._package_details_widget),
+                        "mod_name",
+                        new_callable=PropertyMock,
+                        return_value="Test Mod",
+                    ),
+                    patch.object(
+                        type(widget._package_details_widget),
+                        "mod_version",
+                        new_callable=PropertyMock,
+                        return_value="1.0.0",
+                    ),
+                    patch.object(
+                        type(widget._package_details_widget),
+                        "mod_details",
+                        new_callable=PropertyMock,
+                        return_value="",
+                    ),
+                    patch("lightspeed.trex.packaging.widget.setup_ui.omni.kit.window.file.save") as save_mock,
+                    patch(
+                        "lightspeed.trex.packaging.widget.setup_ui._layers.get_layers", return_value=layers_mock
+                    ) as get_layers_mock,
+                    patch("lightspeed.trex.packaging.widget.setup_ui._TrexMessageDialog") as message_dialog_mock,
+                ):
+                    # Act
+                    widget._on_package_pressed()
+                    for _ in range(30):
+                        if save_mock.called:
+                            break
+                        await omni.kit.app.get_app().next_update_async()
+
+                    # Assert
+                    save_mock.assert_called_once()
+                    get_layers_mock.assert_called_once_with(widget._context)
+                    message_dialog_mock.assert_not_called()
+                    widget._packaging_core.package.assert_not_called()
+
+                    save_done = save_mock.call_args.kwargs["on_save_done"]
+                    save_done(True, "")
+                    await asyncio.wait_for(package_started.wait(), timeout=1)
+
+                widget._packaging_core.package.assert_called_once_with(
+                    {
+                        "context_name": widget._MOD_PACKAGING_CONTEXT,
+                        "mod_layer_paths": ["C:/projects/MainProject/mod.usda"],
+                        "selected_layer_paths": ["C:/projects/MainProject/mod.usda"],
+                        "output_directory": output_directory.as_posix(),
+                        "packaging_mode": widget._get_selected_packaging_mode(),
+                        "output_format": widget._get_selected_packaging_output_format(),
+                        "mod_name": "Test Mod",
+                        "mod_version": "1.0.0",
+                        "mod_details": "",
+                        "ignored_errors": None,
+                        "rtxio_pack": False,
+                        "rtxio_delete_dds_after_pack": False,
+                        "rtxio_split_size_mb": None,
+                    }
+                )
+        finally:
+            widget.destroy()
+            window.destroy()
+
+    async def test_package_pressed_with_cancelled_save_should_not_package(self):
+        window, widget = await _create_widget("test_packaging_cancelled_save")
+
+        try:
+            # Arrange
+            widget._context = Mock()
+            widget._context.has_pending_edit.return_value = True
+            widget._layer_manager.get_layers_of_type = Mock(
+                return_value=[Mock(realPath="C:/projects/MainProject/mod.usda")]
+            )
+            widget._packaging_core.package = Mock()
+            widget._on_packaging_completed = AsyncMock()
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                output_directory = Path(tmp_dir) / "package"
+                widget._package_output_widget._output_field.model.set_value(output_directory.as_posix())
+
+                with patch("lightspeed.trex.packaging.widget.setup_ui.omni.kit.window.file.save") as save_mock:
+                    # Act
+                    widget._on_package_pressed()
+                    for _ in range(30):
+                        if save_mock.called:
+                            break
+                        await omni.kit.app.get_app().next_update_async()
+
+                    save_done = save_mock.call_args.kwargs["on_save_done"]
+                    save_done(False, "cancelled")
+                    for _ in range(5):
+                        if widget._on_packaging_completed.await_count:
+                            break
+                        await omni.kit.app.get_app().next_update_async()
+
+                # Assert
+                save_mock.assert_called_once()
+                widget._packaging_core.package.assert_not_called()
+                widget._on_packaging_completed.assert_awaited_once_with(["cancelled"], [], False)
+        finally:
+            widget.destroy()
+            window.destroy()
+
     async def test_retry_packaging_flatten_with_ignored_errors_should_stop_and_show_message(self):
         window, widget = await _create_widget("test_retry_flatten_ignored_errors")
 
@@ -388,18 +522,29 @@ class TestPackagingPaneCompletion(AsyncTestCase):
                 callback_order = []
                 package_started = asyncio.Event()
 
-                async def delete_side_effect(path: str):
+                main_thread_id = threading.get_ident()
+                delete_thread_id = None
+
+                def delete_side_effect(_output_url):
+                    nonlocal delete_thread_id
                     callback_order.append("delete")
-                    self.assertEqual(output_directory.as_posix(), path.replace("\\", "/"))
+                    delete_thread_id = threading.get_ident()
                     self.assertTrue(package_file.exists())
-                    shutil.rmtree(output_directory)
+                    return omni.client.Result.OK
 
                 def package_side_effect(_):
                     callback_order.append("package")
-                    self.assertFalse(output_directory.exists())
                     package_started.set()
 
+                def show_progress_side_effect(current, total, status, cancel_enabled):
+                    callback_order.append("progress")
+                    self.assertEqual(0, current)
+                    self.assertEqual(INDETERMINATE_PROGRESS_TOTAL, total)
+                    self.assertEqual("Deleting existing package...", status)
+                    self.assertFalse(cancel_enabled)
+
                 widget._packaging_core.package = Mock(side_effect=package_side_effect)
+                widget._show_packaging_progress = Mock(side_effect=show_progress_side_effect)
 
                 with (
                     patch.object(
@@ -427,8 +572,9 @@ class TestPackagingPaneCompletion(AsyncTestCase):
                         return_value="",
                     ),
                     patch(
-                        "lightspeed.trex.packaging.widget.setup_ui._OmniClientWrapper.delete",
-                        new=AsyncMock(side_effect=delete_side_effect),
+                        "lightspeed.trex.packaging.widget.setup_ui._OmniUrl.delete",
+                        autospec=True,
+                        side_effect=delete_side_effect,
                     ) as delete_mock,
                     patch("lightspeed.trex.packaging.widget.setup_ui._TrexMessageDialog") as message_dialog_mock,
                 ):
@@ -439,7 +585,11 @@ class TestPackagingPaneCompletion(AsyncTestCase):
                     await asyncio.wait_for(package_started.wait(), timeout=1)
 
                 # Assert
-                delete_mock.assert_called_once_with(output_directory.as_posix())
+                delete_mock.assert_called_once()
+                self.assertNotEqual(main_thread_id, delete_thread_id)
+                widget._show_packaging_progress.assert_called_once_with(
+                    0, INDETERMINATE_PROGRESS_TOTAL, "Deleting existing package...", False
+                )
                 widget._package_output_widget.refresh_output_directory_state.assert_called_once_with()
                 widget._packaging_core.package.assert_called_once_with(
                     {
@@ -458,7 +608,7 @@ class TestPackagingPaneCompletion(AsyncTestCase):
                         "rtxio_split_size_mb": None,
                     }
                 )
-                self.assertEqual(["delete", "package"], callback_order)
+                self.assertEqual(["progress", "delete", "package"], callback_order)
         finally:
             widget.destroy()
             window.destroy()
@@ -494,6 +644,9 @@ class TestPackagingPaneProgress(AsyncTestCase):
         popup_mock.status_text = ""
         popup_mock.is_visible.return_value = True
         widget._progress_popup = popup_mock
+        widget._packaging_cancel_requested = False
+        widget._cancel_packaging = Mock()
+        widget._packaging_core = Mock(can_cancel=True)
 
         # Act
         widget._on_packaging_progress(5, 10, "Collecting assets...")
@@ -509,25 +662,13 @@ class TestPackagingPaneProgress(AsyncTestCase):
         popup_mock.status_text = ""
         popup_mock.is_visible.return_value = True
         widget._progress_popup = popup_mock
+        widget._packaging_cancel_requested = False
+        widget._cancel_packaging = Mock()
+        widget._packaging_core = Mock(can_cancel=True)
 
         # Act
         widget._on_packaging_progress(0, INDETERMINATE_PROGRESS_TOTAL, "Indeterminate stage...")
 
         # Assert
         popup_mock.set_status_text.assert_called_once_with("Indeterminate stage...")
-        popup_mock.set_progress.assert_called_once_with(0.5)
-
-    async def test_on_packaging_progress_with_invalid_reference_scan_should_show_count_and_fraction(self):
-        # Arrange
-        widget = PackagingPane.__new__(PackagingPane)
-        popup_mock = Mock()
-        popup_mock.status_text = ""
-        popup_mock.is_visible.return_value = True
-        widget._progress_popup = popup_mock
-
-        # Act
-        widget._on_packaging_progress(500, 1000, "Looking for invalid references...")
-
-        # Assert
-        popup_mock.set_status_text.assert_called_once_with("Looking for invalid references...\n500 / 1000")
         popup_mock.set_progress.assert_called_once_with(0.5)

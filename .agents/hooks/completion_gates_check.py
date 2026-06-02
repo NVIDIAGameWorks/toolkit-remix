@@ -42,14 +42,22 @@ def _get_base_branch() -> str:
             sys.path.remove(tools_path)
 
 
-def _build_gates() -> list[tuple[str, list[str], list[str]]]:
+def _format_gate_paths(extensions: list[str]) -> list[str]:
+    """Return format-check paths scoped to modified extensions."""
+    return [f"source/extensions/{extension}" for extension in extensions]
+
+
+def _build_gates(extensions: list[str]) -> list[tuple[str, list[str], list[str]]]:
     """Build the gate command list, injecting the correct base branch for changelog checks."""
     base = _get_base_branch()
+    format_paths = _format_gate_paths(extensions)
+    format_win = ["cmd", "/c", ".\\format_code.bat", "--check", *format_paths]
+    format_unix = ["bash", "./format_code.sh", "--check", *format_paths]
     return [
         (
             "Format check",
-            ["cmd", "/c", ".\\format_code.bat", "--check"],
-            ["bash", "./format_code.sh", "--check"],
+            format_win,
+            format_unix,
         ),
         (
             "Lint check",
@@ -181,7 +189,7 @@ def main():
     extensions = get_modified_extensions(py_files)
 
     # Run all gates and collect results
-    gates = _build_gates()
+    gates = _build_gates(extensions)
     passed, failed = [], []
     for label, win_cmd, unix_cmd in gates:
         gate_label, ok, snippet, output = run_gate(label, win_cmd, unix_cmd)

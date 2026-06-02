@@ -18,6 +18,7 @@
 from unittest.mock import Mock, PropertyMock, call, patch
 
 import omni.kit.test
+from lightspeed.trex.packaging.core.enum import MOD_PACKAGING_MODE_UI_OPTIONS, MOD_PACKAGING_OUTPUT_FORMAT_UI_OPTIONS
 from lightspeed.trex.packaging.core.enum import ModPackagingMode
 from lightspeed.trex.packaging.core.items import ModPackagingSchema
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCore
@@ -197,6 +198,24 @@ class TestModPackagingSchema(omni.kit.test.AsyncTestCase):
         self.assertEqual(ModPackagingMode.FLATTEN, model.packaging_mode)
         self.assertEqual(_UsdExtensions.USD, model.output_format)
 
+    async def test_packaging_mode_ui_options_should_hide_redirect_and_order_flatten_first(self):
+        # Arrange
+
+        # Act
+        modes = [mode for mode, _label in MOD_PACKAGING_MODE_UI_OPTIONS]
+
+        # Assert
+        self.assertEqual([ModPackagingMode.FLATTEN, ModPackagingMode.IMPORT], modes)
+
+    async def test_packaging_output_format_ui_options_should_hide_usdc(self):
+        # Arrange
+
+        # Act
+        output_formats = [output_format for output_format, _label in MOD_PACKAGING_OUTPUT_FORMAT_UI_OPTIONS]
+
+        # Assert
+        self.assertEqual([None, _UsdExtensions.USD, _UsdExtensions.USDA], output_formats)
+
     async def test_schema_accepts_packaging_modes(self):
         for packaging_mode, expected_mode in (
             ("redirect", ModPackagingMode.REDIRECT),
@@ -232,10 +251,19 @@ class TestModPackagingSchema(omni.kit.test.AsyncTestCase):
                 # Arrange
 
                 # Act
-                model = self._create_schema(output_format=output_format)
+                model = self._create_schema(packaging_mode=ModPackagingMode.IMPORT, output_format=output_format)
 
                 # Assert
                 self.assertEqual(expected_output_format, model.output_format)
+
+    async def test_schema_flatten_mode_should_force_usd_output_format(self):
+        # Arrange
+
+        # Act
+        model = self._create_schema(packaging_mode=ModPackagingMode.FLATTEN, output_format=_UsdExtensions.USDA)
+
+        # Assert
+        self.assertEqual(_UsdExtensions.USD, model.output_format)
 
     async def test_schema_rejects_invalid_output_format(self):
         # Arrange

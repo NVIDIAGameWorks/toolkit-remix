@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.22.5]
+### Changed
+- Added brighter disabled ComboBox styling.
+
 ## [1.22.4]
 ### Changed
 - Added `Label::FilterCheckboxLabel` style for brighter checkbox label text in the custom tags filter

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.4]
+### Fixed
+- Fixed packaging repair, cancellation, and flatten-output flows.
+
 ## [2.1.3]
 ### Fixed
 - Fixed RTX IO packaging test defaults so import and flatten mode tests do not invoke compression unintentionally.

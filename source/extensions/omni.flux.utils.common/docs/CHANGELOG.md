@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.14.1]
+### Added
+- Added latest-progress worker helpers for long-running UI tasks.
+
 ## [3.14.0]
 ### Added
 - Added shared scalar typing aliases for numeric property bounds and particle legacy helpers

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.11]
+### Changed
+- Reused the shared typed asset file picker helper
+
 ## [1.4.10]
 ### Fixed
 - Fixed optional light property visibility to use the shared typed and schema-applied light utility

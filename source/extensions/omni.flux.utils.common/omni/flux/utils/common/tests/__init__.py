@@ -26,6 +26,7 @@ from .unit.test_omni_url import TestOmniUrl
 from .unit.test_os_drop_router import TestWidgetDropRouter
 from .unit.test_path_utils import TestPathUtils
 from .unit.test_prims import TestPrims
+from .unit.test_progress import TestProgressWorker
 from .unit.test_serialize import TestSerializer
 from .unit.test_symlink import TestSymlink
 from .unit.test_task_budget import TestAdaptiveTaskBudget
@@ -44,6 +45,7 @@ __all__ = [
     "TestOmniUrl",
     "TestPathUtils",
     "TestPrims",
+    "TestProgressWorker",
     "TestSerializer",
     "TestSymlink",
     "TestVersion",

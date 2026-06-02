@@ -356,6 +356,11 @@ current_dict.update(
             "background_color": _GREY_60,  # make brighter to distinguish from _GREY_50 background
             "secondary_color": _GREY_70,
         },
+        "ComboBox:disabled": {
+            "background_color": _GREY_55,
+            "secondary_color": _GREY_60,
+            "color": _WHITE_60,
+        },
         "ExpandCollapseButton": {
             "background_color": 0,
         },

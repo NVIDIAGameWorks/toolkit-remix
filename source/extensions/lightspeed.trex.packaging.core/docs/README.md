@@ -46,6 +46,8 @@ How the packaged root USD layer should be written.
 - UsdExtensions.USD: Writes the packaged root layer with the `.usd` extension.
 - UsdExtensions.USDA: Writes the packaged root layer as human-readable `.usda`.
 - UsdExtensions.USDC: Writes the packaged root layer as binary `.usdc`.
+Flatten mode always writes the packaged root as binary crate USD (`.usd`) because large flattened USDA text output can
+exceed OpenUSD text buffer limits.
 """
 output_format: UsdExtensions | None = UsdExtensions.USD
 
