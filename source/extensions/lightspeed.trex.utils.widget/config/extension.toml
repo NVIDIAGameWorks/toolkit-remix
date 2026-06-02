@@ -1,5 +1,5 @@
 [package]
-version = "1.7.1"
+version = "1.7.2"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix widget utils"
 description = "Utils helper for Lightspeed widgets"
@@ -15,6 +15,8 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "lightspeed.common" = {}
 "lightspeed.trex.asset_replacements.core.shared" = {}
 "lightspeed.trex.utils.common" = {}
+"omni.client" = {}
+"omni.flux.utils.widget" = {}
 "omni.ui" = {}
 "omni.ui_query" = {}
 "omni.usd" = {}

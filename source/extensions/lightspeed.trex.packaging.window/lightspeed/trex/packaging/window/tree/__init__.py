@@ -16,7 +16,6 @@
 """
 
 __all__ = [
-    "AssetValidationError",
     "PackagingActions",
     "PackagingErrorDelegate",
     "PackagingErrorItem",
@@ -25,4 +24,4 @@ __all__ = [
 
 from .delegate import PackagingErrorDelegate
 from .item import PackagingActions, PackagingErrorItem
-from .model import AssetValidationError, PackagingErrorModel
+from .model import PackagingErrorModel

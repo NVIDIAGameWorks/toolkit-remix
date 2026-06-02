@@ -1,0 +1,37 @@
+#usda 1.0
+(
+    upAxis = "Z"
+)
+
+over "RootNode"
+{
+    over "PackagingTest"
+    {
+        def Xform "direct_texture"
+        {
+            def Scope "Looks"
+            {
+                def Material "Mat"
+                {
+                    def Shader "Shader"
+                    {
+                        asset inputs:diffuse_texture = @./missing_direct_texture.dds@
+                    }
+                }
+            }
+        }
+
+        def Xform "missing_texture_property"
+        {
+            def Scope "Looks"
+            {
+                def Material "Mat"
+                {
+                    def Shader "Shader"
+                    {
+                    }
+                }
+            }
+        }
+    }
+}

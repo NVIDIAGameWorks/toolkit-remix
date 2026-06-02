@@ -1,0 +1,14 @@
+#usda 1.0
+(
+    defaultPrim = "Asset"
+    upAxis = "Z"
+)
+
+def Xform "Asset"
+{
+    def Xform "MissingRef" (
+        prepend references = @./missing_nested.usda@
+    )
+    {
+    }
+}

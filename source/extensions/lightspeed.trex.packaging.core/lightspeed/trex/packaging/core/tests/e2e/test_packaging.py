@@ -28,10 +28,11 @@ import omni.kit.app
 import omni.kit.test
 import omni.usd
 from lightspeed.trex.packaging.core.enum import ModPackagingMode
-from lightspeed.trex.packaging.core.packaging import INDETERMINATE_PROGRESS_TOTAL
 from lightspeed.trex.packaging.core.packaging import PackagingCore
+from lightspeed.trex.packaging.core.repair import PackagingRepairCore, PackagingRepairRequest
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
-from omni.kit.test_suite.helpers import get_test_data_path
+from omni.flux.utils.common.progress import INDETERMINATE_PROGRESS_TOTAL
+from omni.flux.utils.tests.context_managers import get_test_data_path
 from pxr import Sdf
 
 
@@ -64,7 +65,6 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
 
         progress_mock = Mock()
         completed_mock = Mock()
-
         progress_mock.side_effect = lambda *args: print(f"Progress: {args}")
         completed_mock.side_effect = lambda *args: print(f"Completed: {args}")
 
@@ -90,7 +90,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
         output_dir = Path(self.temp_dir.name) / "package"
 
         with tempfile.TemporaryDirectory() as temp_input:
-            input_project_path = get_test_data_path(__name__, "projects")
+            input_project_path = self.__packaging_test_data_path("projects")
             temp_project_path = Path(temp_input) / "projects"
 
             result = await omni.client.copy_async(input_project_path, str(temp_project_path))
@@ -116,7 +116,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
                     ],
                     "output_directory": output_dir,
                     "packaging_mode": ModPackagingMode.REDIRECT,
-                    "output_format": None,
+                    "output_format": _UsdExtensions.USDA,
                     "mod_name": "Main Project",
                     "mod_version": "1.0.0",
                     "mod_details": "Main Test Notes",
@@ -128,16 +128,17 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
             [
                 (
                     "Filtering the selected layers...",
-                    [(0, 1), (1, 1), (1, 3), (2, 3), (2, 3), (3, 3), (3, 3), (3, 3)],
+                    (0, 1),
+                    (3, 3),
                 ),
-                ("Listing references...", [(0, INDETERMINATE_PROGRESS_TOTAL)]),
-                ("Looking for invalid references...", [(0, 0), (18, 18)]),
-                ("Redirecting dependencies...", self.__expected_progress_range(13)),
-                ("Creating temporary layers...", self.__expected_progress_range(10)),
-                ("Listing assets to collect...", self.__expected_progress_range(13)),
-                ("Updating asset paths...", self.__expected_progress_range(10)),
-                ("Collecting assets...", self.__expected_progress_range(9)),
-                ("Cleaning up temporary layers...", self.__expected_progress_range(10)),
+                ("Listing references...", (0, INDETERMINATE_PROGRESS_TOTAL), (0, INDETERMINATE_PROGRESS_TOTAL)),
+                ("Looking for invalid references...", (0, 0), (18, 18)),
+                ("Redirecting dependencies...", (0, 13), (13, 13)),
+                ("Creating temporary layers...", (0, 10), (10, 10)),
+                ("Listing assets to collect...", (0, 13), (13, 13)),
+                ("Updating asset paths...", (0, 10), (10, 10)),
+                ("Collecting assets...", (0, 9), (9, 9)),
+                ("Cleaning up temporary layers...", (0, 10), (10, 10)),
             ],
         )
 
@@ -145,7 +146,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
         self.assertEqual(call([], [], False), completed_mock.call_args)
 
         # Make sure the actual package matches the expected package
-        await self.__asset_directories_equal(get_test_data_path(__name__, "package"), output_dir)
+        await self.__asset_directories_equal(self.__packaging_test_data_path("expected_package"), output_dir)
 
     async def test_package_cancel_during_reference_checks_should_complete_cancelled_without_export(self):
         for cancel_status in ("Listing references...", "Looking for invalid references..."):
@@ -165,7 +166,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
 
                 with tempfile.TemporaryDirectory() as temp_input:
                     # Copy the fixture project so the test can verify that cancellation leaves no package behind.
-                    input_project_path = get_test_data_path(__name__, "projects")
+                    input_project_path = self.__packaging_test_data_path("projects")
                     temp_project_path = Path(temp_input) / "projects"
 
                     result = await omni.client.copy_async(input_project_path, str(temp_project_path))
@@ -227,7 +228,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
                 output_dir = Path(self.temp_dir.name) / f"package_{packaging_mode.value}"
 
                 with tempfile.TemporaryDirectory() as temp_input:
-                    input_project_path = get_test_data_path(__name__, "projects")
+                    input_project_path = self.__packaging_test_data_path("projects")
                     temp_project_path = Path(temp_input) / "projects"
 
                     result = await omni.client.copy_async(input_project_path, str(temp_project_path))
@@ -274,7 +275,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
         output_dir = Path(self.temp_dir.name) / "package_missing_texture"
 
         with tempfile.TemporaryDirectory() as temp_input:
-            input_project_path = get_test_data_path(__name__, "projects")
+            input_project_path = self.__packaging_test_data_path("projects")
             temp_project_path = Path(temp_input) / "projects"
 
             result = await omni.client.copy_async(input_project_path, str(temp_project_path))
@@ -334,7 +335,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
                 output_dir = Path(self.temp_dir.name) / f"package_missing_ref_{packaging_mode.value}"
 
                 with tempfile.TemporaryDirectory() as temp_input:
-                    input_project_path = get_test_data_path(__name__, "projects")
+                    input_project_path = self.__packaging_test_data_path("projects")
                     temp_project_path = Path(temp_input) / "projects"
 
                     result = await omni.client.copy_async(input_project_path, str(temp_project_path))
@@ -381,12 +382,100 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
                     )
                     self.assertFalse(output_dir.exists())
 
+    async def test_package_repaired_external_texture_should_not_report_masked_weaker_asset(self):
+        packaging_core = PackagingCore()
+        repair_context_name = "PackagingE2E_RepairedExternalTextureRepair"
+        completed_mock = Mock()
+        _completed_sub = packaging_core.subscribe_packaging_completed(completed_mock)
+        output_dir = Path(self.temp_dir.name) / "package_repaired_external_texture"
+
+        with tempfile.TemporaryDirectory() as temp_input:
+            # Copy the centralized project fixture so this e2e can freely save repair edits.
+            input_project_path = self.__packaging_test_data_path("projects")
+            temp_project_path = Path(temp_input) / "projects"
+
+            result = await omni.client.copy_async(input_project_path, str(temp_project_path))
+            self.assertEqual(result, omni.client.Result.OK, "Can't copy the project to the temporary directory")
+
+            # Locate the real project layers and snapshot the external layer before repairs run.
+            temp_project_root = temp_project_path / "MainProject"
+            temp_root_usda = temp_project_root / "main_project.usda"
+            temp_mod_usda = temp_project_root / "mod.usda"
+            temp_subproject_mod = temp_project_root / "deps" / "mods" / "SubProject" / "mod.usda"
+            temp_mod_capture_baker = temp_project_root / "mod_capture_baker.usda"
+            temp_sublayer = temp_project_root / "sublayer.usda"
+            broken_ref_layer = temp_project_root / "broken_refs" / "broken_refs_external_texture_only.usda"
+            external_layer = Sdf.Layer.FindOrOpen(
+                str(temp_project_root / "broken_refs" / "external" / "external_texture_model.usda")
+            )
+            self.assertIsNotNone(external_layer)
+            external_before = external_layer.ExportToString()
+
+            # Add the broken-reference fixture to the mod and repair the missing external texture through the core.
+            self.__append_sublayer(temp_mod_usda, "broken_refs/broken_refs_external_texture_only.usda")
+            repair_context = omni.usd.get_context(repair_context_name) or omni.usd.create_context(repair_context_name)
+            await repair_context.open_stage_async(str(temp_root_usda))
+            repair_core = PackagingRepairCore(context_name=repair_context_name)
+            try:
+                texture_attr_path = (
+                    "/RootNode/PackagingTest/ref_external_texture_model/Looks/Mat/Shader.inputs:diffuse_texture"
+                )
+                repair_result = await repair_core.apply_async(
+                    [
+                        PackagingRepairRequest(
+                            external_layer.identifier,
+                            texture_attr_path,
+                            Path(external_layer.ComputeAbsolutePath("./missing_texture.dds")).as_posix(),
+                            None,
+                        )
+                    ]
+                )
+                self.assertEqual([], repair_result.ignored_items)
+            finally:
+                repair_core.destroy()
+                await repair_context.close_stage_async()
+
+            # Verify the repair authored a local override and did not mutate the referenced external asset.
+            external_layer.Reload()
+            self.assertEqual(external_before, external_layer.ExportToString())
+
+            # Package the repaired project in flatten mode, selecting the broken-ref layer as part of the package.
+            await packaging_core.package_async_with_exceptions(
+                {
+                    "context_name": "PackagingE2E_RepairedExternalTexturePackage",
+                    "mod_layer_paths": [
+                        str(temp_mod_usda),
+                        str(temp_subproject_mod),
+                    ],
+                    "selected_layer_paths": [
+                        str(temp_mod_usda),
+                        str(temp_mod_capture_baker),
+                        str(temp_sublayer),
+                        str(broken_ref_layer),
+                    ],
+                    "output_directory": output_dir,
+                    "packaging_mode": ModPackagingMode.FLATTEN,
+                    "mod_name": "Main Project",
+                    "mod_version": "1.0.0",
+                    "mod_details": "Main Test Notes",
+                }
+            )
+
+            # The masked weaker external texture should not be reported as a packaging failure after repair.
+            self.assertEqual(1, completed_mock.call_count)
+            errors, failed_assets, was_cancelled = completed_mock.call_args.args
+            self.assertEqual([], errors)
+            self.assertEqual([], failed_assets)
+            self.assertFalse(was_cancelled)
+            self.assertTrue((output_dir / "mod.usd").exists())
+
     async def test_package_flatten_mode_should_export_single_root_layer_and_prune_packaged_sublayers(self):
         packaging_core = PackagingCore()
         output_dir = Path(self.temp_dir.name) / "package_flatten"
 
         with tempfile.TemporaryDirectory() as temp_input:
-            input_project_path = get_test_data_path(__name__, "projects")
+            # Copy the centralized project fixture and package its selected local layers in flatten mode.
+            input_project_path = self.__packaging_test_data_path("projects")
             temp_project_path = Path(temp_input) / "projects"
 
             result = await omni.client.copy_async(input_project_path, str(temp_project_path))
@@ -419,14 +508,20 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
                 }
             )
 
-        flattened_root = output_dir / "mod.usda"
+        # Verify flatten mode produced one binary USD root and pruned the packaged sublayers/dependencies.
+        flattened_root = output_dir / "mod.usd"
         self.assertTrue(flattened_root.exists())
+        self.assertFalse((output_dir / "mod.usda").exists())
+        self.assertEqual(b"PXR-USDC", flattened_root.read_bytes()[:8])
         self.assertFalse((output_dir / "sublayer.usda").exists())
         self.assertFalse((output_dir / "mod_capture_baker.usda").exists())
         self.assertFalse((output_dir / "SubUSDs").exists())
         self.assertFalse((output_dir / "deps" / "mods").exists())
 
-        flattened_text = flattened_root.read_text(encoding="utf8")
+        # Read the flattened layer content back through USD so the assertions are format-agnostic.
+        flattened_layer = Sdf.Layer.FindOrOpen(str(flattened_root))
+        self.assertIsNotNone(flattened_layer)
+        flattened_text = flattened_layer.ExportToString()
         self.assertNotIn("sublayer.usda", flattened_text)
         self.assertNotIn("mod_capture_baker.usda", flattened_text)
         self.assertNotIn("../../mods/SubProject", flattened_text)
@@ -437,7 +532,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
         output_dir = Path(self.temp_dir.name) / "package_usdc_root"
 
         with tempfile.TemporaryDirectory() as temp_input:
-            input_project_path = get_test_data_path(__name__, "projects")
+            input_project_path = self.__packaging_test_data_path("projects")
             temp_project_path = Path(temp_input) / "projects"
 
             result = await omni.client.copy_async(input_project_path, str(temp_project_path))
@@ -483,7 +578,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
         source_context = omni.usd.get_context()
 
         with tempfile.TemporaryDirectory() as temp_input:
-            input_project_path = get_test_data_path(__name__, "projects")
+            input_project_path = self.__packaging_test_data_path("projects")
             temp_project_path = Path(temp_input) / "projects"
 
             result = await omni.client.copy_async(input_project_path, str(temp_project_path))
@@ -565,8 +660,15 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
         return prim_path, missing_reference_path.as_posix()
 
     @staticmethod
-    def __expected_progress_range(total: int) -> list[tuple[int, int]]:
-        return [(current, total) for current in range(total + 1)]
+    def __packaging_test_data_path(path: str) -> str:
+        return str(Path(get_test_data_path("packaging").path) / path)
+
+    @staticmethod
+    def __append_sublayer(layer_path: Path, sublayer_path: str):
+        layer = Sdf.Layer.FindOrOpen(str(layer_path))
+        if sublayer_path not in layer.subLayerPaths:
+            layer.subLayerPaths.append(sublayer_path)
+            layer.Save()
 
     @staticmethod
     def __make_cancel_on_status(packaging_core: PackagingCore, progress_calls: list, cancel_status: str):
@@ -584,7 +686,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
     def __assert_packaging_progress(
         self,
         progress_calls,
-        expected_progress_by_stage: list[tuple[str, list[tuple[int, int]]]],
+        expected_progress_by_stage: list[tuple[str, tuple[int, int], tuple[int, int]]],
     ):
         actual_progress_by_stage = []
         current_status = None
@@ -602,7 +704,25 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
         if current_status is not None:
             actual_progress_by_stage.append((current_status, current_progress))
 
-        self.assertEqual(expected_progress_by_stage, actual_progress_by_stage)
+        self.assertEqual(
+            [status for status, _, _ in expected_progress_by_stage],
+            [status for status, _ in actual_progress_by_stage],
+        )
+
+        for (expected_status, expected_start, expected_end), (actual_status, actual_progress) in zip(
+            expected_progress_by_stage, actual_progress_by_stage
+        ):
+            self.assertEqual(expected_status, actual_status)
+            self.assertGreater(len(actual_progress), 0, msg=f"No progress was reported for {expected_status}")
+            self.assertEqual(expected_start, actual_progress[0], msg=f"Unexpected start progress for {expected_status}")
+            self.assertEqual(expected_end, actual_progress[-1], msg=f"Unexpected end progress for {expected_status}")
+
+            previous_current = actual_progress[0][0]
+            for current, total in actual_progress:
+                self.assertGreaterEqual(current, previous_current, msg=f"Progress regressed for {expected_status}")
+                if total != INDETERMINATE_PROGRESS_TOTAL:
+                    self.assertGreaterEqual(total, current, msg=f"Progress exceeded total for {expected_status}")
+                previous_current = current
 
     async def __asset_directories_equal(self, expected: Path, actual: Path):
         # Make sure all the files in the expected directory are identical in the actual directory
@@ -637,7 +757,7 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
     def __assert_context_is_clean(self, context, label: str):
         stage = context.get_stage()
         self.assertIsNotNone(stage, msg=f"Expected an open stage for {label}")
-        dirty_layers = [layer.identifier for layer in stage.GetLayerStack() if getattr(layer, "dirty", False)]
+        dirty_layers = [layer.identifier for layer in stage.GetLayerStack() if layer.dirty]
         self.assertFalse(
             context.has_pending_edit(),
             msg=f"Context had pending edits {label}. Dirty layers: {dirty_layers}",

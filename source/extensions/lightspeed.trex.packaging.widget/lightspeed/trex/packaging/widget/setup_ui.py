@@ -17,9 +17,10 @@
 
 from asyncio import ensure_future
 from enum import Enum
-from functools import partial
 
 import carb.settings
+import omni.client
+import omni.kit.usd.layers as _layers
 import omni.kit.window.file
 import omni.ui as ui
 import omni.usd
@@ -28,6 +29,10 @@ from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.mod_packaging_details.widget import ModPackagingDetailsWidget as _ModPackagingDetailsWidget
 from lightspeed.trex.mod_packaging_layers.widget import ModPackagingLayersWidget as _ModPackagingLayersWidget
 from lightspeed.trex.mod_packaging_output.widget import ModPackagingOutputWidget as _ModPackagingOutputWidget
+from lightspeed.trex.packaging.core.enum import (
+    FLATTEN_PACKAGING_OUTPUT_FORMAT as _FLATTEN_PACKAGING_OUTPUT_FORMAT,
+    FLATTEN_PACKAGING_OUTPUT_FORMAT_TOOLTIP as _FLATTEN_PACKAGING_OUTPUT_FORMAT_TOOLTIP,
+)
 from lightspeed.trex.packaging.core.enum import MOD_PACKAGING_MODE_UI_OPTIONS as _MOD_PACKAGING_MODE_UI_OPTIONS
 from lightspeed.trex.packaging.core.enum import (
     MOD_PACKAGING_OUTPUT_FORMAT_UI_OPTIONS as _MOD_PACKAGING_OUTPUT_FORMAT_UI_OPTIONS,
@@ -37,21 +42,21 @@ from lightspeed.trex.packaging.core.enum import get_packaging_mode_description a
 from lightspeed.trex.packaging.core.enum import (
     get_packaging_output_format_description as _get_packaging_output_format_description,
 )
-from lightspeed.trex.packaging.core.packaging import INDETERMINATE_PROGRESS_TOTAL as _INDETERMINATE_PROGRESS_TOTAL
 from lightspeed.trex.packaging.core.packaging import PackagingCore as _PackagingCore
-from lightspeed.trex.rtxio.core import RtxIoSplitSizePreset as _RtxIoSplitSizePreset
-from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from lightspeed.trex.packaging.window import PackagingErrorWindow as _PackagingErrorWindow
+from lightspeed.trex.rtxio.core import RtxIoSplitSizePreset as _RtxIoSplitSizePreset
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
+from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
+from omni.flux.utils.common.progress import INDETERMINATE_PROGRESS_TOTAL as _INDETERMINATE_PROGRESS_TOTAL
+from omni.flux.utils.common.progress import run_worker_with_latest_progress as _run_worker_with_latest_progress
 from omni.flux.utils.dialog import ErrorPopup as _ErrorPopup
 from omni.flux.utils.dialog import ProgressPopup as _ProgressPopup
 from omni.flux.utils.widget.collapsable_frame import (
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
-from omni.kit.usd.collect.omni_client_wrapper import OmniClientWrapper as _OmniClientWrapper
 
 _SETTINGS_PACKAGING_MODE = "/persistent/exts/lightspeed.trex.packaging.widget/packaging_mode"
 _SETTINGS_OUTPUT_FORMAT = "/persistent/exts/lightspeed.trex.packaging.widget/output_format"
@@ -64,6 +69,11 @@ class _RtxIoMode(Enum):
 
     @property
     def label(self) -> str:
+        """Get the UI label for the RTX IO mode.
+
+        Returns:
+            The label shown in the packaging UI.
+        """
         return self.value
 
 
@@ -81,10 +91,20 @@ class _RtxIoSplitSizeOption(Enum):
 
     @property
     def label(self) -> str:
+        """Get the UI label for the RTX IO split size option.
+
+        Returns:
+            The label shown in the packaging UI.
+        """
         return self._label
 
     @property
     def preset(self) -> _RtxIoSplitSizePreset | None:
+        """Get the RTX IO split size preset.
+
+        Returns:
+            The split size preset, or ``None`` when splitting is disabled.
+        """
         return self._preset
 
 
@@ -259,6 +279,7 @@ class PackagingPane(_WorkspaceWidget):
                                                 self._packaging_output_format_changed_sub = self._packaging_output_format_combo.model.get_item_value_model().subscribe_value_changed_fn(
                                                     self._on_packaging_output_format_changed
                                                 )
+                                                self._update_packaging_output_format_state()
 
                             ui.Spacer(height=ui.Pixel(16))
 
@@ -333,6 +354,11 @@ class PackagingPane(_WorkspaceWidget):
                     ui.Spacer(height=ui.Pixel(5))
 
     def show(self, visible: bool):
+        """Show or hide the packaging pane.
+
+        Args:
+            visible: Whether the pane should be visible.
+        """
         super().show(visible)
         self.root_widget.visible = visible
         self._package_details_widget.show(visible)
@@ -385,8 +411,12 @@ class PackagingPane(_WorkspaceWidget):
 
         @omni.usd.handle_exception
         async def delete_existing_output_directory() -> bool:
+            self._show_packaging_progress(0, _INDETERMINATE_PROGRESS_TOTAL, "Deleting existing package...", False)
+            await omni.kit.app.get_app().next_update_async()
             try:
-                await _OmniClientWrapper.delete(str(output_url))
+                result = await _run_worker_with_latest_progress(lambda _queue_progress: output_url.delete())
+                if result != omni.client.Result.OK:
+                    raise RuntimeError(f"Error code: {result}")
             except Exception as e:  # noqa: BLE001
                 ensure_future(
                     self._on_packaging_completed(
@@ -439,24 +469,15 @@ class PackagingPane(_WorkspaceWidget):
             # Wait for the previous popup to be hidden to center the following message dialog
             await omni.kit.app.get_app().next_update_async()
 
-            if not silent and self._context and self._context.has_pending_edit():
-                _TrexMessageDialog(
-                    message="There are some pending edits in your current stage. "
-                    "All unsaved changes will be lost after packaging is started.\n\n"
-                    "Do you want to save your changes before packaging the mod?",
-                    ok_label="Save",
-                    middle_label="Discard",
-                    cancel_label="Cancel",
-                    disable_middle_button=False,
-                    ok_handler=partial(start_packaging, True, delete_existing_output),
-                    middle_handler=partial(start_packaging, False, delete_existing_output),
-                )
+            if not silent and self._has_pending_project_edits():
+                start_packaging(True, delete_existing_output)
             else:
                 start_packaging(False, delete_existing_output)
 
         if not silent and output_url.exists and list(output_url.iterdir()):
             _TrexMessageDialog(
                 message="The output directory is not empty.\n\n"
+                "Deleting the existing package can take a while and cannot be cancelled once it starts.\n\n"
                 "Would you like to delete the directory content or cancel the packaging process?",
                 ok_handler=lambda: ensure_future(validate_pending_edits(True)),
                 ok_label="Delete",
@@ -469,27 +490,41 @@ class PackagingPane(_WorkspaceWidget):
         return _MOD_PACKAGING_MODE_UI_OPTIONS[index][0]
 
     def _get_selected_packaging_output_format(self) -> _UsdExtensions | None:
+        if self._get_selected_packaging_mode() == _ModPackagingMode.FLATTEN:
+            return _FLATTEN_PACKAGING_OUTPUT_FORMAT
         index = self._packaging_output_format_combo.model.get_item_value_model().as_int
         return _MOD_PACKAGING_OUTPUT_FORMAT_UI_OPTIONS[index][0]
 
+    def _has_pending_project_edits(self) -> bool:
+        if self._context and self._context.has_pending_edit():
+            return True
+        layers_state = (
+            _layers.get_layers(self._context).get_layers_state() if self._context else _layers.get_layers_state()
+        )
+        return bool(layers_state.get_dirty_layer_identifiers())
+
     def _get_persisted_packaging_mode(self) -> _ModPackagingMode:
-        persisted_mode = self._settings.get(_SETTINGS_PACKAGING_MODE)
         try:
-            return _ModPackagingMode(persisted_mode)
+            persisted_mode = _ModPackagingMode(self._settings.get(_SETTINGS_PACKAGING_MODE))
         except (TypeError, ValueError):
             return _ModPackagingMode.FLATTEN
+        if persisted_mode in {mode for mode, _ in _MOD_PACKAGING_MODE_UI_OPTIONS}:
+            return persisted_mode
+        return _ModPackagingMode.FLATTEN
 
     def _get_persisted_packaging_output_format(self) -> _UsdExtensions | None:
         persisted_output_format = self._settings.get(_SETTINGS_OUTPUT_FORMAT)
         if persisted_output_format == _PRESERVE_OUTPUT_FORMAT_SETTING_VALUE:
             return None
         try:
-            return _UsdExtensions(persisted_output_format)
+            output_format = _UsdExtensions(persisted_output_format)
         except (TypeError, ValueError):
             return _UsdExtensions.USD
+        return _UsdExtensions.USD if output_format == _UsdExtensions.USDC else output_format
 
     def _on_packaging_mode_changed(self, _value_model):
         self._settings.set(_SETTINGS_PACKAGING_MODE, self._get_selected_packaging_mode().value)
+        self._update_packaging_output_format_state()
 
     def _on_packaging_output_format_changed(self, _value_model):
         selected_output_format = self._get_selected_packaging_output_format()
@@ -506,11 +541,29 @@ class PackagingPane(_WorkspaceWidget):
         return 0
 
     def _get_default_packaging_output_format_index(self) -> int:
-        persisted_output_format = self._get_persisted_packaging_output_format()
+        return self._get_packaging_output_format_index(self._get_persisted_packaging_output_format())
+
+    @staticmethod
+    def _get_packaging_output_format_index(output_format: _UsdExtensions | None) -> int:
         for index, (format_value, _) in enumerate(_MOD_PACKAGING_OUTPUT_FORMAT_UI_OPTIONS):
-            if format_value == persisted_output_format:
+            if format_value == output_format:
                 return index
         return 0
+
+    def _update_packaging_output_format_state(self):
+        if self._packaging_output_format_combo is None:
+            return
+        is_flatten = self._get_selected_packaging_mode() == _ModPackagingMode.FLATTEN
+        if is_flatten:
+            self._packaging_output_format_combo.model.get_item_value_model().set_value(
+                self._get_packaging_output_format_index(_FLATTEN_PACKAGING_OUTPUT_FORMAT)
+            )
+        self._packaging_output_format_combo.enabled = not is_flatten
+        self._packaging_output_format_combo.tooltip = (
+            _FLATTEN_PACKAGING_OUTPUT_FORMAT_TOOLTIP
+            if is_flatten
+            else _get_packaging_output_format_description(self._get_selected_packaging_output_format())
+        )
 
     @classmethod
     def _get_packaging_options_tooltip(cls) -> str:
@@ -530,8 +583,9 @@ class PackagingPane(_WorkspaceWidget):
 
     def _on_packaging_progress(self, current: int, total: int, status: str):
         """Packaging progress callback - subscription destroyed when window invisible."""
-        cancel_requested = getattr(self, "_packaging_cancel_requested", False)
-        self._show_packaging_progress(current, total, status, not cancel_requested)
+        cancel_requested = self._packaging_cancel_requested
+        cancel_enabled = not cancel_requested and self._packaging_core.can_cancel
+        self._show_packaging_progress(current, total, status, cancel_enabled)
 
     def _show_packaging_progress(self, current: int, total: int, status: str, cancel_enabled: bool):
         if not self._progress_popup:
@@ -654,6 +708,7 @@ class PackagingPane(_WorkspaceWidget):
             )
 
     def destroy(self):
+        """Destroy the packaging pane and release subscriptions."""
         packaging_core = self._packaging_core
         self._packaging_core = None
         if packaging_core is not None:

@@ -1,0 +1,97 @@
+#usda 1.0
+(
+    upAxis = "Z"
+)
+
+over "RootNode"
+{
+    over "meshes"
+    {
+        over "mesh_ZB98945ABC2E27F5"
+        {
+            def Xform "ref_missing_remove" (
+                prepend references = @./missing_remove.usda@
+            )
+            {
+            }
+
+            def Xform "ref_missing_replace" (
+                prepend references = @./missing_replace.usda@
+            )
+            {
+            }
+
+            def Xform "ref_missing_parent" (
+                prepend references = @./missing_parent.usda@
+            )
+            {
+            }
+
+            over "absolute_missing"
+            {
+                def Xform "ref_0" (
+                    prepend references = @E:/Missing/Packaging/missing_absolute.usda@
+                )
+                {
+                }
+
+                def Xform "ref_1" (
+                    prepend references = @E:/Missing/Packaging/missing_absolute.usda@
+                )
+                {
+                }
+
+                def Xform "ref_2" (
+                    prepend references = @E:/Missing/Packaging/missing_absolute.usda@
+                )
+                {
+                }
+
+                def Xform "ref_3" (
+                    prepend references = @E:/Missing/Packaging/missing_absolute.usda@
+                )
+                {
+                }
+            }
+
+            over "ref_missing_instance"
+            {
+                over "instances"
+                {
+                    def Xform "inst_0" (
+                        prepend references = @./missing_instance.usda@
+                    )
+                    {
+                    }
+
+                    def Xform "inst_1" (
+                        prepend references = @./missing_instance.usda@
+                    )
+                    {
+                    }
+
+                    def Xform "inst_2" (
+                        prepend references = @./missing_instance.usda@
+                    )
+                    {
+                    }
+
+                    def Xform "inst_3" (
+                        prepend references = @./missing_instance.usda@
+                    )
+                    {
+                    }
+                }
+            }
+        }
+    }
+
+    over "PackagingTest"
+    {
+        def Xform "NoneReference" (
+            prepend references = @None@
+        )
+        {
+        }
+    }
+}
