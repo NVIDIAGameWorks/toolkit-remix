@@ -17,14 +17,17 @@
 
 from decimal import Decimal
 from typing import Any, cast
+import uuid
 from unittest.mock import patch
 
 import carb
 import omni.kit.test
+import omni.ui as ui
 from omni.flux.utils.widget.drag_field import (
     FloatBoundedDrag,
     IntBoundedDrag,
     _BoundedNumericDragBase,
+    _NumericEditController,
     _safe_eval_numeric_expression,
 )
 
@@ -36,9 +39,59 @@ class _MockModel:
         self._callback = None
         self.last_value = value
         self.string_value = string_value
+        self.begin_edit_count = 0
+        self.end_edit_count = 0
+        self._begin_edit_callbacks = []
+        self._end_edit_callbacks = []
+        self._value_changed_callbacks = []
 
     def set_callback_pre_set_value(self, callback):
         self._callback = callback
+
+    def subscribe_begin_edit_fn(self, callback):
+        self._begin_edit_callbacks.append(callback)
+
+        def unsubscribe():
+            if callback in self._begin_edit_callbacks:
+                self._begin_edit_callbacks.remove(callback)
+
+        return unsubscribe
+
+    def subscribe_end_edit_fn(self, callback):
+        self._end_edit_callbacks.append(callback)
+
+        def unsubscribe():
+            if callback in self._end_edit_callbacks:
+                self._end_edit_callbacks.remove(callback)
+
+        return unsubscribe
+
+    def subscribe_value_changed_fn(self, callback):
+        self._value_changed_callbacks.append(callback)
+
+        def unsubscribe():
+            if callback in self._value_changed_callbacks:
+                self._value_changed_callbacks.remove(callback)
+
+        return unsubscribe
+
+    def subscribe_property_edit_cancel_fn(self, callback):
+        del callback
+
+        def unsubscribe():
+            pass
+
+        return unsubscribe
+
+    def begin_edit(self):
+        self.begin_edit_count += 1
+        for callback in tuple(self._begin_edit_callbacks):
+            callback(self)
+
+    def end_edit(self):
+        self.end_edit_count += 1
+        for callback in tuple(self._end_edit_callbacks):
+            callback(self)
 
     def apply(self, value):
         if self._callback is None:
@@ -48,9 +101,14 @@ class _MockModel:
 
     def _set(self, value):
         self.last_value = value
+        for callback in tuple(self._value_changed_callbacks):
+            callback(self)
 
     def set_value(self, value):
         self.apply(value)
+
+    def get_value(self):
+        return self.last_value
 
     def get_value_as_float(self):
         return float(self.last_value)
@@ -66,8 +124,10 @@ class _MockWidgetBase:
         self.kwargs = kwargs
         self.min = kwargs.get("min")
         self.max = kwargs.get("max")
+        self.enabled = True
         self._pressed_fn = None
         self._released_fn = None
+        self._double_clicked_fn = None
 
     def set_mouse_pressed_fn(self, callback):
         self._pressed_fn = callback
@@ -75,13 +135,16 @@ class _MockWidgetBase:
     def set_mouse_released_fn(self, callback):
         self._released_fn = callback
 
-    def emit_mouse_pressed(self, button=0):
-        if self._pressed_fn is not None:
-            self._pressed_fn(0.0, 0.0, button, 0)
+    def set_mouse_double_clicked_fn(self, callback):
+        self._double_clicked_fn = callback
 
-    def emit_mouse_released(self, button=0):
+    def emit_mouse_pressed(self, button=0, modifier=0):
+        if self._pressed_fn is not None:
+            self._pressed_fn(0.0, 0.0, button, modifier)
+
+    def emit_mouse_released(self, button=0, modifier=0):
         if self._released_fn is not None:
-            self._released_fn(0.0, 0.0, button, 0)
+            self._released_fn(0.0, 0.0, button, modifier)
 
     def destroy(self):
         pass
@@ -146,6 +209,14 @@ class _ModelWithoutBatchFlag:
 
 
 class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
+    async def setUp(self):
+        _NumericEditController.active_controller = None
+
+    async def tearDown(self):
+        if _NumericEditController.active_controller is not None:
+            _NumericEditController.active_controller.destroy()
+        _NumericEditController.active_controller = None
+
     async def test_concrete_drag_widgets_reuse_shared_numeric_edit_hooks(self):
         # Arrange
         shared_methods = {
@@ -169,6 +240,85 @@ class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
         self.assertTrue(issubclass(FloatBoundedDrag, _BoundedNumericDragBase))
         self.assertTrue(issubclass(IntBoundedDrag, _BoundedNumericDragBase))
         self.assertEqual(duplicated_methods, {"FloatBoundedDrag": [], "IntBoundedDrag": []})
+
+    async def test_begin_numeric_text_edit_closes_previous_active_controller(self):
+        # Arrange
+        window = ui.Window(
+            f"TestBoundedNumericDragBase_{str(uuid.uuid1())}",
+            height=120,
+            width=240,
+            position_x=0,
+            position_y=100,
+        )
+        first_model = _MockModel(1.0)
+        second_model = _MockModel(10.0)
+        with (
+            patch.object(_NumericEditController, "_start_keyboard_subscription"),
+            patch.object(_NumericEditController, "_stop_keyboard_subscription"),
+        ):
+            with window.frame:
+                first_drag = _MockFloatDrag(model=first_model, enable_numeric_edit=True)
+                second_drag = _MockFloatDrag(model=second_model, enable_numeric_edit=True)
+
+            try:
+                first_drag.begin_numeric_text_edit(clear_value=False)
+
+                # Act
+                second_drag.begin_numeric_text_edit(clear_value=False)
+
+                # Assert
+                self.assertTrue(first_drag.enabled)
+                self.assertFalse(second_drag.enabled)
+                self.assertEqual(first_model.begin_edit_count, 1)
+                self.assertEqual(first_model.end_edit_count, 1)
+                self.assertEqual(second_model.begin_edit_count, 1)
+                self.assertEqual(second_model.end_edit_count, 0)
+            finally:
+                first_drag.destroy()
+                second_drag.destroy()
+                window.destroy()
+
+    async def test_ctrl_click_numeric_edit_starts_after_mouse_release(self):
+        # Arrange
+        window = ui.Window(
+            f"TestBoundedNumericDragBase_{str(uuid.uuid1())}",
+            height=120,
+            width=240,
+            position_x=0,
+            position_y=100,
+        )
+        first_model = _MockModel(1.0)
+        second_model = _MockModel(10.0)
+        with (
+            patch.object(_NumericEditController, "_start_keyboard_subscription"),
+            patch.object(_NumericEditController, "_stop_keyboard_subscription"),
+        ):
+            with window.frame:
+                first_drag = _MockFloatDrag(model=first_model, enable_numeric_edit=True)
+                second_drag = _MockFloatDrag(model=second_model, enable_numeric_edit=True)
+
+            try:
+                first_drag.begin_numeric_text_edit(clear_value=False)
+
+                # Act
+                second_drag.emit_mouse_pressed(button=0, modifier=carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+
+                # Assert
+                self.assertTrue(first_drag.enabled)
+                self.assertTrue(second_drag.enabled)
+                self.assertEqual(first_model.end_edit_count, 1)
+                self.assertEqual(second_model.begin_edit_count, 0)
+
+                # Act
+                second_drag.emit_mouse_released(button=0)
+
+                # Assert
+                self.assertFalse(second_drag.enabled)
+                self.assertEqual(second_model.begin_edit_count, 1)
+            finally:
+                first_drag.destroy()
+                second_drag.destroy()
+                window.destroy()
 
     async def test_clamps_to_hard_bounds(self):
         # Arrange

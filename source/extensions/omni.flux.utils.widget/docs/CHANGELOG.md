@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.28.4]
+### Fixed
+- Fixed bounded numeric drag text editing so starting a new field edit closes any previous active edit controller before keyboard events can affect multiple field rows, with Ctrl-click activation deferred until mouse release so the clicked field stays targeted.
+
 ## [1.28.3]
 ### Added
 - Added safe math expression evaluation, keyboard step handling, and reusable text editing to shared bounded numeric drag widgets

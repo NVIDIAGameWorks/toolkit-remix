@@ -80,6 +80,14 @@ class TestDragField(omni.kit.test.AsyncTestCase):
         await omni.kit.ui_test.wait_n_updates(2)
 
     @staticmethod
+    async def _emulate_keyboard(
+        event_type: carb.input.KeyboardEventType, key: carb.input.KeyboardInput, modifier: int = 0
+    ) -> None:
+        keyboard = omni.appwindow.get_default_app_window().get_keyboard()
+        carb.input.acquire_input_provider().buffer_keyboard_key_event(keyboard, event_type, key, modifier)
+        await omni.kit.ui_test.human_delay(human_delay_speed=1)
+
+    @staticmethod
     async def _type_text(text: str) -> None:
         await omni.kit.ui_test.emulate_char_press(text)
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
@@ -88,6 +96,28 @@ class TestDragField(omni.kit.test.AsyncTestCase):
     async def _press_key(key: carb.input.KeyboardInput) -> None:
         await omni.kit.ui_test.emulate_keyboard_press(key)
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
+
+    @staticmethod
+    def _build_two_row_drag_grid():
+        """Build two row-local numeric edit groups for tab-loop regression coverage."""
+        first_models = [_TestValueModel(value) for value in (1.0, 2.0, 3.0)]
+        second_models = [_TestValueModel(value) for value in (10.0, 20.0, 30.0)]
+        first_widgets = []
+        second_widgets = []
+        with ui.VStack():
+            with ui.HStack():
+                for model in first_models:
+                    first_widgets.append(FloatBoundedDrag(model=model, step=1.0, width=ui.Pixel(120)))
+            with ui.HStack():
+                for model in second_models:
+                    second_widgets.append(FloatBoundedDrag(model=model, step=10.0, width=ui.Pixel(120)))
+
+        for row_widgets in (first_widgets, second_widgets):
+            row_widget_map = dict(enumerate(row_widgets))
+            for index, widget in enumerate(row_widgets):
+                widget.set_numeric_edit_widgets(row_widget_map, index)
+
+        return first_models, second_models, first_widgets, second_widgets
 
     async def test_direct_float_drag_expression_and_arrow_step_update_focused_widget(self):
         window = ui.Window(
@@ -120,6 +150,57 @@ class TestDragField(omni.kit.test.AsyncTestCase):
             await self._press_key(carb.input.KeyboardInput.UP)
             self.assertAlmostEqual(first_model.get_value_as_float(), 200.25, places=5)
             self.assertAlmostEqual(second_model.get_value_as_float(), 5.0, places=5)
+
+            await self._press_key(carb.input.KeyboardInput.ENTER)
+        finally:
+            window.destroy()
+
+    async def test_direct_float_drag_ctrl_click_new_row_edit_loops_active_row_fields(self):
+        window = ui.Window(
+            f"TestDragField_{str(uuid.uuid1())}",
+            height=180,
+            width=420,
+            position_x=0,
+            position_y=100,
+        )
+        with window.frame:
+            first_models, second_models, _, _ = self._build_two_row_drag_grid()
+
+        try:
+            await omni.kit.ui_test.human_delay(human_delay_speed=10)
+            widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
+            self.assertEqual(len(widget_refs), 6)
+
+            await widget_refs[0].click()
+            await widget_refs[0].double_click()
+            await self._press_key(carb.input.KeyboardInput.TAB)
+
+            await self._emulate_keyboard(
+                carb.input.KeyboardEventType.KEY_PRESS,
+                carb.input.KeyboardInput.LEFT_CONTROL,
+                carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL,
+            )
+            await widget_refs[4].click()
+            await self._emulate_keyboard(
+                carb.input.KeyboardEventType.KEY_RELEASE, carb.input.KeyboardInput.LEFT_CONTROL
+            )
+
+            await self._press_key(carb.input.KeyboardInput.UP)
+            self.assertListEqual([model.get_value_as_float() for model in second_models], [10.0, 30.0, 30.0])
+
+            await self._press_key(carb.input.KeyboardInput.TAB)
+            await self._press_key(carb.input.KeyboardInput.UP)
+            self.assertListEqual([model.get_value_as_float() for model in second_models], [10.0, 30.0, 40.0])
+
+            await self._press_key(carb.input.KeyboardInput.TAB)
+            await self._press_key(carb.input.KeyboardInput.UP)
+            self.assertListEqual([model.get_value_as_float() for model in second_models], [20.0, 30.0, 40.0])
+
+            await self._press_key(carb.input.KeyboardInput.TAB)
+            await self._press_key(carb.input.KeyboardInput.UP)
+            self.assertListEqual([model.get_value_as_float() for model in second_models], [20.0, 40.0, 40.0])
+
+            self.assertListEqual([model.get_value_as_float() for model in first_models], [1.0, 2.0, 3.0])
 
             await self._press_key(carb.input.KeyboardInput.ENTER)
         finally:
@@ -167,6 +248,37 @@ class TestDragField(omni.kit.test.AsyncTestCase):
 
             self.assertAlmostEqual(first_model.get_value_as_float(), 1.5, places=5)
             self.assertAlmostEqual(second_model.get_value_as_float(), 5.0, places=5)
+
+            await self._press_key(carb.input.KeyboardInput.ENTER)
+        finally:
+            window.destroy()
+
+    async def test_direct_float_drag_new_row_edit_closes_previous_tabbed_row(self):
+        window = ui.Window(
+            f"TestDragField_{str(uuid.uuid1())}",
+            height=180,
+            width=420,
+            position_x=0,
+            position_y=100,
+        )
+        with window.frame:
+            first_models, second_models, _, _ = self._build_two_row_drag_grid()
+
+        try:
+            await omni.kit.ui_test.human_delay(human_delay_speed=10)
+            widget_refs = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
+            self.assertEqual(len(widget_refs), 6)
+
+            await widget_refs[0].click()
+            await widget_refs[0].double_click()
+            await self._press_key(carb.input.KeyboardInput.TAB)
+
+            await widget_refs[3].click()
+            await widget_refs[3].double_click()
+            await self._press_key(carb.input.KeyboardInput.UP)
+
+            self.assertListEqual([model.get_value_as_float() for model in first_models], [1.0, 2.0, 3.0])
+            self.assertListEqual([model.get_value_as_float() for model in second_models], [20.0, 20.0, 30.0])
 
             await self._press_key(carb.input.KeyboardInput.ENTER)
         finally:

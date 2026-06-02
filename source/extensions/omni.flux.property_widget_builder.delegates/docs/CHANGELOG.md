@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.1]
+### Added
+- Added E2E coverage for Ctrl-click numeric edit retargeting and row-local tab looping
+
 ## [1.16.0]
 ### Changed
 - Numeric drag delegates now use the shared numeric edit controller and the drag widget step for keyboard arrow edits
