@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5518: Fixed packaging missing-reference repairs so external referenced USD layers are cleaned up through mod-layer overrides instead of failing edit-target validation, with atomic reference-replace undo grouping and real flatten-mode e2e regressions for ignore, remove, replace, scan-directory, cancel, save, and completion flows.
 - REMIX-5518: Fixed GitLab test jobs to refresh stale USD asset checkout line endings before build/test steps and conform ingested asset metadata hashes to LF-normalized USD test fixtures.
 - REMIX-5505: Defer property editor USD refreshes - grouped property editor USD refreshes until edit completion while preserving numeric expression and arrow-step updates, and limited property-only Stage Manager resyncs to dirty widgets unless force refresh rules require a rebuild
+- REMIX-5505: Fixed bounded numeric drag editing so Ctrl-click, keyboard tabbing, and arrow stepping only affect the targeted active multi-field row.
 - REMIX-5509: Fixed Stage Manager capture light delete and restore so deleted lights stop contributing in render runtime and restore back to capture intensity
 - REMIX-5483: Fixed stage-open crash by tearing down lingering lighting-undo events after their handler is torn down and guarding `SwitchCaptureCommand` against dispatching `SetLightingMenuModeCommand` when `lighting_mode` is empty or already the default, eliminating the HL2 stage-open GPU crash from the empty-value race.
 

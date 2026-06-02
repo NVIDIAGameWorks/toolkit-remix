@@ -78,6 +78,14 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
         await omni.kit.ui_test.emulate_keyboard_press(key)
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
+    @staticmethod
+    async def _emulate_keyboard(
+        event_type: carb.input.KeyboardEventType, key: carb.input.KeyboardInput, modifier: int = 0
+    ) -> None:
+        keyboard = omni.appwindow.get_default_app_window().get_keyboard()
+        carb.input.acquire_input_provider().buffer_keyboard_key_event(keyboard, event_type, key, modifier)
+        await omni.kit.ui_test.human_delay(human_delay_speed=1)
+
     def _find_float_drag_widgets(self, window_title: str, expected_count: int):
         widget_refs = omni.kit.ui_test.find_all(f"{window_title}//Frame/**/FloatBoundedDrag[*]")
         self.assertEqual(len(widget_refs), expected_count)
@@ -535,6 +543,63 @@ class TestAbstractDragFieldGroup(omni.kit.test.AsyncTestCase):
             self.assertAlmostEqual(item.value_models[0].get_value_as_float(), 1.6, places=5)
             self.assertAlmostEqual(item.value_models[1].get_value_as_float(), 2.2, places=5)
             self.assertAlmostEqual(item.value_models[2].get_value_as_float(), 2.7, places=5)
+
+            await self._press_key(carb.input.KeyboardInput.ENTER)
+        finally:
+            property_widget.destroy()
+            window.destroy()
+
+    async def test_ctrl_click_middle_field_uses_real_property_widget_row_loop(self):
+        """Ctrl+clicking a middle field in another row should edit that field and loop inside that row."""
+        window = ui.Window(
+            f"TestAbstractDrag_{str(uuid.uuid1())}",
+            height=260,
+            width=520,
+            position_x=0,
+            position_y=100,
+        )
+        first_item = MockItem([1.0, 2.0, 3.0])
+        second_item = MockItem([10.0, 20.0, 30.0])
+        model = Model()
+        field_builders = FieldBuilderList()
+
+        @field_builders.register_build(lambda _: True)
+        def build_field(item):
+            return self._make_field(step=[1.0, 10.0, 100.0])(item)
+
+        delegate = Delegate(field_builders=field_builders)
+        with window.frame:
+            property_widget = PropertyWidget(model=model, delegate=delegate)
+        model.set_items([first_item, second_item])
+
+        try:
+            await omni.kit.ui_test.human_delay(human_delay_speed=10)
+            widgets = self._find_float_drag_widgets(window.title, 6)
+
+            await widgets[0].click()
+            await widgets[0].double_click()
+
+            await self._emulate_keyboard(
+                carb.input.KeyboardEventType.KEY_PRESS,
+                carb.input.KeyboardInput.LEFT_CONTROL,
+                carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL,
+            )
+            await widgets[4].click()
+            await self._emulate_keyboard(
+                carb.input.KeyboardEventType.KEY_RELEASE, carb.input.KeyboardInput.LEFT_CONTROL
+            )
+
+            await self._press_key(carb.input.KeyboardInput.UP)
+            self.assertEqual([model.get_value_as_float() for model in first_item.value_models], [1.0, 2.0, 3.0])
+            self.assertEqual([model.get_value_as_float() for model in second_item.value_models], [10.0, 30.0, 30.0])
+
+            await self._press_key(carb.input.KeyboardInput.TAB)
+            await self._press_key(carb.input.KeyboardInput.UP)
+            self.assertEqual([model.get_value_as_float() for model in second_item.value_models], [10.0, 30.0, 130.0])
+
+            await self._press_key(carb.input.KeyboardInput.TAB)
+            await self._press_key(carb.input.KeyboardInput.UP)
+            self.assertEqual([model.get_value_as_float() for model in second_item.value_models], [11.0, 30.0, 130.0])
 
             await self._press_key(carb.input.KeyboardInput.ENTER)
         finally:

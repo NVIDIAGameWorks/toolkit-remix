@@ -99,13 +99,23 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         self.assertAlmostEqual(float(text), expected_value, places=5)
         self.assertAlmostEqual(target_widget.widget.model.get_value_as_float(), expected_value, places=5)
 
-    def __find_translate_widgets(self, window_title: str):
+    def __assert_visible_numeric_editor_target(self, window_title: str, target_widget) -> None:
+        field = self.__find_selected_visible_string_field(window_title)
+        self.assertIsNotNone(field)
+        self.assertLessEqual(abs(field.center.x - target_widget.center.x), target_widget.widget.computed_width / 2)
+        self.assertLessEqual(abs(field.center.y - target_widget.center.y), target_widget.widget.computed_height / 2)
+
+    def __find_xform_widgets(self, window_title: str, xform_op_name: str):
+        attribute_path = f"/Xform/Cube.xformOp:{xform_op_name}"
         widgets = ui_test.find_all(
             f"{window_title}//Frame/**/FloatBoundedDrag[*].identifier=="
-            f"'/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate,/Xform/Cube.xformOp:translate'"
+            f"'{attribute_path},{attribute_path},{attribute_path}'"
         )
         self.assertEqual(len(widgets), 3)
         return widgets
+
+    def __find_translate_widgets(self, window_title: str):
+        return self.__find_xform_widgets(window_title, "translate")
 
     async def test_setting_a_value_by_script_update_ui(self):
         """
@@ -404,6 +414,104 @@ class TestUSDPropertiesWidget(AsyncTestCase):
             self.assertEqual(len(notices), 1)
         finally:
             subscription.Revoke()
+            await self.__destroy(_window, _widget)
+
+    async def test_ctrl_click_middle_xform_field_targets_that_row_and_loops(self):
+        """Ctrl+clicking a different xform row's middle field should edit that field and loop in that row."""
+        _window, _widget = await self.__setup_widget()
+        _widget.refresh(["/Xform/Cube"])
+        await omni.kit.ui_test.wait_n_updates(15)
+
+        translate_widgets = self.__find_translate_widgets(_window.title)
+        scale_widgets = self.__find_xform_widgets(_window.title, "scale")
+        y_step = scale_widgets[1].widget.step
+        z_step = scale_widgets[2].widget.step
+        x_step = scale_widgets[0].widget.step
+
+        stage = omni.usd.get_context(_CONTEXT_NAME).get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        translate_attr = prim.GetAttribute("xformOp:translate")
+        scale_attr = prim.GetAttribute("xformOp:scale")
+        original_translate = translate_attr.Get()
+        original_scale = scale_attr.Get()
+
+        try:
+            await translate_widgets[0].double_click()
+            await omni.kit.ui_test.wait_n_updates(2)
+            self.__assert_visible_numeric_editor_text(_window.title, translate_widgets[0], original_translate[0])
+
+            async with omni.kit.ui_test.KeyDownScope(carb.input.KeyboardInput.LEFT_CONTROL):
+                await ui_test.emulate_mouse_move(scale_widgets[1].center)
+                await omni.kit.ui_test.wait_n_updates(1)
+                await ui_test.emulate_mouse_click()
+            await omni.kit.ui_test.wait_n_updates(5)
+            self.__assert_visible_numeric_editor_target(_window.title, scale_widgets[1])
+            self.__assert_visible_numeric_editor_text(_window.title, scale_widgets[1], original_scale[1])
+
+            await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.UP)
+            await omni.kit.ui_test.wait_n_updates(5)
+            self.__assert_visible_numeric_editor_target(_window.title, scale_widgets[1])
+            self.__assert_visible_numeric_editor_text(_window.title, scale_widgets[1], original_scale[1] + y_step)
+            self.assertEqual(translate_attr.Get(), original_translate)
+
+            await self.__press_keyboard_key(carb.input.KeyboardInput.TAB)
+            await omni.kit.ui_test.wait_n_updates(5)
+            self.__assert_visible_numeric_editor_target(_window.title, scale_widgets[2])
+            self.__assert_visible_numeric_editor_text(_window.title, scale_widgets[2], original_scale[2])
+
+            await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.UP)
+            await omni.kit.ui_test.wait_n_updates(5)
+            self.__assert_visible_numeric_editor_text(_window.title, scale_widgets[2], original_scale[2] + z_step)
+
+            await self.__press_keyboard_key(carb.input.KeyboardInput.TAB)
+            await omni.kit.ui_test.wait_n_updates(5)
+            self.__assert_visible_numeric_editor_target(_window.title, scale_widgets[0])
+            self.__assert_visible_numeric_editor_text(_window.title, scale_widgets[0], original_scale[0])
+
+            await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.UP)
+            await omni.kit.ui_test.wait_n_updates(5)
+            self.__assert_visible_numeric_editor_text(_window.title, scale_widgets[0], original_scale[0] + x_step)
+            self.assertEqual(
+                scale_attr.Get(),
+                Gf.Vec3d(original_scale[0] + x_step, original_scale[1] + y_step, original_scale[2] + z_step),
+            )
+        finally:
+            await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
+            await self.__destroy(_window, _widget)
+
+    async def test_double_clicking_scale_y_after_scale_z_edit_targets_only_scale_y(self):
+        """Double-clicking scale Y after scale Z should move typed input to Y without editing Z."""
+        _window, _widget = await self.__setup_widget()
+        _widget.refresh(["/Xform/Cube"])
+        await omni.kit.ui_test.wait_n_updates(15)
+
+        scale_widgets = self.__find_xform_widgets(_window.title, "scale")
+
+        stage = omni.usd.get_context(_CONTEXT_NAME).get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        scale_attr = prim.GetAttribute("xformOp:scale")
+        original_scale = scale_attr.Get()
+        typed_y_value = 12.25
+
+        try:
+            await scale_widgets[2].double_click()
+            await omni.kit.ui_test.wait_n_updates(2)
+            self.__assert_visible_numeric_editor_target(_window.title, scale_widgets[2])
+            self.__assert_visible_numeric_editor_text(_window.title, scale_widgets[2], original_scale[2])
+
+            await scale_widgets[1].double_click()
+            await omni.kit.ui_test.wait_n_updates(2)
+            self.__assert_visible_numeric_editor_target(_window.title, scale_widgets[1])
+            self.__assert_visible_numeric_editor_text(_window.title, scale_widgets[1], original_scale[1])
+
+            await self.__type_text(str(typed_y_value))
+            await omni.kit.ui_test.wait_n_updates(5)
+
+            self.__assert_visible_numeric_editor_target(_window.title, scale_widgets[1])
+            self.__assert_visible_numeric_editor_text(_window.title, scale_widgets[1], typed_y_value)
+            self.assertEqual(scale_attr.Get(), Gf.Vec3d(original_scale[0], typed_y_value, original_scale[2]))
+        finally:
+            await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
             await self.__destroy(_window, _widget)
 
     async def test_tab_after_numeric_expression_commits_expression_and_focuses_next_field(self):

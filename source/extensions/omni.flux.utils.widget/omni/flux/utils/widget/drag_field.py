@@ -22,7 +22,7 @@ import math
 import operator
 from contextlib import suppress
 from decimal import Decimal, localcontext
-from typing import Any, Protocol, cast
+from typing import Any, ClassVar, Protocol, cast
 
 import carb
 import omni.appwindow
@@ -51,6 +51,7 @@ _ESCAPE_KEY = int(carb.input.KeyboardInput.ESCAPE)
 _END_KEYS = frozenset((_ENTER_KEY, _ESCAPE_KEY))
 _TAB_KEY = int(carb.input.KeyboardInput.TAB)
 _BACKSPACE_KEY = int(carb.input.KeyboardInput.BACKSPACE)
+_CONTROL_MODIFIER_FLAG = int(carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
 _STEP_GRID_TOLERANCE = Decimal("1e-12")
 _MAX_NUMERIC_EXPRESSION_DEPTH = 20
 
@@ -139,6 +140,8 @@ class _DragWidgetProtocol(Protocol):
 
 
 class _NumericEditController:
+    active_controller: ClassVar["_NumericEditController | None"] = None
+
     def __init__(
         self,
         *,
@@ -182,6 +185,23 @@ class _NumericEditController:
         self._edit_widgets = widgets
         self._index = index
 
+    @classmethod
+    def end_active_controller_except(cls, controller: "_NumericEditController | None") -> None:
+        """End any active numeric text edit controller except ``controller``."""
+        active_controller = cls.active_controller
+        if active_controller is None or active_controller is controller:
+            return
+        if active_controller._destroyed:  # noqa: SLF001 - same-class active controller lifecycle.
+            cls.active_controller = None
+            return
+        active_controller._transfer_key_active = False  # noqa: SLF001 - same-class active controller lifecycle.
+        active_controller._end_edit()  # noqa: SLF001 - same-class active controller lifecycle.
+
+    def _clear_active_controller(self) -> None:
+        """Clear the active controller when this controller owns it."""
+        if type(self).active_controller is self:
+            type(self).active_controller = None
+
     def refocus(self) -> None:
         if not self._editing:
             return
@@ -201,6 +221,8 @@ class _NumericEditController:
     ) -> None:
         if self._destroyed:
             return
+        if not from_tab_transfer:
+            type(self).end_active_controller_except(self)
         self._transfer_key_active = from_tab_transfer
         self._initial_value = self._value_model.get_value()
         if clear_value:
@@ -213,6 +235,7 @@ class _NumericEditController:
         self._drag_widget.enabled = False
         self._set_expression_value(expression_value)
         self._replace_expression_text = True
+        type(self).active_controller = self
         self.refocus()
 
     def begin_text_edit(self, _x, _y, button, _modifier) -> bool:
@@ -294,6 +317,7 @@ class _NumericEditController:
                     self._undo_group_open = False
                     omni.kit.undo.end_group()
                 self._stop_keyboard_subscription()
+                self._clear_active_controller()
 
     def _on_key_pressed(self, key, modifier, down) -> bool:
         del modifier
@@ -416,6 +440,7 @@ class _NumericEditController:
                 omni.kit.undo.end_group()
             self._subs.clear()
             self._stop_keyboard_subscription()
+            self._clear_active_controller()
             with suppress(RuntimeError):
                 self._expression_field.destroy()
 
@@ -485,10 +510,11 @@ class _BoundedNumericDragBase:
         self._hard_max_value: float | int | None = None
         self._enable_batch_edit = enable_batch_edit
         self._mouse_pressed = False
+        self._pending_numeric_text_edit_from_mouse_press = False
         self._numeric_edit_controller: _NumericEditController | None = None
 
-        if self._enable_batch_edit:
-            self._install_batch_mouse_callbacks()
+        if self._enable_batch_edit or (enable_numeric_edit and not read_only):
+            self._install_mouse_callbacks()
         self.set_hard_limits(hard_min_value, hard_max_value)
         if enable_numeric_edit and not read_only:
             widget = cast(_DragWidgetProtocol, self)
@@ -726,19 +752,32 @@ class _BoundedNumericDragBase:
         if self._numeric_edit_controller is not None:
             self._numeric_edit_controller.begin_deferred_undo_group()
 
-    def _install_batch_mouse_callbacks(self) -> None:
-        """Install mouse handlers that drive drag batch-edit lifecycle."""
+    def _install_mouse_callbacks(self) -> None:
+        """Install mouse handlers that drive drag and numeric-edit lifecycles."""
         # Cast narrows ``self`` to the concrete widget contract for static typing.
         widget = cast(_DragWidgetProtocol, self)
 
-        def _on_mouse_pressed(_x, _y, button, _m):
-            if button == 0:
-                self._mouse_pressed = True
+        def _on_mouse_pressed(_x, _y, button, modifier):
+            if button != 0:
+                return
+            has_control_modifier = bool(int(modifier) & _CONTROL_MODIFIER_FLAG)
+            self._pending_numeric_text_edit_from_mouse_press = (
+                self._numeric_edit_controller is not None and has_control_modifier
+            )
+            _NumericEditController.end_active_controller_except(self._numeric_edit_controller)
+            self._mouse_pressed = not self._pending_numeric_text_edit_from_mouse_press
 
         def _on_mouse_released(_x, _y, button, _m):
             if button != 0:
                 return
+            pending_numeric_text_edit = self._pending_numeric_text_edit_from_mouse_press
+            self._pending_numeric_text_edit_from_mouse_press = False
             self._mouse_pressed = False
+            if pending_numeric_text_edit:
+                self.begin_numeric_text_edit(clear_value=False)
+                return
+            if not self._enable_batch_edit:
+                return
             model = widget.model
             if not self._supports_batch_edit(model):
                 return
@@ -759,6 +798,7 @@ class _BoundedNumericDragBase:
     def _end_batch_edit_if_needed(self) -> None:
         widget = cast(_DragWidgetProtocol, self)
         model = widget.model
+        self._pending_numeric_text_edit_from_mouse_press = False
         self._mouse_pressed = False
         if self._enable_batch_edit and self._supports_batch_edit(model) and model.is_batch_editing:
             model.end_batch_edit()
