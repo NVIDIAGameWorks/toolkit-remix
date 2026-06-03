@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["AssetType", "DefaultAssetDirectory"]
+__all__ = ["AssetType", "DefaultAssetDirectory", "ReplacementAssetType"]
 
 from enum import Enum
 
@@ -32,3 +32,10 @@ class AssetType(Enum):
     ANY = None
     TEXTURES = "textures"
     MODELS = "models"
+
+
+class ReplacementAssetType(Enum):
+    ANY = "any"
+    MDL = "mdl"
+    MESH = "mesh"
+    TEXTURE = "texture"

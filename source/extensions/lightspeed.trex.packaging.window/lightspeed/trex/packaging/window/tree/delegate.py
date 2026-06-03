@@ -19,24 +19,23 @@ from __future__ import annotations
 
 __all__ = ["PackagingErrorDelegate"]
 
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
-from collections.abc import Callable
 
-from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS, USD_EXTENSIONS
-from lightspeed.trex.utils.widget import TrexMessageDialog
+import omni.usd
+from lightspeed.trex.utils.widget import accept_asset_if_valid_for_replacement, open_replacement_asset_file_picker
 from omni import ui
 from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.utils.common import Event, EventSubscription, reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl
-from omni.flux.utils.widget.file_pickers import open_file_picker
 
 if TYPE_CHECKING:
     from pxr import Sdf
 
 from .item import PackagingActions, PackagingErrorItem
-from .model import HEADER_DICT, AssetValidationError, PackagingErrorModel
+from .model import HEADER_DICT, PackagingErrorModel
 
 
 class PackagingErrorDelegate(ui.AbstractItemDelegate):
@@ -47,12 +46,11 @@ class PackagingErrorDelegate(ui.AbstractItemDelegate):
         super().__init__()
 
         self._default_attr = {
-            "_validation_error": None,
+            "_PackagingErrorDelegate__on_file_picker_opened": None,
+            "_PackagingErrorDelegate__on_file_picker_closed": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-
-        self._validation_error = AssetValidationError.NONE
 
         self.__on_file_picker_opened = Event()
         self.__on_file_picker_closed = Event()
@@ -60,6 +58,15 @@ class PackagingErrorDelegate(ui.AbstractItemDelegate):
     def build_widget(
         self, model: PackagingErrorModel, item: PackagingErrorItem, column_id: int, level: int, expanded: bool
     ):
+        """Build a tree cell widget.
+
+        Args:
+            model: Packaging error model.
+            item: Item represented by the cell.
+            column_id: Column index to build.
+            level: Tree indentation level.
+            expanded: Whether the item is expanded.
+        """
         if item is None:
             return
         with ui.HStack(spacing=self.ROW_PADDING, height=self.ROW_HEIGHT):
@@ -85,6 +92,7 @@ class PackagingErrorDelegate(ui.AbstractItemDelegate):
                     action_combobox = ui.ComboBox(
                         list(PackagingActions).index(item.action),
                         *[action.value for action in PackagingActions],
+                        identifier=f"packaging_action_combo_{OmniUrl(item.asset_path).stem}",
                     )
                     action_combobox.model.add_item_changed_fn(partial(self._on_action_changed, model, item))
 
@@ -96,6 +104,11 @@ class PackagingErrorDelegate(ui.AbstractItemDelegate):
                     ui.Spacer(width=0)
 
     def build_header(self, column_id: int):
+        """Build a tree header cell.
+
+        Args:
+            column_id: Column index to build.
+        """
         with ui.HStack(spacing=self.ROW_PADDING, height=self.ROW_HEIGHT):
             ui.Rectangle(name="ColumnSeparator", width=ui.Pixel(1))
             ui.Label(HEADER_DICT.get(column_id, ""))
@@ -189,54 +202,50 @@ class PackagingErrorDelegate(ui.AbstractItemDelegate):
         """
         Open the file picker to select a new asset to replace the current asset.
         """
-        is_reference = OmniUrl(item.asset_path).suffix in USD_EXTENSIONS
-        extensions = READ_USD_FILE_EXTENSIONS_OPTIONS if is_reference else [("*.dds", "Compatible Textures")]
+        current_file = item.asset_path if OmniUrl(item.asset_path).is_file else None
 
         self._on_file_picker_opened()
-        open_file_picker(
+        open_replacement_asset_file_picker(
             f"Select a replacement asset for: {self._get_relative_path(item.asset_path, item.layer_identifier)}",
-            partial(self._replace_asset_path, model, item),
-            lambda *_: self._cancel_file_picker(model, item),
-            current_file=item.asset_path,
-            file_extension_options=extensions,
-            validate_selection=partial(self._validate_selected_path, model, item, is_reference),
-            validation_failed_callback=self._show_error_dialog,
-        )
-
-    def _validate_selected_path(
-        self, model: PackagingErrorModel, item: PackagingErrorItem, is_reference: bool, directory: str, filename: str
-    ) -> bool:
-        """
-        Validate the selected asset path and update the cached validation error value.
-
-        Returns:
-            True if the selected path is valid, False otherwise.
-        """
-        self._validation_error = model.validate_selected_path(item, is_reference, directory, filename)
-        return self._validation_error == AssetValidationError.NONE
-
-    def _show_error_dialog(self, directory: str, filename: str):
-        """
-        Show an error dialog for the invalid file path.
-        """
-        TrexMessageDialog(
-            title="Invalid File",
-            message=f"[{self._validation_error}] Error: {directory}, {filename}",
+            item.asset_path,
+            callback=partial(self._replace_asset_path, model, item),
+            callback_cancel=lambda *_: self._cancel_file_picker(model, item),
+            current_file=current_file,
         )
 
     def _replace_asset_path(self, model: PackagingErrorModel, item: PackagingErrorItem, file_path: str):
         """
         Replace the asset path with the selected file path and trigger the __on_file_picker_closed event.
         """
+        layer = model.get_layer(item)
+        if layer is None:
+            model.reset_asset_paths([item])
+            self._on_file_picker_closed()
+            return
+        if accept_asset_if_valid_for_replacement(
+            file_path,
+            layer,
+            model,
+            omni.usd.get_context(model.context_name),
+            partial(self._accept_replacement_asset, model, item),
+            ignore_ingestion_handler=partial(self._accept_replacement_asset, model, item),
+            cancel_handler=partial(self._reset_replacement_asset, model, item),
+        ):
+            return
+
+    def _accept_replacement_asset(self, model: PackagingErrorModel, item: PackagingErrorItem, file_path: str):
         model.replace_asset_paths({item: file_path})
+        self._on_file_picker_closed()
+
+    def _reset_replacement_asset(self, model: PackagingErrorModel, item: PackagingErrorItem):
+        model.reset_asset_paths([item])
         self._on_file_picker_closed()
 
     def _cancel_file_picker(self, model: PackagingErrorModel, item: PackagingErrorItem):
         """
         Cancel the file picker action by resetting the asset path and triggering the __on_file_picker_closed event.
         """
-        model.reset_asset_paths([item])
-        self._on_file_picker_closed()
+        self._reset_replacement_asset(model, item)
 
     def _on_file_picker_opened(self):
         """
@@ -245,9 +254,13 @@ class PackagingErrorDelegate(ui.AbstractItemDelegate):
         self.__on_file_picker_opened()
 
     def subscribe_file_picker_opened(self, function: Callable[[], None]):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        Called when the file picker is opened.
+        """Subscribe to file-picker opened events.
+
+        Args:
+            function: Callback invoked when the replacement file picker opens.
+
+        Returns:
+            A subscription object that unsubscribes when destroyed.
         """
         return EventSubscription(self.__on_file_picker_opened, function)
 
@@ -258,11 +271,16 @@ class PackagingErrorDelegate(ui.AbstractItemDelegate):
         self.__on_file_picker_closed()
 
     def subscribe_file_picker_closed(self, function: Callable[[], None]):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
-        Called when the file picker is closed.
+        """Subscribe to file-picker closed events.
+
+        Args:
+            function: Callback invoked when the replacement file picker closes.
+
+        Returns:
+            A subscription object that unsubscribes when destroyed.
         """
         return EventSubscription(self.__on_file_picker_closed, function)
 
     def destroy(self):
+        """Destroy the delegate and clear subscriptions."""
         reset_default_attrs(self)

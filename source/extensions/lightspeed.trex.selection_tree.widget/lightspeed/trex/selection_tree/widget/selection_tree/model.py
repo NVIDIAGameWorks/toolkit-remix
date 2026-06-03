@@ -131,11 +131,7 @@ class ItemLiveLightGroup(ui.AbstractItem):
         children = core.get_children_from_prim(
             self.parent.prim, only_prim_not_from_ref=True, level=1, skip_remix_ref=True
         )
-        return [
-            child
-            for child in children
-            if (child.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else child.IsA(UsdLux.Light))
-        ]
+        return [child for child in children if child.HasAPI(UsdLux.LightAPI)]
 
     @property
     def parent(self):
@@ -236,7 +232,7 @@ class ItemPrim(ui.AbstractItem):
         self._path = str(prim.GetPath())
         self._value_model = ui.SimpleStringModel(self._path)
         core = _AssetReplacementsCore(context_name)
-        children = core.filter_imageable_prims(self._prim.GetChildren())
+        children = core.filter_imageable_prims(core.get_children_from_prim(self._prim, level=1))
         scope_without = core.get_scope_prims_without_imageable_children(children)
         self._child_prim_items = [
             ItemPrim(child, reference_item, self, context_name, from_live_light_group=from_live_light_group)
@@ -250,7 +246,7 @@ class ItemPrim(ui.AbstractItem):
         return self._from_live_light_group
 
     def is_usd_light(self):
-        return self._prim.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else self._prim.IsA(UsdLux.Light)
+        return self._prim.HasAPI(UsdLux.LightAPI)
 
     @property
     def reference_item(self):
@@ -614,7 +610,7 @@ class ListModel(ui.AbstractItemModel):
         if regex_pattern.match(prim.GetName()):
             return path
         regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
-        if regex_pattern.match(prim.GetName()):
+        if path.startswith(constants.LIGHT_PATH) and regex_pattern.match(prim.GetName()):
             return path
 
         # get and return parent
@@ -745,6 +741,12 @@ class ListModel(ui.AbstractItemModel):
         get_children(self.__children)
         return result
 
+    @staticmethod
+    def __get_item_parent(item: AnyItemType | None) -> AnyItemType | None:
+        if item is None or isinstance(item, ItemAsset):
+            return None
+        return item.parent
+
     def get_first_item_parent_type(
         self,
         item: AnyItemType,
@@ -753,8 +755,9 @@ class ListModel(ui.AbstractItemModel):
         def get_parent(_item):
             if isinstance(_item, item_type):
                 return _item
-            if hasattr(_item, "parent"):
-                return get_parent(_item.parent)
+            parent = self.__get_item_parent(_item)
+            if parent:
+                return get_parent(parent)
             return None
 
         return get_parent(item)
@@ -797,25 +800,27 @@ class ListModel(ui.AbstractItemModel):
 
     def get_parent_item(self, item):
         """Get the parent item of the given item."""
-        if not hasattr(item, "parent") or not item.parent:
+        parent = self.__get_item_parent(item)
+        if not parent:
             return None
-        if isinstance(item.parent, (ItemAsset, ItemPrim)):
-            return item.parent
-        if isinstance(item.parent, ItemLiveLightGroup):
-            lights = item.parent.lights
+        if isinstance(parent, (ItemAsset, ItemPrim)):
+            return parent
+        if isinstance(parent, ItemLiveLightGroup):
+            lights = parent.lights
             if lights:
                 remaining_lights = [light for light in lights if light != item]
                 if remaining_lights:
                     return remaining_lights[0]
-        return self.get_parent_item(item.parent)
+        return self.get_parent_item(parent)
 
     def get_root_asset_item(self, item):
         """Get the root asset item parent of the given item."""
-        if not hasattr(item, "parent") or not item.parent:
+        parent = self.__get_item_parent(item)
+        if not parent:
             return None
-        if isinstance(item.parent, ItemAsset):
-            return item.parent
-        return self.get_root_asset_item(item.parent)
+        if isinstance(parent, ItemAsset):
+            return parent
+        return self.get_root_asset_item(parent)
 
     def get_item_children(self, item: AnyItemType = None) -> list[AnyItemType]:
         """Returns all the children when the widget asks it."""

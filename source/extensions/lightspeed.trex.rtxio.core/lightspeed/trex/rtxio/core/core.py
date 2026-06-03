@@ -188,7 +188,7 @@ class RtxIoCore:
                             prim_spec.layer.ComputeAbsolutePath(ref.assetPath)
                         )
                         if resolved_path in unresolved_set:
-                            result.add((prim_spec.layer.identifier, str(prim_spec.path), resolved_path))
+                            result.add((prim_spec.layer.identifier, str(prim.GetPath()), resolved_path))
 
             for prop in prim.GetAttributes():
                 if not isinstance(prop.Get(), Sdf.AssetPath):

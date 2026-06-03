@@ -18,9 +18,7 @@
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures
 import re
-import threading
 import uuid
 from asyncio import ensure_future
 from collections.abc import Callable
@@ -30,7 +28,6 @@ from typing import Any
 
 import carb
 import omni.client
-import omni.kit.app
 import omni.usd
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
 from lightspeed.common.constants import REMIX_DEPENDENCIES_FOLDER as _REMIX_DEPENDENCIES_FOLDER
@@ -46,18 +43,17 @@ from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
+from omni.flux.utils.common.progress import INDETERMINATE_PROGRESS_TOTAL as _INDETERMINATE_PROGRESS_TOTAL
+from omni.flux.utils.common.progress import run_worker_with_latest_progress as _run_worker_with_latest_progress
 from omni.flux.utils.material_converter.utils import MaterialConverterUtils as _MaterialConverterUtils
 from omni.kit.usd.collect.omni_client_wrapper import OmniClientWrapper as _OmniClientWrapper
-from omni.kit.usd.layers import LayerUtils as _LayerUtils
 from pxr import Sdf, Usd, UsdUtils
 
+from .enum import FLATTEN_PACKAGING_OUTPUT_FORMAT as _FLATTEN_PACKAGING_OUTPUT_FORMAT
+from .enum import ModPackagingMode as _ModPackagingMode
 from .enum import get_packaged_root_export_args as _get_packaged_root_export_args
 from .enum import get_packaged_root_output_suffix as _get_packaged_root_output_suffix
-from .enum import ModPackagingMode as _ModPackagingMode
 from .items import ModPackagingSchema as _ModPackagingSchema
-
-
-INDETERMINATE_PROGRESS_TOTAL = -1
 
 
 class PackagingCore:
@@ -71,6 +67,8 @@ class PackagingCore:
             "_rtxio_core": None,
             "_rtxio_progress_sub": None,
             "_status": None,
+            "_can_cancel": None,
+            "_collected_dependencies": None,
         }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
@@ -79,7 +77,9 @@ class PackagingCore:
         self._current_count = 0
         self._total_count = 0
         self._status = "Initializing..."
+        self._can_cancel = True
         self._temp_files = {}
+        self._collected_dependencies = {}
         self._package_task = None
         self._rtxio_core = _RtxIoCore()
         self._rtxio_progress_sub = self._rtxio_core.subscribe_progress(self._on_rtxio_progress)
@@ -88,9 +88,9 @@ class PackagingCore:
         self.__packaging_completed = _Event()
 
     def cancel(self):
-        """
-        Cancel the packaging process.
-        """
+        """Cancel the packaging process."""
+        if not self._can_cancel:
+            return
         self._cancel_token = True
         package_task = self._package_task
         try:
@@ -105,34 +105,59 @@ class PackagingCore:
 
     @property
     def current_count(self) -> int:
-        """
-        Get the current packaged items count
+        """Get the current packaged item count.
+
+        Returns:
+            The current packaged item count.
         """
         return self._current_count
 
     @current_count.setter
     def current_count(self, val):
+        """Set the current packaged item count.
+
+        Args:
+            val: The new current packaged item count.
+        """
         self._current_count = min(val, self.total_count)
         self._packaging_progress()
 
     @property
     def total_count(self) -> int:
-        """
-        Get the current total items count
+        """Get the current total item count.
+
+        Returns:
+            The current total item count.
         """
         return self._total_count
 
     @total_count.setter
     def total_count(self, val):
+        """Set the current total item count.
+
+        Args:
+            val: The new current total item count.
+        """
         self._total_count = val
         self._packaging_progress()
 
     @property
     def status(self) -> str:
-        """
-        Get the current packaging status
+        """Get the current packaging status.
+
+        Returns:
+            The current packaging status.
         """
         return self._status
+
+    @property
+    def can_cancel(self) -> bool:
+        """Check whether the current packaging stage can be cancelled by the user.
+
+        Returns:
+            Whether the current packaging stage can be cancelled by the user.
+        """
+        return self._can_cancel
 
     def package(self, schema: dict):
         r"""
@@ -140,6 +165,9 @@ class PackagingCore:
 
         Args:
             schema: the schema to use for the project packaging. Please see the documentation.
+
+        Returns:
+            The scheduled packaging task.
 
         Examples:
             >>> core = PackagingCore()
@@ -169,39 +197,64 @@ class PackagingCore:
 
     @omni.usd.handle_exception
     async def package_async(self, schema: dict):
-        """
-        Asynchronous implementation of package
+        """Run packaging asynchronously with default exception handling.
+
+        Args:
+            schema: The packaging schema.
         """
         await self.package_async_with_exceptions(schema)
 
     async def package_async_with_exceptions(self, schema: dict):
-        """
-        Asynchronous implementation of package, but async without error handling.  This is meant for testing.
+        """Run packaging asynchronously without swallowing exceptions.
+
+        Args:
+            schema: The packaging schema.
+
+        Raises:
+            RuntimeError: If required USD stages or layers cannot be opened, exported, or packaged.
         """
         package_task = asyncio.current_task()
         if self._package_task is None:
             self._package_task = package_task
         errors = []
         failed_assets = []
+        stage = root_mod_layer = temp_root_mod_layer = packaging_root_layer = exported_mod_layer = None
+        temp_layers = packaging_temp_layers = all_layers = all_assets = None
         try:
             model = _ModPackagingSchema(**schema)
+            output_format = (
+                _FLATTEN_PACKAGING_OUTPUT_FORMAT
+                if model.packaging_mode == _ModPackagingMode.FLATTEN
+                else model.output_format
+            )
 
             if model.mod_layer_paths[0] not in model.selected_layer_paths:
                 carb.log_warn("The root-level mod layer was not selected. Nothing to package.")
                 return
 
             stage = await self._initialize_usd_stage(model.context_name, str(model.mod_layer_paths[0]))
+            if self._cancel_token:
+                return
             if not stage:
                 raise RuntimeError("No stage is available in the current context.")
+
+            root_mod_layer = await self._find_or_open_layer(str(model.mod_layer_paths[0]))
             if self._cancel_token:
                 return
-
-            root_mod_layer = Sdf.Layer.FindOrOpen(str(model.mod_layer_paths[0]))
             if not root_mod_layer:
                 raise RuntimeError(f"Unable to open the root mod layer at path: {model.mod_layer_paths[0]}")
-            temp_root_mod_layer = Sdf.Layer.FindOrOpen(await self._make_temp_layer(root_mod_layer.identifier))
+            temp_root_mod_layer_path = await self._make_temp_layer(root_mod_layer.identifier)
             if self._cancel_token:
                 return
+            if not temp_root_mod_layer_path:
+                raise RuntimeError(
+                    f"Unable to create a temporary root mod layer from path: {root_mod_layer.identifier}"
+                )
+            temp_root_mod_layer = await self._find_or_open_layer(temp_root_mod_layer_path)
+            if self._cancel_token:
+                return
+            if not temp_root_mod_layer:
+                raise RuntimeError(f"Unable to open the temporary root mod layer at path: {temp_root_mod_layer_path}")
 
             # Remove all deselected sublayers
             self._packaging_new_stage("Filtering the selected layers...", 1)
@@ -252,6 +305,8 @@ class PackagingCore:
                     raise RuntimeError("Unable to create the flattened temporary root layer.")
                 packaging_temp_layers = [packaging_root_layer.identifier]
                 stage = await self._initialize_usd_stage(model.context_name, packaging_root_layer.identifier)
+                if self._cancel_token:
+                    return
                 if not stage:
                     raise RuntimeError("Unable to open the flattened temporary root stage.")
                 all_layers, all_assets, _ = await self._get_dependencies(packaging_root_layer)
@@ -266,20 +321,22 @@ class PackagingCore:
                 all_assets,
                 model.output_directory,
                 redirected_dependencies,
-                model.output_format,
+                output_format,
             )
             errors.extend(collect_errors)
             failed_assets = collected_failed_assets
 
             if not failed_assets and not self._cancel_token:
-                exported_mod_layer = Sdf.Layer.FindOrOpen(
+                exported_mod_layer = await self._find_or_open_layer(
                     str(
                         _OmniUrl(model.output_directory)
-                        / self._get_packaged_root_output_name(model.mod_layer_paths[0], model.output_format)
+                        / self._get_packaged_root_output_name(model.mod_layer_paths[0], output_format)
                     )
                 )
                 if exported_mod_layer:
-                    errors.extend(self._update_layer_metadata(model, exported_mod_layer, mod_dependencies, True))
+                    errors.extend(
+                        await self._update_layer_metadata_async(model, exported_mod_layer, mod_dependencies, True)
+                    )
                 else:
                     errors.append("Unable to find the exported mod file.")
 
@@ -287,26 +344,30 @@ class PackagingCore:
             if not errors and not failed_assets and not self._cancel_token and model.rtxio_pack:
                 split_size_mb = int(model.rtxio_split_size_mb) if model.rtxio_split_size_mb is not None else None
                 errors.extend(await self._rtxio_core.compress_directory(model.output_directory, split_size_mb))
-                if not errors and model.rtxio_delete_dds_after_pack:
+                if not errors and not self._cancel_token and model.rtxio_delete_dds_after_pack:
                     await self._rtxio_core.delete_dds_files(model.output_directory)
 
         except asyncio.CancelledError:
-            pass
+            self._cancel_token = True
         except Exception as e:  # noqa: BLE001
             errors.append(str(e))
         finally:
+            # Release USD handles before deletion; Windows can keep opened layers locked.
+            stage = root_mod_layer = temp_root_mod_layer = packaging_root_layer = exported_mod_layer = None
+            temp_layers = packaging_temp_layers = all_layers = all_assets = None
             # Cleanup the temp files
-            await self._clean_temp_files()
+            await self._clean_temp_files_without_cancellation()
             # Reset the cancel state
             self._packaging_completed(errors, failed_assets)
             if self._package_task is package_task:
                 self._package_task = None
 
     @omni.usd.handle_exception
-    async def _make_temp_layer(self, layer_path: str) -> str:
+    async def _make_temp_layer(self, layer_path: str, output_suffix: str | None = None) -> str:
         layer_url = _OmniUrl(layer_path)
+        temp_suffix = output_suffix or layer_url.suffix
         temp_path = layer_url.with_name(
-            _OmniUrl(layer_url.stem + f"_{uuid.uuid4()}").with_suffix(layer_url.suffix).path
+            _OmniUrl(layer_url.stem + f"_{uuid.uuid4()}").with_suffix(temp_suffix).path
         ).path
 
         await _OmniClientWrapper.copy(layer_path, temp_path, set_target_writable_if_read_only=True)
@@ -341,6 +402,38 @@ class PackagingCore:
         if not export_success:
             raise RuntimeError(f"Unable to export packaged layer to path: {output_path}")
 
+    async def _run_packaging_blocking_call(
+        self,
+        function: Callable,
+        *args,
+        cancelled_result=None,
+        **kwargs,
+    ):
+        return await _run_worker_with_latest_progress(
+            lambda _queue_progress: function(*args, **kwargs),
+            is_cancelled=lambda: self._cancel_token,
+            cancelled_result=cancelled_result,
+            finish_worker_on_cancel=True,
+        )
+
+    async def _find_or_open_layer(self, layer_path: str) -> Sdf.Layer | None:
+        return await self._run_packaging_blocking_call(Sdf.Layer.FindOrOpen, layer_path)
+
+    async def _export_packaged_layer_async(
+        self,
+        layer: Sdf.Layer,
+        output_path: Path | str,
+        output_format: _UsdExtensions | None,
+        is_packaged_root: bool = False,
+    ):
+        await self._run_packaging_blocking_call(
+            self._export_packaged_layer,
+            layer,
+            output_path,
+            output_format,
+            is_packaged_root=is_packaged_root,
+        )
+
     async def _get_invalid_assets(
         self,
         stage: Usd.Stage,
@@ -350,103 +443,152 @@ class PackagingCore:
         self._packaging_new_stage("Looking for invalid references...", 0)
         if self._cancel_token:
             return []
-        loop = asyncio.get_event_loop()
-        app = omni.kit.app.get_app()
-        progress_done = threading.Event()
-        progress_lock = threading.Lock()
-        latest_current = 0
-        latest_total = None
-        progress_changed = False
 
-        def queue_progress(current: int, total: int | None = None):
-            nonlocal latest_current, latest_total, progress_changed
-            with progress_lock:
-                latest_current = current
-                if total is not None:
-                    latest_total = total
-                progress_changed = True
+        def scan_invalid_assets(queue_progress: Callable[[int, int | None, Any | None], None]):
+            stage_prims = list(stage.TraverseAll())
+            total_prims = len(stage_prims)
+            queue_progress(0, total_prims, "Looking for invalid references...")
 
-        def pop_latest_progress() -> tuple[int, int] | None:
-            nonlocal progress_changed
-            with progress_lock:
-                if not progress_changed or latest_total is None:
-                    return None
-                progress_changed = False
-                return latest_current, latest_total
+            processed_prim_count = 0
 
-        def scan_invalid_assets():
-            try:
-                stage_prims = list(stage.TraverseAll())
-                total_prims = len(stage_prims)
-                queue_progress(0, total_prims)
+            def on_prim_processed():
+                nonlocal processed_prim_count
+                processed_prim_count += 1
+                queue_progress(processed_prim_count)
 
-                processed_prim_count = 0
+            return self._rtxio_core.collect_invalid_stage_assets(
+                stage_prims,
+                unresolved_paths,
+                is_cancelled=lambda: self._cancel_token,
+                on_prim_processed=on_prim_processed,
+            )
 
-                def on_prim_processed():
-                    nonlocal processed_prim_count
-                    processed_prim_count += 1
-                    queue_progress(processed_prim_count)
-
-                return self._rtxio_core.collect_invalid_stage_assets(
-                    stage_prims,
-                    unresolved_paths,
-                    is_cancelled=lambda: self._cancel_token,
-                    on_prim_processed=on_prim_processed,
-                )
-            finally:
-                progress_done.set()
-
-        def apply_progress(progress: tuple[int, int] | None):
-            if progress is None:
-                return
-            current, total = progress
-            self._status = "Looking for invalid references..."
+        def apply_progress(current: int, total: int, status: str):
+            self._status = status
             self._total_count = total
             self._current_count = min(current, total)
             self._packaging_progress()
 
-        executor = concurrent.futures.ThreadPoolExecutor(
-            max_workers=1, thread_name_prefix="packaging_reference_validation"
+        invalid_assets = await _run_worker_with_latest_progress(
+            scan_invalid_assets,
+            progress_callback=apply_progress,
+            is_cancelled=lambda: self._cancel_token,
+            cancelled_result=[],
         )
-        try:
-            scan_future = loop.run_in_executor(executor, scan_invalid_assets)
-            while not progress_done.is_set():
-                await app.next_update_async()
-                if self._cancel_token:
-                    scan_future.cancel()
-                    return []
-                apply_progress(pop_latest_progress())
 
-            if self._cancel_token:
-                scan_future.cancel()
-                return []
-            apply_progress(pop_latest_progress())
-            invalid_assets = await scan_future
-        finally:
-            executor.shutdown(wait=not self._cancel_token)
-
+        invalid_assets = {
+            (self._get_original_path(layer_identifier) or layer_identifier, prim_path, asset_path)
+            for layer_identifier, prim_path, asset_path in invalid_assets
+        }
+        invalid_assets = self._filter_masked_invalid_assets(stage, invalid_assets)
         invalid_assets.difference_update(ignored_errors or [])
         return sorted(invalid_assets)
 
+    def _filter_masked_invalid_assets(
+        self,
+        stage: Usd.Stage,
+        invalid_assets: set[tuple[str, str, str]],
+    ) -> set[tuple[str, str, str]]:
+        result = set()
+        for layer_identifier, path, asset_path in invalid_assets:
+            sdf_path = Sdf.Path(path)
+            keep_asset = (
+                self._property_asset_is_unmasked(stage, layer_identifier, sdf_path, asset_path)
+                if sdf_path.IsPropertyPath()
+                else self._reference_asset_is_unmasked(stage, layer_identifier, sdf_path, asset_path)
+            )
+            if keep_asset:
+                result.add((layer_identifier, path, asset_path))
+        return result
+
+    def _property_asset_is_unmasked(
+        self,
+        stage: Usd.Stage,
+        layer_identifier: str,
+        property_path: Sdf.Path,
+        asset_path: str,
+    ) -> bool:
+        prop = stage.GetPropertyAtPath(property_path)
+        if not prop:
+            return True
+
+        layer_identifier = self._normalize_packaging_path(layer_identifier)
+        asset_path = self._normalize_packaging_path(asset_path)
+        try:
+            property_stack = list(prop.GetPropertyStack(Usd.TimeCode.Default()))
+        except TypeError:
+            return True
+        for prop_spec in property_stack:
+            authored_value = prop_spec.default
+            if isinstance(authored_value, Sdf.ValueBlock):
+                return False
+            if not isinstance(authored_value, Sdf.AssetPath) or not authored_value.path:
+                continue
+            resolved_path = self._normalize_packaging_path(prop_spec.layer.ComputeAbsolutePath(authored_value.path))
+            return (
+                self._get_result_layer_identifier(prop_spec.layer.identifier) == layer_identifier
+                and resolved_path == asset_path
+            )
+        return True
+
+    def _reference_asset_is_unmasked(
+        self,
+        stage: Usd.Stage,
+        layer_identifier: str,
+        prim_path: Sdf.Path,
+        asset_path: str,
+    ) -> bool:
+        prim = stage.GetPrimAtPath(prim_path)
+        if not prim:
+            return True
+
+        layer_identifier = self._normalize_packaging_path(layer_identifier)
+        asset_path = self._normalize_packaging_path(asset_path)
+        try:
+            prim_stack = list(prim.GetPrimStack())
+        except TypeError:
+            return True
+        for prim_spec in prim_stack:
+            if not prim_spec.HasInfo(Sdf.PrimSpec.ReferencesKey):
+                continue
+            reference_list_op = prim_spec.GetInfo(Sdf.PrimSpec.ReferencesKey)
+            if not isinstance(reference_list_op, Sdf.ReferenceListOp):
+                continue
+            if self._get_result_layer_identifier(prim_spec.layer.identifier) == layer_identifier:
+                return any(
+                    self._reference_matches_path(prim_spec.layer, reference, asset_path)
+                    for reference in prim_spec.referenceList.GetAddedOrExplicitItems()
+                )
+            if reference_list_op.isExplicit:
+                return False
+            if any(
+                self._reference_matches_path(prim_spec.layer, reference, asset_path)
+                for reference in reference_list_op.deletedItems
+            ):
+                return False
+        return True
+
+    def _get_result_layer_identifier(self, layer_identifier: str) -> str:
+        return self._normalize_packaging_path(self._get_original_path(layer_identifier) or layer_identifier)
+
+    @staticmethod
+    def _normalize_packaging_path(path: str) -> str:
+        return Path(path).as_posix()
+
+    def _reference_matches_path(self, layer: Sdf.Layer, reference: Sdf.Reference, asset_path: str) -> bool:
+        if not reference.assetPath:
+            return False
+        return self._normalize_packaging_path(layer.ComputeAbsolutePath(reference.assetPath)) == asset_path
+
     async def _get_dependencies(self, root_layer: Sdf.Layer) -> tuple[list[Sdf.Layer], list[str], list[str]]:
-        self._packaging_new_stage("Listing references...", INDETERMINATE_PROGRESS_TOTAL)
+        self._packaging_new_stage("Listing references...", _INDETERMINATE_PROGRESS_TOTAL)
         if self._cancel_token:
             return [], [], []
-        loop = asyncio.get_event_loop()
-        app = omni.kit.app.get_app()
-        executor = concurrent.futures.ThreadPoolExecutor(
-            max_workers=1, thread_name_prefix="packaging_reference_listing"
+        return await self._run_packaging_blocking_call(
+            UsdUtils.ComputeAllDependencies,
+            root_layer.identifier,
+            cancelled_result=([], [], []),
         )
-        try:
-            dependencies_future = loop.run_in_executor(executor, UsdUtils.ComputeAllDependencies, root_layer.identifier)
-            while not dependencies_future.done():
-                await app.next_update_async()
-                if self._cancel_token:
-                    dependencies_future.cancel()
-                    return [], [], []
-            return await dependencies_future
-        finally:
-            executor.shutdown(wait=not self._cancel_token)
 
     async def _get_dependencies_and_invalid_assets(
         self,
@@ -461,73 +603,112 @@ class PackagingCore:
 
     @omni.usd.handle_exception
     async def _clean_temp_files(self):
-        self._packaging_new_stage("Cleaning up temporary layers...", len(self._temp_files))
+        self._packaging_new_stage("Cleaning up temporary layers...", len(self._temp_files), can_cancel=False)
 
-        for temp_file in self._temp_files:
+        for temp_file in list(self._temp_files):
             try:
                 await _OmniClientWrapper.delete(str(temp_file))
             except Exception:  # noqa: BLE001
                 carb.log_warn(f"Unable to cleanup temporary layer: {temp_file}")
-            self.current_count += 1
-        self._temp_files.clear()
+            else:
+                self._temp_files.pop(temp_file, None)
+            finally:
+                self.current_count += 1
 
-    async def _flatten_temp_root_layer(self, temp_root_layer: Sdf.Layer) -> Sdf.Layer:
+    async def _clean_temp_files_without_cancellation(self):
+        cleanup_task = ensure_future(self._clean_temp_files())
+        while not cleanup_task.done():
+            try:
+                await asyncio.shield(cleanup_task)
+            except asyncio.CancelledError:
+                self._cancel_token = True
+                await asyncio.sleep(0)
+        await cleanup_task
+
+    async def _flatten_temp_root_layer(self, temp_root_layer: Sdf.Layer) -> Sdf.Layer | None:
         if self._cancel_token:
-            return temp_root_layer
+            return None
 
-        self._packaging_new_stage("Preparing packaged stage for flattening...", 4)
-
-        stage = Usd.Stage.Open(temp_root_layer.identifier)
-        if not stage:
-            raise RuntimeError(f"Unable to open the temporary root mod layer at path: {temp_root_layer.identifier}")
-
-        stage.Load()
-        self.current_count += 1
-
+        flattened_temp_path = await self._make_temp_layer(
+            temp_root_layer.identifier, output_suffix=_get_packaged_root_output_suffix(_UsdExtensions.USD)
+        )
         if self._cancel_token:
-            return temp_root_layer
-
-        self._packaging_update_status("Flattening packaged layers...")
-        flattened_layer = stage.Flatten()
-        self.current_count += 1
-
-        flattened_custom_data = dict(flattened_layer.customLayerData)
-        flattened_custom_data.update(temp_root_layer.customLayerData)
-        flattened_layer.customLayerData = flattened_custom_data
-
-        if self._cancel_token:
-            return temp_root_layer
-
-        self._packaging_update_status("Writing flattened package root...")
-        flattened_temp_path = await self._make_temp_layer(temp_root_layer.identifier)
+            return None
+        if not flattened_temp_path:
+            raise RuntimeError(
+                f"Unable to create the flattened temporary root layer from path: {temp_root_layer.identifier}"
+            )
         original_root_path = self._get_original_path(temp_root_layer.identifier)
         if original_root_path:
             self._temp_files[_OmniUrl(flattened_temp_path).path] = _OmniUrl(original_root_path).name
-        if not flattened_layer.Export(flattened_temp_path):
-            raise RuntimeError(f"Unable to write the flattened temporary root layer at path: {flattened_temp_path}")
-        self.current_count += 1
 
-        if self._cancel_token:
-            return temp_root_layer
+        total_steps = 4
+        self._packaging_new_stage("Preparing packaged stage for flattening...", total_steps)
 
-        self._packaging_update_status("Finalizing flattened package root...")
-        flattened_temp_layer = Sdf.Layer.FindOrOpen(flattened_temp_path)
-        if not flattened_temp_layer:
-            raise RuntimeError(f"Unable to open the flattened temporary root layer at path: {flattened_temp_path}")
-        self.current_count += 1
+        def flatten_temp_root_layer(queue_progress: Callable[[int, int | None, Any | None], None]):
+            stage = Usd.Stage.Open(temp_root_layer.identifier)
+            if not stage:
+                raise RuntimeError(f"Unable to open the temporary root mod layer at path: {temp_root_layer.identifier}")
 
-        return flattened_temp_layer
+            stage.Load()
+            if self._cancel_token:
+                return None
+            queue_progress(1, total_steps, "Preparing packaged stage for flattening...")
+
+            if self._cancel_token:
+                return None
+            queue_progress(1, total_steps, "Flattening packaged layers...")
+            flattened_layer = stage.Flatten()
+            if self._cancel_token:
+                return None
+            queue_progress(2, total_steps, "Flattening packaged layers...")
+
+            flattened_custom_data = dict(flattened_layer.customLayerData)
+            flattened_custom_data.update(temp_root_layer.customLayerData)
+            flattened_layer.customLayerData = flattened_custom_data
+
+            if self._cancel_token:
+                return None
+            queue_progress(2, total_steps, "Writing flattened package root...")
+            if not flattened_layer.Export(flattened_temp_path, args={"format": _UsdExtensions.USDC.value}):
+                raise RuntimeError(f"Unable to write the flattened temporary root layer at path: {flattened_temp_path}")
+            if self._cancel_token:
+                return None
+            queue_progress(3, total_steps, "Writing flattened package root...")
+
+            if self._cancel_token:
+                return None
+            queue_progress(3, total_steps, "Finalizing flattened package root...")
+            flattened_temp_layer = Sdf.Layer.FindOrOpen(flattened_temp_path)
+            if not flattened_temp_layer:
+                raise RuntimeError(f"Unable to open the flattened temporary root layer at path: {flattened_temp_path}")
+            queue_progress(4, total_steps, "Finalizing flattened package root...")
+
+            return flattened_temp_layer
+
+        def apply_progress(current: int, total: int, status: str):
+            self._status = status
+            self._total_count = total
+            self._current_count = min(current, total)
+            self._packaging_progress()
+
+        return await _run_worker_with_latest_progress(
+            flatten_temp_root_layer,
+            progress_callback=apply_progress,
+            is_cancelled=lambda: self._cancel_token,
+            cancelled_result=None,
+            finish_worker_on_cancel=True,
+        )
 
     @omni.usd.handle_exception
-    async def _initialize_usd_stage(self, context_name: str, root_mod_layer_path: str) -> Usd.Stage | None:
-        del context_name
-        return Usd.Stage.Open(root_mod_layer_path)
+    async def _initialize_usd_stage(self, _context_name: str, root_mod_layer_path: str) -> Usd.Stage | None:
+        return await self._run_packaging_blocking_call(Usd.Stage.Open, root_mod_layer_path)
 
     @omni.usd.handle_exception
     async def _filter_sublayers(
         self,
-        context_name: str,
-        parent_layer: Sdf.Layer | None,
+        _context_name: str,
+        _parent_layer: Sdf.Layer | None,
         temp_layer: Sdf.Layer,
         selected_layer_paths: list[str],
     ) -> list[str]:
@@ -541,32 +722,44 @@ class PackagingCore:
 
         original_path = self._get_original_path(temp_layer.identifier)
 
-        # If the parent is not selected, all children will be filtered out too
-        if original_path.lower() not in selected_layer_paths:
-            if parent_layer:
-                sublayer_position = _LayerUtils.get_sublayer_position_in_parent(parent_layer.identifier, original_path)
-                # If position is -1, the item was not found, so we should not remove a random layer
-                if sublayer_position >= 0:
-                    parent_sublayers = list(parent_layer.subLayerPaths)
-                    parent_sublayers.pop(sublayer_position)
-                    parent_layer.subLayerPaths = parent_sublayers
-                    parent_layer.Save()
+        # If the layer is not selected, all children will be filtered out too.
+        if not original_path or original_path.lower() not in selected_layer_paths:
             return temp_layers
 
-        self.total_count += len(temp_layer.subLayerPaths)
+        original_sublayer_paths = list(temp_layer.subLayerPaths)
+        self.total_count += len(original_sublayer_paths)
 
-        for sublayer_path in temp_layer.subLayerPaths:
+        filtered_sublayer_paths = []
+        for sublayer_path in original_sublayer_paths:
             if self._cancel_token:
                 return temp_layers
-            temp_sublayer = Sdf.Layer.FindOrOpen(
-                await self._make_temp_layer(temp_layer.ComputeAbsolutePath(sublayer_path))
+
+            original_sublayer_path = temp_layer.ComputeAbsolutePath(sublayer_path)
+            if _OmniUrl(original_sublayer_path).path.lower() not in selected_layer_paths:
+                self.current_count += 1
+                continue
+
+            temp_sublayer_path = await self._make_temp_layer(original_sublayer_path)
+            if self._cancel_token:
+                return temp_layers
+            if not temp_sublayer_path:
+                raise RuntimeError(f"Unable to create temporary selected sublayer for path: {original_sublayer_path}")
+            filtered_sublayer_paths.append(
+                omni.client.make_relative_url(temp_layer.identifier, temp_sublayer_path).replace("\\", "/")
             )
+            temp_sublayer = await self._find_or_open_layer(temp_sublayer_path)
+            if self._cancel_token:
+                return temp_layers
             if not temp_sublayer:
                 self.current_count += 1
                 continue
             temp_layers.extend(
-                await self._filter_sublayers(context_name, temp_layer, temp_sublayer, selected_layer_paths)
+                await self._filter_sublayers(_context_name, temp_layer, temp_sublayer, selected_layer_paths)
             )
+
+        if filtered_sublayer_paths != original_sublayer_paths:
+            temp_layer.subLayerPaths = filtered_sublayer_paths
+            await self._run_packaging_blocking_call(temp_layer.Save)
 
         return temp_layers
 
@@ -588,7 +781,13 @@ class PackagingCore:
 
         self._packaging_new_stage("Creating temporary layers...", len(all_layers))
 
-        temp_layers_map = {self._get_original_path(temp_layer): temp_layer for temp_layer in existing_temp_layers}
+        temp_layers_map = {}
+        for temp_layer in existing_temp_layers:
+            temp_layer_path = _OmniUrl(temp_layer).path
+            temp_layers_map[temp_layer_path] = temp_layer
+            original_layer_path = self._get_original_path(temp_layer_path)
+            if original_layer_path:
+                temp_layers_map[original_layer_path] = temp_layer
         temp_layers = []
         for layer in all_layers:
             if self._cancel_token:
@@ -604,7 +803,9 @@ class PackagingCore:
                 temp_layer_path = temp_layers_map.get(_OmniUrl(layer.identifier).path) or await self._make_temp_layer(
                     layer.identifier
                 )
-            temp_layer = Sdf.Layer.FindOrOpen(temp_layer_path)
+            temp_layer = await self._find_or_open_layer(temp_layer_path)
+            if self._cancel_token:
+                return errors, failed_assets
             if not temp_layer:
                 errors.append(f"Unable to open temporary file: {temp_layer_path}")
             else:
@@ -635,13 +836,17 @@ class PackagingCore:
 
             if original_dependency_path in redirected_dependencies:
                 # If the dependency was redirected, we should not collect it but should update the dependency
-                updated_dependencies[original_dependency_path] = self._redirect_to_existing_project
+                dependency_redirect = self._redirect_to_existing_project
             else:
                 # Make sure to redirect the dependency inside the output directory if it does not resolve there
                 # The update method will also mark all assets for collection
-                updated_dependencies[original_dependency_path] = partial(
+                dependency_redirect = partial(
                     self._redirect_inside_package_directory, dependency_path, output_directory
                 )
+
+            updated_dependencies[original_dependency_path] = dependency_redirect
+            if dependency_path != original_dependency_path:
+                updated_dependencies[dependency_path] = dependency_redirect
 
             self.current_count += 1
 
@@ -659,7 +864,11 @@ class PackagingCore:
             if self._cancel_token:
                 return errors, failed_assets
             self.current_count += 1
-            UsdUtils.ModifyAssetPaths(temp_layer, partial(self._modify_asset_paths, temp_layer, updated_dependencies))
+            await self._run_packaging_blocking_call(
+                UsdUtils.ModifyAssetPaths,
+                temp_layer,
+                partial(self._modify_asset_paths, temp_layer, updated_dependencies),
+            )
 
         # Wrap in a try for when Export fails to write the file
         try:
@@ -701,7 +910,7 @@ class PackagingCore:
                 # If the dependency is a layer, export it to the output directory to keep references changes applied
                 input_layer = temp_layer_paths.get(temp_input_path)
                 if input_layer:
-                    self._export_packaged_layer(
+                    await self._export_packaged_layer_async(
                         input_layer, output_path, output_format, is_packaged_root=is_packaged_root
                     )
                 # Otherwise simply copy the dependency to the output directory
@@ -807,6 +1016,18 @@ class PackagingCore:
 
         return errors
 
+    async def _update_layer_metadata_async(
+        self, model: _ModPackagingSchema, layer: Sdf.Layer, mod_dependencies: set[str], update_dependencies: bool
+    ) -> list[str]:
+        return await self._run_packaging_blocking_call(
+            self._update_layer_metadata,
+            model,
+            layer,
+            mod_dependencies,
+            update_dependencies,
+            cancelled_result=[],
+        )
+
     def _redirect_to_existing_project(self, _: Sdf.Layer, relative_path: str) -> str:
         if self._cancel_token:
             return relative_path
@@ -824,6 +1045,13 @@ class PackagingCore:
         relative_path_is_absolute = Path(relative_path).is_absolute()
         if relative_path_is_absolute:
             fixed_relative_path = (_OmniUrl(_REMIX_SUBUSD_RELATIVE_PATH) / _OmniUrl(relative_path).name).path
+        else:
+            original_dependency_path = self._get_original_path(dependency_path)
+            if original_dependency_path:
+                # Keep packaged refs pointed at the original filename instead of the temp _<uuid> copy.
+                fixed_relative_path = (
+                    _OmniUrl(fixed_relative_path).with_name(_OmniUrl(original_dependency_path).name).path
+                )
 
         # If the parent was collected, make sure to add its relative path from the output directory to the child deps.
         # IMPORTANT NOTE: This assumes the parent was collected before the dependency which entirely depends on the
@@ -902,10 +1130,11 @@ class PackagingCore:
 
         return simplified_path
 
-    def _packaging_new_stage(self, status: str, total_count: int):
+    def _packaging_new_stage(self, status: str, total_count: int, can_cancel: bool = True):
         self._status = status
         self._current_count = 0
         self._total_count = total_count
+        self._can_cancel = can_cancel
         self._packaging_progress()
 
     def _packaging_update_status(self, status: str):
@@ -917,8 +1146,13 @@ class PackagingCore:
         self.__packaging_progress(self.current_count, self.total_count, self.status)
 
     def subscribe_packaging_progress(self, function):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
+        """Subscribe to packaging progress events.
+
+        Args:
+            function: Callback receiving current count, total count, and status.
+
+        Returns:
+            A subscription object that unsubscribes when destroyed.
         """
         return _EventSubscription(self.__packaging_progress, function)
 
@@ -928,14 +1162,21 @@ class PackagingCore:
             carb.log_error(error)
         self.__packaging_completed(errors, failed_assets, self._cancel_token)
         self._cancel_token = False
+        self._can_cancel = True
 
     def subscribe_packaging_completed(self, function: Callable[[list[str], list[tuple[str, str, str]], bool], Any]):
-        """
-        Return the object that will automatically unsubscribe when destroyed.
+        """Subscribe to packaging completion events.
+
+        Args:
+            function: Callback receiving errors, failed assets, and whether packaging was cancelled.
+
+        Returns:
+            A subscription object that unsubscribes when destroyed.
         """
         return _EventSubscription(self.__packaging_completed, function)
 
     def destroy(self):
+        """Destroy the packaging core and release subscriptions."""
         self.cancel()
         rtxio_core = self._rtxio_core
         self._rtxio_core = None

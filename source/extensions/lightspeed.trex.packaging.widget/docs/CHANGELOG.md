@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.4]
+### Fixed
+- Kept packaging progress responsive and cancellable until cleanup while flattening, exporting, saving repairs, and retrying unresolved-reference repairs, deleted existing package output under non-cancellable progress, disabled unsafe USDA output for flattened packages, and updated the packaging mode and output format dropdowns to expose only supported choices with Flatten as the default.
+
+## [1.5.3]
+### Fixed
+- Added flatten packaging e2e regressions for missing-reference ignore, remove, replace, scan-directory, cancel, save, and completion flows.
+
 ## [1.5.2]
 ### Fixed
 - Block packaging for projects without a valid mod layer, stop flatten-mode retries when unresolved reference errors are ignored, and keep cancellation cleanup visible with cancel disabled.

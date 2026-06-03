@@ -213,7 +213,8 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         item_instances = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_instance'")
 
-        self.assertEqual(len(item_prims), 4)  # the ref item + the prim item
+        # The selected CED mesh includes one nested referenced light prim.
+        self.assertEqual(len(item_prims), 5)
         self.assertEqual(len(item_assets), 2)
         self.assertEqual(len(item_add_buttons), 4)
         self.assertEqual(len(item_groups), 2)
@@ -234,7 +235,8 @@ class TestSelectionTreeWidget(AsyncTestCase):
         branch_instance_meshes = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='Expand'")
 
         self.assertEqual(len(item_instances), 0)  # we didn't expand the instance group
-        self.assertEqual(len(branch_instance_meshes), 6)
+        # The selected CED mesh includes one extra expander for the nested referenced light hierarchy.
+        self.assertEqual(len(branch_instance_meshes), 7)
 
         await branch_instance_meshes[2].click()
         await ui_test.human_delay(human_delay_speed=1)
@@ -954,6 +956,33 @@ class TestSelectionTreeWidget(AsyncTestCase):
             tree_selection = _wid.get_selection()
             self.assertEqual(len([i for i in tree_selection if isinstance(i, _ItemPrim)]), 0)
             self.assertEqual(len([i for i in tree_selection if isinstance(i, _ItemAsset)]), 1)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_select_nested_referenced_usd_light_returns_light_item(self):
+        # Open the real project fixture and show the selection tree against the replacement layer.
+        await open_stage(_get_test_data("usd/project_example/combined.usda"))
+        layer_manager = _LayerManagerCore()
+        self.assertIsNotNone(layer_manager.get_layer_of_type(_LayerType.capture))
+        self.assertIsNotNone(layer_manager.get_layer_of_type(_LayerType.replacement))
+        layer_manager.set_edit_target_layer_of_type(_LayerType.replacement)
+        _window, _wid = await self.__setup_widget()  # Keep in memory during test
+        usd_context = omni.usd.get_context()
+        light_path = (
+            "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankA"
+        )
+        self.assertTrue(usd_context.get_stage().GetPrimAtPath(light_path).IsValid())
+
+        # Select the nested referenced USD light through stage selection.
+        usd_context.get_selection().set_selected_prim_paths([light_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        # Confirm the tree exposes the selected light as an editable light item.
+        selected_light_items = [
+            item for item in _wid.get_selection() if isinstance(item, _ItemPrim) and item.path == light_path
+        ]
+        self.assertEqual(len(selected_light_items), 1)
+        self.assertTrue(selected_light_items[0].is_usd_light())
 
         await self.__destroy(_window, _wid)
 

@@ -15,6 +15,11 @@
 * limitations under the License.
 """
 
+from .asset_validation import (
+    accept_asset_if_valid_for_replacement,
+    open_asset_file_picker,
+    open_replacement_asset_file_picker,
+)
 from .categories_dialog.categories_dialog import RemixCategoriesDialog
 from .message_dialog import TrexMessageDialog
 from .workspace import WorkspaceWidget, WorkspaceWindowBase
@@ -24,4 +29,7 @@ __all__ = [
     "TrexMessageDialog",
     "WorkspaceWidget",
     "WorkspaceWindowBase",
+    "accept_asset_if_valid_for_replacement",
+    "open_asset_file_picker",
+    "open_replacement_asset_file_picker",
 ]

@@ -29,24 +29,22 @@ import omni.usd
 from lightspeed.common import constants
 from lightspeed.common.constants import PROPERTIES_NAMES_COLUMN_WIDTH
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
-from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_usd_asset as _copy_usd_asset
+from lightspeed.trex.asset_replacements.core.shared.data_models import ReplacementAssetType as _ReplacementAssetType
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemAsset as _ItemAsset
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemInstance as _ItemInstance
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemInstancesGroup as _ItemInstancesGroup
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemPrim as _ItemPrim
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemReferenceFile as _ItemReferenceFile
-from lightspeed.trex.utils.common.file_utils import (
-    is_usd_file_path_valid_for_filepicker as _is_usd_file_path_valid_for_filepicker,
-)
 from lightspeed.trex.utils.widget import RemixCategoriesDialog as _RemixCategoriesDialog
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
+from lightspeed.trex.utils.widget import accept_asset_if_valid_for_replacement as _accept_asset_if_valid
+from lightspeed.trex.utils.widget import open_asset_file_picker as _open_asset_file_picker
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.flux.properties_pane.transformation.usd.widget import TransformPropertyWidget as _TransformPropertyWidget
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
-from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from pxr import Sdf, UsdGeom, UsdLux
 
 if typing.TYPE_CHECKING:
@@ -248,7 +246,7 @@ class SetupUI:
                     ui.Spacer(height=ui.Pixel(8))
 
                     def should_show_light_attr(prim):
-                        return prim.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else prim.IsA(UsdLux.Light)
+                        return prim.HasAPI(UsdLux.LightAPI)
 
                     self._property_widget = _PropertyWidget(
                         self._context_name,
@@ -418,11 +416,13 @@ class SetupUI:
                 self._remix_categories_frame.visible = False
         elif item_light_assets or item_light_prims:  # light
             # if this is a light, we can transform the light by itself. So we should show the transform frame
-            prim_paths = [item.path for item in item_light_assets]
+            transform_prim_paths = [item.path for item in item_light_assets]
+            property_prim_paths = [item.path for item in item_light_assets]
 
             for item in item_light_prims:
+                property_prim_paths.append(item.path)
                 if not self._current_instance_items:
-                    prim_paths.append(item.path)
+                    transform_prim_paths.append(item.path)
                     continue
 
                 for instance_item in self._current_instance_items:
@@ -431,13 +431,25 @@ class SetupUI:
                         str(instance_item.prim.GetPath()),
                         item.path,
                     )
-                    prim_paths.append(to_select_path)
+                    transform_prim_paths.append(to_select_path)
 
-            xformable_prims = self._core.filter_transformable_prims(prim_paths)
+            xformable_prims = self._core.filter_transformable_prims(transform_prim_paths)
             xformable_prims = list(dict.fromkeys(xformable_prims))
+            property_prims = []
+            # filter_transformable_prims applies Remix transform policy, not only UsdGeom.Xformable.
+            # Keep property refresh on the selected light path before considering transform remaps.
+            stage = self._context.get_stage()
+            if stage:
+                for candidate_paths in (property_prim_paths, xformable_prims):
+                    for path in dict.fromkeys(candidate_paths):
+                        prim = stage.GetPrimAtPath(path)
+                        if prim.IsValid() and prim.HasAPI(UsdLux.LightAPI):
+                            property_prims.append(path)
+                    if property_prims:
+                        break
 
             self._transformation_widget.show(bool(xformable_prims))
-            self._property_widget.show(bool(xformable_prims))
+            self._property_widget.show(bool(property_prims))
 
             # set specific attributes
             specific_attrs = [
@@ -505,7 +517,7 @@ class SetupUI:
             )
             self._property_widget.set_lookup_table(lookup_table)
 
-            if xformable_prims:
+            if xformable_prims or property_prims:
                 self._mesh_properties_frames[_ItemPrim].visible = True
                 self._mesh_properties_frames[None].visible = False
             else:
@@ -513,7 +525,7 @@ class SetupUI:
                 self._mesh_properties_frames[_ItemPrim].visible = False
                 self._mesh_properties_frames[None].visible = True
             self._transformation_widget.refresh(xformable_prims)
-            self._property_widget.refresh(xformable_prims)
+            self._property_widget.refresh(property_prims)
             self._remix_categories_vstack.visible = False
             self._remix_categories_frame.visible = False
 
@@ -558,21 +570,13 @@ class SetupUI:
             fallback = True
             navigate_to = os.path.dirname(stage.GetRootLayer().identifier)
 
-        _open_file_picker(
+        _open_asset_file_picker(
             "Select a reference file",
+            _ReplacementAssetType.MESH,
             callback=functools.partial(self.set_ref_mesh_field, layer=layer),
             callback_cancel=lambda *args: None,
             current_file=navigate_to,
             fallback=fallback,
-            file_extension_options=constants.READ_USD_FILE_EXTENSIONS_OPTIONS,
-            validate_selection=_is_usd_file_path_valid_for_filepicker,
-            validation_failed_callback=self.__show_error_not_usd_file,
-        )
-
-    def __show_error_not_usd_file(self, dirname: str, filename: str):
-        _TrexMessageDialog(
-            message=f"{dirname}/{filename} is not a USD file",
-            disable_cancel_button=True,
         )
 
     def _on_mesh_ref_field_begin(self, _model):
@@ -591,14 +595,23 @@ class SetupUI:
             value = path
         else:
             value = path.replace("\\", "/")
-            if not self.__ignore_ingest_check and not self.__was_asset_ingested(value):
+            if not self.__ignore_ingest_check and layer is not None:
+                _accept_asset_if_valid(
+                    value,
+                    layer,
+                    self._core,
+                    self._context,
+                    functools.partial(self.__accept_ref_mesh_field, change_prim_field=change_prim_field),
+                    ignore_ingestion_handler=self.__ignore_warning_ingest_asset,
+                    cancel_handler=self.__reset_ingest_asset,
+                    go_to_ingest_handler=functools.partial(self.__reset_ingest_asset, go_to_ingest=True),
+                )
                 return
 
-            if layer is not None and not self._core.asset_is_in_project_dir(value, layer):
-                self.__prompt_user_to_copy_usd_asset(path=value, layer=layer)
-                return
+        self.__accept_ref_mesh_field(value, change_prim_field=change_prim_field)
 
-        self._mesh_ref_field.model.set_value(value)
+    def __accept_ref_mesh_field(self, path: str, change_prim_field: bool = True):
+        self._mesh_ref_field.model.set_value(path)
         if change_prim_field:
             self._ignore_mesh_ref_field_changed = True
             self.__set_ref_mesh_prim_field()
@@ -606,21 +619,15 @@ class SetupUI:
 
     def __prompt_user_to_copy_usd_asset(self, path: str, layer: Sdf.Layer):
         self.__ignore_ingest_check = True
-
-        # Prompt the user copy the asset or cancel
-        _TrexMessageDialog(
-            title=constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE,
-            message=constants.ASSET_OUTSIDE_OF_PROJ_DIR_MESSAGE,
-            disable_ok_button=False,
-            ok_label=constants.ASSET_OUTSIDE_OF_PROJ_DIR_OK_LABEL,
-            ok_handler=functools.partial(
-                _copy_usd_asset,
-                context=self._context,
-                asset_path=path,
-                callback_func=lambda x: self.set_ref_mesh_field(path=x, change_prim_field=True, layer=layer),
-            ),
-            disable_middle_button=True,
-            disable_cancel_button=False,
+        _accept_asset_if_valid(
+            path,
+            layer,
+            self._core,
+            self._context,
+            lambda x: self.set_ref_mesh_field(path=x, change_prim_field=True, layer=layer),
+            ignore_ingestion_handler=self.__ignore_warning_ingest_asset,
+            cancel_handler=self.__reset_ingest_asset,
+            go_to_ingest_handler=functools.partial(self.__reset_ingest_asset, go_to_ingest=True),
         )
 
     def __set_ref_mesh_prim_field(self):

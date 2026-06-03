@@ -24,9 +24,24 @@ import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.utils.common.asset_utils import is_asset_ingested
 from lightspeed.trex.utils.common.prim_utils import is_material_prototype
+from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.utils.common import path_utils
 from omni.flux.utils.common.omni_url import OmniUrl
 from pxr import Sdf, Usd
+
+from .enums import ReplacementAssetType
+
+_MDL_EXTENSION = ".mdl"
+_REPLACEMENT_EXTENSIONS_BY_TYPE = {
+    ReplacementAssetType.MDL: (_MDL_EXTENSION,),
+    ReplacementAssetType.MESH: tuple(constants.USD_EXTENSIONS),
+    ReplacementAssetType.TEXTURE: tuple(_SUPPORTED_TEXTURE_EXTENSIONS),
+}
+_VALID_REPLACEMENT_EXTENSIONS = (
+    *_REPLACEMENT_EXTENSIONS_BY_TYPE[ReplacementAssetType.MESH],
+    *_REPLACEMENT_EXTENSIONS_BY_TYPE[ReplacementAssetType.MDL],
+    *_REPLACEMENT_EXTENSIONS_BY_TYPE[ReplacementAssetType.TEXTURE],
+)
 
 
 class AssetReplacementsValidators:
@@ -120,6 +135,56 @@ class AssetReplacementsValidators:
             )
 
         return asset_path
+
+    @classmethod
+    def get_replacement_asset_type(cls, asset_path: str) -> ReplacementAssetType:
+        """Get the replacement asset type from an asset path.
+
+        Args:
+            asset_path: Asset path to classify.
+
+        Returns:
+            Replacement asset type matching the asset path extension, or ``ANY`` for unknown extensions.
+        """
+        suffix = OmniUrl(asset_path).suffix.lower()
+        if suffix in constants.USD_EXTENSIONS:
+            return ReplacementAssetType.MESH
+        if suffix == _MDL_EXTENSION:
+            return ReplacementAssetType.MDL
+        if suffix in _SUPPORTED_TEXTURE_EXTENSIONS:
+            return ReplacementAssetType.TEXTURE
+        return ReplacementAssetType.ANY
+
+    @classmethod
+    def get_replacement_asset_extensions(cls, asset_type: ReplacementAssetType) -> tuple[str, ...]:
+        """Get valid replacement file extensions for an asset type.
+
+        Args:
+            asset_type: Replacement asset type.
+
+        Returns:
+            Valid replacement file extensions for the asset type.
+        """
+        if asset_type == ReplacementAssetType.ANY:
+            return _VALID_REPLACEMENT_EXTENSIONS
+        return _REPLACEMENT_EXTENSIONS_BY_TYPE[asset_type]
+
+    @classmethod
+    def is_valid_replacement_asset(cls, asset_path: str, asset_type: ReplacementAssetType) -> bool:
+        """Check whether an asset path is valid for a replacement asset type.
+
+        Args:
+            asset_path: Candidate replacement asset path.
+            asset_type: Replacement asset type to validate against.
+
+        Returns:
+            Whether the candidate is a file with a compatible replacement extension.
+        """
+        replacement_asset_url = OmniUrl(asset_path)
+        return (
+            replacement_asset_url.is_file
+            and replacement_asset_url.suffix.lower() in cls.get_replacement_asset_extensions(asset_type)
+        )
 
     @classmethod
     def layer_is_in_project(cls, layer_id: Path | None, context_name: str):

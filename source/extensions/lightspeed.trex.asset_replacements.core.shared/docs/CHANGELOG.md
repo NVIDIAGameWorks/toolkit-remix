@@ -1,6 +1,17 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.2]
+### Added
+- Added shared typed replacement asset validation helpers
+
+## [3.3.1]
+### Added
+- Added a shared `replace_reference` core method for remove-and-add reference replacement flows.
+
+### Fixed
+- Fixed reference replacement undo so remove-and-add operations are grouped atomically while callers with an outer undo group can opt out.
+
 ## [3.3.0]
 ### Added
 - REMIX-1926: Added `copy_replacement_overrides_to_path` to copy replacement-layer override specs for a prim and all its descendants to a new path, across the replacement layer and all its sublayers

@@ -32,11 +32,12 @@ __all__ = [
     "PrimTypes",
     "ReferenceResponseModel",
     "ReplaceReferenceRequestModel",
+    "ReplacementAssetType",
     "SetSelectionPathParamModel",
     "TexturesResponseModel",
 ]
 
-from .enums import AssetType, DefaultAssetDirectory
+from .enums import AssetType, DefaultAssetDirectory, ReplacementAssetType
 from .models import (
     AppendReferenceRequestModel,
     DirectoryResponseModel,

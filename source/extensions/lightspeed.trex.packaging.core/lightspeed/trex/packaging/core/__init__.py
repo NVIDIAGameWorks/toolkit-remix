@@ -15,7 +15,12 @@
 * limitations under the License.
 """
 
-__all__ = ["ModPackagingSchema", "PackagingCore"]
+__all__ = [
+    "ModPackagingSchema",
+    "PackagingCore",
+    "PackagingRepairCore",
+]
 
 from .items import ModPackagingSchema
 from .packaging import PackagingCore
+from .repair import PackagingRepairCore

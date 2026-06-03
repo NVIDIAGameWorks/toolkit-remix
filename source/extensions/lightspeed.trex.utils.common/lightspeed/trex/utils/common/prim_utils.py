@@ -199,10 +199,7 @@ def is_light_prototype(prim: Usd.Prim) -> bool:
     """
     if not prim:
         return False
-    return bool(
-        (prim.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else prim.IsA(UsdLux.Light))
-        and not is_instance(prim)
-    )
+    return bool(prim.HasAPI(UsdLux.LightAPI) and not is_instance(prim))
 
 
 def is_material_prototype(prim: Usd.Prim) -> bool:
@@ -444,7 +441,7 @@ def get_reference_file_paths(
     # It can happen that we added the same reference multiple time. But USD can't do that.
     # As a workaround, we had to create a xform child and add the reference to it.
     # Check the children and find the attribute that define that
-    for child in prim.GetChildren():
+    for child in prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate):
         is_remix_ref = child.GetAttribute(constants.IS_REMIX_REF_ATTR)
         if is_remix_ref.IsValid():
             ref_and_layers = omni.usd.get_composed_references_from_prim(child, False)

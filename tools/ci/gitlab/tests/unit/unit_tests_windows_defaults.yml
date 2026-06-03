@@ -7,6 +7,7 @@
   needs: []
   before_script:
     - !reference [ .windows_vault, before_script ]
+    - !reference [ .refresh_usd_asset_checkout_windows, before_script ]
     - .\build.bat --rebuild --release
     - .\repo.bat publish_exts --verify
   rules:

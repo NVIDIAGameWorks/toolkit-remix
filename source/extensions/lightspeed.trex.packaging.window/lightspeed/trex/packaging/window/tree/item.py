@@ -17,21 +17,10 @@
 
 __all__ = ["PackagingActions", "PackagingErrorItem"]
 
-from enum import Enum
-
+from lightspeed.trex.packaging.core.repair import PackagingRepairAction as PackagingActions
 from omni import ui
 from omni.flux.utils.common import reset_default_attrs
 from pxr import Sdf
-
-
-class PackagingActions(Enum):
-    """
-    Enum for the actions that can be taken on a packaging error.
-    """
-
-    IGNORE = "Ignore"
-    REPLACE_ASSET = "Replace Asset"
-    REMOVE_REFERENCE = "Remove Reference"
 
 
 class PackagingErrorItem(ui.AbstractItem):
@@ -54,43 +43,55 @@ class PackagingErrorItem(ui.AbstractItem):
 
     @property
     def layer_identifier(self) -> str:
-        """
-        The layer identifier of the packaging error item
+        """Get the layer identifier of the packaging error item.
+
+        Returns:
+            The layer identifier that reported the unresolved asset.
         """
         return self._layer_identifier
 
     @property
     def prim_path(self) -> Sdf.Path:
-        """
-        The prim path of the packaging
+        """Get the prim path of the packaging error item.
+
+        Returns:
+            The prim path that reported the unresolved asset.
         """
         return Sdf.Path(self._prim_path)
 
     @property
     def asset_path(self) -> str:
-        """
-        The original asset path of the packaging error item
+        """Get the original asset path.
+
+        Returns:
+            The unresolved asset path.
         """
         return self._asset_path
 
     @property
     def fixed_asset_path(self) -> str | None:
-        """
-        The fixed asset path of the packaging error item
+        """Get the fixed asset path.
+
+        Returns:
+            The replacement asset path, or ``None`` when the asset should be removed.
         """
         return self._fixed_asset_path
 
     @fixed_asset_path.setter
-    def fixed_asset_path(self, value: str):
-        """
-        Set the fixed asset path of the packaging error item
+    def fixed_asset_path(self, value: str | None):
+        """Set the fixed asset path.
+
+        Args:
+            value: Replacement asset path, original asset path, or ``None`` to remove the asset.
         """
         self._fixed_asset_path = value
 
     @property
     def action(self) -> PackagingActions:
-        """
-        Get the action to be taken on the packaging error item
+        """Get the action to be taken on the packaging error item.
+
+        Returns:
+            The repair action implied by the fixed asset path.
         """
         if not self._fixed_asset_path:
             return PackagingActions.REMOVE_REFERENCE
@@ -99,4 +100,5 @@ class PackagingErrorItem(ui.AbstractItem):
         return PackagingActions.IGNORE
 
     def destroy(self):
+        """Destroy the item and clear attributes."""
         reset_default_attrs(self)

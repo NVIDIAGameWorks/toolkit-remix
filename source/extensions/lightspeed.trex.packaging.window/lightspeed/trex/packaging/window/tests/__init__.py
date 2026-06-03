@@ -15,6 +15,10 @@
 * limitations under the License.
 """
 
+from .e2e.test_window import TestPackagingErrorWindowE2E
 from .unit.test_model import TestPackagingErrorModelUnit
 
-__all__ = ["TestPackagingErrorModelUnit"]
+__all__ = [
+    "TestPackagingErrorModelUnit",
+    "TestPackagingErrorWindowE2E",
+]
