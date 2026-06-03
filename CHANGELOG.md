@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allowed the manual Windows package build job to run even when earlier merge request pipeline stages fail
 - REMIX-5216: Updated particle curve editor button placement to use runtime schema display-group metadata
 - Update hdremix to `ext-01d57f6-main`
+- Update hdremix and omni_core_materials to `ext-40aa278-main`
 
 ### Fixed
 
