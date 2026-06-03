@@ -19,6 +19,7 @@ import abc
 import asyncio
 from functools import partial
 from collections.abc import Callable
+from pathlib import Path
 
 import omni.ui as ui
 import omni.usd
@@ -31,17 +32,18 @@ from omni.flux.utils.widget.gradient import create_gradient as _create_gradient
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 
 from .item_model import ItemBase
-from .model import LayerModel
+from .model import LayerModel, LayerTransferTarget
 
 
 class LayerDelegate(_TreeDelegateBase):
     __DEFAULT_IMAGE_ICON_SIZE = 24
 
-    def __init__(self):
+    def __init__(self, project_layer_transfer_enabled: bool = False):
         super().__init__()
 
         self._initialize_gradient_styles()
         self._initialize_internal_members()
+        self._project_layer_transfer_enabled = project_layer_transfer_enabled
 
         # State changes
         self.__on_item_expanded = _Event()
@@ -53,6 +55,7 @@ class LayerDelegate(_TreeDelegateBase):
         self.__on_visible_clicked = _Event()
         # Right click menu
         self.__on_export_clicked = _Event()
+        self.__on_rename_clicked = _Event()
         self.__on_save_as_clicked = _Event()
         self.__on_merge_clicked = _Event()
         self.__on_transfer_clicked = _Event()
@@ -65,7 +68,6 @@ class LayerDelegate(_TreeDelegateBase):
             {
                 "_background_items": None,
                 "_context_menu_widgets": None,
-                "_primary_selection": None,
                 "_hovered_items": None,
                 "_gradient_frame": None,
                 "_gradient_image_provider": None,
@@ -75,6 +77,11 @@ class LayerDelegate(_TreeDelegateBase):
                 "_sub_on_edit_finished": None,
                 "_new_item_model": None,
                 "_new_item_field_widget": None,
+                "_rename_item": None,
+                "_rename_frames": None,
+                "_rename_field_widget": None,
+                "_sub_on_rename_end_edit": None,
+                "_project_layer_transfer_enabled": None,
                 "_gradient_array": None,
                 "_gradient_array_hovered": None,
                 "_gradient_array_selected": None,
@@ -89,6 +96,18 @@ class LayerDelegate(_TreeDelegateBase):
     @property
     def row_height(self) -> int:
         return self.__DEFAULT_IMAGE_ICON_SIZE
+
+    @staticmethod
+    def _get_item_tooltip(item: ItemBase) -> str:
+        return item.data["layer"].identifier if item.data["layer"] else "Invalid Layer"
+
+    @staticmethod
+    def _get_item_label_name(_item: ItemBase) -> str:
+        return "PropertiesPaneSectionTreeItem"
+
+    @staticmethod
+    def _get_item_label_tooltip(_item: ItemBase) -> str:
+        return ""
 
     def get_scroll_frames(self):
         """
@@ -183,8 +202,11 @@ class LayerDelegate(_TreeDelegateBase):
                             separate_window=True,
                             mouse_pressed_fn=lambda x, y, b, m: self._on_item_mouse_pressed(b, item),
                             mouse_released_fn=lambda x, y, b, m: self._on_item_mouse_released(b, item),
+                            mouse_double_clicked_fn=lambda x, y, b, m: self._on_item_mouse_double_clicked(
+                                b, model, item
+                            ),
                             key_pressed_fn=lambda key, _, pressed: item.on_key_pressed(key, pressed),
-                            tooltip=item.data["layer"].identifier if item.data["layer"] else "Invalid Layer",
+                            tooltip=self._get_item_tooltip(item),
                         ):
                             with ui.ZStack():
                                 if item.data["authoring"]:
@@ -215,7 +237,9 @@ class LayerDelegate(_TreeDelegateBase):
                                     with ui.HStack():
                                         ui.Spacer(width=ui.Pixel(4))
                                         with ui.VStack():
-                                            ui.Label(item.title, name="PropertiesPaneSectionTreeItem")
+                                            self._rename_frames[id(item)] = ui.Frame()
+                                            with self._rename_frames[id(item)]:
+                                                self._build_item_title(model, item)
                                             ui.Spacer(height=ui.Pixel(4))
                                         ui.Spacer(
                                             height=0, width=ui.Pixel(self.__gradient_width / 2)
@@ -236,33 +260,62 @@ class LayerDelegate(_TreeDelegateBase):
         with self._context_menu_widgets[id(item)]:
             if item.data["savable"]:
                 ui.MenuItem(
-                    "Save As",
+                    "Save As...",
                     triggered_fn=partial(self._on_save_as_clicked, item),
                 )
             ui.MenuItem(
-                "Export Layer",
+                "Export Layer...",
                 triggered_fn=partial(self._on_export_clicked, item),
             )
+            rename_menu_item = ui.MenuItem(
+                "Rename Layer...",
+                triggered_fn=partial(self._on_rename_clicked, model, item),
+            )
+            rename_menu_item.enabled = item.data.get("can_rename", False)
+            selected_items = self.selection if item in self.selection else [item]
+            mergeable_layers = [selected_item for selected_item in selected_items if not selected_item.data["locked"]]
+            can_merge_layer_changes = len(mergeable_layers) > 1
+            single_layer_selected = len(selected_items) == 1 and item in selected_items
+            can_transfer_layer_changes = (
+                single_layer_selected and not item.data["locked"] and not item.data["exclude_add_child"]
+            )
+            if can_merge_layer_changes or can_transfer_layer_changes:
+                ui.Separator()
+            if can_merge_layer_changes:
+                ui.MenuItem(
+                    "Merge Selected Layer Modifications into Strongest Layer",
+                    triggered_fn=partial(self._on_merge_clicked, mergeable_layers),
+                )
+            if can_transfer_layer_changes:
+                transfer_menu_label = "Transfer All Layer Modifications to..."
+                if not model.has_layer_changes(item):
+                    transfer_menu_item = ui.MenuItem(
+                        transfer_menu_label,
+                        tooltip="This layer has no modifications to transfer.",
+                    )
+                    transfer_menu_item.enabled = False
+                else:
+                    with ui.MenuItemCollection(transfer_menu_label):
+                        ui.MenuItem(
+                            "New Layer...",
+                            triggered_fn=partial(self._on_transfer_clicked, item, LayerTransferTarget.NEW_LAYER),
+                        )
+                        ui.MenuItem(
+                            "Imported Layer...",
+                            triggered_fn=partial(self._on_transfer_clicked, item, LayerTransferTarget.IMPORTED_LAYER),
+                        )
+                        if self._project_layer_transfer_enabled:
+                            ui.MenuItem(
+                                "Project Layer...",
+                                triggered_fn=partial(
+                                    self._on_transfer_clicked, item, LayerTransferTarget.PROJECT_LAYER
+                                ),
+                            )
+            ui.Separator()
             ui.MenuItem(
                 "Reveal in File Explorer",
                 triggered_fn=lambda: open_file_using_os_default(str(item.data["layer"].realPath)),
             )
-            mergeable_layers = [item for item in self._primary_selection if not item.data["locked"]]
-            if len(mergeable_layers) > 1:
-                ui.MenuItem(
-                    "Merge Layers",
-                    triggered_fn=partial(self._on_merge_clicked, mergeable_layers),
-                )
-            if not item.data["locked"] and not item.data["exclude_add_child"]:
-                with ui.MenuItemCollection("Transfer Overrides to"):
-                    ui.MenuItem(
-                        "New Layer",
-                        triggered_fn=partial(self._on_transfer_clicked, item, False),
-                    )
-                    ui.MenuItem(
-                        "Existing Layer",
-                        triggered_fn=partial(self._on_transfer_clicked, item, True),
-                    )
         self._context_menu_widgets[id(item)].show()
 
     def _build_branch_start_icons(self, model: LayerModel, item: ItemBase):
@@ -390,20 +443,20 @@ class LayerDelegate(_TreeDelegateBase):
         else:
             self.__do_refresh_gradient_color(item, model)
 
-    def on_item_selected(self, primary_items: list[ItemBase], all_items: list[ItemBase], model: LayerModel) -> None:
+    def on_item_selected(self, selected_items: list[ItemBase], all_items: list[ItemBase], model: LayerModel) -> None:
         """
         Callback for when the tree widget selection changed.
 
         Args:
-            primary_items: the selected items
+            selected_items: the selected items
             all_items: all items in the model
             model: the model
         """
-        self._primary_selection = primary_items
+        self.selection = selected_items
         for item in all_items:
             self.refresh_gradient_color(item, model)
             for _, rectangle in self._background_items.get(id(item), []):
-                if item in primary_items:
+                if item in selected_items:
                     style_name = "TreeView.Item.selected"
                 else:
                     style_name = "TreeView.Item"
@@ -431,13 +484,13 @@ class LayerDelegate(_TreeDelegateBase):
         if id(item) not in self._gradient_image_provider:
             return
         is_hovered = self._hovered_items.get(id(item), False)
-        is_selected_primary = item in self._primary_selection
+        is_selected = item in self.selection
         # Default gradient
         self._gradient_image_provider[id(item)].set_bytes_data(
             self._gradient_array.ravel().tolist(), [self.__gradient_width, self.__gradient_height]
         )
         # Override gradients
-        if is_selected_primary:
+        if is_selected:
             self._gradient_image_provider[id(item)].set_bytes_data(
                 self._gradient_array_selected.ravel().tolist(), [self.__gradient_width, self.__gradient_height]
             )
@@ -480,7 +533,7 @@ class LayerDelegate(_TreeDelegateBase):
     def _on_item_hovered(self, hovered, model, item):
         self._hovered_items[id(item)] = hovered
         for _, rectangle in self._background_items.get(id(item), []):
-            if item in self._primary_selection:
+            if item in self.selection:
                 style_name = "TreeView.Item.selected"
             elif hovered and (self._dragged_item is None or model.drop_accepted(item, self._dragged_item)):
                 style_name = "TreeView.Item.IsHovered"
@@ -503,10 +556,47 @@ class LayerDelegate(_TreeDelegateBase):
                 spacer.visible = False
         item.on_mouse_clicked()
 
+    def _on_item_mouse_double_clicked(self, button, model, item):
+        pass
+
     def _on_item_valid_changed(self, is_valid):
         if self._new_item_field_widget is None:
             return
         self._new_item_field_widget.style_type_name_override = "Field" if is_valid else "FieldError"
+
+    def _build_rename_field(self, model: LayerModel, item: ItemBase) -> None:
+        self._rename_field_widget = ui.StringField(
+            height=ui.Pixel(self.__DEFAULT_IMAGE_ICON_SIZE),
+            style_type_name_override="Field",
+        )
+        self._rename_field_widget.model.set_value(self._get_item_file_name(item))
+        self._sub_on_rename_end_edit = self._rename_field_widget.model.subscribe_end_edit_fn(
+            partial(self._on_rename_end_edit, model, item)
+        )
+        self._rename_field_widget.focus_keyboard()
+
+    def _build_item_title(self, model: LayerModel, item: ItemBase) -> None:
+        if item is self._rename_item:
+            self._build_rename_field(model, item)
+            return
+        ui.Label(
+            item.title,
+            name=self._get_item_label_name(item),
+            tooltip=self._get_item_label_tooltip(item),
+        )
+
+    def _rebuild_item_title(self, model: LayerModel, item: ItemBase) -> None:
+        frame = self._rename_frames.get(id(item))
+        if not frame:
+            return
+        frame.clear()
+        with frame:
+            self._build_item_title(model, item)
+
+    async def _deferred_rebuild_item_title(self, model: LayerModel, item: ItemBase) -> None:
+        await omni.kit.app.get_app().next_update_async()
+        if self._rename_frames is not None:
+            self._rebuild_item_title(model, item)
 
     def _item_expanded(self, button: int, model: LayerModel, item: ItemBase, expanded: bool):
         self._item_clicked(button, True, model, item)
@@ -647,6 +737,38 @@ class LayerDelegate(_TreeDelegateBase):
         """
         return _EventSubscription(self.__on_export_clicked, function)
 
+    def _on_rename_clicked(self, model: LayerModel, item):
+        if not item.data.get("can_rename", False):
+            return
+        self._rename_item = item
+        self._rebuild_item_title(model, item)
+
+    def _on_rename_end_edit(self, model: LayerModel, item: ItemBase, value_model) -> None:
+        self._rename_item = None
+        self._rename_field_widget = None
+        self._sub_on_rename_end_edit = None
+        new_name = value_model.get_value_as_string()
+        if new_name != self._get_item_file_name(item):
+            self.__on_rename_clicked(item, new_name)
+        asyncio.ensure_future(self._deferred_rebuild_item_title(model, item))
+
+    @staticmethod
+    def _get_item_file_name(item: ItemBase) -> str:
+        layer = item.data.get("layer") if item and item.data else None
+        return Path(layer.realPath).name if layer and layer.realPath else item.title
+
+    def subscribe_on_rename_clicked(self, function: Callable):
+        """
+        Subscribe to the *on_rename_clicked* event.
+
+        Args:
+            function: the callback to execute when rename editing ends. The callback receives the item and new name.
+
+        Returns:
+            An object that will automatically unsubscribe when destroyed.
+        """
+        return _EventSubscription(self.__on_rename_clicked, function)
+
     def _on_save_as_clicked(self, item):
         if not item.data["savable"]:
             return
@@ -681,8 +803,8 @@ class LayerDelegate(_TreeDelegateBase):
         """
         return _EventSubscription(self.__on_merge_clicked, function)
 
-    def _on_transfer_clicked(self, item, existing):
-        self.__on_transfer_clicked(item, existing)
+    def _on_transfer_clicked(self, item, transfer_target: LayerTransferTarget):
+        self.__on_transfer_clicked(item, transfer_target)
 
     def subscribe_on_transfer_clicked(self, function: Callable):
         """
@@ -699,10 +821,14 @@ class LayerDelegate(_TreeDelegateBase):
     def _initialize_internal_members(self):
         self._dragged_item = None
 
-        self._primary_selection = []
         self._hovered_items = {}
         self._background_items = {}
         self._context_menu_widgets = {}
+        self._project_layer_transfer_enabled = False
+        self._rename_item = None
+        self._rename_frames = {}
+        self._rename_field_widget = None
+        self._sub_on_rename_end_edit = None
 
         self._gradient_frame = {}
         self._gradient_image_provider = {}

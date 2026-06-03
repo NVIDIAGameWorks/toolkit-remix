@@ -40,6 +40,7 @@ from .item_model.edit_group_name import EditGroupNameModel as _EditGroupNameMode
 from .item_model.edit_group_value import EditGroupValueModel as _EditGroupValueModel
 from .item_model.attr_list_model_value import VirtualUsdListModelAttrValueModel as _VirtualUsdListModelAttrValueModel
 from .item_model.attr_name import UsdAttributeNameModel as _UsdAttributeNameModel
+from .item_model.attr_value import UsdAttributeBase as _UsdAttributeBase
 from .item_model.attr_value import UsdAttributeValueModel as _UsdAttributeValueModel
 from .item_model.attr_value import VirtualUsdAttributeValueModel as _VirtualUsdAttributeValueModel
 from .item_model.metadata_list_model_value import UsdListModelAttrMetadataValueModel as _UsdAttributeMetadataValueModel
@@ -112,6 +113,28 @@ class _BaseUSDAttributeItem(_Item):
         """
         return self._attribute_paths
 
+    def get_all_properties(self) -> list["Usd.Property"]:
+        """
+        Get every USD property represented by this item.
+
+        Returns:
+            Valid USD properties the item acts on.
+        """
+        properties: list[Usd.Property] = []
+        seen: set[Sdf.Path] = set()
+
+        def append_property(prop) -> None:
+            if not prop or not prop.IsValid() or prop.GetPath() in seen:
+                return
+            seen.add(prop.GetPath())
+            properties.append(prop)
+
+        for property_path in self._attribute_paths:
+            append_property(self._stage.GetPropertyAtPath(property_path) if self._stage else None)
+        for prop in self.get_all_attributes():
+            append_property(prop)
+        return properties
+
     @property
     def context_name(self) -> str:
         """
@@ -152,21 +175,28 @@ class _BaseUSDAttributeItem(_Item):
                 tooltip = ""
             name_model.set_display_attr_name_tooltip(tooltip)
 
-    def _get_all_attributes(self) -> list["Usd.Attribute"]:
+    def get_all_attributes(self) -> list["Usd.Attribute"]:
+        """
+        Get every USD attribute represented by this item.
+
+        Returns:
+            List of authored USD attributes the item acts on.
+        """
         attributes = set()
         for value_model in self.value_models:
-            attributes = attributes.union(value_model.attributes)
+            if isinstance(value_model, _UsdAttributeBase):
+                attributes.update(value_model.attributes or [])
         return list(attributes)
 
     def delete_all_overrides(self):
-        attributes = self._get_all_attributes()
+        attributes = self.get_all_attributes()
         with Sdf.ChangeBlock():
             for attribute in attributes:
                 _delete_all_overrides(attribute, context_name=self._context_name)
         self.__on_override_removed()
 
     def delete_layer_override(self, layer):
-        attributes = self._get_all_attributes()
+        attributes = self.get_all_attributes()
         with Sdf.ChangeBlock():
             for attribute in attributes:
                 _delete_layer_override(layer, attribute, context_name=self._context_name)
@@ -363,7 +393,7 @@ class USDAttributeXformItem(USDAttributeItem):
 
     def __override_all_xform_ops(self, *_) -> None:
         with omni.kit.undo.group():
-            for attr in self._get_all_attributes():
+            for attr in self.get_all_attributes():
                 omni.kit.commands.execute(
                     "ChangeProperty",
                     prop_path=attr.GetPath(),
@@ -395,12 +425,15 @@ class USDAttributeXformItem(USDAttributeItem):
             return []
         return list({stage.GetPrimAtPath(attribute.GetPrimPath()) for attribute in attributes})
 
-    def _get_all_attributes(self) -> list["Usd.Attribute"]:
+    def get_all_attributes(self) -> list["Usd.Attribute"]:
         """
         Xform items should return all xform attributes, not just the selected attribute.
+
+        Returns:
+            List of authored USD attributes the item acts on.
         """
         attributes = set()
-        for prim in self._get_prims(super()._get_all_attributes()):
+        for prim in self._get_prims(super().get_all_attributes()):
             xformable_prim = UsdGeom.Xformable(prim)
             for op in xformable_prim.GetOrderedXformOps():
                 attributes.add(op.GetAttr())

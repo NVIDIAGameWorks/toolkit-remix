@@ -141,15 +141,19 @@ class TestAssetReplacementsService(AsyncTestCase):
                             "/RootNode/lights/light_9907D0B07D040077",
                             "/RootNode/lights/light_EDF9B59568FD1142",
                             "/RootNode/lights/light_0FBF0D906770A019",
+                            "/RootNode/meshes/mesh_FEE1DEADF00D0001/TransferWorkflowLight",
                             "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh",
                             "/RootNode/meshes/mesh_CED45075A077A49A/mesh",
                             "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankA",
                             "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankB",
+                            "/RootNode/meshes/mesh_FEE1DEADF00D0001/mesh",
+                            "/RootNode/meshes/mesh_FEE1DEADF00D0001/reference_override/Cube_01",
                             "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/AssetImporter/Looks/Cube_01__",
                             "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Looks/CubeMaterial",
                             "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube",
                             "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01",
                             "/RootNode/Looks/mat_BC868CE5A075ABB1",
+                            "/RootNode/Looks/transfer_workflow_material",
                         ]
                     },
                 ),
@@ -176,6 +180,7 @@ class TestAssetReplacementsService(AsyncTestCase):
                             "/RootNode/lights/light_0FBF0D906770A019",
                             "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankA",
                             "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankB",
+                            "/RootNode/meshes/mesh_FEE1DEADF00D0001/TransferWorkflowLight",
                         ]
                     },
                 ),
@@ -191,7 +196,7 @@ class TestAssetReplacementsService(AsyncTestCase):
 
                 # Assert
                 self.assertEqual(response.status_code, 200, msg=response.json())
-                self.assertEqual(str(response.json()).lower(), str(expected_response).lower())
+                self.assertCountEqual(response.json()["prim_paths"], expected_response["prim_paths"])
 
     async def test_get_model_instances_returns_expected_response(self):
         # Arrange

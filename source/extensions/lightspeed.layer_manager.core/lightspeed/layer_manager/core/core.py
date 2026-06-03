@@ -17,7 +17,7 @@
 
 import re
 from asyncio import ensure_future
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -656,6 +656,61 @@ class LayerManagerCore:
             pending = new_layers
 
         return sub_layers
+
+    def get_valid_transfer_target_layers(self) -> Iterator[Sdf.Layer]:
+        """
+        Iterate over unlocked replacement layers that can receive transferred properties.
+
+        Returns:
+            Replacement-layer tree members in sublayer order, excluding locked layers.
+        """
+        replacement_layer = self.get_layer_of_type(LayerType.replacement)
+        if not replacement_layer:
+            return
+
+        for layer in LayerManagerValidators.iter_sublayer_tree(replacement_layer):
+            if not omni.usd.is_layer_locked(self.__context, layer.identifier):
+                yield layer
+
+    def can_transfer_from_layers(
+        self, source_layer_identifiers: Iterable[str], valid_target_layer_identifiers: Iterable[str] | None = None
+    ) -> bool:
+        """
+        Return whether authored specs from the given layers can move to a replacement layer.
+
+        Args:
+            source_layer_identifiers: Layer identifiers that currently author the spec.
+            valid_target_layer_identifiers: Optional already-computed valid target layer identifiers.
+
+        Returns:
+            True if every source layer is a valid transfer layer and at least one valid target can receive the transfer.
+        """
+        source_layer_identifiers = {identifier for identifier in source_layer_identifiers if identifier}
+        if not source_layer_identifiers:
+            return False
+
+        if isinstance(valid_target_layer_identifiers, (set, frozenset)):
+            return source_layer_identifiers.issubset(valid_target_layer_identifiers) and (
+                len(source_layer_identifiers) > 1 or len(valid_target_layer_identifiers) > len(source_layer_identifiers)
+            )
+
+        unmatched_source_layer_identifiers = set(source_layer_identifiers)
+        has_different_target_layer = False
+        target_layer_identifiers = (
+            (layer.identifier for layer in self.get_valid_transfer_target_layers())
+            if valid_target_layer_identifiers is None
+            else valid_target_layer_identifiers
+        )
+        for layer_identifier in target_layer_identifiers:
+            if layer_identifier in unmatched_source_layer_identifiers:
+                unmatched_source_layer_identifiers.remove(layer_identifier)
+            else:
+                has_different_target_layer = True
+            if not unmatched_source_layer_identifiers and (
+                has_different_target_layer or len(source_layer_identifiers) > 1
+            ):
+                return True
+        return False
 
     @staticmethod
     def get_custom_data(layer: Sdf.Layer) -> dict[str, str]:

@@ -256,7 +256,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
-        delete_ref_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+        delete_ref_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='delete_reference'")
 
         # delete
         await delete_ref_image.click()
@@ -336,7 +336,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 2)
 
-        delete_ref_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+        delete_ref_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='delete_reference'")
 
         # delete
         await delete_ref_image.click()
@@ -403,10 +403,10 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNone(ignore_ingestion_button)
         self.assertIsNone(cancel_ingestion_button)
 
-        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='delete_reference'")
 
         # delete
-        await delete_ref_images[1].click()
+        await max(delete_ref_images, key=lambda image: image.center.y).click()
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
@@ -484,7 +484,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertIsNone(ignore_ingestion_button)
         self.assertIsNone(cancel_ingestion_button)
 
-        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
+        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='delete_reference'")
 
         # delete
         await delete_ref_images[0].click()
@@ -770,11 +770,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(current_selection, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DistantLight"])
 
         # now remove 1 light
-        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
-        self.assertEqual(len(delete_ref_images), 3)
+        delete_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='delete_prim'")
+        self.assertEqual(len(delete_prim_images), 2)
 
         # delete
-        await delete_ref_images[1].click()
+        await delete_prim_images[0].click()
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
@@ -794,11 +794,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
 
         # now remove 1 light
-        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
-        self.assertEqual(len(delete_ref_images), 2)
+        delete_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='delete_prim'")
+        self.assertEqual(len(delete_prim_images), 1)
 
         # delete
-        await delete_ref_images[1].click()
+        await delete_prim_images[0].click()
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
@@ -994,8 +994,12 @@ class TestSelectionTreeWidget(AsyncTestCase):
         usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
         await ui_test.human_delay(human_delay_speed=10)
 
-        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
-        self.assertEqual(len(duplicate_images), 1)  # ref item
+        duplicate_reference_images = ui_test.find_all(
+            f"{_window.title}//Frame/**/Image[*].identifier=='duplicate_reference'"
+        )
+        duplicate_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='duplicate_prim'")
+        self.assertEqual(len(duplicate_reference_images), 1)
+        self.assertEqual(len(duplicate_prim_images), 0)
 
         item_add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
         self.assertEqual(len(item_add_buttons), 2)
@@ -1015,14 +1019,20 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await light_disk_button.click()
         await ui_test.human_delay(human_delay_speed=3)
 
-        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
-        self.assertEqual(len(duplicate_images), 2)  # ref item + light
+        stage_light_transfer_images = ui_test.find_all(
+            f"{_window.title}//Frame/**/Image[*].identifier=='stage_light_transfer_overrides'"
+        )
+        delete_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='delete_prim'")
+        duplicate_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='duplicate_prim'")
+        self.assertEqual(len(stage_light_transfer_images), 1)
+        self.assertEqual(len(delete_prim_images), 1)
+        self.assertEqual(len(duplicate_prim_images), 1)
 
-        await duplicate_images[1].click()
+        await duplicate_prim_images[0].click()
         await ui_test.human_delay(human_delay_speed=3)
 
-        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
-        self.assertEqual(len(duplicate_images), 3)  # ref item + light + dup light
+        duplicate_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='duplicate_prim'")
+        self.assertEqual(len(duplicate_prim_images), 2)
 
         # undo
         omni.kit.undo.undo()
@@ -1032,14 +1042,14 @@ class TestSelectionTreeWidget(AsyncTestCase):
             ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/DiskLight"], False
         )
         await ui_test.human_delay(human_delay_speed=3)
-        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
-        self.assertEqual(len(duplicate_images), 2)  # ref item + light
+        duplicate_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='duplicate_prim'")
+        self.assertEqual(len(duplicate_prim_images), 1)
 
         # redo
         omni.kit.undo.redo()
         await ui_test.human_delay(human_delay_speed=3)
-        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
-        self.assertEqual(len(duplicate_images), 3)  # ref item + light + dup light
+        duplicate_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='duplicate_prim'")
+        self.assertEqual(len(duplicate_prim_images), 2)
 
         await self.__destroy(_window, _wid)
 
@@ -1071,9 +1081,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertTrue(original_selection, "Light creation must auto-select the new light")
 
         # Act: duplicate the light via its Duplicate button.
-        duplicate_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='Duplicate'")
-        self.assertEqual(len(duplicate_images), 2)  # ref item + light
-        await duplicate_images[1].click()
+        duplicate_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='duplicate_prim'")
+        self.assertEqual(len(duplicate_prim_images), 1)
+        await duplicate_prim_images[0].click()
         await ui_test.human_delay(human_delay_speed=3)
 
         # Assert: selection is non-empty, moved off the original prim, and remained in the
@@ -1180,11 +1190,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(len(item_groups), 2)  # instance group + live light group
 
         # now remove 1 light
-        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
-        self.assertEqual(len(delete_ref_images), 2)
+        delete_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='delete_prim'")
+        self.assertEqual(len(delete_prim_images), 2)
 
         # delete
-        await delete_ref_images[0].click()
+        await delete_prim_images[0].click()
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
@@ -1193,11 +1203,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(len(item_prims), 1)
 
         # now remove 1 light
-        delete_ref_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
-        self.assertEqual(len(delete_ref_images), 1)
+        delete_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='delete_prim'")
+        self.assertEqual(len(delete_prim_images), 1)
 
         # delete
-        await delete_ref_images[0].click()
+        await delete_prim_images[0].click()
         await ui_test.human_delay(human_delay_speed=3)
 
         # test
@@ -1246,12 +1256,11 @@ class TestSelectionTreeWidget(AsyncTestCase):
         item_prims_before = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertGreaterEqual(len(item_prims_before), 2, "Expected at least 2 prims visible with lights present")
 
-        # Delete the first light prim (trash_buttons[0] is the geometry ref's delete button;
-        # lights start at index 1).  _on_delete_prim sets _is_internal_rebuild=True so
+        # Delete the first light prim. _on_delete_prim sets _is_internal_rebuild=True so
         # _pre_rebuild_expanded_paths is preserved, keeping the Stage light(s) group expanded.
-        trash_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].name=='TrashCan'")
-        self.assertGreaterEqual(len(trash_buttons), 2, "Expected at least 2 TrashCan buttons (ref + light)")
-        await trash_buttons[1].click()
+        delete_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='delete_prim'")
+        self.assertEqual(len(delete_prim_images), 2, "Expected 2 stage light delete buttons")
+        await delete_prim_images[0].click()
         await ui_test.human_delay(human_delay_speed=3)
 
         # The Stage light(s) group must still be expanded — the surviving light must be visible

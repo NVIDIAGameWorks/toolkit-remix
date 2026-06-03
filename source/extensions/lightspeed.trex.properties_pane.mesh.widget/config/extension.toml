@@ -1,5 +1,5 @@
 [package]
-version = "1.4.11"
+version = "1.5.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Mesh Properties implementation for the StageCraft"
 description = "Mesh Properties implementation for NVIDIA RTX Remix StageCraft App"
@@ -17,6 +17,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 "lightspeed.trex.utils.widget" = {}
 "lightspeed.common" = {}
 "omni.client" = {}
+"omni.flux.property_widget_builder.model.usd" = {}
 "omni.flux.properties_pane.properties.usd.widget" = {}
 "omni.flux.properties_pane.transformation.usd.widget" = {}
 "omni.flux.utils.common" = {}

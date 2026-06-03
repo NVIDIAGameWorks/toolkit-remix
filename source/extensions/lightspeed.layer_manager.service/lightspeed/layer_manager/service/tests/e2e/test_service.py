@@ -74,7 +74,25 @@ class TestLayerManagerService(AsyncTestCase):
                                 {
                                     "layer_id": str(project_dir / "replacements.usda"),
                                     "layer_type": "replacement",
-                                    "children": [],
+                                    "children": [
+                                        {
+                                            "layer_id": str(project_dir / "transfer_workflow_target.usda"),
+                                            "layer_type": None,
+                                            "children": [],
+                                        },
+                                        {
+                                            "layer_id": str(project_dir / "transfer_workflow_particle_overrides.usda"),
+                                            "layer_type": None,
+                                            "children": [],
+                                        },
+                                        {
+                                            "layer_id": str(
+                                                project_dir / "transfer_workflow_second_particle_overrides.usda"
+                                            ),
+                                            "layer_type": None,
+                                            "children": [],
+                                        },
+                                    ],
                                 },
                                 {
                                     "layer_id": str(project_dir / "deps" / "captures" / "capture.usda"),
@@ -199,6 +217,11 @@ class TestLayerManagerService(AsyncTestCase):
         new_layer_path_01 = project_dir / "new_layer_01.usda"
         new_layer_path_02 = project_dir / "new_layer_02.usda"
         mod_layer_path = project_dir / "replacements.usda"
+        transfer_workflow_layers = [
+            "./transfer_workflow_target.usda",
+            "./transfer_workflow_particle_overrides.usda",
+            "./transfer_workflow_second_particle_overrides.usda",
+        ]
 
         # Clean up previous tests
         new_layer_path_01.unlink(missing_ok=True)
@@ -239,7 +262,10 @@ class TestLayerManagerService(AsyncTestCase):
             )
 
             mod_layer = self.context.get_stage().GetLayerStack()[2]  # replacements.usda
-            self.assertListEqual(list(mod_layer.subLayerPaths), ["./new_layer_02.usda", "./new_layer_01.usda"])
+            self.assertListEqual(
+                list(mod_layer.subLayerPaths),
+                ["./new_layer_02.usda", *transfer_workflow_layers, "./new_layer_01.usda"],
+            )
 
             # MOVE SUBLAYER
             response = await send_request(
@@ -256,8 +282,8 @@ class TestLayerManagerService(AsyncTestCase):
             self.assertEqual(response.json(), "OK")
 
             mod_layer = self.context.get_stage().GetLayerStack()[2]  # replacements.usda
-            new_layer_01 = self.context.get_stage().GetLayerStack()[3]  # new_layer_01.usda
-            self.assertListEqual(list(mod_layer.subLayerPaths), ["./new_layer_01.usda"])
+            new_layer_01 = Sdf.Layer.FindOrOpen(str(new_layer_path_01))
+            self.assertListEqual(list(mod_layer.subLayerPaths), [*transfer_workflow_layers, "./new_layer_01.usda"])
             self.assertListEqual(list(new_layer_01.subLayerPaths), ["./new_layer_02.usda"])
 
             # LOCK SUBLAYER
@@ -328,7 +354,7 @@ class TestLayerManagerService(AsyncTestCase):
             self.assertEqual(response.json(), "OK")
 
             mod_layer = self.context.get_stage().GetLayerStack()[2]  # replacements.usda
-            self.assertListEqual(list(mod_layer.subLayerPaths), [])
+            self.assertListEqual(list(mod_layer.subLayerPaths), transfer_workflow_layers)
         finally:
             # Clean up
             new_layer_path_01.unlink(missing_ok=True)

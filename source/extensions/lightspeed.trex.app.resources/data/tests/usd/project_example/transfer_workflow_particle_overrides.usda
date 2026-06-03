@@ -1,0 +1,15 @@
+#usda 1.0
+
+over "RootNode"
+{
+    over "meshes"
+    {
+        over "transfer_workflow_particle_definition"
+        {
+            over "mesh"
+            {
+                int primvars:particle:maxNumParticles = 64
+            }
+        }
+    }
+}

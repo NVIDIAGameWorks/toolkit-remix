@@ -280,6 +280,7 @@ class TestLayerManagerCore(AsyncTestCase):
                     LayerCustomData.EXCLUDE_MOVE.value: True,
                     LayerCustomData.EXCLUDE_MUTE.value: True,
                     LayerCustomData.EXCLUDE_REMOVE.value: True,
+                    LayerCustomData.EXCLUDE_RENAME.value: True,
                 },
             },
             LayerType.replacement: {
@@ -981,6 +982,69 @@ class TestLayerManagerCore(AsyncTestCase):
             # Assert
             self.assertEqual(result, expected_layers)
             self.assertEqual(len(result), 5)
+
+    async def test_get_valid_transfer_target_layers_should_return_unlocked_replacement_tree_layers_in_sublayer_order(
+        self,
+    ):
+        # Arrange
+        replacement_layer = Mock(identifier="mod.usda")
+        child_layer = Mock(identifier="materials.usda")
+        grandchild_layer = Mock(identifier="material_overrides.usda")
+        locked_child_layer = Mock(identifier="locked.usda")
+
+        with (
+            patch.object(self.layer_manager, "get_layer_of_type", return_value=replacement_layer),
+            patch.object(
+                LayerManagerValidators,
+                "iter_sublayer_tree",
+                return_value=(replacement_layer, child_layer, grandchild_layer, locked_child_layer),
+            ),
+            patch(
+                "lightspeed.layer_manager.core.core.omni.usd.is_layer_locked",
+                side_effect=lambda _context, identifier: identifier == locked_child_layer.identifier,
+            ),
+        ):
+            # Act
+            target_ids = [layer.identifier for layer in self.layer_manager.get_valid_transfer_target_layers()]
+
+        # Assert
+        self.assertEqual(
+            [replacement_layer.identifier, child_layer.identifier, grandchild_layer.identifier],
+            target_ids,
+        )
+        self.assertNotIn(locked_child_layer.identifier, target_ids)
+
+    async def test_can_transfer_from_layers_should_require_transferable_source_and_target_layers(self):
+        # Arrange
+        valid_target_layer_identifiers = {"mod.usda", "target.usda"}
+
+        for layer_ids, expected_result in (
+            (("mod.usda",), True),
+            (("target.usda",), True),
+            (("mod.usda", "target.usda"), True),
+            (("capture.usda",), False),
+            ((), False),
+        ):
+            with self.subTest(layer_ids=layer_ids):
+                # Act
+                can_transfer = self.layer_manager.can_transfer_from_layers(layer_ids, valid_target_layer_identifiers)
+
+                # Assert
+                self.assertEqual(expected_result, can_transfer)
+
+        with (
+            self.subTest("iterated target layers"),
+            patch.object(
+                self.layer_manager,
+                "get_valid_transfer_target_layers",
+                return_value=iter((Mock(identifier="mod.usda"), Mock(identifier="target.usda"))),
+            ),
+        ):
+            # Act
+            can_transfer = self.layer_manager.can_transfer_from_layers(("mod.usda",))
+
+            # Assert
+            self.assertTrue(can_transfer)
 
     async def test_get_layer_hashes_no_comp_arcs_is_staticmethod(self):
         # Verify the method never uses self and is correctly decorated @staticmethod.

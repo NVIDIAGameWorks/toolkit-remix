@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0]
+### Added
+- Added layer-transfer callback forwarding for material property menus.
+
 ## [2.1.6]
 ### Added
 - Added real material texture field E2E coverage for deferred refresh on edit completion

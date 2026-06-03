@@ -26,7 +26,7 @@ class CaptureBakerLayer(ILayer):
     Layer type representing the Remix capture-baker scratch layer.
 
     This layer is fully locked down via its customLayerData: all edit operations
-    (add child, edit target, lock, move, mute, and remove) are excluded by default
+    (add child, edit target, lock, move, mute, remove, and rename) are excluded by default
     so the user cannot accidentally modify it through normal layer-manager actions.
     """
 
@@ -51,6 +51,7 @@ class CaptureBakerLayer(ILayer):
                 _LayerCustomData.EXCLUDE_MOVE.value: True,
                 _LayerCustomData.EXCLUDE_MUTE.value: True,
                 _LayerCustomData.EXCLUDE_REMOVE.value: True,
+                _LayerCustomData.EXCLUDE_RENAME.value: True,
             },
         }
 

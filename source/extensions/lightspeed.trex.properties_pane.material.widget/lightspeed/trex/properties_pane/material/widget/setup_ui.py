@@ -46,6 +46,7 @@ from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIO
 from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP as _TEXTURE_TYPE_INPUT_MAP
 from omni.flux.properties_pane.materials.usd.widget import MaterialPropertyWidget as _MaterialPropertyWidget
 from omni.flux.property_widget_builder.model.usd import FileTexturePicker as _FileTexturePicker
+from omni.flux.property_widget_builder.model.usd import BuildLayerTransferMenu as _BuildLayerTransferMenu
 from omni.flux.property_widget_builder.model.usd import USDBuilderList as _USDBuilderList
 from omni.flux.property_widget_builder.model.usd import mapping as _mapping
 from omni.flux.property_widget_builder.model.usd import utils as usd_properties_utils
@@ -70,8 +71,17 @@ class SetupUI:
     _WIDGET_PADDING = 16
     MAT_PROP_FRAME = "material_property_frame"
 
-    def __init__(self, context_name: str):
-        """Nvidia StageCraft Viewport UI"""
+    def __init__(
+        self,
+        context_name: str,
+        layer_transfer_menu_fn: _BuildLayerTransferMenu | None = None,
+    ):
+        """Create the material properties widget.
+
+        Args:
+            context_name: USD context name containing the stage.
+            layer_transfer_menu_fn: Callback that adds property-layer transfer actions to property row menus.
+        """
 
         self._default_attr = {
             "_context_name": None,
@@ -84,6 +94,7 @@ class SetupUI:
             "_current_material_mdl_file_label": None,
             "_frame_material_widget": None,
             "_material_properties_widget": None,
+            "_layer_transfer_menu_fn": None,
             "_frame_combobox_materials": None,
             "_convert_opaque_button": None,
             "_convert_translucent_button": None,
@@ -96,6 +107,7 @@ class SetupUI:
 
         self._context_name = context_name
         self._context = usd.get_context(self._context_name)
+        self._layer_transfer_menu_fn = layer_transfer_menu_fn
         self._asset_replacement_core = _AssetReplacementsCore(context_name)
         self._core = _MaterialCore(context_name)
         self.set_external_drag_and_drop()  # disable REMIX-3008
@@ -219,6 +231,7 @@ class SetupUI:
                         right_aligned_labels=False,
                         create_color_space_attributes=False,
                         field_builders=self.get_custom_field_builders(),
+                        layer_transfer_menu_fn=self._layer_transfer_menu_fn,
                     )
 
         self._sub_on_material_refresh_done = self._material_properties_widget.subscribe_refresh_done(

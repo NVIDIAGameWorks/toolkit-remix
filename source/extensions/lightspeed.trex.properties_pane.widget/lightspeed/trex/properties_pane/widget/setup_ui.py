@@ -15,13 +15,15 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 __all__ = ["AssetReplacementsPane", "CollapsiblePanels"]
 
 import functools
+from collections.abc import Callable, Sequence
 from enum import Enum
 from pathlib import Path
 from typing import Any
-from collections.abc import Callable
 
 import omni.client
 import omni.usd
@@ -40,10 +42,16 @@ from lightspeed.trex.properties_pane.mesh.widget import SetupUI as _MeshProperti
 from lightspeed.trex.properties_pane.particle.widget import (
     ParticleSystemPropertyWidget as _ParticleSystemPropertyWidget,
 )
+from lightspeed.trex.property_transfer.widget import PropertyTransferWindow as _PropertyTransferWindow
 from lightspeed.trex.replacement.core.shared import Setup as _AssetReplacementCore
 from lightspeed.trex.replacement.core.shared.layers import AssetReplacementLayersCore as _AssetReplacementLayersCore
 from lightspeed.trex.selection_tree.widget import SetupUI as _SelectionTreeWidget
 from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
+from lightspeed.trex.utils.common.prim_utils import get_transferable_prim_specs as _get_transferable_prim_specs
+from lightspeed.trex.utils.common.prim_utils import get_transferable_property_specs as _get_transferable_property_specs
+from lightspeed.trex.utils.common.prim_utils import (
+    get_transferable_reference_specs as _get_transferable_reference_specs,
+)
 from lightspeed.trex.utils.common.prim_utils import is_a_prototype as _is_a_prototype
 from lightspeed.trex.utils.common.prim_utils import is_instance as _is_instance
 from lightspeed.trex.utils.common.prim_utils import is_material_prototype as _is_material_prototype
@@ -60,6 +68,7 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.prims import unique_prim_sequence as _unique_prim_sequence
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import (
+    PropertyCollapsableFrameAction as _PropertyCollapsableFrameAction,
     PropertyCollapsableFrameWithInfoPopup as _PropertyCollapsableFrameWithInfoPopup,
 )
 from pxr import Sdf, Tf, Usd, UsdGeom
@@ -84,6 +93,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         self._default_attr = {
             "_replacement_core": None,
             "_layers_core": None,
+            "_layer_manager": None,
             "root_widget": None,
             "_layer_tree_widget": None,
             "_bookmark_tree_widget": None,
@@ -103,6 +113,8 @@ class AssetReplacementsPane(_WorkspaceWidget):
             "_particle_properties_collapsable_frame": None,
             "_logic_graph_properties_collapsable_frame": None,
             "_sub_tree_selection_changed": None,
+            "_sub_transfer_reference": None,
+            "_sub_transfer_prim": None,
             "_sub_frame_prim": None,
             "_sub_go_to_ingest_tab1": None,
             "_sub_go_to_ingest_tab2": None,
@@ -111,6 +123,8 @@ class AssetReplacementsPane(_WorkspaceWidget):
             "_usd_context": None,
             "_layer_validation_error_msg": None,
             "_collapsible_frame_states": None,
+            "_property_transfer_window": None,
+            "_context_menu": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -119,6 +133,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         self._usd_context = omni.usd.get_context(context_name)
         self._replacement_core = _AssetReplacementCore(context_name)
         self._layers_core = _AssetReplacementLayersCore(context_name)
+        self._layer_manager = _LayerManagerCore(context_name)
         self._material_core = _MaterialCore(context_name)
 
         self._material_converted_sub = None
@@ -136,6 +151,112 @@ class AssetReplacementsPane(_WorkspaceWidget):
         if not self._window_visible:
             return
         self.__on_go_to_ingest_tab()
+
+    def _build_layer_transfer_menu(
+        self, model, item, property_stack: list[Sdf.PropertySpec], sub_layers: set[str], enabled: bool
+    ) -> None:
+        if not enabled:
+            return
+
+        valid_layer_identifiers = {layer.identifier for layer in self._layer_manager.get_valid_transfer_target_layers()}
+        transfer_stack = _get_transferable_property_specs(property_stack, valid_layer_identifiers, sub_layers)
+        if not transfer_stack or not self._layer_manager.can_transfer_from_layers(
+            (spec.layer.identifier for spec in transfer_stack), valid_layer_identifiers
+        ):
+            return
+
+        ui.Separator()
+        ui.MenuItem(
+            "Transfer This Property Modification to Layer...",
+            triggered_fn=functools.partial(
+                self._show_transfer_window,
+                transfer_stack,
+                display_name=item.name_models[0].get_value_as_string() if item.name_models else "",
+            ),
+        )
+
+    def _show_transfer_window(
+        self,
+        transfer_stack: Sequence[Sdf.Spec],
+        transfer_kind: str = "property",
+        reference_to_transfer: Sdf.Reference | None = None,
+        display_name: str = "",
+    ) -> None:
+        if not transfer_stack:
+            return
+        if self._property_transfer_window is not None:
+            self._property_transfer_window.destroy()
+        self._property_transfer_window = _PropertyTransferWindow(
+            self._context_name,
+            transfer_stack,
+            transfer_kind=transfer_kind,
+            reference_to_transfer=reference_to_transfer,
+            display_name=display_name,
+        )
+
+    def _show_layer_transfer_window(self, item) -> None:
+        layer = item.data["layer"] if item and item.data else None
+        if not layer:
+            return
+        self._show_transfer_window(
+            tuple(layer.rootPrims.values()),
+            transfer_kind="layer",
+            display_name=item.title,
+        )
+
+    def _show_prim_transfer_window(self, item) -> None:
+        prim = item if isinstance(item, Usd.Prim) else item.prim
+        valid_layer_identifiers = {layer.identifier for layer in self._layer_manager.get_valid_transfer_target_layers()}
+        transfer_stack = _get_transferable_prim_specs(prim, valid_layer_identifiers)
+        self._show_transfer_window(transfer_stack, transfer_kind="prim", display_name=prim.GetName())
+
+    def _show_particle_system_transfer_menu(self) -> None:
+        transfer_stack, _ = self._get_particle_system_transfer_data()
+        if not transfer_stack:
+            return
+        if self._context_menu is not None:
+            self._context_menu.destroy()
+        self._context_menu = ui.Menu("Transfer Menu")
+        with self._context_menu:
+            ui.MenuItem(
+                "Transfer definition to...",
+                triggered_fn=functools.partial(
+                    self._show_transfer_window,
+                    transfer_stack,
+                    transfer_kind="prim",
+                    display_name="Particle System",
+                ),
+            )
+        self._context_menu.show()
+
+    def _get_particle_system_transfer_data(self) -> tuple[tuple[Sdf.PrimSpec, ...], set[str]]:
+        prim_specs = {}
+        particle_system_prims, _ = self._get_particle_selection_prims()
+        if not particle_system_prims:
+            return (), set()
+        valid_layer_identifiers = {layer.identifier for layer in self._layer_manager.get_valid_transfer_target_layers()}
+        if not valid_layer_identifiers:
+            return (), valid_layer_identifiers
+        for prim in particle_system_prims:
+            for prim_spec in _get_transferable_prim_specs(prim, valid_layer_identifiers):
+                prim_specs.setdefault((prim_spec.layer.identifier, prim_spec.path), prim_spec)
+        return tuple(prim_specs.values()), valid_layer_identifiers
+
+    def _can_transfer_particle_system_definition(self) -> bool:
+        transfer_stack, valid_layer_identifiers = self._get_particle_system_transfer_data()
+        return bool(transfer_stack) and self._layer_manager.can_transfer_from_layers(
+            (spec.layer.identifier for spec in transfer_stack), valid_layer_identifiers
+        )
+
+    def _show_reference_transfer_window(self, item) -> None:
+        valid_layer_identifiers = {layer.identifier for layer in self._layer_manager.get_valid_transfer_target_layers()}
+        transfer_stack = _get_transferable_reference_specs(item.prim, item.ref, valid_layer_identifiers)
+        self._show_transfer_window(
+            transfer_stack,
+            transfer_kind="reference",
+            reference_to_transfer=item.ref,
+            display_name=item.path,
+        )
 
     def subscribe_go_to_ingest_tab(self, func):
         """
@@ -191,8 +312,12 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                     exclude_edit_target_fn=self._layers_core.get_layers_exclude_edit_target,
                                     exclude_add_child_fn=self._layers_core.get_layers_exclude_add_child,
                                     exclude_move_fn=self._layers_core.get_layers_exclude_move,
+                                    exclude_rename_fn=self._layers_core.get_layers_exclude_rename,
                                 )
-                                self._layer_tree_widget = _LayerTreeWidget(model=model)
+                                self._layer_tree_widget = _LayerTreeWidget(
+                                    model=model,
+                                    project_layer_transfer_fn=self._show_layer_transfer_window,
+                                )
                             self._layer_collapsable_frame.root.set_collapsed_changed_fn(
                                 functools.partial(
                                     self.__on_collapsable_frame_changed,
@@ -280,8 +405,8 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 "- Will show different property depending of the selection from the "
                                 "selection panel above. If the selection panel is hiding, it will show nothing.\n"
                                 "- A blue circle tells that the property has a different value than the default one.\n"
-                                "- A darker background tells that the property has override(s) from layer(s).\n"
-                                "- Override(s) can be removed. The list shows the stronger layer (top) to "
+                                "- A darker background tells that the property has modification(s) from layer(s).\n"
+                                "- Modification(s) can be removed. The list shows the stronger layer (top) to "
                                 "the weaker layer (bottom).\n",
                                 collapsed=False,
                                 pinnable=True,
@@ -290,7 +415,10 @@ class AssetReplacementsPane(_WorkspaceWidget):
                             )
                             self._collapsible_frame_states[CollapsiblePanels.MESH_PROPERTIES] = True
                             with self._mesh_properties_collapsable_frame:
-                                self._mesh_properties_widget = _MeshPropertiesWidget(self._context_name)
+                                self._mesh_properties_widget = _MeshPropertiesWidget(
+                                    self._context_name,
+                                    layer_transfer_menu_fn=self._build_layer_transfer_menu,
+                                )
                             self._mesh_properties_collapsable_frame.root.set_collapsed_changed_fn(
                                 functools.partial(
                                     self.__on_collapsable_frame_changed,
@@ -308,17 +436,30 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 "- Will show material properties depending of the selection from the "
                                 "selection panel above. If the selection panel is hiding, it will show nothing.\n"
                                 "- A blue circle tells that the property has a different value than the default one.\n"
-                                "- A darker background tells that the property has override(s) from layer(s).\n"
-                                "- Override(s) can be removed. The list shows the stronger layer (top) to "
+                                "- A darker background tells that the property has modification(s) from layer(s).\n"
+                                "- Modification(s) can be removed. The list shows the stronger layer (top) to "
                                 "the weaker layer (bottom).\n",
                                 collapsed=False,
                                 pinnable=True,
                                 pinned_text_fn=self._get_material_selection_pin_name,
                                 unpinned_fn=self._refresh_material_properties_widget,
+                                actions=[
+                                    _PropertyCollapsableFrameAction(
+                                        name="More",
+                                        disabled_name="MoreDisabled",
+                                        clicked_fn=lambda: None,
+                                        tooltip="Use a modified material property row's action menu to transfer property modifications.",
+                                        enabled_fn=lambda: False,
+                                        identifier="material_properties_transfer_overrides",
+                                    )
+                                ],
                             )
                             self._collapsible_frame_states[CollapsiblePanels.MATERIAL_PROPERTIES] = True
                             with self._material_properties_collapsable_frame:
-                                self._material_properties_widget = _MaterialPropertiesWidget(self._context_name)
+                                self._material_properties_widget = _MaterialPropertiesWidget(
+                                    self._context_name,
+                                    layer_transfer_menu_fn=self._build_layer_transfer_menu,
+                                )
                                 self._material_converted_sub = (
                                     self._material_properties_widget.subscribe_on_material_changed(
                                         self._refresh_material_properties_widget
@@ -345,6 +486,21 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 pinnable=True,
                                 pinned_text_fn=self._get_particle_selection_pin_name,
                                 unpinned_fn=self._refresh_particle_properties_widget,
+                                actions=[
+                                    _PropertyCollapsableFrameAction(
+                                        name="More",
+                                        disabled_name="MoreDisabled",
+                                        clicked_fn=self._show_particle_system_transfer_menu,
+                                        tooltip=lambda: (
+                                            "Transfer this particle system definition to another layer."
+                                            if self._can_transfer_particle_system_definition()
+                                            else "Select an existing particle system, or use a modified particle "
+                                            "property row to transfer property modifications."
+                                        ),
+                                        enabled_fn=self._can_transfer_particle_system_definition,
+                                        identifier="particle_properties_transfer_overrides",
+                                    )
+                                ],
                             )
                             self._collapsible_frame_states[CollapsiblePanels.PARTICLE_PROPERTIES] = True
                             with self._particle_properties_collapsable_frame:
@@ -356,6 +512,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                     ],
                                     right_aligned_labels=False,
                                     columns_resizable=True,
+                                    layer_transfer_menu_fn=self._build_layer_transfer_menu,
                                 )
 
                             self._particle_properties_collapsable_frame.root.set_collapsed_changed_fn(
@@ -390,6 +547,8 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                     ],
                                     right_aligned_labels=False,
                                     columns_resizable=True,
+                                    layer_transfer_menu_fn=self._build_layer_transfer_menu,
+                                    logic_graph_transfer_fn=self._show_prim_transfer_window,
                                 )
 
                             self._logic_properties_collapsable_frame.root.set_collapsed_changed_fn(
@@ -407,6 +566,10 @@ class AssetReplacementsPane(_WorkspaceWidget):
         self._sub_tree_selection_changed = self._selection_tree_widget.subscribe_tree_selection_changed(
             self._on_tree_selection_changed
         )
+        self._sub_transfer_reference = self._selection_tree_widget.subscribe_transfer_reference(
+            self._show_reference_transfer_window
+        )
+        self._sub_transfer_prim = self._selection_tree_widget.subscribe_transfer_prim(self._show_prim_transfer_window)
         self._sub_frame_prim = self._selection_tree_widget.subscribe_frame_prim(self._on_frame_prim)
 
         self._sub_go_to_ingest_tab1 = self._mesh_properties_widget.subscribe_go_to_ingest_tab(self._go_to_ingest_tab)
@@ -492,8 +655,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         """
         Get a formatted name of the current USD particle selection for the pin label.
         """
-        prims = self._get_prims_from_selection(prototypes_only=True)
-        particle_prims = [prim for prim in prims if (prim.IsValid() and prim.HasAPI(_PARTICLE_SCHEMA_NAME))]
+        particle_prims, _ = self._get_particle_selection_prims(prototypes_only=True)
         particle_count = len(particle_prims)
         if particle_count == 0:
             return "No Particle Systems"
@@ -501,6 +663,26 @@ class AssetReplacementsPane(_WorkspaceWidget):
             f"{particle_count} Particle System{'s' if particle_count > 1 else ''} "
             f"{self._format_prim_names_for_pin(particle_prims)}"
         )
+
+    def _get_particle_selection_prims(self, prototypes_only: bool = False) -> tuple[list[Usd.Prim], list[Usd.Prim]]:
+        stage = self._usd_context.get_stage()
+        if not stage:
+            return [], []
+
+        particle_system_prims: list[Usd.Prim] = []
+        valid_target_prims: list[Usd.Prim] = []
+        for prim in self._get_prims_from_selection(prototypes_only=prototypes_only):
+            normalized_target = self._normalize_particle_selection_target(prim)
+            if normalized_target is None:
+                continue
+
+            normalized_prim = stage.GetPrimAtPath(normalized_target)
+            if normalized_prim.IsValid() and normalized_prim.HasAPI(_PARTICLE_SCHEMA_NAME):
+                particle_system_prims.append(normalized_prim)
+                continue
+            valid_target_prims.append(normalized_prim)
+
+        return _unique_prim_sequence(particle_system_prims), _unique_prim_sequence(valid_target_prims)
 
     @staticmethod
     def _normalize_particle_selection_target(prim: Usd.Prim) -> Sdf.Path | None:
@@ -643,25 +825,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
         if not self._particle_properties_widget:
             return
 
-        selected_prims = self._get_prims_from_selection()
-        particle_system_prims: list[Usd.Prim] = []
-        valid_target_prims: list[Usd.Prim] = []
-
-        # Filter for RemixParticleSystem prims and valid target prims
-        stage = self._usd_context.get_stage()
-        for prim in selected_prims:
-            normalized_target = self._normalize_particle_selection_target(prim)
-            if normalized_target is None:
-                continue
-
-            normalized_prim = stage.GetPrimAtPath(normalized_target)
-            if normalized_prim.IsValid() and normalized_prim.HasAPI(_PARTICLE_SCHEMA_NAME):
-                particle_system_prims.append(normalized_prim)
-                continue
-            valid_target_prims.append(normalized_prim)
-
-        particle_system_prims = _unique_prim_sequence(particle_system_prims)
-        valid_target_prims = _unique_prim_sequence(valid_target_prims)
+        particle_system_prims, valid_target_prims = self._get_particle_selection_prims()
         particle_system_paths = [str(prim.GetPath()) for prim in particle_system_prims]
         particle_system_path_set = set(particle_system_paths)
         valid_target_paths = [
@@ -729,4 +893,10 @@ class AssetReplacementsPane(_WorkspaceWidget):
             self.refresh()
 
     def destroy(self):
+        if self._property_transfer_window is not None:
+            self._property_transfer_window.destroy()
+        if self._context_menu is not None:
+            self._context_menu.destroy()
+        if self._layer_manager is not None:
+            self._layer_manager.destroy()
         _reset_default_attrs(self)

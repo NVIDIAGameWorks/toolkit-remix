@@ -21,6 +21,7 @@ from contextlib import nullcontext
 import re
 import typing
 import uuid
+from collections.abc import Callable, Sequence
 
 import carb
 import omni.client
@@ -48,6 +49,7 @@ from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.utils.dialog import ErrorPopup
+from omni.kit.usd_undo import UsdLayerUndo as _UsdLayerUndo
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
 from pxr import Sdf, Usd, UsdGeom, UsdShade, UsdSkel
 
@@ -1048,6 +1050,314 @@ class Setup:
                 customData=ref.customData,
             )
         return ref
+
+    def transfer_property_spec_to_layer(
+        self,
+        property_path: str,
+        source_layer_identifiers: Sequence[str],
+        target_layer_identifier: str,
+    ) -> list[_UsdLayerUndo] | None:
+        """
+        Flatten a composed property value to a target layer and remove selected source specs.
+
+        Args:
+            property_path: USD property path to transfer.
+            source_layer_identifiers: Explicit source layers to move; this preserves unrelated definition or
+                modification specs that can exist on the same USD path.
+            target_layer_identifier: Layer that should receive the flattened property value.
+
+        Returns:
+            USD layer undo reservations when the transfer succeeds; ``None`` when validation fails.
+        """
+        spec_path = Sdf.Path(property_path) if property_path else Sdf.Path.emptyPath
+        if not spec_path.IsPropertyPath():
+            return None
+
+        transfer_layers = self.__get_spec_transfer_layers(
+            spec_path,
+            source_layer_identifiers,
+            target_layer_identifier,
+            lambda layer: layer.GetPropertyAtPath(spec_path) is not None,
+        )
+        if transfer_layers is None:
+            return None
+        stage, target_layer, source_layers = transfer_layers
+
+        prop = stage.GetPropertyAtPath(spec_path)
+        if not prop or not prop.IsValid():
+            return None
+
+        def transfer_property(layer_undos: list[_UsdLayerUndo]) -> bool:
+            self.__reserve_layer_prim_path_and_ancestors(layer_undos, target_layer, spec_path.GetPrimPath())
+            for layer in source_layers:
+                self.__reserve_layer_path(layer_undos, layer, spec_path)
+            with Usd.EditContext(stage, stage.GetEditTargetForLocalLayer(target_layer)):
+                # FlattenTo authors the currently composed value. Existing target values are preserved when they
+                # are strongest, otherwise the strongest selected source value is flattened onto the target.
+                if not prop.FlattenTo(prop.GetPrim(), spec_path.name):
+                    return False
+            for layer in source_layers:
+                self.__remove_spec(layer_undos, layer, spec_path)
+            return True
+
+        return self.__transfer_specs_with_rollback(transfer_property)
+
+    def transfer_prim_definition_spec_to_layer(
+        self,
+        prim_path: str,
+        source_layer_identifiers: Sequence[str],
+        target_layer_identifier: str,
+    ) -> list[_UsdLayerUndo] | None:
+        """
+        Copy selected prim definition specs to a target layer and remove selected source specs.
+
+        Args:
+            prim_path: USD prim path to transfer.
+            source_layer_identifiers: Explicit source layers whose authored prim specs should be removed.
+            target_layer_identifier: Layer that should receive the prim definition.
+
+        Returns:
+            USD layer undo reservations when the transfer succeeds; ``None`` when validation fails.
+        """
+        spec_path = Sdf.Path(prim_path) if prim_path else Sdf.Path.emptyPath
+        if not spec_path.IsPrimPath():
+            return None
+
+        transfer_layers = self.__get_spec_transfer_layers(
+            spec_path,
+            source_layer_identifiers,
+            target_layer_identifier,
+            lambda layer: layer.GetPrimAtPath(spec_path) is not None,
+        )
+        if transfer_layers is None:
+            return None
+        stage, target_layer, source_layers = transfer_layers
+
+        prim = stage.GetPrimAtPath(spec_path)
+        if not prim or not prim.IsValid():
+            return None
+
+        def transfer_prim(layer_undos: list[_UsdLayerUndo]) -> bool:
+            self.__reserve_layer_prim_path_and_ancestors(layer_undos, target_layer, spec_path)
+            for layer in source_layers:
+                self.__reserve_layer_path(layer_undos, layer, spec_path)
+            target_spec_paths: set[Sdf.Path] = set()
+            target_layer.Traverse(spec_path, target_spec_paths.add)
+            # Copy selected prim specs only, not each source layer's sublayer stack. Property overrides authored on
+            # other layers stay separate modification transfers.
+            for layer in reversed(source_layers):
+                # Source layers are strongest-to-weakest, so author weak specs first and let stronger specs win.
+                if not self.__copy_prim_spec_to_target(layer, target_layer, spec_path, target_spec_paths):
+                    return False
+            for layer in source_layers:
+                self.__remove_spec(layer_undos, layer, spec_path)
+            return True
+
+        return self.__transfer_specs_with_rollback(transfer_prim)
+
+    def transfer_reference_spec_to_layer(
+        self,
+        prim_path: str,
+        reference: Sdf.Reference,
+        source_layer_identifiers: Sequence[str],
+        target_layer_identifier: str,
+    ) -> list[_UsdLayerUndo] | None:
+        """
+        Copy a selected reference list edit to a target layer and remove selected source edits.
+
+        Args:
+            prim_path: USD prim path owning the reference edit.
+            reference: Specific reference list edit to transfer; a prim path can author more than one reference.
+            source_layer_identifiers: Explicit source layers whose matching reference edits should be removed.
+            target_layer_identifier: Layer that should receive the reference edit.
+
+        Returns:
+            USD layer undo reservations when the transfer succeeds; ``None`` when validation fails.
+        """
+        spec_path = Sdf.Path(prim_path) if prim_path else Sdf.Path.emptyPath
+        if not source_layer_identifiers or not spec_path.IsPrimPath() or reference is None:
+            return None
+
+        transfer_layers = self.__get_spec_transfer_layers(
+            spec_path,
+            source_layer_identifiers,
+            target_layer_identifier,
+            lambda layer: self.__has_reference(layer, spec_path, reference),
+        )
+        if transfer_layers is None:
+            return None
+        _stage, target_layer, source_layers = transfer_layers
+        absolute_asset_paths = {
+            source_layer.ComputeAbsolutePath(reference.assetPath).replace("\\", "/")
+            for source_layer in source_layers
+            if reference.assetPath
+        }
+        if len(absolute_asset_paths) > 1:
+            return None
+
+        def transfer_reference(layer_undos: list[_UsdLayerUndo]) -> bool:
+            self.__reserve_layer_prim_path_and_ancestors(layer_undos, target_layer, spec_path)
+            for source_layer in source_layers:
+                self.__reserve_layer_path(layer_undos, source_layer, spec_path)
+            # Reference edits are list operations, not flattenable property values. Merge only sources that resolve
+            # to one asset, then re-anchor the reference path relative to the selected target layer.
+            target_reference = (
+                self.__anchor_reference_asset_path_to_layer(reference, source_layers[0], target_layer)
+                if reference.assetPath
+                else reference
+            )
+            if not self.__has_reference(target_layer, spec_path, target_reference):
+                Sdf.CreatePrimInLayer(target_layer, spec_path).referenceList.Append(target_reference)
+            for source_layer in source_layers:
+                prim_spec = source_layer.GetPrimAtPath(spec_path)
+                if prim_spec:
+                    prim_spec.referenceList.RemoveItemEdits(reference)
+            return True
+
+        return self.__transfer_specs_with_rollback(transfer_reference)
+
+    @staticmethod
+    def undo_spec_transfer(layer_undos: Sequence[_UsdLayerUndo]) -> None:
+        """
+        Undo a previous spec transfer.
+
+        Args:
+            layer_undos: USD layer undo reservations returned by a transfer method.
+        """
+        if not layer_undos:
+            return
+        for layer_undo in reversed(layer_undos):
+            layer_undo.undo()
+
+    def __get_spec_transfer_layers(
+        self,
+        spec_path: Sdf.Path,
+        source_layer_identifiers: Sequence[str],
+        target_layer_identifier: str,
+        has_spec_fn: Callable[[Sdf.Layer], bool],
+    ) -> tuple[Usd.Stage, Sdf.Layer, list[Sdf.Layer]] | None:
+        stage = self._context.get_stage()
+        target_layer = Sdf.Layer.FindOrOpen(target_layer_identifier)
+        if not stage or not target_layer or not stage.HasLocalLayer(target_layer):
+            return None
+        if omni.usd.is_layer_locked(self._context, target_layer.identifier):
+            return None
+        source_layers = []
+        for layer_identifier in dict.fromkeys(source_layer_identifiers or ()):
+            if layer_identifier == target_layer.identifier:
+                continue
+            source_layer = Sdf.Layer.FindOrOpen(layer_identifier)
+            if (
+                source_layer is None
+                or not stage.HasLocalLayer(source_layer)
+                or omni.usd.is_layer_locked(self._context, source_layer.identifier)
+                or not has_spec_fn(source_layer)
+            ):
+                return None
+            source_layers.append(source_layer)
+        return (stage, target_layer, source_layers) if source_layers else None
+
+    def __transfer_specs_with_rollback(
+        self, transfer_fn: Callable[[list[_UsdLayerUndo]], bool]
+    ) -> list[_UsdLayerUndo] | None:
+        layer_undos: list[_UsdLayerUndo] = []
+        with Sdf.ChangeBlock():
+            if transfer_fn(layer_undos):
+                return layer_undos
+            self.undo_spec_transfer(layer_undos)
+            return None
+
+    @staticmethod
+    def __reserve_layer_path(layer_undos: list[_UsdLayerUndo], layer: Sdf.Layer, path: Sdf.Path) -> None:
+        layer_undo = _UsdLayerUndo(layer)
+        layer_undo.reserve(path)
+        layer_undos.append(layer_undo)
+
+    @classmethod
+    def __reserve_layer_prim_path_and_ancestors(
+        cls, layer_undos: list[_UsdLayerUndo], layer: Sdf.Layer, prim_path: Sdf.Path
+    ) -> None:
+        while prim_path != Sdf.Path.absoluteRootPath:
+            cls.__reserve_layer_path(layer_undos, layer, prim_path)
+            prim_path = prim_path.GetParentPath()
+
+    @classmethod
+    def __remove_inert_ancestors(cls, layer_undos: list[_UsdLayerUndo], layer: Sdf.Layer, prim_path: Sdf.Path) -> None:
+        while prim_path != Sdf.Path.absoluteRootPath:
+            prim_spec = layer.GetPrimAtPath(prim_path)
+            if not prim_spec:
+                return
+            cls.__reserve_layer_path(layer_undos, layer, prim_path)
+            layer.ScheduleRemoveIfInert(prim_spec)
+            if layer.GetPrimAtPath(prim_path):
+                return
+            prim_path = prim_path.GetParentPath()
+
+    @classmethod
+    def __remove_spec(cls, layer_undos: list[_UsdLayerUndo], layer: Sdf.Layer, spec_path: Sdf.Path) -> None:
+        if spec_path.IsPropertyPath():
+            prim_spec = layer.GetPrimAtPath(spec_path.GetPrimPath())
+            property_spec = layer.GetPropertyAtPath(spec_path)
+            if prim_spec and property_spec:
+                prim_spec.RemoveProperty(property_spec)
+            cls.__remove_inert_ancestors(layer_undos, layer, spec_path.GetPrimPath())
+            return
+        if layer.GetPrimAtPath(spec_path):
+            _remove_prim_spec(layer, spec_path)
+        cls.__remove_inert_ancestors(layer_undos, layer, spec_path.GetParentPath())
+
+    def __copy_prim_spec_to_target(
+        self,
+        source_layer: Sdf.Layer,
+        target_layer: Sdf.Layer,
+        spec_path: Sdf.Path,
+        target_spec_paths: set[Sdf.Path],
+    ) -> bool:
+        # Sdf.CopySpec overwrites destination specs by default. The callbacks merge child lists while keeping
+        # target-layer child/property overrides strongest.
+        def should_copy_value(  # fmt: off
+            _spec_type, _field, _src_layer, _src_path, field_in_src, _dst_layer, dst_path, field_in_dst, *_args
+        ):
+            return not (
+                field_in_dst and (not field_in_src or (dst_path != spec_path and dst_path in target_spec_paths))
+            )
+
+        def should_copy_children(  # fmt: off
+            children_field, src_layer, src_path, field_in_src, dst_layer, dst_path, field_in_dst, *_args
+        ):
+            if field_in_dst and not field_in_src:
+                return False
+            if field_in_src and field_in_dst:
+                src_children = list(src_layer.GetObjectAtPath(src_path).GetInfo(children_field))
+                dst_children = list(dst_layer.GetObjectAtPath(dst_path).GetInfo(children_field))
+                return True, src_children, src_children + [child for child in dst_children if child not in src_children]
+            return True
+
+        if spec_path.GetParentPath() != Sdf.Path.absoluteRootPath:
+            Sdf.CreatePrimInLayer(target_layer, spec_path.GetParentPath())
+        if not Sdf.CopySpec(
+            source_layer,
+            spec_path,
+            target_layer,
+            spec_path,
+            should_copy_value,
+            should_copy_children,
+        ):
+            return False
+        # Target child opinions stay strongest, but transferred child definitions must still author defining specs.
+        copied_spec_paths = []
+        source_layer.Traverse(spec_path, copied_spec_paths.append)
+        for copied_spec_path in copied_spec_paths:
+            source_prim_spec = source_layer.GetPrimAtPath(copied_spec_path)
+            target_prim_spec = target_layer.GetPrimAtPath(copied_spec_path)
+            if source_prim_spec and target_prim_spec and source_prim_spec.specifier == Sdf.SpecifierDef:
+                target_prim_spec.specifier = source_prim_spec.specifier
+        return True
+
+    @staticmethod
+    def __has_reference(layer: Sdf.Layer, prim_path: Sdf.Path, reference: Sdf.Reference) -> bool:
+        prim_spec = layer.GetPrimAtPath(prim_path)
+        return bool(prim_spec and prim_spec.hasReferences and prim_spec.referenceList.ContainsItemEdit(reference))
 
     def remove_reference(
         self,

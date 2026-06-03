@@ -20,12 +20,14 @@ import asyncio
 import concurrent
 import weakref
 from contextlib import contextmanager
+from enum import Enum
 from functools import partial
 from pathlib import Path
 from typing import Any
 from collections.abc import Callable
 
 import carb
+import omni.kit.undo
 import omni.kit.usd.layers as _layers
 from omni import usd
 from omni.flux.layer_tree.usd.core import LayerCustomData as _LayerCustomData
@@ -34,12 +36,21 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.layer_utils import FILE_DIALOG_EXTENSIONS as _FILE_DIALOG_EXTENSIONS
 from omni.flux.utils.common.layer_utils import save_layer_as as _save_layer_as
+from omni.flux.utils.common.layer_utils import validate_edit_target as _validate_edit_target
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 from omni.kit import commands, undo
 from pxr import Sdf
 
 from .item_model import ItemBase, LayerItem
+
+
+class LayerTransferTarget(Enum):
+    """Layer destinations supported by the layer changes transfer action."""
+
+    NEW_LAYER = "new_layer"
+    IMPORTED_LAYER = "imported_layer"
+    PROJECT_LAYER = "project_layer"
 
 
 class LayerModel(_TreeModelBase[ItemBase]):
@@ -63,6 +74,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
         exclude_edit_target_fn: Callable[[], list[str]] | None = None,
         exclude_add_child_fn: Callable[[], list[str]] | None = None,
         exclude_move_fn: Callable[[], list[str]] | None = None,
+        exclude_rename_fn: Callable[[], list[str]] | None = None,
     ):
         """
         Args:
@@ -79,6 +91,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             exclude_edit_target_fn: list of layer identifiers to disallow setting as edit target
             exclude_add_child_fn: list of layer identifiers to disallow adding children sublayers
             exclude_move_fn: list of layer identifiers to disallow moving (setting parent or index)
+            exclude_rename_fn: list of layer identifiers to disallow renaming
         """
 
         super().__init__()
@@ -104,12 +117,14 @@ class LayerModel(_TreeModelBase[ItemBase]):
         self._exclude_edit_target_fn = exclude_edit_target_fn
         self._exclude_add_child_fn = exclude_add_child_fn
         self._exclude_move_fn = exclude_move_fn
+        self._exclude_rename_fn = exclude_rename_fn
 
         self._edit_target_layer = None
 
         self.__on_refresh_started = _Event()
         self.__on_refresh_completed = _Event()
         self.__on_stage_opened = _Event()
+        self.__on_edit_target_changed = _Event()
 
         self.__refresh_task = None
 
@@ -135,6 +150,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
                 "_exclude_edit_target_fn": None,
                 "_exclude_add_child_fn": None,
                 "_exclude_move_fn": None,
+                "_exclude_rename_fn": None,
                 "_edit_target_layer": None,
             }
         )
@@ -350,6 +366,48 @@ class LayerModel(_TreeModelBase[ItemBase]):
             validation_failed_callback=self._layer_creation_validation_failed_callback,
         )
 
+    def rename_layer(self, layer: LayerItem, new_name: str) -> bool:
+        """
+        Rename an existing layer file and update its parent sublayer path.
+
+        Args:
+            layer: the layer to be renamed
+            new_name: the new layer file name
+
+        Returns:
+            ``True`` when a valid rename was submitted, otherwise ``False``.
+        """
+        if not layer.data.get("can_rename", False):
+            return False
+        rename_path = self._get_renamed_layer_path(layer, new_name)
+        if rename_path is None:
+            return False
+        self._on_rename_layer_internal(layer, str(rename_path))
+        return True
+
+    def _get_renamed_layer_path(self, layer: LayerItem, new_name: str) -> Path | None:
+        current_file = layer.data["layer"].realPath
+        if not current_file:
+            return None
+        new_name = new_name.strip()
+        new_path = Path(new_name)
+        if not new_name or new_path.name != new_name:
+            return None
+
+        target_path = Path(current_file).with_name(new_name)
+        valid_extensions = {file_type[0][1:] for file_type in _FILE_DIALOG_EXTENSIONS}
+        if (
+            target_path.suffix.lower() not in valid_extensions
+            or target_path == Path(current_file)
+            or target_path.exists()
+        ):
+            return None
+        if self._layer_creation_validation_fn and not self._layer_creation_validation_fn(
+            str(target_path.parent), target_path.name
+        ):
+            return None
+        return target_path
+
     def toggle_lock_layer(self, layer: LayerItem) -> None:
         """
         Args:
@@ -465,19 +523,41 @@ class LayerModel(_TreeModelBase[ItemBase]):
                     usd_context=self._context_name,
                 )
 
-    def transfer_layer_overrides(self, layer: LayerItem, existing_layer: bool):
+    def transfer_layer_overrides(self, layer: LayerItem, transfer_target: LayerTransferTarget):
         """
-        Transfer the overrides of a layer in a sublayer. The sublayer can be an existing one or a new one.
+        Transfer all authored layer changes to a newly-created or imported layer file.
 
         Args:
-            layer: the layer to be saved
-            existing_layer: whether the layer exists or should be created
+            layer: Source layer whose authored root prim specs should be transferred.
+            transfer_target: File-backed transfer target type.
+
+        Raises:
+            ValueError: If ``transfer_target`` is ``LayerTransferTarget.PROJECT_LAYER`` because project-layer target
+                selection is handled by the layer tree widget transfer dialog.
         """
+        if transfer_target == LayerTransferTarget.PROJECT_LAYER:
+            raise ValueError("Project layer transfers must be handled by the layer tree widget.")
+        if not self.has_layer_changes(layer):
+            return
         self.create_layer(
-            not existing_layer,
+            transfer_target == LayerTransferTarget.NEW_LAYER,
             parent=layer,
             layer_created_callback=partial(self._on_transfer_layer_overrides_internal, layer),
         )
+
+    @staticmethod
+    def has_layer_changes(layer: LayerItem) -> bool:
+        """
+        Check if a layer item has authored changes that can be transferred.
+
+        Args:
+            layer: Layer item to inspect.
+
+        Returns:
+            ``True`` if the layer has authored root prim specs to transfer, ``False`` otherwise.
+        """
+        usd_layer = layer.data.get("layer") if layer and layer.data else None
+        return bool(usd_layer and usd_layer.rootPrims)
 
     def is_layer_locked(self, layer: LayerItem) -> bool:
         """
@@ -641,24 +721,31 @@ class LayerModel(_TreeModelBase[ItemBase]):
         """
         return len(self._items if parent is None else parent.children)
 
-    def get_item_children(self, parent: ItemBase | None = None, recursive: bool = False) -> list[ItemBase]:
+    def get_item_children(
+        self, parent: ItemBase | None = None, recursive: bool = False, item: ItemBase | None = None
+    ) -> list[ItemBase]:
         """
         Get the model's items or item's children.
 
         Args:
             parent: if this is not None, it will return the parent's children
             recursive: whether the items should be listed recursively or only top-level
+            item: optional ``TreeModelBase``-compatible alias for parent. Overrides parent when provided.
 
         Returns:
             The items in the model or children in the parent
         """
+        if parent is not None and item is not None:
+            raise ValueError("Specify either parent or item, not both.")
+        if item is not None:
+            parent = item
         items = self._items if parent is None else parent.children
         if not recursive:
             return items
 
         children = []
-        for item in items:
-            children += self.get_item_children(item, True)
+        for child_item in items:
+            children += self.get_item_children(child_item, True)
         return items + children
 
     def get_item_value_model_count(self, item: ItemBase) -> int:
@@ -720,6 +807,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
                 self._create_layer_items,
                 root_layer,
                 True,
+                True,
                 excluded_layers,
                 dirty_layers,
                 edit_target_layer_identifier,
@@ -742,12 +830,14 @@ class LayerModel(_TreeModelBase[ItemBase]):
             ),
             _LayerCustomData.EXCLUDE_ADD_CHILD: set(self._exclude_add_child_fn() if self._exclude_add_child_fn else []),
             _LayerCustomData.EXCLUDE_MOVE: set(self._exclude_move_fn() if self._exclude_move_fn else []),
+            _LayerCustomData.EXCLUDE_RENAME: set(self._exclude_rename_fn() if self._exclude_rename_fn else []),
         }
 
     def _create_layer_items(
         self,
         layer: Sdf.Layer,
         is_root: bool,
+        parent_allows_child_rename: bool,
         excluded_layers: dict[_LayerCustomData, set[str]],
         dirty_layers: set[str],
         edit_target_layer_identifier: str,
@@ -755,6 +845,9 @@ class LayerModel(_TreeModelBase[ItemBase]):
     ) -> tuple[LayerItem, bool]:
         children = []
         child_authoring = False
+        is_locked = layers_state.is_layer_locked(layer.identifier)
+        is_savable = layers_state.is_layer_savable(layer.identifier)
+        allows_child_rename = is_savable or (is_root and not is_locked)
 
         for sub_layer in layer.subLayerPaths:
             child_layer = Sdf.Layer.FindOrOpenRelativeToLayer(layer, sub_layer)
@@ -764,6 +857,7 @@ class LayerModel(_TreeModelBase[ItemBase]):
             child, authoring = self._create_layer_items(
                 child_layer,
                 False,
+                allows_child_rename,
                 excluded_layers,
                 dirty_layers,
                 edit_target_layer_identifier,
@@ -788,12 +882,15 @@ class LayerModel(_TreeModelBase[ItemBase]):
 
         layer_name = "Root Layer" if is_root else _layers.LayerUtils.get_custom_layer_name(layer)
         is_authoring = edit_target_layer_identifier == layer.identifier
+        exclude_rename = excludes[_LayerCustomData.EXCLUDE_RENAME] or not (
+            is_savable if is_root else parent_allows_child_rename
+        )
 
         layer_data = {
-            "locked": layers_state.is_layer_locked(layer.identifier),
+            "locked": is_locked,
             "visible": not layers_state.is_layer_globally_muted(layer.identifier),  # Only check global state
             "parent_visible": True,  # Will be set after all the items are created -> _update_inherited_visibility
-            "savable": layers_state.is_layer_savable(layer.identifier),
+            "savable": is_savable,
             "authoring": is_authoring,
             "dirty": is_dirty,
             "layer": layer,
@@ -804,6 +901,8 @@ class LayerModel(_TreeModelBase[ItemBase]):
             "exclude_edit_target": excludes[_LayerCustomData.EXCLUDE_EDIT_TARGET],
             "exclude_add_child": excludes[_LayerCustomData.EXCLUDE_ADD_CHILD],
             "exclude_move": excludes[_LayerCustomData.EXCLUDE_MOVE],
+            "exclude_rename": exclude_rename,
+            "can_rename": bool(layer.realPath and not exclude_rename),
         }
         layer_item = LayerItem(layer_name, layer_data, None, children)
 
@@ -839,20 +938,92 @@ class LayerModel(_TreeModelBase[ItemBase]):
         else:
             carb.log_error("An error occurred while exporting the layer.")
 
+    def _on_rename_layer_internal(self, layer: LayerItem, path: str):
+        """
+        Should not be used by itself. Use `rename_layer` instead.
+        """
+        if not layer.data.get("can_rename", False):
+            return
+        usd_layer = layer.data.get("layer") if layer and layer.data else None
+        parent_layer = layer.parent.data.get("layer") if layer and layer.parent and layer.parent.data else None
+        if not path or not usd_layer or not usd_layer.realPath:
+            return
+
+        source_path = Path(usd_layer.realPath)
+        target_path = Path(path)
+        if source_path == target_path or target_path.exists():
+            return
+        if not usd_layer.Save():
+            carb.log_error(f"Rename layer failed. Failed to save layer {usd_layer.identifier}")
+            return
+        if parent_layer is None:
+            self._rename_root_layer(usd_layer, source_path, target_path)
+            return
+
+        position = _layers.LayerUtils.get_sublayer_position_in_parent(parent_layer.identifier, usd_layer.identifier)
+        if position < 0:
+            carb.log_error(f"Rename layer failed. Failed to find layer {usd_layer.identifier} in its parent layer.")
+            return
+        try:
+            source_path.replace(target_path)
+        except OSError as error:
+            carb.log_error(f"Rename layer failed. {error}")
+            return
+
+        command_error = None
+        result = None
+        try:
+            with omni.kit.undo.disabled():
+                result = commands.execute(
+                    "ReplaceSublayer",
+                    layer_identifier=parent_layer.identifier,
+                    sublayer_position=position,
+                    new_layer_path=str(target_path),
+                    usd_context=self._context_name,
+                )
+        except RuntimeError as error:
+            command_error = error
+
+        success = result[0] if isinstance(result, tuple) else bool(result)
+        if command_error or not success:
+            try:
+                target_path.replace(source_path)
+            except OSError as rollback_error:
+                carb.log_error(f"Rename layer failed. Failed to restore {source_path}: {rollback_error}")
+            carb.log_error(f"Rename layer failed. {command_error or 'ReplaceSublayer command failed.'}")
+            return
+
+        _validate_edit_target(self._context_name)
+        self.refresh()
+
+    def _rename_root_layer(self, layer: Sdf.Layer, source_path: Path, target_path: Path) -> None:
+        def on_save_done(success, error_message, layers):
+            self._on_save_layer_as_internal(success, error_message, layers)
+            if not success:
+                return
+            try:
+                source_path.unlink()
+            except OSError as error:
+                carb.log_error(f"Rename layer failed. Failed to remove {source_path}: {error}")
+
+        _save_layer_as(self._context_name, True, weakref.ref(layer), None, on_save_done, str(target_path))
+
     def _on_transfer_layer_overrides_internal(self, layer, path):
         """
-        Should not be used by itself. Use `transfer_layer_overrides` instead
+        Move each root prim spec authored on the source layer to the target layer.
         """
-        # This is inside the create_layer undo group
-        for prim_spec in layer.data["layer"].rootPrims.values():
-            commands.execute(
-                "MovePrimSpecsToLayerCommand",
-                dst_layer_identifier=path,
-                src_layer_identifier=layer.data["layer"].identifier,
-                prim_spec_path=str(prim_spec.path),
-                dst_stronger_than_src=True,
-                usd_context=self._context_name,
-            )
+        if not path or path == layer.data["layer"].identifier:
+            return
+        with undo.group():
+            for prim_spec_path in [str(prim_spec.path) for prim_spec in layer.data["layer"].rootPrims.values()]:
+                commands.execute(
+                    "MovePrimSpecsToLayerCommand",
+                    dst_layer_identifier=path,
+                    src_layer_identifier=layer.data["layer"].identifier,
+                    prim_spec_path=prim_spec_path,
+                    dst_stronger_than_src=True,
+                    usd_context=self._context_name,
+                )
 
     def __on_layer_events(self, event):
         payload = _layers.get_layer_event_payload(event)
@@ -864,6 +1035,9 @@ class LayerModel(_TreeModelBase[ItemBase]):
             _layers.LayerEventType.EDIT_TARGET_CHANGED,
         }:
             return
+        if payload.event_type == _layers.LayerEventType.EDIT_TARGET_CHANGED:
+            # Notify before scheduling refresh so listeners can mark the next model rebuild as edit-target driven.
+            self.__on_edit_target_changed()
         self.refresh()
 
     def __on_stage_events(self, event):
@@ -897,6 +1071,18 @@ class LayerModel(_TreeModelBase[ItemBase]):
         Return the object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self.__on_stage_opened, function)
+
+    def subscribe_edit_target_changed(self, function):
+        """
+        Subscribe to edit-target change events.
+
+        Args:
+            function: Callback invoked when the USD layer stack edit target changes.
+
+        Returns:
+            Object that automatically unsubscribes when destroyed.
+        """
+        return _EventSubscription(self.__on_edit_target_changed, function)
 
     def destroy(self):
         if self.__refresh_task:

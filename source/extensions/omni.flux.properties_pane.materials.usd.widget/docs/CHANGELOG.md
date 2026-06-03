@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.0]
+### Added
+- Added optional layer-transfer callback forwarding for material USD property menus.
+
 ## [1.11.1]
 ### Fixed
 - Fixed material placeholder `range` metadata from MDL hard-range hints being treated as soft-only bounds.

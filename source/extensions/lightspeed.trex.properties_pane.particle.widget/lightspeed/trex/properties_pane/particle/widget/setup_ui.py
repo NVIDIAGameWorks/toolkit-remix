@@ -26,6 +26,7 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common.constants import PARTICLE_PRIMVAR_PREFIX, PARTICLE_SCHEMA_NAME
 from lightspeed.trex.schemas.utils import get_schema_prim as _get_schema_prim
+from omni.flux.property_widget_builder.model.usd import BuildLayerTransferMenu as _BuildLayerTransferMenu
 from omni.flux.property_widget_builder.model.usd import USDAttributeEditGroupItem as _USDAttributeEditGroupItem
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.property_widget_builder.model.usd import USDAttrListItem as _USDAttrListItem
@@ -92,6 +93,7 @@ class ParticleSystemPropertyWidget:
         right_aligned_labels: bool = True,
         lookup_table: dict[str, dict[str, str]] | None = None,
         field_builders: list[_FieldBuilder] | None = None,
+        layer_transfer_menu_fn: _BuildLayerTransferMenu | None = None,
     ):
         """
         Args:
@@ -101,6 +103,7 @@ class ParticleSystemPropertyWidget:
             right_aligned_labels (bool): Whether labels are right aligned
             lookup_table (dict[str, dict[str, str]] | None): Table for custom display names and groups
             field_builders (List[_FieldBuilder]): Custom field builders for specific attribute types
+            layer_transfer_menu_fn: Callback that adds property-layer transfer actions to property row menus.
         """
 
         self._default_attr = {
@@ -117,6 +120,7 @@ class ParticleSystemPropertyWidget:
             "_property_model": None,
             "_property_widget": None,
             "_right_aligned_labels": None,
+            "_layer_transfer_menu_fn": None,
             "_root_frame": None,
             "_tree_column_widths": None,
         }
@@ -131,6 +135,7 @@ class ParticleSystemPropertyWidget:
         self._tree_column_widths = tree_column_widths
         self._columns_resizable = columns_resizable
         self._right_aligned_labels = right_aligned_labels
+        self._layer_transfer_menu_fn = layer_transfer_menu_fn
 
         self.__usd_listener_instance = _get_usd_listener_instance()
 
@@ -163,7 +168,9 @@ class ParticleSystemPropertyWidget:
         """Create the UI components once - PropertyWidget is reused across refreshes to preserve expansion state."""
         self._property_model = _USDPropertyModel(self._context_name)
         self._property_delegate = _USDPropertyDelegate(
-            field_builders=field_builders, right_aligned_labels=self._right_aligned_labels
+            field_builders=field_builders,
+            right_aligned_labels=self._right_aligned_labels,
+            layer_transfer_menu_fn=self._layer_transfer_menu_fn,
         )
         self._root_frame = ui.Frame()
         with self._root_frame:

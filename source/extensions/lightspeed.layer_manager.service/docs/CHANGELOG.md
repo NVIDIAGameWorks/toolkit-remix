@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.1]
+### Fixed
+- Updated service test expectations for shared transfer workflow fixture layers.
+
 ## [2.1.0]
 ### Changed
 - Extract `.layer_id` from path-param model instances in `remove_layer`, `move_layer`, `lock_layer`, `mute_layer`, `save_layer`, and `set_edit_target` endpoints; `validate_path_param` returns a model instance, not a plain string

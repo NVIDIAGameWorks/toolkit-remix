@@ -17,7 +17,7 @@
 
 from .layer_tree.delegate import LayerDelegate
 from .layer_tree.item_model import ItemBase, LayerItem
-from .layer_tree.model import LayerModel
+from .layer_tree.model import LayerModel, LayerTransferTarget
 from .setup_ui import LayerTreeWidget
 
-__all__ = ["ItemBase", "LayerDelegate", "LayerItem", "LayerModel", "LayerTreeWidget"]
+__all__ = ["ItemBase", "LayerDelegate", "LayerItem", "LayerModel", "LayerTransferTarget", "LayerTreeWidget"]
