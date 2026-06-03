@@ -23,9 +23,19 @@ from .light_manipulator import (
     DistantLightManipulator,
     RectLightManipulator,
     SphereLightManipulator,
+    compute_luminance,
+    compute_threshold_distance,
     get_manipulator_class,
 )
-from .light_model import AbstractLightModel, DiskLightModel, DistantLightModel, RectLightModel, SphereLightModel
+from .light_model import (
+    AbstractLightModel,
+    DiskLightModel,
+    DistantLightModel,
+    RectLightModel,
+    ShapingMixin,
+    SphereLightModel,
+    is_spotlight,
+)
 
 __all__ = [
     "AbstractLightManipulator",
@@ -38,7 +48,11 @@ __all__ = [
     "LightManipulatorLayer",
     "RectLightManipulator",
     "RectLightModel",
+    "ShapingMixin",
     "SphereLightManipulator",
     "SphereLightModel",
+    "compute_luminance",
+    "compute_threshold_distance",
     "get_manipulator_class",
+    "is_spotlight",
 ]

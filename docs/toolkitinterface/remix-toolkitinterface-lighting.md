@@ -5,8 +5,9 @@
 ### Showing and Hiding Manipulators
 
 Light manipulators can be toggled on or off from the viewport. Open the **Show by Type** menu in the viewport toolbar
-and toggle **Lights > Manipulators** to show or hide the 3D handles for all lights in the scene. This setting persists
-across sessions.
+and toggle **Lights > Manipulators** to show or hide the 3D handles for all lights in the scene. The
+**Lights > Spotlight Cones** entry independently toggles the green wireframe cone drawn on DiskLight and SphereLight
+prims that have a shaping cone authored. Both settings persist across sessions.
 
 ### How to Use
 
@@ -16,6 +17,23 @@ When you hover over the "light beams" they will turn into arrows and you will be
 light. Certain light types will have square handles, which will appear when you hover over specific areas of the
 manipulator. These allow you to change multiple attributes of the selected light at once by dragging the handles in
 different directions.
+
+### Spotlight Cone Visualization
+
+When a DiskLight or SphereLight has **Shaping: Cone Angle** authored to less than 90°, a green wireframe cone is drawn
+from the light's emitter surface along its primary axis. The cone shows the lit envelope of the light at the distance
+where the on-axis illuminance falls below a configurable threshold, so the wireframe length scales with the light's
+intensity, exposure, color, and color temperature.
+This visualization does not change USD light attributes, falloff, attenuation, or rendered lighting; it only changes
+the viewport wireframe used to inspect the light.
+
+When **Shaping: Cone Softness** is greater than 0, a second cyan wireframe is drawn inside the green outer cone showing
+the inner (fully-lit) region of the cone. The annular region between the two wireframes is the penumbra where light
+intensity falls off smoothly toward zero.
+
+The threshold, subdivisions, and both cone colors are tunable from the viewport toolbar's Display menu (eye icon) under
+**Custom Manipulators > Light Manipulator** (see the
+[Viewport reference page](remix-toolkitinterface-viewport.md#light-manipulator-settings)).
 
 ## Cylinder Light Values
 

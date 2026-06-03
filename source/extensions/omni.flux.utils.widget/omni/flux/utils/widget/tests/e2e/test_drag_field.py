@@ -29,16 +29,36 @@ from omni.flux.utils.widget import FloatBoundedDrag
 
 
 class _TestValueModel(ui.AbstractValueModel):
-    def __init__(self, value: float = 0.0):
+    def __init__(self, value: float = 0.0, *, supports_batch_edit: bool = False):
         super().__init__()
         self._value = value
         self._pre_set_callback = None
         self._cancel_callbacks = []
-        self.supports_batch_edit = False
+        self.supports_batch_edit = supports_batch_edit
         self.is_batch_editing = False
+        self.begin_count = 0
+        self.end_count = 0
+        self.begin_batch_count = 0
+        self.end_batch_count = 0
+
+    def begin_edit(self):
+        self.begin_count += 1
+        super().begin_edit()
+
+    def end_edit(self):
+        self.end_count += 1
+        super().end_edit()
 
     def set_callback_pre_set_value(self, callback):
         self._pre_set_callback = callback
+
+    def begin_batch_edit(self):
+        self.begin_batch_count += 1
+        self.is_batch_editing = True
+
+    def end_batch_edit(self):
+        self.end_batch_count += 1
+        self.is_batch_editing = False
 
     def subscribe_property_edit_cancel_fn(self, callback):
         self._cancel_callbacks.append(callback)
@@ -123,35 +143,180 @@ class TestDragField(omni.kit.test.AsyncTestCase):
         window = ui.Window(
             f"TestDragField_{str(uuid.uuid1())}",
             height=160,
-            width=360,
+            width=260,
             position_x=0,
             position_y=100,
         )
         first_model = _TestValueModel(0.0)
-        second_model = _TestValueModel(5.0)
         with window.frame:
             with ui.HStack():
-                FloatBoundedDrag(model=first_model, step=0.25, width=ui.Pixel(160))
-                FloatBoundedDrag(model=second_model, step=10.0, width=ui.Pixel(160))
+                first_drag = FloatBoundedDrag(model=first_model, step=0.25, width=ui.Pixel(160))
+        edit_widgets = {0: first_drag}
+        first_drag.set_numeric_edit_widgets(edit_widgets, 0)
+
+        try:
+            await omni.kit.ui_test.human_delay(human_delay_speed=10)
+            widgets = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
+            self.assertEqual(len(widgets), 1)
+
+            await widgets[0].click()
+            await widgets[0].double_click()
+            await self._type_text("2*100")
+            self.assertAlmostEqual(first_model.get_value_as_float(), 200.0, places=5)
+
+            await self._press_key(carb.input.KeyboardInput.UP)
+            self.assertAlmostEqual(first_model.get_value_as_float(), 200.25, places=5)
+
+            await self._press_key(carb.input.KeyboardInput.ENTER)
+        finally:
+            window.destroy()
+
+    async def test_direct_float_drag_double_click_text_edit_does_not_start_drag_batch(self):
+        window = ui.Window(
+            f"TestDragField_{str(uuid.uuid1())}",
+            height=160,
+            width=260,
+            position_x=0,
+            position_y=100,
+        )
+        model = _TestValueModel(-157.0, supports_batch_edit=True)
+        with window.frame:
+            with ui.HStack():
+                FloatBoundedDrag(model=model, step=1.0, width=ui.Pixel(160))
+
+        try:
+            await omni.kit.ui_test.human_delay(human_delay_speed=10)
+            widgets = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
+            self.assertEqual(len(widgets), 1)
+
+            await widgets[0].double_click()
+            for char in "12":
+                await omni.kit.ui_test.emulate_char_press(char)
+                await omni.kit.ui_test.wait_n_updates(1)
+
+            self.assertAlmostEqual(model.get_value_as_float(), 12.0, places=5)
+            self.assertEqual(model.begin_batch_count, 0)
+            self.assertFalse(model.is_batch_editing)
+
+            await self._press_key(carb.input.KeyboardInput.ENTER)
+        finally:
+            window.destroy()
+
+    async def test_direct_float_drag_switching_fields_updates_only_focused_widget(self):
+        window = ui.Window(
+            f"TestDragField_{str(uuid.uuid1())}",
+            height=160,
+            width=520,
+            position_x=0,
+            position_y=100,
+        )
+        first_model = _TestValueModel(10.0)
+        second_model = _TestValueModel(20.0)
+        third_model = _TestValueModel(30.0)
+        with window.frame:
+            with ui.HStack():
+                first_drag = FloatBoundedDrag(model=first_model, step=1.0, width=ui.Pixel(160))
+                second_drag = FloatBoundedDrag(model=second_model, step=1.0, width=ui.Pixel(160))
+                third_drag = FloatBoundedDrag(model=third_model, step=1.0, width=ui.Pixel(160))
+        edit_widgets = {0: first_drag, 1: second_drag, 2: third_drag}
+        first_drag.set_numeric_edit_widgets(edit_widgets, 0)
+        second_drag.set_numeric_edit_widgets(edit_widgets, 1)
+        third_drag.set_numeric_edit_widgets(edit_widgets, 2)
+
+        try:
+            await omni.kit.ui_test.human_delay(human_delay_speed=10)
+            widgets = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
+            self.assertEqual(len(widgets), 3)
+
+            await widgets[0].click()
+            await widgets[0].double_click()
+            await self._type_text("1")
+            self.assertAlmostEqual(first_model.get_value_as_float(), 1.0, places=5)
+
+            await widgets[1].click()
+            await widgets[1].double_click()
+            await self._type_text("2")
+            self.assertAlmostEqual(first_model.get_value_as_float(), 1.0, places=5)
+            self.assertAlmostEqual(second_model.get_value_as_float(), 2.0, places=5)
+
+            await widgets[2].click()
+            await widgets[2].double_click()
+            await self._type_text("3")
+            self.assertAlmostEqual(first_model.get_value_as_float(), 1.0, places=5)
+            self.assertAlmostEqual(second_model.get_value_as_float(), 2.0, places=5)
+            self.assertAlmostEqual(third_model.get_value_as_float(), 3.0, places=5)
+
+            await self._press_key(carb.input.KeyboardInput.ENTER)
+        finally:
+            window.destroy()
+
+    async def test_direct_float_drag_inserts_text_at_tracked_cursor(self):
+        window = ui.Window(
+            f"TestDragField_{str(uuid.uuid1())}",
+            height=160,
+            width=260,
+            position_x=0,
+            position_y=100,
+        )
+        model = _TestValueModel(0.0)
+        with window.frame:
+            with ui.HStack():
+                FloatBoundedDrag(model=model, step=1.0, width=ui.Pixel(160))
+
+        try:
+            await omni.kit.ui_test.human_delay(human_delay_speed=10)
+            widgets = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
+            self.assertEqual(len(widgets), 1)
+
+            await widgets[0].click()
+            await widgets[0].double_click()
+            await self._type_text("1234")
+            self.assertAlmostEqual(model.get_value_as_float(), 1234.0, places=5)
+
+            await self._press_key(carb.input.KeyboardInput.LEFT)
+            await self._press_key(carb.input.KeyboardInput.LEFT)
+            await self._type_text("9")
+            self.assertAlmostEqual(model.get_value_as_float(), 12934.0, places=5)
+
+            await self._press_key(carb.input.KeyboardInput.ENTER)
+        finally:
+            window.destroy()
+
+    async def test_direct_float_drag_clicking_other_field_commits_active_edit(self):
+        window = ui.Window(
+            f"TestDragField_{str(uuid.uuid1())}",
+            height=160,
+            width=360,
+            position_x=0,
+            position_y=100,
+        )
+        first_model = _TestValueModel(10.0)
+        second_model = _TestValueModel(20.0)
+        with window.frame:
+            with ui.HStack():
+                first_drag = FloatBoundedDrag(model=first_model, step=1.0, width=ui.Pixel(160))
+                second_drag = FloatBoundedDrag(model=second_model, step=1.0, width=ui.Pixel(160))
+        edit_widgets = {0: first_drag, 1: second_drag}
+        first_drag.set_numeric_edit_widgets(edit_widgets, 0)
+        second_drag.set_numeric_edit_widgets(edit_widgets, 1)
 
         try:
             await omni.kit.ui_test.human_delay(human_delay_speed=10)
             widgets = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
             self.assertEqual(len(widgets), 2)
 
-            # Type math through the native double-click edit affordance.
             await widgets[0].click()
             await widgets[0].double_click()
-            await self._type_text("2*100")
-            self.assertAlmostEqual(first_model.get_value_as_float(), 200.0, places=5)
+            await self._type_text("12")
+            self.assertAlmostEqual(first_model.get_value_as_float(), 12.0, places=5)
+            self.assertEqual(first_model.begin_count, 1)
+            self.assertEqual(first_model.end_count, 0)
 
-            # Move the cursor away; Arrow Up should still step the focused edit field.
-            await omni.kit.ui_test.emulate_mouse_move(widgets[1].position + omni.kit.ui_test.Vec2(3, 3))
-            await self._press_key(carb.input.KeyboardInput.UP)
-            self.assertAlmostEqual(first_model.get_value_as_float(), 200.25, places=5)
-            self.assertAlmostEqual(second_model.get_value_as_float(), 5.0, places=5)
+            await widgets[1].click()
+            await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
-            await self._press_key(carb.input.KeyboardInput.ENTER)
+            self.assertEqual(first_model.end_count, 1)
+            self.assertAlmostEqual(first_model.get_value_as_float(), 12.0, places=5)
         finally:
             window.destroy()
 
@@ -218,15 +383,17 @@ class TestDragField(omni.kit.test.AsyncTestCase):
         second_model = _TestValueModel(5.0)
         with window.frame:
             with ui.HStack():
-                FloatBoundedDrag(model=first_model, step=0.1, width=ui.Pixel(160))
-                FloatBoundedDrag(model=second_model, step=10.0, width=ui.Pixel(160))
+                first_drag = FloatBoundedDrag(model=first_model, step=0.1, width=ui.Pixel(160))
+                second_drag = FloatBoundedDrag(model=second_model, step=10.0, width=ui.Pixel(160))
+        edit_widgets = {0: first_drag, 1: second_drag}
+        first_drag.set_numeric_edit_widgets(edit_widgets, 0)
+        second_drag.set_numeric_edit_widgets(edit_widgets, 1)
 
         try:
             await omni.kit.ui_test.human_delay(human_delay_speed=10)
             widgets = omni.kit.ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
             self.assertEqual(len(widgets), 2)
 
-            # Start editing first field, hover second, then hold Arrow Up.
             await widgets[0].click()
             await widgets[0].double_click()
             await omni.kit.ui_test.emulate_mouse_move(widgets[1].position + omni.kit.ui_test.Vec2(3, 3))

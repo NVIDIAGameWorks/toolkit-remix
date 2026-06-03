@@ -34,6 +34,7 @@ CARB_SETTING_CONST_GIZMO_SCALE = "/persistent/app/viewport/gizmo/constantScale"
 CARB_SETTING_CONST_SCALE_ENABLED = "/persistent/app/viewport/gizmo/constantScaleEnabled"
 SETTING_LIGHT_MANIPULATOR_VISIBLE = "/persistent/app/viewport/manipulator/lightManipulatorsVisible"
 SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE = "/persistent/app/viewport/manipulator/lightIntensityControlsVisible"
+SETTING_SPOTLIGHT_CONE_VISIBLE = "/persistent/app/viewport/manipulator/spotlightConeVisible"
 
 
 class LightGizmosLayer:
@@ -64,6 +65,7 @@ class LightGizmosLayer:
         isettings.set_default(self._light_visible_setting, True)
         isettings.set_default(SETTING_LIGHT_MANIPULATOR_VISIBLE, True)
         isettings.set_default(SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE, False)
+        isettings.set_default(SETTING_SPOTLIGHT_CONE_VISIBLE, True)
         isettings.subscribe_to_node_change_events(self._light_visible_setting, self._light_gizmo_setting_change)
         isettings.subscribe_to_node_change_events(CARB_SETTING_GIZMO_SCALE, self._light_gizmo_setting_change)
         isettings.subscribe_to_node_change_events(CARB_SETTING_CONST_GIZMO_SCALE, self._light_gizmo_setting_change)
@@ -97,6 +99,7 @@ class LightGizmosLayer:
                 CategoryStateItem("Gizmos", setting_path=self._light_visible_setting, hotkey_text="Ctrl + L"),
                 CategoryStateItem("Manipulators", setting_path=SETTING_LIGHT_MANIPULATOR_VISIBLE),
                 CategoryStateItem("Intensity Controls", setting_path=SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE),
+                CategoryStateItem("Spotlight Cones", setting_path=SETTING_SPOTLIGHT_CONE_VISIBLE),
             ],
         )
         self.__menubar_items = [lights_collection_item]

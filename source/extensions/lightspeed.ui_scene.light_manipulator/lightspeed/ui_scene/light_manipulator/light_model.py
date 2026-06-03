@@ -23,7 +23,9 @@ __all__ = [
     "DiskLightModel",
     "DistantLightModel",
     "RectLightModel",
+    "ShapingMixin",
     "UsdLuxLight",
+    "is_spotlight",
 ]
 
 from typing import TYPE_CHECKING
@@ -32,12 +34,33 @@ import omni.usd
 from omni.ui import scene as sc
 from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdLux
 
+from .constants import SPOTLIGHT_CONE_ANGLE_MAX
+
 if TYPE_CHECKING:
     from .layer import LightManipulatorLayer
     from .light_manipulator import AbstractLightManipulator
 
 UsdLuxLight: UsdLux.BoundableLightBase | UsdLux.NonboundableLightBase = None
 LightModelItem: StringItem | FloatItem | MatrixItem = None
+
+_DEFAULT_TIME = Usd.TimeCode.Default()
+
+
+def is_spotlight(prim: Usd.Prim, time: Usd.TimeCode = _DEFAULT_TIME) -> bool:
+    """True when `inputs:shaping:cone:angle` is authored and narrower than a hemisphere.
+
+    Checks the raw attribute rather than `prim.HasAPI(UsdLux.ShapingAPI)` because the Remix
+    property panel can author the cone angle without formally applying the schema.
+    """
+    if not prim:
+        return False
+    attr = prim.GetAttribute("inputs:shaping:cone:angle")
+    if not attr or not attr.HasAuthoredValue():
+        return False
+    value = attr.Get(time)
+    if value is None:
+        return False
+    return 0.0 < float(value) < SPOTLIGHT_CONE_ANGLE_MAX
 
 
 def _flatten_matrix(matrix: Gf.Matrix4d):
@@ -106,6 +129,12 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
         self.transform = MatrixItem()
         self.intensity = FloatItem()
         self.manipulator_scale = FloatItem(1.0)
+        # Identity-token items so notices on these attributes route through `_on_model_updated`
+        # and trigger cone-bearing manipulators to rebuild. Values are read live from the prim.
+        self.exposure = FloatItem()
+        self.color = FloatItem()
+        self.color_temperature = FloatItem()
+        self.enable_color_temperature = FloatItem()
         self._time = Usd.TimeCode.Default()
 
         self._prim = prim
@@ -135,6 +164,16 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
 
     def set_path_redirect(self, path: Sdf.Path):
         self.__redirect_path = path
+
+    @property
+    def light(self) -> UsdLuxLight | None:
+        """Currently selected UsdLux light, or None when unselected."""
+        return self._light
+
+    @property
+    def time(self) -> Usd.TimeCode:
+        """Time code at which model attributes are evaluated."""
+        return self._time
 
     def get_prim_path(self) -> str:
         return self.prim_path.value
@@ -309,6 +348,22 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
 
     def _light_attribute_notice_changed(self, attribute_path: Sdf.Path) -> set[sc.AbstractManipulatorItem]:
         """Light specific implementation. Returns any items affected by attribute path."""
+        changed_items: set[sc.AbstractManipulatorItem] = set()
+        match attribute_path.name:
+            case "inputs:exposure":
+                changed_items.add(self.exposure)
+            case "inputs:color":
+                changed_items.add(self.color)
+            case "inputs:colorTemperature":
+                changed_items.add(self.color_temperature)
+            case "inputs:enableColorTemperature":
+                changed_items.add(self.enable_color_temperature)
+        return changed_items
+
+    def _light_resync_items_to_refresh(self) -> set[sc.AbstractManipulatorItem]:
+        """Items that need refreshing when the light's prim is resynced. Default: empty —
+        only subclasses owning state that can be removed via topology change need to override.
+        """
         return set()
 
     def _notice_changed(self, notice: Usd.Notice.ObjectsChanged, stage: Usd.Stage):
@@ -317,7 +372,21 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
         if not light_path:
             return
 
-        changed_items = set()
+        # Resync paths are the only signal USD emits when an attribute is removed
+        # (no ChangedInfoOnly fires). Only react when model state no longer matches
+        # the prim — otherwise routine attribute authoring during an interactive
+        # drag (which can also resync) would tear down the manipulator mid-gesture.
+        resync_items: set[sc.AbstractManipulatorItem] = set()
+        for p in notice.GetResyncedPaths():
+            prim_path = p.GetPrimPath().pathString
+            if prim_path == light_path or light_path.startswith(prim_path):
+                resync_items = self._light_resync_items_to_refresh()
+                break
+
+        if resync_items:
+            self.update_from_prim()
+
+        changed_items = set(resync_items)
         for p in notice.GetChangedInfoOnlyPaths():
             prim_path = p.GetPrimPath().pathString
             if prim_path != light_path:
@@ -421,7 +490,89 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
         self._light.GetIntensityAttr().Set(value, time=time)
 
 
-class DiskLightModel(AbstractLightModel):
+class ShapingMixin:
+    """Mixin that tracks UsdLuxShapingAPI cone angle and softness for lights that can act as spotlights.
+
+    Mixed into DiskLightModel (and therefore inherited by SphereLightModel and CylinderLightModel —
+    inert on the latter, whose manipulator has `supports_spotlight_cone = False`). All three models
+    expose `cone_angle` and `softness` items sourced from `inputs:shaping:cone:angle` and
+    `inputs:shaping:cone:softness`. Authored shaping attributes are read directly so lights created
+    by the property panel work even when UsdLuxShapingAPI is not formally applied. Unauthored values
+    stay at 0.0, and the manipulator treats the light as non-spotlight or draws no inner cone.
+    """
+
+    def __init__(self, prim: Usd.Prim, usd_context_name: str = "", viewport_layer: LightManipulatorLayer = None):
+        super().__init__(prim, usd_context_name=usd_context_name, viewport_layer=viewport_layer)
+        self.cone_angle = FloatItem()
+        self.softness = FloatItem()
+
+    def update_from_prim(self):
+        super().update_from_prim()
+        self.set_item_value(self.cone_angle, self._get_cone_angle(self._time))
+        self.set_item_value(self.softness, self._get_softness(self._time))
+
+    def _light_attribute_notice_changed(self, attribute_path: Sdf.Path) -> set[sc.AbstractManipulatorItem]:
+        changed_items = super()._light_attribute_notice_changed(attribute_path)
+        if self.cone_angle and attribute_path.name == "inputs:shaping:cone:angle":
+            changed_items.add(self.cone_angle)
+        if self.softness and attribute_path.name == "inputs:shaping:cone:softness":
+            changed_items.add(self.softness)
+        return changed_items
+
+    def _light_resync_items_to_refresh(self) -> set[sc.AbstractManipulatorItem]:
+        # Detect shaping attr spec creation/removal, which USD can report as resync-only.
+        items = super()._light_resync_items_to_refresh()
+        if not self._light:
+            return items
+
+        live_cone_angle = self._get_cone_angle(self._time)
+        if live_cone_angle != self.cone_angle.value:
+            items.add(self.cone_angle)
+            items.add(self.softness)
+
+        live_softness = self._get_softness(self._time)
+        if live_softness != self.softness.value:
+            items.add(self.softness)
+        return items
+
+    def _get_as_floats(self, item: LightModelItem) -> list[float] | None:
+        values = super()._get_as_floats(item)
+        if values is not None:
+            return values
+        if item == self.cone_angle:
+            return [self._get_cone_angle(self._time)]
+        if item == self.softness:
+            return [self._get_softness(self._time)]
+        return None
+
+    def _get_cone_angle(self, time: Usd.TimeCode) -> float:
+        """Returns shaping:cone:angle in degrees, or 0.0 if the light is not a spotlight."""
+        if not self._light:
+            return 0.0
+        prim = self._light.GetPrim()
+        if not is_spotlight(prim, time):
+            return 0.0
+        # Read via the raw attribute so we don't require ShapingAPI to be formally applied.
+        return float(prim.GetAttribute("inputs:shaping:cone:angle").Get(time))
+
+    def _get_softness(self, time: Usd.TimeCode) -> float:
+        """Returns authored shaping:cone:softness, or 0.0 when unauthored or not a spotlight.
+
+        The cone builder clamps the value to [0, 1] before using it.
+        """
+        if not self._light:
+            return 0.0
+        prim = self._light.GetPrim()
+        if not is_spotlight(prim, time):
+            return 0.0
+        attr = prim.GetAttribute("inputs:shaping:cone:softness")
+        if not attr or not attr.HasAuthoredValue():
+            return 0.0
+        value = attr.Get(time)
+        return 0.0 if value is None else float(value)
+
+
+class DiskLightModel(ShapingMixin, AbstractLightModel):
     light_class = UsdLux.DiskLight
     linked_axes = [1, 1, 0]
 
@@ -435,7 +586,7 @@ class DiskLightModel(AbstractLightModel):
 
     def _light_attribute_notice_changed(self, attribute_path: Sdf.Path) -> set[sc.AbstractManipulatorItem]:
         """Light specific implementation. Returns any items affected by attribute path."""
-        changed_items = set()
+        changed_items = super()._light_attribute_notice_changed(attribute_path)
         if self.radius and attribute_path.name == "inputs:radius":
             changed_items.add(self.radius)
         return changed_items
@@ -465,6 +616,9 @@ class DiskLightModel(AbstractLightModel):
             self._set_radius(self._time, value[0])
 
     def _get_as_floats(self, item: LightModelItem) -> list[float] | None:
+        values = super()._get_as_floats(item)
+        if values is not None:
+            return values
         if item == self.radius:
             return [self._get_radius(self._time)]
         return None
@@ -502,7 +656,7 @@ class RectLightModel(AbstractLightModel):
 
     def _light_attribute_notice_changed(self, attribute_path: Sdf.Path) -> set[sc.AbstractManipulatorItem]:
         """Light specific implementation. Returns any items affected by attribute path."""
-        changed_items = set()
+        changed_items = super()._light_attribute_notice_changed(attribute_path)
         if self.width and attribute_path.name == "inputs:width":
             changed_items.add(self.width)
         elif self.height and attribute_path.name == "inputs:height":
@@ -552,6 +706,9 @@ class RectLightModel(AbstractLightModel):
             self._set_width(self._time, value[0])
 
     def _get_as_floats(self, item: LightModelItem) -> list[float] | None:
+        values = super()._get_as_floats(item)
+        if values is not None:
+            return values
         if item == self.width:
             return [self._get_width(self._time)]
         if item == self.height:
@@ -626,7 +783,7 @@ class CylinderLightModel(DiskLightModel):
 
     def _get_as_floats(self, item: LightModelItem) -> list[float] | None:
         values = super()._get_as_floats(item)
-        if values:
+        if values is not None:
             return values
         if item == self.length:
             return [self._get_length(self._time)]

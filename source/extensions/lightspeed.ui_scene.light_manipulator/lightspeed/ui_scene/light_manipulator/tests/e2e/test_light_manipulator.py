@@ -235,3 +235,91 @@ class TestLightManipulator(OmniUiTest):
             intensity_controls_visible=False,
             golden_img_name="test_rectlight_manipulator_without_intensity_controls.png",
         )
+
+    async def test_disklight_spotlight_manipulator(self):
+        """DiskLight with UsdLuxShapingAPI applied and cone angle 30° should draw a wireframe cone
+        along the light's -Z direction in addition to the standard disk wireframe."""
+        window = await self.create_test_window(width=256, height=256)
+
+        prim = self.create_and_select_test_light("DiskLight")
+        light = UsdLux.DiskLight(prim)
+        light.GetRadiusAttr().Set(5)
+        light.GetIntensityAttr().Set(500)
+        UsdLux.ShapingAPI.Apply(prim).CreateShapingConeAngleAttr(30.0)
+        # rotate the light so the cone is visible in the capture
+        light_x = UsdGeom.Xformable(light)
+        light_x.AddRotateXOp().Set(30)
+        light_x.AddRotateYOp().Set(45)
+
+        await self.draw_manipulator_and_compare(window, prim)
+
+    async def test_spherelight_spotlight_manipulator(self):
+        """SphereLight with UsdLuxShapingAPI and cone angle 45°."""
+        window = await self.create_test_window(width=256, height=256)
+
+        prim = self.create_and_select_test_light("SphereLight")
+        light = UsdLux.SphereLight(prim)
+        light.GetRadiusAttr().Set(5)
+        light.GetIntensityAttr().Set(100)
+        UsdLux.ShapingAPI.Apply(prim).CreateShapingConeAngleAttr(45.0)
+        light_x = UsdGeom.Xformable(light)
+        light_x.AddRotateXOp().Set(30)
+        light_x.AddRotateYOp().Set(45)
+
+        await self.draw_manipulator_and_compare(window, prim)
+
+    async def test_disklight_spotlight_inner_cone(self):
+        """DiskLight with softness=0.2 on a 45° cone draws both an outer and an inner frustum."""
+        window = await self.create_test_window(width=256, height=256)
+
+        prim = self.create_and_select_test_light("DiskLight")
+        light = UsdLux.DiskLight(prim)
+        light.GetRadiusAttr().Set(5)
+        light.GetIntensityAttr().Set(500)
+        shaping = UsdLux.ShapingAPI.Apply(prim)
+        shaping.CreateShapingConeAngleAttr(45.0)
+        shaping.CreateShapingConeSoftnessAttr(0.2)
+        light_x = UsdGeom.Xformable(light)
+        light_x.AddRotateXOp().Set(30)
+        light_x.AddRotateYOp().Set(45)
+
+        await self.draw_manipulator_and_compare(window, prim)
+
+    async def test_spotlight_cone_hidden_when_toggle_off(self):
+        """`cone_visible=False` suppresses the cone wireframe even on a spotlight-host prim."""
+        window = await self.create_test_window(width=256, height=256)
+
+        prim = self.create_and_select_test_light("SphereLight")
+        light = UsdLux.SphereLight(prim)
+        light.GetRadiusAttr().Set(5)
+        light.GetIntensityAttr().Set(100)
+        # Apply ShapingAPI so the light IS a spotlight — the toggle off is what must hide the cone.
+        UsdLux.ShapingAPI.Apply(prim).CreateShapingConeAngleAttr(45.0)
+        light_x = UsdGeom.Xformable(light)
+        light_x.AddRotateXOp().Set(30)
+        light_x.AddRotateYOp().Set(45)
+
+        usd_context = omni.usd.get_context()
+        viewport_layers = MagicMock()
+
+        with window.frame:
+            projection = [1e-1, 0, 0, 0]
+            projection += [0, 1e-1, 0, 0]
+            projection += [0, 0, -2e-6, 0]
+            projection += [0, 0, 1, 1]
+            view = sc.Matrix44.get_translation_matrix(0, 0, 0)
+            scene_view = sc.SceneView(sc.CameraModel(projection, view))
+
+            manipulator_class = get_manipulator_class(prim)
+            with scene_view.scene:
+                manipulator = manipulator_class(
+                    viewport_layers, model=manipulator_class.model_class(prim, usd_context.get_name())
+                )
+                manipulator.cone_visible = False
+
+        for _ in range(10):
+            await omni.kit.app.get_app().next_update_async()
+
+        await self.wait_n_updates(10)
+
+        await self.finalize_test(golden_img_dir=TEST_DATA_DIR)

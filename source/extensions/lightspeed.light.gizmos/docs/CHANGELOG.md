@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Added
+- `Spotlight Cones` toggle under the Lights section, backed by `/persistent/app/viewport/manipulator/spotlightConeVisible` (visualization implemented in `lightspeed.ui_scene.light_manipulator`)
+
 ## [1.3.1]
 ### Fixed
 - REMIX-3969: Hide light gizmos when the light's parent prim is absent from the active capture's composition (parent has only `over` opinions, no `def` or `class` defining specifier); eliminates viewport clutter and substantial FPS loss in projects with multi-capture light overrides
