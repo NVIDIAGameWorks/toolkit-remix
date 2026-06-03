@@ -74,10 +74,11 @@ class HdRemixRendererPreferencePage(PreferenceBuilder):
                     self._build_integrator_row()
 
     def _build_override_capture_row(self) -> None:
-        # When unchecked (default), the bridge skips its startup push so each loaded
-        # capture's preset value applies. When checked, the global preference is
-        # pushed to the runtime on startup and overrides the capture-supplied value.
-        # User toggles of the combo below always push regardless (explicit action).
+        # When unchecked (default), the bridge skips both the startup push AND
+        # any dropdown-change push, so each loaded capture's preset value
+        # applies and the combo below just records the user's preference. When
+        # checked, the global preference is pushed to the runtime on startup
+        # AND on every dropdown change, overriding the capture-supplied value.
         self._override_capture_sub = None
         self._override_capture_checkbox = None
         current = bool(self._settings.get(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR))
@@ -87,9 +88,11 @@ class HdRemixRendererPreferencePage(PreferenceBuilder):
                 style_type_name_override="Setting.Label",
                 width=ui.Percent(50),
                 tooltip=(
-                    "When OFF (default), the loaded capture's integrator preset wins on "
-                    "stage open.\nWhen ON, the global value in the combo below is pushed "
-                    "to the renderer and overrides the capture's preset."
+                    "When OFF (default), the loaded capture's integrator preset wins -- "
+                    "changing the combo below only records your preference and does NOT "
+                    "touch the live renderer.\nWhen ON, the global value in the combo "
+                    "below is pushed to the renderer (on startup and on every change) "
+                    "and overrides the capture's preset."
                 ),
             )
             self._override_capture_checkbox = ui.CheckBox(width=20)

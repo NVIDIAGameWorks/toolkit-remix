@@ -28,6 +28,7 @@ from lightspeed.hdremix.renderer_settings.settings_bridge import (
     DEFAULT_INTEGRATE_INDIRECT_MODE,
     INTEGRATE_INDIRECT_MODE_LABELS,
     SETTINGS_INTEGRATE_INDIRECT_MODE,
+    SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR,
 )
 from omni.kit.window.preferences import get_page_list
 
@@ -49,6 +50,7 @@ class TestHdRemixRendererE2E(omni.kit.test.AsyncTestCase):
     async def setUp(self):
         self._settings = carb.settings.get_settings()
         self._original_mode = self._settings.get(SETTINGS_INTEGRATE_INDIRECT_MODE)
+        self._original_override = self._settings.get(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR)
         # Let the extension finish on_startup before we inspect state.
         for _ in range(5):
             await omni.kit.app.get_app().next_update_async()
@@ -58,6 +60,10 @@ class TestHdRemixRendererE2E(omni.kit.test.AsyncTestCase):
             self._settings.destroy_item(SETTINGS_INTEGRATE_INDIRECT_MODE)
         else:
             self._settings.set(SETTINGS_INTEGRATE_INDIRECT_MODE, self._original_mode)
+        if self._original_override is None:
+            self._settings.destroy_item(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR)
+        else:
+            self._settings.set(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, self._original_override)
 
     async def test_hdremix_renderer_present_and_kit_viewport_page_build_is_stubbed(self):
         # The extension does two things on startup:
@@ -141,6 +147,13 @@ class TestHdRemixRendererE2E(omni.kit.test.AsyncTestCase):
         # the carb -> bridge -> dxvk-remix path is live, not just unit-mockable.
         # Unit tests cover the install-time push; this one covers the change-time
         # push that happens in the running extension context.
+        #
+        # Per REMIX-5483, the bridge gates runtime pushes on the
+        # overrideCaptureIntegrator flag (default off) so a dropdown change only
+        # records the preference unless the user has opted to override the
+        # capture's preset. Enable the gate here so this test exercises the
+        # push path; teardown restores the original value.
+        self._settings.set(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, True)
         current = self._settings.get(SETTINGS_INTEGRATE_INDIRECT_MODE)
         # Pick a target that's guaranteed to differ from the current value so a
         # change-notice actually fires (carb skips notices when value is unchanged).
@@ -152,6 +165,21 @@ class TestHdRemixRendererE2E(omni.kit.test.AsyncTestCase):
             for _ in range(3):
                 await omni.kit.app.get_app().next_update_async()
             mock_set.assert_any_call("rtx.integrateIndirectMode", str(target))
+
+    async def test_carb_setting_change_skipped_when_override_off(self):
+        # Inverse of the push test: when overrideCaptureIntegrator is off (the
+        # default), flipping the integrator dropdown must NOT touch the live
+        # renderer — only record the user's preference. Pins REMIX-5483's gate
+        # so a future refactor that drops the early-return is caught.
+        self._settings.set(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, False)
+        current = self._settings.get(SETTINGS_INTEGRATE_INDIRECT_MODE)
+        target = 0 if current != 0 else 1
+        with patch(_HDREMIX_PATCH_TARGET) as mock_set:
+            self._settings.set(SETTINGS_INTEGRATE_INDIRECT_MODE, target)
+            for _ in range(3):
+                await omni.kit.app.get_app().next_update_async()
+            # Nothing should have been pushed to dxvk-remix with the gate off.
+            mock_set.assert_not_called()
 
     async def test_default_matches_dxvk_remix_default(self):
         # If anyone changes DEFAULT_INTEGRATE_INDIRECT_MODE away from dxvk-remix's
