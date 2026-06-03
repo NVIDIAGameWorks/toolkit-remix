@@ -148,6 +148,21 @@
 |  1  | Reset To Defaults | Resets all settings to their default values |
 |  2  | Preferences       | Opens the Preferences panel                 |
 
+## Light Manipulator Settings
+
+![Light Manipulator Settings](../data/images/remix-viewport-light-manipulator.png)
+
+Open from the viewport toolbar's Display menu (eye icon) under **Custom Manipulators > Light Manipulator**. Controls the
+appearance of the spotlight cone wireframe drawn on DiskLight and SphereLight prims (see
+[Lighting](remix-toolkitinterface-lighting.md#spotlight-cone-visualization)).
+
+| Ref | Option              | Description                                                                                                                                       |
+|:---:|:--------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------|
+|  1  | Cone Threshold (lux)| Sets the display threshold for where the cone wireframe display ends; it does not change physical or rendered light falloff. Lower values draw a longer wireframe for the same light intensity. Default 0.1; minimum 0.001. |
+|  2  | Cone Subdivisions   | Number of spokes drawn around the cone. Higher values give smoother circles; range 6–128, default 32.                                             |
+|  3  | Outer Cone Color    | Color of the outer-cone wireframe (where intensity reaches the threshold). Default green.                                                         |
+|  4  | Inner Cone Color    | Color of the inner-cone wireframe (where intensity is at full). Drawn only when Shaping: Cone Softness > 0. Default cyan.                         |
+
 <!---
 ## Preferences Panel
 

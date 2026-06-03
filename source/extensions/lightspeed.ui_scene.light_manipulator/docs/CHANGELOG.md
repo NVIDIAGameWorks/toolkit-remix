@@ -1,6 +1,23 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Added
+- Spotlight cone wireframe for DiskLight and SphereLight manipulators when `shaping:cone:angle` is authored and < 90°
+- Inner-cone wireframe drawn when `shaping:cone:softness > 0`, matching Remix's penumbra geometry
+- Cone visual extent auto-computed per light from a global display threshold setting (default 0.1 lux)
+- Intensity-arrow visual length scales with the Cone Threshold preference so the arrow and cone wireframe lengths update together when the display threshold is adjusted
+- Viewport Display dropdown (eye icon) → `Custom Manipulators ▸ Light Manipulator` submenu exposing Cone Threshold (lux), Cone Subdivisions, Outer Cone Color, and Inner Cone Color as persistent settings
+- `ShapingMixin` exposes a `softness` item alongside `cone_angle`
+
+### Changed
+- Deferred spotlight cone manipulator geometry rebuilds until active Object Properties edits complete
+- Skipped cone-capable light manipulator rebuilds after drag-end when no spotlight cone is authored
+- Clarified spotlight cone brightness helper docs to avoid implying absolute luminance units
+- Validated spotlight cone color settings before rebuilding cone geometry
+- Selected cone-capable light manipulators update cone rendering immediately when shaping is authored
+- Re-exported photometric helper functions from the package API
+
 ## [1.2.1]
 ### Fixed
 - Bracketed interactive light manipulator drags with the shared USD notice coalescer so deferred UI listeners flush once after release

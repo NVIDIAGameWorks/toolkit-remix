@@ -171,6 +171,7 @@ class LightDragGesture(sc.DragGesture):
         self._on_began()
         viewport_api = self._manipulator.viewport_layers.viewport_api
         self.__notice_interaction = _begin_interaction(viewport_api.stage if viewport_api else None)
+        self._manipulator.mark_drag_began()
 
     def _on_changed(self, moved_x, moved_y, moved_z):
         """Update USD with the appropriate values based on the drag deltas.
@@ -271,3 +272,4 @@ class LightDragGesture(sc.DragGesture):
         finally:
             _end_interaction(self.__notice_interaction)
             self.__notice_interaction = None
+            self._manipulator.mark_drag_ended()

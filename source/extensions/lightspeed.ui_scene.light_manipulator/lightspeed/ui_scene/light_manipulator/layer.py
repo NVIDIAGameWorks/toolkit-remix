@@ -19,6 +19,8 @@ from __future__ import annotations
 
 __all__ = ["LightManipulatorLayer"]
 
+from contextlib import suppress
+
 import carb
 import omni.usd
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
@@ -27,6 +29,15 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.scene_view.opengl import ViewportOpenGLSceneView
 from pxr import UsdLux
 
+from .constants import (
+    CONE_INNER_COLOR_DEFAULT,
+    CONE_OUTER_COLOR_DEFAULT,
+    CONE_SIDES_DEFAULT,
+    CONE_SIDES_MAX_INPUT,
+    CONE_SIDES_MIN_INPUT,
+    CONE_THRESHOLD_DEFAULT,
+    CONE_THRESHOLD_MIN,
+)
 from .light_manipulator import AbstractLightManipulator, get_manipulator_class
 
 # TODO: We reuse this transform manipulator setting for now, but we should create an independent setting for
@@ -34,6 +45,11 @@ from .light_manipulator import AbstractLightManipulator, get_manipulator_class
 SETTING_MANIPULATOR_SCALE = "/persistent/exts/omni.kit.manipulator.transform/manipulator/scaleMultiplier"
 SETTING_LIGHT_MANIPULATOR_VISIBLE = "/persistent/app/viewport/manipulator/lightManipulatorsVisible"
 SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE = "/persistent/app/viewport/manipulator/lightIntensityControlsVisible"
+SETTING_SPOTLIGHT_CONE_VISIBLE = "/persistent/app/viewport/manipulator/spotlightConeVisible"
+SETTING_SPOTLIGHT_CONE_ILLUMINANCE_THRESHOLD = "/persistent/app/viewport/manipulator/spotlightConeIlluminanceThreshold"
+SETTING_SPOTLIGHT_CONE_SIDES = "/persistent/app/viewport/manipulator/spotlightConeSides"
+SETTING_SPOTLIGHT_CONE_OUTER_COLOR = "/persistent/app/viewport/manipulator/spotlightConeOuterColor"
+SETTING_SPOTLIGHT_CONE_INNER_COLOR = "/persistent/app/viewport/manipulator/spotlightConeInnerColor"
 
 
 class LightManipulatorLayer:
@@ -60,6 +76,7 @@ class LightManipulatorLayer:
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
+        self._setting_subscriptions: list[carb.settings.SubscriptionId] = []
 
         self._viewport_api = desc.get("viewport_api")
         self._viewport_layers = desc.get("layer_provider")
@@ -79,13 +96,49 @@ class LightManipulatorLayer:
         isettings = carb.settings.get_settings()
         isettings.set_default(SETTING_LIGHT_MANIPULATOR_VISIBLE, True)
         isettings.set_default(SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE, False)
-        isettings.subscribe_to_node_change_events(
-            SETTING_LIGHT_MANIPULATOR_VISIBLE, self._light_manipulator_setting_change
+        self._setting_subscriptions.append(
+            isettings.subscribe_to_node_change_events(
+                SETTING_LIGHT_MANIPULATOR_VISIBLE, self._light_manipulator_setting_change
+            )
         )
-        isettings.subscribe_to_node_change_events(
-            SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE, self._light_manipulator_setting_change
+        self._setting_subscriptions.append(
+            isettings.subscribe_to_node_change_events(
+                SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE, self._light_manipulator_setting_change
+            )
         )
-        isettings.subscribe_to_node_change_events(SETTING_MANIPULATOR_SCALE, self._light_manipulator_setting_change)
+        self._setting_subscriptions.append(
+            isettings.subscribe_to_node_change_events(SETTING_MANIPULATOR_SCALE, self._light_manipulator_setting_change)
+        )
+        self._setting_subscriptions.append(
+            isettings.subscribe_to_node_change_events(
+                SETTING_SPOTLIGHT_CONE_VISIBLE, self._spotlight_cone_setting_change
+            )
+        )
+        self._setting_subscriptions.append(
+            isettings.subscribe_to_node_change_events(
+                SETTING_SPOTLIGHT_CONE_ILLUMINANCE_THRESHOLD, self._spotlight_cone_threshold_setting_change
+            )
+        )
+        self._setting_subscriptions.append(
+            isettings.subscribe_to_node_change_events(
+                SETTING_SPOTLIGHT_CONE_SIDES, self._spotlight_cone_sides_setting_change
+            )
+        )
+        # Color settings are 3-float arrays; carb writes them element-by-element so we
+        # subscribe to each child path rather than the parent.
+        for i in range(3):
+            self._setting_subscriptions.append(
+                isettings.subscribe_to_node_change_events(
+                    f"{SETTING_SPOTLIGHT_CONE_OUTER_COLOR}/{i}",
+                    self._spotlight_cone_outer_color_setting_change,
+                )
+            )
+            self._setting_subscriptions.append(
+                isettings.subscribe_to_node_change_events(
+                    f"{SETTING_SPOTLIGHT_CONE_INNER_COLOR}/{i}",
+                    self._spotlight_cone_inner_color_setting_change,
+                )
+            )
 
         # Create a default SceneView (it has a default camera-model)
         self._scene_view = ViewportOpenGLSceneView(self._viewport_api, visible=True)
@@ -94,12 +147,23 @@ class LightManipulatorLayer:
         self._viewport_api.add_scene_view(self._scene_view)
 
         self._manipulators: dict[str, AbstractLightManipulator] = {}
+        # Default to visible when the setting hasn't been initialized (test contexts, pre-toml).
+        cone_setting_value = carb.settings.get_settings().get(SETTING_SPOTLIGHT_CONE_VISIBLE)
+        self._cone_visible: bool = True if cone_setting_value is None else bool(cone_setting_value)
+        self._cone_threshold: float = self._read_cone_threshold_setting()
+        self._cone_sides: int = self._read_cone_sides_setting()
+        self._cone_outer_color: tuple[float, float, float] = self._read_cone_color_setting(
+            SETTING_SPOTLIGHT_CONE_OUTER_COLOR, CONE_OUTER_COLOR_DEFAULT
+        )
+        self._cone_inner_color: tuple[float, float, float] = self._read_cone_color_setting(
+            SETTING_SPOTLIGHT_CONE_INNER_COLOR, CONE_INNER_COLOR_DEFAULT
+        )
 
         # Trigger a settings update to obtain defaults
         self._light_manipulator_setting_change(None, carb.settings.ChangeEventType.CHANGED)
 
-        # The unified Lights menu is registered by lightspeed.light.gizmos so Show By Type does not end up with
-        # duplicate top-level Lights entries. This layer only reacts to the shared visibility setting.
+        # Lights menu (incl. Spotlight Cones toggle) is owned by lightspeed.light.gizmos to avoid
+        # duplicate Show-By-Type entries; this layer only reacts to the shared settings.
         self._core = _AssetReplacementsCore(self._usd_context_name)
 
     def __del__(self):
@@ -160,6 +224,89 @@ class LightManipulatorLayer:
         self.intensity_controls_visible = bool(settings.get(SETTING_LIGHT_INTENSITY_CONTROLS_VISIBLE))
         self.manipulator_scale = self._get_global_manipulator_scale()
 
+    def _spotlight_cone_setting_change(self, _item: carb.dictionary.Item, event_type: carb.settings.ChangeEventType):
+        if event_type != carb.settings.ChangeEventType.CHANGED:
+            return
+        self._cone_visible = bool(carb.settings.get_settings().get(SETTING_SPOTLIGHT_CONE_VISIBLE))
+        for manipulator in self._manipulators.values():
+            manipulator.cone_visible = self._cone_visible
+
+    def _spotlight_cone_threshold_setting_change(
+        self, _item: carb.dictionary.Item, event_type: carb.settings.ChangeEventType
+    ):
+        if event_type != carb.settings.ChangeEventType.CHANGED:
+            return
+        self._cone_threshold = self._read_cone_threshold_setting()
+        for manipulator in self._manipulators.values():
+            manipulator.cone_threshold = self._cone_threshold
+
+    def _spotlight_cone_sides_setting_change(
+        self, _item: carb.dictionary.Item, event_type: carb.settings.ChangeEventType
+    ):
+        if event_type != carb.settings.ChangeEventType.CHANGED:
+            return
+        self._cone_sides = self._read_cone_sides_setting()
+        for manipulator in self._manipulators.values():
+            manipulator.cone_sides = self._cone_sides
+
+    def _spotlight_cone_outer_color_setting_change(
+        self, _item: carb.dictionary.Item, event_type: carb.settings.ChangeEventType
+    ):
+        if event_type != carb.settings.ChangeEventType.CHANGED:
+            return
+        self._cone_outer_color = self._read_cone_color_setting(
+            SETTING_SPOTLIGHT_CONE_OUTER_COLOR, CONE_OUTER_COLOR_DEFAULT
+        )
+        for manipulator in self._manipulators.values():
+            manipulator.cone_outer_color = self._cone_outer_color
+
+    def _spotlight_cone_inner_color_setting_change(
+        self, _item: carb.dictionary.Item, event_type: carb.settings.ChangeEventType
+    ):
+        if event_type != carb.settings.ChangeEventType.CHANGED:
+            return
+        self._cone_inner_color = self._read_cone_color_setting(
+            SETTING_SPOTLIGHT_CONE_INNER_COLOR, CONE_INNER_COLOR_DEFAULT
+        )
+        for manipulator in self._manipulators.values():
+            manipulator.cone_inner_color = self._cone_inner_color
+
+    def _read_cone_threshold_setting(self) -> float:
+        """Read the illuminance-threshold setting, clamped to the divide-by-zero floor."""
+        value = carb.settings.get_settings().get(SETTING_SPOTLIGHT_CONE_ILLUMINANCE_THRESHOLD)
+        if value is None:
+            return CONE_THRESHOLD_DEFAULT
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return CONE_THRESHOLD_DEFAULT
+        return max(CONE_THRESHOLD_MIN, numeric)
+
+    def _read_cone_sides_setting(self) -> int:
+        """Read the cone-subdivisions setting, clamped to UI bounds."""
+        value = carb.settings.get_settings().get(SETTING_SPOTLIGHT_CONE_SIDES)
+        if value is None:
+            return CONE_SIDES_DEFAULT
+        try:
+            numeric = int(value)
+        except (TypeError, ValueError):
+            return CONE_SIDES_DEFAULT
+        return max(CONE_SIDES_MIN_INPUT, min(CONE_SIDES_MAX_INPUT, numeric))
+
+    @staticmethod
+    def _read_cone_color_setting(key: str, default: tuple[float, float, float]) -> tuple[float, float, float]:
+        """Read a 3-float RGB color setting, falling back to `default` on missing/malformed values."""
+        value = carb.settings.get_settings().get(key)
+        if value is None:
+            return default
+        try:
+            components = tuple(float(c) for c in value)
+        except (TypeError, ValueError):
+            return default
+        if len(components) != 3:
+            return default
+        return components
+
     def _get_global_manipulator_scale(self):
         try:
             return float(carb.settings.get_settings().get(SETTING_MANIPULATOR_SCALE))
@@ -202,9 +349,18 @@ class LightManipulatorLayer:
                         manipulator.model.set_path_redirect(redirect_targets[0])
                 # make sure this is initialized with the right value
                 manipulator.model.set_manipulator_scale(self._manipulator_scale)
+                manipulator.cone_visible = self._cone_visible
+                manipulator.cone_threshold = self._cone_threshold
+                manipulator.cone_sides = self._cone_sides
+                manipulator.cone_outer_color = self._cone_outer_color
+                manipulator.cone_inner_color = self._cone_inner_color
                 self._manipulators[str(light.GetPrimPath())] = manipulator
 
     def _destroy_manipulators(self):
+        for manipulator in self._manipulators.values():
+            with suppress(Exception):
+                manipulator.destroy()
+
         if self._scene_view:
             self._scene_view.scene.clear()
 
@@ -228,6 +384,10 @@ class LightManipulatorLayer:
                 self._destroy_manipulators()
 
     def destroy(self):
+        settings = carb.settings.get_settings()
+        for subscription in self._setting_subscriptions:
+            settings.unsubscribe_to_change_events(subscription)
+        self._setting_subscriptions = []
         if self._scene_view and self._viewport_api:
             # Be a good citizen, and un-register the SceneView from Viewport updates
             self._viewport_api.remove_scene_view(self._scene_view)

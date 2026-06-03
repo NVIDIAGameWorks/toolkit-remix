@@ -2,9 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [1.28.4]
+## [1.28.5]
 ### Fixed
-- Fixed bounded numeric drag text editing so starting a new field edit closes any previous active edit controller before keyboard events can affect multiple field rows, with Ctrl-click activation deferred until mouse release so the clicked field stays targeted.
+- Fixed bounded numeric drag text-entry fallback and drag batch grouping when Kit skips widget mouse or double-click callbacks
+- Fixed bounded numeric drag retargeting across active vector rows when mouse events report incomplete click positions
+
+## [1.28.4]
+### Changed
+- Updated bounded numeric drag text-edit handling so only one active field owns keyboard commands, typed text follows the tracked caret position, and outside clicks commit the active edit
 
 ## [1.28.3]
 ### Added

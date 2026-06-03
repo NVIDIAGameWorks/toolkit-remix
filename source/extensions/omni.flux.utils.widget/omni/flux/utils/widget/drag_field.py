@@ -20,6 +20,8 @@ __all__ = ("FloatBoundedDrag", "IntBoundedDrag")
 import ast
 import math
 import operator
+import time
+import weakref
 from contextlib import suppress
 from decimal import Decimal, localcontext
 from typing import Any, ClassVar, Protocol, cast
@@ -52,8 +54,37 @@ _END_KEYS = frozenset((_ENTER_KEY, _ESCAPE_KEY))
 _TAB_KEY = int(carb.input.KeyboardInput.TAB)
 _BACKSPACE_KEY = int(carb.input.KeyboardInput.BACKSPACE)
 _CONTROL_MODIFIER_FLAG = int(carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+_DELETE_KEY = int(carb.input.KeyboardInput.DEL)
+_LEFT_KEY = int(carb.input.KeyboardInput.LEFT)
+_RIGHT_KEY = int(carb.input.KeyboardInput.RIGHT)
+_HOME_KEY = int(carb.input.KeyboardInput.HOME)
+_END_KEY = int(carb.input.KeyboardInput.END)
+_TEXT_NAVIGATION_KEYS = frozenset((_LEFT_KEY, _RIGHT_KEY, _HOME_KEY, _END_KEY))
+_MOUSE_DOWN_EVENTS = frozenset(
+    (
+        carb.input.MouseEventType.LEFT_BUTTON_DOWN,
+        carb.input.MouseEventType.RIGHT_BUTTON_DOWN,
+        carb.input.MouseEventType.MIDDLE_BUTTON_DOWN,
+    )
+)
+_MOUSE_UP_EVENTS = frozenset(
+    (
+        carb.input.MouseEventType.LEFT_BUTTON_UP,
+        carb.input.MouseEventType.RIGHT_BUTTON_UP,
+        carb.input.MouseEventType.MIDDLE_BUTTON_UP,
+    )
+)
 _STEP_GRID_TOLERANCE = Decimal("1e-12")
 _MAX_NUMERIC_EXPRESSION_DEPTH = 20
+_HANDOFF_DOUBLE_CLICK_TIMEOUT_SECONDS = 0.75
+
+
+def _has_control_modifier(modifier: Any) -> bool:
+    """Return whether the Kit modifier mask includes the Control key."""
+    try:
+        return bool(int(modifier) & _CONTROL_MODIFIER_FLAG)
+    except (TypeError, ValueError):
+        return False
 
 
 def _safe_eval_numeric_expression(expression: str) -> float | int:
@@ -127,6 +158,11 @@ class _DragWidgetProtocol(Protocol):
     model: _DragModelProtocol
     step: Any
     enabled: bool
+    visible: bool
+    screen_position_x: float
+    screen_position_y: float
+    computed_width: float
+    computed_height: float
 
     def set_mouse_pressed_fn(self, callback: Any) -> None: ...
     def set_mouse_released_fn(self, callback: Any) -> None: ...
@@ -134,13 +170,21 @@ class _DragWidgetProtocol(Protocol):
     def set_numeric_expression_value(self, model: _DragModelProtocol, expression: str) -> None: ...
     def step_keyboard_value(self, model: _DragModelProtocol, key: int, expression: str | None = None) -> None: ...
     def begin_numeric_text_edit(
-        self, *, clear_value: bool = True, from_tab_transfer: bool = False, begin_undo_group: bool = True
+        self,
+        *,
+        clear_value: bool = True,
+        from_tab_transfer: bool = False,
+        begin_undo_group: bool = True,
+        ignore_mouse_down_events: int = 0,
     ) -> None: ...
     def begin_deferred_numeric_undo_group(self) -> None: ...
+    def has_numeric_text_edit_handoff_press(self) -> bool: ...
 
 
 class _NumericEditController:
     active_controller: ClassVar["_NumericEditController | None"] = None
+    armed_controller: ClassVar["_NumericEditController | None"] = None
+    live_controllers: ClassVar[weakref.WeakSet["_NumericEditController"]] = weakref.WeakSet()
 
     def __init__(
         self,
@@ -156,9 +200,16 @@ class _NumericEditController:
         self._updating = False
         self._applying = False
         self._editing = False
+        self._armed_for_click = False
         self._transfer_key_active = False
+        self._cursor_position = 0
         self._replace_expression_text = True
         self._keyboard_subscription: int | None = None
+        self._mouse_subscription: int | None = None
+        self._ignore_mouse_down_events = 0
+        self._last_mouse_position: tuple[float, float] | None = None
+        self._pending_retarget_widget: weakref.ReferenceType[Any] | None = None
+        self._pending_retarget_deadline: float | None = None
         self._undo_group_open = False
         self._destroyed = False
         self._initial_value: Any = None
@@ -172,42 +223,43 @@ class _NumericEditController:
             width=ui.Fraction(1),
             style_type_name_override=style_type_name_override,
         )
+        self._expression_field.opaque_for_mouse_events = True
         self._subs = [
             self._expression_model.subscribe_value_changed_fn(self._apply_expression),
             self._value_model.subscribe_value_changed_fn(self._sync_expression_from_target),
             self._expression_model.subscribe_begin_edit_fn(self._begin_edit),
-            self._expression_model.subscribe_end_edit_fn(self._end_edit),
         ]
         self._expression_field.set_key_pressed_fn(self._on_key_pressed)
         self._drag_widget.set_mouse_double_clicked_fn(self.begin_text_edit)
+        self._disarm_armed_controller_if_other()
+        type(self).live_controllers.add(self)
 
     def set_edit_widgets(self, widgets: dict[int, _DragWidgetProtocol], index: int) -> None:
         self._edit_widgets = widgets
         self._index = index
 
-    @classmethod
-    def end_active_controller_except(cls, controller: "_NumericEditController | None") -> None:
-        """End any active numeric text edit controller except ``controller``."""
-        active_controller = cls.active_controller
-        if active_controller is None or active_controller is controller:
-            return
-        if active_controller._destroyed:  # noqa: SLF001 - same-class active controller lifecycle.
-            cls.active_controller = None
-            return
-        active_controller._transfer_key_active = False  # noqa: SLF001 - same-class active controller lifecycle.
-        active_controller._end_edit()  # noqa: SLF001 - same-class active controller lifecycle.
-
-    def _clear_active_controller(self) -> None:
-        """Clear the active controller when this controller owns it."""
-        if type(self).active_controller is self:
-            type(self).active_controller = None
-
     def refocus(self) -> None:
         if not self._editing:
             return
+        self._sync_expression_field_width()
         self._expression_field.visible = True
         self._expression_field.selected = True
         self._expression_field.focus_keyboard(True)
+
+    @property
+    def is_editing(self) -> bool:
+        """Whether the numeric text editor is currently active."""
+        return self._editing
+
+    @property
+    def is_destroyed(self) -> bool:
+        """Whether this controller has been destroyed."""
+        return self._destroyed
+
+    @property
+    def host_drag_widget(self) -> _DragWidgetProtocol:
+        """Drag widget controlled by this numeric text editor."""
+        return self._drag_widget
 
     def _set_expression_value(self, value: str) -> None:
         self._updating = True
@@ -216,34 +268,140 @@ class _NumericEditController:
         finally:
             self._updating = False
 
+    def _hide_expression_field(self) -> None:
+        with suppress(RuntimeError):
+            self._expression_field.focus_keyboard(False)
+        with suppress(RuntimeError):
+            self._expression_field.selected = False
+        self._expression_field.visible = False
+        self._expression_field.enabled = False
+
+    def _sync_expression_field_width(self) -> None:
+        """Match the active expression field width to the hosted drag widget width."""
+        width = self._drag_widget.computed_width
+        if isinstance(width, (int, float)) and width > 0:
+            self._expression_field.width = ui.Pixel(width)
+
     def focus(
-        self, *, clear_value: bool = True, from_tab_transfer: bool = False, begin_undo_group: bool = True
+        self,
+        *,
+        clear_value: bool = True,
+        from_tab_transfer: bool = False,
+        begin_undo_group: bool = True,
+        ignore_mouse_down_events: int = 0,
     ) -> None:
         if self._destroyed:
             return
-        if not from_tab_transfer:
-            type(self).end_active_controller_except(self)
+        self._disarm_armed_controller_if_other()
         self._transfer_key_active = from_tab_transfer
+        self._ignore_mouse_down_events = ignore_mouse_down_events
         self._initial_value = self._value_model.get_value()
         if clear_value:
             expression_value = ""
         else:
             expression_value = self._value_model.get_value_as_string()
+        self._drag_widget.visible = True
         self._expression_field.visible = True
         self._expression_field.enabled = True
         self._begin_edit(begin_undo_group=begin_undo_group)
         self._drag_widget.enabled = False
         self._set_expression_value(expression_value)
+        self._cursor_position = len(expression_value)
         self._replace_expression_text = True
-        type(self).active_controller = self
         self.refocus()
+
+    def _activate(self) -> None:
+        active_controller = self.active_controller
+        if active_controller is not None and active_controller is not self:
+            active_controller.end_text_edit()
+        if self._destroyed or not self._editing:
+            return
+        type(self).active_controller = self
+
+    def arm_text_edit_after_click(self) -> None:
+        """Prime numeric text edit when a clean click may be the first half of a missed double-click."""
+        if self._destroyed or self._editing:
+            return
+        self._disarm_armed_controller_if_other()
+        active_controller = self.active_controller
+        if active_controller is not None and active_controller is not self:
+            active_controller.end_text_edit()
+        self._armed_for_click = True
+        type(self).armed_controller = self
+        self._start_keyboard_subscription(include_mouse=False)
+
+    def _disarm_armed_controller_if_other(self) -> None:
+        """Cancel any click-armed editor owned by another controller."""
+        armed_controller = self.armed_controller
+        if armed_controller is not None and armed_controller is not self:
+            armed_controller.disarm_text_edit_after_click()
+
+    def _clear_armed_controller_if_self(self) -> None:
+        if self.armed_controller is self:
+            type(self).armed_controller = None
+        self._armed_for_click = False
+
+    def disarm_text_edit_after_click(self) -> None:
+        """Cancel a pending click-armed text edit."""
+        self._clear_armed_controller_if_self()
+        if not self._editing:
+            self._stop_keyboard_subscription()
+            self._stop_mouse_subscription()
+
+    def end_text_edit(self, *, commit: bool = True) -> None:
+        self._transfer_key_active = False
+        self._end_edit(commit=commit)
+
+    def clear_pending_retarget(self) -> None:
+        """Cancel a deferred mouse handoff to another numeric edit widget."""
+        self._pending_retarget_widget = None
+        self._pending_retarget_deadline = None
+        if not self._editing and not self._armed_for_click:
+            self._stop_mouse_subscription()
+
+    def _set_pending_retarget_widget(self, widget: _DragWidgetProtocol) -> None:
+        try:
+            self._pending_retarget_widget = weakref.ref(widget)
+        except TypeError:
+            self._pending_retarget_widget = None
+            self._pending_retarget_deadline = None
+            return
+        self._pending_retarget_deadline = time.monotonic() + _HANDOFF_DOUBLE_CLICK_TIMEOUT_SECONDS
+        self._start_mouse_subscription()
+
+    def _get_pending_retarget_widget(self) -> _DragWidgetProtocol | None:
+        widget_ref = self._pending_retarget_widget
+        deadline = self._pending_retarget_deadline
+        if widget_ref is None or deadline is None:
+            return None
+        if time.monotonic() > deadline:
+            self.clear_pending_retarget()
+            return None
+        widget = widget_ref()
+        if widget is None:
+            self.clear_pending_retarget()
+            return None
+        return cast(_DragWidgetProtocol, widget)
+
+    def _clear_active_if_self(self) -> None:
+        if self.active_controller is self:
+            type(self).active_controller = None
+
+    def _get_expression_text(self) -> str:
+        return self._expression_model.get_value_as_string()
+
+    def _clamp_cursor_position(self, text: str | None = None) -> int:
+        if text is None:
+            text = self._get_expression_text()
+        self._cursor_position = max(0, min(self._cursor_position, len(text)))
+        return self._cursor_position
 
     def begin_text_edit(self, _x, _y, button, _modifier) -> bool:
         if self._destroyed:
             return False
         if button != 0:
             return False
-        self.focus(clear_value=False)
+        self._drag_widget.begin_numeric_text_edit(clear_value=False, ignore_mouse_down_events=1)
         return True
 
     def _apply_expression(self, model) -> None:
@@ -259,7 +417,10 @@ class _NumericEditController:
     def _sync_expression_from_target(self, _model) -> None:
         if not self._editing or self._applying:
             return
-        self._set_expression_value(self._value_model.get_value_as_string())
+        expression_value = self._value_model.get_value_as_string()
+        self._set_expression_value(expression_value)
+        self._cursor_position = len(expression_value)
+        self._replace_expression_text = True
         self.refocus()
 
     def begin_deferred_undo_group(self) -> None:
@@ -272,35 +433,42 @@ class _NumericEditController:
             return
         if self._editing:
             return
+        self._clear_armed_controller_if_self()
         self._editing = True
         self._start_keyboard_subscription()
         edit_started = False
         try:
             self._value_model.begin_edit()
             edit_started = True
+            self._activate()
             if begin_undo_group:
                 self.begin_deferred_undo_group()
         except Exception:
             self._transfer_key_active = False
             self._editing = False
+            self._clear_active_if_self()
             if edit_started:
                 with suppress(Exception):
                     self._value_model.end_edit()
-            self._expression_field.visible = False
+            self._hide_expression_field()
+            self._drag_widget.visible = True
             self._drag_widget.enabled = True
             if self._undo_group_open:
                 self._undo_group_open = False
                 omni.kit.undo.end_group()
             self._stop_keyboard_subscription()
+            self._stop_mouse_subscription()
             raise
 
     def _end_edit(self, _model=None, *, commit: bool = True) -> None:
+        self._clear_armed_controller_if_self()
         if self._transfer_key_active and self._editing:
             self.refocus()
             return
         self._transfer_key_active = False
-        self._expression_field.visible = False
-        self._expression_field.enabled = False
+        self._ignore_mouse_down_events = 0
+        self._hide_expression_field()
+        self._drag_widget.visible = True
         self._drag_widget.enabled = True
         if not self._editing:
             return
@@ -312,12 +480,13 @@ class _NumericEditController:
             try:
                 self._value_model.end_edit()
             finally:
+                self._clear_active_if_self()
                 self._initial_value = None
                 if self._undo_group_open:
                     self._undo_group_open = False
                     omni.kit.undo.end_group()
                 self._stop_keyboard_subscription()
-                self._clear_active_controller()
+                self._stop_mouse_subscription()
 
     def _on_key_pressed(self, key, modifier, down) -> bool:
         del modifier
@@ -329,35 +498,112 @@ class _NumericEditController:
             self._transfer_key_active = False
         return False
 
-    def _set_expression_from_keyboard(self, text: str) -> None:
+    def _set_expression_from_keyboard(self, text: str, cursor_position: int) -> None:
         self._transfer_key_active = False
         self._replace_expression_text = False
+        self._cursor_position = max(0, min(cursor_position, len(text)))
         self._expression_model.set_value(text)
 
-    def _append_expression_text(self, text: str) -> bool:
-        if not text or any(character not in _PENDING_EXPRESSION_CHARS for character in text):
+    def _insert_expression_text(self, text: str) -> bool:
+        if not text:
             return False
-        if self._replace_expression_text:
-            self._set_expression_from_keyboard(text)
+        if any(character not in _PENDING_EXPRESSION_CHARS for character in text):
             return True
-        self._set_expression_from_keyboard(self._expression_model.get_value_as_string() + text)
+        if self._replace_expression_text:
+            self._set_expression_from_keyboard(text, len(text))
+            return True
+        expression_text = self._get_expression_text()
+        cursor_position = self._clamp_cursor_position(expression_text)
+        self._set_expression_from_keyboard(
+            expression_text[:cursor_position] + text + expression_text[cursor_position:],
+            cursor_position + len(text),
+        )
         return True
 
     def _backspace_expression_character(self) -> bool:
         if self._replace_expression_text:
-            self._set_expression_from_keyboard("")
+            self._set_expression_from_keyboard("", 0)
             return True
-        self._set_expression_from_keyboard(self._expression_model.get_value_as_string()[:-1])
+        expression_text = self._get_expression_text()
+        cursor_position = self._clamp_cursor_position(expression_text)
+        if cursor_position == 0:
+            return True
+        self._set_expression_from_keyboard(
+            expression_text[: cursor_position - 1] + expression_text[cursor_position:],
+            cursor_position - 1,
+        )
         return True
 
-    def _on_keyboard_event(self, event: carb.input.KeyboardEvent) -> bool:
+    def _delete_expression_character(self) -> bool:
+        if self._replace_expression_text:
+            self._set_expression_from_keyboard("", 0)
+            return True
+        expression_text = self._get_expression_text()
+        cursor_position = self._clamp_cursor_position(expression_text)
+        if cursor_position >= len(expression_text):
+            return True
+        self._set_expression_from_keyboard(
+            expression_text[:cursor_position] + expression_text[cursor_position + 1 :],
+            cursor_position,
+        )
+        return True
+
+    def _move_expression_cursor(self, key: int) -> None:
+        expression_text = self._get_expression_text()
+        if key == _HOME_KEY:
+            self._cursor_position = 0
+        elif key == _END_KEY:
+            self._cursor_position = len(expression_text)
+        elif self._replace_expression_text:
+            self._cursor_position = 0 if key == _LEFT_KEY else len(expression_text)
+        elif key == _LEFT_KEY:
+            self._cursor_position -= 1
+        elif key == _RIGHT_KEY:
+            self._cursor_position += 1
+        self._replace_expression_text = False
+        self._clamp_cursor_position(expression_text)
+
+    @staticmethod
+    def _get_keyboard_event_text(event: carb.input.KeyboardEvent) -> str | None:
+        if isinstance(event.input, str):
+            return event.input
+        try:
+            return chr(int(event.input))
+        except (OverflowError, TypeError, ValueError):
+            return None
+
+    def _on_armed_keyboard_event(self, event: carb.input.KeyboardEvent) -> bool:
+        if not getattr(self, "_armed_for_click", False) or self._destroyed:
+            return False
         if event.type == carb.input.KeyboardEventType.CHAR:
-            if isinstance(event.input, str):
-                return self._append_expression_text(event.input)
-            try:
-                return self._append_expression_text(chr(int(event.input)))
-            except (OverflowError, TypeError, ValueError):
+            text = self._get_keyboard_event_text(event)
+            if text is None or any(character not in _PENDING_EXPRESSION_CHARS for character in text):
                 return False
+            self.focus(clear_value=False)
+            return self._insert_expression_text(text)
+        if event.type not in (
+            carb.input.KeyboardEventType.KEY_PRESS,
+            carb.input.KeyboardEventType.KEY_REPEAT,
+        ):
+            return False
+        key = int(event.input)
+        if key in _STEP_KEYS or key in (_BACKSPACE_KEY, _DELETE_KEY):
+            self.focus(clear_value=False)
+            return self._on_keyboard_event(event)
+        if key == _ESCAPE_KEY:
+            self.disarm_text_edit_after_click()
+        return False
+
+    def _on_keyboard_event(self, event: carb.input.KeyboardEvent) -> bool:
+        if not self._editing or self.active_controller is not self:
+            return self._on_armed_keyboard_event(event)
+        self._ignore_mouse_down_events = 0
+        if event.type == carb.input.KeyboardEventType.CHAR:
+            self._transfer_key_active = False
+            text = self._get_keyboard_event_text(event)
+            if text is None:
+                return False
+            return self._insert_expression_text(text)
         if event.type not in (
             carb.input.KeyboardEventType.KEY_PRESS,
             carb.input.KeyboardEventType.KEY_RELEASE,
@@ -369,7 +615,19 @@ class _NumericEditController:
             carb.input.KeyboardEventType.KEY_PRESS,
             carb.input.KeyboardEventType.KEY_REPEAT,
         ):
+            self._transfer_key_active = False
             return self._backspace_expression_character()
+        if key == _DELETE_KEY and event.type in (
+            carb.input.KeyboardEventType.KEY_PRESS,
+            carb.input.KeyboardEventType.KEY_REPEAT,
+        ):
+            self._transfer_key_active = False
+            return self._delete_expression_character()
+        if key in _TEXT_NAVIGATION_KEYS:
+            if event.type in (carb.input.KeyboardEventType.KEY_PRESS, carb.input.KeyboardEventType.KEY_REPEAT):
+                self._transfer_key_active = False
+                self._move_expression_cursor(key)
+            return False
         if key not in _STEP_KEYS and key not in _END_KEYS and key != _TAB_KEY:
             if event.type == carb.input.KeyboardEventType.KEY_PRESS:
                 self._transfer_key_active = False
@@ -387,17 +645,131 @@ class _NumericEditController:
         if key == _TAB_KEY:
             return self._transfer_to_next(event.modifiers)
         self._drag_widget.step_keyboard_value(self._value_model, key, self._expression_model.get_value_as_string())
-        self._set_expression_value(self._value_model.get_value_as_string())
+        expression_value = self._value_model.get_value_as_string()
+        self._set_expression_value(expression_value)
+        self._cursor_position = len(expression_value)
+        self._replace_expression_text = False
         self.refocus()
         return True
 
     def _on_input_event(self, event: carb.input.InputEvent) -> bool:
         if event.deviceType == carb.input.DeviceType.KEYBOARD:
             return self._on_keyboard_event(cast(carb.input.KeyboardEvent, event.event))
+        if event.deviceType == carb.input.DeviceType.MOUSE:
+            return self._on_mouse_event(cast(carb.input.MouseEvent, event.event))
         return False
 
-    def _start_keyboard_subscription(self) -> None:
+    def _on_mouse_event(self, event: carb.input.MouseEvent) -> bool:
+        self._get_mouse_position(event)
+        if not self._editing:
+            if self._get_pending_retarget_widget() is not None:
+                return self._on_pending_retarget_mouse_event(event)
+            if self._armed_for_click and event.type in _MOUSE_DOWN_EVENTS:
+                self.disarm_text_edit_after_click()
+            return False
+        if event.type in _MOUSE_UP_EVENTS:
+            self._ignore_mouse_down_events = 0
+        if not self._editing or self.active_controller is not self or event.type not in _MOUSE_DOWN_EVENTS:
+            return False
+        if self._ignore_mouse_down_events > 0:
+            self._ignore_mouse_down_events -= 1
+            return False
+        if self._get_mouse_position(event) is None:
+            return False
+        if self._is_mouse_inside_expression_field(event):
+            return False
+        modifier = getattr(event, "modifiers", getattr(event, "modifier", 0))
+        has_control_modifier = _has_control_modifier(modifier)
+        target_widget = self._get_edit_widget_at_mouse(event, include_live_controllers=has_control_modifier)
+        self.end_text_edit()
+        if target_widget is None:
+            return False
+        if has_control_modifier:
+            target_widget.begin_numeric_text_edit(clear_value=False, ignore_mouse_down_events=1)
+        elif not target_widget.has_numeric_text_edit_handoff_press():
+            self._set_pending_retarget_widget(target_widget)
+        return False
+
+    def _on_pending_retarget_mouse_event(self, event: carb.input.MouseEvent) -> bool:
+        """Open a deferred target editor when the next click lands on that target."""
+        if event.type not in _MOUSE_DOWN_EVENTS:
+            return False
+        target_widget = self._get_edit_widget_at_mouse(event, include_live_controllers=False)
+        pending_widget = self._get_pending_retarget_widget()
+        self.clear_pending_retarget()
+        if target_widget is pending_widget and pending_widget is not None:
+            pending_widget.begin_numeric_text_edit(clear_value=False, ignore_mouse_down_events=1)
+        return False
+
+    def _get_mouse_position(self, event: carb.input.MouseEvent) -> tuple[float, float] | None:
+        """Return the latest usable mouse position for incomplete Kit mouse events."""
+        try:
+            x, y = event.pixel_coords
+        except (AttributeError, TypeError, ValueError):
+            return self._last_mouse_position
+        if (x, y) != (0, 0):
+            self._last_mouse_position = (x, y)
+        return self._last_mouse_position
+
+    def _get_edit_widget_at_mouse(
+        self, event: carb.input.MouseEvent, *, include_live_controllers: bool = True
+    ) -> _DragWidgetProtocol | None:
+        """Return the numeric edit widget under the current mouse position."""
+        position = self._get_mouse_position(event)
+        if position is None:
+            return None
+        x, y = position
+        for index, widget in getattr(self, "_edit_widgets", {}).items():
+            if index == self._index or widget is self._drag_widget:
+                continue
+            if self._is_widget_at_position(widget, x, y):
+                return widget
+        if not include_live_controllers:
+            return None
+        for controller in tuple(type(self).live_controllers):
+            if controller is self or controller.is_destroyed:
+                continue
+            widget = controller.host_drag_widget
+            if widget is self._drag_widget:
+                continue
+            if self._is_widget_at_position(widget, x, y):
+                return widget
+        return None
+
+    @staticmethod
+    def _is_widget_at_position(widget: _DragWidgetProtocol, x: float, y: float) -> bool:
+        """Return whether the widget contains the screen position."""
+        try:
+            if not widget.visible:
+                return False
+            left = widget.screen_position_x
+            top = widget.screen_position_y
+            width = widget.computed_width
+            height = widget.computed_height
+        except (AttributeError, RuntimeError, TypeError):
+            return False
+        if width <= 0 or height <= 0:
+            return False
+        return left <= x <= left + width and top <= y <= top + height
+
+    def _is_mouse_inside_expression_field(self, event: carb.input.MouseEvent) -> bool:
+        if not self._expression_field.visible:
+            return False
+        position = self._get_mouse_position(event)
+        if position is None:
+            return False
+        x, y = position
+
+        left = self._expression_field.screen_position_x
+        top = self._expression_field.screen_position_y
+        width = self._expression_field.computed_width
+        height = self._expression_field.computed_height
+        return left <= x <= left + width and top <= y <= top + height
+
+    def _start_keyboard_subscription(self, *, include_mouse: bool = True) -> None:
         if self._keyboard_subscription is not None:
+            if include_mouse:
+                self._start_mouse_subscription()
             return
         app_window = omni.appwindow.get_default_app_window()
         if app_window is None:
@@ -408,6 +780,8 @@ class _NumericEditController:
         self._keyboard_subscription = carb.input.acquire_input_interface().subscribe_to_input_events(
             self._on_input_event, device=keyboard, order=0
         )
+        if include_mouse:
+            self._start_mouse_subscription()
 
     def _stop_keyboard_subscription(self) -> None:
         if self._keyboard_subscription is None:
@@ -416,10 +790,31 @@ class _NumericEditController:
             carb.input.acquire_input_interface().unsubscribe_to_input_events(self._keyboard_subscription)
         self._keyboard_subscription = None
 
+    def _start_mouse_subscription(self) -> None:
+        if self._mouse_subscription is not None:
+            return
+        app_window = omni.appwindow.get_default_app_window()
+        if app_window is None:
+            return
+        mouse = app_window.get_mouse()
+        if mouse is None:
+            return
+        self._mouse_subscription = carb.input.acquire_input_interface().subscribe_to_input_events(
+            self._on_input_event, device=mouse, order=0
+        )
+
+    def _stop_mouse_subscription(self) -> None:
+        if self._mouse_subscription is None:
+            return
+        with suppress(RuntimeError):
+            carb.input.acquire_input_interface().unsubscribe_to_input_events(self._mouse_subscription)
+        self._mouse_subscription = None
+
     def destroy(self) -> None:
         if self._destroyed:
             return
         self._destroyed = True
+        self.disarm_text_edit_after_click()
         with suppress(RuntimeError):
             self._drag_widget.set_mouse_double_clicked_fn(None)
         try:
@@ -427,20 +822,25 @@ class _NumericEditController:
                 self._transfer_key_active = False
                 self._end_edit(commit=False)
         finally:
+            self._clear_active_if_self()
             cancel_subscription = self._cancel_subscription
             self._cancel_subscription = None
             if cancel_subscription is not None:
                 cancel_subscription()
+            type(self).live_controllers.discard(self)
+            self._pending_retarget_widget = None
+            self._pending_retarget_deadline = None
             self._transfer_key_active = False
-            self._expression_field.visible = False
-            self._expression_field.enabled = False
+            self._ignore_mouse_down_events = 0
+            self._hide_expression_field()
+            self._drag_widget.visible = True
             self._drag_widget.enabled = True
             if self._undo_group_open:
                 self._undo_group_open = False
                 omni.kit.undo.end_group()
             self._subs.clear()
             self._stop_keyboard_subscription()
-            self._clear_active_controller()
+            self._stop_mouse_subscription()
             with suppress(RuntimeError):
                 self._expression_field.destroy()
 
@@ -450,6 +850,7 @@ class _NumericEditController:
                 self._transfer_key_active = False
                 self._end_edit(commit=False)
         finally:
+            self._clear_armed_controller_if_self()
             self.destroy()
 
     def _transfer_to_next(self, modifier: int) -> bool:
@@ -467,7 +868,8 @@ class _NumericEditController:
             return False
         target_widget.begin_numeric_text_edit(clear_value=False, from_tab_transfer=True, begin_undo_group=False)
         try:
-            self._end_edit()
+            if self._editing:
+                self._end_edit()
         finally:
             target_widget.begin_deferred_numeric_undo_group()
         return True
@@ -511,10 +913,17 @@ class _BoundedNumericDragBase:
         self._enable_batch_edit = enable_batch_edit
         self._mouse_pressed = False
         self._pending_numeric_text_edit_from_mouse_press = False
+        self._active_numeric_controller_on_mouse_press: _NumericEditController | None = None
+        self._numeric_text_edit_handoff_press_observed = False
+        self._numeric_text_edit_handoff_deadline: float | None = None
+        self._drag_value_changed_during_press = False
+        self._model_editing = False
+        self._model_edit_subs: list[Any] = []
         self._numeric_edit_controller: _NumericEditController | None = None
 
-        if self._enable_batch_edit or (enable_numeric_edit and not read_only):
-            self._install_mouse_callbacks()
+        if self._enable_batch_edit:
+            self._install_batch_mouse_callbacks()
+            self._install_batch_model_callbacks()
         self.set_hard_limits(hard_min_value, hard_max_value)
         if enable_numeric_edit and not read_only:
             widget = cast(_DragWidgetProtocol, self)
@@ -585,12 +994,15 @@ class _BoundedNumericDragBase:
         has_batch_behavior = self._enable_batch_edit and self._supports_batch_edit(model)
 
         def _clamp(set_fn, value):
-            if has_batch_behavior and self._mouse_pressed and not model.is_batch_editing:
+            is_drag_edit = self._mouse_pressed or (self._model_editing and not self._is_numeric_text_editing())
+            if has_batch_behavior and is_drag_edit and not model.is_batch_editing:
                 model.begin_batch_edit()
             try:
                 value = self._coerce_and_clamp_numeric_value(value, hard_min, hard_max)
             except (OverflowError, ValueError):
                 return
+            if is_drag_edit:
+                self._drag_value_changed_during_press = True
             set_fn(value)
 
         model.set_callback_pre_set_value(_clamp)
@@ -739,53 +1151,125 @@ class _BoundedNumericDragBase:
             self._numeric_edit_controller.set_edit_widgets(widgets, index)
 
     def begin_numeric_text_edit(
-        self, *, clear_value: bool = True, from_tab_transfer: bool = False, begin_undo_group: bool = True
+        self,
+        *,
+        clear_value: bool = True,
+        from_tab_transfer: bool = False,
+        begin_undo_group: bool = True,
+        ignore_mouse_down_events: int = 0,
     ) -> None:
+        self._mouse_pressed = False
+        self._drag_value_changed_during_press = False
         if self._numeric_edit_controller is not None:
             self._numeric_edit_controller.focus(
                 clear_value=clear_value,
                 from_tab_transfer=from_tab_transfer,
                 begin_undo_group=begin_undo_group,
+                ignore_mouse_down_events=ignore_mouse_down_events,
             )
 
     def begin_deferred_numeric_undo_group(self) -> None:
         if self._numeric_edit_controller is not None:
             self._numeric_edit_controller.begin_deferred_undo_group()
 
-    def _install_mouse_callbacks(self) -> None:
-        """Install mouse handlers that drive drag and numeric-edit lifecycles."""
+    def has_numeric_text_edit_handoff_press(self) -> bool:
+        return self._numeric_text_edit_handoff_press_observed
+
+    def _install_batch_mouse_callbacks(self) -> None:
+        """Install mouse handlers that drive drag batch-edit lifecycle."""
         # Cast narrows ``self`` to the concrete widget contract for static typing.
         widget = cast(_DragWidgetProtocol, self)
 
         def _on_mouse_pressed(_x, _y, button, modifier):
             if button != 0:
                 return
-            has_control_modifier = bool(int(modifier) & _CONTROL_MODIFIER_FLAG)
+            numeric_edit_controller = self._numeric_edit_controller
+            self._active_numeric_controller_on_mouse_press = _NumericEditController.active_controller
+            has_control_modifier = _has_control_modifier(modifier)
             self._pending_numeric_text_edit_from_mouse_press = (
-                self._numeric_edit_controller is not None and has_control_modifier
+                numeric_edit_controller is not None and has_control_modifier
             )
-            _NumericEditController.end_active_controller_except(self._numeric_edit_controller)
+            handoff_deadline = self._numeric_text_edit_handoff_deadline
+            if handoff_deadline is not None and time.monotonic() > handoff_deadline:
+                self._numeric_text_edit_handoff_deadline = None
             self._mouse_pressed = not self._pending_numeric_text_edit_from_mouse_press
+            self._drag_value_changed_during_press = False
+            self._numeric_text_edit_handoff_press_observed = (
+                self._active_numeric_controller_on_mouse_press is not None
+                and self._active_numeric_controller_on_mouse_press is not numeric_edit_controller
+                and not has_control_modifier
+            )
+            if self._pending_numeric_text_edit_from_mouse_press and numeric_edit_controller is not None:
+                numeric_edit_controller.disarm_text_edit_after_click()
 
         def _on_mouse_released(_x, _y, button, _m):
             if button != 0:
                 return
             pending_numeric_text_edit = self._pending_numeric_text_edit_from_mouse_press
             self._pending_numeric_text_edit_from_mouse_press = False
+            numeric_edit_controller = self._numeric_edit_controller
+            active_controller_on_press = self._active_numeric_controller_on_mouse_press
+            self._active_numeric_controller_on_mouse_press = None
+            pressed_while_other_numeric_edit_was_active = (
+                active_controller_on_press is not None and active_controller_on_press is not numeric_edit_controller
+            )
+            handoff_deadline = self._numeric_text_edit_handoff_deadline
+            handoff_second_click = handoff_deadline is not None and time.monotonic() <= handoff_deadline
+            self._numeric_text_edit_handoff_deadline = None
+            should_begin_text_edit = (
+                self._mouse_pressed
+                and not self._drag_value_changed_during_press
+                and numeric_edit_controller is not None
+                and not self._is_numeric_text_editing()
+            )
             self._mouse_pressed = False
-            if pending_numeric_text_edit:
-                self.begin_numeric_text_edit(clear_value=False)
-                return
-            if not self._enable_batch_edit:
-                return
             model = widget.model
-            if not self._supports_batch_edit(model):
-                return
-            if model.is_batch_editing:
+            if self._supports_batch_edit(model) and model.is_batch_editing:
                 model.end_batch_edit()
+            self._drag_value_changed_during_press = False
+            if pending_numeric_text_edit and numeric_edit_controller is not None:
+                self.begin_numeric_text_edit(clear_value=False, ignore_mouse_down_events=1)
+            elif pressed_while_other_numeric_edit_was_active and should_begin_text_edit:
+                clear_pending_retarget = getattr(active_controller_on_press, "clear_pending_retarget", None)
+                if callable(clear_pending_retarget):
+                    clear_pending_retarget()
+                self._numeric_text_edit_handoff_deadline = time.monotonic() + _HANDOFF_DOUBLE_CLICK_TIMEOUT_SECONDS
+            elif should_begin_text_edit and handoff_second_click:
+                self.begin_numeric_text_edit(clear_value=False, ignore_mouse_down_events=1)
+            elif should_begin_text_edit:
+                numeric_edit_controller.arm_text_edit_after_click()
+            self._numeric_text_edit_handoff_press_observed = False
 
         widget.set_mouse_pressed_fn(_on_mouse_pressed)
         widget.set_mouse_released_fn(_on_mouse_released)
+
+    def _install_batch_model_callbacks(self) -> None:
+        """Track native model edit state when widget mouse callbacks are skipped."""
+        widget = cast(_DragWidgetProtocol, self)
+        begin_subscribe = getattr(widget.model, "subscribe_begin_edit_fn", None)
+        end_subscribe = getattr(widget.model, "subscribe_end_edit_fn", None)
+        if not callable(begin_subscribe) or not callable(end_subscribe):
+            return
+        self._model_edit_subs.extend(
+            (
+                begin_subscribe(self._on_model_begin_edit),
+                end_subscribe(self._on_model_end_edit),
+            )
+        )
+
+    def _on_model_begin_edit(self, _model: Any = None) -> None:
+        """Mark native widget model edits as active."""
+        del _model
+        self._model_editing = True
+
+    def _on_model_end_edit(self, _model: Any = None) -> None:
+        """Clear native widget model edit state."""
+        del _model
+        self._model_editing = False
+
+    def _is_numeric_text_editing(self) -> bool:
+        """Return whether this widget is currently in text-entry mode."""
+        return self._numeric_edit_controller is not None and self._numeric_edit_controller.is_editing
 
     def _cleanup_registered_callbacks(self) -> None:
         """Best-effort callback cleanup to break widget/model reference cycles."""
@@ -794,12 +1278,18 @@ class _BoundedNumericDragBase:
         widget.model.set_callback_pre_set_value(None)
         widget.set_mouse_pressed_fn(None)
         widget.set_mouse_released_fn(None)
+        self._model_edit_subs.clear()
 
     def _end_batch_edit_if_needed(self) -> None:
         widget = cast(_DragWidgetProtocol, self)
         model = widget.model
-        self._pending_numeric_text_edit_from_mouse_press = False
+        self._model_editing = False
         self._mouse_pressed = False
+        self._pending_numeric_text_edit_from_mouse_press = False
+        self._active_numeric_controller_on_mouse_press = None
+        self._numeric_text_edit_handoff_press_observed = False
+        self._numeric_text_edit_handoff_deadline = None
+        self._drag_value_changed_during_press = False
         if self._enable_batch_edit and self._supports_batch_edit(model) and model.is_batch_editing:
             model.end_batch_edit()
 

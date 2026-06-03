@@ -24,19 +24,26 @@ __all__ = [
     "DistantLightManipulator",
     "RectLightManipulator",
     "SphereLightManipulator",
+    "compute_luminance",
+    "compute_threshold_distance",
 ]
 
 import abc
 import math
+from contextlib import suppress
 from typing import TYPE_CHECKING
 
 import carb.input
 import omni.appwindow
 import omni.kit
 import omni.kit.commands
+from omni.flux.utils.common.interactive_usd_notices import is_any_interaction_active as _is_any_interaction_active
+from omni.flux.utils.common.interactive_usd_notices import (
+    register_interaction_end_listener as _register_interaction_end_listener,
+)
 from omni.ui import color as cl
 from omni.ui import scene as sc
-from pxr import Usd, UsdLux
+from pxr import Usd, UsdGeom, UsdLux
 
 from .constants import (
     ARROW_P,
@@ -45,6 +52,14 @@ from .constants import (
     ARROW_VI,
     CLEAR_COLOR,
     COLOR,
+    CONE_INNER_COLOR_DEFAULT,
+    CONE_LENGTH_MAX,
+    CONE_LENGTH_MIN,
+    CONE_OUTER_COLOR_DEFAULT,
+    CONE_SIDES_DEFAULT,
+    CONE_SIDES_MIN_INPUT,
+    CONE_THRESHOLD_DEFAULT,
+    CONE_THRESHOLD_MIN,
     CYLINDER_LIGHT_INTENSITY,
     DEFAULT_ARC_STYLE,
     DEFAULT_SHAPE_STYLE,
@@ -61,6 +76,7 @@ from .constants import (
 )
 from .gesture import LightDragGesture
 from .light_model import (
+    AbstractLightModel,
     CylinderLightModel,
     DiskLightModel,
     DistantLightModel,
@@ -126,6 +142,107 @@ def make_square(translate, width=0.06):
     with sc.Transform(transform=sc.Matrix44.get_translation_matrix(translate[0], translate[1], translate[2])):
         # XXX: in order to get hover event, rect needs to be "visible" even if alpha is 0
         return sc.Rectangle(width, width, color=CLEAR_COLOR, visible=True)
+
+
+# Rec.709 / sRGB linear-to-luminance projection coefficients (CIE / ITU-R BT.709).
+_REC709_R, _REC709_G, _REC709_B = 0.2126, 0.7152, 0.0722
+
+
+def _read_float_attr(attr: Usd.Attribute | None, time: Usd.TimeCode, default: float) -> float:
+    if not attr:
+        return default
+    try:
+        value = attr.Get(time)
+    except Exception:  # noqa: BLE001 - USD attribute reads can fail on stale/invalid prims.
+        return default
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _read_bool_attr(attr: Usd.Attribute | None, time: Usd.TimeCode, default: bool) -> bool:
+    if not attr:
+        return default
+    try:
+        value = attr.Get(time)
+    except Exception:  # noqa: BLE001 - USD attribute reads can fail on stale/invalid prims.
+        return default
+    if value is None:
+        return default
+    return bool(value)
+
+
+def _read_color_attr(attr: Usd.Attribute | None, time: Usd.TimeCode) -> tuple[float, float, float]:
+    if not attr:
+        return 1.0, 1.0, 1.0
+    try:
+        value = attr.Get(time)
+    except Exception:  # noqa: BLE001 - USD attribute reads can fail on stale/invalid prims.
+        return 1.0, 1.0, 1.0
+    if value is None:
+        return 1.0, 1.0, 1.0
+    try:
+        return float(value[0]), float(value[1]), float(value[2])
+    except (IndexError, TypeError, ValueError):
+        return 1.0, 1.0, 1.0
+
+
+def compute_luminance(model: AbstractLightModel | None) -> float:
+    """Compute a proportional luminance-like brightness factor.
+
+    Assumes `inputs:color` is authored in linear sRGB / Rec.709 primaries. Applies
+    Rec.709 luminosity weights to `color * temperature`, then multiplies by
+    `intensity * 2^exposure`. The result is not an absolute cd/m2 value; it is
+    meaningful only relative to the cone threshold used by `compute_threshold_distance`.
+    Returns 0.0 when the light is unselected or unreadable.
+    """
+    if not model:
+        return 0.0
+    light = model.light
+    if light is None:
+        return 0.0
+    time = model.time
+
+    intensity = _read_float_attr(light.GetIntensityAttr(), time, 0.0)
+    exposure = _read_float_attr(light.GetExposureAttr(), time, 0.0)
+    cr, cg, cb = _read_color_attr(light.GetColorAttr(), time)
+    enable_temp = _read_bool_attr(light.GetEnableColorTemperatureAttr(), time, False)
+    if enable_temp:
+        temp_k = _read_float_attr(light.GetColorTemperatureAttr(), time, 6500.0)
+        # `BlackbodyTemperatureAsRgb` returns a unit-Y normalized linear-RGB triple — same
+        # convention Remix uses on the C++ side.
+        temp_rgb = UsdLux.BlackbodyTemperatureAsRgb(temp_k)
+        cr *= float(temp_rgb[0])
+        cg *= float(temp_rgb[1])
+        cb *= float(temp_rgb[2])
+
+    brightness = _REC709_R * cr + _REC709_G * cg + _REC709_B * cb
+    return max(0.0, brightness * intensity * (2.0**exposure))
+
+
+def compute_threshold_distance(
+    light_class: type[UsdLux.BoundableLightBase] | type[UsdLux.NonboundableLightBase],
+    radius: float,
+    luminance: float,
+    threshold_lux: float,
+) -> float:
+    """Distance at which the light's on-axis illuminance falls below `threshold_lux`.
+
+    Closed-form: `d = R · sqrt(π·L/T)` for SphereLight, `d = R · sqrt(max(0, π·L/T − 1))`
+    for DiskLight on-axis. `L` is the proportional brightness factor from `compute_luminance`.
+    Returns 0.0 for unsupported light classes or non-positive inputs.
+    """
+    if luminance <= 0.0 or threshold_lux <= 0.0 or radius <= 0.0:
+        return 0.0
+    ratio = math.pi * luminance / threshold_lux
+    if light_class is UsdLux.SphereLight:
+        return radius * math.sqrt(ratio)
+    if light_class is UsdLux.DiskLight:
+        return radius * math.sqrt(max(0.0, ratio - 1.0))
+    return 0.0
 
 
 def get_manipulator_class(light: Usd.Prim) -> type[ConcreteLightManipulatorCls] | None:
@@ -207,9 +324,12 @@ class AbstractLightManipulator(sc.Manipulator):
     model_class = None
 
     # An intensity scale per light type since they can have such a different effect on a scene.
-    # For each light type, we light type's default intensity / INTENSITY SCALE
+    # Per-light divisor = that light type's default intensity / INTENSITY_SCALE.
     # The eventual result is: length = (i * INTENSITY_SCALE) / (default intensity)
-    intensity_scale = 500 / INTENSITY_SCALE
+    # Subclasses override; `intensity_scale` property below applies threshold scaling on spotlights.
+    _base_intensity_scale = 500 / INTENSITY_SCALE
+
+    supports_spotlight_cone = False
 
     def __init__(self, viewport_layers, **kwargs):
         super().__init__(**kwargs)
@@ -217,6 +337,101 @@ class AbstractLightManipulator(sc.Manipulator):
         self.__root_xf = sc.Transform()
         self._x_xform = sc.Transform()
         self._shape_xform = sc.Transform()
+        self._is_dragging = False
+        self._shaping_authored_cache: bool | None = None
+        self._cone_xform: sc.Transform | None = None
+        self._cone_visible = True
+        self._cone_threshold = CONE_THRESHOLD_DEFAULT
+        self._cone_sides = CONE_SIDES_DEFAULT
+        self._cone_outer_color: tuple[float, float, float] = CONE_OUTER_COLOR_DEFAULT
+        self._cone_inner_color: tuple[float, float, float] = CONE_INNER_COLOR_DEFAULT
+        self._cone_refresh_deferred = False
+        self._interaction_end_subscription = None
+
+    def __del__(self):
+        with suppress(Exception):
+            self.destroy()
+
+    def destroy(self) -> None:
+        self._revoke_interaction_end_subscription()
+        self._cone_refresh_deferred = False
+        self._cone_xform = None
+        self._shaping_authored_cache = None
+
+    def _revoke_interaction_end_subscription(self):
+        if self._interaction_end_subscription is None:
+            return
+        self._interaction_end_subscription.revoke()
+        self._interaction_end_subscription = None
+
+    @property
+    def cone_visible(self) -> bool:
+        return self._cone_visible
+
+    @cone_visible.setter
+    def cone_visible(self, value: bool):
+        value = bool(value)
+        if self._cone_visible == value:
+            return
+        self._cone_visible = value
+        if self.supports_spotlight_cone:
+            self.invalidate()
+
+    @property
+    def cone_threshold(self) -> float:
+        return self._cone_threshold
+
+    @cone_threshold.setter
+    def cone_threshold(self, value: float):
+        value = max(CONE_THRESHOLD_MIN, float(value))
+        if self._cone_threshold == value:
+            return
+        self._cone_threshold = value
+        if self.supports_spotlight_cone:
+            self.invalidate()
+
+    @property
+    def cone_sides(self) -> int:
+        return self._cone_sides
+
+    @cone_sides.setter
+    def cone_sides(self, value: int):
+        value = max(CONE_SIDES_MIN_INPUT, int(value))
+        if self._cone_sides == value:
+            return
+        self._cone_sides = value
+        if self.supports_spotlight_cone:
+            self.invalidate()
+
+    @property
+    def cone_outer_color(self) -> tuple[float, float, float]:
+        return self._cone_outer_color
+
+    @cone_outer_color.setter
+    def cone_outer_color(self, value: tuple[float, float, float]):
+        value = tuple(float(c) for c in value)
+        if len(value) != 3:
+            raise ValueError(f"cone_outer_color requires exactly 3 components, got {len(value)}")
+        if self._cone_outer_color == value:
+            return
+        self._cone_outer_color = value
+        if self.supports_spotlight_cone:
+            self.invalidate()
+
+    @property
+    def cone_inner_color(self) -> tuple[float, float, float]:
+        return self._cone_inner_color
+
+    @cone_inner_color.setter
+    def cone_inner_color(self, value: tuple[float, float, float]):
+        value = tuple(float(c) for c in value)
+        if len(value) != 3:
+            raise ValueError(f"cone_inner_color requires exactly 3 components, got {len(value)}")
+        if self._cone_inner_color == value:
+            return
+        self._cone_inner_color = value
+        if self.supports_spotlight_cone:
+            self.invalidate()
 
     @property
     def viewport_layers(self) -> ViewportLayers:
@@ -307,6 +522,207 @@ class AbstractLightManipulator(sc.Manipulator):
     def _build_manipulator_geometry(self):
         raise NotImplementedError()
 
+    def _build_cone_xform(self) -> list | None:
+        """Identity transform — frustum geometry is emitted in stage units directly by
+        `_build_cone_geometry`, so no additional scale is applied here.
+
+        Kept so the `cone_xform` scene-graph anchor and the `build_cone_xform()` call
+        chain still exist — subclasses can override to apply uniform hover-feedback or
+        animation scale on the cone without rebuilding geometry.
+        """
+        return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+
+    def _get_stage_meters_per_unit(self) -> float:
+        """Look up meters_per_unit from the light's stage, with a Remix-default fallback.
+
+        Falls back to 0.01 (Remix's cm-per-unit convention) when the stage or prim isn't
+        reachable — e.g. during early manipulator construction or in minimal test contexts.
+        """
+        default = 0.01
+        model = self.model
+        if not model:
+            return default
+        light = model.light
+        prim = light.GetPrim() if light else None
+        if prim is None:
+            return default
+        stage = prim.GetStage()
+        if stage is None:
+            return default
+        value = UsdGeom.GetStageMetersPerUnit(stage)
+        return value if value else default
+
+    def _get_source_radius(self) -> float:
+        """Return the emitter's source radius in stage units.
+
+        DiskLight and SphereLight expose a `radius` model item; for anything else (or a
+        prim whose radius isn't authored), return 0.0 so the frustum collapses to the
+        equivalent point-apex cone — a safe degenerate.
+        """
+        if not self.model:
+            return 0.0
+        radius_item = getattr(self.model, "radius", None)
+        if radius_item is None:
+            return 0.0
+        try:
+            return max(0.0, float(self.model.get_as_float(radius_item)))
+        except (TypeError, ValueError):
+            return 0.0
+
+    def build_cone_xform(self):
+        """Recompute `_cone_xform` from `_build_cone_xform`. Cheap — matrix-only update.
+
+        `_cone_xform` is `None` until `_build_cone_geometry` runs for the first time;
+        calls before then are no-ops."""
+        if not self.model or self._cone_xform is None:
+            return
+        xform = self._build_cone_xform()
+        if xform:
+            self._cone_xform.transform = xform
+
+    def _has_shaping_authored(self) -> bool:
+        """True iff the model exposes a ShapingAPI cone angle in (0°, 90°) — a spotlight in the Remix sense."""
+        if not self.model:
+            return False
+        cone_item = getattr(self.model, "cone_angle", None)
+        if cone_item is None:
+            return False
+        cone_values = self.model.get_as_floats(cone_item)
+        if not cone_values:
+            return False
+        angle_deg = float(cone_values[0])
+        return 0.0 < angle_deg < 90.0
+
+    def _needs_cone_geometry_rebuild(self) -> bool:
+        return self.supports_spotlight_cone and (self._has_shaping_authored() or self._cone_xform is not None)
+
+    def _defer_cone_geometry_rebuild(self):
+        self._cone_refresh_deferred = True
+        if self._interaction_end_subscription is None:
+            self._interaction_end_subscription = _register_interaction_end_listener(self._on_interaction_finished)
+
+    def _refresh_cone_geometry_when_safe(self):
+        if not self._needs_cone_geometry_rebuild():
+            return
+        if _is_any_interaction_active():
+            self._defer_cone_geometry_rebuild()
+            return
+        self.invalidate()
+
+    def _on_interaction_finished(self, _stage: Usd.Stage):
+        if not self._cone_refresh_deferred or _is_any_interaction_active():
+            return
+        self._cone_refresh_deferred = False
+        self._revoke_interaction_end_subscription()
+        if self._needs_cone_geometry_rebuild():
+            self.invalidate()
+
+    @property
+    def intensity_scale(self) -> float:
+        """Intensity-to-arrow-length divisor. Spotlight-capable manipulators with shaping authored
+        scale this by √(T/T_default) so the arrow tracks the cone's threshold response. Kept linear
+        in intensity so `LightDragGesture`'s z↔intensity inverse stays valid."""
+        if self._shaping_authored_cache is None:
+            has_shaping = self._has_shaping_authored()
+        else:
+            has_shaping = self._shaping_authored_cache
+        if not (self.supports_spotlight_cone and has_shaping):
+            return self._base_intensity_scale
+        threshold = max(self._cone_threshold, CONE_THRESHOLD_MIN)
+        return self._base_intensity_scale * math.sqrt(threshold / CONE_THRESHOLD_DEFAULT)
+
+    def _compute_cone_length_units(self) -> float:
+        """Cone-of-influence display length in stage units, or 0 when no cone should be drawn.
+
+        The photometric distance is converted to meters, clamped to the visible display range,
+        then converted back to stage units.
+        """
+        if not self._cone_visible or not self.supports_spotlight_cone or not self._has_shaping_authored():
+            return 0.0
+        meters_per_unit = self._get_stage_meters_per_unit()
+        base_radius = self._get_source_radius()
+        brightness = compute_luminance(self.model)
+        distance_units = compute_threshold_distance(self.light_class, base_radius, brightness, self._cone_threshold)
+        distance_meters = distance_units * meters_per_unit
+        if distance_meters <= 0.0:
+            return 0.0
+        distance_meters = max(CONE_LENGTH_MIN, min(CONE_LENGTH_MAX, distance_meters))
+        return distance_meters / meters_per_unit
+
+    def _build_cone_geometry(self):
+        """Draw a frustum along -Z from the light's source rim when shaping cone is authored < 90°.
+
+        Emits an outer frustum and, when `shaping:cone:softness > 0`, an inner frustum sharing
+        the same near rim with a narrower far rim.
+        """
+        self._cone_xform = None
+        # `_compute_cone_length_units` is the single gate — returns 0 unless cone-visible,
+        # spotlight-capable, shaping authored in (0°, 90°), and non-zero on-axis illuminance.
+        length_units = self._compute_cone_length_units()
+        if length_units <= 0.0:
+            return
+        # `shaping:cone:angle` is the half-angle measured off the primary axis; existence and
+        # bounds were already validated by `_has_shaping_authored` inside the call above.
+        angle_deg = float(self.model.get_as_floats(self.model.cone_angle)[0])
+        outer_half = math.radians(angle_deg)
+        eps = 1e-3
+        outer_half = max(eps, min(math.pi / 2.0 - eps, outer_half))
+
+        softness_item = getattr(self.model, "softness", None)
+        softness = 0.0
+        if softness_item is not None:
+            softness_values = self.model.get_as_floats(softness_item)
+            if softness_values:
+                softness = max(0.0, min(1.0, float(softness_values[0])))
+        # Remix's penumbra: softness is a cos-space delta added to the cone-angle cosine, so
+        # the inner cone collapses to a point when `cos_outer + softness ≥ 1`.
+        cos_outer = math.cos(outer_half)
+        cos_inner = min(1.0, cos_outer + softness)
+        inner_half = math.acos(cos_inner)
+
+        base_radius = self._get_source_radius()
+
+        outer_color = cl(*self._cone_outer_color, 1.0)
+        inner_color = cl(*self._cone_inner_color, 1.0)
+        outer_style = {"thickness": THICKNESS, "color": outer_color}
+        outer_arc_style = {"thickness": THICKNESS, "color": outer_color, "wireframe": True, "sector": False}
+        inner_style = {"thickness": THICKNESS, "color": inner_color}
+        inner_arc_style = {"thickness": THICKNESS, "color": inner_color, "wireframe": True, "sector": False}
+
+        self._cone_xform = sc.Transform()
+        self.build_cone_xform()
+        with self._cone_xform:
+            if base_radius > 1e-6:
+                sc.Arc(base_radius, axis=2, begin=-math.pi, end=math.pi, **outer_arc_style)
+            self._draw_disk_source_frustum(
+                outer_half, base_radius, length_units, self._cone_sides, outer_style, outer_arc_style
+            )
+            if softness > 0.0 and inner_half > eps:
+                self._draw_disk_source_frustum(
+                    inner_half, base_radius, length_units, self._cone_sides, inner_style, inner_arc_style
+                )
+
+    @staticmethod
+    def _draw_disk_source_frustum(
+        half_angle: float,
+        base_radius: float,
+        length_units: float,
+        sides: int,
+        line_style: dict[str, object],
+        arc_style: dict[str, object],
+    ) -> None:
+        """Emit `sides` spokes and a far-rim arc. The near rim is drawn by the caller."""
+        far_radius = base_radius + length_units * math.tan(half_angle)
+        for i in range(sides):
+            phi = (2.0 * math.pi) * (i / float(sides))
+            cos_phi = math.cos(phi)
+            sin_phi = math.sin(phi)
+            near = (base_radius * cos_phi, base_radius * sin_phi, 0.0)
+            far = (far_radius * cos_phi, far_radius * sin_phi, -length_units)
+            sc.Line(near, far, **line_style)
+        with sc.Transform(sc.Matrix44.get_translation_matrix(0.0, 0.0, -length_units)):
+            sc.Arc(far_radius, axis=2, begin=-math.pi, end=math.pi, **arc_style)
+
     def _build(self):
         self._shape_xform = sc.Transform()
         self._minimal_intensity_xform = sc.Transform()
@@ -314,6 +730,10 @@ class AbstractLightManipulator(sc.Manipulator):
         self.build_shape_xform()
         with self._shape_xform:
             self._build_manipulator_geometry()
+        # Cone geometry lives at the `_x_xform` level (outside `_shape_xform`) so it does not
+        # inherit the light's dimensional scaling. Cone-capable lights are proportional, so
+        # `_x_xform` stays at 1.0 and the photometric length remains in stage units.
+        self._build_cone_geometry()
         self.build_minimal_intensity_xform()
         with self._minimal_intensity_xform:
             self._build_minimal_intensity_geometry()
@@ -348,6 +768,18 @@ class AbstractLightManipulator(sc.Manipulator):
             # if intensity changed, update shape xform
             self.build_shape_xform()
 
+    def mark_drag_began(self):
+        self._is_dragging = True
+        self._shaping_authored_cache = self._has_shaping_authored()
+
+    def mark_drag_ended(self):
+        self._is_dragging = False
+        self._shaping_authored_cache = None
+        self._cone_refresh_deferred = False
+        self._revoke_interaction_end_subscription()
+        if self._needs_cone_geometry_rebuild():
+            self.invalidate()
+
     def on_model_updated(self, item: sc.AbstractManipulatorItem):
         # Regenerate the mesh
         if not self.model:
@@ -368,7 +800,7 @@ class RectLightManipulator(AbstractLightManipulator):
     light_class = UsdLux.RectLight
     model_class = RectLightModel
 
-    intensity_scale = RECT_LIGHT_INTENSITY / INTENSITY_SCALE
+    _base_intensity_scale = RECT_LIGHT_INTENSITY / INTENSITY_SCALE
 
     # XXX: TYPING - best we can do until sc.Manipulator becomes generic on model
     @property
@@ -500,8 +932,9 @@ class RectLightManipulator(AbstractLightManipulator):
 class DiskLightManipulator(AbstractLightManipulator):
     light_class = UsdLux.DiskLight
     model_class = DiskLightModel
+    supports_spotlight_cone = True
 
-    intensity_scale = DISK_LIGHT_INTENSITY / INTENSITY_SCALE
+    _base_intensity_scale = DISK_LIGHT_INTENSITY / INTENSITY_SCALE
 
     _arc_style = dict(DEFAULT_SHAPE_STYLE)
     _arc_style.update({"wireframe": True, "sector": False})
@@ -620,16 +1053,26 @@ class DiskLightManipulator(AbstractLightManipulator):
 
     def _on_model_updated(self, item: sc.AbstractManipulatorItem):
         if item in {self.model.radius, self.model.intensity}:
-            # if width, height or intensity changed, update shape xform
             self.build_shape_xform()
             self.build_minimal_intensity_xform()
+            if not self._is_dragging:
+                self._refresh_cone_geometry_when_safe()
+        elif item in {
+            self.model.cone_angle,
+            self.model.softness,
+            self.model.exposure,
+            self.model.color,
+            self.model.color_temperature,
+            self.model.enable_color_temperature,
+        }:
+            self._refresh_cone_geometry_when_safe()
 
 
 class DistantLightManipulator(AbstractLightManipulator):
     light_class = UsdLux.DistantLight
     model_class = DistantLightModel
 
-    intensity_scale = DISTANT_LIGHT_INTENSITY / INTENSITY_SCALE
+    _base_intensity_scale = DISTANT_LIGHT_INTENSITY / INTENSITY_SCALE
 
     # XXX: TYPING - best we can do until sc.Manipulator becomes generic on model
     @property
@@ -755,13 +1198,17 @@ class IntensityMixinFor3DManipulators:
             self.build_intensity_xform()
             with self._intensity_xform:
                 self._build_intensity_geometry()
+        # Kept parallel to AbstractLightManipulator._build — the cone must not be scaled by
+        # `_shape_xform` or `_intensity_xform`.
+        self._build_cone_geometry()
 
 
 class SphereLightManipulator(IntensityMixinFor3DManipulators, AbstractLightManipulator):
     light_class = UsdLux.SphereLight
     model_class = SphereLightModel
+    supports_spotlight_cone = True
 
-    intensity_scale = SPHERE_LIGHT_INTENSITY / INTENSITY_SCALE
+    _base_intensity_scale = SPHERE_LIGHT_INTENSITY / INTENSITY_SCALE
 
     # XXX: TYPING - best we can do until sc.Manipulator becomes generic on model
     @property
@@ -810,21 +1257,27 @@ class SphereLightManipulator(IntensityMixinFor3DManipulators, AbstractLightManip
 
     def _on_model_updated(self, item: sc.AbstractManipulatorItem):
         """Handle light subclass specific updates"""
-        if item in {
-            self.model.radius,
-        }:
+        if item in {self.model.radius, self.model.intensity}:
             self.build_shape_xform()
-        if item in {
-            self.model.intensity,
-        }:
             self.build_intensity_xform()
+            if not self._is_dragging:
+                self._refresh_cone_geometry_when_safe()
+        elif item in {
+            self.model.cone_angle,
+            self.model.softness,
+            self.model.exposure,
+            self.model.color,
+            self.model.color_temperature,
+            self.model.enable_color_temperature,
+        }:
+            self._refresh_cone_geometry_when_safe()
 
 
 class CylinderLightManipulator(IntensityMixinFor3DManipulators, AbstractLightManipulator):
     light_class = UsdLux.CylinderLight
     model_class = CylinderLightModel
 
-    intensity_scale = CYLINDER_LIGHT_INTENSITY / INTENSITY_SCALE
+    _base_intensity_scale = CYLINDER_LIGHT_INTENSITY / INTENSITY_SCALE
 
     # XXX: TYPING - best we can do until sc.Manipulator becomes generic on model
     @property

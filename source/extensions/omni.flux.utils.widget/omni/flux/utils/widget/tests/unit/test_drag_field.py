@@ -17,12 +17,10 @@
 
 from decimal import Decimal
 from typing import Any, cast
-import uuid
 from unittest.mock import patch
 
 import carb
 import omni.kit.test
-import omni.ui as ui
 from omni.flux.utils.widget.drag_field import (
     FloatBoundedDrag,
     IntBoundedDrag,
@@ -37,13 +35,10 @@ class _MockModel:
         self.supports_batch_edit = False
         self.is_batch_editing = False
         self._callback = None
-        self.last_value = value
-        self.string_value = string_value
-        self.begin_edit_count = 0
-        self.end_edit_count = 0
         self._begin_edit_callbacks = []
         self._end_edit_callbacks = []
-        self._value_changed_callbacks = []
+        self.last_value = value
+        self.string_value = string_value
 
     def set_callback_pre_set_value(self, callback):
         self._callback = callback
@@ -66,30 +61,11 @@ class _MockModel:
 
         return unsubscribe
 
-    def subscribe_value_changed_fn(self, callback):
-        self._value_changed_callbacks.append(callback)
-
-        def unsubscribe():
-            if callback in self._value_changed_callbacks:
-                self._value_changed_callbacks.remove(callback)
-
-        return unsubscribe
-
-    def subscribe_property_edit_cancel_fn(self, callback):
-        del callback
-
-        def unsubscribe():
-            pass
-
-        return unsubscribe
-
     def begin_edit(self):
-        self.begin_edit_count += 1
         for callback in tuple(self._begin_edit_callbacks):
             callback(self)
 
     def end_edit(self):
-        self.end_edit_count += 1
         for callback in tuple(self._end_edit_callbacks):
             callback(self)
 
@@ -101,14 +77,9 @@ class _MockModel:
 
     def _set(self, value):
         self.last_value = value
-        for callback in tuple(self._value_changed_callbacks):
-            callback(self)
 
     def set_value(self, value):
         self.apply(value)
-
-    def get_value(self):
-        return self.last_value
 
     def get_value_as_float(self):
         return float(self.last_value)
@@ -124,19 +95,14 @@ class _MockWidgetBase:
         self.kwargs = kwargs
         self.min = kwargs.get("min")
         self.max = kwargs.get("max")
-        self.enabled = True
         self._pressed_fn = None
         self._released_fn = None
-        self._double_clicked_fn = None
 
     def set_mouse_pressed_fn(self, callback):
         self._pressed_fn = callback
 
     def set_mouse_released_fn(self, callback):
         self._released_fn = callback
-
-    def set_mouse_double_clicked_fn(self, callback):
-        self._double_clicked_fn = callback
 
     def emit_mouse_pressed(self, button=0, modifier=0):
         if self._pressed_fn is not None:
@@ -154,6 +120,9 @@ class _MockDrag(_BoundedNumericDragBase, _MockWidgetBase):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("enable_numeric_edit", False)
         super().__init__(*args, **kwargs)
+
+    def set_numeric_edit_controller_for_test(self, controller: Any) -> None:
+        self._numeric_edit_controller = controller
 
 
 class _MockFloatDrag(_MockDrag):
@@ -190,6 +159,71 @@ class _ReentrantEndBatchModel(_BatchModel):
         self.apply(4.0)
 
 
+class _ActiveControllerStub:
+    def __init__(self):
+        self.end_count = 0
+        self.active_during_end = None
+
+    def end_text_edit(self):
+        self.end_count += 1
+        self.active_during_end = _NumericEditController.active_controller
+
+
+class _NumericEditControllerStub:
+    def __init__(self):
+        self.arm_count = 0
+        self.disarm_count = 0
+        self.focus_calls = []
+        self.is_editing = False
+        self.destroy_count = 0
+
+    def arm_text_edit_after_click(self):
+        self.arm_count += 1
+
+    def disarm_text_edit_after_click(self):
+        self.disarm_count += 1
+
+    def focus(self, **kwargs):
+        self.focus_calls.append(kwargs)
+        self.is_editing = True
+
+    def destroy(self):
+        self.destroy_count += 1
+
+
+class _KeyboardEventStub:
+    def __init__(self, event_type: carb.input.KeyboardEventType, input_value: Any, modifiers: int = 0):
+        self.type = event_type
+        self.input = input_value
+        self.modifiers = modifiers
+
+
+class _MouseEventStub:
+    def __init__(self, event_type: carb.input.MouseEventType, pixel_coords: tuple[float, float]):
+        self.type = event_type
+        self.pixel_coords = pixel_coords
+
+
+class _ExpressionFieldStub:
+    def __init__(self):
+        self.visible = True
+        self.screen_position_x = 10.0
+        self.screen_position_y = 20.0
+        self.computed_width = 100.0
+        self.computed_height = 20.0
+
+
+class _ExpressionModelStub:
+    def __init__(self, value: str):
+        self.value = value
+
+    def set_value(self, value: str):
+        self.value = value
+
+    def get_value_as_string(self) -> str:
+        return self.value
+
+
 class _ModelWithoutBatchFlag:
     def __init__(self):
         self._callback = None
@@ -209,14 +243,6 @@ class _ModelWithoutBatchFlag:
 
 
 class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
-    async def setUp(self):
-        _NumericEditController.active_controller = None
-
-    async def tearDown(self):
-        if _NumericEditController.active_controller is not None:
-            _NumericEditController.active_controller.destroy()
-        _NumericEditController.active_controller = None
-
     async def test_concrete_drag_widgets_reuse_shared_numeric_edit_hooks(self):
         # Arrange
         shared_methods = {
@@ -241,84 +267,253 @@ class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
         self.assertTrue(issubclass(IntBoundedDrag, _BoundedNumericDragBase))
         self.assertEqual(duplicated_methods, {"FloatBoundedDrag": [], "IntBoundedDrag": []})
 
-    async def test_begin_numeric_text_edit_closes_previous_active_controller(self):
+    async def test_numeric_text_edit_activation_ends_previous_controller(self):
+        previous_controller = _ActiveControllerStub()
+        current_controller = _NumericEditController.__new__(_NumericEditController)
+        current_controller._destroyed = False
+        current_controller._editing = True
+        _NumericEditController.active_controller = cast(Any, previous_controller)
+
+        try:
+            current_controller._activate()
+
+            self.assertEqual(previous_controller.end_count, 1)
+            self.assertIs(previous_controller.active_during_end, previous_controller)
+            self.assertIs(_NumericEditController.active_controller, current_controller)
+        finally:
+            _NumericEditController.active_controller = None
+
+    async def test_numeric_text_edit_disarms_previous_armed_controller(self):
+        previous_controller = _NumericEditControllerStub()
+        current_controller = _NumericEditController.__new__(_NumericEditController)
+        _NumericEditController.armed_controller = cast(Any, previous_controller)
+
+        try:
+            current_controller._disarm_armed_controller_if_other()
+
+            self.assertEqual(previous_controller.disarm_count, 1)
+        finally:
+            _NumericEditController.armed_controller = None
+
+    async def test_numeric_text_edit_force_ends_tab_transfer_controller(self):
+        controller = _NumericEditController.__new__(_NumericEditController)
+        controller._transfer_key_active = True
+        end_calls = []
+
+        def _end_edit(*, commit=True):
+            end_calls.append((controller._transfer_key_active, commit))
+
+        cast(Any, controller)._end_edit = _end_edit
+
+        controller.end_text_edit(commit=False)
+
+        self.assertEqual(end_calls, [(False, False)])
+
+    async def test_numeric_text_edit_replaces_selected_text_on_first_character(self):
+        controller = _NumericEditController.__new__(_NumericEditController)
+        controller._editing = True
+        controller._transfer_key_active = True
+        controller._replace_expression_text = True
+        controller._cursor_position = 4
+        controller._expression_model = _ExpressionModelStub("1234")
+        event = _KeyboardEventStub(carb.input.KeyboardEventType.CHAR, "9")
+        _NumericEditController.active_controller = controller
+
+        try:
+            handled = controller._on_keyboard_event(cast(Any, event))
+
+            self.assertTrue(handled)
+            self.assertFalse(controller._transfer_key_active)
+            self.assertFalse(controller._replace_expression_text)
+            self.assertEqual(controller._cursor_position, 1)
+            self.assertEqual(controller._expression_model.get_value_as_string(), "9")
+        finally:
+            _NumericEditController.active_controller = None
+
+    async def test_numeric_text_edit_inserts_valid_text_at_tracked_cursor(self):
+        controller = _NumericEditController.__new__(_NumericEditController)
+        controller._editing = True
+        controller._transfer_key_active = True
+        controller._replace_expression_text = False
+        controller._cursor_position = 2
+        controller._expression_model = _ExpressionModelStub("1234")
+        event = _KeyboardEventStub(carb.input.KeyboardEventType.CHAR, "9")
+        _NumericEditController.active_controller = controller
+
+        try:
+            handled = controller._on_keyboard_event(cast(Any, event))
+
+            self.assertTrue(handled)
+            self.assertFalse(controller._transfer_key_active)
+            self.assertEqual(controller._cursor_position, 3)
+            self.assertEqual(controller._expression_model.get_value_as_string(), "12934")
+        finally:
+            _NumericEditController.active_controller = None
+
+    async def test_numeric_text_edit_consumes_invalid_text_input(self):
+        controller = _NumericEditController.__new__(_NumericEditController)
+        controller._editing = True
+        controller._transfer_key_active = True
+        controller._replace_expression_text = False
+        controller._cursor_position = 2
+        controller._expression_model = _ExpressionModelStub("1234")
+        event = _KeyboardEventStub(carb.input.KeyboardEventType.CHAR, "x")
+        _NumericEditController.active_controller = controller
+
+        try:
+            handled = controller._on_keyboard_event(cast(Any, event))
+
+            self.assertTrue(handled)
+            self.assertFalse(controller._transfer_key_active)
+            self.assertEqual(controller._cursor_position, 2)
+            self.assertEqual(controller._expression_model.get_value_as_string(), "1234")
+        finally:
+            _NumericEditController.active_controller = None
+
+    async def test_numeric_text_edit_backspaces_at_tracked_cursor(self):
+        controller = _NumericEditController.__new__(_NumericEditController)
+        controller._editing = True
+        controller._transfer_key_active = True
+        controller._replace_expression_text = False
+        controller._cursor_position = 2
+        controller._expression_model = _ExpressionModelStub("1234")
+        event = _KeyboardEventStub(carb.input.KeyboardEventType.KEY_PRESS, carb.input.KeyboardInput.BACKSPACE)
+        _NumericEditController.active_controller = controller
+
+        try:
+            handled = controller._on_keyboard_event(cast(Any, event))
+
+            self.assertTrue(handled)
+            self.assertFalse(controller._transfer_key_active)
+            self.assertEqual(controller._cursor_position, 1)
+            self.assertEqual(controller._expression_model.get_value_as_string(), "134")
+        finally:
+            _NumericEditController.active_controller = None
+
+    async def test_numeric_text_edit_ignores_keyboard_events_when_not_editing(self):
+        controller = _NumericEditController.__new__(_NumericEditController)
+        controller._editing = False
+        controller._transfer_key_active = True
+        controller._replace_expression_text = False
+        controller._cursor_position = 2
+        controller._expression_model = _ExpressionModelStub("1234")
+        event = _KeyboardEventStub(carb.input.KeyboardEventType.CHAR, "9")
+
+        handled = controller._on_keyboard_event(cast(Any, event))
+
+        self.assertFalse(handled)
+        self.assertTrue(controller._transfer_key_active)
+        self.assertEqual(controller._cursor_position, 2)
+        self.assertEqual(controller._expression_model.get_value_as_string(), "1234")
+
+    async def test_numeric_text_edit_mouse_press_inside_editor_keeps_editing(self):
+        controller = _NumericEditController.__new__(_NumericEditController)
+        controller._editing = True
+        controller._expression_field = _ExpressionFieldStub()
+        controller._ignore_mouse_down_events = 0
+        end_calls = []
+        _NumericEditController.active_controller = controller
+
+        def _end_edit(*, commit=True):
+            end_calls.append(commit)
+
+        cast(Any, controller)._end_edit = _end_edit
+        event = _MouseEventStub(carb.input.MouseEventType.LEFT_BUTTON_DOWN, (15.0, 25.0))
+
+        try:
+            handled = controller._on_mouse_event(cast(Any, event))
+
+            self.assertFalse(handled)
+            self.assertEqual(end_calls, [])
+        finally:
+            _NumericEditController.active_controller = None
+
+    async def test_numeric_text_edit_mouse_press_outside_editor_commits_edit(self):
+        controller = _NumericEditController.__new__(_NumericEditController)
+        controller._editing = True
+        controller._transfer_key_active = True
+        controller._expression_field = _ExpressionFieldStub()
+        controller._ignore_mouse_down_events = 0
+        end_calls = []
+        _NumericEditController.active_controller = controller
+
+        def _end_edit(*, commit=True):
+            end_calls.append((controller._transfer_key_active, commit))
+
+        cast(Any, controller)._end_edit = _end_edit
+        event = _MouseEventStub(carb.input.MouseEventType.LEFT_BUTTON_DOWN, (150.0, 25.0))
+
+        try:
+            handled = controller._on_mouse_event(cast(Any, event))
+
+            self.assertFalse(handled)
+            self.assertEqual(end_calls, [(False, True)])
+        finally:
+            _NumericEditController.active_controller = None
+
+    async def test_numeric_text_edit_ignores_deferred_opening_mouse_press(self):
+        controller = _NumericEditController.__new__(_NumericEditController)
+        controller._editing = True
+        controller._ignore_mouse_down_events = 1
+        controller._expression_field = _ExpressionFieldStub()
+        end_calls = []
+        _NumericEditController.active_controller = controller
+
+        def _end_edit(*, commit=True):
+            end_calls.append(commit)
+
+        cast(Any, controller)._end_edit = _end_edit
+        event = _MouseEventStub(carb.input.MouseEventType.LEFT_BUTTON_DOWN, (150.0, 25.0))
+
+        try:
+            handled = controller._on_mouse_event(cast(Any, event))
+
+            self.assertFalse(handled)
+            self.assertEqual(controller._ignore_mouse_down_events, 0)
+            self.assertEqual(end_calls, [])
+        finally:
+            _NumericEditController.active_controller = None
+
+    async def test_second_clean_click_after_closing_another_numeric_editor_begins_text_edit(self):
         # Arrange
-        window = ui.Window(
-            f"TestBoundedNumericDragBase_{str(uuid.uuid1())}",
-            height=120,
-            width=240,
-            position_x=0,
-            position_y=100,
-        )
-        first_model = _MockModel(1.0)
-        second_model = _MockModel(10.0)
-        with (
-            patch.object(_NumericEditController, "_start_keyboard_subscription"),
-            patch.object(_NumericEditController, "_stop_keyboard_subscription"),
-        ):
-            with window.frame:
-                first_drag = _MockFloatDrag(model=first_model, enable_numeric_edit=True)
-                second_drag = _MockFloatDrag(model=second_model, enable_numeric_edit=True)
+        model = _BatchModel()
+        widget = _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
+        previous_controller = _NumericEditControllerStub()
+        controller = _NumericEditControllerStub()
+        widget.set_numeric_edit_controller_for_test(controller)
+        _NumericEditController.active_controller = cast(Any, previous_controller)
 
-            try:
-                first_drag.begin_numeric_text_edit(clear_value=False)
+        try:
+            widget.emit_mouse_pressed(button=0)
+            _NumericEditController.active_controller = None
 
-                # Act
-                second_drag.begin_numeric_text_edit(clear_value=False)
+            # Act
+            widget.emit_mouse_released(button=0)
 
-                # Assert
-                self.assertTrue(first_drag.enabled)
-                self.assertFalse(second_drag.enabled)
-                self.assertEqual(first_model.begin_edit_count, 1)
-                self.assertEqual(first_model.end_edit_count, 1)
-                self.assertEqual(second_model.begin_edit_count, 1)
-                self.assertEqual(second_model.end_edit_count, 0)
-            finally:
-                first_drag.destroy()
-                second_drag.destroy()
-                window.destroy()
+            # Assert
+            self.assertEqual(controller.arm_count, 0)
+            self.assertEqual(controller.focus_calls, [])
+            self.assertFalse(model.is_batch_editing)
 
-    async def test_ctrl_click_numeric_edit_starts_after_mouse_release(self):
-        # Arrange
-        window = ui.Window(
-            f"TestBoundedNumericDragBase_{str(uuid.uuid1())}",
-            height=120,
-            width=240,
-            position_x=0,
-            position_y=100,
-        )
-        first_model = _MockModel(1.0)
-        second_model = _MockModel(10.0)
-        with (
-            patch.object(_NumericEditController, "_start_keyboard_subscription"),
-            patch.object(_NumericEditController, "_stop_keyboard_subscription"),
-        ):
-            with window.frame:
-                first_drag = _MockFloatDrag(model=first_model, enable_numeric_edit=True)
-                second_drag = _MockFloatDrag(model=second_model, enable_numeric_edit=True)
+            # Act
+            widget.emit_mouse_pressed(button=0)
+            widget.emit_mouse_released(button=0)
 
-            try:
-                first_drag.begin_numeric_text_edit(clear_value=False)
-
-                # Act
-                second_drag.emit_mouse_pressed(button=0, modifier=carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
-
-                # Assert
-                self.assertTrue(first_drag.enabled)
-                self.assertTrue(second_drag.enabled)
-                self.assertEqual(first_model.end_edit_count, 1)
-                self.assertEqual(second_model.begin_edit_count, 0)
-
-                # Act
-                second_drag.emit_mouse_released(button=0)
-
-                # Assert
-                self.assertFalse(second_drag.enabled)
-                self.assertEqual(second_model.begin_edit_count, 1)
-            finally:
-                first_drag.destroy()
-                second_drag.destroy()
-                window.destroy()
+            # Assert
+            self.assertEqual(controller.arm_count, 0)
+            self.assertEqual(
+                controller.focus_calls,
+                [
+                    {
+                        "clear_value": False,
+                        "from_tab_transfer": False,
+                        "begin_undo_group": True,
+                        "ignore_mouse_down_events": 1,
+                    }
+                ],
+            )
+        finally:
+            _NumericEditController.active_controller = None
 
     async def test_clamps_to_hard_bounds(self):
         # Arrange
@@ -683,6 +878,80 @@ class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
         self.assertEqual(model.begin_count, 1)
         self.assertTrue(model.is_batch_editing)
         self.assertEqual(model.last_value, 5.0)
+
+    async def test_drag_model_edit_starts_batch_when_mouse_press_was_not_observed(self):
+        # Arrange
+        model = _BatchModel()
+        _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
+
+        # Act
+        model.begin_edit()
+        model.apply(5.0)
+
+        # Assert
+        self.assertEqual(model.begin_count, 1)
+        self.assertTrue(model.is_batch_editing)
+        self.assertEqual(model.last_value, 5.0)
+
+    async def test_clean_click_arms_numeric_text_edit_when_double_click_callback_is_missed(self):
+        # Arrange
+        model = _BatchModel()
+        widget = _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
+        controller = _NumericEditControllerStub()
+        widget.set_numeric_edit_controller_for_test(controller)
+        widget.emit_mouse_pressed(button=0)
+
+        # Act
+        widget.emit_mouse_released(button=0)
+
+        # Assert
+        self.assertEqual(controller.arm_count, 1)
+        self.assertEqual(controller.focus_calls, [])
+        self.assertFalse(model.is_batch_editing)
+
+    async def test_ctrl_click_immediately_focuses_numeric_text_edit(self):
+        # Arrange
+        model = _BatchModel()
+        widget = _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
+        controller = _NumericEditControllerStub()
+        widget.set_numeric_edit_controller_for_test(controller)
+        widget.emit_mouse_pressed(button=0, modifier=carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+
+        # Act
+        widget.emit_mouse_released(button=0, modifier=carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
+
+        # Assert
+        self.assertEqual(controller.arm_count, 0)
+        self.assertEqual(controller.disarm_count, 1)
+        self.assertEqual(
+            controller.focus_calls,
+            [
+                {
+                    "clear_value": False,
+                    "from_tab_transfer": False,
+                    "begin_undo_group": True,
+                    "ignore_mouse_down_events": 1,
+                }
+            ],
+        )
+        self.assertFalse(model.is_batch_editing)
+
+    async def test_drag_release_does_not_arm_numeric_text_edit_after_value_change(self):
+        # Arrange
+        model = _BatchModel()
+        widget = _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
+        controller = _NumericEditControllerStub()
+        widget.set_numeric_edit_controller_for_test(controller)
+        widget.emit_mouse_pressed(button=0)
+        model.apply(5.0)
+
+        # Act
+        widget.emit_mouse_released(button=0)
+
+        # Assert
+        self.assertEqual(controller.arm_count, 0)
+        self.assertEqual(controller.focus_calls, [])
+        self.assertFalse(model.is_batch_editing)
 
     async def test_mouse_release_ends_active_batch_edit(self):
         # Arrange

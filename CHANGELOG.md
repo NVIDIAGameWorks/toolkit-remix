@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- REMIX-5246: Added spotlight cone wireframe visualization for DiskLight and SphereLight when `shaping:cone:angle` is authored, with tunable threshold / subdivisions / outer + inner colors under the viewport Display dropdown ▸ Custom Manipulators ▸ Light Manipulator; the visual cone and intensity-arrow lengths update together based on the display threshold
 - REMIX-5208: Added custom tag filtering and category-level bulk actions to the Stage Manager filter popup
 - Added MIRROR_DRY_RUN switch to github-mirror-sync for validating the filter pipeline without pushing to the staging mirror
 - REMIX-4115 / REMIX-2452: Added MDL range and enable-if support to material properties, including conditional row visibility and hidden-row refresh safeguards
@@ -56,6 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5483: Fixed stage-open crash by tearing down lingering lighting-undo events after their handler is torn down and guarding `SwitchCaptureCommand` against dispatching `SetLightingMenuModeCommand` when `lighting_mode` is empty or already the default, eliminating the HL2 stage-open GPU crash from the empty-value race.
 - REMIX-5518 / REMIX-5521: Fixed packaging repair, cancellation, and flatten-output flows.
 - REMIX-5483: Gated the HdRemix renderer's Integrate Indirect Illumination Mode dropdown's runtime push on the Override Capture Value checkbox so loaded capture presets are no longer overwritten when the box is unchecked.
+- Fixed bounded numeric drag text edits and drags when Kit skips widget mouse or double-click callbacks, preserving immediate USD typed updates and single undo entries for drags.
+- REMIX-5246: Fixed bounded numeric drag retargeting so Ctrl-clicks, double-clicks, and arrow steps stay on the intended vector row after an active numeric edit.
 
 ## [1.5.0-0]
 
