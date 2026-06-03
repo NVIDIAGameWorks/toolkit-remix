@@ -16,6 +16,7 @@
 """
 
 __all__ = [
+    "AssetReplacementsCoreSharedExtension",
     "CachedReplacementSkeletons",
     "Setup",
     "SkeletonAutoRemappingError",
@@ -24,6 +25,7 @@ __all__ = [
     "repair_skinned_replacement_scale",
 ]
 
+from .extension import AssetReplacementsCoreSharedExtension
 from .setup import Setup
 from .skeleton import (
     CachedReplacementSkeletons,

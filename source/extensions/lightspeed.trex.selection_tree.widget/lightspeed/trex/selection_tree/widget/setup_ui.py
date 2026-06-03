@@ -112,7 +112,7 @@ class SetupUI:
         self._context = omni.usd.get_context(context_name)
         self._core = _AssetReplacementsCore(context_name)
         self._tree_model = _ListModel(context_name)
-        self._tree_delegate = _Delegate()
+        self._tree_delegate = _Delegate(context_name)
 
         self.__on_deferred_tree_model_changed_task = None
 
@@ -180,6 +180,28 @@ class SetupUI:
 
     def subscribe_delete_reference(self, function: Callable[[Usd.Prim, str], None]):
         return self._tree_delegate.subscribe_delete_reference(function)
+
+    def subscribe_transfer_reference(self, function: Callable[[_ItemReferenceFile], None]):
+        """Subscribe to reference transfer requests from the selection tree.
+
+        Args:
+            function: Callback invoked with the selected reference-file item.
+
+        Returns:
+            Subscription object that automatically unsubscribes when destroyed.
+        """
+        return self._tree_delegate.subscribe_transfer_reference(function)
+
+    def subscribe_transfer_prim(self, function: Callable[[_ItemPrim], None]):
+        """Subscribe to prim transfer requests from the selection tree.
+
+        Args:
+            function: Callback invoked with the selected prim item.
+
+        Returns:
+            Subscription object that automatically unsubscribes when destroyed.
+        """
+        return self._tree_delegate.subscribe_transfer_prim(function)
 
     def subscribe_frame_prim(self, function: Callable[[Usd.Prim], None]):
         return self._tree_delegate.subscribe_frame_prim(function)

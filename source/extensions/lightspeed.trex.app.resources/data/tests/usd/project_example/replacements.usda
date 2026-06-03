@@ -8,6 +8,11 @@
             }
         }
     }
+    subLayers = [
+        @./transfer_workflow_target.usda@,
+        @./transfer_workflow_particle_overrides.usda@,
+        @./transfer_workflow_second_particle_overrides.usda@
+    ]
     upAxis = "Z"
 )
 
@@ -24,6 +29,100 @@ over "RootNode"
 
     over "meshes"
     {
+        def Xform "mesh_FEE1DEADF00D0001"
+        {
+            def Mesh "mesh"
+            {
+                float3[] extent = [(0, 0, 0), (1, 1, 0)]
+                int[] faceVertexCounts = [3]
+                int[] faceVertexIndices = [0, 1, 2]
+                point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+                uniform token subdivisionScheme = "none"
+
+                def OmniGraph "TransferWorkflowLogicGraph"
+                {
+                    token evaluator:type = "push"
+                    int2 fileFormatVersion = (1, 5)
+
+                    def OmniGraphNode "MeshProximity" (
+                        prepend apiSchemas = ["NodeGraphNodeAPI"]
+                    )
+                    {
+                        rel inputs:target = </RootNode/meshes/mesh_FEE1DEADF00D0001/mesh>
+                        token node:type = "lightspeed.trex.logic.MeshProximity"
+                        int node:typeVersion = 1
+                    }
+                }
+            }
+
+            def Xform "reference_override" (
+                prepend references = @./sources/transfer_workflow_cube.usda@
+            )
+            {
+                custom bool IsRemixRef = 1
+
+                over "Cube_01"
+                {
+                    double3 xformOp:rotateXYZ = (0, 0, 0)
+                    double3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (40.97617494664862, -14.462177889626224, -0.000003471705639412903)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+                }
+            }
+
+            def SphereLight "TransferWorkflowLight"
+            {
+                float inputs:intensity = 1200
+            }
+        }
+
+        def Xform "transfer_workflow_material_mesh"
+        {
+            def Mesh "mesh" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+            )
+            {
+                float3[] extent = [(0, 0, 0), (1, 1, 0)]
+                int[] faceVertexCounts = [3]
+                int[] faceVertexIndices = [0, 1, 2]
+                rel material:binding = </RootNode/Looks/transfer_workflow_material> (
+                    bindMaterialAs = "weakerThanDescendants"
+                )
+                point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+                uniform token subdivisionScheme = "none"
+            }
+        }
+
+        def Xform "transfer_workflow_particle_definition"
+        {
+            def Mesh "mesh" (
+                prepend apiSchemas = ["ParticleSystemAPI"]
+            )
+            {
+                float3[] extent = [(0, 0, 0), (1, 1, 0)]
+                int[] faceVertexCounts = [3]
+                int[] faceVertexIndices = [0, 1, 2]
+                float primvars:particle:gravityForce = 9.8
+                point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+                uniform token subdivisionScheme = "none"
+            }
+        }
+
+        def Xform "transfer_workflow_particle_override"
+        {
+            def Mesh "mesh" (
+                prepend apiSchemas = ["ParticleSystemAPI"]
+            )
+            {
+                float3[] extent = [(0, 0, 0), (1, 1, 0)]
+                int[] faceVertexCounts = [3]
+                int[] faceVertexIndices = [0, 1, 2]
+                float primvars:particle:gravityForce = 1
+                point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+                uniform token subdivisionScheme = "none"
+            }
+        }
+
         over "mesh_BAC90CAA733B0859" (
             references = None
         )
@@ -75,6 +174,15 @@ over "RootNode"
         }
     }
 
+    over "instances"
+    {
+        def Xform "inst_FEE1DEADF00D0001_0" (
+            prepend references = </RootNode/meshes/mesh_FEE1DEADF00D0001>
+        )
+        {
+        }
+    }
+
     over "Looks"
     {
         token visibility = "invisible"
@@ -109,6 +217,21 @@ over "RootNode"
                     }
                     displayGroup = "Specular"
                     displayName = "Roughness Map"
+                    hidden = false
+                )
+            }
+        }
+
+        def Material "transfer_workflow_material"
+        {
+            token outputs:surface.connect = </RootNode/Looks/transfer_workflow_material/Shader.outputs:surface>
+
+            def Shader "Shader"
+            {
+                token outputs:surface
+                float inputs:transferWorkflowRoughness = 0.42 (
+                    displayGroup = "Specular"
+                    displayName = "Transfer Workflow Roughness"
                     hidden = false
                 )
             }

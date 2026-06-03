@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.35.1]
+### Added
+- Added optional USD property delegate callbacks for transferring authored property modifications to another layer.
+
+### Fixed
+- Centered USD property modification menu images vertically.
+
 ## [2.35.0]
 ### Added
 - Added pre-open callbacks for USD curve and gradient editors

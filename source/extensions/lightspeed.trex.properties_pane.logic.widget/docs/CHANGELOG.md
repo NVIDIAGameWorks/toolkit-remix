@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Added
+- Added transfer actions for logic property modifications and logic graph definitions.
+
 ## [1.4.1]
 ### Added
 - Added StagePrimPicker E2E coverage for relationship refresh coalescing through UI select and clear flows

@@ -17,6 +17,7 @@
 
 import asyncio
 import functools
+from collections.abc import Callable
 
 import carb
 from omni import kit, ui, usd
@@ -30,6 +31,7 @@ from .layer_tree.delegate import LayerDelegate as _LayerDelegate
 from .layer_tree.item_model import ItemBase as _ItemBase
 from .layer_tree.item_model import LayerItem as _LayerItem
 from .layer_tree.model import LayerModel as _LayerModel
+from .layer_tree.model import LayerTransferTarget as _LayerTransferTarget
 
 
 class LayerTreeWidget:
@@ -51,6 +53,7 @@ class LayerTreeWidget:
         context_name: The USD context name to use (empty string for default)
         model: Optional custom LayerModel instance
         delegate: Optional custom LayerDelegate instance
+        project_layer_transfer_fn: Optional callback for transferring a layer into another project layer.
         height: Initial height in pixels (default: 130)
         expansion_default: Default expansion state for items (default: False)
         hide_create_insert_buttons: Whether to hide create/import buttons (default: False)
@@ -64,6 +67,7 @@ class LayerTreeWidget:
         context_name: str = "",
         model: _LayerModel | None = None,
         delegate: _LayerDelegate | None = None,
+        project_layer_transfer_fn: Callable[[_LayerItem], None] | None = None,
         height: int | None = None,
         expansion_default: bool = False,
         hide_create_insert_buttons: bool = False,
@@ -75,6 +79,7 @@ class LayerTreeWidget:
             "_height": None,
             "_expansion_default": None,
             "_hide_create_insert_buttons": None,
+            "_project_layer_transfer_fn": None,
             "_manipulator_frame": None,
             "_loading_frame": None,
             "_manip_frame": None,
@@ -84,7 +89,10 @@ class LayerTreeWidget:
             "_sub_on_refresh_started": None,
             "_sub_on_refresh_completed": None,
             "_sub_on_stage_opened": None,
+            "_sub_on_edit_target_changed": None,
+            "_sub_on_selection_changed": None,
             "_sub_on_item_changed": None,
+            "_sub_on_context_menu_shown": None,
             "_sub_on_item_expanded": None,
             "_sub_on_set_authoring_layer": None,
             "_sub_on_item_removed": None,
@@ -92,6 +100,7 @@ class LayerTreeWidget:
             "_sub_on_item_locked": None,
             "_sub_on_item_visible_toggled": None,
             "_sub_on_item_exported": None,
+            "_sub_on_item_renamed": None,
             "_sub_on_item_save_layer_as": None,
             "_sub_on_item_merge": None,
             "_sub_on_item_transfer": None,
@@ -100,6 +109,9 @@ class LayerTreeWidget:
             "_refresh_task": None,
             "_create_button": None,
             "_import_button": None,
+            "_select_edit_target_on_refresh": None,
+            "_edit_target_identifier": None,
+            "_visible": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -107,10 +119,16 @@ class LayerTreeWidget:
         self._tree_expanded = {}
 
         self._model = _LayerModel(context_name) if model is None else model
-        self._delegate = _LayerDelegate() if delegate is None else delegate
+        self._delegate = (
+            _LayerDelegate(project_layer_transfer_enabled=project_layer_transfer_fn is not None)
+            if delegate is None
+            else delegate
+        )
+        self._delegate._project_layer_transfer_enabled = project_layer_transfer_fn is not None  # noqa: SLF001
         self._height = self._DEFAULT_TREE_FRAME_HEIGHT if height is None else height
         self._expansion_default = expansion_default
         self._hide_create_insert_buttons = hide_create_insert_buttons
+        self._project_layer_transfer_fn = project_layer_transfer_fn
 
         # Model events
         self._sub_on_refresh_started = self._model.subscribe_refresh_started(
@@ -120,9 +138,11 @@ class LayerTreeWidget:
             functools.partial(self._on_model_refresh, False)
         )
         self._sub_on_stage_opened = self._model.subscribe_stage_opened(self._on_stage_opened)
+        self._sub_on_edit_target_changed = self._model.subscribe_edit_target_changed(self._on_edit_target_changed)
         self._sub_on_item_changed = self._model.subscribe_item_changed_fn(self._on_item_changed)
 
         # Delegate events
+        self._sub_on_context_menu_shown = self._delegate.subscribe_context_menu_shown(self._sync_selection_from_tree)
         self._sub_on_item_expanded = self._delegate.subscribe_on_item_expanded(self._on_item_expanded)
         self._sub_on_set_authoring_layer = self._delegate.subscribe_on_set_authoring_layer(
             self._model.set_authoring_layer
@@ -132,13 +152,17 @@ class LayerTreeWidget:
         self._sub_on_item_locked = self._delegate.subscribe_on_lock_clicked(self._set_lock_layers)
         self._sub_on_item_visible_toggled = self._delegate.subscribe_on_visible_clicked(self._set_mute_layers)
         self._sub_on_item_exported = self._delegate.subscribe_on_export_clicked(self._model.export_layer)
+        self._sub_on_item_renamed = self._delegate.subscribe_on_rename_clicked(self._model.rename_layer)
         self._sub_on_item_save_layer_as = self._delegate.subscribe_on_save_as_clicked(self._model.save_layer_as)
         self._sub_on_item_merge = self._delegate.subscribe_on_merge_clicked(self._model.merge_layers)
-        self._sub_on_item_transfer = self._delegate.subscribe_on_transfer_clicked(self._model.transfer_layer_overrides)
+        self._sub_on_item_transfer = self._delegate.subscribe_on_transfer_clicked(self._on_transfer_layer_changes)
 
         self._selection = set()
         self._ignore_selection_updates = False
         self._refresh_task = None
+        self._select_edit_target_on_refresh = False
+        self._edit_target_identifier = None
+        self._visible = False
 
         self.__create_ui()
         self._update_button_state()
@@ -148,6 +172,13 @@ class LayerTreeWidget:
         Let the widget know if it's visible or not. This will internally enable/disabled the USD listener to reduce the
         amount of resources used by the widget with it's not visible.
         """
+        if value == self._visible:
+            return
+        self._visible = value
+        if value:
+            self._selection.clear()
+            self._edit_target_identifier = None
+            self._select_edit_target_on_refresh = True
         self._model.enable_listeners(value)
 
     def __create_ui(self):
@@ -172,7 +203,9 @@ class LayerTreeWidget:
                                 style_type_name_override="TreeView.Selection",
                                 key_pressed_fn=self._on_delete_pressed,
                             )
-                            self._layer_tree_widget.subscribe_selection_changed(self.on_selection_changed)
+                            self._sub_on_selection_changed = self._layer_tree_widget.subscribe_selection_changed(
+                                self.on_selection_changed
+                            )
 
                             self._loading_frame = ui.ZStack(content_clipping=True, visible=False)
                             with self._loading_frame:
@@ -246,31 +279,52 @@ class LayerTreeWidget:
         """Reset expansion state when a new stage is opened."""
         self._tree_expanded.clear()
         self._selection.clear()
+        self._edit_target_identifier = None
+        self._select_edit_target_on_refresh = True
+
+    def _on_edit_target_changed(self):
+        """Focus the new edit target on the next model refresh."""
+        # The model item is rebuilt by the upcoming refresh, so read the current stage edit target directly.
+        edit_target_layer = self._model.stage.GetEditTarget().GetLayer() if self._model.stage else None
+        edit_target_identifier = edit_target_layer.identifier if edit_target_layer else None
+        if not edit_target_identifier or edit_target_identifier == self._edit_target_identifier:
+            return
+        self._edit_target_identifier = edit_target_identifier
+        self._selection.clear()
+        self._select_edit_target_on_refresh = True
 
     @usd.handle_exception
     async def __refresh_async(self):
         # Refresh the expansion states
         await kit.app.get_app().next_update_async()
         selection = []
+        scroll_to_selection = False
 
         items = self._model.get_item_children(recursive=True)
+        edit_target = self._model.edit_target_layer
+        edit_target_identifier = edit_target.data["layer"].identifier if edit_target else None
 
-        # If there is no selection and there is an edit target (Pierre's original logic)
-        if self._model.edit_target_layer and not self._selection and not any(self._tree_expanded.values()):
-            edit_target = self._model.edit_target_layer
-            # Select the edit target item
-            self._selection.add(edit_target.data["layer"].identifier)
-            # Expand the edit target item's parents
+        if edit_target and self._select_edit_target_on_refresh:
+            self._select_edit_target_on_refresh = False
+            self._edit_target_identifier = edit_target_identifier
+            self._selection = {edit_target_identifier}
+            scroll_to_selection = True
             parent = edit_target.parent
             while parent:
                 self._tree_expanded[parent.data["layer"].identifier] = True
                 parent = parent.parent
+        elif self._layer_tree_widget.selection:
+            self._selection = {
+                item.data["layer"].identifier
+                for item in self._layer_tree_widget.selection
+                if item.data.get("layer") is not None
+            }
 
         for item in items:
             self._layer_tree_widget.set_expanded(
                 item, self._tree_expanded.get(item.data["layer"].identifier, self._expansion_default), False
             )
-            if "layer" in item.data and item.data.get("layer").identifier in self._selection:
+            if item.data.get("layer") is not None and item.data["layer"].identifier in self._selection:
                 selection.append(item)
 
         # Refresh the selection
@@ -282,19 +336,27 @@ class LayerTreeWidget:
 
         # Update the import & create button states
         self._update_button_state(selection)
+        if scroll_to_selection:
+            await self._layer_tree_widget.scroll_to_items(selection)
 
     def on_selection_changed(self, items: list[_ItemBase]):
         if self._ignore_selection_updates:
             return
 
+        self._select_edit_target_on_refresh = False
         self._layer_tree_widget.on_selection_changed(items)
+        self._sync_selection_from_tree()
+
+    def _sync_selection_from_tree(self, *_args):
+        # Context menu builds from delegate state, so sync from the authoritative TreeView selection first.
+        selection = list(self._layer_tree_widget.selection)
         # Update the import & create button states
-        self._update_button_state(items)
+        self._update_button_state(selection)
         # Update the delegate gradients
-        self._delegate.on_item_selected(items, self._model.get_item_children(recursive=True), self._model)
+        self._delegate.on_item_selected(selection, self._model.get_item_children(recursive=True), self._model)
 
         # Store the selection for the next refresh
-        self._selection = {item.data.get("layer").identifier for item in items if "layer" in item.data}
+        self._selection = {item.data["layer"].identifier for item in selection if item.data.get("layer") is not None}
 
     def _on_model_refresh(self, started: bool):
         if not self._loading_frame:
@@ -333,6 +395,15 @@ class LayerTreeWidget:
         # Make sure the parent is expanded on refresh so the child layer is visible
         self._tree_expanded[parent_layer.data["layer"].identifier] = True
         self._model.create_layer(create_or_import, parent=parent_layer)
+
+    def _on_transfer_layer_changes(self, layer: _LayerItem, transfer_target: _LayerTransferTarget) -> None:
+        if not self._model.has_layer_changes(layer):
+            return
+        if transfer_target == _LayerTransferTarget.PROJECT_LAYER:
+            if self._project_layer_transfer_fn:
+                self._project_layer_transfer_fn(layer)
+            return
+        self._model.transfer_layer_overrides(layer, transfer_target)
 
     def _delete_layers(self):
         filtered_selection = [item for item in self._layer_tree_widget.selection if not item.data["exclude_remove"]]

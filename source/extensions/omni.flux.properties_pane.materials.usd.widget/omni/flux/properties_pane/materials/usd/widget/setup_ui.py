@@ -22,6 +22,7 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.material_api import ShaderInfoAPI, UsdShadePropertyPlaceholder
 from omni.flux.property_widget_builder.model.usd import DisableAllListenersBlock as _USDDisableAllListenersBlock
+from omni.flux.property_widget_builder.model.usd import BuildLayerTransferMenu as _BuildLayerTransferMenu
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDMetadataListItem as _USDMetadataListItem
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
@@ -62,6 +63,7 @@ class MaterialPropertyWidget:
         lookup_table: dict[str, dict[str, str]] | None = None,
         create_color_space_attributes: bool = True,
         field_builders: list[_FieldBuilder] | None = None,
+        layer_transfer_menu_fn: _BuildLayerTransferMenu | None = None,
     ):
         """
         Args:
@@ -82,6 +84,7 @@ class MaterialPropertyWidget:
             "_property_model": None,
             "_property_delegate": None,
             "_conditional_visibility_orchestrator": None,
+            "_layer_transfer_menu_fn": None,
             "_tree_column_widths": None,
             "_columns_resizable": None,
             "_right_aligned_labels": None,
@@ -98,6 +101,7 @@ class MaterialPropertyWidget:
         self._tree_column_widths = tree_column_widths
         self._columns_resizable = columns_resizable
         self._right_aligned_labels = right_aligned_labels
+        self._layer_transfer_menu_fn = layer_transfer_menu_fn
 
         self.__usd_listener_instance = _get_usd_listener_instance()
 
@@ -127,7 +131,9 @@ class MaterialPropertyWidget:
     def __create_ui(self, field_builders: list[_FieldBuilder] | None = None):
         self._property_model = _USDPropertyModel(self._context_name)
         self._property_delegate = _USDPropertyDelegate(
-            field_builders=field_builders, right_aligned_labels=self._right_aligned_labels
+            field_builders=field_builders,
+            right_aligned_labels=self._right_aligned_labels,
+            layer_transfer_menu_fn=self._layer_transfer_menu_fn,
         )
         self._root_frame = ui.Frame()
         with self._root_frame:

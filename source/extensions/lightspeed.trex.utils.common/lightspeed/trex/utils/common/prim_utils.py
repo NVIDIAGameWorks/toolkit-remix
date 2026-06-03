@@ -26,6 +26,9 @@ __all__ = [
     "get_prim_paths",
     "get_prototype",
     "get_reference_file_paths",
+    "get_transferable_prim_specs",
+    "get_transferable_property_specs",
+    "get_transferable_reference_specs",
     "has_replacement_ref_edits",
     "is_empty_mesh_prim",
     "is_ghost_prim",
@@ -42,11 +45,12 @@ __all__ = [
 ]
 
 import re
+from collections.abc import Callable, Iterable, Sequence
 from enum import Enum
-from collections.abc import Callable
 
 import omni.usd
 from lightspeed.common import constants
+from lightspeed.common.constants import PARTICLE_CPP_SCHEMA_NAME
 from omni.flux.utils.common.lights import get_light_type as _get_light_type
 from pxr import Sdf, Usd, UsdGeom, UsdShade
 
@@ -467,6 +471,120 @@ def get_reference_file_paths(
                 i += 1
 
     return prim_paths, i
+
+
+def get_transferable_property_specs(
+    property_stack: Sequence[Sdf.PropertySpec],
+    valid_layer_identifiers: Iterable[str],
+    allowed_layer_identifiers: Iterable[str] | None = None,
+) -> tuple[Sdf.PropertySpec, ...]:
+    """
+    Return authored property specs from transfer-eligible layers.
+
+    Args:
+        property_stack: Composed property stack to filter.
+        valid_layer_identifiers: Layer identifiers accepted as transfer sources.
+        allowed_layer_identifiers: Optional source-layer identifiers accepted by the caller.
+
+    Returns:
+        Property specs authored in eligible source layers.
+    """
+    valid_layer_identifiers = set(valid_layer_identifiers)
+    if allowed_layer_identifiers is not None:
+        valid_layer_identifiers.intersection_update(allowed_layer_identifiers)
+    if not valid_layer_identifiers:
+        return ()
+
+    transferable_specs = []
+    override_specs = []
+    for spec in property_stack:
+        if spec is None or spec.layer.identifier not in valid_layer_identifiers:
+            continue
+        transferable_specs.append(spec)
+        if not _property_spec_belongs_to_definition(spec):
+            override_specs.append(spec)
+    return tuple(override_specs or transferable_specs)
+
+
+def get_transferable_prim_specs(
+    prim: Usd.Prim,
+    valid_layer_identifiers: Iterable[str],
+) -> tuple[Sdf.PrimSpec, ...]:
+    """
+    Return authored prim specs from transfer-eligible layers.
+
+    Args:
+        prim: Prim whose authored stack should be filtered.
+        valid_layer_identifiers: Layer identifiers accepted as transfer sources.
+
+    Returns:
+        Prim specs authored in eligible source layers.
+    """
+    if not prim or not prim.IsValid():
+        return ()
+
+    valid_layer_identifiers = set(valid_layer_identifiers)
+    if not valid_layer_identifiers:
+        return ()
+    return tuple(
+        prim_spec
+        for prim_spec in prim.GetPrimStack()
+        if prim_spec.layer.identifier in valid_layer_identifiers and _prim_spec_has_definition_opinion(prim_spec)
+    )
+
+
+def get_transferable_reference_specs(
+    prim: Usd.Prim,
+    reference: Sdf.Reference,
+    valid_layer_identifiers: Iterable[str],
+) -> tuple[Sdf.PrimSpec, ...]:
+    """
+    Return authored reference specs from transfer-eligible layers.
+
+    Args:
+        prim: Prim whose authored stack should be filtered.
+        reference: Reference edit that must exist on the returned specs.
+        valid_layer_identifiers: Layer identifiers accepted as transfer sources.
+
+    Returns:
+        Prim specs that author the reference in eligible source layers.
+    """
+    if not prim or not prim.IsValid():
+        return ()
+
+    valid_layer_identifiers = set(valid_layer_identifiers)
+    if not valid_layer_identifiers:
+        return ()
+    return tuple(
+        prim_spec
+        for prim_spec in prim.GetPrimStack()
+        if prim_spec.layer.identifier in valid_layer_identifiers and _prim_spec_has_reference(prim_spec, reference)
+    )
+
+
+def _prim_spec_has_reference(prim_spec: Sdf.PrimSpec, reference: Sdf.Reference) -> bool:
+    if prim_spec is None or not prim_spec.hasReferences:
+        return False
+    return prim_spec.GetInfo(Sdf.PrimSpec.ReferencesKey).HasItem(reference)
+
+
+def _property_spec_belongs_to_definition(property_spec: Sdf.PropertySpec) -> bool:
+    prim_spec = property_spec.layer.GetPrimAtPath(property_spec.path.GetPrimPath())
+    return bool(prim_spec and prim_spec.specifier == Sdf.SpecifierDef)
+
+
+def _prim_spec_has_definition_opinion(prim_spec: Sdf.PrimSpec) -> bool:
+    if prim_spec.specifier == Sdf.SpecifierDef:
+        return True
+    if not prim_spec.HasInfo(Usd.Tokens.apiSchemas):
+        return False
+
+    # Particle systems are the special case this guards: applying the particle-system API to a
+    # captured prim is a transferable particle-system definition even though USD stores it on
+    # an over prim. Particle property edits also use over prims, but they do not apply that API
+    # and must stay modification transfers. Sdf stores the registered API token, not the
+    # user-facing schema name used by Usd.Prim.HasAPI().
+    return prim_spec.GetInfo(Usd.Tokens.apiSchemas).HasItem(PARTICLE_CPP_SCHEMA_NAME)
 
 
 def get_prototype(prim: Usd.Prim) -> Usd.Prim | None:

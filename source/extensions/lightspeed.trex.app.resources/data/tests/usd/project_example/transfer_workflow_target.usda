@@ -1,0 +1,15 @@
+#usda 1.0
+
+over "RootNode"
+{
+    over "meshes"
+    {
+        over "mesh_FEE1DEADF00D0001"
+        {
+            over "TransferWorkflowLight"
+            {
+                float inputs:intensity = 2400
+            }
+        }
+    }
+}

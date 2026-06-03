@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.13.0]
+### Added
+- Added optional layer-transfer callback forwarding for generic USD property menus.
+
 ## [2.12.3]
 ### Added
 - Added Object Properties E2E coverage for Ctrl-click xform edit targeting and row-local tab looping

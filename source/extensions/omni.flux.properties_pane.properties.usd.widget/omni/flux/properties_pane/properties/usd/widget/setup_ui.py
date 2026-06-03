@@ -22,6 +22,7 @@ from collections.abc import Callable
 import omni.kit
 import omni.ui as ui
 import omni.usd
+from omni.flux.property_widget_builder.model.usd import BuildLayerTransferMenu as _BuildLayerTransferMenu
 from omni.flux.property_widget_builder.model.usd import USDAttributeDef as _USDAttributeDef
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
@@ -49,6 +50,7 @@ class PropertyWidget:
         tree_column_widths: list[ui.Length] = None,
         columns_resizable: bool = False,
         right_aligned_labels: bool = True,
+        layer_transfer_menu_fn: _BuildLayerTransferMenu | None = None,
     ):
         """
         Property tree that show USD attributes
@@ -78,6 +80,7 @@ class PropertyWidget:
             "_tree_column_widths": None,
             "_columns_resizable": None,
             "_right_aligned_labels": None,
+            "_layer_transfer_menu_fn": None,
             "_property_widget": None,
             "_property_model": None,
             "_property_delegate": None,
@@ -96,6 +99,7 @@ class PropertyWidget:
         self._tree_column_widths = tree_column_widths
         self._columns_resizable = columns_resizable
         self._right_aligned_labels = right_aligned_labels
+        self._layer_transfer_menu_fn = layer_transfer_menu_fn
 
         self.__usd_listener_instance = _get_usd_listener_instance()
 
@@ -121,7 +125,9 @@ class PropertyWidget:
     def __create_ui(self, field_builders: list[_FieldBuilder] | None = None):
         self._property_model = _USDPropertyModel(self._context_name)
         self._property_delegate = _USDPropertyDelegate(
-            field_builders=field_builders, right_aligned_labels=self._right_aligned_labels
+            field_builders=field_builders,
+            right_aligned_labels=self._right_aligned_labels,
+            layer_transfer_menu_fn=self._layer_transfer_menu_fn,
         )
         self._root_frame = ui.Frame(height=0)
         with self._root_frame:

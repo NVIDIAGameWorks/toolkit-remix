@@ -18,17 +18,21 @@
 from .test_prim_utils import (
     TestFindPrimWithReferences,
     TestGetPrototype,
+    TestGetReferenceFilePaths,
     TestHasReplacementRefEdits,
     TestIsEmptyMeshPrim,
     TestIsGhostPrim,
+    TestTransferableSpecs,
 )
 from .test_user_utils import TestUserUtils
 
 __all__ = [
     "TestFindPrimWithReferences",
     "TestGetPrototype",
+    "TestGetReferenceFilePaths",
     "TestHasReplacementRefEdits",
     "TestIsEmptyMeshPrim",
     "TestIsGhostPrim",
+    "TestTransferableSpecs",
     "TestUserUtils",
 ]

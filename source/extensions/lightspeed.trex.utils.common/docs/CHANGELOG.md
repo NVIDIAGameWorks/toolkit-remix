@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.4.0]
+### Added
+- Added transferable USD spec filtering utilities.
+
 ## [2.3.2]
 ### Added
 - Added a shared USD light utility for typed and schema-applied light prim detection

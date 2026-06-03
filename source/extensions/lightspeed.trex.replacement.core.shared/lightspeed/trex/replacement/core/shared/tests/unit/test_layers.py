@@ -92,3 +92,16 @@ class TestLayers(omni.kit.test.AsyncTestCase):
         val = self.core.get_layers_exclude_move()
 
         self.assertListEqual([mod_path, capture_path, project_path], [v.lower() for v in val])
+
+    async def test_get_layers_exclude_rename_should_return_replacement(self):
+        # Arrange
+        mod_path = Path(get_test_data_path(__name__, "usd/mod.usda")).as_posix().lower()
+        project_path = Path(get_test_data_path(__name__, "usd/project.usda")).as_posix().lower()
+
+        await open_stage(project_path)
+
+        # Act
+        val = self.core.get_layers_exclude_rename()
+
+        # Assert
+        self.assertListEqual([mod_path], [v.lower() for v in val])

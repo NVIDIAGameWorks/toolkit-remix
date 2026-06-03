@@ -15,8 +15,16 @@
 * limitations under the License.
 """
 
+from .e2e.test_transfer_specs import TestAssetReplacementsTransferSpecsE2E
 from .unit.test_core import TestAssetReplacementsCore
 from .unit.test_skeleton import TestSkeleton
+from .unit.test_transfer_commands import TestAssetReplacementsTransferCommands
 from .unit.test_validators import TestAssetReplacementsValidators
 
-__all__ = ["TestAssetReplacementsCore", "TestAssetReplacementsValidators", "TestSkeleton"]
+__all__ = [
+    "TestAssetReplacementsCore",
+    "TestAssetReplacementsTransferCommands",
+    "TestAssetReplacementsTransferSpecsE2E",
+    "TestAssetReplacementsValidators",
+    "TestSkeleton",
+]

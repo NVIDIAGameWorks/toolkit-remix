@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.6]
+### Fixed
+- Updated service test expectations for shared transfer workflow fixture assets.
+
 ## [2.0.5]
 ### Fixed
 - Updated nested referenced light asset response expectations for the centralized project fixture

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Added
+- Added layer-transfer callback forwarding for object and transform property menus.
+
 ## [1.4.11]
 ### Changed
 - Reused the shared typed asset file picker helper

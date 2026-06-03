@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.4]
+### Added
+- Added asset-replacement core methods for transferring authored USD specs between replacement layers.
+
 ## [3.3.3]
 ### Added
 - Added shared typed replacement asset validation helpers

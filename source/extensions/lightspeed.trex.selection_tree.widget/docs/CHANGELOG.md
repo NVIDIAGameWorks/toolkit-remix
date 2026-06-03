@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.10.0]
+### Added
+- Added transfer actions for reference modifications and live stage-light definitions.
+
 ## [1.9.12]
 ### Fixed
 - Fixed nested USD light detection to use the shared typed and schema-applied light utility

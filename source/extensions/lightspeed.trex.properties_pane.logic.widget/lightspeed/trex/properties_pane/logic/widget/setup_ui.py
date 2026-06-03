@@ -19,6 +19,7 @@ __all__ = ["LogicPropertyWidget"]
 
 import asyncio
 import re
+from collections.abc import Callable
 from functools import partial
 from typing import Any
 
@@ -40,6 +41,7 @@ from lightspeed.trex.properties_pane.logic.widget.utils import get_ogn_ui_metada
 from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker
 from omni.flux.property_widget_builder.model.usd import (
+    BuildLayerTransferMenu,
     USDAttributeItem,
     USDAttrListItem,
 )
@@ -138,6 +140,8 @@ class LogicPropertyWidget:
         lookup_table: dict[str, dict[str, str]] | None = None,
         field_builders: list[FieldBuilder] | None = None,
         show_node_properties: bool = True,
+        layer_transfer_menu_fn: BuildLayerTransferMenu | None = None,
+        logic_graph_transfer_fn: Callable[[Usd.Prim], None] | None = None,
     ):
         """
         Args:
@@ -148,6 +152,8 @@ class LogicPropertyWidget:
             lookup_table: Table for custom display names and groups
             field_builders: Custom field builders for specific attribute types
             show_node_properties: Whether to show node properties widget
+            layer_transfer_menu_fn: Callback that adds property-layer transfer actions to property row menus.
+            logic_graph_transfer_fn: Callback that opens the logic-graph definition transfer flow.
         """
 
         self._event_manager = _get_event_manager_instance()
@@ -173,6 +179,9 @@ class LogicPropertyWidget:
         self._columns_resizable = columns_resizable
         self._right_aligned_labels = right_aligned_labels
         self._show_node_properties = show_node_properties
+        self._layer_transfer_menu_fn = layer_transfer_menu_fn
+        self._logic_graph_transfer_fn = logic_graph_transfer_fn
+        self._context_menu = None
 
         self.__usd_listener_instance = get_usd_listener_instance()
 
@@ -280,6 +289,7 @@ class LogicPropertyWidget:
         self._property_delegate = _USDPropertyDelegate(
             field_builders=field_builders,
             right_aligned_labels=self._right_aligned_labels,
+            layer_transfer_menu_fn=self._layer_transfer_menu_fn,
         )
         self._root_frame = ui.Frame()
         with self._root_frame:
@@ -336,11 +346,31 @@ class LogicPropertyWidget:
                 ui.Spacer(height=ui.Pixel(_SPACING_SM))
 
             for graph in existing_graphs:
+                can_transfer_graph = self._logic_graph_transfer_fn is not None
                 with ui.HStack(height=ui.Pixel(_ROW_HEIGHT), spacing=ui.Pixel(_SPACING_SM)):
                     relative_path = self._get_relative_path(graph.GetPath(), self._valid_target_paths)
                     ui.Label(
                         graph.GetPath().name, tooltip=relative_path, elided_text=True, name="PropertiesWidgetValue"
                     )
+                    ui.Spacer(width=0)
+                    with ui.VStack(width=ui.Pixel(_ICON_SIZE), height=ui.Pixel(_ROW_HEIGHT)):
+                        ui.Spacer()
+                        ui.Image(
+                            "",
+                            name="More" if can_transfer_graph else "MoreDisabled",
+                            width=ui.Pixel(_ICON_SIZE),
+                            height=ui.Pixel(_ICON_SIZE),
+                            tooltip="Transfer this logic graph definition to another layer."
+                            if can_transfer_graph
+                            else "Use a modified logic graph property's action menu to transfer it.",
+                            enabled=True,
+                            opaque_for_mouse_events=can_transfer_graph,
+                            mouse_released_fn=partial(self._show_logic_graph_transfer_menu, graph)
+                            if can_transfer_graph
+                            else None,
+                            identifier="logic_graph_transfer_overrides",
+                        )
+                        ui.Spacer()
                     ui.Spacer(width=0)
                     ui.Image(
                         "",
@@ -376,6 +406,16 @@ class LogicPropertyWidget:
 
                 ui.Label(self._node_type_label_text, name="PropertiesWidgetValue", width=0)
                 ui.Spacer(height=ui.Pixel(_SPACING_MD))
+
+    def _show_logic_graph_transfer_menu(self, graph: Usd.Prim, _x: float, _y: float, button: int, _modifier: int):
+        if button != 0 or self._logic_graph_transfer_fn is None:
+            return
+        if self._context_menu is not None:
+            self._context_menu.destroy()
+        self._context_menu = ui.Menu("Transfer Menu")
+        with self._context_menu:
+            ui.MenuItem("Transfer definition to...", triggered_fn=partial(self._logic_graph_transfer_fn, graph))
+        self._context_menu.show()
 
     def refresh(
         self,
@@ -727,11 +767,14 @@ class LogicPropertyWidget:
             self._refresh_task.cancel()
         if self._root_frame:
             self._root_frame.clear()
+        if self._context_menu:
+            self._context_menu.destroy()
         if self.__usd_listener_instance and self._property_model:
             self.__usd_listener_instance.remove_model(self._property_model)
         self.__usd_listener_instance = None
         self.__refresh_done = None
         self._refresh_task = None
+        self._context_menu = None
         self._context = None
         self._event_manager = None
         self._property_delegate = None

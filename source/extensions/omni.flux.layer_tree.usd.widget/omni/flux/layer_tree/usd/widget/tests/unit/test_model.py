@@ -26,7 +26,7 @@ import omni.kit
 import omni.kit.test
 import omni.usd
 from omni.flux.layer_tree.usd.core import LayerCustomData as _LayerCustomData
-from omni.flux.layer_tree.usd.widget import LayerItem, LayerModel
+from omni.flux.layer_tree.usd.widget import LayerItem, LayerModel, LayerTransferTarget
 from omni.kit import commands
 from omni.kit.usd.layers import LayerUtils
 from omni.kit.window.popup_dialog import MessageDialog
@@ -55,6 +55,17 @@ class TestModel(omni.kit.test.AsyncTestCase):
         self.context = None
         self.stage = None
         self.temp_dir = None
+
+    @staticmethod
+    def __mock_layer(path: Path | str, identifier: str | None = None) -> Mock:
+        layer = Mock()
+        layer.identifier = identifier or str(path)
+        layer.realPath = str(path)
+        layer.rootPrims = {}
+        layer.subLayerPaths = []
+        layer.customLayerData = {}
+        layer.Save.return_value = True
+        return layer
 
     async def test_refresh_no_sublayers(self):
         # Arrange
@@ -154,6 +165,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
             exclude_edit_target_fn=lambda *_: [layer0.identifier],
             exclude_add_child_fn=lambda *_: [layer0.identifier],
             exclude_move_fn=lambda *_: [layer0.identifier],
+            exclude_rename_fn=lambda *_: [layer0.identifier],
         )
 
         # Layer1 should be excluded via the custom layer data
@@ -167,6 +179,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
                     _LayerCustomData.EXCLUDE_MOVE.value: True,
                     _LayerCustomData.EXCLUDE_MUTE.value: True,
                     _LayerCustomData.EXCLUDE_REMOVE.value: True,
+                    _LayerCustomData.EXCLUDE_RENAME.value: True,
                 },
             }
         )
@@ -185,6 +198,8 @@ class TestModel(omni.kit.test.AsyncTestCase):
         self.assertTrue(items[0].data["exclude_edit_target"])
         self.assertTrue(items[0].data["exclude_add_child"])
         self.assertTrue(items[0].data["exclude_move"])
+        self.assertTrue(items[0].data["exclude_rename"])
+        self.assertFalse(items[0].data["can_rename"])
 
         # layer1
         self.assertTrue(items[1].data["exclude_remove"])
@@ -193,6 +208,8 @@ class TestModel(omni.kit.test.AsyncTestCase):
         self.assertTrue(items[1].data["exclude_edit_target"])
         self.assertTrue(items[1].data["exclude_add_child"])
         self.assertTrue(items[1].data["exclude_move"])
+        self.assertTrue(items[1].data["exclude_rename"])
+        self.assertFalse(items[1].data["can_rename"])
 
         # layer1
         self.assertFalse(items[2].data["exclude_remove"])
@@ -201,6 +218,8 @@ class TestModel(omni.kit.test.AsyncTestCase):
         self.assertFalse(items[2].data["exclude_edit_target"])
         self.assertFalse(items[2].data["exclude_add_child"])
         self.assertFalse(items[2].data["exclude_move"])
+        self.assertFalse(items[2].data["exclude_rename"])
+        self.assertTrue(items[2].data["can_rename"])
 
     async def test_refresh_sublayers_item_data_states(self):
         # Arrange
@@ -419,6 +438,272 @@ class TestModel(omni.kit.test.AsyncTestCase):
                 kwargs,
             )
 
+    async def test_rename_layer_uses_inline_name_without_file_picker(self):
+        # Arrange
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer0 = self.__mock_layer(layer0_path)
+
+        root_item = LayerItem("root")
+        layer0_item = LayerItem("layer0", data={"layer": layer0, "can_rename": True}, parent=root_item)
+        model = LayerModel()
+
+        with (
+            patch("omni.flux.layer_tree.usd.widget.layer_tree.model._open_file_picker") as file_picker_mock,
+            patch.object(LayerModel, "_on_rename_layer_internal") as rename_mock,
+        ):
+            # Act
+            result = model.rename_layer(layer0_item, "renamed.usda")
+
+            # Assert
+            self.assertTrue(result)
+            file_picker_mock.assert_not_called()
+            rename_mock.assert_called_once_with(layer0_item, str(layer0_path.with_name("renamed.usda")))
+
+    async def test_rename_root_layer_uses_save_as_replace_without_parent(self):
+        # Arrange
+        project_path = Path(self.temp_dir.name) / "project.usda"
+        renamed_path = Path(self.temp_dir.name) / "renamed_project.usda"
+        project_layer = self.__mock_layer(project_path)
+        project_item = LayerItem("project", data={"layer": project_layer, "savable": True, "can_rename": True})
+        model = LayerModel()
+
+        with patch("omni.flux.layer_tree.usd.widget.layer_tree.model._save_layer_as") as save_layer_as_mock:
+            # Act
+            model._on_rename_layer_internal(project_item, str(renamed_path))
+
+            # Assert
+            save_layer_as_args = save_layer_as_mock.call_args.args
+            self.assertEqual(("", True), save_layer_as_args[:2])
+            self.assertIs(save_layer_as_args[2](), project_layer)
+            self.assertIsNone(save_layer_as_args[3])
+            self.assertEqual(str(renamed_path), save_layer_as_args[5])
+
+    async def test_rename_layer_rejects_invalid_inline_name(self):
+        # Arrange
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer0 = self.__mock_layer(layer0_path)
+
+        root_item = LayerItem("root")
+        layer0_item = LayerItem("layer0", data={"layer": layer0, "can_rename": True}, parent=root_item)
+        model = LayerModel()
+
+        for layer_name in ("", "../renamed.usda", "renamed.txt"):
+            with (
+                self.subTest(layer_name=layer_name),
+                patch.object(LayerModel, "_on_rename_layer_internal") as rename_mock,
+            ):
+                # Act
+                result = model.rename_layer(layer0_item, layer_name)
+
+                # Assert
+                self.assertFalse(result)
+                rename_mock.assert_not_called()
+
+    async def test_rename_layer_skips_excluded_items(self):
+        # Arrange
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer0 = self.__mock_layer(layer0_path)
+
+        project_item = LayerItem("project")
+        capture_item = LayerItem("capture", data={"exclude_add_child": True}, parent=project_item)
+        layer0_item = LayerItem("layer0", data={"layer": layer0, "can_rename": False}, parent=capture_item)
+        model = LayerModel()
+
+        with patch.object(LayerModel, "_on_rename_layer_internal") as rename_mock:
+            # Act
+            result = model.rename_layer(layer0_item, "renamed.usda")
+
+            # Assert
+            self.assertFalse(result)
+            rename_mock.assert_not_called()
+
+    async def test_rename_layer_skips_child_when_parent_is_not_savable(self):
+        # Arrange
+        parent_path = Path(self.temp_dir.name) / "parent.usda"
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        root_layer = self.__mock_layer(Path(self.temp_dir.name) / "root.usda", "root")
+        parent_layer = self.__mock_layer(parent_path, "parent")
+        layer0 = self.__mock_layer(layer0_path, "layer0")
+        root_layer.subLayerPaths.append(parent_layer.identifier)
+        parent_layer.subLayerPaths.append(layer0.identifier)
+
+        model = LayerModel()
+        layers_state = Mock()
+        layers_state.is_layer_locked.side_effect = lambda identifier: identifier == parent_layer.identifier
+        layers_state.is_layer_savable.side_effect = lambda identifier: identifier != parent_layer.identifier
+        layers_state.is_layer_globally_muted.return_value = False
+        with (
+            patch.object(
+                Sdf.Layer,
+                "FindOrOpenRelativeToLayer",
+                side_effect=lambda parent, _path: parent_layer if parent is root_layer else layer0,
+            ),
+            patch.object(LayerUtils, "get_custom_layer_name", side_effect=lambda layer: layer.identifier),
+        ):
+            root_item, _ = model._create_layer_items(
+                root_layer,
+                True,
+                True,
+                model._get_excluded_layers(),
+                set(),
+                "",
+                layers_state,
+            )
+        parent_item = root_item.children[0]
+        layer0_item = parent_item.children[0]
+
+        with patch.object(LayerModel, "_on_rename_layer_internal") as rename_mock:
+            # Act
+            result = model.rename_layer(layer0_item, "renamed.usda")
+
+            # Assert
+            self.assertFalse(parent_item.data["savable"])
+            self.assertTrue(layer0_item.data["exclude_rename"])
+            self.assertFalse(layer0_item.data["can_rename"])
+            self.assertFalse(result)
+            rename_mock.assert_not_called()
+
+    async def test_rename_layer_allows_locked_deep_sublayer(self):
+        # Arrange
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer0 = self.__mock_layer(layer0_path)
+
+        project_item = LayerItem("project")
+        mod_item = LayerItem("mod", parent=project_item)
+        development_item = LayerItem("development", parent=mod_item)
+        layer0_item = LayerItem(
+            "layer0",
+            data={"layer": layer0, "savable": False, "locked": True, "can_rename": True},
+            parent=development_item,
+        )
+        model = LayerModel()
+
+        with patch.object(LayerModel, "_on_rename_layer_internal") as rename_mock:
+            # Act
+            result = model.rename_layer(layer0_item, "renamed.usda")
+
+            # Assert
+            self.assertTrue(result)
+            rename_mock.assert_called_once_with(layer0_item, str(layer0_path.with_name("renamed.usda")))
+
+    async def test_rename_layer_allows_locked_capture_layer(self):
+        # Arrange
+        capture_path = Path(self.temp_dir.name) / "capture.usda"
+        capture_layer = self.__mock_layer(capture_path)
+
+        project_item = LayerItem("project")
+        capture_item = LayerItem(
+            "capture",
+            data={"layer": capture_layer, "savable": False, "locked": True, "can_rename": True},
+            parent=project_item,
+        )
+        model = LayerModel()
+
+        with patch.object(LayerModel, "_on_rename_layer_internal") as rename_mock:
+            # Act
+            result = model.rename_layer(capture_item, "renamed_capture.usda")
+
+            # Assert
+            self.assertTrue(result)
+            rename_mock.assert_called_once_with(capture_item, str(capture_path.with_name("renamed_capture.usda")))
+
+    async def test_rename_layer_renames_file_and_replaces_parent_sublayer(self):
+        # Arrange
+        mod_path = Path(self.temp_dir.name) / "mod.usda"
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer1_path = Path(self.temp_dir.name) / "renamed.usda"
+        mod_layer = self.__mock_layer(mod_path)
+        layer0 = self.__mock_layer(layer0_path)
+        layer0_path.write_text("#usda 1.0\n")
+
+        root_item = LayerItem("root", data={"layer": self.__mock_layer(Path(self.temp_dir.name) / "root.usda")})
+        mod_item = LayerItem(
+            "mod", data={"layer": mod_layer, "savable": True, "exclude_add_child": False}, parent=root_item
+        )
+        layer0_item = LayerItem("layer0", data={"layer": layer0, "savable": True, "can_rename": True}, parent=mod_item)
+        model = LayerModel()
+
+        with (
+            patch("omni.flux.layer_tree.usd.widget.layer_tree.model.commands.execute") as execute_mock,
+            patch("omni.flux.layer_tree.usd.widget.layer_tree.model.omni.kit.undo.disabled") as undo_disabled_mock,
+            patch.object(LayerUtils, "get_sublayer_position_in_parent", return_value=0),
+            patch.object(model, "refresh") as refresh_mock,
+        ):
+            # Act
+            model._on_rename_layer_internal(layer0_item, str(layer1_path))
+
+            # Assert
+            self.assertFalse(layer0_path.exists())
+            self.assertTrue(layer1_path.exists())
+            execute_mock.assert_called_once_with(
+                "ReplaceSublayer",
+                layer_identifier=mod_layer.identifier,
+                sublayer_position=0,
+                new_layer_path=str(layer1_path),
+                usd_context="",
+            )
+            undo_disabled_mock.assert_called_once_with()
+            refresh_mock.assert_called_once_with()
+
+    async def test_rename_layer_restores_file_when_replace_sublayer_fails(self):
+        # Arrange
+        mod_path = Path(self.temp_dir.name) / "mod.usda"
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer1_path = Path(self.temp_dir.name) / "renamed.usda"
+        mod_layer = self.__mock_layer(mod_path)
+        layer0 = self.__mock_layer(layer0_path)
+        layer0_path.write_text("#usda 1.0\n")
+
+        root_item = LayerItem("root", data={"layer": self.__mock_layer(Path(self.temp_dir.name) / "root.usda")})
+        mod_item = LayerItem("mod", data={"layer": mod_layer}, parent=root_item)
+        layer0_item = LayerItem("layer0", data={"layer": layer0, "can_rename": True}, parent=mod_item)
+        model = LayerModel()
+
+        with (
+            patch("omni.flux.layer_tree.usd.widget.layer_tree.model.commands.execute", return_value=(False, None)),
+            patch("omni.flux.layer_tree.usd.widget.layer_tree.model.carb.log_error"),
+            patch.object(LayerUtils, "get_sublayer_position_in_parent", return_value=0),
+            patch.object(model, "refresh") as refresh_mock,
+        ):
+            # Act
+            model._on_rename_layer_internal(layer0_item, str(layer1_path))
+
+            # Assert
+            self.assertTrue(layer0_path.exists())
+            self.assertFalse(layer1_path.exists())
+            refresh_mock.assert_not_called()
+
+    async def test_rename_layer_restores_file_when_replace_sublayer_raises(self):
+        # Arrange
+        mod_path = Path(self.temp_dir.name) / "mod.usda"
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer1_path = Path(self.temp_dir.name) / "renamed.usda"
+        mod_layer = self.__mock_layer(mod_path)
+        layer0 = self.__mock_layer(layer0_path)
+        layer0_path.write_text("#usda 1.0\n")
+
+        root_item = LayerItem("root", data={"layer": self.__mock_layer(Path(self.temp_dir.name) / "root.usda")})
+        mod_item = LayerItem("mod", data={"layer": mod_layer}, parent=root_item)
+        layer0_item = LayerItem("layer0", data={"layer": layer0, "can_rename": True}, parent=mod_item)
+        model = LayerModel()
+
+        with (
+            patch(
+                "omni.flux.layer_tree.usd.widget.layer_tree.model.commands.execute",
+                side_effect=RuntimeError("replace failed"),
+            ),
+            patch("omni.flux.layer_tree.usd.widget.layer_tree.model.carb.log_error"),
+            patch.object(LayerUtils, "get_sublayer_position_in_parent", return_value=0),
+            patch.object(model, "refresh") as refresh_mock,
+        ):
+            # Act
+            model._on_rename_layer_internal(layer0_item, str(layer1_path))
+
+            # Assert
+            self.assertTrue(layer0_path.exists())
+            self.assertFalse(layer1_path.exists())
+            refresh_mock.assert_not_called()
+
     async def test_toggle_lock_layer_lock(self):
         await self.__run_test_toggle_lock_layer(False)
 
@@ -599,11 +884,47 @@ class TestModel(omni.kit.test.AsyncTestCase):
                 kwargs1,
             )
 
-    async def test_transfer_layer_overrides_existing_file_should_call_create_layer(self):
-        await self.__run_test_transfer_layer_overrides(True)
+    async def test_transfer_layer_overrides_imported_layer_should_call_create_layer(self):
+        await self.__run_test_transfer_layer_overrides(LayerTransferTarget.IMPORTED_LAYER, False)
 
-    async def test_transfer_layer_overrides_new_file_should_call_create_layer(self):
-        await self.__run_test_transfer_layer_overrides(False)
+    async def test_transfer_layer_overrides_new_layer_should_call_create_layer(self):
+        await self.__run_test_transfer_layer_overrides(LayerTransferTarget.NEW_LAYER, True)
+
+    async def test_transfer_layer_overrides_project_layer_should_not_call_create_layer(self):
+        # Arrange
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer0 = self.__mock_layer(layer0_path)
+        layer0.rootPrims = {"/RootNode": Mock()}
+        root_item = LayerItem("root", data={"layer": self.__mock_layer(Path(self.temp_dir.name) / "root.usda")})
+        layer0_item = LayerItem("layer0", data={"layer": layer0}, parent=root_item)
+        root_item.set_children([layer0_item], sort=False)
+
+        model = LayerModel()
+
+        with patch.object(LayerModel, "create_layer") as create_mock:
+            # Act
+            with self.assertRaisesRegex(ValueError, "Project layer transfers"):
+                model.transfer_layer_overrides(layer0_item, LayerTransferTarget.PROJECT_LAYER)
+
+            # Assert
+            create_mock.assert_not_called()
+
+    async def test_transfer_layer_overrides_empty_layer_should_not_call_create_layer(self):
+        # Arrange
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        layer0 = self.__mock_layer(layer0_path)
+        root_item = LayerItem("root", data={"layer": self.__mock_layer(Path(self.temp_dir.name) / "root.usda")})
+        layer0_item = LayerItem("layer0", data={"layer": layer0}, parent=root_item)
+        root_item.set_children([layer0_item], sort=False)
+
+        model = LayerModel()
+
+        with patch.object(LayerModel, "create_layer") as create_mock:
+            # Act
+            model.transfer_layer_overrides(layer0_item, LayerTransferTarget.NEW_LAYER)
+
+            # Assert
+            create_mock.assert_not_called()
 
     async def test_is_layer_locked_locked(self):
         await self.__run_test_is_layer_locked(True)
@@ -717,6 +1038,17 @@ class TestModel(omni.kit.test.AsyncTestCase):
     async def test_get_item_children_no_parent_recursive(self):
         await self.__run_test_get_item_children(True, ["root_item", "layer0_item", "layer1_item", "layer2_item"], None)
 
+    async def test_get_item_children_rejects_parent_and_item_alias(self):
+        # Arrange
+        root_item = LayerItem("root")
+        layer_item = LayerItem("layer", parent=root_item)
+        model = LayerModel()
+        model.set_items([root_item])
+
+        # Act & Assert
+        with self.assertRaises(ValueError):
+            model.get_item_children(parent=root_item, item=layer_item)
+
     async def test_drop_accepted_valid(self):
         await self.__run_test_drop_accepted(True, "layer0_item", "layer2_item", -1)
 
@@ -791,16 +1123,14 @@ class TestModel(omni.kit.test.AsyncTestCase):
                 execute_mock.call_args,
             )
 
-    async def __run_test_transfer_layer_overrides(self, existing_file: bool):
+    async def __run_test_transfer_layer_overrides(self, transfer_target: LayerTransferTarget, create_or_insert: bool):
         # Arrange
         layer0_path = Path(self.temp_dir.name) / "layer0.usda"
 
-        layer0 = Sdf.Layer.CreateNew(str(layer0_path))
+        layer0 = self.__mock_layer(layer0_path)
+        layer0.rootPrims = {"/RootNode": Mock()}
 
-        root = self.stage.GetRootLayer()
-        root.subLayerPaths.append(layer0.identifier)
-
-        root_item = LayerItem("root", data={"layer": root})
+        root_item = LayerItem("root", data={"layer": self.__mock_layer(Path(self.temp_dir.name) / "root.usda")})
         layer0_item = LayerItem("layer0", data={"layer": layer0}, parent=root_item)
         root_item.set_children([layer0_item], sort=False)
 
@@ -811,19 +1141,45 @@ class TestModel(omni.kit.test.AsyncTestCase):
             patch.object(LayerModel, "_on_transfer_layer_overrides_internal") as transfer_mock,
         ):
             # Act
-            model.transfer_layer_overrides(layer0_item, existing_file)
+            model.transfer_layer_overrides(layer0_item, transfer_target)
 
             # Assert
             self.assertEqual(1, create_mock.call_count)
 
             args, kwargs = create_mock.call_args
-            self.assertEqual((not existing_file,), args)
+            self.assertEqual((create_or_insert,), args)
             self.assertEqual(layer0_item, kwargs.get("parent", "Invalid"))
             # Compare strings since the "partial" instances won't be the same, but we expect all args to be equal,
             # including the function passed. (Strings include position in memory, etc.)
             self.assertEqual(
                 str(partial(transfer_mock, layer0_item)), str(kwargs.get("layer_created_callback", "Invalid"))
             )
+
+    async def test_transfer_layer_overrides_snapshots_root_prims_before_transfer(self):
+        # Arrange
+        layer0_path = Path(self.temp_dir.name) / "layer0.usda"
+        target_path = str(Path(self.temp_dir.name) / "target.usda")
+        layer0 = self.__mock_layer(layer0_path)
+        layer0.rootPrims = {
+            "/RootNode": Mock(path=Sdf.Path("/RootNode")),
+            "/OtherRootNode": Mock(path=Sdf.Path("/OtherRootNode")),
+        }
+        layer0_item = LayerItem("layer0", data={"layer": layer0})
+        model = LayerModel()
+
+        def move_prim_spec(*_args, **_kwargs):
+            layer0.rootPrims.clear()
+
+        with patch.object(commands, "execute", side_effect=move_prim_spec) as execute_mock:
+            # Act
+            model._on_transfer_layer_overrides_internal(layer0_item, target_path)
+
+        # Assert
+        self.assertEqual(2, execute_mock.call_count)
+        self.assertEqual(
+            {"/RootNode", "/OtherRootNode"},
+            {call_args.kwargs["prim_spec_path"] for call_args in execute_mock.call_args_list},
+        )
 
     async def __run_test_is_layer_locked(self, is_locked: bool):
         # Arrange

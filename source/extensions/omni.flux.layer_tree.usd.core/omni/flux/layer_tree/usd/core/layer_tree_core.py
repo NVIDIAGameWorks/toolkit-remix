@@ -33,3 +33,4 @@ class LayerCustomData(Enum):
     EXCLUDE_EDIT_TARGET = "exclude_edit_target"
     EXCLUDE_ADD_CHILD = "exclude_add_child"
     EXCLUDE_MOVE = "exclude_move"
+    EXCLUDE_RENAME = "exclude_rename"

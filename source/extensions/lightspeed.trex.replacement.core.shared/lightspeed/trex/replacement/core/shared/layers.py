@@ -117,5 +117,14 @@ class AssetReplacementLayersCore:
             if layer is not None
         ]
 
+    def get_layers_exclude_rename(self) -> list[str]:
+        return [
+            layer.identifier
+            for layer in [
+                self._layer_replacement,
+            ]
+            if layer is not None
+        ]
+
     def destroy(self):
         _reset_default_attrs(self)

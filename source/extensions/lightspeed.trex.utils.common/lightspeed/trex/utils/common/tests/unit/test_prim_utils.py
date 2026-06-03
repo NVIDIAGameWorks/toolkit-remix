@@ -15,85 +15,265 @@
 * limitations under the License.
 """
 
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import omni.kit.test
 from lightspeed.trex.utils.common.prim_utils import (
     find_prim_with_references,
+    get_reference_file_paths,
     get_prototype,
+    get_transferable_prim_specs,
+    get_transferable_property_specs,
+    get_transferable_reference_specs,
     has_replacement_ref_edits,
     is_ghost_prim,
     is_empty_mesh_prim,
 )
-from pxr import Sdf, Usd
+from pxr import Sdf
 
 _MODULE = "lightspeed.trex.utils.common.prim_utils"
 
 
+class TestTransferableSpecs(omni.kit.test.AsyncTestCase):
+    def _create_layer(self, display_name: str) -> Sdf.Layer:
+        return Mock(identifier=display_name)
+
+    def _create_property_spec(
+        self, layer_identifier: str, property_path: str, specifier: Sdf.Specifier = Sdf.SpecifierOver
+    ):
+        layer = self._create_layer(layer_identifier)
+        layer.GetPrimAtPath.return_value = Mock(specifier=specifier)
+        return SimpleNamespace(layer=layer, path=Sdf.Path(property_path))
+
+    def _create_prim_spec(
+        self,
+        layer_identifier: str,
+        specifier: Sdf.Specifier = Sdf.SpecifierDef,
+        has_particle_schema: bool = False,
+        reference=None,
+    ):
+        api_schemas = Mock()
+        api_schemas.HasItem.return_value = has_particle_schema
+        references = Mock()
+        references.HasItem.return_value = reference is not None
+        prim_spec = Mock(
+            layer=self._create_layer(layer_identifier),
+            specifier=specifier,
+            hasReferences=reference is not None,
+        )
+        prim_spec.HasInfo.return_value = has_particle_schema
+        prim_spec.GetInfo.side_effect = lambda key: references if key == Sdf.PrimSpec.ReferencesKey else api_schemas
+        return prim_spec
+
+    def _create_prim(self, prim_specs):
+        prim = Mock()
+        prim.IsValid.return_value = True
+        prim.GetPrimStack.return_value = prim_specs
+        return prim
+
+    def test_get_transferable_property_specs_should_return_valid_layer_property_specs(self):
+        # Arrange
+        property_specs = [
+            self._create_property_spec("mod.usda", "/World/Test.visibility"),
+            self._create_property_spec("overrides.usda", "/World/Test.visibility"),
+            self._create_property_spec("capture.usda", "/World/Test.visibility"),
+        ]
+
+        # Act
+        transferable_specs = get_transferable_property_specs(property_specs, {"mod.usda", "overrides.usda"})
+
+        # Assert
+        self.assertEqual(
+            ["mod.usda", "overrides.usda"],
+            [spec.layer.identifier for spec in transferable_specs],
+        )
+
+    def test_get_transferable_property_specs_should_prefer_override_specs_over_definition_specs(self):
+        # Arrange
+        definition_spec = self._create_property_spec(
+            "mod.usda", "/World/Particle.primvars:particle:maxNumParticles", Sdf.SpecifierDef
+        )
+        override_spec = self._create_property_spec(
+            "overrides.usda", "/World/Particle.primvars:particle:maxNumParticles"
+        )
+
+        # Act
+        transferable_specs = get_transferable_property_specs(
+            (override_spec, definition_spec), {"mod.usda", "overrides.usda"}
+        )
+
+        # Assert
+        self.assertEqual(["overrides.usda"], [spec.layer.identifier for spec in transferable_specs])
+
+    def test_get_transferable_property_specs_should_include_particle_property_on_definition_layer(self):
+        # Arrange
+        definition_layer_property_spec = self._create_property_spec(
+            "mod.usda", "/World/Particle.primvars:particle:minSpawnColor"
+        )
+        override_property_spec = self._create_property_spec(
+            "overrides.usda", "/World/Particle.primvars:particle:minSpawnColor"
+        )
+
+        # Act
+        transferable_specs = get_transferable_property_specs(
+            (definition_layer_property_spec, override_property_spec),
+            {"mod.usda", "overrides.usda"},
+        )
+
+        # Assert
+        self.assertEqual(
+            ["mod.usda", "overrides.usda"],
+            [spec.layer.identifier for spec in transferable_specs],
+        )
+
+    def test_get_transferable_prim_specs_should_return_valid_layer_definition_specs(self):
+        # Arrange
+        prim_specs = [
+            self._create_prim_spec("mod.usda"),
+            self._create_prim_spec("overrides.usda"),
+            self._create_prim_spec("capture.usda"),
+        ]
+        prim = self._create_prim(prim_specs)
+
+        # Act
+        transferable_specs = get_transferable_prim_specs(prim, {"mod.usda", "overrides.usda"})
+
+        # Assert
+        self.assertEqual(
+            ["mod.usda", "overrides.usda"],
+            [spec.layer.identifier for spec in transferable_specs],
+        )
+
+    def test_get_transferable_prim_specs_should_exclude_property_override_specs(self):
+        # Arrange
+        definition_spec = self._create_prim_spec("mod.usda")
+        override_spec = self._create_prim_spec("overrides.usda", Sdf.SpecifierOver)
+        prim = self._create_prim([definition_spec, override_spec])
+
+        # Act
+        transferable_specs = get_transferable_prim_specs(prim, {"mod.usda", "overrides.usda"})
+
+        # Assert
+        self.assertEqual(["mod.usda"], [spec.layer.identifier for spec in transferable_specs])
+
+    def test_get_transferable_prim_specs_should_include_particle_api_definition_specs(self):
+        # Arrange
+        definition_spec = self._create_prim_spec("mod.usda", Sdf.SpecifierOver, has_particle_schema=True)
+        override_spec = self._create_prim_spec("overrides.usda", Sdf.SpecifierOver)
+        prim = self._create_prim([definition_spec, override_spec])
+
+        # Act
+        transferable_specs = get_transferable_prim_specs(prim, {"mod.usda", "overrides.usda"})
+
+        # Assert
+        self.assertEqual(["mod.usda"], [spec.layer.identifier for spec in transferable_specs])
+
+    def test_get_transferable_prim_specs_should_include_particle_api_authored_as_prepended_schema(self):
+        # Arrange
+        definition_spec = self._create_prim_spec("mod.usda", Sdf.SpecifierOver, has_particle_schema=True)
+        prim = self._create_prim([definition_spec])
+
+        # Act
+        transferable_specs = get_transferable_prim_specs(prim, {"mod.usda"})
+
+        # Assert
+        self.assertEqual(["mod.usda"], [spec.layer.identifier for spec in transferable_specs])
+
+    def test_get_transferable_prim_specs_should_require_particle_api_schema_on_over_specs(self):
+        # Arrange
+        prim_spec = self._create_prim_spec("mod.usda", Sdf.SpecifierOver)
+        prim = self._create_prim([prim_spec])
+
+        # Act
+        transferable_specs = get_transferable_prim_specs(prim, {"mod.usda"})
+
+        # Assert
+        self.assertEqual([], [spec.layer.identifier for spec in transferable_specs])
+
+    def test_get_transferable_reference_specs_should_return_matching_valid_layer_specs(self):
+        # Arrange
+        reference = Sdf.Reference("", Sdf.Path("/Asset"))
+        prim_specs = [
+            self._create_prim_spec("mod.usda", reference=reference),
+            self._create_prim_spec("overrides.usda", reference=reference),
+            self._create_prim_spec("capture.usda", reference=reference),
+        ]
+        prim = self._create_prim(prim_specs)
+
+        # Act
+        transferable_specs = get_transferable_reference_specs(prim, reference, {"mod.usda", "overrides.usda"})
+
+        # Assert
+        self.assertEqual(
+            ["mod.usda", "overrides.usda"],
+            [spec.layer.identifier for spec in transferable_specs],
+        )
+
+
 class TestGetPrototype(omni.kit.test.AsyncTestCase):
-    def setUp(self):
-        self.stage = Usd.Stage.CreateInMemory()
-        self.stage.DefinePrim("/RootNode", "Xform")
-        self.stage.DefinePrim("/RootNode/meshes", "Xform")
-        self.stage.DefinePrim("/RootNode/meshes/mesh_0123456789ABCDEF", "Xform")
-        self.stage.DefinePrim("/RootNode/meshes/mesh_0123456789ABCDEF/hovercraft", "Mesh")
+    def _create_prim(self, path: str, is_valid: bool = True, stage=None):
+        prim = Mock()
+        prim.IsValid.return_value = is_valid
+        prim.GetPath.return_value = Sdf.Path(path)
+        prim.GetStage.return_value = stage
+        return prim
 
     def test_get_prototype_of_prim_within_instance_path_should_return_equivalent_prototype_prim(self):
         # Arrange
-        self.stage.DefinePrim("/RootNode/instances", "Xform")
-        inst_prim = self.stage.DefinePrim("/RootNode/instances/inst_0123456789ABCDEF_0", "Xform")
+        prototype_prim = self._create_prim("/RootNode/meshes/mesh_0123456789ABCDEF")
+        stage = Mock()
+        stage.GetPrimAtPath.return_value = prototype_prim
+        inst_prim = self._create_prim("/RootNode/instances/inst_0123456789ABCDEF_0", stage=stage)
 
         # Act
         result = get_prototype(inst_prim)
 
         # Assert
-        self.assertIsNotNone(result)
-        prototype_prim = self.stage.GetPrimAtPath("/RootNode/meshes/mesh_0123456789ABCDEF")
         self.assertEqual(result, prototype_prim)
         self.assertEqual(str(result.GetPath()), "/RootNode/meshes/mesh_0123456789ABCDEF")
 
     def test_get_prototype_of_child_prim_within_instance_path_should_return_equivalent_prototype_child_prim(self):
         # Arrange
-        self.stage.DefinePrim("/RootNode/instances", "Xform")
-        self.stage.DefinePrim("/RootNode/instances/inst_0123456789ABCDEF_0", "Xform")
-        child_prim = self.stage.DefinePrim("/RootNode/instances/inst_0123456789ABCDEF_0/hovercraft", "Xform")
+        expected_prototype_child = self._create_prim("/RootNode/meshes/mesh_0123456789ABCDEF/hovercraft")
+        stage = Mock()
+        stage.GetPrimAtPath.return_value = expected_prototype_child
+        child_prim = self._create_prim("/RootNode/instances/inst_0123456789ABCDEF_0/hovercraft", stage=stage)
 
         # Act
         result = get_prototype(child_prim)
 
         # Assert
-        self.assertIsNotNone(result)
-        expected_prototype_child = self.stage.GetPrimAtPath("/RootNode/meshes/mesh_0123456789ABCDEF/hovercraft")
         self.assertEqual(result, expected_prototype_child)
         self.assertEqual(str(result.GetPath()), "/RootNode/meshes/mesh_0123456789ABCDEF/hovercraft")
 
     def test_get_prototype_of_prototype_prim_should_return_itself_idempotent(self):
         # Arrange
-        prototype_prim = self.stage.GetPrimAtPath("/RootNode/meshes/mesh_0123456789ABCDEF")
+        prototype_prim = self._create_prim("/RootNode/meshes/mesh_0123456789ABCDEF")
 
         # Act
-        result = get_prototype(prototype_prim)
+        with patch(f"{_MODULE}.is_a_prototype", return_value=True):
+            result = get_prototype(prototype_prim)
 
         # Assert
-        self.assertIsNotNone(result)
         self.assertEqual(result, prototype_prim)
         self.assertEqual(str(result.GetPath()), "/RootNode/meshes/mesh_0123456789ABCDEF")
 
     def test_get_prototype_of_child_prim_within_prototype_path_should_return_itself_idempotent(self):
         # Arrange
-        child_prototype_prim = self.stage.DefinePrim("/RootNode/meshes/mesh_0123456789ABCDEF/hovercraft", "Xform")
+        child_prototype_prim = self._create_prim("/RootNode/meshes/mesh_0123456789ABCDEF/hovercraft")
 
         # Act
-        result = get_prototype(child_prototype_prim)
+        with patch(f"{_MODULE}.is_a_prototype", return_value=True):
+            result = get_prototype(child_prototype_prim)
 
         # Assert
-        self.assertIsNotNone(result)
         self.assertEqual(result, child_prototype_prim)
         self.assertEqual(str(result.GetPath()), "/RootNode/meshes/mesh_0123456789ABCDEF/hovercraft")
 
     def test_get_prototype_of_invalid_prim_should_return_none(self):
         # Arrange
-        invalid_prim = self.stage.GetPrimAtPath("/InvalidPath")
+        invalid_prim = self._create_prim("/InvalidPath", is_valid=False)
 
         # Act
         result = get_prototype(invalid_prim)
@@ -103,7 +283,9 @@ class TestGetPrototype(omni.kit.test.AsyncTestCase):
 
     def test_get_prototype_of_non_matching_prim_should_return_itself(self):
         # Arrange
-        non_matching_prim = self.stage.DefinePrim("/RootNode/SomeOtherPath", "Xform")
+        stage = Mock()
+        non_matching_prim = self._create_prim("/RootNode/SomeOtherPath", stage=stage)
+        stage.GetPrimAtPath.return_value = non_matching_prim
 
         # Act
         result = get_prototype(non_matching_prim)
@@ -113,14 +295,75 @@ class TestGetPrototype(omni.kit.test.AsyncTestCase):
 
     def test_get_prototype_of_inst_prim_without_prototype_equivalent_should_return_none(self):
         # Arrange
-        self.stage.DefinePrim("/RootNode/instances", "Xform")
-        inst_prim = self.stage.DefinePrim("/RootNode/instances/inst_DEADBEEF0BADC0DE_0", "Xform")
+        stage = Mock()
+        stage.GetPrimAtPath.return_value = self._create_prim("/RootNode/meshes/mesh_DEADBEEF0BADC0DE", is_valid=False)
+        inst_prim = self._create_prim("/RootNode/instances/inst_DEADBEEF0BADC0DE_0", stage=stage)
 
         # Act
         result = get_prototype(inst_prim)
 
         # Assert
         self.assertIsNone(result)
+
+
+class TestGetReferenceFilePaths(omni.kit.test.AsyncTestCase):
+    def test_get_reference_file_paths_returns_composed_references_only(self):
+        # Arrange
+        prim = Mock()
+        prim.GetFilteredChildren.return_value = []
+        composed_layer = Mock(identifier="capture.usda")
+        composed_ref = SimpleNamespace(assetPath="./capture.usda")
+
+        # Act
+        with patch(
+            f"{_MODULE}.omni.usd.get_composed_references_from_prim", return_value=[(composed_ref, composed_layer)]
+        ):
+            result, count = get_reference_file_paths(prim)
+
+        # Assert
+        self.assertEqual(count, 1)
+        self.assertEqual(
+            [(ref.assetPath, layer.identifier, index) for _prim, ref, layer, index in result],
+            [
+                ("./capture.usda", composed_layer.identifier, 0),
+            ],
+        )
+
+    def test_get_reference_file_paths_keeps_references_with_different_offsets_and_custom_data(self):
+        # Arrange
+        prim = Mock()
+        prim.GetFilteredChildren.return_value = []
+        authored_layer = Mock(identifier="replacement.usda")
+        first_ref = SimpleNamespace(
+            assetPath="./replacement.usda",
+            layerOffset=SimpleNamespace(offset=1.0, scale=1.0),
+            customData={"variant": "first"},
+        )
+        second_ref = SimpleNamespace(
+            assetPath="./replacement.usda",
+            layerOffset=SimpleNamespace(offset=2.0, scale=1.0),
+            customData={"variant": "second"},
+        )
+
+        # Act
+        with patch(
+            f"{_MODULE}.omni.usd.get_composed_references_from_prim",
+            return_value=[(first_ref, authored_layer), (second_ref, authored_layer)],
+        ):
+            result, count = get_reference_file_paths(prim)
+
+        # Assert
+        self.assertEqual(count, 2)
+        self.assertEqual(
+            [
+                (ref.layerOffset.offset, ref.customData["variant"], layer.identifier, index)
+                for _prim, ref, layer, index in result
+            ],
+            [
+                (1.0, "first", authored_layer.identifier, 0),
+                (2.0, "second", authored_layer.identifier, 1),
+            ],
+        )
 
 
 class TestIsGhostPrim(omni.kit.test.AsyncTestCase):
@@ -409,10 +652,11 @@ class TestHasReplacementRefEdits(omni.kit.test.AsyncTestCase):
 
 
 class TestIsEmptyMeshPrim(omni.kit.test.AsyncTestCase):
-    def setUp(self):
-        self.stage = Usd.Stage.CreateInMemory()
-        self.stage.DefinePrim("/RootNode", "Xform")
-        self.stage.DefinePrim("/RootNode/meshes", "Xform")
+    def _create_prim(self, path: str, children: list[Mock] | None = None):
+        prim = Mock()
+        prim.GetPath.return_value = Sdf.Path(path)
+        prim.GetChildren.return_value = children or []
+        return prim
 
     async def test_returns_false_for_none_prim(self):
         # Arrange / Act
@@ -423,7 +667,7 @@ class TestIsEmptyMeshPrim(omni.kit.test.AsyncTestCase):
 
     async def test_returns_true_for_mesh_hash_prim_with_no_mesh_children(self):
         # Arrange
-        prim = self.stage.DefinePrim("/RootNode/meshes/mesh_0123456789ABCDEF", "Xform")
+        prim = self._create_prim("/RootNode/meshes/mesh_0123456789ABCDEF")
 
         # Act
         result = is_empty_mesh_prim(prim)
@@ -433,8 +677,9 @@ class TestIsEmptyMeshPrim(omni.kit.test.AsyncTestCase):
 
     async def test_returns_false_for_mesh_hash_prim_with_mesh_child(self):
         # Arrange
-        prim = self.stage.DefinePrim("/RootNode/meshes/mesh_0123456789ABCDEF", "Xform")
-        self.stage.DefinePrim("/RootNode/meshes/mesh_0123456789ABCDEF/mesh", "Mesh")
+        mesh_child = Mock()
+        mesh_child.IsA.return_value = True
+        prim = self._create_prim("/RootNode/meshes/mesh_0123456789ABCDEF", [mesh_child])
 
         # Act
         result = is_empty_mesh_prim(prim)
@@ -444,8 +689,9 @@ class TestIsEmptyMeshPrim(omni.kit.test.AsyncTestCase):
 
     async def test_returns_false_for_mesh_hash_prim_with_geom_subset_child(self):
         # Arrange
-        prim = self.stage.DefinePrim("/RootNode/meshes/mesh_0123456789ABCDEF", "Xform")
-        self.stage.DefinePrim("/RootNode/meshes/mesh_0123456789ABCDEF/subset", "GeomSubset")
+        subset_child = Mock()
+        subset_child.IsA.side_effect = [False, True]
+        prim = self._create_prim("/RootNode/meshes/mesh_0123456789ABCDEF", [subset_child])
 
         # Act
         result = is_empty_mesh_prim(prim)
@@ -455,7 +701,7 @@ class TestIsEmptyMeshPrim(omni.kit.test.AsyncTestCase):
 
     async def test_returns_false_for_non_mesh_path(self):
         # Arrange
-        prim = self.stage.DefinePrim("/RootNode/meshes", "Xform")
+        prim = self._create_prim("/RootNode/meshes")
 
         # Act
         result = is_empty_mesh_prim(prim)
@@ -465,7 +711,7 @@ class TestIsEmptyMeshPrim(omni.kit.test.AsyncTestCase):
 
     async def test_returns_false_for_instance_path(self):
         # Arrange
-        prim = self.stage.DefinePrim("/RootNode/instances/inst_0123456789ABCDEF_0", "Xform")
+        prim = self._create_prim("/RootNode/instances/inst_0123456789ABCDEF_0")
 
         # Act
         result = is_empty_mesh_prim(prim)
@@ -475,8 +721,9 @@ class TestIsEmptyMeshPrim(omni.kit.test.AsyncTestCase):
 
     async def test_returns_true_for_mesh_hash_with_only_non_mesh_children(self):
         # Arrange
-        prim = self.stage.DefinePrim("/RootNode/meshes/mesh_0123456789ABCDEF", "Xform")
-        self.stage.DefinePrim("/RootNode/meshes/mesh_0123456789ABCDEF/RemixLogicGraph", "OmniGraph")
+        logic_child = Mock()
+        logic_child.IsA.return_value = False
+        prim = self._create_prim("/RootNode/meshes/mesh_0123456789ABCDEF", [logic_child])
 
         # Act
         result = is_empty_mesh_prim(prim)

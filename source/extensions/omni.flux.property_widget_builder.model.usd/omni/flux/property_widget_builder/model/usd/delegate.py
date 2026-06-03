@@ -15,13 +15,13 @@
 * limitations under the License.
 """
 
-__all__ = ("USDDelegate",)
+__all__ = ("BuildLayerTransferMenu", "USDDelegate")
 
 import abc
 import dataclasses
 import functools
-from typing import TYPE_CHECKING
-from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable, Iterable
 
 import omni.kit.undo
 import omni.ui as ui
@@ -31,16 +31,20 @@ from omni.flux.property_widget_builder.delegates.string_value.default_label impo
 from omni.flux.property_widget_builder.widget import Delegate as _Delegate
 from omni.flux.property_widget_builder.widget import FieldBuilder
 from omni.flux.property_widget_builder.widget import ItemGroup as _ItemGroup
+from omni.flux.utils.widget.resources import get_icons as _get_icons
 from omni.kit.usd.layers import LayerUtils as _LayerUtils
-from pxr import Usd
+from pxr import Sdf, Usd
 
 from .field_builders import ALL_FIELD_BUILDERS
 from .items import USDAttributeItemStub as _USDAttributeItemStub
+from .items import _BaseUSDAttributeItem
 
 if TYPE_CHECKING:
     from omni.flux.property_widget_builder.widget import Item as _Item
 
     from .model import USDModel as _USDModel
+
+BuildLayerTransferMenu = Callable[[Any, Any, list[Sdf.PropertySpec], set[str], bool], None]
 
 
 @dataclasses.dataclass
@@ -55,16 +59,33 @@ class Row:
     override_background_widgets: list[ui.Rectangle] = dataclasses.field(default_factory=list)
     default_indicator_widget: ui.Circle | None = None
     mixed_indicator_widget: ui.Image | None = None
-    more_widget: ui.HStack | None = None
+    more_widget: ui.Image | None = None
     attribute_widgets: list[ui.Widget] = dataclasses.field(default_factory=list)
 
 
 class USDDelegate(_Delegate):
     """Delegate of the tree"""
 
-    def __init__(self, field_builders: list[FieldBuilder] | None = None, right_aligned_labels: bool = True):
+    _MORE_ICON_SIZE = ui.Pixel(16)
+    _MORE_ICON_SPACING = ui.Pixel(8)
+
+    def __init__(
+        self,
+        field_builders: list[FieldBuilder] | None = None,
+        right_aligned_labels: bool = True,
+        layer_transfer_menu_fn: BuildLayerTransferMenu | None = None,
+    ):
+        """Create the USD property delegate.
+
+        Args:
+            field_builders: Optional custom field builders for value widgets.
+            right_aligned_labels: Whether property labels should be right aligned.
+            layer_transfer_menu_fn: Callback that adds property-layer transfer actions to the override menu.
+        """
         super().__init__(field_builders=field_builders)
         self._right_aligned_labels = right_aligned_labels
+        self._layer_transfer_menu_fn = layer_transfer_menu_fn
+        self._more_icon_source_url = _get_icons("ellipsis") or ""
         self._context_menu_widgets: dict[int, ui.Menu] = {}
         self._rows: dict[int, Row] = {}
 
@@ -75,6 +96,8 @@ class USDDelegate(_Delegate):
         default_attr.update(
             {
                 "_right_aligned_labels": None,
+                "_layer_transfer_menu_fn": None,
+                "_more_icon_source_url": None,
                 "_context_menu_widgets": None,
                 "_rows": None,
             }
@@ -125,7 +148,7 @@ class USDDelegate(_Delegate):
                 )
 
             if row.more_widget is not None:
-                row.more_widget.name = "More" if has_override else "MoreForceDisabled"
+                row.more_widget.name = "More" if has_override else "MoreDisabled"
 
             if row.mixed_indicator_widget is not None:
                 row.mixed_indicator_widget.name = "Mixed" if is_mixed else "MixedForceDisabled"
@@ -157,13 +180,20 @@ class USDDelegate(_Delegate):
                                 with ui.HStack(height=ui.Pixel(16)):
                                     if not isinstance(item, _ItemGroup):
                                         with ui.HStack(width=0):
-                                            row.more_widget = ui.Image(
-                                                "",
-                                                name="MoreForceDisabled",
-                                                tooltip="When highlighted, the displayed value has overrides.",
-                                                width=ui.Pixel(16),
-                                            )
-                                            ui.Spacer(width=ui.Pixel(8))
+                                            with ui.VStack(
+                                                width=self._MORE_ICON_SIZE,
+                                                height=self._MORE_ICON_SIZE,
+                                            ):
+                                                ui.Spacer()
+                                                row.more_widget = ui.Image(
+                                                    self._more_icon_source_url,
+                                                    name="MoreDisabled",
+                                                    tooltip="When highlighted, the displayed value has modifications.",
+                                                    width=self._MORE_ICON_SIZE,
+                                                    height=self._MORE_ICON_SIZE,
+                                                )
+                                                ui.Spacer()
+                                            ui.Spacer(width=self._MORE_ICON_SPACING)
                                         if self._right_aligned_labels:
                                             ui.Spacer()
                                     ui.Label(
@@ -229,19 +259,27 @@ class USDDelegate(_Delegate):
                                     ui.Spacer(width=ui.Pixel(4))
                                     if has_override:
                                         override_tooltip = (
-                                            "The displayed value has overrides.\n\n"
-                                            "Click to view and manage the overrides."
+                                            "The displayed value has modifications.\n\n"
+                                            "Click to view and manage the modifications."
                                         )
                                     else:
-                                        override_tooltip = "When highlighted, the displayed value has overrides."
-                                    row.more_widget = ui.Image(
-                                        "",
-                                        name="More" if has_override else "MoreForceDisabled",
-                                        tooltip=override_tooltip,
-                                        mouse_released_fn=lambda x, y, b, m: self._show_override_menu(model, item, b),
-                                        width=ui.Pixel(16),
-                                    )
-                                    ui.Spacer(width=ui.Pixel(8))
+                                        override_tooltip = "When highlighted, the displayed value has modifications."
+                                    with ui.VStack(width=self._MORE_ICON_SIZE, content_clipping=True):
+                                        ui.Spacer()
+                                        row.more_widget = ui.Image(
+                                            self._more_icon_source_url,
+                                            name="More" if has_override else "MoreDisabled",
+                                            tooltip=override_tooltip,
+                                            opaque_for_mouse_events=True,
+                                            mouse_pressed_fn=lambda x, y, b, m: self._show_override_menu(
+                                                model, item, b
+                                            ),
+                                            width=self._MORE_ICON_SIZE,
+                                            height=self._MORE_ICON_SIZE,
+                                            identifier="override_more_menu_button",
+                                        )
+                                        ui.Spacer()
+                                    ui.Spacer(width=self._MORE_ICON_SPACING)
                             NameField()(item, right_aligned=self._right_aligned_labels)
                         ui.Spacer()
                     widgets = [outer]
@@ -314,44 +352,63 @@ class USDDelegate(_Delegate):
             for value_model in item.value_models:
                 value_model.reset_default_value()
 
+    @staticmethod
+    def _get_item_properties(item: _BaseUSDAttributeItem) -> list[Usd.Property]:
+        return item.get_all_properties()
+
     def _is_ogn_item(self, item: "_Item") -> bool:
         """Check if the item belongs to an OmniGraph node."""
-        for value_model in item.value_models:
-            for attribute in value_model.attributes:
-                prim = attribute.GetPrim()
-                if prim.IsValid() and prim.GetTypeName() == "OmniGraphNode":
-                    return True
+        if not isinstance(item, _BaseUSDAttributeItem):
+            return False
+        for prop in self._get_item_properties(item):
+            if not isinstance(prop, Usd.Attribute):
+                continue
+            prim = prop.GetPrim()
+            if prim.IsValid() and prim.GetTypeName() == "OmniGraphNode":
+                return True
         return False
 
     def _show_override_menu(self, model, item, button):
-        if button != 0 or not any(v.is_overriden for v in item.value_models):
+        if (
+            button != 0
+            or not isinstance(item, _BaseUSDAttributeItem)
+            or not any(v.is_overriden for v in item.value_models)
+        ):
             return
         # TODO: This is a temporary fix. We need to find a better way to handle this.
         # OGN node properties don't support layer-based override deletion because it will remove the attr type.
         enabled = not self._is_ogn_item(item)
-        self._context_menu_widgets[id(item)] = ui.Menu("Override menu", direction=ui.Direction.LEFT_TO_RIGHT)
+        self._context_menu_widgets[id(item)] = ui.Menu("Modification menu", direction=ui.Direction.LEFT_TO_RIGHT)
         with self._context_menu_widgets[id(item)]:
             # Ensure there are no repeated entries in the menu
-            property_stack = set()
+            property_stack = []
+            property_stack_keys = set()
             sub_layers = set()
             # Find all the stack items and sub-layers
             for value_model in item.value_models:
-                for attribute in value_model.attributes:
-                    property_stack = property_stack.union(attribute.GetPropertyStack(Usd.TimeCode.Default()))
-                    sub_layers = sub_layers.union(
-                        _LayerUtils.get_all_sublayers(
-                            value_model.stage, include_session_layers=True, include_anonymous_layers=False
-                        )
+                sub_layers.update(
+                    _LayerUtils.get_all_sublayers(
+                        value_model.stage, include_session_layers=True, include_anonymous_layers=False
                     )
-            delete_all_overrides_label = "Revert all modifications"
+                )
+            for prop in self._get_item_properties(item):
+                if not prop or not prop.IsValid():
+                    continue
+                for stack_item in prop.GetPropertyStack(Usd.TimeCode.Default()):
+                    key = (stack_item.layer.identifier, stack_item.path)
+                    if key in property_stack_keys:
+                        continue
+                    property_stack_keys.add(key)
+                    property_stack.append(stack_item)
+            delete_all_overrides_label = "Revert This Property Modification"
             if not enabled:
-                delete_all_overrides_label += " [DISABLED FOR THIS ATTR]"
+                delete_all_overrides_label += " [DISABLED FOR THIS PROPERTY]"
             top_menu_item = ui.MenuItem(
                 delete_all_overrides_label,
                 triggered_fn=functools.partial(self._delete_overrides, item),
             )
             top_menu_item.enabled = enabled
-            with ui.MenuItemCollection("Revert all modifications from"):
+            with ui.MenuItemCollection("Revert This Property Modification on Layer..."):
                 for stack_item in property_stack:
                     if stack_item.layer.identifier in sub_layers:
                         # If the layer is locked, we should not delete overrides on it
@@ -362,7 +419,7 @@ class USDDelegate(_Delegate):
                         if is_locked:
                             layer_name += " [LOCKED]"
                         if not enabled:
-                            layer_name += " [DISABLED FOR THIS ATTR]"
+                            layer_name += " [DISABLED FOR THIS PROPERTY]"
                         # Disable locked layers items
                         menu_item = ui.MenuItem(
                             layer_name,
@@ -370,4 +427,6 @@ class USDDelegate(_Delegate):
                             tooltip=stack_item.layer.identifier,
                         )
                         menu_item.enabled = not is_locked and enabled
+            if self._layer_transfer_menu_fn:
+                self._layer_transfer_menu_fn(model, item, property_stack, sub_layers, enabled)
         self._context_menu_widgets[id(item)].show()

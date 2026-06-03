@@ -18,17 +18,21 @@
 from .unit import (
     TestFindPrimWithReferences,
     TestGetPrototype,
+    TestGetReferenceFilePaths,
     TestHasReplacementRefEdits,
     TestIsEmptyMeshPrim,
     TestIsGhostPrim,
+    TestTransferableSpecs,
     TestUserUtils,
 )
 
 __all__ = [
     "TestFindPrimWithReferences",
     "TestGetPrototype",
+    "TestGetReferenceFilePaths",
     "TestHasReplacementRefEdits",
     "TestIsEmptyMeshPrim",
     "TestIsGhostPrim",
+    "TestTransferableSpecs",
     "TestUserUtils",
 ]

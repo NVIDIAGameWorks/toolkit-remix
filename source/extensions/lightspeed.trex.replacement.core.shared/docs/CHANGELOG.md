@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Added
+- Added replacement-layer rename exclusion support.
+
 ## [1.1.7]
 ### Fixed
 - Allow wizard-driven replacement imports to bypass undo recording during project setup

@@ -18,17 +18,24 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import os
 import re
 import typing
 from collections.abc import Callable
 
 import carb.settings
+import omni.kit.app
 import omni.kit.clipboard
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
+from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.trex.asset_replacements.core.shared.setup import Setup as _AssetReplacementsCoreSetup
+from lightspeed.trex.utils.common.prim_utils import get_transferable_prim_specs as _get_transferable_prim_specs
+from lightspeed.trex.utils.common.prim_utils import (
+    get_transferable_reference_specs as _get_transferable_reference_specs,
+)
 from lightspeed.trex.utils.widget.dialogs import confirm_remove_prim_overrides as _confirm_remove_prim_overrides
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -58,8 +65,15 @@ class Delegate(ui.AbstractItemDelegate):
 
     DEFAULT_IMAGE_ICON_SIZE = 24
     NICKNAME_SETTINGS_KEY = "SelectionTreeNicknameFields"
+    _ICON_SIZE = ui.Pixel(16)
+    _SPACING_MD = ui.Pixel(8)
 
-    def __init__(self):
+    def __init__(self, context_name: str = ""):
+        """Create the selection-tree delegate.
+
+        Args:
+            context_name: USD context name used for layer-transfer eligibility checks.
+        """
         super().__init__()
 
         self._default_attr = {
@@ -74,6 +88,10 @@ class Delegate(ui.AbstractItemDelegate):
             "_secondary_selection": None,
             "_hovered_items": None,
             "_background_rectangle": None,
+            "_context_name": None,
+            "_layer_manager": None,
+            "_valid_transfer_layer_identifiers": None,
+            "_clear_valid_transfer_layer_identifiers_task": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -89,7 +107,10 @@ class Delegate(ui.AbstractItemDelegate):
         self._gradient_image_provider = {}
         self._gradient_image_with_provider = {}
         self._tree_model = None
-
+        self._context_name = context_name
+        self._layer_manager = _LayerManagerCore(context_name)
+        self._valid_transfer_layer_identifiers = None
+        self._clear_valid_transfer_layer_identifiers_task = None
         self.__item_is_pressed = False
 
         # gradient
@@ -148,8 +169,10 @@ class Delegate(ui.AbstractItemDelegate):
         self.__on_duplicate_prim = _Event()
         self.__on_frame_prim = _Event()
         self.__on_item_expanded = _Event()
+        self.__on_transfer_reference = _Event()
+        self.__on_transfer_prim = _Event()
 
-        self._asset_core = _AssetReplacementsCoreSetup(omni.usd.get_context().get_name())
+        self._asset_core = _AssetReplacementsCoreSetup(context_name)
 
         self._settings = carb.settings.get_settings()
 
@@ -209,6 +232,36 @@ class Delegate(ui.AbstractItemDelegate):
         """
         return _EventSubscription(self.__on_item_expanded, function)
 
+    def _transfer_reference(self, item: _ItemReferenceFile):
+        """Call the event object that has the list of functions."""
+        self.__on_transfer_reference(item)
+
+    def subscribe_transfer_reference(self, function: Callable[[_ItemReferenceFile], None]):
+        """Subscribe to reference transfer requests.
+
+        Args:
+            function: Callback invoked with the reference-file item to transfer.
+
+        Returns:
+            Subscription object that automatically unsubscribes when destroyed.
+        """
+        return _EventSubscription(self.__on_transfer_reference, function)
+
+    def _transfer_prim(self, item: _ItemPrim):
+        """Call the event object that has the list of functions."""
+        self.__on_transfer_prim(item)
+
+    def subscribe_transfer_prim(self, function: Callable[[_ItemPrim], None]):
+        """Subscribe to prim transfer requests.
+
+        Args:
+            function: Callback invoked with the prim item to transfer.
+
+        Returns:
+            Subscription object that automatically unsubscribes when destroyed.
+        """
+        return _EventSubscription(self.__on_transfer_prim, function)
+
     def reset(self):
         self._primary_selection = []
         self._secondary_selection = []
@@ -220,8 +273,26 @@ class Delegate(ui.AbstractItemDelegate):
         self._gradient_image_with_provider = {}
         self._background_rectangle = {}
         self._tree_model = None
+        self._valid_transfer_layer_identifiers = None
 
         self._context_menu = None
+
+    @omni.usd.handle_exception
+    async def _clear_valid_transfer_layer_identifiers_after_update(self):
+        await omni.kit.app.get_app().next_update_async()
+        self._valid_transfer_layer_identifiers = None
+        self._clear_valid_transfer_layer_identifiers_task = None
+
+    def _get_valid_transfer_layer_identifiers(self) -> set[str]:
+        if self._valid_transfer_layer_identifiers is None:
+            self._valid_transfer_layer_identifiers = {
+                layer.identifier for layer in self._layer_manager.get_valid_transfer_target_layers()
+            }
+            if self._clear_valid_transfer_layer_identifiers_task is None:
+                self._clear_valid_transfer_layer_identifiers_task = asyncio.ensure_future(
+                    self._clear_valid_transfer_layer_identifiers_after_update()
+                )
+        return self._valid_transfer_layer_identifiers
 
     @staticmethod
     def get_item_expansion_key(item: _AnyItemType) -> str | None:
@@ -267,6 +338,42 @@ class Delegate(ui.AbstractItemDelegate):
         if isinstance(item, _ItemPrim):
             return f"Prim: {item.path}"
         return f"{item.__class__.__name__}: "
+
+    def _show_transfer_menu(self, button: int, label: str, triggered_fn: Callable[[], None]) -> None:
+        if button != 0:
+            return
+        if self._context_menu is not None:
+            self._context_menu.destroy()
+        self._context_menu = ui.Menu("Transfer Menu")
+        with self._context_menu:
+            ui.MenuItem(label, triggered_fn=triggered_fn)
+        self._context_menu.show()
+
+    def _build_transfer_button(
+        self,
+        *,
+        enabled: bool,
+        tooltip: str,
+        menu_label: str,
+        triggered_fn: Callable[[], None],
+        identifier: str,
+    ) -> None:
+        with ui.VStack(width=self._ICON_SIZE, height=self._ICON_SIZE):
+            ui.Spacer()
+            ui.Image(
+                "",
+                height=self._ICON_SIZE,
+                width=self._ICON_SIZE,
+                name="More" if enabled else "MoreDisabled",
+                tooltip=tooltip,
+                enabled=True,
+                opaque_for_mouse_events=enabled,
+                mouse_pressed_fn=(
+                    (lambda _x, _y, b, _m: self._show_transfer_menu(b, menu_label, triggered_fn)) if enabled else None
+                ),
+                identifier=identifier,
+            )
+            ui.Spacer()
 
     def _on_expand_clicked(self, button, item, expanded):
         if button != 0:
@@ -497,31 +604,58 @@ class Delegate(ui.AbstractItemDelegate):
                                         )
                                         ui.Spacer(width=0)
                             elif isinstance(item, _ItemReferenceFile):
-                                ui.Spacer(height=0, width=ui.Pixel(8))
+                                valid_layer_identifiers = self._get_valid_transfer_layer_identifiers()
+                                reference_transfer_specs = _get_transferable_reference_specs(
+                                    item.prim, item.ref, valid_layer_identifiers
+                                )
+                                can_transfer_reference = self._layer_manager.can_transfer_from_layers(
+                                    (prim_spec.layer.identifier for prim_spec in reference_transfer_specs),
+                                    valid_layer_identifiers,
+                                )
+                                reference_transfer_tooltip = (
+                                    "Transfer this reference modification to another layer."
+                                    if can_transfer_reference
+                                    else (
+                                        "No writable target layer is available."
+                                        if reference_transfer_specs
+                                        else "Captured references cannot be transferred."
+                                    )
+                                )
+                                ui.Spacer(width=self._SPACING_MD)
                                 with ui.VStack(
-                                    width=ui.Pixel(16 + 16 + 8),
+                                    width=0,
                                     content_clipping=True,
                                 ):
                                     ui.Spacer(width=0)
-                                    with ui.HStack(height=ui.Pixel(16)):
+                                    with ui.HStack(width=0, height=self._ICON_SIZE, spacing=self._SPACING_MD):
+                                        self._build_transfer_button(
+                                            enabled=can_transfer_reference,
+                                            tooltip=reference_transfer_tooltip,
+                                            menu_label="Transfer modification to...",
+                                            triggered_fn=functools.partial(self._transfer_reference, item),
+                                            identifier="reference_transfer_overrides",
+                                        )
                                         ui.Image(
                                             "",
-                                            height=ui.Pixel(16),
+                                            height=self._ICON_SIZE,
+                                            width=self._ICON_SIZE,
                                             name="TrashCan",
                                             tooltip="Delete the asset",
                                             mouse_released_fn=lambda x, y, b, m: self._on_delete_ref_mouse_released(
                                                 b, item
                                             ),
+                                            identifier="delete_reference",
                                         )
-                                        ui.Spacer(height=0, width=ui.Pixel(8))
                                         ui.Image(
                                             "",
-                                            height=ui.Pixel(16),
+                                            height=self._ICON_SIZE,
+                                            width=self._ICON_SIZE,
                                             name="Duplicate",
                                             tooltip="Duplicate the asset",
                                             mouse_released_fn=lambda x, y, b, m: self._on_duplicate_ref_mouse_released(
                                                 b, item
                                             ),
+                                            identifier="duplicate_reference",
                                         )
                                     ui.Spacer(width=0)
                             elif isinstance(item, _ItemInstance):
@@ -540,45 +674,81 @@ class Delegate(ui.AbstractItemDelegate):
                                     )
                                     ui.Spacer(width=0)
                             elif isinstance(item, _ItemPrim) and item.is_usd_light() and item.from_live_light_group:
-                                ui.Spacer(height=0, width=ui.Pixel(8))
+                                valid_layer_identifiers = self._get_valid_transfer_layer_identifiers()
+                                prim_transfer_specs = _get_transferable_prim_specs(item.prim, valid_layer_identifiers)
+                                can_transfer_prim = self._layer_manager.can_transfer_from_layers(
+                                    (prim_spec.layer.identifier for prim_spec in prim_transfer_specs),
+                                    valid_layer_identifiers,
+                                )
+                                ui.Spacer(width=self._SPACING_MD)
                                 with ui.VStack(
-                                    width=ui.Pixel(16 + 16 + 8),
+                                    width=0,
                                     content_clipping=True,
                                 ):
                                     ui.Spacer(width=0)
-                                    with ui.HStack(height=ui.Pixel(16)):
+                                    with ui.HStack(width=0, height=self._ICON_SIZE, spacing=self._SPACING_MD):
+                                        self._build_transfer_button(
+                                            enabled=can_transfer_prim,
+                                            tooltip="Transfer this stage light definition to another layer."
+                                            if can_transfer_prim
+                                            else "No writable target layer is available.",
+                                            menu_label="Transfer definition to...",
+                                            triggered_fn=functools.partial(self._transfer_prim, item),
+                                            identifier="stage_light_transfer_overrides",
+                                        )
                                         ui.Image(
                                             "",
-                                            height=ui.Pixel(16),
+                                            height=self._ICON_SIZE,
+                                            width=self._ICON_SIZE,
                                             name="TrashCan",
                                             tooltip="Delete the prim",
                                             mouse_released_fn=lambda x, y, b, m: self._on_delete_prim_released(b, item),
+                                            identifier="delete_prim",
                                         )
-                                        ui.Spacer(height=0, width=ui.Pixel(8))
                                         ui.Image(
                                             "",
-                                            height=ui.Pixel(16),
+                                            height=self._ICON_SIZE,
+                                            width=self._ICON_SIZE,
                                             name="Duplicate",
                                             tooltip="Duplicate the asset",
                                             mouse_released_fn=lambda x, y, b, m: self._on_duplicate_prim_mouse_released(
                                                 b, item
                                             ),
+                                            identifier="duplicate_prim",
                                         )
                                     ui.Spacer(width=0)
                             elif isinstance(item, _ItemPrim) and item.from_live_light_group:
-                                ui.Spacer(height=0, width=ui.Pixel(8))
+                                valid_layer_identifiers = self._get_valid_transfer_layer_identifiers()
+                                prim_transfer_specs = _get_transferable_prim_specs(item.prim, valid_layer_identifiers)
+                                can_transfer_prim = self._layer_manager.can_transfer_from_layers(
+                                    (prim_spec.layer.identifier for prim_spec in prim_transfer_specs),
+                                    valid_layer_identifiers,
+                                )
+                                ui.Spacer(width=self._SPACING_MD)
                                 with ui.VStack(
-                                    width=ui.Pixel(16),
+                                    width=0,
                                     content_clipping=True,
                                 ):
                                     ui.Spacer(width=0)
-                                    ui.Image(
-                                        "",
-                                        height=ui.Pixel(16),
-                                        name="TrashCan",
-                                        tooltip="Delete the prim",
-                                        mouse_released_fn=lambda x, y, b, m: self._on_delete_prim_released(b, item),
-                                    )
+                                    with ui.HStack(width=0, height=self._ICON_SIZE, spacing=self._SPACING_MD):
+                                        self._build_transfer_button(
+                                            enabled=can_transfer_prim,
+                                            tooltip="Transfer this stage light definition to another layer."
+                                            if can_transfer_prim
+                                            else "No writable target layer is available.",
+                                            menu_label="Transfer definition to...",
+                                            triggered_fn=functools.partial(self._transfer_prim, item),
+                                            identifier="stage_light_transfer_overrides",
+                                        )
+                                        ui.Image(
+                                            "",
+                                            height=self._ICON_SIZE,
+                                            width=self._ICON_SIZE,
+                                            name="TrashCan",
+                                            tooltip="Delete the prim",
+                                            mouse_released_fn=lambda x, y, b, m: self._on_delete_prim_released(b, item),
+                                            identifier="delete_prim",
+                                        )
                                     ui.Spacer(width=0)
                         ui.Spacer(height=0, width=ui.Pixel(8))
 
@@ -774,5 +944,9 @@ class Delegate(ui.AbstractItemDelegate):
 
     @omni.usd.handle_exception
     async def _deferred_destroy(self):
-        await _deferred_destroy_tasks([self.__refresh_gradient_color_task])
+        await _deferred_destroy_tasks(
+            [self.__refresh_gradient_color_task, self._clear_valid_transfer_layer_identifiers_task]
+        )
+        if self._layer_manager is not None:
+            self._layer_manager.destroy()
         _reset_default_attrs(self)

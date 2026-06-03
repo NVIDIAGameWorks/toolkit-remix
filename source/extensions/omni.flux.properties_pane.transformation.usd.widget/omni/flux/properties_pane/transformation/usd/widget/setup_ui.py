@@ -22,6 +22,7 @@ from typing import Any
 import omni.kit
 import omni.ui as ui
 import omni.usd
+from omni.flux.property_widget_builder.model.usd import BuildLayerTransferMenu as _BuildLayerTransferMenu
 from omni.flux.property_widget_builder.model.usd import USDAttributeDef as _USDAttributeDef
 from omni.flux.property_widget_builder.model.usd import USDAttributeXformItem as _USDAttributeXformItem
 from omni.flux.property_widget_builder.model.usd import USDAttributeXformItemStub as _USDAttributeXformItemStub
@@ -59,6 +60,7 @@ class TransformPropertyWidget:
         attr_display_names_table: dict[UsdGeom.XformOp, list[str]] = None,
         virtual_xform_ops: list[list[tuple[list[UsdGeom.XformOp], list[Any]]]] = None,
         field_builders: list[_FieldBuilder] | None = None,
+        layer_transfer_menu_fn: _BuildLayerTransferMenu | None = None,
     ):
         """
         Show a panel that shows transform attributes of a prim
@@ -87,6 +89,7 @@ class TransformPropertyWidget:
             "_property_widget": None,
             "_property_model": None,
             "_property_delegate": None,
+            "_layer_transfer_menu_fn": None,
             "_on_item_changed_sub": None,
             "_on_item_expanded_sub": None,
             "_paths": None,
@@ -108,6 +111,7 @@ class TransformPropertyWidget:
         self._tree_column_widths = tree_column_widths
         self._columns_resizable = columns_resizable
         self._right_aligned_labels = right_aligned_labels
+        self._layer_transfer_menu_fn = layer_transfer_menu_fn
 
         self._paths = []
         self._virtual_ops = virtual_xform_ops or _DEFAULT_VIRTUAL_XFORM_OPS
@@ -134,7 +138,9 @@ class TransformPropertyWidget:
     def __create_ui(self, field_builders: list[_FieldBuilder] | None = None):
         self._property_model = _USDPropertyModel(self._context_name)
         self._property_delegate = _USDPropertyDelegate(
-            field_builders=field_builders, right_aligned_labels=self._right_aligned_labels
+            field_builders=field_builders,
+            right_aligned_labels=self._right_aligned_labels,
+            layer_transfer_menu_fn=self._layer_transfer_menu_fn,
         )
         self._root_frame = ui.Frame(height=0)
         with self._root_frame:

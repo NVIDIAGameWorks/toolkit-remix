@@ -42,6 +42,7 @@ from lightspeed.trex.utils.widget import accept_asset_if_valid_for_replacement a
 from lightspeed.trex.utils.widget import open_asset_file_picker as _open_asset_file_picker
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.flux.properties_pane.transformation.usd.widget import TransformPropertyWidget as _TransformPropertyWidget
+from omni.flux.property_widget_builder.model.usd import BuildLayerTransferMenu as _BuildLayerTransferMenu
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -55,8 +56,17 @@ if typing.TYPE_CHECKING:
 
 
 class SetupUI:
-    def __init__(self, context_name: str):
-        """Mesh Properties Widget"""
+    def __init__(
+        self,
+        context_name: str,
+        layer_transfer_menu_fn: _BuildLayerTransferMenu | None = None,
+    ):
+        """Create the mesh properties widget.
+
+        Args:
+            context_name: USD context name containing the stage.
+            layer_transfer_menu_fn: Callback that adds property-layer transfer actions to property row menus.
+        """
 
         self._default_attr = {
             "_frame_none": None,
@@ -83,6 +93,7 @@ class SetupUI:
             "_sub_mesh_ref_prim_field_end_edit": None,
             "_transformation_widget": None,
             "_property_widget": None,
+            "_layer_transfer_menu_fn": None,
             "_object_property_line": None,
             "_current_instance_items": None,
         }
@@ -91,6 +102,7 @@ class SetupUI:
 
         self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
+        self._layer_transfer_menu_fn = layer_transfer_menu_fn
         self._core = _AssetReplacementsCore(context_name)
         self._mesh_properties_frames = {}
         self.__ignore_ingest_check = False
@@ -238,6 +250,7 @@ class SetupUI:
                         ],
                         columns_resizable=True,
                         right_aligned_labels=False,
+                        layer_transfer_menu_fn=self._layer_transfer_menu_fn,
                     )
 
                     self._object_property_spacer = ui.Spacer(height=ui.Pixel(8))
@@ -260,6 +273,7 @@ class SetupUI:
                         ],
                         columns_resizable=True,
                         right_aligned_labels=False,
+                        layer_transfer_menu_fn=self._layer_transfer_menu_fn,
                     )
 
                     ui.Spacer(height=ui.Pixel(8))
