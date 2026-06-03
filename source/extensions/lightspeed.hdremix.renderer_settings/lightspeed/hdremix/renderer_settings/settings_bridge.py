@@ -83,11 +83,14 @@ class HdRemixSettingsBridge:
     component (the D3D9 -> Vulkan translation layer shipped in bridge.dll). This class
     has nothing to do with that; it's the carb-settings -> hdremix_set_configvar relay.
 
-    Subscribes to changes on the persistent carb settings and pushes them to dxvk-remix
-    through ``hdremix_set_configvar``, so that toggling a setting in the Preferences UI
-    updates the running renderer live (no re-capture). Not tied to stage lifecycle:
-    GI integrator preference is an app-scoped renderer config, so start()/stop() are
-    driven directly from the extension's on_startup/on_shutdown.
+    Subscribes to changes on the persistent carb settings and -- gated by the
+    ``overrideCaptureIntegrator`` flag -- pushes them to dxvk-remix through
+    ``hdremix_set_configvar`` so the running renderer updates live without a re-capture.
+    When the override flag is False (default), runtime pushes are skipped on startup,
+    on dropdown changes, and on the flag flipping back off; the dropdown then only
+    records the user's preference and the loaded capture's preset wins. Not tied to
+    stage lifecycle: GI integrator preference is an app-scoped renderer config, so
+    start()/stop() are driven directly from the extension's on_startup/on_shutdown.
     """
 
     def __init__(self):
@@ -98,6 +101,7 @@ class HdRemixSettingsBridge:
         self.default_attr = {
             "_settings": None,
             "_integrate_indirect_sub": None,
+            "_override_capture_sub": None,
             "_startup_push_task": None,
         }
         for attr, value in self.default_attr.items():
@@ -135,6 +139,13 @@ class HdRemixSettingsBridge:
         self._integrate_indirect_sub = self._settings.subscribe_to_node_change_events(
             SETTINGS_INTEGRATE_INDIRECT_MODE, self._on_integrate_indirect_mode_changed
         )
+        # Also react to the override flag flipping mid-session: enabling it must apply
+        # immediately, not wait for the next dropdown change or a restart. The push logic
+        # lives here in the bridge (not the preferences UI handler) so any writer of the
+        # setting stays in sync, not just the checkbox widget.
+        self._override_capture_sub = self._settings.subscribe_to_node_change_events(
+            SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, self._on_override_capture_changed
+        )
         # Defer the initial push until the next frame: hdremix_set_configvar requires the HdRemix
         # delegate to be initialized, which may not yet be the case during extension startup.
         # Without this, an exception in start() would abort on_startup and prevent the
@@ -148,6 +159,9 @@ class HdRemixSettingsBridge:
         if self._integrate_indirect_sub is not None:
             self._settings.unsubscribe_to_change_events(self._integrate_indirect_sub)
             self._integrate_indirect_sub = None
+        if self._override_capture_sub is not None:
+            self._settings.unsubscribe_to_change_events(self._override_capture_sub)
+            self._override_capture_sub = None
 
     async def _deferred_initial_push(self):
         try:
@@ -193,10 +207,48 @@ class HdRemixSettingsBridge:
         )
 
     def _on_integrate_indirect_mode_changed(self, *_args, **_kwargs):
-        # User-driven change: force graphicsPreset=Custom so dxvk-remix's Quality layer
-        # stops overriding our User-layer integrateIndirectMode write. We do NOT do this
-        # in _deferred_initial_push so a fresh launch keeps whatever preset the user had.
-        # First UI toggle "consumes" the preset; subsequent toggles work normally.
+        # Gate every runtime push -- including dropdown-change pushes -- on the
+        # override flag (REMIX-5483 review by Nicolas): if the user hasn't opted
+        # in to overriding the capture's preset, changing the dropdown only
+        # records their preference; it does not touch the live renderer. This is
+        # symmetric with _deferred_initial_push and makes the checkbox a true
+        # global gate.
+        if not self._settings.get(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR):
+            carb.log_info(
+                "[hdremix_renderer] integrateIndirectMode preference updated but overrideCaptureIntegrator=False; "
+                "skipping runtime push (capture preset wins)."
+            )
+            return
+        # User-driven change with override on: force graphicsPreset=Custom so
+        # dxvk-remix's Quality layer stops overriding our User-layer write. We
+        # do NOT do this in _deferred_initial_push so a fresh launch keeps
+        # whatever preset the user had. First UI toggle "consumes" the preset;
+        # subsequent toggles work normally.
+        self._force_graphics_preset_custom()
+        self._push_integrate_indirect_mode()
+
+    def _on_override_capture_changed(self, *_args, **_kwargs):
+        # Enabling the override mid-session applies it right away rather than waiting for
+        # the next dropdown change or a restart (the tooltip promises "on startup and on
+        # every change", which previously left a gap when only the checkbox flipped).
+        # Mirror the user-driven dropdown path: force graphicsPreset=Custom so our
+        # User-layer write wins, then push the persisted mode. When the flag flips back to
+        # False we leave the runtime as-is -- the next loaded capture's preset applies --
+        # symmetric with _deferred_initial_push's startup gating.
+        if not self._settings.get(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR):
+            carb.log_info(
+                "[hdremix_renderer] overrideCaptureIntegrator=False; leaving the runtime as-is "
+                "(the next loaded capture's preset wins)."
+            )
+            return
+        self._force_graphics_preset_custom()
+        self._push_integrate_indirect_mode()
+
+    def _force_graphics_preset_custom(self):
+        # Force dxvk-remix's graphicsPreset to Custom (enum value 4) so its Quality layer
+        # stops shadowing the User-layer write hdremix_set_configvar makes for
+        # integrateIndirectMode. Shared by the dropdown-change and override-toggle push
+        # paths. See dxvk-remix rtx_option.cpp:842-848 and rtx_options.h:75.
         try:
             _hdremix_set_configvar(_RTX_OPTION_GRAPHICS_PRESET, _RTX_GRAPHICS_PRESET_CUSTOM)
         except Exception as exc:  # noqa: BLE001
@@ -204,7 +256,6 @@ class HdRemixSettingsBridge:
                 f"[hdremix_renderer] failed to force graphicsPreset=Custom: {exc}. "
                 "integrateIndirectMode change may be shadowed by the active graphics preset."
             )
-        self._push_integrate_indirect_mode()
 
     def destroy(self):
         self.stop()

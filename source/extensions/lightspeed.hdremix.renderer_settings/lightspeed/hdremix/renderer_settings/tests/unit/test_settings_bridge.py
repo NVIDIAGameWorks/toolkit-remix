@@ -151,14 +151,18 @@ class TestHdRemixSettingsBridge(AsyncTestCase):
                         bridge.destroy()
 
     async def test_setting_change_triggers_push_and_forces_custom_preset(self):
-        # A user-driven setting change must push BOTH graphicsPreset=Custom (=4) AND
-        # the new integrator value, in that order. Forcing Custom is what stops
-        # dxvk-remix's Quality layer from shadowing the User-layer integrator write.
-        # We invoke the handler directly instead of round-tripping through carb's
-        # subscribe_to_node_change_events: the extension auto-starts another
-        # HdRemixSettingsBridge in the test app, and its subscription would fire too,
-        # doubling every recorded call and breaking the order assertion.
-        with _override_setting(SETTINGS_INTEGRATE_INDIRECT_MODE, 1):
+        # A user-driven setting change with override=ON must push BOTH
+        # graphicsPreset=Custom (=4) AND the new integrator value, in that order.
+        # Forcing Custom is what stops dxvk-remix's Quality layer from shadowing
+        # the User-layer integrator write. We invoke the handler directly instead
+        # of round-tripping through carb's subscribe_to_node_change_events: the
+        # extension auto-starts another HdRemixSettingsBridge in the test app,
+        # and its subscription would fire too, doubling every recorded call and
+        # breaking the order assertion.
+        with (
+            _override_setting(SETTINGS_INTEGRATE_INDIRECT_MODE, 1),
+            _override_setting(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, True),
+        ):
             with patch(_LOAD_EXTERN_PATCH_TARGET, new=AsyncMock(return_value=0)):
                 with patch(_HDREMIX_PATCH_TARGET) as mock_set:
                     bridge = HdRemixSettingsBridge()
@@ -170,6 +174,74 @@ class TestHdRemixSettingsBridge(AsyncTestCase):
                                 call("rtx.graphicsPreset", "4"),
                                 call("rtx.integrateIndirectMode", "1"),
                             ],
+                        )
+                    finally:
+                        bridge.destroy()
+
+    async def test_setting_change_skips_push_when_override_off(self):
+        # Regression guard for Nicolas's REMIX-5483 review (round 2): with
+        # overrideCaptureIntegrator=False, changing the dropdown must NOT touch
+        # the live renderer -- the capture's preset wins. Symmetric with the
+        # startup-push gate in test_install_skips_push_when_override_off.
+        with (
+            _override_setting(SETTINGS_INTEGRATE_INDIRECT_MODE, 1),
+            _override_setting(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, False),
+        ):
+            with patch(_LOAD_EXTERN_PATCH_TARGET, new=AsyncMock(return_value=0)):
+                with patch(_HDREMIX_PATCH_TARGET) as mock_set:
+                    bridge = HdRemixSettingsBridge()
+                    try:
+                        bridge._on_integrate_indirect_mode_changed()
+                        self.assertEqual(
+                            mock_set.call_args_list,
+                            [],
+                            f"override=False must skip ALL runtime writes; got {mock_set.call_args_list!r}",
+                        )
+                    finally:
+                        bridge.destroy()
+
+    async def test_override_flag_flip_triggers_immediate_push(self):
+        # Symmetric to test_setting_change_triggers_push_and_forces_custom_preset
+        # but covers the checkbox-flip path: flipping overrideCaptureIntegrator to
+        # True mid-session must immediately force graphicsPreset=Custom and push
+        # the persisted integrator, rather than waiting for the next dropdown
+        # change or a restart. Closes the unit-level gap behind the e2e test.
+        with (
+            _override_setting(SETTINGS_INTEGRATE_INDIRECT_MODE, 1),
+            _override_setting(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, True),
+        ):
+            with patch(_LOAD_EXTERN_PATCH_TARGET, new=AsyncMock(return_value=0)):
+                with patch(_HDREMIX_PATCH_TARGET) as mock_set:
+                    bridge = HdRemixSettingsBridge()
+                    try:
+                        bridge._on_override_capture_changed()
+                        self.assertEqual(
+                            mock_set.call_args_list,
+                            [
+                                call("rtx.graphicsPreset", "4"),
+                                call("rtx.integrateIndirectMode", "1"),
+                            ],
+                        )
+                    finally:
+                        bridge.destroy()
+
+    async def test_override_flag_flip_off_skips_push(self):
+        # Flipping overrideCaptureIntegrator back to False mid-session must NOT
+        # touch the live renderer -- the next loaded capture's preset wins,
+        # symmetric with the startup-push gate.
+        with (
+            _override_setting(SETTINGS_INTEGRATE_INDIRECT_MODE, 1),
+            _override_setting(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, False),
+        ):
+            with patch(_LOAD_EXTERN_PATCH_TARGET, new=AsyncMock(return_value=0)):
+                with patch(_HDREMIX_PATCH_TARGET) as mock_set:
+                    bridge = HdRemixSettingsBridge()
+                    try:
+                        bridge._on_override_capture_changed()
+                        self.assertEqual(
+                            mock_set.call_args_list,
+                            [],
+                            f"override=False flip must skip runtime writes; got {mock_set.call_args_list!r}",
                         )
                     finally:
                         bridge.destroy()
@@ -188,11 +260,15 @@ class TestHdRemixSettingsBridge(AsyncTestCase):
         )
 
     async def test_preset_force_to_custom_repeats_on_subsequent_toggles(self):
-        # Sticky preset assertion: every user toggle must re-force graphicsPreset=Custom,
-        # not just the first. Without this, a future "restore preset between toggles"
-        # politeness fix would silently reintroduce Quality-layer shadowing on the second
-        # change. Two consecutive handler invocations must each emit the preset write.
-        with _override_setting(SETTINGS_INTEGRATE_INDIRECT_MODE, 0):
+        # Sticky preset assertion: with override=ON, every user toggle must re-force
+        # graphicsPreset=Custom, not just the first. Without this, a future "restore
+        # preset between toggles" politeness fix would silently reintroduce Quality-layer
+        # shadowing on the second change. Two consecutive handler invocations must each
+        # emit the preset write.
+        with (
+            _override_setting(SETTINGS_INTEGRATE_INDIRECT_MODE, 0),
+            _override_setting(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, True),
+        ):
             with patch(_LOAD_EXTERN_PATCH_TARGET, new=AsyncMock(return_value=0)):
                 with patch(_HDREMIX_PATCH_TARGET) as mock_set:
                     bridge = HdRemixSettingsBridge()

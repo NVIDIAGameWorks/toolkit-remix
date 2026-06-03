@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5509: Fixed Stage Manager capture light delete and restore so deleted lights stop contributing in render runtime and restore back to capture intensity
 - REMIX-5483: Fixed stage-open crash by tearing down lingering lighting-undo events after their handler is torn down and guarding `SwitchCaptureCommand` against dispatching `SetLightingMenuModeCommand` when `lighting_mode` is empty or already the default, eliminating the HL2 stage-open GPU crash from the empty-value race.
 - REMIX-5518 / REMIX-5521: Fixed packaging repair, cancellation, and flatten-output flows.
+- REMIX-5483: Gated the HdRemix renderer's Integrate Indirect Illumination Mode dropdown's runtime push on the Override Capture Value checkbox so loaded capture presets are no longer overwritten when the box is unchecked.
 
 ## [1.5.0-0]
 

@@ -1,6 +1,6 @@
 # lightspeed.hdremix.renderer_settings
 
-Exposes live HdRemix renderer toggles in the Kit Preferences window. Settings changed here are pushed to the running dxvk-remix runtime via `hdremix_set_configvar` — no re-capture required.
+Exposes live HdRemix renderer toggles in the Kit Preferences window. Settings changed here can be pushed to the running dxvk-remix runtime via `hdremix_set_configvar` — no re-capture required. For the integrator, whether a push actually happens is gated by the **Override Capture Value** checkbox (see below).
 
 ## Preferences
 
@@ -20,12 +20,10 @@ Selects the indirect lighting integrator. Label strings match the dxvk-remix run
 
 ### Override Capture Value
 
-Controls whether the global integrator setting wins over each loaded capture's preset on stage open.
+Controls whether the global integrator setting wins over each loaded capture's preset, and gates whether the integrator is pushed to the runtime at all.
 
-- **Off (default)**: the extension does **not** push the integrator on startup; the loaded capture's preset value applies. The combo above just records the user's preference for the next time this checkbox is on.
-- **On**: the global value is pushed to `rtx.integrateIndirectMode` on every stage open, overriding the capture's preset.
-
-User toggles of the integrator combo always push immediately regardless of this checkbox (explicit action = explicit intent).
+- **Off (default)**: the extension does **not** push the integrator — not on stage open, and not when you change the combo above. The loaded capture's preset value applies, and the combo only records your preference for the next time this checkbox is on.
+- **On**: the global value is pushed to `rtx.integrateIndirectMode` on stage open, when you change the combo, and the moment you enable this checkbox mid-session — overriding the capture's preset.
 
 ## Settings
 
