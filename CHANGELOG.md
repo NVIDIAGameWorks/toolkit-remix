@@ -9,9 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Created 1.5.2-0 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.5.2-0]
+
+### Added
+
 - Created 1.5.1-0 build
 
 ### Changed
+
+- Update hdremix and omni_core_materials to `ext-68edea0-release-v1-5`
+- Update remix_runtime to `remix-1.5.2`
 
 ### Fixed
 - REMIX-5518: Fixed packaging validation by blocking invalid projects, applying fallback mod-name metadata without saving source layers, validating missing references before mode-specific packaging work, reporting failed exports directly, keeping reference progress accurate, and showing cancellation cleanup clearly.
@@ -21,7 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5518 / REMIX-5521: Fixed packaging repair, cancellation, and flatten-output flows.
 - REMIX-5506: Fix nested referenced light selection - fixed Selection panel and light-property targeting for nested referenced USD lights under mesh replacement hierarchies
 
-### Removed
 
 ## [1.5.1-0]
 
