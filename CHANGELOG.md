@@ -38,6 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update hdremix to `ext-01d57f6-main`
 - Update hdremix and omni_core_materials to `ext-40aa278-main`
 
+### Removed
+
+- Removed the unstable custom numeric expression controller from bounded drag widgets, along with object properties E2E coverage for the retired expression overlay, while preserving deferred property refreshes and native drag hard-bound clamping.
+
 ### Fixed
 
 - REMIX-4286: Hardened AI Tools ComfyUI connection, workflow submission, job output handling, and widget cleanup

@@ -23,7 +23,7 @@ __all__ = ("AbstractDragFieldGroup", "AbstractField")
 import abc
 from collections.abc import Callable
 from contextlib import suppress
-from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Generic, TypeVar, cast, overload
 
 import carb
 import omni.kit.undo
@@ -34,17 +34,9 @@ from omni.flux.utils.common.types import RealNumber, ScalarValue
 if TYPE_CHECKING:
     from omni.flux.property_widget_builder.widget import Item
     from omni.flux.property_widget_builder.widget.tree.item_model import ItemModelBase
-    from omni.flux.property_widget_builder.widget.tree.item_model import ItemValueModel
 
 
 ItemT = TypeVar("ItemT", bound="Item")
-
-
-class _NumericDragWidget(Protocol):
-    enabled: bool
-
-    def step_keyboard_value(self, model: ItemValueModel, key: int, expression: str | None = None) -> None: ...
-    def set_numeric_edit_widgets(self, widgets: dict[int, _NumericDragWidget], index: int) -> None: ...
 
 
 _PRIMARY_FRAME_HEIGHT = 24
@@ -55,10 +47,8 @@ _VSTACK_SPACER_HEIGHT = 2
 class _DragFieldBuildState:
     def __init__(self) -> None:
         self.subs: list[carb.Subscription] = []
-        self.numeric_edit_widgets: dict[int, _NumericDragWidget] = {}
 
     def destroy(self) -> None:
-        self.numeric_edit_widgets.clear()
         self.subs.clear()
 
 
@@ -176,7 +166,7 @@ class AbstractDragFieldGroup(AbstractField):
     @abc.abstractmethod
     def build_drag_widget(
         self,
-        model: ItemValueModel,
+        model: ui.AbstractValueModel,
         style_type_name_override: str,
         read_only: bool,
         min_val: RealNumber | None,
@@ -184,7 +174,7 @@ class AbstractDragFieldGroup(AbstractField):
         hard_min_val: RealNumber | None,
         hard_max_val: RealNumber | None,
         step: RealNumber | None,
-    ) -> _NumericDragWidget:
+    ) -> ui.Widget:
         """Build the drag widget for one value model.
 
         Args:
@@ -301,26 +291,19 @@ class AbstractDragFieldGroup(AbstractField):
                 with ui.VStack():
                     ui.Spacer(height=ui.Pixel(_VSTACK_SPACER_HEIGHT))
                     style_type_name_override = f"{self.style_name}Read" if value_model.read_only else self.style_name
-                    with ui.ZStack():
-                        widget = self.build_drag_widget(
-                            value_model,
-                            style_type_name_override,
-                            value_model.read_only,
-                            min_value,
-                            max_value,
-                            effective_hard_min,
-                            effective_hard_max,
-                            step_value,
-                        )
-                        if not value_model.read_only:
-                            state.numeric_edit_widgets[i] = widget
-                    ui_widget = cast(ui.Widget, widget)
-                    self.set_dynamic_tooltip_fn(ui_widget, value_model)
-                    widgets.append(ui_widget)
+                    widget = self.build_drag_widget(
+                        value_model,
+                        style_type_name_override,
+                        value_model.read_only,
+                        min_value,
+                        max_value,
+                        effective_hard_min,
+                        effective_hard_max,
+                        step_value,
+                    )
+                    self.set_dynamic_tooltip_fn(widget, value_model)
+                    widgets.append(widget)
                     ui.Spacer(height=ui.Pixel(_VSTACK_SPACER_HEIGHT))
-        if len(state.numeric_edit_widgets) > 1:
-            for index, widget in state.numeric_edit_widgets.items():
-                widget.set_numeric_edit_widgets(state.numeric_edit_widgets, index)
         return widgets
 
     def __del__(self):
