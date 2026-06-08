@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.29.1]
+### Removed
+- Removed custom numeric expression editing from bounded drag widgets so they use native `omni.ui` drag/edit behavior while preserving hard-bound clamping for numeric values
+
 ## [1.29.0]
 ### Added
 - Added optional right-aligned actions to `PropertyCollapsableFrame`.

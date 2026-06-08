@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.2]
+### Removed
+- Removed numeric edit controller wiring from drag delegates so float and int fields use native drag widget behavior directly
+
 ## [1.16.1]
 ### Added
 - Added E2E coverage for Ctrl-click numeric edit retargeting and row-local tab looping

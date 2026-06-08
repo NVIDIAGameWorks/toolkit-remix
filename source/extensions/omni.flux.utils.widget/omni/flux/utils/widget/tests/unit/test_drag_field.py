@@ -15,18 +15,14 @@
 * limitations under the License.
 """
 
-from decimal import Decimal
 from typing import Any, cast
 from unittest.mock import patch
 
-import carb
 import omni.kit.test
 from omni.flux.utils.widget.drag_field import (
     FloatBoundedDrag,
     IntBoundedDrag,
     _BoundedNumericDragBase,
-    _NumericEditController,
-    _safe_eval_numeric_expression,
 )
 
 
@@ -117,23 +113,15 @@ class _MockWidgetBase:
 
 
 class _MockDrag(_BoundedNumericDragBase, _MockWidgetBase):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("enable_numeric_edit", False)
-        super().__init__(*args, **kwargs)
-
-    def set_numeric_edit_controller_for_test(self, controller: Any) -> None:
-        self._numeric_edit_controller = controller
+    pass
 
 
 class _MockFloatDrag(_MockDrag):
     _NUMERIC_VALUE_TYPE = float
-    _KEYBOARD_STEP_VALUE_TYPE = float
 
 
 class _MockIntDrag(_MockDrag):
     _NUMERIC_VALUE_TYPE = int
-    _KEYBOARD_STEP_VALUE_TYPE = int
-    _MIN_KEYBOARD_STEP = 1
 
 
 class _BatchModel(_MockModel):
@@ -159,71 +147,6 @@ class _ReentrantEndBatchModel(_BatchModel):
         self.apply(4.0)
 
 
-class _ActiveControllerStub:
-    def __init__(self):
-        self.end_count = 0
-        self.active_during_end = None
-
-    def end_text_edit(self):
-        self.end_count += 1
-        self.active_during_end = _NumericEditController.active_controller
-
-
-class _NumericEditControllerStub:
-    def __init__(self):
-        self.arm_count = 0
-        self.disarm_count = 0
-        self.focus_calls = []
-        self.is_editing = False
-        self.destroy_count = 0
-
-    def arm_text_edit_after_click(self):
-        self.arm_count += 1
-
-    def disarm_text_edit_after_click(self):
-        self.disarm_count += 1
-
-    def focus(self, **kwargs):
-        self.focus_calls.append(kwargs)
-        self.is_editing = True
-
-    def destroy(self):
-        self.destroy_count += 1
-
-
-class _KeyboardEventStub:
-    def __init__(self, event_type: carb.input.KeyboardEventType, input_value: Any, modifiers: int = 0):
-        self.type = event_type
-        self.input = input_value
-        self.modifiers = modifiers
-
-
-class _MouseEventStub:
-    def __init__(self, event_type: carb.input.MouseEventType, pixel_coords: tuple[float, float]):
-        self.type = event_type
-        self.pixel_coords = pixel_coords
-
-
-class _ExpressionFieldStub:
-    def __init__(self):
-        self.visible = True
-        self.screen_position_x = 10.0
-        self.screen_position_y = 20.0
-        self.computed_width = 100.0
-        self.computed_height = 20.0
-
-
-class _ExpressionModelStub:
-    def __init__(self, value: str):
-        self.value = value
-
-    def set_value(self, value: str):
-        self.value = value
-
-    def get_value_as_string(self) -> str:
-        return self.value
-
-
 class _ModelWithoutBatchFlag:
     def __init__(self):
         self._callback = None
@@ -243,17 +166,14 @@ class _ModelWithoutBatchFlag:
 
 
 class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
-    async def test_concrete_drag_widgets_reuse_shared_numeric_edit_hooks(self):
+    async def test_concrete_drag_widgets_reuse_shared_hard_bound_hooks(self):
         # Arrange
         shared_methods = {
             "__init__",
             "_coerce_numeric_value",
-            "_get_keyboard_step",
-            "begin_deferred_numeric_undo_group",
-            "begin_numeric_text_edit",
-            "set_numeric_expression_value",
-            "set_numeric_edit_widgets",
-            "step_keyboard_value",
+            "_coerce_and_clamp_numeric_value",
+            "_install_batch_mouse_callbacks",
+            "_sync_hard_clamp_callback",
         }
 
         # Act
@@ -266,254 +186,6 @@ class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
         self.assertTrue(issubclass(FloatBoundedDrag, _BoundedNumericDragBase))
         self.assertTrue(issubclass(IntBoundedDrag, _BoundedNumericDragBase))
         self.assertEqual(duplicated_methods, {"FloatBoundedDrag": [], "IntBoundedDrag": []})
-
-    async def test_numeric_text_edit_activation_ends_previous_controller(self):
-        previous_controller = _ActiveControllerStub()
-        current_controller = _NumericEditController.__new__(_NumericEditController)
-        current_controller._destroyed = False
-        current_controller._editing = True
-        _NumericEditController.active_controller = cast(Any, previous_controller)
-
-        try:
-            current_controller._activate()
-
-            self.assertEqual(previous_controller.end_count, 1)
-            self.assertIs(previous_controller.active_during_end, previous_controller)
-            self.assertIs(_NumericEditController.active_controller, current_controller)
-        finally:
-            _NumericEditController.active_controller = None
-
-    async def test_numeric_text_edit_disarms_previous_armed_controller(self):
-        previous_controller = _NumericEditControllerStub()
-        current_controller = _NumericEditController.__new__(_NumericEditController)
-        _NumericEditController.armed_controller = cast(Any, previous_controller)
-
-        try:
-            current_controller._disarm_armed_controller_if_other()
-
-            self.assertEqual(previous_controller.disarm_count, 1)
-        finally:
-            _NumericEditController.armed_controller = None
-
-    async def test_numeric_text_edit_force_ends_tab_transfer_controller(self):
-        controller = _NumericEditController.__new__(_NumericEditController)
-        controller._transfer_key_active = True
-        end_calls = []
-
-        def _end_edit(*, commit=True):
-            end_calls.append((controller._transfer_key_active, commit))
-
-        cast(Any, controller)._end_edit = _end_edit
-
-        controller.end_text_edit(commit=False)
-
-        self.assertEqual(end_calls, [(False, False)])
-
-    async def test_numeric_text_edit_replaces_selected_text_on_first_character(self):
-        controller = _NumericEditController.__new__(_NumericEditController)
-        controller._editing = True
-        controller._transfer_key_active = True
-        controller._replace_expression_text = True
-        controller._cursor_position = 4
-        controller._expression_model = _ExpressionModelStub("1234")
-        event = _KeyboardEventStub(carb.input.KeyboardEventType.CHAR, "9")
-        _NumericEditController.active_controller = controller
-
-        try:
-            handled = controller._on_keyboard_event(cast(Any, event))
-
-            self.assertTrue(handled)
-            self.assertFalse(controller._transfer_key_active)
-            self.assertFalse(controller._replace_expression_text)
-            self.assertEqual(controller._cursor_position, 1)
-            self.assertEqual(controller._expression_model.get_value_as_string(), "9")
-        finally:
-            _NumericEditController.active_controller = None
-
-    async def test_numeric_text_edit_inserts_valid_text_at_tracked_cursor(self):
-        controller = _NumericEditController.__new__(_NumericEditController)
-        controller._editing = True
-        controller._transfer_key_active = True
-        controller._replace_expression_text = False
-        controller._cursor_position = 2
-        controller._expression_model = _ExpressionModelStub("1234")
-        event = _KeyboardEventStub(carb.input.KeyboardEventType.CHAR, "9")
-        _NumericEditController.active_controller = controller
-
-        try:
-            handled = controller._on_keyboard_event(cast(Any, event))
-
-            self.assertTrue(handled)
-            self.assertFalse(controller._transfer_key_active)
-            self.assertEqual(controller._cursor_position, 3)
-            self.assertEqual(controller._expression_model.get_value_as_string(), "12934")
-        finally:
-            _NumericEditController.active_controller = None
-
-    async def test_numeric_text_edit_consumes_invalid_text_input(self):
-        controller = _NumericEditController.__new__(_NumericEditController)
-        controller._editing = True
-        controller._transfer_key_active = True
-        controller._replace_expression_text = False
-        controller._cursor_position = 2
-        controller._expression_model = _ExpressionModelStub("1234")
-        event = _KeyboardEventStub(carb.input.KeyboardEventType.CHAR, "x")
-        _NumericEditController.active_controller = controller
-
-        try:
-            handled = controller._on_keyboard_event(cast(Any, event))
-
-            self.assertTrue(handled)
-            self.assertFalse(controller._transfer_key_active)
-            self.assertEqual(controller._cursor_position, 2)
-            self.assertEqual(controller._expression_model.get_value_as_string(), "1234")
-        finally:
-            _NumericEditController.active_controller = None
-
-    async def test_numeric_text_edit_backspaces_at_tracked_cursor(self):
-        controller = _NumericEditController.__new__(_NumericEditController)
-        controller._editing = True
-        controller._transfer_key_active = True
-        controller._replace_expression_text = False
-        controller._cursor_position = 2
-        controller._expression_model = _ExpressionModelStub("1234")
-        event = _KeyboardEventStub(carb.input.KeyboardEventType.KEY_PRESS, carb.input.KeyboardInput.BACKSPACE)
-        _NumericEditController.active_controller = controller
-
-        try:
-            handled = controller._on_keyboard_event(cast(Any, event))
-
-            self.assertTrue(handled)
-            self.assertFalse(controller._transfer_key_active)
-            self.assertEqual(controller._cursor_position, 1)
-            self.assertEqual(controller._expression_model.get_value_as_string(), "134")
-        finally:
-            _NumericEditController.active_controller = None
-
-    async def test_numeric_text_edit_ignores_keyboard_events_when_not_editing(self):
-        controller = _NumericEditController.__new__(_NumericEditController)
-        controller._editing = False
-        controller._transfer_key_active = True
-        controller._replace_expression_text = False
-        controller._cursor_position = 2
-        controller._expression_model = _ExpressionModelStub("1234")
-        event = _KeyboardEventStub(carb.input.KeyboardEventType.CHAR, "9")
-
-        handled = controller._on_keyboard_event(cast(Any, event))
-
-        self.assertFalse(handled)
-        self.assertTrue(controller._transfer_key_active)
-        self.assertEqual(controller._cursor_position, 2)
-        self.assertEqual(controller._expression_model.get_value_as_string(), "1234")
-
-    async def test_numeric_text_edit_mouse_press_inside_editor_keeps_editing(self):
-        controller = _NumericEditController.__new__(_NumericEditController)
-        controller._editing = True
-        controller._expression_field = _ExpressionFieldStub()
-        controller._ignore_mouse_down_events = 0
-        end_calls = []
-        _NumericEditController.active_controller = controller
-
-        def _end_edit(*, commit=True):
-            end_calls.append(commit)
-
-        cast(Any, controller)._end_edit = _end_edit
-        event = _MouseEventStub(carb.input.MouseEventType.LEFT_BUTTON_DOWN, (15.0, 25.0))
-
-        try:
-            handled = controller._on_mouse_event(cast(Any, event))
-
-            self.assertFalse(handled)
-            self.assertEqual(end_calls, [])
-        finally:
-            _NumericEditController.active_controller = None
-
-    async def test_numeric_text_edit_mouse_press_outside_editor_commits_edit(self):
-        controller = _NumericEditController.__new__(_NumericEditController)
-        controller._editing = True
-        controller._transfer_key_active = True
-        controller._expression_field = _ExpressionFieldStub()
-        controller._ignore_mouse_down_events = 0
-        end_calls = []
-        _NumericEditController.active_controller = controller
-
-        def _end_edit(*, commit=True):
-            end_calls.append((controller._transfer_key_active, commit))
-
-        cast(Any, controller)._end_edit = _end_edit
-        event = _MouseEventStub(carb.input.MouseEventType.LEFT_BUTTON_DOWN, (150.0, 25.0))
-
-        try:
-            handled = controller._on_mouse_event(cast(Any, event))
-
-            self.assertFalse(handled)
-            self.assertEqual(end_calls, [(False, True)])
-        finally:
-            _NumericEditController.active_controller = None
-
-    async def test_numeric_text_edit_ignores_deferred_opening_mouse_press(self):
-        controller = _NumericEditController.__new__(_NumericEditController)
-        controller._editing = True
-        controller._ignore_mouse_down_events = 1
-        controller._expression_field = _ExpressionFieldStub()
-        end_calls = []
-        _NumericEditController.active_controller = controller
-
-        def _end_edit(*, commit=True):
-            end_calls.append(commit)
-
-        cast(Any, controller)._end_edit = _end_edit
-        event = _MouseEventStub(carb.input.MouseEventType.LEFT_BUTTON_DOWN, (150.0, 25.0))
-
-        try:
-            handled = controller._on_mouse_event(cast(Any, event))
-
-            self.assertFalse(handled)
-            self.assertEqual(controller._ignore_mouse_down_events, 0)
-            self.assertEqual(end_calls, [])
-        finally:
-            _NumericEditController.active_controller = None
-
-    async def test_second_clean_click_after_closing_another_numeric_editor_begins_text_edit(self):
-        # Arrange
-        model = _BatchModel()
-        widget = _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
-        previous_controller = _NumericEditControllerStub()
-        controller = _NumericEditControllerStub()
-        widget.set_numeric_edit_controller_for_test(controller)
-        _NumericEditController.active_controller = cast(Any, previous_controller)
-
-        try:
-            widget.emit_mouse_pressed(button=0)
-            _NumericEditController.active_controller = None
-
-            # Act
-            widget.emit_mouse_released(button=0)
-
-            # Assert
-            self.assertEqual(controller.arm_count, 0)
-            self.assertEqual(controller.focus_calls, [])
-            self.assertFalse(model.is_batch_editing)
-
-            # Act
-            widget.emit_mouse_pressed(button=0)
-            widget.emit_mouse_released(button=0)
-
-            # Assert
-            self.assertEqual(controller.arm_count, 0)
-            self.assertEqual(
-                controller.focus_calls,
-                [
-                    {
-                        "clear_value": False,
-                        "from_tab_transfer": False,
-                        "begin_undo_group": True,
-                        "ignore_mouse_down_events": 1,
-                    }
-                ],
-            )
-        finally:
-            _NumericEditController.active_controller = None
 
     async def test_clamps_to_hard_bounds(self):
         # Arrange
@@ -572,15 +244,13 @@ class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
         self.assertIsInstance(model.last_value, int)
         self.assertEqual(model.last_value, 10)
 
-    async def test_float_drag_does_not_coerce_bool_as_number(self):
+    async def test_float_drag_rejects_bool_as_number(self):
         # Arrange
         drag = _MockFloatDrag(model=_MockModel())
 
-        # Act
-        result = drag._coerce_numeric_value(True)
-
-        # Assert
-        self.assertIs(result, True)
+        # Act / Assert
+        with self.assertRaises(ValueError):
+            drag._coerce_numeric_value(True)
 
     async def test_drag_int_normalizes_fractional_hard_min_with_ceiling(self):
         # Arrange
@@ -592,114 +262,6 @@ class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertIsInstance(result, int)
         self.assertEqual(result, 1)
-
-    async def test_numeric_expression_parser_accepts_basic_arithmetic(self):
-        # Arrange
-        expressions = ("2*100", "-(5 + 3) / 2")
-
-        # Act
-        results = [_safe_eval_numeric_expression(expression) for expression in expressions]
-
-        # Assert
-        self.assertEqual(results, [200, -4.0])
-
-    async def test_numeric_expression_parser_preserves_large_integer_precision(self):
-        # Arrange
-        expression = "9007199254740993 + 1"
-
-        # Act
-        result = _safe_eval_numeric_expression(expression)
-
-        # Assert
-        self.assertEqual(result, 9007199254740994)
-
-    async def test_numeric_expression_parser_rejects_unsafe_input(self):
-        # Arrange
-        unsafe_expressions = ("__import__('os').system('echo unsafe')", "2**10", "1e999")
-
-        # Act
-        for expression in unsafe_expressions:
-            with self.subTest(expression=expression):
-                # Assert
-                with self.assertRaises(ValueError):
-                    _safe_eval_numeric_expression(expression)
-
-    async def test_numeric_expression_parser_rejects_deep_expressions(self):
-        # Arrange
-        expression = "+" * 25 + "1"
-
-        # Act
-        with self.assertRaises(ValueError):
-            # Assert
-            _safe_eval_numeric_expression(expression)
-
-    async def test_arrow_up_evaluates_expression_and_adds_widget_step(self):
-        # Arrange
-        model = _MockModel(value=0.0, string_value="2*100")
-        widget = _MockDrag(model=model, step=0.1)
-
-        # Act
-        widget.step_keyboard_value(model, int(carb.input.KeyboardInput.UP))
-
-        # Assert
-        self.assertAlmostEqual(model.last_value, 200.1)
-
-    async def test_numeric_expression_value_sets_evaluated_number_on_model(self):
-        # Arrange
-        model = _MockModel()
-        widget = _MockFloatDrag(model=model)
-
-        # Act
-        with patch.object(model, "set_value", wraps=model.set_value) as set_value:
-            widget.set_numeric_expression_value(model, "2*100")
-
-        # Assert
-        set_value.assert_called_once_with(200.0)
-        self.assertEqual(model.last_value, 200.0)
-
-    async def test_repeated_arrow_steps_do_not_propagate_float_rounding_errors(self):
-        # Arrange
-        model = _MockModel(value=0.0)
-        widget = _MockDrag(model=model, step=0.1)
-
-        # Act
-        for _ in range(84):
-            widget.step_keyboard_value(model, int(carb.input.KeyboardInput.UP))
-
-        # Assert
-        self.assertEqual(model.last_value, 8.4)
-
-    async def test_arrow_step_snaps_existing_float_noise_to_step_grid(self):
-        # Arrange
-        model = _MockModel(value=8.399999999999988)
-        widget = _MockDrag(model=model, step=0.1)
-
-        # Act
-        widget.step_keyboard_value(model, int(carb.input.KeyboardInput.UP))
-
-        # Assert
-        self.assertEqual(model.last_value, 8.5)
-
-    async def test_arrow_step_handles_large_decimal_values(self):
-        # Arrange
-        value = Decimal("1e100")
-
-        # Act
-        result = _MockDrag._calculate_keyboard_step_value(value, 0.1, 1)
-
-        # Assert
-        self.assertEqual(result, 1e100)
-
-    async def test_arrow_step_preserves_value_precision_when_not_float_noise(self):
-        # Arrange
-        model = _MockModel(value=0.015)
-        widget = _MockDrag(model=model, step=0.1)
-
-        # Act
-        widget.step_keyboard_value(model, int(carb.input.KeyboardInput.UP))
-
-        # Assert
-        self.assertEqual(model.last_value, 0.115)
 
     async def test_drag_int_normalizes_fractional_hard_max_with_floor(self):
         # Arrange
@@ -723,13 +285,13 @@ class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
         self.assertIsInstance(result, int)
         self.assertEqual(result, 3)
 
-    async def test_drag_int_rejects_fractional_value_without_truncating(self):
+    async def test_drag_int_rejects_fractional_number_without_truncating(self):
         # Arrange
         model = _MockModel(value=5)
         _MockIntDrag(model=model)
 
         # Act
-        model.apply("3/2")
+        model.apply(1.5)
 
         # Assert
         self.assertEqual(model.last_value, 5)
@@ -779,18 +341,47 @@ class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(model.last_value, 3.0)
 
-    async def test_float_drag_accepts_integer_text(self):
+    async def test_float_drag_ignores_integer_string_values(self):
         # Arrange
-        model = _MockModel()
+        model = _MockModel(value=3.0)
         _MockFloatDrag(model=model, hard_min_value=0.0, hard_max_value=100.0)
 
         # Act
         model.apply("12")
 
         # Assert
-        self.assertEqual(model.last_value, 12.0)
+        self.assertEqual(model.last_value, 3.0)
 
-    async def test_float_drag_ignores_incomplete_expression(self):
+    async def test_float_drag_ignores_math_expression_string_values(self):
+        # Arrange
+        model = _MockModel(value=3.0)
+        _MockFloatDrag(model=model, hard_min_value=0.0, hard_max_value=100.0)
+
+        # Act
+        model.apply("2*100")
+
+        # Assert
+        self.assertEqual(model.last_value, 3.0)
+
+    async def test_drag_widget_does_not_expose_numeric_controller_api(self):
+        # Arrange
+        model = _MockModel(value=3.0)
+
+        # Act
+        widget = _MockFloatDrag(model=model)
+
+        # Assert
+        for api_name in (
+            "begin_deferred_numeric_undo_group",
+            "begin_numeric_text_edit",
+            "has_numeric_text_edit_handoff_press",
+            "set_numeric_edit_widgets",
+            "set_numeric_expression_value",
+        ):
+            with self.subTest(api_name=api_name):
+                self.assertFalse(hasattr(widget, api_name))
+
+    async def test_float_drag_ignores_incomplete_math_expression(self):
         # Arrange
         model = _MockModel(value=3.0)
         _MockFloatDrag(model=model, hard_min_value=0.0, hard_max_value=100.0)
@@ -829,7 +420,7 @@ class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
                 # Assert
                 self.assertEqual(model.last_value, 3.0)
 
-    async def test_float_drag_ignores_complete_invalid_expression(self):
+    async def test_float_drag_ignores_complete_invalid_string_values(self):
         # Arrange
         invalid_expressions = ("1/0", "2**10", "1e999", "2*/3")
 
@@ -853,17 +444,6 @@ class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(model.last_value, 3.0)
-
-    async def test_arrow_step_falls_back_when_expression_overflows_float(self):
-        # Arrange
-        model = _MockModel(value=1.0, string_value="9" * 400)
-        widget = _MockFloatDrag(model=model, step=0.1)
-
-        # Act
-        widget.step_keyboard_value(model, int(carb.input.KeyboardInput.UP))
-
-        # Assert
-        self.assertEqual(model.last_value, 1.1)
 
     async def test_drag_starts_batch_edit_before_setting_value(self):
         # Arrange
@@ -892,66 +472,6 @@ class TestBoundedNumericDragBase(omni.kit.test.AsyncTestCase):
         self.assertEqual(model.begin_count, 1)
         self.assertTrue(model.is_batch_editing)
         self.assertEqual(model.last_value, 5.0)
-
-    async def test_clean_click_arms_numeric_text_edit_when_double_click_callback_is_missed(self):
-        # Arrange
-        model = _BatchModel()
-        widget = _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
-        controller = _NumericEditControllerStub()
-        widget.set_numeric_edit_controller_for_test(controller)
-        widget.emit_mouse_pressed(button=0)
-
-        # Act
-        widget.emit_mouse_released(button=0)
-
-        # Assert
-        self.assertEqual(controller.arm_count, 1)
-        self.assertEqual(controller.focus_calls, [])
-        self.assertFalse(model.is_batch_editing)
-
-    async def test_ctrl_click_immediately_focuses_numeric_text_edit(self):
-        # Arrange
-        model = _BatchModel()
-        widget = _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
-        controller = _NumericEditControllerStub()
-        widget.set_numeric_edit_controller_for_test(controller)
-        widget.emit_mouse_pressed(button=0, modifier=carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
-
-        # Act
-        widget.emit_mouse_released(button=0, modifier=carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
-
-        # Assert
-        self.assertEqual(controller.arm_count, 0)
-        self.assertEqual(controller.disarm_count, 1)
-        self.assertEqual(
-            controller.focus_calls,
-            [
-                {
-                    "clear_value": False,
-                    "from_tab_transfer": False,
-                    "begin_undo_group": True,
-                    "ignore_mouse_down_events": 1,
-                }
-            ],
-        )
-        self.assertFalse(model.is_batch_editing)
-
-    async def test_drag_release_does_not_arm_numeric_text_edit_after_value_change(self):
-        # Arrange
-        model = _BatchModel()
-        widget = _MockDrag(model=model, hard_min_value=0.0, hard_max_value=10.0)
-        controller = _NumericEditControllerStub()
-        widget.set_numeric_edit_controller_for_test(controller)
-        widget.emit_mouse_pressed(button=0)
-        model.apply(5.0)
-
-        # Act
-        widget.emit_mouse_released(button=0)
-
-        # Assert
-        self.assertEqual(controller.arm_count, 0)
-        self.assertEqual(controller.focus_calls, [])
-        self.assertFalse(model.is_batch_editing)
 
     async def test_mouse_release_ends_active_batch_edit(self):
         # Arrange

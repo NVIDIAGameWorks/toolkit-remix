@@ -16,7 +16,6 @@
 """
 
 from .e2e.test_file_picker import TestFilePicker
-from .e2e.test_drag_field import TestDragField
 from .e2e.test_hover_helper import TestHoverHelper
 from .unit.test_color_gradient_widget import TestColorGradientWidget
 from .unit.test_gradient import TestGradientUtils
@@ -36,7 +35,6 @@ __all__ = [
     "TestAlternatingRowWidget",
     "TestBoundedNumericDragBase",
     "TestColorGradientWidget",
-    "TestDragField",
     "TestFilePicker",
     "TestGradientUtils",
     "TestHoverHelper",

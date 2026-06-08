@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.13.1]
+### Changed
+- Removed object properties E2E coverage for the retired drag numeric edit controller and expression overlay
+
 ## [2.13.0]
 ### Added
 - Added optional layer-transfer callback forwarding for generic USD property menus.
