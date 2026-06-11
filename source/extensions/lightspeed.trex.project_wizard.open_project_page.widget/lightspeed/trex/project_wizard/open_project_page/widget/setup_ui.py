@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from functools import partial
 from pathlib import Path
 from collections.abc import Callable
 
@@ -23,8 +24,10 @@ from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWiz
 from lightspeed.trex.project_wizard.core import ProjectWizardSchema as _ProjectWizardSchema
 from lightspeed.trex.project_wizard.setup_page.widget import SetupPage as _SetupPage
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
+from lightspeed.trex.utils.widget import show_invalid_deps_rebuild_dialog as _show_invalid_deps_rebuild_dialog
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common.symlink import should_confirm_link_path_replacement as _should_confirm_link_path_replacement
 from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_picker
 from omni.flux.wizard.widget import WizardPage as _WizardPage
 
@@ -68,15 +71,35 @@ class WizardOpenProjectPage(_WizardPage):
         )
 
     def _on_file_selected(self, project_path):
-        self.payload = {_ProjectWizardKeys.PROJECT_FILE.value: Path(project_path)}
+        project_path = Path(project_path)
+        invalid_deps_directory = self._get_invalid_deps_directory(project_path)
+        if invalid_deps_directory is not None:
+            _show_invalid_deps_rebuild_dialog(
+                invalid_deps_directory, partial(self._complete_file_selection, project_path)
+            )
+            return
+
+        self._complete_file_selection(project_path)
+
+    def _complete_file_selection(self, project_path: Path):
+        self.payload = {_ProjectWizardKeys.PROJECT_FILE.value: project_path}
         # Only update the payload if we're completing the wizard process
         if self.next_page is None:
             self.payload = {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
         self._on_file_picker_closed()
 
         self._setup_page.open_or_create = True
-        self._setup_page.project_path = project_path
+        self._setup_page.project_path = str(project_path)
         self.request_next()
+
+    @staticmethod
+    def _get_invalid_deps_directory(project_path: Path) -> Path | None:
+        deps_directory = project_path.parent / _constants.REMIX_DEPENDENCIES_FOLDER
+        if _ProjectWizardSchema.is_deps_directory_valid(deps_directory):
+            return None
+        if _should_confirm_link_path_replacement(deps_directory):
+            return deps_directory
+        return None
 
     def _validate_path(self, dirname, filename):
         is_valid = True

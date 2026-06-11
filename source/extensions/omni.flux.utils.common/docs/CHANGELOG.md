@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.14.2]
+### Changed
+- Added an opt-in `create_folder_symlinks()` path replacement mode for validated link recreation.
+- Added a shared link-path replacement confirmation check for safe prompt gating before replacement.
+- Added junction-aware replacement so Windows junction links are removed without traversing their targets.
+
 ## [3.14.1]
 ### Added
 - Added latest-progress worker helpers for long-running UI tasks.

@@ -15,11 +15,6 @@
 * limitations under the License.
 """
 
-from .e2e.test_home_widget import TestHomeWidgetInvalidDepsFlow
-from .unit.test_home_widget import TestLoadWorkFile, TestRefreshRecentItemsDeferred
+from .test_setup_ui import TestWizardOpenProjectPage
 
-__all__ = [
-    "TestHomeWidgetInvalidDepsFlow",
-    "TestLoadWorkFile",
-    "TestRefreshRecentItemsDeferred",
-]
+__all__ = ["TestWizardOpenProjectPage"]

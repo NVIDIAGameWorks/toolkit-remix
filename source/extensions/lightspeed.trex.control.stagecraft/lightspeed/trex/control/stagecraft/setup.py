@@ -52,8 +52,10 @@ from lightspeed.trex.project_wizard.window import get_instance as _get_wizard_in
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSetup
 from lightspeed.trex.stage.core.shared import Setup as _StageCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
+from lightspeed.trex.utils.widget import show_invalid_deps_rebuild_dialog as _show_invalid_deps_rebuild_dialog
 from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.symlink import should_confirm_link_path_replacement as _should_confirm_link_path_replacement
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
 
 _TREX_IGNORE_UNSAVED_STAGE_ON_EXIT = "/app/file/trexIgnoreUnsavedOnExit"
@@ -292,12 +294,20 @@ class Setup:
         return self.prompt_if_unsaved_project(lambda: self.__open_stage_and_load_layout(path), "changing project")
 
     def __open_stage_and_load_layout(self, path):
+        project_path = Path(path)
         if not _ProjectWizardSchema.is_project_file_valid(
-            Path(path), {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
-        ) or not _ProjectWizardSchema.are_project_symlinks_valid(Path(path)):
-            wizard = _get_wizard_instance(_WizardTypes.OPEN, self._context_name)
-            wizard.set_payload({_ProjectWizardKeys.PROJECT_FILE.value: Path(path)})
-            wizard.show_project_wizard(reset_page=True)
+            project_path, {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
+        ):
+            self.__show_project_open_wizard(project_path)
+            return
+        deps_directory = project_path.parent / _REMIX_DEPENDENCIES_FOLDER
+        if not _ProjectWizardSchema.is_deps_directory_valid(deps_directory) and _should_confirm_link_path_replacement(
+            deps_directory
+        ):
+            _show_invalid_deps_rebuild_dialog(deps_directory, partial(self.__show_project_open_wizard, project_path))
+            return
+        if not _ProjectWizardSchema.are_project_symlinks_valid(project_path):
+            self.__show_project_open_wizard(project_path)
             return
         self.__set_stage_open_lighting_undo_disabled(True)
         omni.kit.window.file.open_stage(path)
@@ -377,12 +387,29 @@ class Setup:
         capture_layer = self._layer_manager.get_layer_of_type(_LayerType.capture)
         if not project_layer or capture_layer:
             return
+        if not project_layer.realPath:
+            return
         project_path = Path(project_layer.realPath)
-        deps_directory = (project_path.parent / _REMIX_DEPENDENCIES_FOLDER).resolve()
+        deps_directory = project_path.parent / _REMIX_DEPENDENCIES_FOLDER
+        deps_directory_invalid = not _ProjectWizardSchema.is_deps_directory_valid(deps_directory)
+        if deps_directory_invalid and _should_confirm_link_path_replacement(deps_directory):
+            _show_invalid_deps_rebuild_dialog(deps_directory, partial(self.__show_capture_repair_wizard, project_path))
+            return
+        if deps_directory_invalid:
+            self.__show_capture_repair_wizard(project_path)
+            return
+        self.__show_capture_repair_wizard(project_path, deps_directory.resolve())
+
+    def __show_project_open_wizard(self, project_path: Path):
+        wizard = _get_wizard_instance(_WizardTypes.OPEN, self._context_name)
+        wizard.set_payload({_ProjectWizardKeys.PROJECT_FILE.value: project_path})
+        wizard.show_project_wizard(reset_page=True)
+
+    def __show_capture_repair_wizard(self, project_path: Path, remix_directory: Path | None = None):
         wizard = _get_wizard_instance(_WizardTypes.OPEN, self._context_name)
         payload = {_ProjectWizardKeys.PROJECT_FILE.value: project_path}
-        if deps_directory.exists():
-            payload[_ProjectWizardKeys.REMIX_DIRECTORY.value] = deps_directory
+        if remix_directory:
+            payload[_ProjectWizardKeys.REMIX_DIRECTORY.value] = remix_directory
         wizard.set_payload(payload)
         wizard.show_capture_picker = True
         self._sub_wizard_completed = wizard.subscribe_wizard_completed(self._on_capture_repair_completed)

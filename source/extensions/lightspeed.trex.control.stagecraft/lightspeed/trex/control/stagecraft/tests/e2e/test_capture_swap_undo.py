@@ -24,6 +24,8 @@ import carb.input
 import omni.kit.undo
 import omni.ui as ui
 import omni.usd
+from lightspeed.common.constants import REMIX_DEPENDENCIES_FOLDER as _REMIX_DEPENDENCIES_FOLDER
+from lightspeed.common.constants import REMIX_FOLDER as _REMIX_FOLDER
 from lightspeed.common.constants import GlobalEventNames
 from lightspeed.common.constants import WindowNames as _WindowNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
@@ -32,6 +34,7 @@ from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.contexts.extension import get_instance as _get_context_manager
 from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from lightspeed.trex.viewports.shared.widget import get_instance as _get_viewport_instance
+from omni.flux.utils.common.symlink import create_folder_symlinks as _create_folder_symlinks
 from omni.flux.utils.tests.context_managers import open_test_project
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
@@ -68,6 +71,10 @@ class TestCaptureSwapUndo(AsyncTestCase):
         ) as temp_project_url:
             await self._close_open_stage()
             temp_project = Path(temp_project_url.path)
+            deps_path = temp_project.parent / _REMIX_DEPENDENCIES_FOLDER
+            remix_path = temp_project.parent / _REMIX_FOLDER
+            shutil.move(deps_path, remix_path)
+            _create_folder_symlinks([(deps_path, remix_path)], create_junction=True)
 
             captures_dir = temp_project.parent / "deps" / "captures"
             original_capture_path = captures_dir / "capture.usda"
