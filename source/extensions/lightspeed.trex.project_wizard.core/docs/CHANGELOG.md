@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.3]
+### Fixed
+- Let project symlink repair replace empty invalid `deps` directories through the shared symlink helper and report symlink rebuild failures.
+- Fixed project symlink validation and repair to reject copied `deps` directories and replace invalid `deps` paths before creating the RTX Remix link.
+
 ## [2.1.2]
 ### Changed
 - Route project open/edit RTX IO probing and extraction through the shared RTX IO core.

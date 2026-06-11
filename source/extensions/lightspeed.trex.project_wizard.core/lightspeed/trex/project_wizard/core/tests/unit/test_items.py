@@ -118,6 +118,22 @@ class TestItems(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(False, value)
 
+    async def test_schema_are_project_symlinks_valid_copied_deps_directory_returns_false(self):
+        # Arrange
+        project_dir = Path(self.temp_dir.name) / "projects" / "My Project"
+        deps_mod_dir = project_dir / constants.REMIX_DEPENDENCIES_FOLDER / constants.REMIX_MODS_FOLDER / "My Project"
+        project_file = project_dir / "My Project.usda"
+
+        os.makedirs(deps_mod_dir, exist_ok=True)
+        with open(project_file, "xb"):
+            pass
+
+        # Act
+        value = ProjectWizardSchema.are_project_symlinks_valid(project_file)
+
+        # Assert
+        self.assertEqual(False, value)
+
     async def test_schema_are_project_symlinks_valid_accepted_returns_true(self):
         # Arrange
         project_dir = Path(self.temp_dir.name) / "projects" / "My Project"

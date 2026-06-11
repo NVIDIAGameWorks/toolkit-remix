@@ -21,6 +21,7 @@ import asyncio
 import stat
 from pathlib import Path
 from shutil import copytree
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 
@@ -294,7 +295,7 @@ class ProjectWizardCore:
     def need_deps_directory_symlink(self, model):
         project_directory = model.project_file.parent
         deps_directory = project_directory / _constants.REMIX_DEPENDENCIES_FOLDER
-        return not _get_path_or_symlink(deps_directory)
+        return not _ProjectWizardSchema.is_deps_directory_valid(deps_directory)
 
     def need_project_directory_symlink(self, model):
         remix_directory = model.remix_directory
@@ -370,15 +371,18 @@ class ProjectWizardCore:
         elif remix_project_directory.resolve() != project_directory.resolve():
             # Don't allow creating a new project with the same name as an existing project.
             # If OPENING a project from the rtx-remix dir it will have the same path.
-            if symlink_directories:
-                _create_folder_symlinks(symlink_directories, create_junction=create_junction)
             return (
                 f"A project with the same name already exists in the '{_constants.REMIX_FOLDER}' directory: "
                 f"'{remix_project_directory}'"
             )
 
         if symlink_directories:
-            _create_folder_symlinks(symlink_directories, create_junction=create_junction)
+            try:
+                _create_folder_symlinks(
+                    symlink_directories, create_junction=create_junction, replace_existing_links=True
+                )
+            except (OSError, CalledProcessError) as error:
+                return f"Unable to rebuild invalid '{_constants.REMIX_DEPENDENCIES_FOLDER}' directory: {error}"
 
         return None
 
@@ -536,7 +540,7 @@ class ProjectWizardCore:
         timeout = 5  # seconds
         start_time = asyncio.get_event_loop().time()
         while True:
-            validated_deps_symlink = _get_path_or_symlink(deps_directory)
+            validated_deps_symlink = _ProjectWizardSchema.is_deps_directory_valid(deps_directory)
             if validated_deps_symlink:
                 return
             if (asyncio.get_event_loop().time() - start_time) > timeout:

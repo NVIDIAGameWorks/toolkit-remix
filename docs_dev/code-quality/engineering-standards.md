@@ -26,16 +26,20 @@ Never do these:
 | Add a feature flag or code path bypass to avoid fixing broken behavior        | You now maintain two code paths; the broken one never gets fixed                        |
 | Leave dead code, legacy fallbacks, or half-completed migrations               | Future readers can't tell what's intentional; creates confusion and drift               |
 | Write 200+ line functions                                                     | No single function should need that much explanation — split it                         |
-| Use `hasattr`/`getattr` to probe for attributes on your own typed objects     | Means the type hierarchy is wrong — fix the types, don't guess at runtime               |
+| Use `getattr` for attribute access                                           | Hides the contract and moves errors to runtime; use direct access, constants, protocols, or an explicit adapter |
+| Use `hasattr` to probe for attributes on your own typed objects              | Means the type hierarchy is wrong — fix the types, don't guess at runtime               |
 | Suppress lint warnings with `# noqa` instead of fixing the code               | Fix the root cause — rename the variable, restructure the code, or remove the dead code |
 
 ---
 
 ## `hasattr` / `getattr` Policy
 
-**Do not use `hasattr()` or `getattr()` to access attributes on objects whose types you control.** These calls
-are a sign that the type signature is lying — the code claims to accept a base type but actually requires fields
-from a subclass it refuses to name.
+**Do not use `getattr()`.** If a value is required, access it directly so static analysis and review can see the
+contract. If a value is optional, model that contract with a type, protocol, explicit branch, or named constant.
+
+**Do not use `hasattr()` to access attributes on objects whose types you control.** This call is a sign that the
+type signature is lying — the code claims to accept a base type but actually requires fields from a subclass it
+refuses to name.
 
 ### What to do instead
 
@@ -46,7 +50,7 @@ from a subclass it refuses to name.
 | Multiple unrelated classes share an optional capability (e.g., some plugins have a `visible` property, others don't)                                             | Define a `typing.Protocol` (with `@runtime_checkable` if you need runtime checks) and use `isinstance()` instead of `hasattr()`.                                                           |
 | A function operates on a base dataclass but needs fields from a specific subclass                                                                                | Type the parameter as the subclass directly. If the function must remain generic, make the class generic over a `TypeVar` bound to the base (e.g., `C = TypeVar("C", bound=BaseContext)`). |
 | Iterating over `dataclasses.fields()` for generic comparison, serialization, or copy                                                                             | Acceptable — field names are guaranteed to exist by the dataclass definition. This is reflective metaprogramming, not attribute guessing.                                                  |
-| Checking whether an external library exposes an API across versions (e.g., `hasattr(UsdLux, "LightAPI")`)                                                        | Acceptable — you don't control the external type and need version-portable code.                                                                                                           |
+| Checking whether an external library exposes an API across versions (e.g., `hasattr(UsdLux, "LightAPI")`)                                                        | Acceptable only for external APIs. Isolate the version branch and still use direct attribute access inside each branch. Do not use `getattr` fallbacks.                                     |
 
 ### Why this matters
 

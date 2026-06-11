@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.7]
+### Fixed
+- Skip the invalid `deps` rebuild prompt for empty `deps` directories during stage open and missing-capture repair, hide the full `deps` path while offering Reveal in Explorer, and defer confirmed repair by one frame so the Project Wizard is centered.
+- Fixed missing-capture project repair to avoid preselecting a plain `deps` directory as RTX Remix.
+
 ## [1.7.6]
 ### Fixed
 - REMIX-5483: Fix stage-open crash from lingering lighting-undo events firing after their handler is torn down.

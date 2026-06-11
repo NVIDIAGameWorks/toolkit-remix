@@ -21,6 +21,7 @@ from .asset_validation import (
     open_replacement_asset_file_picker,
 )
 from .categories_dialog.categories_dialog import RemixCategoriesDialog
+from .invalid_deps_dialog import show_invalid_deps_rebuild_dialog
 from .message_dialog import TrexMessageDialog
 from .workspace import WorkspaceWidget, WorkspaceWindowBase
 
@@ -32,4 +33,5 @@ __all__ = [
     "accept_asset_if_valid_for_replacement",
     "open_asset_file_picker",
     "open_replacement_asset_file_picker",
+    "show_invalid_deps_rebuild_dialog",
 ]

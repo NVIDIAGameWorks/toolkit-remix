@@ -15,13 +15,18 @@
 * limitations under the License.
 """
 
+import os
 import subprocess
 import sys
 from pathlib import Path
+from shutil import rmtree
 
 from .uac import UnsupportedPlatformError as _UnsupportedPlatformError
 from .uac import is_admin as _is_admin
 from .uac import sudo as _sudo
+
+_FILE_ATTRIBUTE_REPARSE_POINT = 0x400
+_FILE_ATTRIBUTE_DIRECTORY = 0x10
 
 
 def is_broken_symlink(path_obj: Path) -> bool:
@@ -29,8 +34,8 @@ def is_broken_symlink(path_obj: Path) -> bool:
     if not path_obj.is_symlink():
         raise ValueError(f"Path '{path_obj}' is not a symlink")
 
-    # Check if the symlink is broken by checking if the symlink exists and the target does not
     try:
+        # Path.exists() follows the link, so a false value here means the target is gone.
         if path_obj.readlink() and not path_obj.exists():
             return True
     except OSError:
@@ -55,7 +60,55 @@ def get_path_or_symlink(path_obj: Path) -> Path | None:
     return None
 
 
-def create_folder_symlinks(links_targets: list[tuple[str, str]], create_junction: bool = False):
+def _link_points_to_target(link_obj: Path, target_obj: Path) -> bool:
+    """Return whether an existing link resolves to the requested target."""
+    try:
+        return link_obj.resolve() == target_obj.resolve()
+    except OSError:
+        return False
+
+
+def _is_windows_junction(path_obj: Path) -> bool:
+    """Return whether a path is a Windows directory reparse point such as a junction."""
+    if sys.platform != "win32":
+        return False
+    try:
+        # Use lstat so Windows reparse points are classified without following them to their targets.
+        attributes = os.lstat(path_obj).st_file_attributes
+    except (AttributeError, OSError):
+        return False
+    return bool(attributes & _FILE_ATTRIBUTE_REPARSE_POINT and attributes & _FILE_ATTRIBUTE_DIRECTORY)
+
+
+def should_confirm_link_path_replacement(link: str | Path) -> bool:
+    """
+    Return whether replacing a link path should be confirmed with the user first.
+
+    This is the conservative consent check paired with ``create_folder_symlinks(..., replace_existing_links=True)``.
+    Empty regular directories can be replaced silently because there is no content to lose; files, symlinks, junctions,
+    non-empty directories, and paths that cannot be inspected should be confirmed before replacement.
+    """
+    link_obj = Path(link)
+    if link_obj.is_symlink() or _is_windows_junction(link_obj):
+        return True
+    if not link_obj.exists():
+        return False
+    if link_obj.is_file() or not link_obj.is_dir():
+        return True
+    try:
+        next(link_obj.iterdir())
+    except StopIteration:
+        return False
+    except OSError:
+        return True
+    return True
+
+
+def create_folder_symlinks(
+    links_targets: list[tuple[str | Path, str | Path]],
+    create_junction: bool = False,
+    replace_existing_links: bool = False,
+):
     """
     Create symlink(s). If create_junction is False and the user doesn't have the permission to create symlink(s),
     it will prompt the Windows UAC for Windows user.
@@ -63,19 +116,44 @@ def create_folder_symlinks(links_targets: list[tuple[str, str]], create_junction
     Args:
         links_targets: list of links and targets folders to use
         create_junction: for Windows, create a junction instead
+        replace_existing_links: remove existing files, directories, junctions, or symlinks at link paths before creating
+            links. This deletes regular directories recursively and should only be used after the caller validates the
+            link paths are safe to replace.
     """
 
-    # Unlink broken symlinks
-    for link, _ in links_targets:
+    pending_links_targets = []
+    for link, target in links_targets:
         link_obj = Path(link)
-        if not link_obj.exists() and not link_obj.is_symlink():
+        target_obj = Path(target)
+        link_is_junction = _is_windows_junction(link_obj)
+        if not link_obj.exists() and not link_obj.is_symlink() and not link_is_junction:
+            pending_links_targets.append((link, target))
             continue
-        if is_broken_symlink(link_obj):
+        if replace_existing_links:
+            # Callers use this only after proving the path is an invalid dependency link that can be replaced.
+            if link_is_junction:
+                link_obj.rmdir()
+            elif link_obj.is_symlink() or link_obj.is_file():
+                link_obj.unlink()
+            else:
+                rmtree(link_obj)
+            pending_links_targets.append((link, target))
+            continue
+        if link_obj.is_symlink() and is_broken_symlink(link_obj):
+            # A broken symlink blocks mklink/ln even though Path.exists() reports false.
             link_obj.unlink()
+            pending_links_targets.append((link, target))
+            continue
+        if (link_obj.is_symlink() or link_is_junction) and _link_points_to_target(link_obj, target_obj):
+            continue
+        pending_links_targets.append((link, target))
+
+    if not pending_links_targets:
+        return
 
     def _generate_cmd(symlink_cmd, symlink_type, reverse: bool = False):
         _cmd = []
-        for i, (link, target) in enumerate(links_targets):
+        for i, (link, target) in enumerate(pending_links_targets):
             if i != 0:
                 _cmd.append("&&")
             if reverse:
@@ -97,6 +175,7 @@ def create_folder_symlinks(links_targets: list[tuple[str, str]], create_junction
                 cmd.extend(_generate_cmd("mklink", "/d"))
                 _sudo("cmd", params=cmd)
         case "linux":
+            # Windows mklink takes link then target; ln -s takes target then link.
             cmd = _generate_cmd("ln", "-s", reverse=True)
             subprocess.check_call(" ".join(cmd), shell=True)
         case _:

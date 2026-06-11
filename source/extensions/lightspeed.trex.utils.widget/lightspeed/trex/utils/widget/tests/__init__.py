@@ -15,11 +15,6 @@
 * limitations under the License.
 """
 
-from .e2e.test_home_widget import TestHomeWidgetInvalidDepsFlow
-from .unit.test_home_widget import TestLoadWorkFile, TestRefreshRecentItemsDeferred
+from .e2e.test_invalid_deps_dialog import TestInvalidDepsDialog
 
-__all__ = [
-    "TestHomeWidgetInvalidDepsFlow",
-    "TestLoadWorkFile",
-    "TestRefreshRecentItemsDeferred",
-]
+__all__ = ["TestInvalidDepsDialog"]

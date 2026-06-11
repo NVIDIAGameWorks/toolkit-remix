@@ -10,4 +10,5 @@ symptom.
   or extension manager.
 - Do not use sleeps to paper over broken async or data flow.
 - Keep components single-purpose.
-- Avoid `hasattr()` / `getattr()` on types you control; narrow the type or define a protocol.
+- Do not use `getattr()`; use direct access, named constants, protocols, or explicit adapter/version branches.
+- Avoid `hasattr()` on types you control; narrow the type or define a protocol.

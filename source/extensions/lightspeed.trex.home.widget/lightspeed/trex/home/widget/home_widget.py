@@ -37,12 +37,14 @@ from lightspeed.trex.recent_projects.core import RecentProjectsCore as _RecentPr
 from lightspeed.trex.utils.common.dialog_utils import delete_dialogs as _delete_dialogs
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
+from lightspeed.trex.utils.widget import show_invalid_deps_rebuild_dialog as _show_invalid_deps_rebuild_dialog
 from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni import ui
 from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.utils.common import reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.common.path_utils import open_file_using_os_default
+from omni.flux.utils.common.symlink import should_confirm_link_path_replacement as _should_confirm_link_path_replacement
 from omni.flux.utils.common.version import get_app_version
 from omni.flux.utils.widget.file_pickers import destroy_file_picker as _destroy_file_picker
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
@@ -512,7 +514,20 @@ class HomePageWidget(_WorkspaceWidget):
         except ValueError:
             self._show_missing_metadata_dialog(path)
             return
-        if not valid or not _ProjectWizardSchema.are_project_symlinks_valid(path_obj):
+        if not valid:
+            self._invoke_mod_setup_wizard(_WizardTypes.OPEN, path)
+            return
+
+        deps_directory = path_obj.parent / constants.REMIX_DEPENDENCIES_FOLDER
+        if not _ProjectWizardSchema.is_deps_directory_valid(deps_directory) and _should_confirm_link_path_replacement(
+            deps_directory
+        ):
+            _show_invalid_deps_rebuild_dialog(
+                deps_directory, partial(self._invoke_mod_setup_wizard, _WizardTypes.OPEN, path)
+            )
+            return
+
+        if not _ProjectWizardSchema.are_project_symlinks_valid(path_obj):
             self._invoke_mod_setup_wizard(_WizardTypes.OPEN, path)
             return
 

@@ -20,7 +20,8 @@ import stat
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, call
+from subprocess import CalledProcessError
+from unittest.mock import Mock, call, patch
 
 import omni.usd
 from lightspeed.common import constants
@@ -344,12 +345,14 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             remix_directory=remix_dir,
         )
 
-        with WizardMockContext() as mock:
+        with (
+            WizardMockContext() as mock,
+            patch("lightspeed.trex.project_wizard.core.wizard._create_folder_symlinks") as create_symlinks_mock,
+        ):
             # 1. remix_directory / _constants.REMIX_MODS_FOLDER
-            # 2. project_directory / _constants.REMIX_DEPENDENCIES_FOLDER
-            # 3. remix_project_directory = remix_mods_directory / model.project_file.parent.stem
-            # 4. link.exists() - check before creating symlink
-            mock.path_exists_mock.side_effect = [True, False, True, False]
+            # 2. remix_project_directory = remix_mods_directory / model.project_file.parent.stem
+            mock.path_exists_mock.side_effect = [True, True]
+            mock.schema_mock.is_deps_directory_valid.return_value = False
 
             # Act
             value = await self.core._create_symlinks(
@@ -357,11 +360,111 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             )
 
         # Assert
-        self.assertEqual(4, mock.path_exists_mock.call_count)
-        self.assertEqual(1, mock.check_call_mock.call_count)
-
         self.assertEqual(None, value)
-        self.assertEqual(call(f'mklink /J "{deps_dir}" "{remix_dir}"', shell=True), mock.check_call_mock.call_args)
+        self.assertEqual(2, mock.path_exists_mock.call_count)
+        self.assertEqual(1, create_symlinks_mock.call_count)
+        self.assertEqual([(deps_dir, remix_dir)], create_symlinks_mock.call_args.args[0])
+        self.assertEqual(
+            {"create_junction": True, "replace_existing_links": True}, create_symlinks_mock.call_args.kwargs
+        )
+
+    async def test_create_symlinks_copied_deps_directory_should_delete_and_symlink(self):
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "project.usda"
+        project_dir = project_file.parent
+        deps_dir = project_dir / constants.REMIX_DEPENDENCIES_FOLDER
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
+
+        deps_dir.mkdir(parents=True)
+        (deps_dir / "stale.txt").write_text("copied deps")
+        remix_dir.mkdir()
+
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=remix_dir,
+        )
+
+        with (
+            patch("sys.platform", "win32"),
+            patch("subprocess.check_call") as check_call_mock,
+        ):
+            # Act
+            value = await self.core._create_symlinks(
+                schema, project_dir, deps_dir, remix_dir, False, create_junction=True
+            )
+
+        # Assert
+        self.assertIsNone(value)
+        self.assertFalse(deps_dir.exists())
+        self.assertEqual(
+            call(
+                f'mklink /J "{deps_dir}" "{remix_dir}" && '
+                f'mklink /J "{remix_dir / constants.REMIX_MODS_FOLDER / project_dir.stem}" "{project_dir}"',
+                shell=True,
+            ),
+            check_call_mock.call_args,
+        )
+
+    async def test_create_symlinks_when_create_folder_symlinks_fails_should_return_rebuild_error(self):
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "project.usda"
+        project_dir = project_file.parent
+        deps_dir = project_dir / constants.REMIX_DEPENDENCIES_FOLDER
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
+        project_dir.mkdir(parents=True)
+        remix_dir.mkdir()
+
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=remix_dir,
+        )
+
+        with patch(
+            "lightspeed.trex.project_wizard.core.wizard._create_folder_symlinks",
+            side_effect=CalledProcessError(1, "mklink"),
+        ) as create_symlinks_mock:
+            # Act
+            value = await self.core._create_symlinks(
+                schema, project_dir, deps_dir, remix_dir, False, create_junction=True
+            )
+
+        # Assert
+        self.assertIn("Unable to rebuild invalid 'deps' directory", value)
+        self.assertIn("mklink", value)
+        create_symlinks_mock.assert_called_once()
+
+    async def test_create_symlinks_existing_different_remix_project_should_not_delete_copied_deps(self):
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "project.usda"
+        project_dir = project_file.parent
+        deps_dir = project_dir / constants.REMIX_DEPENDENCIES_FOLDER
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
+        remix_project_dir = remix_dir / constants.REMIX_MODS_FOLDER / project_dir.stem
+        stale_file = deps_dir / "stale.txt"
+
+        deps_dir.mkdir(parents=True)
+        stale_file.write_text("copied deps")
+        remix_project_dir.mkdir(parents=True)
+
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=remix_dir,
+        )
+
+        with patch("lightspeed.trex.project_wizard.core.wizard._create_folder_symlinks") as create_symlinks_mock:
+            # Act
+            value = await self.core._create_symlinks(
+                schema, project_dir, deps_dir, remix_dir, False, create_junction=True
+            )
+
+        # Assert
+        self.assertIn("A project with the same name already exists", value)
+        create_symlinks_mock.assert_not_called()
+        self.assertTrue(deps_dir.exists())
+        self.assertTrue(stale_file.exists())
 
     async def test_create_project_layer_should_create_layer_open_stage_and_return_layer_and_stage(self):
         # Arrange
@@ -807,13 +910,14 @@ class TestWizard(omni.kit.test.AsyncTestCase):
 
         with WizardMockContext() as mock:
             # 1. remix_directory / _constants.REMIX_MODS_FOLDER
-            # 2. project_directory / _constants.REMIX_DEPENDENCIES_FOLDER
-            # 3. remix_project_directory = remix_mods_directory / model.project_file.parent.stem
-            # 4. link.exists() - check before creating symlink
+            # 2. remix_project_directory = remix_mods_directory / model.project_file.parent.stem
+            # 3. link.exists() - check before creating symlink
             if deps_or_remix:
-                mock.path_exists_mock.side_effect = [True, True, False, False]
+                mock.path_exists_mock.side_effect = [True, False, False]
+                mock.schema_mock.is_deps_directory_valid.return_value = True
             else:
                 mock.path_exists_mock.side_effect = [True, False, True, False]
+                mock.schema_mock.is_deps_directory_valid.return_value = False
 
             # Act
             value = await self.core._create_symlinks(
@@ -821,12 +925,19 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             )
 
         # Assert
-        self.assertEqual(4, mock.path_exists_mock.call_count)
+        self.assertEqual(3 if deps_or_remix else 4, mock.path_exists_mock.call_count)
         self.assertEqual(1, mock.check_call_mock.call_count)
 
-        remix_project_dir = remix_dir / constants.REMIX_MODS_FOLDER / project_file_base
+        remix_project_dir = remix_dir / constants.REMIX_MODS_FOLDER / project_file.parent.stem
         self.assertEqual(
-            None if deps_or_remix else f"A project with the same name already exists: '{remix_project_dir}'",
+            (
+                None
+                if deps_or_remix
+                else (
+                    f"A project with the same name already exists in the '{constants.REMIX_FOLDER}' directory: "
+                    f"'{remix_project_dir}'"
+                )
+            ),
             value,
         )
 

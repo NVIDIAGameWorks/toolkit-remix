@@ -1,6 +1,10 @@
 # prepare-mr
 
-Run completion gates, push, create MR/PR. GitHub/GitLab. Ref: `docs_dev/getting-started/git-workflow.md`.
+Prep MR/PR. Run gates, push, create/update MR. Ref: `docs_dev/getting-started/git-workflow.md`.
+
+## Style
+
+Caveman talk: terse, no filler. Keep contracts exact. Lose no facts.
 
 ## Step 0 - Pre-flight
 
@@ -10,15 +14,15 @@ git branch --show-current && git status --short
 
 - On `main` -> run `.agents/commands/create-branch.md`.
 - Dirty -> run `.agents/commands/commit.md`.
-- Target branch: usually `main`; use parent `feature/*` when stacked/scoped. If unclear, ask. Reuse target below.
+- Target branch: usually `main`; stacked/scoped work -> parent `feature/*`. If unclear, ask. Reuse target below.
 
 ## Step 1 - Gates
 
 Run applicable `.agents/rules/completion-gates.md`:
 
-1. Format: `.\format_code.bat`; stage changes.
-2. Lint: `.\lint_code.bat all`; fix/rerun.
-3. Version/changelog: `.agents/commands/bump-exts-changelog.md`, using target branch for diffs.
+1. Format: `.\format_code.bat`; stage fixes.
+2. Lint: `.\lint_code.bat all`; inspect ruff `Found X errors (Y fixed, Z remaining)`.
+3. Version/changelog: `.agents/commands/bump-exts-changelog.md`, diffed against target branch.
 4. Docs: update changed behavior docs.
 5. Tests: ask user before running modified extension tests.
 
@@ -38,19 +42,22 @@ Detect CLI:
 which gh 2>/dev/null && echo "github" || (which glab 2>/dev/null && echo "gitlab" || echo "none")
 ```
 
-- `gh`: `gh pr create --base <target-branch> --title "<title>" --body "<body>"`
+- `gh`: `gh pr create --base <target-branch> --title "<title>" --body "<body>"`.
 - `glab`:
-  - Body source of truth: `.gitlab/merge_request_templates/Default.md`.
-  - Prepend short summary, root changelog entry, modified exts, validation notes.
-  - Include real measured `--coverage` percent for changed ext(s). If coverage run fails on unrelated baseline, keep
-    real percent and state failure.
+  - Body source: `.gitlab/merge_request_templates/Default.md`.
+  - Body before `Please don't delete after this line`: `What`, `Why`, `How`, `Test Coverage`. Small patch -> small body.
+  - `Test Coverage` section above marker: include actual measured percent from real `--coverage` report for modified
+    extension(s). No percent -> not ready. If coverage run fails from unrelated baseline/log issues, keep real percent
+    and state short failure reason.
+  - Below marker: template-owned. Do not edit wording, append notes, or add coverage text. Only toggle checkboxes.
+  - No validation dump. Mention only tests/coverage that help reviewer assess changed behavior. Keep command logs out.
   - Create:
 
     ```bash
     glab mr create --target-branch <target-branch> --title "<title>" --description "<body>" --draft --remove-source-branch=true --squash-before-merge=true
     ```
 
-  - PowerShell MR desc update: write UTF-8 no-BOM file, then:
+  - PowerShell desc update: write UTF-8 no-BOM file, then:
 
     ```bash
     glab api "projects/:fullpath/merge_requests/<iid>" -X PUT -F "description=@<path-to-utf8-no-bom-file>"
