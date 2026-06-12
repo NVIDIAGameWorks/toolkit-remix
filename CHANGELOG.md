@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Created 1.5.2-0 build
+- Added RTX Remix 1.5 final release notes
 - REMIX-5246: Added spotlight cone wireframe visualization for DiskLight and SphereLight when `shaping:cone:angle` is authored, with tunable threshold / subdivisions / outer + inner colors under the viewport Display dropdown ▸ Custom Manipulators ▸ Light Manipulator; the visual cone and intensity-arrow lengths update together based on the display threshold
 - REMIX-5208: Added custom tag filtering and category-level bulk actions to the Stage Manager filter popup
 - Added MIRROR_DRY_RUN switch to github-mirror-sync for validating the filter pipeline without pushing to the staging mirror
@@ -30,14 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored GitHub mirror CI job into its own include with extracted shell scripts, structured error handling, and skip-on-scheduled-pipeline guard
 - Hardened repo-local agent skill wrappers and Claude/Cursor/Codex setup documentation.
 - REMIX-4869: Show an informational dialog when opening a legacy project missing required metadata, directing users to the Open > Edit workflow
-- Update hdremix and omni_core_materials to `ext-52b73a1-main`
 - Update hdremix and omni_core_materials to `ext-3b0f644-main`
 - Made the Windows package build available as a non-blocking manual job in merge request pipelines
 - Allowed the manual Windows package build job to run even when earlier merge request pipeline stages fail
 - REMIX-5216: Updated particle curve editor button placement to use runtime schema display-group metadata
 - Update hdremix to `ext-01d57f6-main`
 - Update hdremix and omni_core_materials to `ext-40aa278-main`
-- Split the manual Windows merge request package build into its own DAG job so it remains runnable when earlier stages fail
 
 ### Removed
 
@@ -46,27 +46,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - REMIX-4286: Hardened AI Tools ComfyUI connection, workflow submission, job output handling, and widget cleanup
-- Fixed GitHub mirror filtering so branch-specific private paths and glob-prefixed entries are checked correctly
-- Fixed GitHub toolkit package downloads to use the GitLab-dispatched version when constructing Packman package names
 - Fixed invalid agent skill YAML descriptions so local skill discovery loads shared wrappers correctly
 - REMIX-4585: Fixed property copy/paste so multichannel transforms and unresolved asset paths (e.g. textures pending ingestion) round-trip to the target prim
 - REMIX-5442: Fixed skinned replacement assets and skeletons with large bind-space scale appearing oversized in the Toolkit viewport while preserving runtime in-game scale.
 - Fixed Codex stop hook completion-gate failures by formatting stop-hook remediation through the agent-specific contract.
-- REMIX-5506: Fix nested referenced light selection - fixed Selection panel and light-property targeting for nested referenced USD lights under mesh replacement hierarchies
-- REMIX-5518: Fixed packaging validation by blocking invalid projects, applying fallback mod-name metadata without saving source layers, validating missing references before mode-specific packaging work, reporting failed exports directly, keeping reference progress accurate, and showing cancellation cleanup clearly.
 - REMIX-5519: Fixed typed light property values such as volumetric radiance scale no longer being capped by soft drag-field maxima
 - Fixed Stage Manager filtering so neutral Search, Additional Filters, and combobox controls skip no-op predicates, Search reuses prepared match state, literal backslash Search terms stay literal, combobox filter tooltips describe each option, and hidden filter display state is preserved during reset and expansion checks
-- REMIX-5518: Fixed packaging missing-reference repairs so external referenced USD layers are cleaned up through mod-layer overrides instead of failing edit-target validation, with atomic reference-replace undo grouping and real flatten-mode e2e regressions for ignore, remove, replace, scan-directory, cancel, save, and completion flows.
-- REMIX-5518: Fixed GitLab test jobs to refresh stale USD asset checkout line endings before build/test steps and conform ingested asset metadata hashes to LF-normalized USD test fixtures.
 - REMIX-5505: Defer property editor USD refreshes - grouped property editor USD refreshes until edit completion while preserving numeric expression and arrow-step updates, and limited property-only Stage Manager resyncs to dirty widgets unless force refresh rules require a rebuild
 - REMIX-5505: Fixed bounded numeric drag editing so Ctrl-click, keyboard tabbing, and arrow stepping only affect the targeted active multi-field row.
 - REMIX-5509: Fixed Stage Manager capture light delete and restore so deleted lights stop contributing in render runtime and restore back to capture intensity
 - REMIX-5483: Fixed stage-open crash by tearing down lingering lighting-undo events after their handler is torn down and guarding `SwitchCaptureCommand` against dispatching `SetLightingMenuModeCommand` when `lighting_mode` is empty or already the default, eliminating the HL2 stage-open GPU crash from the empty-value race.
-- REMIX-5518 / REMIX-5521: Fixed packaging repair, cancellation, and flatten-output flows.
 - REMIX-5483: Gated the HdRemix renderer's Integrate Indirect Illumination Mode dropdown's runtime push on the Override Capture Value checkbox so loaded capture presets are no longer overwritten when the box is unchecked.
 - Fixed bounded numeric drag text edits and drags when Kit skips widget mouse or double-click callbacks, preserving immediate USD typed updates and single undo entries for drags.
 - REMIX-5246: Fixed bounded numeric drag retargeting so Ctrl-clicks, double-clicks, and arrow steps stay on the intended vector row after an active numeric edit.
 - Fixed project-open repair for invalid `deps` directories by prompting before non-empty rebuilds from Stagecraft, the Home recent-projects page, and the Home Open file-picker flow; empty `deps` directories are rebuilt silently, the warning calls out destructive deletion without showing the full path, includes Reveal in Explorer, and defers confirmed wizard repair by one frame.
+
+## [1.5.2-0]
+
+### Added
+
+- Created 1.5.1-0 build
+
+### Changed
+
+- Update hdremix and omni_core_materials to `ext-68edea0-release-v1-5`
+- Update remix_runtime to `remix-1.5.2`
+
+### Fixed
+
+- REMIX-5518: Fixed packaging validation by blocking invalid projects, applying fallback mod-name metadata without saving source layers, validating missing references before mode-specific packaging work, reporting failed exports directly, keeping reference progress accurate, and showing cancellation cleanup clearly.
+- REMIX-5518: Fixed packaging missing-reference repairs so external referenced USD layers are cleaned up through mod-layer overrides instead of failing edit-target validation, with atomic reference-replace undo grouping and real flatten-mode e2e regressions for ignore, remove, replace, scan-directory, cancel, save, and completion flows.
+- REMIX-5518: Fixed GitLab test jobs to refresh stale USD asset checkout line endings before build/test steps and conform ingested asset metadata hashes to LF-normalized USD test fixtures.
+- REMIX-5518 / REMIX-5521: Fixed packaging repair, cancellation, and flatten-output flows.
+- REMIX-5506: Fix nested referenced light selection - fixed Selection panel and light-property targeting for nested referenced USD lights under mesh replacement hierarchies
+
+## [1.5.1-0]
+
+### Added
+
+- Created 1.5.0-0 build
+
+### Changed
+
+- Update hdremix and omni_core_materials to `ext-d82faa7-release-v1-5`
+- Update remix_runtime to `remix-1.5.1`
+
+### Fixed
+
+### Removed
 
 ## [1.5.0-0]
 
@@ -92,6 +119,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated auto-save to default off, prompt before saving, and expose unticked Preferences from the Edit menu again
 - Hardened recent-projects resilience: magic-byte USD validation, per-sublayer path validation, per-item error isolation in the home widget with amber visual cue for failing projects
 - Updated GitHub Actions workflow dependencies to current stable releases.
+- Update hdremix and omni_core_materials to `ext-52b73a1-main`
+- Update remix_runtime to `remix-1.5.0`
 
 ### Fixed
 
