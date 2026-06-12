@@ -20,16 +20,22 @@ build-package-windows:
       - deps.json
       - source/apps
   rules: ## Automatically run packaging job only on merge commit to main or feature branches
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
-      allow_failure: true
-      needs: []
     - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
       when: always
     - if: $CI_COMMIT_REF_NAME =~  "/^feature\/.+/" && $CI_PIPELINE_SOURCE == "push"
       when: always
     - if: $CI_COMMIT_REF_NAME =~ /^release\/\d+\.\d+\.x$/ && $CI_PIPELINE_SOURCE == "push"
       when: always
+
+
+build-package-windows-mr:
+  extends:
+    - build-package-windows
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
 
 
 build-package-linux:
