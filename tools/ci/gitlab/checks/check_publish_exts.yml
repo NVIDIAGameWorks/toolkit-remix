@@ -1,14 +1,17 @@
-.unit_tests_windows:
+check-publish-exts-windows:
+  stage: checks_final
   extends:
     - .defaults
-    - .windows_vault
     - .windows_gpu_agent
+    - .windows_vault
     - .soak_test_rules
   needs: []
   before_script:
     - !reference [ .windows_vault, before_script ]
     - !reference [ .refresh_usd_asset_checkout_windows, before_script ]
     - .\build.bat --rebuild --release
+  script:
+    - .\repo.bat publish_exts --verify
   rules:
     - !reference [.defaults, rules]
     - !reference [.soak_test_rules, rules]

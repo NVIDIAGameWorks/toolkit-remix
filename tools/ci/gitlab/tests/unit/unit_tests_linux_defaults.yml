@@ -9,7 +9,6 @@
     - !reference [ .linux_vault, before_script ]
     - !reference [ .refresh_usd_asset_checkout_linux, before_script ]
     - ./build.sh --rebuild --release
-    - ./repo.sh publish_exts --verify
   rules:
     - !reference [.defaults, rules]
     - !reference [.soak_test_rules, rules]

@@ -27,6 +27,7 @@ include:
   - local: tools/ci/gitlab/checks/check_changelog.yml
   - local: tools/ci/gitlab/checks/check_forbidden_words.yml
   - local: tools/ci/gitlab/checks/check_test_location.yml
+  - local: tools/ci/gitlab/checks/check_publish_exts.yml
   - local: tools/ci/gitlab/checks/check_format.yml
   - local: tools/ci/gitlab/checks/check_lint.yml
   # Unit tests
