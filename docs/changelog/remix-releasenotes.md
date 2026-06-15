@@ -1,5 +1,97 @@
 # Release Notes
 
+## RTX Remix Release 1.5 Notes (June 16, 2026)
+
+We recently introduced Remix Skills, text-based context files that transform AI agents into intelligent collaborators. By lowering the barrier to entry, these agents are already helping the community add features and make previously unsupported titles compatible with RTX Remix. With today's RTX Remix 1.5 update, we are significantly increasing the performance and compatibility for both the Remix Runtime and Toolkit, so you and your coding agents can accelerate the modding pipeline.
+
+![Remix 1.5 Hero](../data/images/remix-1.5-hero.png)
+
+RTX Remix 1.5 is headlined by a suite of Toolkit features designed to streamline packaging and Runtime improvements that bolster path-tracing stability. From automatic geometry smoothing to massive scene optimization, version 1.5 empowers modders to tackle larger, more complex projects with greater efficiency.
+
+**With these new tools, modders and their coding agents can:**
+
+* **Reduce Packaging Size:** Utilize RT IO high-performance storage technology.
+* **Customize Viewport Lights:** Setup and control light manipulators easier.
+* **Accelerate Geometry Remastering:** Automatically smooth out legacy geometry.
+* **Have Greater Peace of Mind:** New optional auto-save system.
+
+### RTX Remix Toolkit
+
+#### Advanced Packaging & Automation
+
+The Toolkit now features an enhanced packaging workflow to handle the growing scale of modern remasters.
+
+![Remix 1.5 Packaging Workflow](../data/images/remix-1.5-packaging.png)
+
+* **RTXIO Compression:** Added native support for texture packing and extraction using RTXIO, significantly reducing the footprint of high-resolution assets.
+* **Override Flattening:** A new option allows modders to collapse complex multi-layer overrides into a single, optimized output for the final release.
+* **Auto-Save Extension:** To prevent data loss during long sessions, the Toolkit now includes configurable auto-save intervals.
+
+```{seealso}
+More information about mod packaging is available [here](../howto/learning-packaging.md).
+```
+
+#### UX & Workflow Improvements
+
+![Remix 1.5 Unified Lights Menu](../data/images/remix-1.5-lights-menu.png)
+
+* **Unified Lights Menu:** Access all light manipulators from a single viewport menu, allowing for quick toggles of manipulator visibility and persistent intensity adjustments.
+* **Stage Manager Enhancements:** Added a "Deleted Reference" filter and improved mesh visibility toggles. Property input tooltips are now "field-aware," specifically helping with complex particle settings.
+* **Interactive Response:** USD notices are now grouped to reduce redundant viewport updates, making the manipulation of large scenes feel much more responsive.
+
+#### Performance & Stability
+
+* **Batched Stage Manager:** We rewrote the Stage Manager filtering system to use single-threaded batched execution. This results in significantly faster refresh rates when working with massive scenes.
+* **Throttled Writes:** Particle editor drag writes are now throttled to prevent FPS drops during real-time editing.
+* **Bugfixes:** Fixed a variety of regressions, including "Recent Projects" list corruption, undo/redo command stacking, and viewport framing issues in the Selection panel.
+
+### RTX Remix Runtime
+
+#### Smooth Normals & Geometry Stability
+
+A core focus of 1.5 is improving how legacy geometry interacts with modern path-traced lighting.
+
+![Remix 1.5 Smooth Normals Before and After](../data/images/remix-1.5-smooth-normals.png)
+
+* **GPU/CPU Smooth Normals:** Remix can now generate smooth normals for D3D9 geometry on the fly. This eliminates the "faceted" or blocky look on surfaces where original vertex normals were unavailable. This is an opt-in feature via texture tagging.
+* **32-Bit Index Buffers:** Added support for 32-bit index buffers during triangle list generation, resolving geometry corruption in games with exceptionally large buffers (e.g., *Brutal Legend*).
+* **PointInstancer Culling:** Added GPU-driven culling for PointInstancers with configurable distance and fade-out, enabling stable performance in scenes with up to ~2 million objects.
+
+#### Advanced Rendering & Volumetrics
+
+* **Translucent Transmission:** Light rays in the volumetrics system now support transmission through water and glass, allowing for realistic underwater lighting and refractive shadows.
+* **NRC Boost Emissives:** Enabled by default, this feature restores missing emissive lighting on indirect bounces when using Neural Radiance Caching (NRC).
+* **Refined Parallax & IOR:** Added per-direction POM displacement scaling and a global IOR scale factor to give modders finer control over the "look" of translucent and textured materials.
+
+#### Particle System
+
+We have refined the particle architecture introduced in the previous version to ensure better visual consistency.
+
+* **Unified Orientation:** Fixed a bug causing particles to appear upside-down; all particle types now share a consistent orientation.
+* **Migration Tools:** Added automatic migration paths for projects moving from Particle 1.0 to 2.0, along with a fix for particles failing to render on non-replacement meshes.
+* **Precision Spawning:** Fixed clumping and trailing artifacts in dust particle systems when used at non-unity scene scales.
+
+#### Compatibility & Global Support
+
+* **Unity Support:** Fixed a long-standing issue where Unity games rendered upside-down due to negative Y-axis clip-space projection.
+* **Localization:** Remix now preserves valid UTF-8 characters in game metadata, ensuring proper display for Cyrillic and CJK (Chinese, Japanese, Korean) languages.
+* **Performance Optimization:** DebugView statistics processing was reduced from 42 ms to just 1 ms at 4K resolution.
+
+### Code & Community Contributions
+
+This release features numerous fixes driven directly by community reports on GitHub:
+
+* **Rendering Fixes:** Addressing SSS resolution scaling, NRC emissive lighting, and NEE Cache flickering during camera movement.
+* **Stability:** Resolved the "Alt-Tab" use-after-free crash and crashes related to skinned meshes with excessive bone counts.
+* **Community Credits:** Special thanks to the contributors who helped resolve the *OutRun 2006* capture crash and the sky auto-detection logic for shared-camera worlds.
+
+```{seealso}
+For GitHub release notes, see the [RTX Remix releases](https://github.com/NVIDIAGameWorks/rtx-remix/releases).
+For a full toolkit changelog, please click [here](remix-full-changelog.md)
+```
+
+***
+
 
 ## RTX Remix Release 1.4 Notes (4/21/2026)
 
