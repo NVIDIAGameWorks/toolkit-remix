@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5216: Updated particle curve editor button placement to use runtime schema display-group metadata
 - Update hdremix to `ext-01d57f6-main`
 - Update hdremix and omni_core_materials to `ext-40aa278-main`
+- Moved extension publish verification into a dedicated final CI check that runs once
 
 ### Removed
 
