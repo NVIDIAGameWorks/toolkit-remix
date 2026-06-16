@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.3]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.1.2]
 ### Changed
 - Modernize python style and enable more ruff checks
@@ -55,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Fix typo in comment
 -
+
 ## [1.0.2] - 2022-07-08
 ### Fixed
 - Fix doc to generate docstring from `__init__`

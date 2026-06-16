@@ -1,5 +1,14 @@
-﻿# Changelog
+ï»¿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.7.1]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+- Restored the direct utilities dependency required by viewport camera and navigation helpers.
+
+### Fixed
+- Kept Remix selection highlighting responsive while HdRemix finishes initializing.
+- Kept viewport manipulator extension tests headless while preserving light-gizmo selection coverage.
 
 ## [1.7.0]
 ### Changed

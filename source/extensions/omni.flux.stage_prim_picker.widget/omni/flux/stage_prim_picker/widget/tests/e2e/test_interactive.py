@@ -321,7 +321,7 @@ class TestInteractiveStagePrimPicker(omni.kit.test.AsyncTestCase):
 
                         def update_display(model):
                             value = model.get_value_as_string()
-                            value_label.text = value if value else "(none)"
+                            value_label.text = value or "(none)"
 
                         item.value_models[0].add_value_changed_fn(update_display)
 
@@ -386,7 +386,7 @@ class TestInteractiveStagePrimPicker(omni.kit.test.AsyncTestCase):
                 # Subscribe to value changes
                 def update_value_display(model):
                     value = model.get_value_as_string()
-                    value_label.text = value if value else "(none selected)"
+                    value_label.text = value or "(none selected)"
 
                 item.value_models[0].add_value_changed_fn(update_value_display)
 

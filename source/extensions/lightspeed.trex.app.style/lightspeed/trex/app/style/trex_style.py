@@ -1074,6 +1074,7 @@ current_dict.update(
         "Rectangle::TreePanelBackground": {"background_color": 0x33000000},
         "Rectangle::DarkBackgroound": {"background_color": _TRUE_DARK},
         "Rectangle::WorkspaceBackground": {"background_color": _GREY_50},
+        "ViewportBackgroundColor": {"background_color": _GREY_26},
         "Rectangle::TreePanelBackgroundSplitter": {
             "background_color": 0x0,
             "border_width": 2,
@@ -1109,6 +1110,7 @@ current_dict.update(
             "background_color": 0x0,
             "background_selected_color": _BLUE_HOVERED,
         },  # background_selected_color = hovered
+        "TreeView.Header": {"background_color": _GREY_50},
         "TreeView:selected": {"background_color": _BLUE_SELECTED},
         "TreeView.Selection": {
             "background_color": 0x0,

@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import carb.settings
 import omni.kit.app
 import omni.ui as ui
@@ -43,9 +45,13 @@ _INSTANCE_SELECTION_PATH = (
 _INSTANCE_TRANSFORM_PATH = (
     "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01"
 )
+_LIGHT_SELECTION_PATH = "/RootNode/lights/light_9907D0B07D040077"
 _TRANSFORM_OPERATION_SETTING = "/app/transform/operation"
 _TRANSFORM_MOVE_OPERATION = "move"
 _CAMERA_DRAG_DISTANCE = 120
+_VIEWPORT_WINDOW = _WindowNames.VIEWPORT.value
+_PROPERTIES_WINDOW = _WindowNames.PROPERTIES.value
+_STAGE_MANAGER_WINDOW = _WindowNames.STAGE_MANAGER.value
 
 
 def _normalize_value(value):
@@ -99,37 +105,43 @@ class TestViewportManipulators(OmniUiTest):
         for _ in range(count):
             await app.next_update_async()
 
+    async def __wait_for_viewport_widget(self):
+        for _ in range(120):
+            viewport_widget = _get_viewport_instance("")
+            if viewport_widget is not None and viewport_widget.viewport_layers is not None:
+                return viewport_widget
+            await self.__wait_n_updates(1)
+        self.fail("Could not resolve a live viewport widget")
+        return None
+
     async def __show_workspace_layout(self):
         _load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
 
-        # Wait for the workspace pieces the test drives directly instead of assuming layout load is synchronous.
+        # Wait for the workspace windows the test drives directly instead of assuming layout load is synchronous.
         for _ in range(120):
-            viewport_window = ui.Workspace.get_window(_WindowNames.VIEWPORT)
-            properties_window = ui.Workspace.get_window(_WindowNames.PROPERTIES)
-            stage_manager_window = ui.Workspace.get_window(_WindowNames.STAGE_MANAGER)
-            viewport_widget = _get_viewport_instance("")
-            if viewport_window and properties_window and stage_manager_window and viewport_widget:
+            viewport_window = ui.Workspace.get_window(_VIEWPORT_WINDOW)
+            properties_window = ui.Workspace.get_window(_PROPERTIES_WINDOW)
+            stage_manager_window = ui.Workspace.get_window(_STAGE_MANAGER_WINDOW)
+            if viewport_window and properties_window and stage_manager_window:
                 break
             await self.__wait_n_updates(1)
 
-        for title in (_WindowNames.VIEWPORT, _WindowNames.PROPERTIES, _WindowNames.STAGE_MANAGER):
+        for title in (_VIEWPORT_WINDOW, _PROPERTIES_WINDOW, _STAGE_MANAGER_WINDOW):
             ui.Workspace.show_window(title, True)
 
         await ui_test.human_delay(human_delay_speed=20)
 
-        for title in (_WindowNames.VIEWPORT, _WindowNames.PROPERTIES, _WindowNames.STAGE_MANAGER):
+        for title in (_VIEWPORT_WINDOW, _PROPERTIES_WINDOW, _STAGE_MANAGER_WINDOW):
             window = ui.Workspace.get_window(title)
             self.assertIsNotNone(window)
             self.assertTrue(window.visible)
 
-        viewport_widget = _get_viewport_instance("")
+        viewport_widget = await self.__wait_for_viewport_widget()
         self.assertIsNotNone(viewport_widget)
         await self.__wait_for_rendered_viewport(viewport_widget)
 
         # The Properties selection tree is the visible signal that selection-driven property models are ready.
-        selection_tree = ui_test.find(
-            f"{_WindowNames.PROPERTIES}//Frame/**/TreeView[*].identifier=='LiveSelectionTreeView'"
-        )
+        selection_tree = ui_test.find(f"{_PROPERTIES_WINDOW}//Frame/**/TreeView[*].identifier=='LiveSelectionTreeView'")
         self.assertIsNotNone(selection_tree)
         await self.__collapse_unrelated_property_sections()
 
@@ -140,10 +152,10 @@ class TestViewportManipulators(OmniUiTest):
     async def __set_property_section_collapsed(self, section_title: str, collapsed: bool):
         for _ in range(10):
             title_labels = ui_test.find_all(
-                f"{_WindowNames.PROPERTIES}//Frame/**/Label[*].name=='PropertiesPaneSectionTitle'"
+                f"{_PROPERTIES_WINDOW}//Frame/**/Label[*].name=='PropertiesPaneSectionTitle'"
             )
             frame_arrows = ui_test.find_all(
-                f"{_WindowNames.PROPERTIES}//Frame/**/Image[*].identifier=='PropertyCollapsableFrameArrow'"
+                f"{_PROPERTIES_WINDOW}//Frame/**/Image[*].identifier=='PropertyCollapsableFrameArrow'"
             )
             if title_labels and len(title_labels) == len(frame_arrows):
                 break
@@ -185,6 +197,17 @@ class TestViewportManipulators(OmniUiTest):
         runtime_manipulator = prim_transform_manipulator._manipulator
         self.assertIsNotNone(runtime_manipulator)
         return runtime_manipulator
+
+    async def __wait_for_light_gizmo_manipulator(self, viewport_widget, light_path: str):
+        for _ in range(120):
+            light_layer = viewport_widget.viewport_layers.find_viewport_layer("Light Gizmos", "scene")
+            if light_layer is not None:
+                light_manipulator = light_layer._manipulators.get(light_path)
+                if light_manipulator is not None and light_manipulator._root is not None:
+                    return light_manipulator
+            await self.__wait_n_updates(1)
+        self.fail(f"Could not resolve a light gizmo manipulator for {light_path}")
+        return None
 
     @staticmethod
     def __screen_point_from_texture_pixel(viewport_widget, viewport_api, pixel) -> Vec2:
@@ -280,13 +303,13 @@ class TestViewportManipulators(OmniUiTest):
         viewport_widget.frame_viewport_selection([selection_path])
         await ui_test.human_delay(human_delay_speed=15)
 
-        mesh_prim_frame = ui_test.find(f"{_WindowNames.PROPERTIES}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
-        mesh_ref_frame = ui_test.find(f"{_WindowNames.PROPERTIES}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
+        mesh_prim_frame = ui_test.find(f"{_PROPERTIES_WINDOW}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
+        mesh_ref_frame = ui_test.find(f"{_PROPERTIES_WINDOW}//Frame/**/Frame[*].identifier=='frame_mesh_ref'")
         self.assertIsNotNone(mesh_prim_frame)
         self.assertIsNotNone(mesh_ref_frame)
         self.assertTrue(mesh_prim_frame.widget.visible or mesh_ref_frame.widget.visible)
 
-        selection_tree_items = ui_test.find_all(f"{_WindowNames.PROPERTIES}//Frame/**/Label[*].identifier=='item_prim'")
+        selection_tree_items = ui_test.find_all(f"{_PROPERTIES_WINDOW}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertTrue(selection_tree_items)
 
         await selection_tree_items[-1].click()
@@ -300,7 +323,7 @@ class TestViewportManipulators(OmniUiTest):
         self.assertIsNotNone(target_attr)
         self.assertTrue(target_attr.IsValid())
 
-        viewport_ref = ui_test.find(f"{_WindowNames.VIEWPORT}//Frame/**/.identifier == 'viewport'")
+        viewport_ref = ui_test.find(f"{_VIEWPORT_WINDOW}//Frame/**/.identifier == 'viewport'")
         self.assertIsNotNone(viewport_ref)
         await viewport_ref.click()
         await ui_test.human_delay(human_delay_speed=3)
@@ -308,6 +331,26 @@ class TestViewportManipulators(OmniUiTest):
         await ui_test.human_delay(human_delay_speed=10)
 
         return target_attr, start, end, manipulated_prim_paths
+
+    async def __prepare_light_gizmo_click(self, light_path: str) -> Vec2:
+        usd_context = omni.usd.get_context("")
+        stage = usd_context.get_stage()
+        self.assertTrue(stage.GetPrimAtPath(light_path).IsValid())
+
+        viewport_widget = _get_viewport_instance("")
+        self.assertIsNotNone(viewport_widget)
+        viewport_widget.set_active(True)
+        viewport_widget.frame_viewport_selection([light_path])
+        await ui_test.human_delay(human_delay_speed=30)
+
+        light_manipulator = await self.__wait_for_light_gizmo_manipulator(viewport_widget, light_path)
+        click_point = self.__scene_local_point_to_screen(
+            viewport_widget, viewport_widget.viewport_api, light_manipulator._root, [0, 0, 0]
+        )
+        self.assertIsNotNone(click_point)
+        usd_context.get_selection().set_selected_prim_paths([], False)
+        await ui_test.human_delay(human_delay_speed=10)
+        return click_point
 
     async def __open_camera_properties(self, camera_path: str):
         viewport_widget = _get_viewport_instance("")
@@ -321,7 +364,7 @@ class TestViewportManipulators(OmniUiTest):
             section_titles = [
                 label.widget.text
                 for label in ui_test.find_all(
-                    f"{_WindowNames.VIEWPORT}//Frame/**/Label[*].name=='PropertiesPaneSectionTitle'"
+                    f"{_VIEWPORT_WINDOW}//Frame/**/Label[*].name=='PropertiesPaneSectionTitle'"
                 )
             ]
             if "CAMERA PROPERTIES" in section_titles:
@@ -383,7 +426,7 @@ class TestViewportManipulators(OmniUiTest):
         self.assertIsNotNone(viewport_widget)
         viewport_api = viewport_widget.viewport_api
         camera_path = viewport_api.camera_path.pathString
-        viewport_ref = ui_test.find(f"{_WindowNames.VIEWPORT}//Frame/**/.identifier == 'viewport'")
+        viewport_ref = ui_test.find(f"{_VIEWPORT_WINDOW}//Frame/**/.identifier == 'viewport'")
         self.assertIsNotNone(viewport_ref)
 
         # Open the active camera in Properties and snapshot its displayed values before the RMB drag.
@@ -419,7 +462,7 @@ class TestViewportManipulators(OmniUiTest):
         self.assertIsNotNone(viewport_widget)
         viewport_api = viewport_widget.viewport_api
         camera_path = viewport_api.camera_path.pathString
-        viewport_ref = ui_test.find(f"{_WindowNames.VIEWPORT}//Frame/**/.identifier == 'viewport'")
+        viewport_ref = ui_test.find(f"{_VIEWPORT_WINDOW}//Frame/**/.identifier == 'viewport'")
         self.assertIsNotNone(viewport_ref)
 
         await self.__open_camera_properties(camera_path)
@@ -446,3 +489,23 @@ class TestViewportManipulators(OmniUiTest):
         stable_snapshots = self.__snapshot_property_models(related_models)
         await self.__wait_n_updates(12)
         self.assertEqual(self.__snapshot_property_models(related_models), stable_snapshots)
+
+    async def test_light_gizmo_click_selection_survives_deferred_mesh_pick(self):
+        click_point = await self.__prepare_light_gizmo_click(_LIGHT_SELECTION_PATH)
+        usd_context = omni.usd.get_context("")
+
+        with (
+            patch(
+                "lightspeed.trex.viewports.manipulators.global_selection.hdremix_objectpicking_request",
+                side_effect=lambda _x0, _y0, _x1, _y1, callback: callback([_INSTANCE_SELECTION_PATH]),
+            ),
+            patch("lightspeed.trex.viewports.manipulators.global_selection.hdremix_highlight_paths"),
+        ):
+            await ui_test.input.emulate_mouse_move(click_point)
+            await ui_test.human_delay(human_delay_speed=2)
+            await ui_test.emulate_mouse_click()
+            await ui_test.human_delay(human_delay_speed=20)
+
+            self.assertEqual([_LIGHT_SELECTION_PATH], usd_context.get_selection().get_selected_prim_paths())
+            await self.__wait_n_updates(120)
+            self.assertEqual([_LIGHT_SELECTION_PATH], usd_context.get_selection().get_selected_prim_paths())

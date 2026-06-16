@@ -194,13 +194,14 @@ def get_diff_lines(file_path: str, source_hash: str, original_hash: str):
     """
     try:
         # Get the number of lines in the CHANGELOG file to have a complete diff of the file
-        with open(file_path, 'r') as file_content:
+        with open(file_path, 'r', encoding="utf-8") as file_content:
             lines = len(file_content.readlines())
         diff_output = subprocess.check_output(
             # Use --no-page to avoid paging the output
             # Use --unified={lines} to avoid trimming the diff context
             ["git", "--no-pager", "diff", f"--unified={lines}", f"{original_hash}..{source_hash}", '--', file_path],
-            text=True
+            text=True,
+            encoding="utf-8",
         )
     except TypeError:
         return []

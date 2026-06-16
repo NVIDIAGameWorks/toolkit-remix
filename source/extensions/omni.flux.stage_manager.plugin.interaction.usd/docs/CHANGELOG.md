@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.16.6]
+### Fixed
+- Cleared stale Stage Manager tree selection when the active USD selection is empty or cannot be represented by the active tree, while ignoring transient empty tree callbacks during model refreshes that are still restoring the current USD selection.
+- Prevented delayed programmatic Stage Manager tree selection callbacks from clearing the active USD selection.
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.16.5]
 ### Fixed
 - Updated property-only USD resync handling to dirty Stage Manager widgets instead of rebuilding context items unless force-refresh rules require it.

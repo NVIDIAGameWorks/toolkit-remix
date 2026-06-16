@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.36.3]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Removed stale listener suppression blocks when gradient edits fall back after listener disable fails.
+
 ## [2.36.2]
 ### Fixed
 - Grouped related xform property specs into one layer modification entry in the USD property override menu.

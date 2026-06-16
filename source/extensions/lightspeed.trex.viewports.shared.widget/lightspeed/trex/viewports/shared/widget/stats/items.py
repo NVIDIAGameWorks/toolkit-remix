@@ -498,6 +498,9 @@ class ViewportStatisticFading(ViewportStatistic):
 
         import omni.kit.app  # noqa: PLC0415
 
+        # A render-frame update can arrive before this update subscription runs. Prime the
+        # cached alpha so the render update does not cancel the newly started animation.
+        self.__alpha = 1
         self.__update_sub = (
             omni.kit.app.get_app()
             .get_update_event_stream()

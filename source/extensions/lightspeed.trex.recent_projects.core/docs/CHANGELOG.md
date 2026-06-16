@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.5]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.1.4]
 ### Changed
 - Use `is_layer_from_capture` path-based detection in `get_path_detail` to identify and skip opening capture sublayers

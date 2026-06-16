@@ -17,6 +17,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import carb.input
 import omni.kit.test
 from lightspeed.trex.viewports.shared.widget.events.delegate import ViewportEventDelegate
 
@@ -98,6 +99,29 @@ class TestViewportEventDelegateMouseWheel(omni.kit.test.AsyncTestCase):
         ):
             self._delegate.mouse_wheel(0, 1.0, 0)
 
+        mock_zoom.assert_not_called()
+
+    async def test_zoom_not_called_when_regular_key_is_down_without_scene_key_callback(self):
+        """_zoom_operation is not invoked when input state reports a held regular key."""
+        # Arrange
+        keyboard = object()
+        app_window = MagicMock()
+        app_window.get_keyboard.return_value = keyboard
+        input_interface = MagicMock()
+        input_interface.get_keyboard_value.side_effect = lambda requested_keyboard, key: (
+            requested_keyboard is keyboard and key == carb.input.KeyboardInput.B
+        )
+
+        with (
+            patch.object(self._delegate, "adjust_flight_speed", return_value=False),
+            patch("omni.appwindow.get_default_app_window", return_value=app_window),
+            patch("carb.input.acquire_input_interface", return_value=input_interface),
+            patch(_ZOOM_OP) as mock_zoom,
+        ):
+            # Act
+            self._delegate.mouse_wheel(0, 1.0, 0)
+
+        # Assert
         mock_zoom.assert_not_called()
 
     async def test_zoom_horizontal_scroll_always_zero(self):

@@ -120,12 +120,8 @@ class USDDirectory(_ContextBaseUSD):
         if not context:
             return False, f"The context {schema_data.computed_context} doesn't exist!", None
 
-        usd_file_paths = (
-            schema_data.cooked_files
-            if schema_data.cooked_files
-            else await self.__glob_usd_files(
-                directory_path, recursive=schema_data.recursive, ignore_paths=schema_data.ignore_paths
-            )
+        usd_file_paths = schema_data.cooked_files or await self.__glob_usd_files(
+            directory_path, recursive=schema_data.recursive, ignore_paths=schema_data.ignore_paths
         )
 
         progress = 0

@@ -24,6 +24,10 @@ import omni.kit.ui_test
 from ...ui_components import AsyncTestPropertyWidget, MockClipboard, TestItem
 
 
+async def _select_context_menu(menu_path: str):
+    await omni.kit.ui_test.menu.select_context_menu(menu_path, offset=omni.kit.ui_test.Vec2(10, 10))
+
+
 class TestContextMenu(omni.kit.test.AsyncTestCase):
     async def setUp(self):
         # Create a unique clipboard per-test. This avoids race conditions when dealing with the system clipboard.
@@ -56,7 +60,7 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await helper.set_items([item1, item2])
 
             await helper.click_item(item1, right_click=True)
-            await omni.kit.ui_test.menu.select_context_menu("Copy All", menu_root=helper.get_context_menu())
+            await _select_context_menu("Copy All")
 
             # Context-menu callbacks can resolve one frame later in CI/UI-test mode.
             # Poll clipboard across a few updates to avoid flaky None reads.
@@ -76,7 +80,7 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await helper.set_items([item1, item2])
 
             await helper.click_item(item1, right_click=True)
-            await omni.kit.ui_test.menu.select_context_menu("Copy All", menu_root=helper.get_context_menu())
+            await _select_context_menu("Copy All")
 
             test_item1 = TestItem([("N_1", "")])
             test_item2 = TestItem([("N_2", "")])
@@ -84,7 +88,7 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await helper.set_items([test_item1, test_item2])
 
             await helper.click_item(test_item2, right_click=True)
-            await omni.kit.ui_test.menu.select_context_menu("Paste All", menu_root=helper.get_context_menu())
+            await _select_context_menu("Paste All")
 
             self.assertSequenceEqual(test_item1.get_value(), ["V_1"])
             self.assertSequenceEqual(test_item2.get_value(), ["V_2"])
@@ -97,7 +101,7 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await helper.set_items([item1, item2])
 
             await helper.click_item(item1, right_click=True)
-            await omni.kit.ui_test.menu.select_context_menu("Copy All", menu_root=helper.get_context_menu())
+            await _select_context_menu("Copy All")
 
             test_item1 = TestItem([("N_1", "")])
             test_item2 = TestItem([("N_2", "")])
@@ -107,7 +111,7 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await helper.select_items([test_item2])
 
             await helper.click_item(test_item2, right_click=True)
-            await omni.kit.ui_test.menu.select_context_menu("Paste Selected", menu_root=helper.get_context_menu())
+            await _select_context_menu("Paste Selected")
 
             self.assertSequenceEqual(test_item1.get_value(), [""])
             self.assertSequenceEqual(test_item2.get_value(), ["V_2"])
@@ -122,7 +126,7 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await helper.select_items([item1])
 
             await helper.click_item(item1, right_click=True)
-            await omni.kit.ui_test.menu.select_context_menu("Copy Selected", menu_root=helper.get_context_menu())
+            await _select_context_menu("Copy Selected")
 
             test_item1 = TestItem([("N_1", "")])
             test_item2 = TestItem([("N_2", "")])
@@ -132,7 +136,7 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await helper.select_items([])
 
             await helper.click_item(test_item2, right_click=True)
-            await omni.kit.ui_test.menu.select_context_menu("Paste All", menu_root=helper.get_context_menu())
+            await _select_context_menu("Paste All")
 
             self.assertSequenceEqual(test_item1.get_value(), ["V_1"])
             self.assertSequenceEqual(test_item2.get_value(), [""])
@@ -147,7 +151,7 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await helper.select_items([item1])
 
             await helper.click_item(item1, right_click=True)
-            await omni.kit.ui_test.menu.select_context_menu("Copy Selected", menu_root=helper.get_context_menu())
+            await _select_context_menu("Copy Selected")
 
             test_item1 = TestItem([("N_1", "")])
             test_item2 = TestItem([("N_2", "")])
@@ -159,7 +163,7 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await helper.click_item(test_item2, right_click=True)
             # Paste Selected MenuItem should be disabled here because nothing in selection matches what's on the
             # clipboard. We can do a quick test that clicking it does nothing.
-            await omni.kit.ui_test.menu.select_context_menu("Paste Selected", menu_root=helper.get_context_menu())
+            await _select_context_menu("Paste Selected")
 
             self.assertSequenceEqual(test_item1.get_value(), [""])
             self.assertSequenceEqual(test_item2.get_value(), [""])
@@ -167,7 +171,7 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
             await helper.select_items([test_item1])
 
             await helper.click_item(test_item1, right_click=True)
-            await omni.kit.ui_test.menu.select_context_menu("Paste Selected", menu_root=helper.get_context_menu())
+            await _select_context_menu("Paste Selected")
 
             self.assertSequenceEqual(test_item1.get_value(), ["V_1"])
             self.assertSequenceEqual(test_item2.get_value(), [""])

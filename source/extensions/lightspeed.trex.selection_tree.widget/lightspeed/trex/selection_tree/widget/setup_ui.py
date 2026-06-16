@@ -95,6 +95,7 @@ class SetupUI:
             "_pre_rebuild_expanded_paths": None,
             "_user_expanded_paths": None,
             "_is_internal_rebuild": None,
+            "_ignore_empty_tree_selection_during_refresh": None,
             "_current_tree_pressed_input": None,
             "_sub_tree_delegate_delete_ref": None,
             "_sub_tree_delegate_duplicate_ref": None,
@@ -124,6 +125,7 @@ class SetupUI:
         self._pre_rebuild_expanded_paths: set[str] = set()
         self._user_expanded_paths: set[str] = set()
         self._is_internal_rebuild: bool = False
+        self._ignore_empty_tree_selection_during_refresh: bool = False
 
         self._current_tree_pressed_input = None
 
@@ -435,6 +437,8 @@ class SetupUI:
             self._core.remove_reference(stage, item.prim.GetPath(), item.ref, item.layer)
 
     def _on_tree_model_changed(self, model, __):
+        self._ignore_empty_tree_selection_during_refresh = bool(self._context.get_selection().get_selected_prim_paths())
+
         # Clear all the internal tracking if the model changes...
         self._previous_tree_selection = []
         self._instance_selection = []
@@ -509,22 +513,27 @@ class SetupUI:
 
         # we select the corresponding prim instance
         self._ignore_select_prototype = True
-        # we remove duplicated but keep the order
-        selection = list(dict.fromkeys(selection))
+        try:
+            # we remove duplicated but keep the order
+            selection = list(dict.fromkeys(selection))
 
-        all_visible_items = await self.__deferred_expand(selection)
-        if self._tree_view is not None:
-            if self._tree_view.selection != selection:
-                # this will trigger _on_tree_selection_changed()
-                self._tree_view.selection = selection
-            else:
-                # If tree model changed, we want to trigger an update even if selection is the same. This can happen
-                # when model is emptied and selection is also emptied but we haven't updated "previous selection"
-                self._on_tree_selection_changed(selection)
-            first_item_prim = sorted([item for item in selection if isinstance(item, _ItemPrim)], key=lambda x: x.path)
-            if first_item_prim:
-                await self.scroll_to_item(first_item_prim[0], all_visible_items)
-        self._ignore_select_prototype = False
+            all_visible_items = await self.__deferred_expand(selection)
+            if self._tree_view is not None:
+                if self._tree_view.selection != selection:
+                    # this will trigger _on_tree_selection_changed()
+                    self._tree_view.selection = selection
+                else:
+                    # If tree model changed, we want to trigger an update even if selection is the same. This can happen
+                    # when model is emptied and selection is also emptied but we haven't updated "previous selection"
+                    self._on_tree_selection_changed(selection)
+                first_item_prim = sorted(
+                    [item for item in selection if isinstance(item, _ItemPrim)], key=lambda x: x.path
+                )
+                if first_item_prim:
+                    await self.scroll_to_item(first_item_prim[0], all_visible_items)
+        finally:
+            self._ignore_select_prototype = False
+            self._ignore_empty_tree_selection_during_refresh = False
         self.__refresh_delegate_gradients()
 
     @omni.usd.handle_exception
@@ -607,6 +616,17 @@ class SetupUI:
          - `_ItemInstancesGroup` [group, if selected: select children]
           - `_ItemInstance` [minimum one selected, but multiple can be selected]
         """
+        if (
+            not selection
+            and self._current_tree_pressed_input is None
+            and (self._ignore_select_prototype or self._ignore_empty_tree_selection_during_refresh)
+            and self._context.get_selection().get_selected_prim_paths()
+        ):
+            # TreeView can normalize to [] when selected item objects are replaced during refresh.
+            # USD remains the source of truth until deferred refresh remaps selection back to tree items.
+            self._tree_selection_changed([])
+            return
+
         # determine whether this was a click or a multi select operation that happened to pick up a button item
         item_was_clicked = len(selection) == 1
 
@@ -711,6 +731,15 @@ class SetupUI:
             else:
                 raise ValueError(f"Unexpected item type: {type(item)}, {item}")
 
+        if asset_item_clicked:
+            # Asset rows are grouping rows, so clicking one is a no-op that preserves the real prim selection.
+            items = list(dict.fromkeys(self._previous_tree_selection))
+            self._instance_selection = list(dict.fromkeys(self._previous_instance_selection))
+            if self._tree_view is not None:
+                self._tree_view.selection = items
+            self._tree_delegate.on_item_selected(items, self._instance_selection, self._tree_model.get_all_items())
+            return
+
         # `items` will correlate with primary selections and `self._instance_selection` with secondary selections
         items: list[_ItemPrim | _ItemLiveLightGroup | _ItemReferenceFile] = list(
             dict.fromkeys(selected_prim_items + selected_ref_file_items)
@@ -738,10 +767,6 @@ class SetupUI:
                         if item_ref.path == previous_item.path:
                             items.append(item_ref)
                             break
-        if selected_instance_lights and asset_item_clicked:
-            # if the asset item is clicked but this is a light, then we treat it differently because we don't always
-            # restore the previous selection and an item_prim may have just been de-selected.
-            asset_item_clicked = False
 
         # if all lights are selected within light group, select the light group item itself
         all_light_groups: list[_ItemLiveLightGroup] = all_items_by_types.get(_ItemLiveLightGroup, [])
@@ -810,7 +835,7 @@ class SetupUI:
         elif add_light_clicked:  # if add light was clicked
             self.__show_light_creator_window(add_light_clicked)
 
-        if add_item_clicked or add_light_clicked or asset_item_clicked:
+        if add_item_clicked or add_light_clicked:
             return  # skip selection changed call... nothing should have changed!
 
         self._tree_selection_changed(items + self._instance_selection)
@@ -837,9 +862,11 @@ class SetupUI:
             instances = [item for item in self._instance_selection if isinstance(item, _ItemInstance)]
             if not instances:
                 instances = add_item.parent.instance_group_item.instances
+            to_select_paths = []
             if instances:
                 instance_path = instances[0].path
-                self._core.select_prim_paths(self._core.get_instance_from_mesh([light_path], [instance_path]))
+                to_select_paths = self._core.get_instance_from_mesh([light_path], [instance_path])
+            self._core.select_prim_paths(to_select_paths or [light_path])
 
         self._light_creator_window = ui.Window(
             "Light creator",

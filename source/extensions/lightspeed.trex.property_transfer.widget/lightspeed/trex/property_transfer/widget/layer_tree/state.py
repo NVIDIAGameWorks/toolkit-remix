@@ -15,10 +15,10 @@
 * limitations under the License.
 """
 
-from enum import Enum
+from enum import StrEnum
 
 
-class OpinionState(str, Enum):
+class OpinionState(StrEnum):
     """Layer state for the spec being transferred."""
 
     STRONGEST = "strongest"

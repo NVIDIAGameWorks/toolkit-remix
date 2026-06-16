@@ -28,7 +28,7 @@ cd toolkit-remix
 .\build.bat
 ```
 
-The first build downloads all dependencies (Kit SDK, Python 3.10, tools) automatically via packman. Subsequent builds
+The first build downloads all dependencies (Kit SDK, Python 3.12, tools) automatically via packman. Subsequent builds
 are incremental. See [Tech Stack Overview](getting-started/tech-stack.md) for how the build pipeline works.
 
 ### Run the App
@@ -115,7 +115,7 @@ via your PR's comment page.
 
 | Page                                                           | Description                                                                                                                                     |
 |----------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Code Style](code-quality/code-style.md)                       | Python 3.10, max 120 chars, black + isort + ruff, naming conventions, no lazy imports, `__all__`, license headers, and Google-style docstrings. |
+| [Code Style](code-quality/code-style.md)                       | Python 3.12, max 120 chars, black + isort + ruff, naming conventions, no lazy imports, `__all__`, license headers, and Google-style docstrings. |
 | [Engineering Standards](code-quality/engineering-standards.md) | Fix root causes, never paper over. Anti-patterns table and smell tests for broken async, swallowed exceptions, and design problems.             |
 | [Testing Standards](code-quality/testing.md)                   | 75% coverage requirement, plan-before-code, unit vs E2E, Arrange/Act/Assert, test naming, and anti-patterns.                                    |
 

@@ -1,7 +1,13 @@
-# CHANGELOG
+# Changelog
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 This document records all notable changes to ``omni.kit.viewport.bundle`` extension.
 This project adheres to `Semantic Versioning <https://semver.org/>`_.
+
+
+## [1.3.2]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
 
 ## [1.3.1]
 ### Changed

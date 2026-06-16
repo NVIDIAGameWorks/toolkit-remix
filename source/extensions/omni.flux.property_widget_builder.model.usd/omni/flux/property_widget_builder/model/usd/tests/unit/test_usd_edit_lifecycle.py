@@ -330,7 +330,7 @@ class TestUsdAttributeValueModelEditBatching(omni.kit.test.AsyncTestCase):
         # Arrange
         model = _make_model(self.stage, value=0.0)
         end_calls = []
-        model.set_property_edit_callbacks(None, lambda value_model: end_calls.append(value_model))
+        model.set_property_edit_callbacks(None, end_calls.append)
         model._is_batch_editing = True
         model._set_internal_value(9.0)
         model._has_wrong_value = True

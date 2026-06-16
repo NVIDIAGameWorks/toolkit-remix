@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.4]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Recreated workspace window content when a previously cached widget has been destroyed.
+
 ## [1.7.3]
 ### Added
 - Added a shared invalid project `deps` rebuild dialog helper.

@@ -1,5 +1,6 @@
 [package]
-version = "1.5.4"
+kit_sdk_version = "110.*"
+version = "1.5.5"
 authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Capture Tree Model and Delegate"
 description = "Model, Delegate and Item classes for a TreeView to display Captures"

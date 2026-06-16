@@ -1,13 +1,17 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.1]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.3.0]
 ### Added
-- Spotlight cone wireframe for DiskLight and SphereLight manipulators when `shaping:cone:angle` is authored and < 90°
+- Spotlight cone wireframe for DiskLight and SphereLight manipulators when `shaping:cone:angle` is authored and < 90 degrees
 - Inner-cone wireframe drawn when `shaping:cone:softness > 0`, matching Remix's penumbra geometry
 - Cone visual extent auto-computed per light from a global display threshold setting (default 0.1 lux)
 - Intensity-arrow visual length scales with the Cone Threshold preference so the arrow and cone wireframe lengths update together when the display threshold is adjusted
-- Viewport Display dropdown (eye icon) → `Custom Manipulators ▸ Light Manipulator` submenu exposing Cone Threshold (lux), Cone Subdivisions, Outer Cone Color, and Inner Cone Color as persistent settings
+- Viewport Display dropdown (eye icon) -> `Custom Manipulators > Light Manipulator` submenu exposing Cone Threshold (lux), Cone Subdivisions, Outer Cone Color, and Inner Cone Color as persistent settings
 - `ShapingMixin` exposes a `softness` item alongside `cone_angle`
 
 ### Changed

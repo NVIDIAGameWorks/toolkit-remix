@@ -42,7 +42,7 @@ class PlaceholderAttribute:
             metadata: (dict): metadata of mock attribute."""
         self._name = name
         self._prim = prim
-        self._metadata = metadata if metadata else {}
+        self._metadata = metadata or {}
 
     def Get(self, time_code=0):  # noqa: N802
         """Mock Usd.Attribute function"""

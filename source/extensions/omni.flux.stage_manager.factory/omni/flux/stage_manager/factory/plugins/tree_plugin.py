@@ -274,6 +274,11 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         self._selection = list(items)
 
+    def _get_item_selection_key(self, item: StageManagerTreeItem) -> str | None:
+        if not item.data:
+            return None
+        return str(item.data.GetPath())
+
     @usd.handle_exception
     async def get_context_items(self) -> list[_StageManagerItem]:
         """
@@ -327,13 +332,17 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Method called when the `self._items` attribute should be refreshed
         """
         await omni.kit.app.get_app().next_update_async()
+        selected_keys = [self._get_item_selection_key(item) for item in self._selection]
         filtered_items = await self.get_context_items()
 
         for item in filtered_items:
             item.tree_item = None
 
-        self.set_selection([])
         self._items = self._build_items(filtered_items)
+        rebuilt_items_by_key = {
+            key: item for item in self.iter_items_children() if (key := self._get_item_selection_key(item)) is not None
+        }
+        self.set_selection([rebuilt_items_by_key[key] for key in selected_keys if key in rebuilt_items_by_key])
 
         self._item_changed(None)
 

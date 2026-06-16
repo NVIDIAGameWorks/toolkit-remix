@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.4]
+### Added
+- Added `IntSliderField` for integer slider widgets with configurable min, max, and step (default step: 1 for range <=100, else max(1, int(range * 0.01)))
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.16.3]
 ### Changed
 - Removed obsolete USD gradient-builder integration coverage from the generic delegates extension.
@@ -83,7 +90,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.8.0]
 ### Added
 - Added `AbstractSliderField` base class with shared min/max/step handling, undo grouping (begin_edit/end_edit), and abstract `build_drag_widget()` for slider UI
-- Added `IntSliderField` for integer slider widgets with configurable min, max, and step (default step: 1 for range ≤100, else max(1, int(range * 0.01)))
+- Added `IntSliderField` for integer slider widgets with configurable min, max, and step (default step: 1 for range â‰¤100, else max(1, int(range * 0.01)))
 - Added E2E tests for AbstractSliderField, FloatSliderField, and IntSliderField
 
 ### Changed

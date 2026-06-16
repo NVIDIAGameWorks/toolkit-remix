@@ -15,9 +15,11 @@
 * limitations under the License.
 """
 
+import asyncio
 from types import SimpleNamespace
 from unittest import mock
 
+import omni.kit.app
 from omni.kit.test import AsyncTestCase
 from omni.flux.stage_manager.factory import StageManagerItem
 from omni.flux.stage_manager.factory.plugins.filter_plugin import StageManagerFilterPlugin as _StageManagerFilterPlugin
@@ -88,6 +90,22 @@ class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
             filtering_rules=_USDEventFilteringRules(),
         )
 
+    def _set_delayed_selection_tree_widget(self, plugin: _StageManagerUSDInteractionPlugin):
+        class _TreeWidget:
+            def __init__(self):
+                self.selection = []
+
+            async def set_selection_async(self, items):
+                self.selection = list(items)
+
+                async def _emit_selection_changed_later():
+                    await omni.kit.app.get_app().next_update_async()
+                    plugin._on_selection_changed(items)
+
+                asyncio.ensure_future(_emit_selection_changed_later())
+
+        plugin._tree_widget = _TreeWidget()
+
     def _make_notice(
         self,
         changed_info_only_paths: list[Sdf.Path] | None = None,
@@ -98,6 +116,211 @@ class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
         notice.GetResyncedPaths.return_value = resynced_paths or []
         notice.GetChangedFields.return_value = []
         return notice
+
+    async def test_update_tree_selection_clears_stale_tree_selection_when_usd_selection_has_no_matching_items(self):
+        # Arrange
+        plugin = self._make_plugin()
+        plugin.synchronize_selection = True
+        plugin._is_active = True
+        plugin._context_name = ""
+        plugin._tree_selection_task = SimpleNamespace(cancelled=lambda: False)
+
+        stale_item = SimpleNamespace(data=SimpleNamespace(GetPath=lambda: "/World/Mesh"))
+        plugin.tree.model.find_items_async = mock.AsyncMock(return_value=[])
+        plugin.tree.model.set_selection = mock.MagicMock()
+
+        class _TreeWidget:
+            def __init__(self):
+                self.selection = [stale_item]
+
+            async def set_selection_async(self, items):
+                self.selection = list(items)
+                plugin._on_selection_changed(items)
+
+        plugin._tree_widget = _TreeWidget()
+
+        with (
+            mock.patch.object(plugin, "_get_selection", return_value=["/World/Light"]),
+            mock.patch("omni.usd.get_context") as get_context,
+        ):
+            selection_mock = mock.MagicMock()
+            context_mock = mock.MagicMock(get_selection=mock.MagicMock(return_value=selection_mock))
+            get_context.return_value = context_mock
+
+            # Act
+            await plugin._update_tree_selection_async()
+
+            # Assert
+            self.assertEqual(plugin._tree_widget.selection, [])
+            plugin.tree.model.set_selection.assert_called_once_with([])
+            selection_mock.set_selected_prim_paths.assert_not_called()
+
+    async def test_update_tree_selection_clears_stale_tree_selection_when_usd_selection_is_empty(self):
+        # Arrange
+        plugin = self._make_plugin()
+        plugin.synchronize_selection = True
+        plugin._is_active = True
+        plugin._context_name = ""
+        plugin._tree_selection_task = SimpleNamespace(cancelled=lambda: False)
+
+        stale_item = SimpleNamespace(data=SimpleNamespace(GetPath=lambda: "/World/Mesh"))
+        plugin.tree.model.find_items_async = mock.AsyncMock()
+        plugin.tree.model.set_selection = mock.MagicMock()
+
+        class _TreeWidget:
+            def __init__(self):
+                self.selection = [stale_item]
+
+            async def set_selection_async(self, items):
+                self.selection = list(items)
+                plugin._on_selection_changed(items)
+
+        plugin._tree_widget = _TreeWidget()
+
+        with (
+            mock.patch.object(plugin, "_get_selection", return_value=[]),
+            mock.patch("omni.usd.get_context") as get_context,
+        ):
+            selection_mock = mock.MagicMock()
+            context_mock = mock.MagicMock(get_selection=mock.MagicMock(return_value=selection_mock))
+            get_context.return_value = context_mock
+
+            # Act
+            await plugin._update_tree_selection_async()
+
+            # Assert
+            self.assertEqual(plugin._tree_widget.selection, [])
+            plugin.tree.model.find_items_async.assert_not_called()
+            plugin.tree.model.set_selection.assert_called_once_with([])
+            selection_mock.set_selected_prim_paths.assert_not_called()
+
+    async def test_delayed_programmatic_empty_tree_selection_does_not_clear_usd_selection(self):
+        # Arrange
+        plugin = self._make_plugin()
+        plugin.synchronize_selection = True
+        plugin._context_name = ""
+        self._set_delayed_selection_tree_widget(plugin)
+
+        with (
+            mock.patch.object(plugin, "_get_selection", return_value=["/World/Light"]),
+            mock.patch("omni.usd.get_context") as get_context,
+        ):
+            selection_mock = mock.MagicMock()
+            context_mock = mock.MagicMock(get_selection=mock.MagicMock(return_value=selection_mock))
+            get_context.return_value = context_mock
+
+            # Act
+            await plugin._set_tree_widget_selection_async([])
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+
+            # Assert
+            self.assertEqual(plugin._tree_widget.selection, [])
+            selection_mock.set_selected_prim_paths.assert_not_called()
+
+    async def test_delayed_programmatic_empty_tree_selection_does_not_override_interleaved_user_selection(self):
+        # Arrange
+        plugin = self._make_plugin()
+        plugin.synchronize_selection = True
+        plugin._context_name = ""
+        user_item = SimpleNamespace(data=SimpleNamespace(GetPath=lambda: "/World/Mesh"))
+        self._set_delayed_selection_tree_widget(plugin)
+
+        with (
+            mock.patch.object(plugin, "_get_selection", return_value=["/World/Light"]),
+            mock.patch("omni.usd.get_context") as get_context,
+        ):
+            selection_mock = mock.MagicMock()
+            context_mock = mock.MagicMock(get_selection=mock.MagicMock(return_value=selection_mock))
+            get_context.return_value = context_mock
+
+            # Act
+            await plugin._set_tree_widget_selection_async([])
+            plugin._on_selection_changed([user_item])
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+
+            # Assert
+            self.assertEqual(plugin._tree_widget.selection, [])
+            self.assertEqual(selection_mock.set_selected_prim_paths.call_args_list, [mock.call(["/World/Mesh"])])
+
+    async def test_user_empty_tree_selection_clears_usd_selection(self):
+        # Arrange
+        plugin = self._make_plugin()
+        plugin._selection_update_lock = False
+        plugin.synchronize_selection = True
+        plugin._ignore_selection_update = False
+        plugin._context_name = ""
+
+        with (
+            mock.patch.object(_StageManagerInteractionPlugin, "_on_selection_changed", autospec=True) as super_sel,
+            mock.patch.object(plugin, "_get_selection", return_value=["/World/Light"]),
+            mock.patch("omni.usd.get_context") as get_context,
+        ):
+            selection_mock = mock.MagicMock()
+            context_mock = mock.MagicMock(get_selection=mock.MagicMock(return_value=selection_mock))
+            get_context.return_value = context_mock
+
+            # Act
+            plugin._on_selection_changed([])
+
+            # Assert
+            super_sel.assert_called_once()
+            selection_mock.set_selected_prim_paths.assert_called_once_with([])
+
+    async def test_empty_tree_selection_during_refresh_does_not_clear_matching_usd_selection(self):
+        # Arrange
+        plugin = self._make_plugin()
+        plugin._selection_update_lock = False
+        plugin.synchronize_selection = True
+        plugin._ignore_selection_update = False
+        plugin._context_name = ""
+        plugin._model_refresh_task = SimpleNamespace(done=lambda: False)
+        selected_item = SimpleNamespace(data=SimpleNamespace(GetPath=lambda: "/World/Mesh"))
+        plugin.tree.model.selection = [selected_item]
+        plugin.tree.model.set_selection = mock.MagicMock()
+
+        with (
+            mock.patch.object(plugin, "_get_selection", return_value=["/World/Mesh"]),
+            mock.patch("omni.usd.get_context") as get_context,
+        ):
+            selection_mock = mock.MagicMock()
+            context_mock = mock.MagicMock(get_selection=mock.MagicMock(return_value=selection_mock))
+            get_context.return_value = context_mock
+
+            # Act
+            plugin._on_selection_changed([])
+
+            # Assert
+            plugin.tree.model.set_selection.assert_not_called()
+            selection_mock.set_selected_prim_paths.assert_not_called()
+
+    async def test_empty_tree_selection_during_refresh_clears_when_usd_selection_is_empty(self):
+        # Arrange
+        plugin = self._make_plugin()
+        plugin._selection_update_lock = False
+        plugin.synchronize_selection = True
+        plugin._ignore_selection_update = False
+        plugin._context_name = ""
+        plugin._model_refresh_task = SimpleNamespace(done=lambda: False)
+        selected_item = SimpleNamespace(data=SimpleNamespace(GetPath=lambda: "/World/Mesh"))
+        plugin.tree.model.selection = [selected_item]
+        plugin.tree.model.set_selection = mock.MagicMock()
+
+        with (
+            mock.patch.object(plugin, "_get_selection", return_value=[]),
+            mock.patch("omni.usd.get_context") as get_context,
+        ):
+            selection_mock = mock.MagicMock()
+            context_mock = mock.MagicMock(get_selection=mock.MagicMock(return_value=selection_mock))
+            get_context.return_value = context_mock
+
+            # Act
+            plugin._on_selection_changed([])
+
+            # Assert
+            plugin.tree.model.set_selection.assert_called_once_with([])
+            selection_mock.set_selected_prim_paths.assert_not_called()
 
     async def test_on_selection_changed_does_not_write_back_for_order_only_difference(self):
         # Arrange

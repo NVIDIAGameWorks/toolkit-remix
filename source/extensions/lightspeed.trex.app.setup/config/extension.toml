@@ -1,8 +1,9 @@
 [package]
+kit_sdk_version = "110.*"
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Setup Extension"
 description = "This Extension does the final setup of the NVIDIA RTX Remix Apps"
-version = "1.2.4"
+version = "1.2.5"
 readme = "docs/README.md"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.app.setup"
 category = "internal"
@@ -14,6 +15,7 @@ icon = "data/icon.png"
 [dependencies]
 "omni.kit.mainwindow" = {}
 "omni.kit.menu.utils" = {}
+"omni.kit.window.splash" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 "lightspeed.common" = {}
@@ -25,5 +27,4 @@ name = "lightspeed.trex.app.setup"
 [[test]]
 dependencies = [
     "lightspeed.trex.tests.dependencies",
-    "omni.kit.menu.utils",
 ]

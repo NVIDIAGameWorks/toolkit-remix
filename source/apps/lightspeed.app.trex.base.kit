@@ -15,7 +15,8 @@ This base experience regroup all extensions shared between all NVIDIA RTX Remix 
 [dependencies]
 # The Main UI App
 "omni.kit.uiapp" = {}
-"lightspeed.dependencies" = { order = -15000}  # Try to load the splash screen
+"lightspeed.dependencies" = { order = -15000 }
+"omni.kit.window.splash" = { version = "1.0.4", order = -15001 }  # Show while slower app deps load.
 "lightspeed.aftermath.preload" = { order = -200000 }
 
 # PIP Archives
@@ -30,10 +31,6 @@ This base experience regroup all extensions shared between all NVIDIA RTX Remix 
 
 # Windows
 "omni.kit.window.title" = {}
-# Windows only extensions. For all of them set exact=true to not be included into generated version lock.
-# That will break linux otherwise, as version lock is platform agnostic currently.
-[dependencies."filter:platform"."windows-x86_64"]
-"omni.kit.window.modifier.titlebar" = { version = "105.2.16", exact = true }
 
 # Allow MDL paths to resolve
 "omni.kit.material.library" = {}
@@ -47,7 +44,6 @@ This base experience regroup all extensions shared between all NVIDIA RTX Remix 
 # Splash Setup
 ################################
 exts."omni.kit.window.splash".imagePath = "${lightspeed.trex.app.resources}/data/images/background_images_small/remix-splash-screen-864x486-r2.png"
-exts.'omni.kit.splash'.splash_app = "${lightspeed.trex.app.setup}/apps/lightspeed.trex.app.splash.kit"
 
 exts.'omni.kit.browser.asset'.folders = [
     "http://omniverse-content-production.s3-us-west-2.amazonaws.com/RTXRemix/LightspeedAssets",
@@ -56,19 +52,6 @@ exts.'omni.kit.browser.asset'.folders = [
     "http://omniverse-content-production.s3-us-west-2.amazonaws.com/RTXRemix/OVAssets/Assets/DigitalTwin/Assets/Warehouse"
 ]
 
-
-[settings.exts."omni.kit.window.modifier.titlebar"]
-showFileFullPath = true
-icon.size = 256
-defaultFont.name = "Arial"
-defaultFont.size = 16
-defaultFont.color = 0xD0D0D0
-separator.color = 0x00B976
-separator.width = 1
-windowBorder.color = 0x0F0F0F
-windowBorder.width = 0
-colors.caption = 0x0F0F0F
-colors.client = 0x0F0F0F
 
 [settings.ext."omni.kit.mainwindow"]
 margin.width = 0
@@ -92,6 +75,18 @@ createMenuAtStartup = false
 Grab.enabled = false
 PlayButton.enabled = false
 SelectionButton.SelectMode.enabled = false
+legacySnapButton.enabled = false
+
+[settings.exts."omni.kit.manipulator.prim.core".tools]
+enabled = false
+
+[settings.exts."omni.kit.viewport.window".startup]
+cameraManipulator.enabled = false
+disableWindowOnLoad = true
+showOnLaunch = false
+
+[settings.exts."omni.kit.viewport.window".windowMenu]
+entryCount = 0
 
 [settings.exts."omni.ui"]
 # crash-fix: "raster.default_rasterpolicy_enabled = true" was causing a crash when

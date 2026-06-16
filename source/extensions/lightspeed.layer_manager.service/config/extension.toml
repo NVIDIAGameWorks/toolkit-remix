@@ -1,5 +1,6 @@
 [package]
-version = "2.1.1"
+kit_sdk_version = "110.*"
+version = "2.1.2"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
@@ -21,8 +22,6 @@ name = "lightspeed.layer_manager.service"
 dependencies = [
     "lightspeed.trex.tests.dependencies",
     "omni.flux.utils.widget",
-    "omni.kit.usd.layers",
-    "omni.services.core",
 ]
 
 stdoutFailPatterns.exclude = [

@@ -197,7 +197,7 @@ class GenerateThumbnail(_CheckBaseUSD):
         up_axis = UsdGeom.GetStageUpAxis(stage)
 
         def add_viewport_camera(cam_name, translate, rotate, ortho, md_name, counter):
-            cam_path = f"{cam_prefix}{cam_name}{counter if counter else ''}"
+            cam_path = f"{cam_prefix}{cam_name}{counter or ''}"
             prim = stage.GetPrimAtPath(cam_path)
             existed = prim and prim.IsValid()
             # Test if it's a camera, but also might be a pure-over which Define should take.

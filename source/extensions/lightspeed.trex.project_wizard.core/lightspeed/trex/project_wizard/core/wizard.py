@@ -168,7 +168,7 @@ class ProjectWizardCore:
                 await asyncio.wait_for(
                     self._check_symlinks_exist(model, project_directory, deps_directory, dry_run), timeout=5.0
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 symlink_error = f"{symlink_error}\nTimeout: Symlinks were not created within 5 seconds"
 
             if symlink_error:

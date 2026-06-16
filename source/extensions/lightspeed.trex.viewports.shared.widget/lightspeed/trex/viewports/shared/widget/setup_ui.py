@@ -28,8 +28,15 @@ import omni.ui as ui
 import omni.usd
 from lightspeed.common.constants import GlobalEventNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
+from lightspeed.hydra.remix.core import REMIX_HYDRA_ENGINE_NAME as _HDREMIX_HYDRA_ENGINE_NAME
+from lightspeed.hydra.remix.core import REMIX_RENDER_MODE as _HDREMIX_RENDER_MODE
+from lightspeed.hydra.remix.core import REMIX_RENDERERS_SETTING as _HDREMIX_RENDERERS_SETTING
+from lightspeed.hydra.remix.core import RemixSupport as _RemixSupport
+from lightspeed.hydra.remix.core import is_remix_supported as _is_remix_supported
+from lightspeed.hydra.remix.core import retry_remix_support_async as _retry_remix_support_async
 from lightspeed.trex.app.style import update_viewport_menu_style
 from lightspeed.trex.utils.common.camera import ensure_editable_camera_for_navigation as _ensure_editable_camera
+from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
 from lightspeed.trex.viewports.properties_pane.widget import EnumItems as _PropertiesPaneEnumItems
 from lightspeed.trex.viewports.properties_pane.widget import SetupUI as _PropertiesPaneSetupUI
@@ -43,9 +50,47 @@ from .layers import ViewportLayers
 if TYPE_CHECKING:
     from omni.kit.widget.viewport.api import ViewportAPI
 
+_SHOW_REMIX_SUPPORT_POPUP_SETTING = "/exts/lightspeed/hydra/remix/showpopup"
+_REMIX_FAILURE_DIALOG_SHOWN = False
+
+
+def _show_remix_failure_dialog(error_message: str) -> bool:
+    global _REMIX_FAILURE_DIALOG_SHOWN
+
+    if _REMIX_FAILURE_DIALOG_SHOWN:
+        return False
+
+    settings = carb.settings.get_settings()
+    if not settings.get_as_bool(_SHOW_REMIX_SUPPORT_POPUP_SETTING):
+        return False
+
+    def exit_app():
+        omni.kit.app.get_app().post_quit(0)
+
+    _TrexMessageDialog(
+        title="RTX Remix Renderer failed to initialize",
+        message=error_message,
+        ok_label="Exit",
+        ok_handler=exit_app,
+        on_window_closed_fn=exit_app,
+        disable_cancel_button=True,
+    )
+    _REMIX_FAILURE_DIALOG_SHOWN = True
+    return True
+
 
 class SetupUI(_WorkspaceWidget):
     viewport_counts = {}
+    _REMIX_TIMEOUT_FRAMES_SETTING = "exts/lightspeed/hydra/remix/startupTimeoutFrames"
+    _REMIX_VIEWPORT_STABLE_FRAMES_SETTING = "exts/lightspeed/trex/viewports/shared/widget/remixViewportStableFrames"
+    _REMIX_VIEWPORT_STABLE_TIMEOUT_FRAMES_SETTING = (
+        "exts/lightspeed/trex/viewports/shared/widget/remixViewportStableTimeoutFrames"
+    )
+    _REMIX_POST_STABLE_DWELL_FRAMES_SETTING = "exts/lightspeed/trex/viewports/shared/widget/remixPostStableDwellFrames"
+    _ACTIVATE_REMIX_RENDERER_SETTING = "exts/lightspeed/trex/viewports/shared/widget/activateRemixRenderer"
+    _REMIX_ENGINE_NAME = _HDREMIX_HYDRA_ENGINE_NAME
+    _REMIX_RENDER_MODE = _HDREMIX_RENDER_MODE
+    _REMIX_RENDERERS_SETTING = _HDREMIX_RENDERERS_SETTING
 
     def __init__(self, context_name):
         """Nvidia StageCraft Viewport UI"""
@@ -71,6 +116,7 @@ class SetupUI(_WorkspaceWidget):
             "_minimize_window_subscription": None,
             "_active_viewport_change_subscription": None,
             "_stage_event_subscription": None,
+            "_remix_renderer_activation_task": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -80,6 +126,9 @@ class SetupUI(_WorkspaceWidget):
         self.___first_time_show_properties = True
         self._active = False
         self._docked = False
+
+        if self._should_activate_remix_renderer():
+            self._apply_remix_renderer_settings()
 
         app = omni.kit.app.get_app_interface()
         ext_manager = app.get_extension_manager()
@@ -147,7 +196,9 @@ class SetupUI(_WorkspaceWidget):
                     )
                     with self._viewport_frame:
                         self._viewport_layers = ViewportLayers(
-                            viewport_id=self.viewport_id, usd_context_name=self._context_name
+                            viewport_id=self.viewport_id,
+                            usd_context_name=self._context_name,
+                            is_active_fn=self.is_active,
                         )
                         # do viewport updates initially
                         self.set_active(True)
@@ -228,6 +279,193 @@ class SetupUI(_WorkspaceWidget):
             # If a new stage is opened on the associated usd_context, we want to activate
             # the viewport in order to make sure we always show the current stage.
             self.set_active(True)
+            self._schedule_remix_renderer_activation("stage-opened")
+
+    def _schedule_remix_renderer_activation(self, reason: str, retry_support: bool = True):
+        task = self._remix_renderer_activation_task
+        if task is not None and not task.done():
+            carb.log_info(
+                "[lightspeed.trex.viewports.shared.widget] "
+                f"HdRemix renderer activation already scheduled for {self.viewport_id}; "
+                f"skipping duplicate request from {reason}."
+            )
+            return
+        self._remix_renderer_activation_task = asyncio.ensure_future(
+            self._activate_remix_renderer_async(reason, retry_support=retry_support)
+        )
+
+    def _viewport_signature(self) -> tuple[object, ...]:
+        viewport_api = self.viewport_api
+        stage = viewport_api.stage if viewport_api else None
+        stage_identifier = stage.GetRootLayer().identifier if stage else None
+        render_product_path = getattr(viewport_api, "render_product_path", None) if viewport_api else None
+        render_product_exists = self._render_product_exists(stage, render_product_path)
+        return (
+            getattr(viewport_api, "id", None) if viewport_api else None,
+            getattr(viewport_api, "usd_context_name", None) if viewport_api else None,
+            getattr(viewport_api, "hydra_engine", None) if viewport_api else None,
+            getattr(viewport_api, "render_mode", None) if viewport_api else None,
+            render_product_path,
+            getattr(viewport_api, "camera_path", None) if viewport_api else None,
+            viewport_api.frame_info.get("viewport_handle") if viewport_api else None,
+            render_product_exists,
+            stage_identifier,
+        )
+
+    @staticmethod
+    def _viewport_signature_ready(signature: tuple[object, ...] | None) -> bool:
+        return bool(signature) and signature[7] is True and all(value is not None for value in signature)
+
+    @staticmethod
+    def _render_product_exists(stage, render_product_path) -> bool | None:
+        if not stage or not render_product_path:
+            return None
+        render_product_prim = stage.GetPrimAtPath(render_product_path)
+        return bool(render_product_prim and render_product_prim.IsValid())
+
+    def _is_remix_viewport_renderer_selected(self, viewport_api: ViewportAPI) -> bool:
+        return (
+            viewport_api.hydra_engine == self._REMIX_ENGINE_NAME and viewport_api.render_mode == self._REMIX_RENDER_MODE
+        )
+
+    def _apply_remix_renderer_settings(self) -> None:
+        settings = carb.settings.get_settings()
+        for setting_path, value in (
+            ("/renderer/enabled", self._REMIX_ENGINE_NAME),
+            ("/renderer/active", self._REMIX_ENGINE_NAME),
+            ("/pxr/rendermode", self._REMIX_RENDER_MODE),
+            ("/pxr/renderers", self._REMIX_RENDERERS_SETTING),
+        ):
+            if settings.get(setting_path) != value:
+                settings.set(setting_path, value)
+
+    @staticmethod
+    def _should_activate_remix_renderer() -> bool:
+        return carb.settings.get_settings().get_as_bool(SetupUI._ACTIVATE_REMIX_RENDERER_SETTING)
+
+    def _activate_remix_viewport_renderer(self, reason: str) -> bool:
+        if not self._should_activate_remix_renderer():
+            carb.log_info(
+                "[lightspeed.trex.viewports.shared.widget] "
+                f"Skipping HdRemix renderer activation for {self.viewport_id} during {reason}."
+            )
+            return False
+
+        viewport_api = self.viewport_api
+        if viewport_api is None:
+            carb.log_warn(
+                "[lightspeed.trex.viewports.shared.widget] "
+                f"Cannot activate HdRemix renderer for {self.viewport_id}: viewport API is not ready."
+            )
+            return False
+
+        self._apply_remix_renderer_settings()
+
+        try:
+            set_hd_engine = getattr(viewport_api, "set_hd_engine", None)
+            if callable(set_hd_engine):
+                set_hd_engine(self._REMIX_ENGINE_NAME, self._REMIX_RENDER_MODE)
+            else:
+                viewport_api.hydra_engine = self._REMIX_ENGINE_NAME
+                viewport_api.render_mode = self._REMIX_RENDER_MODE
+        except Exception as exc:  # noqa: BLE001
+            message = f"Failed to activate HdRemix renderer for {self.viewport_id} during {reason}: {exc!r}"
+            carb.log_warn(f"[lightspeed.trex.viewports.shared.widget] {message}")
+            _show_remix_failure_dialog(message)
+            return False
+
+        carb.log_info(
+            "[lightspeed.trex.viewports.shared.widget] "
+            f"Activated HdRemix renderer for {self.viewport_id} during {reason}: "
+            f"renderer_selected={self._is_remix_viewport_renderer_selected(viewport_api)!r}, "
+            f"signature={self._viewport_signature()!r}"
+        )
+        return True
+
+    async def _wait_for_stable_viewport(self) -> tuple[object, ...] | None:
+        settings = carb.settings.get_settings()
+        stable_frame_target = settings.get_as_int(self._REMIX_VIEWPORT_STABLE_FRAMES_SETTING) or 10
+        timeout_frames = settings.get_as_int(self._REMIX_VIEWPORT_STABLE_TIMEOUT_FRAMES_SETTING) or 240
+        stable_signature = None
+        stable_frames = 0
+
+        for frame in range(1, timeout_frames + 1):
+            await omni.kit.app.get_app().next_update_async()
+            signature = self._viewport_signature()
+            signature_ready = self._viewport_signature_ready(signature)
+            if signature == stable_signature and signature_ready:
+                stable_frames += 1
+            else:
+                stable_signature = signature
+                stable_frames = 1 if signature_ready else 0
+
+            if stable_frames in (1, stable_frame_target):
+                carb.log_info(
+                    "[lightspeed.trex.viewports.shared.widget] "
+                    f"HdRemix viewport stabilization frame={frame}, "
+                    f"stable_frames={stable_frames}, signature={signature!r}"
+                )
+
+            if stable_frames >= stable_frame_target:
+                return stable_signature
+
+        carb.log_warn(
+            "[lightspeed.trex.viewports.shared.widget] "
+            f"Viewport did not stabilize before HdRemix activation after {timeout_frames} frames. "
+            f"Last signature={stable_signature!r}"
+        )
+        return stable_signature
+
+    async def _activate_remix_renderer_async(self, reason: str, retry_support: bool = True):
+        settings = carb.settings.get_settings()
+        if not self._should_activate_remix_renderer():
+            carb.log_info(
+                "[lightspeed.trex.viewports.shared.widget] "
+                f"Skipping HdRemix renderer activation for {self.viewport_id} during {reason}."
+            )
+            return
+
+        self._apply_remix_renderer_settings()
+
+        if not retry_support:
+            return
+
+        stable_signature = await self._wait_for_stable_viewport()
+        if not self._viewport_signature_ready(stable_signature):
+            return
+
+        if not self._activate_remix_viewport_renderer(f"{reason}-stable"):
+            return
+        dwell_frames = settings.get_as_int(self._REMIX_POST_STABLE_DWELL_FRAMES_SETTING) or 120
+        for frame in range(1, dwell_frames + 1):
+            await omni.kit.app.get_app().next_update_async()
+            if frame in (1, dwell_frames):
+                carb.log_info(
+                    "[lightspeed.trex.viewports.shared.widget] "
+                    f"HdRemix post-stable dwell frame={frame}/{dwell_frames}, "
+                    f"signature={self._viewport_signature()!r}"
+                )
+
+        await self._retry_remix_support_after_renderer_activation(reason)
+
+    async def _retry_remix_support_after_renderer_activation(self, reason: str):
+        support_level, _error_message = _is_remix_supported()
+        if support_level == _RemixSupport.SUPPORTED:
+            return
+
+        settings = carb.settings.get_settings()
+        timeout_frames = settings.get_as_int(self._REMIX_TIMEOUT_FRAMES_SETTING) or 500
+        frames_passed = await _retry_remix_support_async(
+            timeout_frames=timeout_frames,
+            reason=f"{reason} for {self.viewport_id}",
+        )
+        carb.log_info(
+            "[lightspeed.trex.viewports.shared.widget] "
+            f"HdRemix support retry for {self.viewport_id} during {reason} took {frames_passed} frame(s)."
+        )
+        support_level, error_message = _is_remix_supported()
+        if support_level == _RemixSupport.NOT_SUPPORTED:
+            _show_remix_failure_dialog(error_message)
 
     def frame_viewport_selection(self, selection: list[str] = None):
         if not _ensure_editable_camera(self._viewport_layers.viewport_api, "Frame/focus"):
@@ -347,4 +585,7 @@ class SetupUI(_WorkspaceWidget):
         self._property_panel_frame.width = ui.Percent(result)
 
     def destroy(self):
+        self._mark_destroyed()
+        if self._remix_renderer_activation_task is not None and not self._remix_renderer_activation_task.done():
+            self._remix_renderer_activation_task.cancel()
         _reset_default_attrs(self)

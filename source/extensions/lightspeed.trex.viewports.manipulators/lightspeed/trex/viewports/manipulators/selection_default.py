@@ -28,14 +28,40 @@ class SelectionDefault(IManipulator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__selection_args = None
+        self.__selection_start_paths = None
+        self.__selection_start_manipulator_token = None
 
     def __reset_state(self):
         self.__selection_args = None
+        self.__selection_start_paths = None
+        self.__selection_start_manipulator_token = None
 
     def _create_manipulator(self):
         return SelectionManipulator()
 
+    def __get_selected_paths(self):
+        usd_context = self.viewport_api.usd_context
+        if not usd_context:
+            return []
+        return list(usd_context.get_selection().get_selected_prim_paths())
+
+    def __is_single_click(self, args):
+        return args[0][0] == args[1][0] and args[0][1] == args[1][1]
+
+    def __was_consumed_by_another_layer(self, args):
+        selection_manager = GlobalSelection.get_instance()
+        if not self.__is_single_click(args) or self.__selection_start_paths is None:
+            return False
+        paths_changed = self.__get_selected_paths() != self.__selection_start_paths
+        manipulator_consumed = selection_manager.consume_manipulator_selection(
+            self.__selection_start_manipulator_token, args
+        )
+        return paths_changed or manipulator_consumed
+
     def __handle_selection(self, ndc_rect, mode):
+        if self.__selection_start_paths is None:
+            self.__selection_start_paths = self.__get_selected_paths()
+            self.__selection_start_manipulator_token = GlobalSelection.get_instance().manipulator_selection_token
         # Map the NDC screen coordinates into texture space
         box_start, _start_in = self.viewport_api.map_ndc_to_texture_pixel((ndc_rect[0], ndc_rect[1]))
         box_end, _end_in = self.viewport_api.map_ndc_to_texture_pixel((ndc_rect[2], ndc_rect[3]))
@@ -50,6 +76,9 @@ class SelectionDefault(IManipulator):
             self.__selection_args = None
 
     def __request_pick(self):
+        if self.__selection_start_paths is None:
+            return
+
         # If not selection state (pick is 100% outside of the viewport); clear the UsdContext's selection
         if self.__selection_args is None:
             usd_context = self.viewport_api.usd_context
@@ -58,6 +87,9 @@ class SelectionDefault(IManipulator):
             return
 
         args = self.__selection_args
+        consumed = self.__was_consumed_by_another_layer(args)
+        if consumed:
+            return
         GlobalSelection.get_instance().add_prim_selection(self.viewport_api, args)
 
     def _model_changed(self, model, item):
@@ -89,7 +121,7 @@ class SelectionDefault(IManipulator):
             SelectionMode.REPLACE: omni.usd.PickingMode.RESET_AND_SELECT,
             SelectionMode.APPEND: omni.usd.PickingMode.MERGE_SELECTION,
             SelectionMode.REMOVE: omni.usd.PickingMode.INVERT_SELECTION,
-        }.get(mode[0], None)
+        }.get(mode[0])
         if mode is None:
             self.__reset_state()
             return

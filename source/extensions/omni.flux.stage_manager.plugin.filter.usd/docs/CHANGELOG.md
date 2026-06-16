@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.9.3]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.9.2]
 ### Changed
 - Made Stage Manager combobox filters fill the available control width in Additional Filters rows.
@@ -33,7 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.8.0]
 ### Removed
-- Removed `GeometryPrimsFilterPlugin` — a Lightspeed-specific implementation now owns this plugin name in the `StageManagerFactory`
+- Removed `GeometryPrimsFilterPlugin` - a Lightspeed-specific implementation now owns this plugin name in the `StageManagerFactory`
 
 ## [2.7.4]
 ### Changed

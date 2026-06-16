@@ -50,7 +50,7 @@ from enum import Enum
 
 import omni.usd
 from lightspeed.common import constants
-from lightspeed.common.constants import PARTICLE_CPP_SCHEMA_NAME
+from lightspeed.common.constants import PARTICLE_SCHEMA_NAME
 from omni.flux.utils.common.lights import get_light_type as _get_light_type
 from pxr import Sdf, Usd, UsdGeom, UsdShade
 
@@ -584,7 +584,7 @@ def _prim_spec_has_definition_opinion(prim_spec: Sdf.PrimSpec) -> bool:
     # an over prim. Particle property edits also use over prims, but they do not apply that API
     # and must stay modification transfers. Sdf stores the registered API token, not the
     # user-facing schema name used by Usd.Prim.HasAPI().
-    return prim_spec.GetInfo(Usd.Tokens.apiSchemas).HasItem(PARTICLE_CPP_SCHEMA_NAME)
+    return prim_spec.GetInfo(Usd.Tokens.apiSchemas).HasItem(PARTICLE_SCHEMA_NAME)
 
 
 def get_prototype(prim: Usd.Prim) -> Usd.Prim | None:

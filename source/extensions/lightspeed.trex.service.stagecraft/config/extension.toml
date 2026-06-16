@@ -1,5 +1,6 @@
 [package]
-version = "1.2.1"
+kit_sdk_version = "110.*"
+version = "1.2.2"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Micro-Service for StageCraft"
 description = "Micro-Service for NVIDIA RTX Remix StageCraft App"

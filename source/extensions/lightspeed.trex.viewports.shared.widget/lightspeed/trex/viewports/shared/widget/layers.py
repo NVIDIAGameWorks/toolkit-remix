@@ -19,6 +19,7 @@ from __future__ import annotations
 
 __all__ = ["ViewportLayers"]
 
+from collections.abc import Callable
 import traceback
 import weakref
 
@@ -38,6 +39,14 @@ K_LAYER_ORDER = [
     "omni.kit.viewport.ViewportTools",
     "omni.kit.viewport.menubar.MenuBarLayer",
 ]
+
+# Lightspeed registers its own viewport scene and stats layers. Kit 110's
+# viewport-window extension also registers stock versions; instantiating both
+# creates duplicate selection handlers and duplicate stats HUDs.
+_SKIPPED_VIEWPORT_LAYER_FACTORY_IDS = {
+    "omni.kit.viewport.window.SceneLayer",
+    "omni.kit.viewport.window.ViewportStats",
+}
 
 
 class _ViewportLayerItem(_LayerItem):
@@ -101,13 +110,16 @@ class ViewportLayers:
         *ui_args,
         usd_context_name: str = "",
         hydra_engine_options: dict | None = None,
+        is_active_fn: Callable[[], bool] | None = None,
         **ui_kwargs,
     ):
         # mapping of factory to instance:
         self.__viewport_layers: dict[type[_ViewportLayerItem], _ViewportLayerItem] = {}
+        self.__skipped_factories: set = set()
         self.__ui_frame = None
         self.__viewport = None
         self.__zstack = None
+        self.__is_active_fn = is_active_fn
         self.__timeline = omni.timeline.get_timeline_interface()
         self.__timeline_sub = self.__timeline.get_timeline_event_stream().create_subscription_to_pop(
             self.__on_timeline_event
@@ -188,6 +200,7 @@ class ViewportLayers:
                 "usd_context_name": self.viewport_api.usd_context_name,
                 "layer_provider": weakref.proxy(self),
                 "viewport_api": self.viewport_api,
+                "is_active_fn": self.__is_active_fn,
             }
 
             # Clear out the old stack
@@ -205,6 +218,9 @@ class ViewportLayers:
                             # Skip over things that weren't found (they may have not been registered or enabled yet)
                             if not factory_v:
                                 continue
+                            if _factory_id in _SKIPPED_VIEWPORT_LAYER_FACTORY_IDS:
+                                self.__skipped_factories.add(factory_v)
+                                continue
                             with self.__zstack:
                                 try:
                                     self.__viewport_layers[factory_v] = factory_v(factory_args.copy())
@@ -217,6 +233,8 @@ class ViewportLayers:
         elif factory in self.__viewport_layers:
             self.__viewport_layers[factory].destroy()
             del self.__viewport_layers[factory]
+        elif factory in self.__skipped_factories:
+            self.__skipped_factories.discard(factory)
         else:
             carb.log_error(f"Removing {factory} which was never instantiated")
 
@@ -229,6 +247,7 @@ class ViewportLayers:
         for instance in self.__viewport_layers.values():
             instance.destroy()
         self.__viewport_layers = {}
+        self.__skipped_factories = set()
         if self.__zstack:
             self.__zstack.destroy()
             self.__zstack = None
@@ -239,4 +258,5 @@ class ViewportLayers:
             self.__ui_frame.destroy()
             self.__ui_frame = None
         self.get_frame = None
+        self.__is_active_fn = None
         self.__timeline = None

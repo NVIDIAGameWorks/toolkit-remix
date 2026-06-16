@@ -16,7 +16,7 @@
 """
 
 import time
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from collections.abc import Callable
 
 from lightspeed.event.shutdown_base import EventOnShutdownBase as _EventOnShutdownBase
@@ -60,8 +60,8 @@ class EventAppShutdownCore(_EventOnShutdownBase):
         app_shutdown_time = current_time - shutdown_duration
 
         with telemetry.sentry_sdk.start_transaction(op="session", name="Session Duration") as transaction:
-            transaction.start_timestamp = datetime.fromtimestamp(app_shutdown_time, tz=timezone.utc)
-            transaction.finish(end_timestamp=datetime.fromtimestamp(current_time, tz=timezone.utc))
+            transaction.start_timestamp = datetime.fromtimestamp(app_shutdown_time, tz=UTC)
+            transaction.finish(end_timestamp=datetime.fromtimestamp(current_time, tz=UTC))
 
         client = telemetry.sentry_sdk.Hub.current.client
         if client is not None:

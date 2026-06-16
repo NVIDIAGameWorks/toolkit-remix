@@ -1,6 +1,7 @@
 [package]
+kit_sdk_version = "110.*"
 # Semantic Versionning is used: https://semver.org/
-version = "0.7.2"
+version = "0.8.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Alex Dunn <adunn@nvidia.com>"]
@@ -38,10 +39,14 @@ icon = "data/icon.png"
 "omni.usd" = {}
 "omni.mdl" = {}
 "omni.mdl.neuraylib" = {}
-"lightspeed.trex.utils.widget" = {}
 
 [[python.module]]
 name = "lightspeed.hydra.remix.core"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
 
 [settings]
 pxr.rendermode = "HdRemixRendererPlugin" # set remix as default
@@ -60,10 +65,28 @@ mdl.populateInputsForNonMdlRenderer=1
 [settings.exts.lightspeed.hydra.remix]
 showpopup = true
 useLegacySelectHighlight = false
+startupTimeoutFrames = 500
 
 [[env]]
 name = "PXR_PLUGINPATH_NAME"
 value = "${lightspeed.hydra.remix.core}/deps/hdremix"
+isPath = true
+append = true
+override = false
+
+# HdRemix.dll imports RemixParticleSystem.dll from the particle schema plugin folder.
+# USD's PlugPlugin::Load uses LoadLibraryW (legacy DLL search order, uses PATH).
+# Add both HdRemix package DLL directories to PATH before Python on_startup runs.
+[[env]]
+name = "PATH"
+value = "${lightspeed.hydra.remix.core}/deps/hdremix"
+isPath = true
+append = true
+override = false
+
+[[env]]
+name = "PATH"
+value = "${lightspeed.hydra.remix.core}/deps/hdremix/usd/plugins/RemixParticleSystem"
 isPath = true
 append = true
 override = false

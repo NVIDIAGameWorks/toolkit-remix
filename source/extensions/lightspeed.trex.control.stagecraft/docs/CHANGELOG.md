@@ -1,6 +1,17 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.1]
+### Added
+- Added Stage Manager E2E coverage for preserving newly created light selection through mesh tab refreshes.
+- Added Stage Manager E2E coverage for clearing tree selection after the ESC unselect-all hotkey.
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Set the StageCraft context at startup when StageCraft is the default layout so context-scoped undo/redo hotkeys work in the combined Remix app.
+
 ## [1.8.0]
 ### Fixed
 - Prevent startup Home layout loading from pulling users out of an already-open StageCraft workspace.

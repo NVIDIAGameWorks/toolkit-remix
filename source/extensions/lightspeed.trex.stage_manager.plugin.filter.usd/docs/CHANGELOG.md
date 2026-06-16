@@ -2,6 +2,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [2.6.2]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.6.1]
 ### Fixed
 - Fixed `SceneEditFilterPlugin` filter activation and context-rebind source-layer selection reset so non-default edit-state modes affect Stage Manager results.

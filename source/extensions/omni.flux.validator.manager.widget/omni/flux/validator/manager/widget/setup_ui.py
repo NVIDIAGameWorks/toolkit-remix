@@ -101,7 +101,7 @@ class ValidatorManagerWidget:
         if default_schema:
             schema_path = carb.tokens.get_tokens_interface().resolve(default_schema)
             data = _path_utils.read_json_file(schema_path)
-        self._manager_core = core if core else _ManagerCore(data)
+        self._manager_core = core or _ManagerCore(data)
         self.__stop_warning_loop = False
         if not use_global_style:
             from .style import style as _local_style  # noqa: PLC0415  # or doc will not build
@@ -428,9 +428,12 @@ class ValidatorManagerWidget:
         self._manager_core.stop()
 
     def __on_run_selected_clicked(self, tree_view: ui.TreeView, item: _BaseItem, run_mode: _BaseValidatorRunMode):
-        self._manager_core.run(
-            run_mode=run_mode, instance_plugins=[_item.plugin.instance for _item in tree_view.selection]
-        )
+        selected_items = list(tree_view.selection)
+        if item not in selected_items:
+            # Kit 110 no longer reliably selects an item before opening its right-click context menu.
+            selected_items = [item]
+            tree_view.selection = selected_items
+        self._manager_core.run(run_mode=run_mode, instance_plugins=[_item.plugin.instance for _item in selected_items])
 
     def destroy(self):
         self.__stop_warning_loop = True

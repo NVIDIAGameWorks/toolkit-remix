@@ -18,7 +18,7 @@
 __all__ = ["EventAppStartCore"]
 
 import time
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 import omni.kit.app
 from lightspeed.events_manager import ILSSEvent
@@ -97,8 +97,8 @@ class EventAppStartCore(ILSSEvent):
             transaction.set_data("total_host_memory", total_memory)
             transaction.set_data("available_host_memory", available_memory)
 
-            transaction.start_timestamp = datetime.fromtimestamp(app_start_time, tz=timezone.utc)
-            transaction.finish(end_timestamp=datetime.fromtimestamp(current_time, tz=timezone.utc))
+            transaction.start_timestamp = datetime.fromtimestamp(app_start_time, tz=UTC)
+            transaction.finish(end_timestamp=datetime.fromtimestamp(current_time, tz=UTC))
 
         self._executed = True
 

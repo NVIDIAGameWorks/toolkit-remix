@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.5]
+### Fixed
+- Preserved pending edit-target selection while the layer tree hides and rebuilds during Kit SDK 110 refreshes.
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.15.4]
 ### Fixed
 - Dimmed disabled layer tree item labels.

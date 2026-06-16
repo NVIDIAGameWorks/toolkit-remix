@@ -21,7 +21,7 @@ from unittest.mock import Mock, patch
 import omni.kit.test
 
 from ... import camera_default as _camera_default_module
-from ...camera_default import _ViewportCameraManipulator
+from ...camera_default import CameraDefault, _ViewportCameraManipulator
 
 
 class _TestableViewportCameraManipulator(_ViewportCameraManipulator):
@@ -230,3 +230,31 @@ class TestCameraDefault(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(result, "ended")
         lock_mock.assert_called_once_with(stage, "/OmniverseKit_Top")
+
+    async def test_camera_default_leaves_scroll_zoom_to_shared_viewport_delegate(self):
+        """The default camera manipulator should not also own mouse-wheel zoom."""
+
+        # Arrange
+        viewport_api = object()
+        camera_default = CameraDefault.__new__(CameraDefault)
+        camera_default._IManipulator__viewport_api = viewport_api
+        model = SimpleNamespace(
+            set_floats=Mock(),
+            set_ints=Mock(),
+        )
+        manipulator = SimpleNamespace(model=model)
+
+        with (
+            patch.object(_camera_default_module, "_ViewportCameraManipulator", return_value=manipulator) as factory,
+            patch("omni.kit.app.SettingChangeSubscription", return_value=object()),
+        ):
+            # Act
+            camera_default._create_manipulator()
+
+        # Assert
+        factory.assert_called_once()
+        self.assertIs(factory.call_args.args[0], viewport_api)
+        self.assertIn("bindings", factory.call_args.kwargs)
+        bindings = factory.call_args.kwargs["bindings"]
+        self.assertIn("PanGesture", bindings)
+        self.assertNotIn("ZoomScrollGesture", bindings)

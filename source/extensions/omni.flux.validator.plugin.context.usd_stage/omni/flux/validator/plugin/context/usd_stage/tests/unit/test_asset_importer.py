@@ -45,6 +45,17 @@ class MockListEntry:
         self.flags = flags
 
 
+def _stat_side_effect(results: list[tuple[omni.client.Result, MockListEntry]]):
+    remaining_results = list(results)
+
+    def _stat(path: str, *_args, **_kwargs):
+        if remaining_results:
+            return remaining_results.pop(0)
+        return omni.client.Result.OK, MockListEntry(str(path))
+
+    return _stat
+
+
 class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
     # Before running each test
     async def setUp(self):
@@ -277,13 +288,15 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
         output_folder_path = OmniUrl("OutputDir")
 
         with patch.object(omni.client, "stat") as stat_mock:
-            stat_mock.side_effect = [
-                (omni.client.Result.OK, MockListEntry(str(input_file_path))),
-                (
-                    omni.client.Result.OK,
-                    MockListEntry(str(output_folder_path), flags=omni.client.ItemFlags.CAN_HAVE_CHILDREN),
-                ),
-            ]
+            stat_mock.side_effect = _stat_side_effect(
+                [
+                    (omni.client.Result.OK, MockListEntry(str(input_file_path))),
+                    (
+                        omni.client.Result.OK,
+                        MockListEntry(str(output_folder_path), flags=omni.client.ItemFlags.CAN_HAVE_CHILDREN),
+                    ),
+                ]
+            )
 
             asset_importer = AssetImporter()
             schema_data = asset_importer.Data(
@@ -308,13 +321,15 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
                 output_folder_path = OmniUrl("OutputDir")
 
                 with patch.object(omni.client, "stat") as stat_mock:
-                    stat_mock.side_effect = [
-                        (omni.client.Result.OK, MockListEntry(str(input_file_path))),
-                        (
-                            omni.client.Result.OK,
-                            MockListEntry(str(output_folder_path), flags=omni.client.ItemFlags.CAN_HAVE_CHILDREN),
-                        ),
-                    ]
+                    stat_mock.side_effect = _stat_side_effect(
+                        [
+                            (omni.client.Result.OK, MockListEntry(str(input_file_path))),
+                            (
+                                omni.client.Result.OK,
+                                MockListEntry(str(output_folder_path), flags=omni.client.ItemFlags.CAN_HAVE_CHILDREN),
+                            ),
+                        ]
+                    )
 
                     asset_importer = AssetImporter()
                     schema_data = asset_importer.Data(
@@ -357,15 +372,17 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             patch.object(omni.client, "stat") as stat_mock,
             patch.object(AssetImporterModel, "__init__") as asset_importer_model_mock,
         ):
-            stat_mock.side_effect = [
-                (omni.client.Result.OK, MockListEntry(str(input_file_path_0))),
-                (omni.client.Result.OK, MockListEntry(str(input_file_path_1))),
-                (omni.client.Result.OK, MockListEntry(str(input_file_path_2))),
-                (
-                    omni.client.Result.OK,
-                    MockListEntry(str(output_folder_path), flags=omni.client.ItemFlags.CAN_HAVE_CHILDREN),
-                ),
-            ]
+            stat_mock.side_effect = _stat_side_effect(
+                [
+                    (omni.client.Result.OK, MockListEntry(str(input_file_path_0))),
+                    (omni.client.Result.OK, MockListEntry(str(input_file_path_1))),
+                    (omni.client.Result.OK, MockListEntry(str(input_file_path_2))),
+                    (
+                        omni.client.Result.OK,
+                        MockListEntry(str(output_folder_path), flags=omni.client.ItemFlags.CAN_HAVE_CHILDREN),
+                    ),
+                ]
+            )
 
             asset_importer_model_mock.side_effect = [None, None if success else ValueError("Error"), None]
 
@@ -461,15 +478,17 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             patch.object(ImporterCore, "import_batch") as import_mock,
             patch.object(omni.usd, "get_context") as get_context_mock,
         ):
-            stat_mock.side_effect = [
-                (omni.client.Result.OK, MockListEntry(str(input_file_path_0))),
-                (omni.client.Result.OK, MockListEntry(str(input_file_path_1))),
-                (omni.client.Result.OK, MockListEntry(str(input_file_path_2))),
-                (
-                    omni.client.Result.OK,
-                    MockListEntry(str(output_folder_path), flags=omni.client.ItemFlags.CAN_HAVE_CHILDREN),
-                ),
-            ]
+            stat_mock.side_effect = _stat_side_effect(
+                [
+                    (omni.client.Result.OK, MockListEntry(str(input_file_path_0))),
+                    (omni.client.Result.OK, MockListEntry(str(input_file_path_1))),
+                    (omni.client.Result.OK, MockListEntry(str(input_file_path_2))),
+                    (
+                        omni.client.Result.OK,
+                        MockListEntry(str(output_folder_path), flags=omni.client.ItemFlags.CAN_HAVE_CHILDREN),
+                    ),
+                ]
+            )
 
             import_future = asyncio.Future()
             import_future.set_result(None)

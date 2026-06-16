@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .test_clicked_gesture import TestClickedGesture
 from .test_model import TestLightGizmosModel
 
-__all__ = ["TestLightGizmosModel"]
+__all__ = ["TestClickedGesture", "TestLightGizmosModel"]

@@ -354,7 +354,7 @@ class LogicPropertyWidget:
                     )
                     ui.Spacer(width=0)
                     with ui.VStack(width=ui.Pixel(_ICON_SIZE), height=ui.Pixel(_ROW_HEIGHT)):
-                        ui.Spacer()
+                        ui.Spacer(width=0)
                         ui.Image(
                             "",
                             name="More" if can_transfer_graph else "MoreDisabled",
@@ -370,7 +370,7 @@ class LogicPropertyWidget:
                             else None,
                             identifier="logic_graph_transfer_overrides",
                         )
-                        ui.Spacer()
+                        ui.Spacer(width=0)
                     ui.Spacer(width=0)
                     ui.Image(
                         "",

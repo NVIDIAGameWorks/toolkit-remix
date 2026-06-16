@@ -312,9 +312,7 @@ class TestSourceLayerPickerE2E(omni.kit.test.AsyncTestCase):
         # Arrange
         delegate = SourceLayerPickerDelegate(selected_ids=None, mod_layer_ids=frozenset({"mod.usda"}))
         calls = []
-        selected_ids_changed_sub = delegate.subscribe_selected_ids_changed(
-            lambda selected_ids: calls.append(selected_ids)
-        )
+        selected_ids_changed_sub = delegate.subscribe_selected_ids_changed(calls.append)
 
         # Act
         delegate.destroy()

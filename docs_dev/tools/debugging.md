@@ -95,3 +95,29 @@ carb.log_info(f"[MyExt] value={some_var}")
 ```
 
 Remove all debug `print()` calls before committing.
+
+## Ingested Asset Hash Fixtures
+
+Some tests use checked-in `.meta` files to prove that an ingested USD asset still matches its original file hash. If a
+CI-only Windows failure says a known-good fixture such as `ingested_assets/output/good/cube.usda` is not ingested,
+check the fixture line endings before changing validation code. A CRLF checkout changes the file hash even when the USD
+content is visually identical. USDA fixtures are kept at LF via `.gitattributes` so these hashes stay stable across
+Windows and Linux.
+
+## Launch Failure Triage
+
+If `lightspeed.app.trex.bat` exits during startup after `lightspeed.hydra.remix.core` logs its DLL path registration,
+check the Kit log before assuming HdRemix failed to initialize. A startup abort can come from another extension that
+initializes after the HdRemix DLL path registration.
+
+The TREX app config sets `/exts/omni.services.transport.server.http/port = 0` so Kit chooses an available HTTP service
+port. If startup still fails with a bind error, check whether the launch path bypassed that app setting or whether the
+setting regressed:
+
+```text
+OSError: [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8011)
+SystemExit: 1
+```
+
+Search the latest `logs/Kit/RTX Remix/*/kit_*.log` for `omni.services.transport.server.http`, `SystemExit: 1`, and
+`lightspeed.hydra.remix.core` before assuming HdRemix failed to initialize.

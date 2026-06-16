@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.5]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.9.4]
 ### Fixed
 - Deferred file-backed property model refreshes during interactive USD edits so pending updates flush once after interaction end

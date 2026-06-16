@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.8]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.1.7]
 ### Fixed
 - Fixed packaging repairs to update owning local layers through packaging core, grouped missing references, stale ingestion and scan errors, and cancellable retry progress.

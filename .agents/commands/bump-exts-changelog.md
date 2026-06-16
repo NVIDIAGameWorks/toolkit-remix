@@ -39,22 +39,30 @@ Batch up to 3 exts/run. Use real diff + commits; commit text may be low signal.
 
 For each changed ext:
 
-1. Bump `config/extension.toml` semver: major/minor/patch from diff.
-2. Append concise one-line entry as last item in correct `docs/CHANGELOG.md` section: Added/Changed/Fixed/Removed.
+1. Compare against `origin/<base>:source/extensions/<ext-name>/config/extension.toml` and set
+   `config/extension.toml` to a version strictly greater than the published base version. Default to patch +1 from
+   `origin/<base>` unless the branch already has a higher intentional version.
+2. Append concise one-line entry as last item in the changelog section for the resolved extension version:
+   Added/Changed/Fixed/Removed.
 3. Keep empty line below added section.
 
 Never insert at top. Match existing style. No Jira prefix in extension changelog. Write for users + devs where useful.
 
 ## Step 4 - Root Changelog
 
-Update root `CHANGELOG.md`, `## [Unreleased]`, correct section. Append as the last item at the bottom of that section
-to preserve chronological order; never insert at the top or reorder existing entries. If `<ticket>` set:
+When preparing the MR summary/release-facing entry, ensure root `CHANGELOG.md`, `## [Unreleased]`, has one concise
+branch-level entry in the correct section. Append as the last item at the bottom of that section to preserve
+chronological order; never insert at the top or reorder existing entries. If `<ticket>` set:
 `<ticket>: <one-line summary>`. Else no prefix.
+
+Do not add a fresh root changelog entry for every follow-up commit on a branch that has not merged yet; keep those
+details in the modified extensions' `docs/CHANGELOG.md` files instead.
 
 ## Gotchas
 
 - `list_changed_exts.py` can say 0 when branch already touched changelog/version. Cross-check:
   `git diff origin/<base>..HEAD --name-only -- source/extensions/`.
-- One version bump per MR. If version already bumped on branch, append to existing `## [X.Y.Z]`; create new version only
-  if no bump yet.
+- One version bump per MR, but the resolved version must still be strictly greater than `origin/<base>` because those
+  versions are already published. If version already bumped on branch, append to existing `## [X.Y.Z]` only when it is
+  above the published base version; otherwise raise it, defaulting to published patch +1.
 - `lint_code.bat all` may auto-fix unrelated exts. Stage only current MR scope; split unrelated fixes.

@@ -545,7 +545,7 @@ def _validate_output_directory(repository_url: str, output_directory: str) -> st
         raise ValueError("Repository URL must end with .git")
 
     # Get the repository name by removing the .git extension
-    repository_name = repository_url.split("/")[-1][:-4]
+    repository_name = repository_url.rsplit("/", maxsplit=1)[-1][:-4]
     # If the output directory doesn't end with the repository name, add it
     output_path = Path(output_directory)
     if output_path.parts[-1] != repository_name:

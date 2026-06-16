@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.5]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.5.4]
 ### Fixed
 - Kept packaging progress responsive and cancellable until cleanup while flattening, exporting, saving repairs, and retrying unresolved-reference repairs, deleted existing package output under non-cancellable progress, disabled unsafe USDA output for flattened packages, and updated the packaging mode and output format dropdowns to expose only supported choices with Flatten as the default.

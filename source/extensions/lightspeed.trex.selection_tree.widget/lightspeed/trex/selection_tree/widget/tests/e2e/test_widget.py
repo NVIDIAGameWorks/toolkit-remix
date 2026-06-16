@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import asyncio
 import os
 import re
 import shutil
@@ -36,6 +37,7 @@ from lightspeed.trex.selection_tree.widget import SetupUI as _SetupUI
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemAsset as _ItemAsset
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemPrim as _ItemPrim
 from omni.flux.utils.common import path_utils as _path_utils
+from omni.flux.utils.tests.projects import copy_test_project_to_temp
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
@@ -45,8 +47,21 @@ from pxr import Sdf
 
 
 class TestSelectionTreeWidget(AsyncTestCase):
+    _WINDOW_TITLE_PREFIX = "TestSelectionTreeUI"
+    _PROMPT_WINDOW_TITLES = {
+        _constants.ASSET_NEED_INGEST_WINDOW_TITLE,
+        _constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE,
+        "##restore",
+        "Light creator",
+        "Select a reference file",
+    }
+
     # Before running each test
     async def setUp(self):
+        self._window_title = f"{self._WINDOW_TITLE_PREFIX}_{self._testMethodName}"
+        self._window = None
+        self._wid = None
+        await self.__cleanup_windows()
         await arrange_windows()
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
         # be sure that the replacement layer is the target layer
@@ -55,10 +70,25 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
-        pass
+        if self._wid is not None:
+            self._wid.destroy()
+            self._wid = None
+        if self._window is not None:
+            self._window.destroy()
+            self._window = None
+        await self.__cleanup_windows()
+
+    async def __open_temp_project(self):
+        temp_project_dir, stage_url = await copy_test_project_to_temp(
+            "usd/project_example/combined.usda", "lightspeed.trex.app.resources"
+        )
+        self.addCleanup(temp_project_dir.cleanup)
+        await open_stage(stage_url.path)
+        layer_manager = _LayerManagerCore()
+        layer_manager.set_edit_target_layer_of_type(_LayerType.replacement)
 
     async def __setup_widget(self, height=800):
-        window = ui.Window("TestSelectionTreeUI", height=height, width=400)
+        window = ui.Window(self._window_title, height=height, width=400)
         _SetupUI.DEFAULT_TREE_FRAME_HEIGHT = height - 100
         with window.frame:
             wid = _SetupUI("")
@@ -66,21 +96,31 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await ui_test.human_delay(human_delay_speed=1)
 
+        self._window = window
+        self._wid = wid
         return window, wid
+
+    async def __cleanup_windows(self):
+        for other_window in list(ui.Workspace.get_windows()):
+            title = other_window.title
+            if title in self._PROMPT_WINDOW_TITLES and other_window.visible:
+                prompt_dialog_window = ui_test.find(title)
+                if prompt_dialog_window:
+                    prompt_dialog_window.widget.destroy()
+
+        for _ in range(2):
+            await omni.kit.app.get_app().next_update_async()
 
     async def __destroy(self, window, wid):
         wid.destroy()
         window.destroy()
+        if wid is self._wid:
+            self._wid = None
+        if window is self._window:
+            self._window = None
 
         # destroy prompt dialogs to avoid unwanted references
-        for other_window in ui.Workspace.get_windows():
-            if other_window.title in {
-                _constants.ASSET_NEED_INGEST_WINDOW_TITLE,
-                _constants.ASSET_OUTSIDE_OF_PROJ_DIR_TITLE,
-            }:
-                prompt_dialog_window = ui_test.find(other_window.title)
-                if prompt_dialog_window:
-                    prompt_dialog_window.widget.destroy()
+        await self.__cleanup_windows()
 
     async def test_select_one_prim_mesh(self):
         # setup
@@ -424,7 +464,15 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
 
-        self.assertEqual(len(item_prims), 6)
+        self.assertEqual(
+            len(item_prims),
+            6,
+            (
+                f"Expected restored references to stay expanded after undo; "
+                f"selection={usd_context.get_selection().get_selected_prim_paths()}, "
+                f"visible={[item.widget.text for item in item_prims]}"
+            ),
+        )
 
         # undo
         omni.kit.undo.redo()
@@ -515,7 +563,15 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
 
-        self.assertEqual(len(item_prims), 6)
+        self.assertEqual(
+            len(item_prims),
+            6,
+            (
+                f"Expected restored captured references to stay expanded after undo; "
+                f"selection={usd_context.get_selection().get_selected_prim_paths()}, "
+                f"visible={[item.widget.text for item in item_prims]}"
+            ),
+        )
 
         # undo
         omni.kit.undo.redo()
@@ -523,7 +579,15 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
 
-        self.assertEqual(len(item_prims), 5)
+        self.assertEqual(
+            len(item_prims),
+            5,
+            (
+                f"Expected remaining reference to stay expanded after redo; "
+                f"selection={usd_context.get_selection().get_selected_prim_paths()}, "
+                f"visible={[item.widget.text for item in item_prims]}"
+            ),
+        )
 
         # test that the selections in the usd context are correct
         selection = usd_context.get_selection().get_selected_prim_paths()
@@ -587,9 +651,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
         primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection
-
-        self.assertEqual(primary_and_secondary_selection, [all_items[4], all_items[11], all_items[10]])
         current_selection = usd_context.get_selection().get_selected_prim_paths()
+
+        self.assertEqual(
+            primary_and_secondary_selection,
+            [all_items[4], all_items[11], all_items[10]],
+            f"stage selection={current_selection}, tree selection={primary_and_secondary_selection}",
+        )
         self.assertTrue(
             current_selection[0].startswith("/RootNode/instances/inst_0AB745B8BEE1F16B_0/ref_")
             and current_selection[0].endswith("/Toto")
@@ -640,9 +708,13 @@ class TestSelectionTreeWidget(AsyncTestCase):
         # test what items are selected
         all_items = tree_view.widget.model.get_all_items()
         primary_and_secondary_selection = tree_view.widget.selection + _wid._instance_selection
-
-        self.assertEqual(primary_and_secondary_selection, [all_items[4], all_items[11], all_items[10]])
         current_selection = usd_context.get_selection().get_selected_prim_paths()
+
+        self.assertEqual(
+            primary_and_secondary_selection,
+            [all_items[4], all_items[11], all_items[10]],
+            f"stage selection={current_selection}, tree selection={primary_and_secondary_selection}",
+        )
         self.assertTrue(
             current_selection[0].startswith("/RootNode/instances/inst_0AB745B8BEE1F16B_0/ref_")
             and current_selection[0].endswith("/Toto")
@@ -924,9 +996,47 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await light_disk_button.click()
         await ui_test.human_delay(human_delay_speed=3)
 
+        replacement_light_path = "/RootNode/lights/light_9907D0B07D040077/DiskLight"
+        model_item_prims = _wid._tree_model.get_all_items_by_type().get(_ItemPrim, [])
+        self.assertIn(replacement_light_path, [item.path for item in model_item_prims])
+        self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [replacement_light_path])
+        tree_selection = _wid.get_selection()
+        selected_item_prims = [item for item in tree_selection if isinstance(item, _ItemPrim)]
+        self.assertEqual(len(selected_item_prims), 1)
+        self.assertEqual(selected_item_prims[0].path, replacement_light_path)
+        await asyncio.sleep(2)
+        self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [replacement_light_path])
+        tree_selection = _wid.get_selection()
+        selected_item_prims = [item for item in tree_selection if isinstance(item, _ItemPrim)]
+        self.assertEqual(len(selected_item_prims), 1)
+        self.assertEqual(selected_item_prims[0].path, replacement_light_path)
+
         # 1 replacement light should be visible now as an item_prim
         item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
         self.assertEqual(len(item_prims), 1)
+
+        with self.subTest(msg="transient-empty-tree-selection-keeps-replacement-light-selected"):
+            # Arrange - mimic TreeView normalizing to [] while refresh replaces selected item objects.
+            observed_tree_selections = []
+            subscription = _wid.subscribe_tree_selection_changed(
+                lambda items: observed_tree_selections.append(list(items))
+            )
+            tree_view_selection = list(_wid._tree_view.selection)
+            _wid._previous_tree_selection = []
+            _wid._previous_instance_selection = []
+            _wid._ignore_empty_tree_selection_during_refresh = True
+
+            # Act
+            try:
+                _wid._on_tree_selection_changed([])
+            finally:
+                _wid._ignore_empty_tree_selection_during_refresh = False
+                del subscription
+
+            # Assert
+            self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [replacement_light_path])
+            self.assertEqual(_wid._tree_view.selection, tree_view_selection)
+            self.assertEqual(observed_tree_selections, [[]])
 
         with self.subTest(msg="select-replacement-light-item"):
             # Act - select replacement light
@@ -934,12 +1044,22 @@ class TestSelectionTreeWidget(AsyncTestCase):
             await ui_test.human_delay(human_delay_speed=3)
 
             # Assert
-            self.assertEqual(
-                usd_context.get_selection().get_selected_prim_paths(),
-                ["/RootNode/lights/light_9907D0B07D040077/DiskLight"],
-            )
+            self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [replacement_light_path])
             tree_selection = _wid.get_selection()
             self.assertEqual(len([i for i in tree_selection if isinstance(i, _ItemPrim)]), 1)
+
+        item_assets = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        with self.subTest(msg="click-light-asset-keeps-replacement-light-selected"):
+            # Act - asset rows are grouping rows, not selectable prims.
+            await item_assets[0].click()
+            await ui_test.human_delay(human_delay_speed=3)
+
+            # Assert
+            self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [replacement_light_path])
+            tree_selection = _wid.get_selection()
+            selected_item_prims = [item for item in tree_selection if isinstance(item, _ItemPrim)]
+            self.assertEqual(len(selected_item_prims), 1)
+            self.assertEqual(selected_item_prims[0].path, replacement_light_path)
 
         item_groups = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_group'")
         with self.subTest(msg="select-instance-group-item"):
@@ -1669,6 +1789,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await self.__destroy(_window, _wid)
 
     async def test_append_outside_project_dir_copy_and_re_ref(self):
+        # Temp project copy required because copy/re-ref writes the external mesh into the opened project folder.
+        await self.__open_temp_project()
+
         # setup
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
         usd_context = omni.usd.get_context()
@@ -1764,9 +1887,6 @@ class TestSelectionTreeWidget(AsyncTestCase):
             self.assertEqual(len(item_prims), 2)
             self.assertEqual(len(item_add_buttons), 2)
             self.assertEqual(len(item_groups), 1)
-
-        # Delete the newly created project_example/assets/ingested subdirectory and its contents
-        shutil.rmtree(_get_test_data(f"usd/project_example/{_constants.REMIX_INGESTED_ASSETS_FOLDER}"))
 
         await self.__destroy(_window, _wid)
 

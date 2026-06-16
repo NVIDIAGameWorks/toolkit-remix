@@ -16,6 +16,9 @@
 """
 
 __all__ = [
+    "REMIX_HYDRA_ENGINE_NAME",
+    "REMIX_RENDERERS_SETTING",
+    "REMIX_RENDER_MODE",
     "HdRemixFinalizer",
     "RemixRequestQueryType",
     "RemixSupport",
@@ -23,8 +26,11 @@ __all__ = [
     "hdremix_highlight_paths",
     "hdremix_objectpicking_request",
     "hdremix_set_configvar",
+    "hdremix_set_configvar_async",
     "hdremix_uselegacyselecthighlight",
     "is_remix_supported",
+    "is_remix_timeout",
+    "retry_remix_support_async",
     "viewport_api_request_query_hdremix",
 ]
 
@@ -32,12 +38,18 @@ __all__ = [
 from .extension import HdRemixFinalizer
 from .extern import (
     RemixRequestQueryType,
+    REMIX_HYDRA_ENGINE_NAME,
+    REMIX_RENDER_MODE,
+    REMIX_RENDERERS_SETTING,
     RemixSupport,
     hdremix_findworldposition_request,
     hdremix_highlight_paths,
     hdremix_objectpicking_request,
     hdremix_set_configvar,
+    hdremix_set_configvar_async,
     is_remix_supported,
+    is_remix_timeout,
+    retry_remix_support_async,
     viewport_api_request_query_hdremix,
 )
 from .select_highlight_setting import hdremix_uselegacyselecthighlight

@@ -1,5 +1,6 @@
 [package]
-version = "1.0.0"
+kit_sdk_version = "110.*"
+version = "1.0.1"
 authors = ["jingham@nvidia.com"]
 title = "Lightspeed Event Camera Clip Range Override"
 description = "Lightspeed Event that applies the project-scoped camera clipping override to all UsdGeomCamera prims on the session layer."

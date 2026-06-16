@@ -50,6 +50,17 @@ if TYPE_CHECKING:
     from omni.kit.widget.viewport.api import ViewportAPI as _ViewportAPI
 
 _VIEWPORT_MANAGER_INSTANCE: dict[str, _ViewportSetupUI] = {}
+_REGISTER_OPENGL_SCENE_LAYERS_SETTING = "exts/lightspeed/trex/viewports/shared/widget/registerOpenGLSceneLayers"
+
+
+def _apply_integrated_viewport_ui_settings() -> None:
+    """Keep full Kit viewport dependencies from exposing UI outside the LSS viewport layer."""
+    settings = carb.settings.get_settings()
+    settings.set("/exts/omni.kit.manipulator.prim.core/tools/enabled", False)
+    settings.set("/exts/omni.kit.viewport.window/startup/cameraManipulator/enabled", False)
+    settings.set("/exts/omni.kit.viewport.window/startup/disableWindowOnLoad", True)
+    settings.set("/exts/omni.kit.viewport.window/startup/showOnLaunch", False)
+    settings.set("/exts/omni.kit.viewport.window/windowMenu/entryCount", 0)
 
 
 def get_instances() -> dict[str, _ViewportSetupUI] | None:
@@ -57,7 +68,11 @@ def get_instances() -> dict[str, _ViewportSetupUI] | None:
 
 
 def get_instance(context_name: str) -> _ViewportSetupUI | None:
-    return _VIEWPORT_MANAGER_INSTANCE.get(context_name)
+    viewport = _VIEWPORT_MANAGER_INSTANCE.get(context_name)
+    if viewport is not None and viewport.destroyed:
+        _VIEWPORT_MANAGER_INSTANCE.pop(context_name, None)
+        return None
+    return viewport
 
 
 def get_active_viewport() -> _ViewportSetupUI | None:
@@ -67,7 +82,11 @@ def get_active_viewport() -> _ViewportSetupUI | None:
     return None
 
 
-def create_instance(context_name: str) -> _ViewportSetupUI:
+def create_instance(context_name: str, *, reuse_existing: bool = True) -> _ViewportSetupUI:
+    viewport = get_instance(context_name)
+    if reuse_existing and viewport is not None:
+        return viewport
+
     viewport = _ViewportSetupUI(context_name)
     _VIEWPORT_MANAGER_INSTANCE[context_name] = viewport
     return viewport
@@ -78,6 +97,10 @@ def get_viewport_api(context_name: str) -> _ViewportAPI | None:
     if not viewport:
         return None
     return viewport.viewport_api
+
+
+def _should_register_opengl_scene_layers() -> bool:
+    return carb.settings.get_settings().get_as_bool(_REGISTER_OPENGL_SCENE_LAYERS_SETTING)
 
 
 class TrexViewportSharedExtension(omni.ext.IExt):
@@ -91,12 +114,13 @@ class TrexViewportSharedExtension(omni.ext.IExt):
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.viewports.shared.widget] Startup")
-        self.__register_scenes()
+        _apply_integrated_viewport_ui_settings()
         self.__add_tools()
         self.__register_hotkeys()
         self._workspace_window = _MainViewportWindow(create_instance, _TrexContexts.STAGE_CRAFT.value)
         self._workspace_window.create_window()
         omni.ui.Workspace.set_show_window_fn(self._workspace_window.title, self._workspace_window.show_window_fn)
+        self.__register_scenes()
 
     def __register_scenes(self):
         # scenes. But scenes are filtered in ViewportSceneLayer
@@ -122,11 +146,14 @@ class TrexViewportSharedExtension(omni.ext.IExt):
         # layers
         self.__registered.append(RegisterViewportLayer(ViewportStatsLayer, "omni.kit.viewport.ViewportStats"))
         self.__registered.append(RegisterViewportLayer(ViewportSceneLayer, "omni.kit.viewport.SceneLayer"))
-        self.__registered.append(RegisterViewportLayer(_LightGizmosLayer, "omni.kit.viewport.LightGizmosLayer"))
-        self.__registered.append(RegisterViewportLayer(_ParticleGizmosLayer, "omni.kit.viewport.ParticleGizmosLayer"))
-        self.__registered.append(
-            RegisterViewportLayer(_LightManipulatorLayer, "omni.kit.viewport.LightManipulatorLayer")
-        )
+        if _should_register_opengl_scene_layers():
+            self.__registered.append(RegisterViewportLayer(_LightGizmosLayer, "omni.kit.viewport.LightGizmosLayer"))
+            self.__registered.append(
+                RegisterViewportLayer(_ParticleGizmosLayer, "omni.kit.viewport.ParticleGizmosLayer")
+            )
+            self.__registered.append(
+                RegisterViewportLayer(_LightManipulatorLayer, "omni.kit.viewport.LightManipulatorLayer")
+            )
         self.__registered.append(RegisterViewportLayer(ViewportToolsLayer, "omni.kit.viewport.ViewportTools"))
 
     def __unregister_scenes(self, registered):
@@ -165,5 +192,7 @@ class TrexViewportSharedExtension(omni.ext.IExt):
         self.__remove_tools()
         self.__registered = None
         self.__frame_hotkey_sub = None
-        self._workspace_window.cleanup()
-        omni.ui.Workspace.set_show_window_fn(self._workspace_window.title, lambda *_: None)
+        if self._workspace_window:
+            self._workspace_window.cleanup()
+            omni.ui.Workspace.set_show_window_fn(self._workspace_window.title, lambda *_: None)
+            self._workspace_window = None

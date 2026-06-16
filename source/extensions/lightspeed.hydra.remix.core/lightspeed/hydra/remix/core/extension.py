@@ -15,53 +15,95 @@
 * limitations under the License.
 """
 
-import asyncio
+import os
+import sys
 
 import carb
 import lightspeed.hydra.remix.core.extern as extern
 import omni.ext
+import omni.kit.app
 import omni.usd
-from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
-
-CARB_SETTING_SHOW_REMIX_SUPPORT_POPUP = "exts/lightspeed/hydra/remix/showpopup"
+from pxr import Plug
 
 
 class HdRemixFinalizer(omni.ext.IExt):
     """Loads HdRemix.dll early and shows whether Remix is supported"""
 
-    # Do not call more than once, as it's a heavy operation.
-    # Cache the value for frequent use.
-    @omni.usd.handle_exception
-    async def _check_support(self):
-        frames_passed = await extern.load_remix_extern_async()
-
-        hdremix_support_level, hdremix_error_message = extern.is_remix_supported()
-        if hdremix_support_level == extern.RemixSupport.SUPPORTED:
-            return
-
-        if not carb.settings.get_settings().get_as_bool(CARB_SETTING_SHOW_REMIX_SUPPORT_POPUP):
-            return
-
-        # wait until we fully composed a window, so it's centered...
-        for _ in range(frames_passed, 10):
-            await omni.kit.app.get_app().next_update_async()
-
-        def exit_app():
-            omni.kit.app.get_app().post_quit(0)
-
-        self._dialog = _TrexMessageDialog(
-            title="RTX Remix Renderer failed to initialize",
-            message=hdremix_error_message,
-            ok_label="Exit",
-            ok_handler=exit_app,
-            on_window_closed_fn=exit_app,
-            disable_cancel_button=True,
-        )
+    def __init__(self):
+        super().__init__()
+        self._hdremix_dll_dir_tokens = None
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.hydra.remix.core] Startup")
-        asyncio.ensure_future(self._check_support())
+        self._preload_hdremix_dll(ext_id)
+        carb.log_info(
+            "[lightspeed.hydra.remix.core] Deferring HdRemix support polling until a real viewport requests it."
+        )
+
+    def _preload_hdremix_dll(self, ext_id):
+        """Register HdRemix.dll's directory for Python ctypes DLL resolution.
+
+        HdRemix.dll imports RemixParticleSystem.dll from a nested plugin folder.
+        PATH is pre-populated with both HdRemix package DLL directories via extension.toml [[env]] so that
+        USD's LoadLibraryW calls can resolve the renderer plugin before Python on_startup runs.
+
+        os.add_dll_directory registers the directory for LOAD_LIBRARY_SEARCH_DEFAULT_DIRS,
+        which is the search mode used by Python 3.8+ ctypes calls (e.g. check_support).
+        The token is kept alive for the extension's lifetime; closing it removes the dir.
+        """
+        if sys.platform != "win32":
+            carb.log_info(f"[lightspeed.hydra.remix.core] Skipping Windows HdRemix DLL registration on {sys.platform}.")
+            return
+        ext_path = omni.kit.app.get_app().get_extension_manager().get_extension_path(ext_id)
+        hdremix_dir = os.path.normpath(os.path.join(ext_path, "deps", "hdremix"))
+        particle_system_dir = os.path.normpath(os.path.join(hdremix_dir, "usd", "plugins", "RemixParticleSystem"))
+        hdremix_dll_path = os.path.normpath(os.path.join(hdremix_dir, "HdRemix.dll"))
+        if not os.path.isdir(hdremix_dir):
+            message = f"HdRemix DLL directory not found: {hdremix_dir}"
+            carb.log_error(f"[lightspeed.hydra.remix.core] {message}")
+            extern.mark_remix_not_supported(message)
+            return
+
+        dll_search_paths = [hdremix_dir]
+        self._hdremix_dll_dir_tokens = [os.add_dll_directory(hdremix_dir)]
+        if os.path.isdir(particle_system_dir):
+            self._hdremix_dll_dir_tokens.append(os.add_dll_directory(particle_system_dir))
+            dll_search_paths.append(particle_system_dir)
+            carb.log_info(f"[lightspeed.hydra.remix.core] Registered particle DLL search path: {particle_system_dir}")
+        else:
+            carb.log_warn(
+                f"[lightspeed.hydra.remix.core] Remix particle DLL directory not found: {particle_system_dir}"
+            )
+        os.environ["PATH"] = os.pathsep.join([*dll_search_paths, os.environ.get("PATH", "")])
+        carb.log_info(f"[lightspeed.hydra.remix.core] Registered DLL search path: {hdremix_dir}")
+
+        preload_ok, preload_message = extern.RemixExtern.preload_hdremix_dll(hdremix_dll_path)
+        if preload_ok:
+            carb.log_info(f"[lightspeed.hydra.remix.core] {preload_message}")
+        else:
+            carb.log_error(f"[lightspeed.hydra.remix.core] {preload_message}")
+            extern.mark_remix_not_supported(preload_message)
+            return
+
+        # Kit 110 no longer appears to discover HdRemix reliably via PXR_PLUGINPATH_NAME alone during startup.
+        # Register the plugin directory explicitly so the HdRemix render delegate is visible before viewport init.
+        plugins = Plug.Registry().RegisterPlugins(hdremix_dir)
+        if plugins:
+            carb.log_info(
+                f"[lightspeed.hydra.remix.core] Registered USD plugins from {hdremix_dir}: "
+                f"{', '.join(plugin.name for plugin in plugins)}"
+            )
+        else:
+            message = (
+                f"No USD plugins were registered from {hdremix_dir}. HdRemixRendererPlugin may remain undiscoverable."
+            )
+            carb.log_error(f"[lightspeed.hydra.remix.core] {message}")
+            extern.mark_remix_not_supported(message)
 
     def on_shutdown(self):
         carb.log_info("[lightspeed.hydra.remix.core] Shutdown")
         extern.remix_extern_destroy()
+        if self._hdremix_dll_dir_tokens:
+            for token in self._hdremix_dll_dir_tokens:
+                token.close()
+            self._hdremix_dll_dir_tokens = None

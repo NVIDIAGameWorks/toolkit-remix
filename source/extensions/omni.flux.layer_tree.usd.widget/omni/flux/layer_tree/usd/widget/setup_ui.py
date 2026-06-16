@@ -106,6 +106,7 @@ class LayerTreeWidget:
             "_sub_on_item_transfer": None,
             "_selection": None,
             "_ignore_selection_updates": None,
+            "_refresh_selection_pending": None,
             "_refresh_task": None,
             "_create_button": None,
             "_import_button": None,
@@ -159,6 +160,7 @@ class LayerTreeWidget:
 
         self._selection = set()
         self._ignore_selection_updates = False
+        self._refresh_selection_pending = False
         self._refresh_task = None
         self._select_edit_target_on_refresh = False
         self._edit_target_identifier = None
@@ -332,6 +334,7 @@ class LayerTreeWidget:
         self._ignore_selection_updates = True
         self._layer_tree_widget.selection = selection
         self._delegate.on_item_selected(selection, items, self._model)
+        self._refresh_selection_pending = False
         self._ignore_selection_updates = False
 
         # Update the import & create button states
@@ -341,6 +344,9 @@ class LayerTreeWidget:
 
     def on_selection_changed(self, items: list[_ItemBase]):
         if self._ignore_selection_updates:
+            return
+        if self._refresh_selection_pending:
+            # Refresh can emit an empty tree selection before rebuilt items are reapplied.
             return
 
         self._select_edit_target_on_refresh = False
@@ -361,6 +367,8 @@ class LayerTreeWidget:
     def _on_model_refresh(self, started: bool):
         if not self._loading_frame:
             return
+        if started:
+            self._refresh_selection_pending = True
         self._loading_frame.visible = started
         self._layer_tree_widget.visible = not started
 

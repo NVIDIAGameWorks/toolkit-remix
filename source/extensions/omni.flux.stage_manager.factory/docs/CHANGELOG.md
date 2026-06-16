@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.12.4]
+### Fixed
+- Preserve Stage Manager tree selection across refreshes when selected prims are rebuilt.
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [4.12.3]
 ### Added
 - Added `StageManagerFilterPlugin.filter_active` so filters can report whether they can affect the item set

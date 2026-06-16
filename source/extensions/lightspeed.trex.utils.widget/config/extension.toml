@@ -1,5 +1,6 @@
 [package]
-version = "1.7.3"
+kit_sdk_version = "110.*"
+version = "1.7.4"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix widget utils"
 description = "Utils helper for Lightspeed widgets"

@@ -38,7 +38,7 @@ from omni.flux.job_queue.core.constants import job_queue_config
 EventT = TypeVar("EventT", bound=omni.flux.job_queue.core.events.JobEvent)
 
 
-class JobState(str, enum.Enum):
+class JobState(enum.StrEnum):
     """
     Enum representing the state of a job.
 
@@ -586,7 +586,8 @@ class QueueJob:
             if timeout is not None and (time.time() - start_time) > timeout:
                 target_states = ", ".join(target_state.value for target_state in states)
                 raise TimeoutError(
-                    f"Timeout waiting for job {self.job_id} to reach one of {target_states}; current state is {state}"
+                    f"Timeout waiting for job {self.job_id} to reach one of {target_states}; "
+                    f"current state is {state.value}"
                 )
             time.sleep(poll_interval)
 

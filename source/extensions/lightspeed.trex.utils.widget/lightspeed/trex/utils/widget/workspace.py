@@ -32,6 +32,7 @@ class WorkspaceWidget(abc.ABC):
 
     def __init__(self):
         self._window_visible: bool = False
+        self._destroyed: bool = False
 
     @property
     def window_visible(self) -> bool:
@@ -39,6 +40,13 @@ class WorkspaceWidget(abc.ABC):
         Whether the containing window is currently visible.
         """
         return self._window_visible
+
+    @property
+    def destroyed(self) -> bool:
+        """
+        Whether this widget has been permanently destroyed.
+        """
+        return self._destroyed
 
     def show(self, visible: bool):
         """
@@ -48,6 +56,9 @@ class WorkspaceWidget(abc.ABC):
             visible: True if visible, False if hidden.
         """
         self._window_visible = visible
+
+    def _mark_destroyed(self):
+        self._destroyed = True
 
     @abc.abstractmethod
     def destroy(self):
@@ -153,14 +164,20 @@ class WorkspaceWindowBase(abc.ABC):
         return self._window
 
     def show_window_fn(self, show: bool = True):
-        if not self._window or show == self._window.visible:
+        if not self._window:
             return
 
-        self._window.visible = show
-
         if show:
+            if not self._window.visible:
+                self._window.visible = True
             self._update_ui()
-        elif self._content:
+            return
+
+        if not self._window.visible:
+            return
+
+        self._window.visible = False
+        if self._content:
             self._content.show(False)
 
     def cleanup(self):
@@ -172,7 +189,7 @@ class WorkspaceWindowBase(abc.ABC):
         if self.__sub_app_ready:
             self.__sub_app_ready = None
 
-        if self._content:
+        if self._content and not self._content.destroyed:
             self._content.destroy()
         self._content = None
 
@@ -230,6 +247,9 @@ class WorkspaceWindowBase(abc.ABC):
         Called when the window is shown, this method also creates the UI at first time coming from a hidden state.
         Use this to refresh UI widgets when set visible, but call super first.
         """
+        if self._content and self._content.destroyed:
+            self._content = None
+
         if not self._content:
             with self._window.frame:
                 self._content = self._create_window_ui()

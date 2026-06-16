@@ -16,7 +16,8 @@
 """
 
 import abc
-from asyncio import Future, ensure_future
+from asyncio import CancelledError, Future, ensure_future
+from contextlib import suppress
 
 import omni.kit.app
 import omni.kit.usd.layers as _layers
@@ -76,6 +77,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
     _context_name: str = PrivateAttr(default="")
     _selection_update_lock: bool = PrivateAttr(default=False)
     _ignore_selection_update: bool = PrivateAttr(default=False)
+    _programmatic_tree_selection_paths: tuple[str, ...] | None = PrivateAttr(default=None)
     _listener_event_occurred_subs: list[_EventSubscription] = PrivateAttr(default=[])
     _items_changed_task: Future | None = PrivateAttr(default=None)
     _tree_selection_task: Future | None = PrivateAttr(default=None)
@@ -161,6 +163,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         # Get USD selection
         selection = set(self._get_selection())
         if not selection:
+            await self._set_tree_widget_selection_async([])
             return
 
         matching_items = await self.tree.model.find_items_async(
@@ -171,22 +174,56 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         task_cancelled = (
             self._tree_selection_task is None or self._tree_selection_task.cancelled() or not self._is_active
         )
-        # NOTE: `not matching_items` covers both None and empty list; the original
-        # `is None` check let empty lists through, which set the tree selection
-        # to [] after a prim was deleted and its items were no longer on stage.
-        if task_cancelled or not matching_items:
+        if task_cancelled:
             return
 
-        # Lock to prevent _on_selection_changed from setting _ignore_selection_update
-        self._selection_update_lock = True
+        await self._set_tree_widget_selection_async(matching_items or [])
 
+    async def _set_tree_widget_selection_async(self, items: list[_StageManagerTreeItem]):
+        # Lock to prevent _on_selection_changed from writing programmatic tree selection changes back to USD.
+        self._set_programmatic_tree_selection_paths(items)
+        self._selection_update_lock = True
         try:
-            self._tree_widget.selection = matching_items
+            set_selection_async = getattr(self._tree_widget, "set_selection_async", None)
+            if callable(set_selection_async):
+                await set_selection_async(items)
+                return
+
+            self._tree_widget.selection = items
+            selection_update_task = getattr(self._tree_widget, "_selection_update_task", None)
+            if selection_update_task:
+                with suppress(CancelledError):
+                    await selection_update_task
         finally:
             self._selection_update_lock = False
 
+    def _set_programmatic_tree_selection_paths(self, items: list[_StageManagerTreeItem]):
+        self._programmatic_tree_selection_paths = self._get_tree_item_paths(items)
+
+    def _clear_programmatic_tree_selection_paths(self):
+        self._programmatic_tree_selection_paths = None
+
+    @staticmethod
+    def _get_tree_item_paths(items: list[_StageManagerTreeItem]) -> tuple[str, ...]:
+        return tuple(str(item.data.GetPath()) for item in items if item.data)
+
     def _get_selection(self) -> list[str]:
         return omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()
+
+    def _is_tree_model_refresh_pending(self) -> bool:
+        return bool(
+            (self._model_refresh_task and not self._model_refresh_task.done())
+            or (self._items_changed_task and not self._items_changed_task.done())
+        )
+
+    def _should_ignore_empty_selection_from_tree_refresh(
+        self,
+        selection_prim_paths: tuple[str, ...],
+        previous_selection_prim_paths: tuple[str, ...],
+    ) -> bool:
+        if selection_prim_paths or not previous_selection_prim_paths or not self._is_tree_model_refresh_pending():
+            return False
+        return set(self._get_selection()) == set(previous_selection_prim_paths)
 
     def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
         """Synchronize tree selection back to USD without rewriting order-only changes.
@@ -194,22 +231,38 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
         Args:
             items: Selected tree items that may map to USD prim paths.
         """
+        previous_selection_prim_paths = self._get_tree_item_paths(self.tree.model.selection)
+        selection_prim_paths = self._get_tree_item_paths(items)
+        # Tree rebuilds can briefly emit [] before reapplying the model selection. If USD still
+        # has the previous tree selection, preserve it instead of treating the callback as user clear.
+        if self._should_ignore_empty_selection_from_tree_refresh(selection_prim_paths, previous_selection_prim_paths):
+            return
+
         super()._on_selection_changed(items)  # updates model.selection before USD sync
 
-        if self._selection_update_lock or not self.synchronize_selection:
+        is_programmatic_tree_selection = (
+            self._programmatic_tree_selection_paths is not None
+            and selection_prim_paths == self._programmatic_tree_selection_paths
+        )
+        # Tree widgets can emit selection callbacks after set_selection_async returns.
+        # Keep the marker through unrelated callbacks so the delayed programmatic callback
+        # cannot later overwrite a real user selection.
+        if is_programmatic_tree_selection:
+            self._clear_programmatic_tree_selection_paths()
+
+        if self._selection_update_lock or is_programmatic_tree_selection or not self.synchronize_selection:
             return
 
         # Will trigger _on_stage_event_occurred -> _update_tree_selection -> self._ignore_selection_update = False
         self._ignore_selection_update = True
 
-        selection_prim_paths = [str(item.data.GetPath()) for item in items if item.data]
         selection = self._get_selection()
         # Only synchronize membership changes back to USD.
         # Order-only differences are owned by the upstream selection source and
         # must not be rewritten from the tree, or we can clobber the active
         # selection ordering that downstream property panels rely on.
         if set(selection) != set(selection_prim_paths):
-            omni.usd.get_context(self._context_name).get_selection().set_selected_prim_paths(selection_prim_paths)
+            omni.usd.get_context(self._context_name).get_selection().set_selected_prim_paths(list(selection_prim_paths))
 
     def _on_layer_event_occurred(self, event_type: _layers.LayerEventType):
         """

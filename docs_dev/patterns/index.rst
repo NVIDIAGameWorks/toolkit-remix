@@ -10,5 +10,6 @@ Implementation guides for the patterns used throughout the codebase. Each covers
    commands
    services
    stage-manager
+   viewport-selection
    ingestion-pipeline
    pip-packages

@@ -1135,11 +1135,12 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                 layer_3_temp_future.set_result(layer_3_temp_identifier)
 
                 make_temp_mock.side_effect = [layer_1_temp_future, layer_3_temp_future]
-            get_original_mock.side_effect = lambda identifier: {
+            original_identifier_by_temp = {
                 layer_0_temp_identifier: layer_0_identifier_mock,
                 layer_1_temp_identifier: layer_1_identifier_mock,
                 layer_3_temp_identifier: layer_3_identifier_mock,
-            }.get(identifier)
+            }
+            get_original_mock.side_effect = original_identifier_by_temp.get
             find_open_mock.side_effect = [layer_1_mock, layer_3_mock]
             relative_url_mock.side_effect = ["./layer_1_temp.usda", "./layer_3_temp.usda"]
 
@@ -1449,6 +1450,32 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
         # The shared helper owns the setup, call, and assertions for this parameter set.
         await self.__run_redirect_inside_package_directory(False, False)
 
+    async def test_initial_collected_dependency_path_should_preserve_project_relative_layer_location(self):
+        # Arrange
+        packaging_core = PackagingCore()
+        temp_layer = Mock()
+        temp_layer.identifier = "C:/projects/Project/deps/captures/materials/mat_temp.usda"
+        packaging_core._temp_files = {temp_layer.identifier: "mat.usda"}
+
+        # Act
+        result = packaging_core._get_initial_collected_dependency_path("C:/projects/Project", temp_layer)
+
+        # Assert
+        self.assertEqual("./deps/captures/materials/mat.usda", result)
+
+    async def test_initial_collected_dependency_path_outside_project_should_use_subusds(self):
+        # Arrange
+        packaging_core = PackagingCore()
+        temp_layer = Mock()
+        temp_layer.identifier = "C:/outside/materials/mat_temp.usda"
+        packaging_core._temp_files = {temp_layer.identifier: "mat.usda"}
+
+        # Act
+        result = packaging_core._get_initial_collected_dependency_path("C:/projects/Project", temp_layer)
+
+        # Assert
+        self.assertEqual("./SubUSDs/mat.usda", result)
+
     async def test_modify_asset_paths_does_not_exist_should_return_original_path(self):
         # Arrange / Act / Assert
         # The shared helper owns the setup, call, and assertions for this parameter set.
@@ -1631,9 +1658,7 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
                     packaging_core._rtxio_core, "compress_directory", AsyncMock(side_effect=compress_directory)
                 ),
                 patch.object(packaging_core._rtxio_core, "delete_dds_files", AsyncMock(side_effect=delete_dds_files)),
-                patch.object(
-                    OmniClientWrapper, "delete", AsyncMock(side_effect=lambda path: deleted_paths.append(path))
-                ),
+                patch.object(OmniClientWrapper, "delete", AsyncMock(side_effect=deleted_paths.append)),
             ):
                 model_mock.return_value.mod_layer_paths = [root_mod_path]
                 model_mock.return_value.selected_layer_paths = [root_mod_path]
@@ -1788,19 +1813,13 @@ class TestPackagingCoreUnit(omni.kit.test.AsyncTestCase):
             modify_assets_mock.side_effect = lambda *_: packaging_core._collected_dependencies.update(
                 {collected_asset: collected_asset_output}
             )
-            get_original_mock.side_effect = [
-                layer_0.identifier,
-                layer_0.identifier,
-                layer_1.identifier,
-                None,
-                None,
-                layer_0.identifier,
-                layer_1.identifier,
-                layer_0.identifier,
-                layer_1.identifier,
-                None,
-            ]
-            exists_mock.side_effect = [True, False, True, True, False]
+            original_paths = {
+                OmniUrl(layer_0_temp.identifier).path: layer_0.identifier,
+                OmniUrl(layer_1_temp.identifier).path: layer_1.identifier,
+            }
+            get_original_mock.side_effect = lambda path: original_paths.get(OmniUrl(path).path)
+            exists_values = iter([True, False, True, True, False])
+            exists_mock.side_effect = lambda: next(exists_values, True)
             make_temp_mock.return_value = self.__async_result(layer_1_temp.identifier)
 
             # Act

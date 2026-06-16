@@ -16,6 +16,7 @@
 """
 
 import omni.kit.test
+from lightspeed.common.constants import PARTICLE_SCHEMA_NAME
 from lightspeed.trex.properties_pane.particle.widget.particle_lookup_table import get_particle_lookup_table
 from pxr import Usd
 
@@ -36,8 +37,8 @@ class TestSchemaDiscovery(omni.kit.test.AsyncTestCase):
             temp_prim = temp_stage.DefinePrim("/DummyParticle", "Mesh")
             print(f"Created prim: {temp_prim}")
 
-            success = temp_prim.ApplyAPI("RemixParticleSystemAPI")
-            print(f"Applied RemixParticleSystemAPI: {success}")
+            success = temp_prim.ApplyAPI(PARTICLE_SCHEMA_NAME)
+            print(f"Applied {PARTICLE_SCHEMA_NAME}: {success}")
 
             attributes = temp_prim.GetAttributes()
             print(f"Total attributes: {len(attributes)}")

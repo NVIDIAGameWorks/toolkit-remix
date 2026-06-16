@@ -1,6 +1,16 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.0]
+### Changed
+- Simplified HdRemix bootstrap path registration and unsupported-state reporting.
+- Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Hardened Kit 110 HdRemix bootstrap by registering HdRemix and particle DLL paths, explicitly registering the USD plugin directory, deferring bounded support polling until a viewport requests it, and keeping shutdown tolerant when startup exits before DLL path tokens exist.
+- Reported definitive HdRemix bootstrap failures through the Remix support state so the viewport can present the existing failure dialog instead of waiting for a timeout.
+- Reset the cached HdRemix DLL handle when the extension shuts down.
+
 ## [0.7.2]
 ### Changed
 - Modernize python style and enable more ruff checks

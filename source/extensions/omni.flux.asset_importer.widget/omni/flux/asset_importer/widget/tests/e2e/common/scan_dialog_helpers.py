@@ -15,9 +15,21 @@
 * limitations under the License.
 """
 
+from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
+
+
+def _normalize_path(value) -> str:
+    return _OmniUrl(value).path.casefold()
+
 
 def ensure_scan_dialog_input_folder(input_folder_field, base_path) -> None:
     """If the directory picker did not set a local path (e.g. field is omniverse://), set the field to base_path."""
-    val = input_folder_field.model.get_value_as_string()
-    if not val or val.strip().startswith("omniverse:"):
+    val = input_folder_field.model.get_value_as_string() or ""
+    if not val:
+        input_folder_field.model.set_value(str(base_path))
+        return
+
+    normalized_val = _normalize_path(val)
+    normalized_base_path = _normalize_path(base_path)
+    if val.strip().casefold().startswith(("omniverse:", "omni:")) or normalized_base_path not in normalized_val:
         input_folder_field.model.set_value(str(base_path))

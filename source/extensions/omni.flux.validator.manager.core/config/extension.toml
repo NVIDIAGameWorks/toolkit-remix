@@ -2,8 +2,9 @@
 order = 100  # to start always after the plugins
 
 [package]
+kit_sdk_version = "110.*"
 # Semantic Versionning is used: https://semver.org/
-version = "2.1.6"
+version = "2.1.7"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -44,7 +45,6 @@ name = "omni.flux.validator.manager.core"
 [[test]]
 dependencies = [
     "omni.flux.tests.dependencies",
-    "omni.flux.validator.factory",
     "omni.flux.validator.plugin.check.usd",
     "omni.flux.validator.plugin.context.usd_stage",
     "omni.flux.validator.plugin.selector.usd",

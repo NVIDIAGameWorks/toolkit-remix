@@ -18,7 +18,9 @@
 from unittest.mock import AsyncMock, Mock, patch
 
 import omni.kit.test
+from omni.flux.stage_manager.factory.items import StageManagerItem
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel
+from pxr import Sdf
 
 __all__ = ["TestStageManagerTreeModelSelection"]
 
@@ -40,6 +42,14 @@ class TestStageManagerTreeModelSelection(omni.kit.test.AsyncTestCase):
         item.data = Mock()
         item.data.GetPath.return_value = prim_path
         return item
+
+    def _make_context_item(self, prim_path="/World/Prim"):
+        prim = Mock()
+        prim.GetPath.return_value = Sdf.Path(prim_path)
+        return StageManagerItem(prim_path, data=prim)
+
+    def _selection_paths(self, model):
+        return [str(item.data.GetPath()) for item in model.selection]
 
     # ------------------------------------------------------------------
     # set_selection / selection
@@ -84,11 +94,11 @@ class TestStageManagerTreeModelSelection(omni.kit.test.AsyncTestCase):
         self.assertEqual(model.selection, [])
 
     # ------------------------------------------------------------------
-    # refresh() clears stale selection
+    # refresh() remaps or clears selection
     # ------------------------------------------------------------------
 
     async def test_refresh_clears_stale_selection(self):
-        """refresh() must clear model.selection before rebuilding items.
+        """refresh() should clear model.selection when the selected prim no longer exists.
 
         Note: refresh() calls omni.kit.app.get_app().next_update_async() internally,
         so this test requires the live Kit runtime (provided by the .bat test runner).
@@ -102,3 +112,26 @@ class TestStageManagerTreeModelSelection(omni.kit.test.AsyncTestCase):
             await model.refresh()
 
         self.assertEqual(model.selection, [])
+
+    async def test_refresh_preserves_selection_when_rebuilt_item_still_exists(self):
+        """refresh() should keep selected rows that are rebuilt from the same prim path."""
+        model = self._make_model()
+        self.addCleanup(model.destroy)
+        prim_path = "/World/Prim"
+
+        with patch.object(
+            model, "get_context_items", new_callable=AsyncMock, return_value=[self._make_context_item(prim_path)]
+        ):
+            await model.refresh()
+
+        selected_item = model.get_item_children(None)[0]
+        model.set_selection([selected_item])
+
+        with patch.object(
+            model, "get_context_items", new_callable=AsyncMock, return_value=[self._make_context_item(prim_path)]
+        ):
+            await model.refresh()
+
+        self.assertEqual(self._selection_paths(model), [prim_path])
+        self.assertIsNot(model.selection[0], selected_item)
+        self.assertIs(model.selection[0], model.get_item_children(None)[0])

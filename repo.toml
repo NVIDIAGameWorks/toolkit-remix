@@ -377,6 +377,39 @@ pre_build.commands = [
     ["${root}/_build/${platform}/${config}/kit/kit${exe_ext}", "${root}/_build/${platform}/${config}/apps/omni.flux.app.service.documentation_cli_generator.kit", "--no-window", "--exec", "${root}/tools/custom/generate_app.py -id omni.flux.service.documentation -n omni.flux.app.service.documentation.cli"],
 ]
 
+
+########################################################################################################################
+# Tool to pull kit kernel and extensions before running (required by repo_kit_tools >= 1.18.x)
+########################################################################################################################
+
+[repo_kit_pull_extensions]
+enabled = true
+precache_exts_enabled = true
+
+[[repo_kit_pull_extensions.environment]]
+name = "staging"
+app_version_regex = ""
+tokens.registry_url = "https://ovextensionsprod.blob.core.windows.net"
+tokens.registry_shared_name = "shared"
+tokens.registry_name = "kit/prod"
+
+[repo_build.fetch]
+packman_host_files_to_pull = [
+    "${root}/deps/host-deps.packman.xml",
+]
+packman_target_files_to_pull = [
+    "${root}/deps/app.packman.xml",
+    "${root}/deps/kit-sdk.packman.xml",
+    "${root}/deps/kit-sdk-deps.packman.xml",
+    "${root}/deps/rtx-plugins.packman.xml",
+    "${root}/deps/target-deps.packman.xml",
+    "${root}/deps/assets.packman.xml",
+    "${root}/deps/ext-deps.packman.xml",
+]
+after_pull_commands = [
+    ["${root}/repo${shell_ext}", "precache_exts", "-c", "${config}", "${precache_flag_0}"],
+]
+
 [repo_build.fetch.pip]
 # List of pip files to pip install from (in order)
 files_to_pull = [
@@ -463,7 +496,9 @@ apps = [
 kit_extra_args = [
     "--portable-root",
     "${root}/_build/${platform}/${config}",
-    "--/app/extensions/supportedTargets/platform='windows-x86_64'"
+    "--/app/extensions/supportedTargets/platform='windows-x86_64'",
+    "--/app/extensions/generateVersionLockSkipLocalExts=1",
+    "--/app/extensions/generateVersionLockSkipCoreExts=1"
 ]
 
 ########################################################################################################################
@@ -495,6 +530,9 @@ import shutil
 import subprocess
 import sys
 import sysconfig
+
+# Extension changelogs are embedded as snippets and intentionally start with version H2 headings.
+suppress_warnings = ["myst.header"]
 
 # Ensure interpreter site-packages take precedence over vendored modules
 paths = sysconfig.get_paths()
@@ -531,6 +569,7 @@ def build_service_docs(app):
         raise RuntimeError("Service Documentation executable not found.")
 
     source_file = pathlib.Path.cwd() / "docs" / "howto" / "learning-restapi-docs.html"
+
     command = [
         str(exec_path),
         "-o", str(source_file),
@@ -662,6 +701,7 @@ sphinx_exclude_patterns = [
     # Ignore directories
     ####################################################################################################################
     ".cache",
+    ".codex",
     ".local",
     ".ruff_cache",
     ".venv",
@@ -695,6 +735,8 @@ sphinx_exclude_patterns = [
     "docs_dev/data/*",
     "docs_dev/internal",
     "docs_dev/README.md",
+    "docs/plans/*",
+    "docs/superpowers/*",
     ####################################################################################################################
     # Excluded docs
     ####################################################################################################################
@@ -780,7 +822,7 @@ files.exclude = [
     "tools/*",
     "venv/*",
 ]
-python_version = "py310"
+python_version = "py312"
 job_count = 1
 
 ########################################################################################################################

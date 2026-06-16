@@ -16,3 +16,5 @@ Create well-formed commit. Ref: `docs_dev/getting-started/git-workflow.md`. Arg:
 ## Rules
 
 No amend unless user asks. No `--no-verify`. Hook fail -> fix + retry new commit.
+Do not assume hooks are installed. If the task included history rewriting, autosquash/fixup commits, generated files,
+or Python source changes, run the repo format and lint commands manually before the final commit or final response.

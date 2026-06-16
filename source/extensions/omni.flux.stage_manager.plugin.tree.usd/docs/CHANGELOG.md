@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.5]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.6.4]
 ### Changed
 - Replaced style dict references with named styles in `VirtualGroupsItem` to fix import-time errors

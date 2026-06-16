@@ -68,7 +68,7 @@ class ToolMaterialCore:
             # Although the schema is new, there can still be old parameter overrides if the MDL is referenced into the
             # stage. Need to convert those old overrides.
             shader, _, _ = material.ComputeSurfaceSource("mdl")
-        return shader if shader else None
+        return shader or None
 
     @staticmethod
     def get_materials_from_prim_paths(prim_paths: list[str], context_name: str = ""):

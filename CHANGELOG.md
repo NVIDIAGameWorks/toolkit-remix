@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the Toolkit credits list with Runtime credit contributors.
 - Added a scheduled Remix target dependency bot to update hdremix, omni_core_materials, and remix_runtime pins using a durable reusable bot branch.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-9c46827-main`
+- REMIX-5155: Update Kit SDK version to 110.1.1 production.
 
 ### Removed
 
@@ -78,6 +79,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5609: Fixed xform override handling so focus-only edits do not author USD overrides, value edits author the full logical xform set, and related xform specs appear as one layer modification entry.
 - Fixed Remix target dependency bot CI by skipping harmless Git LFS authentication checks and routing Slack result notifications by outcome.
 - REMIX-4404: Fixed texture ingestion saturating VRAM by making DDS and octahedral conversion concurrency configurable (`max_workers`, default `2`) through one shared ingestion UI control.
+
+- Fixed docs builds by keeping Sphinx imports compatible with Kit runtime modules outside Kit.
+
+- Fixed Kit 110 HdRemix startup, warmup compatibility, renderer initialization, and support retries.
+
+- Fixed Pyright config generation so Windows builds skip inaccessible generated extra paths instead of logging a pre-build error.
+
+- REMIX-5607: Fixed StageCraft undo context initialization, clarified the teleport viewport tooltip, and aligned Existing Graphs action icons in the logic properties pane.
 
 ## [1.5.2-0]
 

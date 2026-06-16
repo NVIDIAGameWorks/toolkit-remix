@@ -1,6 +1,9 @@
 [app]
 # Required to avoid a myriad of issues: Slow to close, crash on exit, wrong exit code...
 fastShutdown = true
+# Kit 110 sets useFabricSceneDelegate=true in kit-core.json. RTX Remix uses HdRemixRendererPlugin
+# and does not use UsdRt/Fabric. Override to suppress the IUtils initialization error.
+useFabricSceneDelegate = false
 enableDeveloperWarnings = false
 
 [app.audio]
@@ -11,6 +14,11 @@ emptyStageOnStart = true
 
 [app.extensions]
 registryEnabled = true
+
+[exts."omni.services.transport.server.http"]
+# Let the Kit HTTP service auto-select a free port in its allowed range when the default
+# port is already occupied. This prevents startup from aborting with SystemExit during launch.
+port = 0
 
 # Fonts
 [app.font]

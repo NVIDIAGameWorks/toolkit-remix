@@ -49,7 +49,7 @@ class UsdShadePropertyPlaceholder:
     def __init__(self, name: str, metadata: dict | None, from_sdr: bool = False):
         """Initializer for the UsdShadePropertyPlaceholder class."""
         self._name = name
-        self._metadata = metadata if metadata else {}
+        self._metadata = metadata or {}
         self._from_sdr = from_sdr
 
     @classmethod

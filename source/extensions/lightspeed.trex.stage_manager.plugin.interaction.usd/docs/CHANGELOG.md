@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.5]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.6.4]
 ### Added
 - Added `SceneEditFilterPlugin` to `compatible_filters` for `RemixAllPrimsInteractionPlugin`

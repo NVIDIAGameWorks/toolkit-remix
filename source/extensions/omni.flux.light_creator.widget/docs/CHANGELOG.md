@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.3]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.2.2]
 ### Changed
 - Modernize python style and enable more ruff checks
@@ -44,6 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Return the path of the created light in the callback
 
 - Update UsdLux token usage to USD 22 standard
+
 ## [1.0.1] - 2023-09-18
 ### Fixed
 - Update UsdLux token usage to USD 22 standard

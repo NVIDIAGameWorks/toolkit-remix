@@ -313,7 +313,10 @@ class TeleportButtonGroup(WidgetGroup):
             model=self._model,
             name=self.name,
             identifier=self.name,
-            tooltip=f"Teleport to Center (Use {TELEPORT_HOTKEY} to teleport under mouse)",
+            tooltip=(
+                "Teleport selected prims to the center of the viewport. "
+                f"Use {TELEPORT_HOTKEY} to teleport under the mouse cursor."
+            ),
             width=default_size,
             height=default_size,
             mouse_released_fn=lambda x, y, b, _: self._on_mouse_released(b),
@@ -332,26 +335,31 @@ class Teleporter:
     TELEPORT_MAX_PICK_DISTANCE_SETTING = "/app/viewport/teleport/max_pick_distance_from_camera"
     TELEPORT_DEFAULT_DISTANCE_SETTING = "/app/viewport/teleport/default_teleport_distance_from_camera"
 
-    def __init__(self, viewport_api: ViewportAPI):
+    def __init__(self, viewport_api: ViewportAPI, is_active_fn: Callable[[], bool] | None = None):
         self._viewport_api = viewport_api
         self._settings = carb.settings.get_settings()
+        self._is_active_fn = is_active_fn
 
         usd_context_name = viewport_api.usd_context_name
-        self._context = _TrexContexts(usd_context_name)
-        self._core = _AssetReplacementsCore(usd_context_name)
+        self._is_stagecraft_context = usd_context_name == _TrexContexts.STAGE_CRAFT.value
+        self._core = _AssetReplacementsCore(usd_context_name) if self._is_stagecraft_context else None
 
         # this will overlay viewport window since its created in factory context
         self.__viewport_frame = ui.Frame()
 
-        # Subscribe to the Teleport Hotkey for this viewport
+        # Ctrl+T is a viewport action, so route it to whichever viewport is currently active instead of the last
+        # app-level Trex context that was focused.
         hotkey_manager = _get_global_hotkey_manager()
         self._hotkey_subscription = hotkey_manager.subscribe_hotkey_event(
             TrexHotkeyEvent.CTRL_T,
             self.on_teleport_hotkey,
-            context=self._context,
+            enable_fn=self._is_hotkey_enabled,
         )
         # Subscribe to presses from Teleport Button
         self._button_pressed_subscription = _teleport_button_group.subscribe_button_pressed(self.on_teleport_button)
+
+    def _is_hotkey_enabled(self):
+        return self._viewport_api.updates_enabled and self._is_active_fn is not None and self._is_active_fn()
 
     def filter_to_transform_target_fn(self, _viewport_api: ViewportAPI, selection: list[Sdf.Path]):
         """Replace path with the best target for teleport translation"""
@@ -362,7 +370,7 @@ class Teleporter:
     def get_picker(self, default_to_centered: bool = False):
         """Return a picker object configured with the proper teleport callbacks for this viewport."""
         filter_fn = default_filter_fn
-        if self._context == _TrexContexts.STAGE_CRAFT:
+        if self._is_stagecraft_context:
             # filter_fn may return a different path to target the prototype prims if needed. This means that
             # xform will apply to all instances equally (relative to their world positions)
             filter_fn = self.filter_to_transform_target_fn
@@ -390,6 +398,8 @@ class Teleporter:
         self.get_picker().pick()
 
     def on_teleport_button(self):
+        if not self._is_hotkey_enabled():
+            return
         # If the button is hit we teleport to center screen rather than under the mouse since that would always
         # be under the toolbar button. We also want to default this behavior to center object on camera if there
         # is no object in the center of the viewport.
@@ -406,4 +416,4 @@ class Teleporter:
 
 
 def teleporter_factory(desc: dict[str, Any]):
-    return Teleporter(desc.get("viewport_api"))
+    return Teleporter(desc.get("viewport_api"), is_active_fn=desc.get("is_active_fn"))

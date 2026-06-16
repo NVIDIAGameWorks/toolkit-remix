@@ -15,7 +15,6 @@
 * limitations under the License.
 """
 
-import contextlib
 import os
 import shutil
 import tempfile
@@ -23,7 +22,9 @@ from enum import Enum
 from pathlib import Path
 
 import carb
+import carb.eventdispatcher
 import carb.input
+import omni.appwindow
 import omni.client
 import omni.ui as ui
 import omni.usd
@@ -37,6 +38,7 @@ from lightspeed.trex.properties_pane.material.widget import SetupUI as _Material
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common.interactive_usd_notices import register_objects_changed_listener as _register_listener
 from omni.flux.utils.common.omni_url import OmniUrl
+from omni.flux.utils.tests.projects import copy_test_project_to_temp
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
@@ -66,6 +68,13 @@ PROPERTY_BRANCHES_MAP = {
 BRANCHES_TO_EXPAND: list[bool] = list(PROPERTY_BRANCHES_MAP.values())
 # texture types in order that they appear
 TEXTURE_TYPES = ("albedo", "roughness", "metallic", "normal")
+
+
+def _push_window_drop_event(asset_path):
+    app_window = omni.appwindow.get_default_app_window()
+    payload = dict(app_window.get_event_key())
+    payload["paths"] = [asset_path]
+    carb.eventdispatcher.get_eventdispatcher().dispatch_event(omni.appwindow.GLOBAL_EVENT_WINDOW_DROP, payload)
 
 
 class TestComponents(Enum):
@@ -105,6 +114,15 @@ class TestMaterialPropertyWidget(AsyncTestCase):
     # After running each test
     async def tearDown(self):
         pass
+
+    async def __open_temp_project(self):
+        temp_project_dir, stage_url = await copy_test_project_to_temp(
+            "usd/project_example/combined.usda", "lightspeed.trex.app.resources"
+        )
+        self.addCleanup(temp_project_dir.cleanup)
+        await open_stage(stage_url.path)
+        layer_manager = _LayerManagerCore()
+        layer_manager.set_edit_target_layer_of_type(_LayerType.replacement)
 
     async def __setup_widget(self):
         window = ui.Window("TestMaterialPropertyWidgetUI", height=800, width=500)
@@ -596,6 +614,8 @@ class TestMaterialPropertyWidget(AsyncTestCase):
 
     async def test_override_texture_ingested_texture_outside_project_dir_copy_and_re_ref(self):
         # Setup
+        # Temp project copy required because copy/re-ref writes the external texture into the opened project folder.
+        await self.__open_temp_project()
         _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
 
         try:
@@ -656,10 +676,6 @@ class TestMaterialPropertyWidget(AsyncTestCase):
 
                 # Make sure the metadata matches
                 self.assertTrue(_path_utils.hash_match_metadata(file_path=asset_path, key=BASE_HASH_KEY))
-
-            with contextlib.suppress(Exception):
-                # Delete the newly created project_example/assets/ingested subdirectory and its contents
-                shutil.rmtree(_get_test_data(f"usd/project_example/{str(_constants.REMIX_INGESTED_ASSETS_FOLDER)}"))
 
         finally:
             await self.__destroy(_window, _material_property_wid)
@@ -745,7 +761,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             context_inst.set_current_context(_Contexts.STAGE_CRAFT)
 
             asset_path = _get_test_data("usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds")
-            omni.appwindow.get_default_app_window().get_window_drop_event_stream().push(0, 0, {"paths": [asset_path]})
+            _push_window_drop_event(asset_path)
             await ui_test.human_delay(20)
 
             action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].identifier=='AssignButton'")
@@ -789,7 +805,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             # Act: drop a file whose extension is not in _SUPPORTED_TEXTURE_EXTENSIONS
             # — all payloads are filtered out, leaving dropped_paths empty.
             invalid_path = str(Path(tempfile.mkdtemp()) / "not_a_texture.txt")
-            omni.appwindow.get_default_app_window().get_window_drop_event_stream().push(0, 0, {"paths": [invalid_path]})
+            _push_window_drop_event(invalid_path)
             await ui_test.human_delay(20)
 
             # Assert: the drop was silently ignored — no texture assignment dialog opened

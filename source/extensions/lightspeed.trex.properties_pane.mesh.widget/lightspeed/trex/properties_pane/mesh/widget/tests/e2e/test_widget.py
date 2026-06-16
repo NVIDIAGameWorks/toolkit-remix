@@ -27,8 +27,11 @@ from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.properties_pane.mesh.widget import SetupUI as _MeshPropertiesWidget
 from lightspeed.trex.selection_tree.widget import SetupUI as _SelectionTreeWidget
+from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemPrim as _ItemPrim
+from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemReferenceFile as _ItemReferenceFile
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.utils.common import path_utils as _path_utils
+from omni.flux.utils.tests.projects import copy_test_project_to_temp
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
@@ -78,6 +81,15 @@ class TestSelectionTreeWidget(AsyncTestCase):
     async def tearDown(self):
         pass
 
+    async def __open_temp_project(self):
+        temp_project_dir, stage_url = await copy_test_project_to_temp(
+            "usd/project_example/combined.usda", "lightspeed.trex.app.resources"
+        )
+        self.addCleanup(temp_project_dir.cleanup)
+        await open_stage(stage_url.path)
+        layer_manager = _LayerManagerCore()
+        layer_manager.set_edit_target_layer_of_type(_LayerType.replacement)
+
     async def __setup_widget(self):
         window = ui.Window("TestSelectionTreeUI", height=800, width=400)
         with window.frame:
@@ -113,6 +125,27 @@ class TestSelectionTreeWidget(AsyncTestCase):
                 prompt_dialog_window = ui_test.find(other_window.title)
                 if prompt_dialog_window:
                     prompt_dialog_window.widget.destroy()
+
+    async def __wait_for_tree_ref_path(
+        self, selection_wid: _SelectionTreeWidget, ref_path: str, expected_count: int | None = None
+    ) -> list:
+        last_items = []
+        for _ in range(120):
+            tree_items = [
+                item
+                for item in selection_wid._tree_model.get_all_items()
+                if isinstance(item, (_ItemReferenceFile, _ItemPrim))
+            ]
+            last_items = [(type(item).__name__, item.path) for item in tree_items]
+            count_matches = expected_count is None or len(tree_items) == expected_count
+            ref_path_matches = any(
+                isinstance(item, _ItemReferenceFile) and item.path == ref_path for item in tree_items
+            )
+            if count_matches and ref_path_matches:
+                return tree_items
+            await ui_test.wait_n_updates(1)
+        self.fail(f"Timed out waiting for tree reference path {ref_path!r}; last items: {last_items}")
+        return []
 
     @staticmethod
     def __find_item_prim(window_title: str, path: str):
@@ -654,6 +687,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
     async def test_replace_mesh_ref_using_file_picker_outside_project_dir_copy_and_re_ref(self):
+        # Temp project copy required because copy/re-ref writes the external mesh into the opened project folder.
+        await self.__open_temp_project()
+
         # Create a temp directory to mimic a location for an external asset
         with tempfile.TemporaryDirectory(dir=_get_test_data("usd/")) as temp_dir:
             shutil.copy(_get_test_data("usd/project_example/ingested_assets/output/good/cube.usda"), temp_dir)
@@ -734,22 +770,19 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
             # Copy the asset
             await copy_external_asset_button.click()
-            await ui_test.human_delay(50)
 
             # Make sure that new ref exists
-            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-            self.assertEqual(len(item_prims), 5)
+            item_prims = await self.__wait_for_tree_ref_path(
+                _selection_wid, "./assets/ingested/cube.usda", expected_count=5
+            )
 
             # Check that the reference is from a new internal copy and not the original external asset
-            item_ref = item_prims[0].widget
-            self.assertEqual(item_ref.text, "cube.usda")
-            self.assertEqual(item_ref.tooltip, "./assets/ingested/cube.usda")
+            item_ref = item_prims[0]
+            self.assertEqual(item_ref.path.rsplit("/", 1)[-1], "cube.usda")
+            self.assertEqual(item_ref.path, "./assets/ingested/cube.usda")
 
             # Make sure the metadata matches
             self.assertTrue(_path_utils.hash_match_metadata(file_path=asset_path, key=BASE_HASH_KEY))
-
-            # Delete the newly created project_example/assets/ingested subdirectory and its contents
-            shutil.rmtree(_get_test_data(f"usd/project_example/{_constants.REMIX_INGESTED_ASSETS_FOLDER}"))
 
             await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -1147,6 +1180,9 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
     async def test_replace_mesh_ref_using_string_field_asset_outside_project_dir_copy_and_re_ref(self):
+        # Temp project copy required because copy/re-ref writes the external mesh into the opened project folder.
+        await self.__open_temp_project()
+
         # Setup
         _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
 
@@ -1205,25 +1241,22 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
             # Copy the asset
             await copy_external_asset_button.click()
-            await ui_test.human_delay(50)
 
             # Make sure that new ref exists
-            item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
-            self.assertEqual(len(item_prims), 5)
+            item_prims = await self.__wait_for_tree_ref_path(
+                _selection_wid, "./assets/ingested/cube.usda", expected_count=5
+            )
 
             # Check that the reference is from a new internal copy and not the original external asset
-            item_ref = item_prims[0].widget
-            self.assertEqual(item_ref.text, "cube.usda")
-            self.assertEqual(item_ref.tooltip, "./assets/ingested/cube.usda")
+            item_ref = item_prims[0]
+            self.assertEqual(item_ref.path.rsplit("/", 1)[-1], "cube.usda")
+            self.assertEqual(item_ref.path, "./assets/ingested/cube.usda")
 
             # Make sure the metadata matches
             self.assertTrue(_path_utils.hash_match_metadata(file_path=asset_path, key=BASE_HASH_KEY))
 
             # The text should not revert back to what it was originally
             self.assertNotEqual(original_text, mesh_ref_field.widget.model.get_value_as_string())
-
-            # Delete the newly created project_example/assets/ingested subdirectory and its contents
-            shutil.rmtree(_get_test_data(f"usd/project_example/{_constants.REMIX_INGESTED_ASSETS_FOLDER}"))
 
             await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
@@ -1322,6 +1355,41 @@ class TestSelectionTreeWidget(AsyncTestCase):
         test_attr = [attr for attr in attrs if attr.GetName() == "remix_category:world_ui"]
 
         self.assertEqual(len(test_attr), 1)
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_assign_single_remix_category_preserves_selection(self):
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        selected_path = (
+            "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
+        )
+
+        # select
+        usd_context = omni.usd.get_context()
+        usd_context.get_selection().set_selected_prim_paths([selected_path], False)
+
+        await ui_test.human_delay(human_delay_speed=3)
+        self.assertTrue(_selection_wid.get_selection(get_instances=False))
+
+        category_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='Categories'")
+        await category_button.click()
+        await ui_test.human_delay(3)
+
+        # Set a random remix category for us to assign
+        box = ui_test.find("Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:world_ui'")
+        await ui_test.emulate_mouse_move_and_click(box.position)
+        await ui_test.human_delay(3)
+
+        # Assign the category
+        assign_button = ui_test.find(
+            "Add Render Categories to Prim//Frame/**/Button[*].identifier=='AssignCategoryButton'"
+        )
+        await assign_button.click()
+        await ui_test.human_delay(3)
+
+        self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [selected_path])
+        self.assertTrue(_selection_wid.get_selection(get_instances=False))
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 

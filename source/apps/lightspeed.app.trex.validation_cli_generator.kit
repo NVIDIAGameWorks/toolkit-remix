@@ -54,7 +54,7 @@ dependencies = [
 stdoutFailPatterns.exclude = [
 	# This may be fixable by more tightly controlling initialization order,
 	# but it doesn't appear to actually cause any problems.
-  "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at '{render_product_path}'*",
+    "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at *",
 ]
 
 # We can run all extension tests inside of an app. In practice many of them failing and crashing, that requires time
@@ -66,13 +66,11 @@ pythonTests.exclude = [
 timeout = 600
 
 
-
-
 ########################################################################################################################
 # BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
 ########################################################################################################################
 
-# Kit SDK Version: 106.5.0+release.162521.d02c707b.gl
+# Kit SDK Version: 110.1.1+production.305458.6312fa25.gl
 
 # Version lock for all dependencies:
 [settings.app.exts]
