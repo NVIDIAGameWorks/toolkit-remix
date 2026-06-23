@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.4]
+### Added
+- Added `SceneEditFilterPlugin` to `compatible_filters` for `RemixAllPrimsInteractionPlugin`
+- Added `SceneEditFilterPlugin` to `compatible_filters` for `RemixAllMeshesInteractionPlugin`, `RemixAllMaterialsInteractionPlugin`, `RemixAllLightsInteractionPlugin`, `RemixAllSkeletonsInteractionPlugin`, `RemixAllCategoriesInteractionPlugin`, and `RemixAllTagsInteractionPlugin` so the "Edit State" filter is available in the Additional Filters popup on every tab
+
 ## [2.6.3]
 ### Added
 - Added `CustomTagsFilterPlugin` to `compatible_filters` for `AllCategoriesInteractionPlugin` and `AllMeshesInteractionPlugin`

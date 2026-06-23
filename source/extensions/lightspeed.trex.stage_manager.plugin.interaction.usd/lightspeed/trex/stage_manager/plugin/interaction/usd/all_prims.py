@@ -40,6 +40,7 @@ class RemixAllPrimsInteractionPlugin(AllPrimsInteractionPlugin, RemixStageManage
             "MeshGroupFilterPlugin",
             "ParticleSystemsFilterPlugin",
             "RemixLogicPrimsFilterPlugin",
+            "SceneEditFilterPlugin",
         ],
         exclude=True,
     )

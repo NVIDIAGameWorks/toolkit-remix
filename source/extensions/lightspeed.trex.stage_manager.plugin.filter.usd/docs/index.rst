@@ -15,3 +15,4 @@ lightspeed.trex.stage_manager.plugin.filter.usd
 .. automodule:: lightspeed.trex.stage_manager.plugin.filter.usd.mesh_group
 .. automodule:: lightspeed.trex.stage_manager.plugin.filter.usd.mesh_prims
 .. automodule:: lightspeed.trex.stage_manager.plugin.filter.usd.particle_prims
+.. automodule:: lightspeed.trex.stage_manager.plugin.filter.usd.scene_edit_state

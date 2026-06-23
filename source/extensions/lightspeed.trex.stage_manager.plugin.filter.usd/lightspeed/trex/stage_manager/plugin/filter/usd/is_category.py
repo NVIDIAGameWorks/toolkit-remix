@@ -47,7 +47,6 @@ class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
     )
 
     _CATEGORY_DISPLAY_LABELS: dict = PrivateAttr(default={"All": "All Categories", **_REMIX_CATEGORIES_DISPLAY_NAMES})
-    _COMBO_BOX_WIDTH: int = PrivateAttr(default=130)
     _cat_type_combobox: ui.ComboBox | None = PrivateAttr(default=None)
     _current_attr: str | None = PrivateAttr(default=None)
 
@@ -70,7 +69,6 @@ class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
             self._cat_type_combobox = ui.ComboBox(
                 list(self._CATEGORY_DISPLAY_LABELS.values()).index(self.category_type),
                 *self._CATEGORY_DISPLAY_LABELS.values(),
-                width=ui.Pixel(self._COMBO_BOX_WIDTH),
             )
             self._cat_type_combobox.model.add_item_changed_fn(self._on_cat_type_changed)
 

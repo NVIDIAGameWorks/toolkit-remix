@@ -1,0 +1,34 @@
+[package]
+version = "1.0.0"
+authors = ["Shona Gillard <sgillard@nvidia.com>"]
+title = "RTX Remix Source Layer Picker Utility"
+description = "Utility widget for choosing source layers in Remix edit-state filtering"
+readme = "docs/README.md"
+category = "internal"
+keywords = ["remix", "source", "layer", "picker", "utility"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.source_layer_picker.window"
+
+[dependencies]
+"omni.flux.layer_tree.usd.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
+"omni.kit.usd.layers" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.source_layer_picker.window"
+
+[[test]]
+dependencies = [
+    "lightspeed.layer_manager.core",
+    "lightspeed.trex.tests.dependencies",
+    "omni.kit.test_suite.helpers",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

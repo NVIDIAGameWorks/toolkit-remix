@@ -70,7 +70,6 @@ class IsCaptureFilterPlugin(StageManagerUSDFilterPlugin):
             ReferenceType.DELETED: "Deleted",
         }
     )
-    _COMBO_BOX_WIDTH: int = PrivateAttr(default=130)
 
     _layer_manager: LayerManagerCore = PrivateAttr()
     _ref_type_combobox: ui.ComboBox | None = PrivateAttr(default=None)
@@ -130,7 +129,6 @@ class IsCaptureFilterPlugin(StageManagerUSDFilterPlugin):
             self._ref_type_combobox = ui.ComboBox(
                 list(self._REFERENCE_TYPE_LABELS.keys()).index(self.reference_type),
                 *self._REFERENCE_TYPE_LABELS.values(),
-                width=ui.Pixel(self._COMBO_BOX_WIDTH),
             )
             self._ref_type_combobox.model.add_item_changed_fn(self._on_ref_type_changed)
 

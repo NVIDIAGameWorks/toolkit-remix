@@ -49,6 +49,7 @@ class RemixAllCategoriesInteractionPlugin(RemixStageManagerUSDInteractionPlugin)
             "LightPrimsFilterPlugin",
             "MeshPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
+            "SceneEditFilterPlugin",
             "SearchFilterPlugin",
             "SkeletonPrimsFilterPlugin",
         ],

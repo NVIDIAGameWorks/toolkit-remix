@@ -15,14 +15,11 @@
 * limitations under the License.
 """
 
-from .unit.test_combobox_filter_tooltips import TestComboboxFilterTooltipsUnit
-from .unit.test_geometry_prims_filter import TestGeometryPrimsFilterUnit
-from .unit.test_is_capture_filter import TestIsCaptureFilterUnit
-from .e2e.test_scene_edit_state_filter import TestSceneEditFilterE2E
+from omni import ui
 
-__all__ = [
-    "TestComboboxFilterTooltipsUnit",
-    "TestGeometryPrimsFilterUnit",
-    "TestIsCaptureFilterUnit",
-    "TestSceneEditFilterE2E",
-]
+_PICKER_WINDOW_WIDTH = ui.Pixel(600)
+_PICKER_WINDOW_HEIGHT = ui.Pixel(400)
+_PADDING_SM = ui.Pixel(4)
+_PADDING_MD = ui.Pixel(8)
+_PICKER_DIVIDER_HEIGHT = ui.Pixel(1)
+_ROW_HEIGHT = ui.Pixel(24)

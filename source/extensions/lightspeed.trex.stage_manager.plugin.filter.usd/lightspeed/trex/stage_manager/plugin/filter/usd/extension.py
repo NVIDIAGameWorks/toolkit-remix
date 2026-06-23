@@ -29,6 +29,7 @@ from .is_logic_graph import RemixLogicPrimsFilterPlugin
 from .mesh_group import MeshGroupFilterPlugin
 from .mesh_prims import MeshPrimsFilterPlugin
 from .particle_prims import ParticleSystemsFilterPlugin
+from .scene_edit_state import SceneEditFilterPlugin
 
 
 class LightspeedStageManagerUSDFilterPluginsExtension(omni.ext.IExt):
@@ -41,6 +42,7 @@ class LightspeedStageManagerUSDFilterPluginsExtension(omni.ext.IExt):
         MeshPrimsFilterPlugin,
         ParticleSystemsFilterPlugin,
         RemixLogicPrimsFilterPlugin,
+        SceneEditFilterPlugin,
     ]
 
     def on_startup(self, _):

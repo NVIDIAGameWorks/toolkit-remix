@@ -36,6 +36,7 @@ class RemixAllTagsInteractionPlugin(AllTagsInteractionPlugin, RemixStageManagerU
             # Remix filters
             "IsCaptureFilterPlugin",
             "ParticleSystemsFilterPlugin",
+            "SceneEditFilterPlugin",
         ],
         exclude=True,
     )

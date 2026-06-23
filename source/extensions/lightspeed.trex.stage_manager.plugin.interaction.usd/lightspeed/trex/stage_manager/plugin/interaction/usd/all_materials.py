@@ -36,6 +36,7 @@ class RemixAllMaterialsInteractionPlugin(AllMaterialsInteractionPlugin, RemixSta
             *AllMaterialsInteractionPlugin.model_fields["compatible_filters"].default,
             # Remix filters
             "IsCaptureFilterPlugin",
+            "SceneEditFilterPlugin",
         ],
         exclude=True,
     )

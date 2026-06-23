@@ -101,7 +101,7 @@ class AdditionalFiltersPopupMenuItemDelegate(PopupMenuItemDelegate):
     def build_item(self):
         """Build the item UI."""
         if not self.container:
-            self._container = ui.HStack(height=0, spacing=ui.Pixel(8))
+            self._container = ui.HStack(spacing=ui.Pixel(8))
         else:
             self.container.clear()
 
@@ -115,7 +115,7 @@ class AdditionalFiltersPopupMenuItemDelegate(PopupMenuItemDelegate):
 
         with self._container:
             ui.Spacer(width=0)
-            with ui.VStack(width=0, spacing=ui.Pixel(4)):
+            with ui.VStack(spacing=ui.Pixel(4)):
                 self.filter_obj.build_ui()
                 if not isinstance(self.filter_obj, _ToggleableUSDFilterPlugin):
                     ui.Spacer(width=0)
@@ -198,7 +198,7 @@ class AdditionalFiltersPopupMenu(AbstractPopupMenu):
             ui.Label(_FILTER_CATEGORY_TITLES[category], name="PropertiesPaneSectionTitle", width=0)
             if not self._delegate.has_bulk_actions(category):
                 return
-            ui.Spacer(width=ui.Fraction(1))
+            ui.Spacer()
             self._build_category_action("Select All", category, True)
             ui.Spacer(width=ui.Pixel(_FILTER_CATEGORY_SPACING))
             self._build_category_action("Deselect All", category, False)
