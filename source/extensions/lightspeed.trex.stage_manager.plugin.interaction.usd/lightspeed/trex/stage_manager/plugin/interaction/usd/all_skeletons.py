@@ -35,6 +35,7 @@ class RemixAllSkeletonsInteractionPlugin(AllSkeletonsInteractionPlugin, RemixSta
             *AllSkeletonsInteractionPlugin.model_fields["compatible_filters"].default,
             # Remix filters
             "IsCaptureFilterPlugin",
+            "SceneEditFilterPlugin",
         ],
         exclude=True,
     )

@@ -36,6 +36,7 @@ class RemixAllLightsInteractionPlugin(AllLightsInteractionPlugin, RemixStageMana
             # Remix filters
             "IsCaptureFilterPlugin",
             "IsCategoryFilterPlugin",
+            "SceneEditFilterPlugin",
         ],
         exclude=True,
     )

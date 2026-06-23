@@ -1,14 +1,25 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [2.5.2]
+
+## [2.6.1]
+### Fixed
+- Fixed `SceneEditFilterPlugin` filter activation and context-rebind source-layer selection reset so non-default edit-state modes affect Stage Manager results.
+
+## [2.6.0]
+### Added
+- Added `SceneEditFilterPlugin` ("Edit State"): plain-language filter for finding modified prims, untouched prims, and prims with unused edits. Sits parallel to the existing "Asset State" filter and targets scene cleanup workflows.
+- Added Source Layer(s) picker to `SceneEditFilterPlugin`. When the combo is set to "Modified prims" or "Prims with unused edits", a clickable "Source Layers" action label below the combo opens a layer-tree window that lets the modder narrow the filter to a chosen subset of source layers. The tree is the standard `omni.flux.layer_tree.usd.widget.LayerTreeWidget` with a custom delegate that adds a checkbox per row; checkboxes are enabled only for layers in the replacement (mod) subtree. Includes a case-insensitive search field and Select all / Deselect all controls.
+
 ### Changed
-- Added hyphenated option descriptions to Remix Stage Manager combobox filter tooltips
-- Included Remix Stage Manager `filter_active` runtime state in filter serialization for modified-state checks
-- Updated Remix Stage Manager filters to share `filter_active` refresh wiring
+- Added hyphenated option descriptions to Remix Stage Manager combobox filter tooltips.
+- Included Remix Stage Manager `filter_active` runtime state in filter serialization for modified-state checks.
+- Made Remix Stage Manager combobox filters fill the available control width, added dashed `SceneEditFilterPlugin` tooltip option descriptions, shortened the unused-edits label, renamed the source-layer filter action, and refreshed the source-layer picker layout, title, copy, and checkbox spacing.
+- Updated Remix Stage Manager filters to share `filter_active` refresh wiring.
 
 ### Fixed
-- Fixed neutral/default Remix combobox filters participating in Stage Manager filtering
+- Fixed `SceneEditFilterPlugin` source-layer cache invalidation when a new stage opens in the same USD context.
+- Fixed neutral/default Remix combobox filters participating in Stage Manager filtering.
 
 ## [2.5.1]
 ### Changed

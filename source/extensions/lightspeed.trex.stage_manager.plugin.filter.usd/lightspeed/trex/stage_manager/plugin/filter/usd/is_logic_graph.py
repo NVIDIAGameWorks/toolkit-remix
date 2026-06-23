@@ -48,7 +48,6 @@ class RemixLogicPrimsFilterPlugin(StageManagerUSDFilterPlugin):
         exclude=True,
     )
 
-    _COMBO_BOX_WIDTH: int = PrivateAttr(default=130)
     _filter_combobox: ui.ComboBox | None = PrivateAttr(default=None)
     current_filter_type: FilterTypes = Field(
         default=FilterTypes.NO_FILTERS, description="The type of logic to filter by"
@@ -77,7 +76,6 @@ class RemixLogicPrimsFilterPlugin(StageManagerUSDFilterPlugin):
             self._filter_combobox = ui.ComboBox(
                 list(FilterTypes).index(self.current_filter_type),
                 *filter_labels,
-                width=ui.Pixel(self._COMBO_BOX_WIDTH),
             )
             self._filter_combobox.model.add_item_changed_fn(self._on_filter_changed)
 

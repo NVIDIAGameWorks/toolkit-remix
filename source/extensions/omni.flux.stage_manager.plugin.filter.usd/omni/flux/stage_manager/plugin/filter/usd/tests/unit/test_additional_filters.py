@@ -145,8 +145,11 @@ class TestAdditionalFiltersUnit(omni.kit.test.AsyncTestCase):
         # Arrange
         plugin = AdditionalFilterPlugin()
 
+        # Act
+        filter_active = plugin.filter_active
+
         # Assert
-        self.assertFalse(plugin.filter_active)
+        self.assertFalse(filter_active)
 
     # ------------------------------------------------------------------
     # Group 2 — AdditionalFilterPlugin._is_filter_modified
@@ -850,5 +853,8 @@ class TestAdditionalFiltersUnit(omni.kit.test.AsyncTestCase):
         )
 
         with patch.object(AdditionalFiltersPopupMenuItemDelegate, "build_item"):
-            # Act / Assert: no exception raised
+            # Act
             delegate.on_reset_all()
+
+        # Assert
+        # No exception is raised.

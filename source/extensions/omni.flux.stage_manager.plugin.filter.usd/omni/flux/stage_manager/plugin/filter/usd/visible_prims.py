@@ -50,7 +50,6 @@ class VisiblePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
     _VISIBLE_PRIMS_DISPLAY_LABELS: dict = PrivateAttr(
         default={"All": "All Prims", "Visible": "Visible Prims", "Hidden": "Hidden Prims"}
     )
-    _COMBO_BOX_WIDTH: int = PrivateAttr(default=130)
     _visible_prims_combobox: ui.ComboBox | None = PrivateAttr(default=None)
     _current_attr: str | None = PrivateAttr(default=None)
 
@@ -79,7 +78,6 @@ class VisiblePrimsFilterPlugin(_StageManagerUSDFilterPlugin):
             self._visible_prims_combobox = ui.ComboBox(
                 list(self._VISIBLE_PRIMS_DISPLAY_LABELS.values()).index(self.visible_prims_type),
                 *self._VISIBLE_PRIMS_DISPLAY_LABELS.values(),
-                width=ui.Pixel(self._COMBO_BOX_WIDTH),
             )
             self._visible_prims_combobox.model.add_item_changed_fn(self._on_visible_prims_type_changed)
 

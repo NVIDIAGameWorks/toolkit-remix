@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-1676: Added public RTX IO packaging documentation covering compression, DDS cleanup, split package presets, and the required runtime setting
 - REMIX-5571: Added RTX Remix Aftermath preload setup, crash artifact bundling, and crash-debug agent guidance for GPU crash investigations
 - REMIX-5334: Added the ability to transfer authored properties to other replacement layers.
+- REMIX-2666: Added Stage Manager "Edit State" filter across Stage Manager tabs for finding modified prims, untouched prims, and prims with unused edits, with context-bound source-layer filtering and a read-only Source Layer(s) picker
 
 ### Changed
 

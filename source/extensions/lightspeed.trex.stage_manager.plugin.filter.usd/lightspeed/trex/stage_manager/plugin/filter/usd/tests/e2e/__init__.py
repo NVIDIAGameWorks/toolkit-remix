@@ -14,15 +14,3 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
-
-from .unit.test_combobox_filter_tooltips import TestComboboxFilterTooltipsUnit
-from .unit.test_geometry_prims_filter import TestGeometryPrimsFilterUnit
-from .unit.test_is_capture_filter import TestIsCaptureFilterUnit
-from .e2e.test_scene_edit_state_filter import TestSceneEditFilterE2E
-
-__all__ = [
-    "TestComboboxFilterTooltipsUnit",
-    "TestGeometryPrimsFilterUnit",
-    "TestIsCaptureFilterUnit",
-    "TestSceneEditFilterE2E",
-]

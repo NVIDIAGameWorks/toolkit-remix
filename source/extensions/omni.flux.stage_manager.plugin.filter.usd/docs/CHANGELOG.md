@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.9.2]
+### Changed
+- Made Stage Manager combobox filters fill the available control width in Additional Filters rows.
+
 ## [2.9.1]
 ### Added
 - Added automatic Prim Path matching before regex evaluation for path-like Stage Manager Search terms

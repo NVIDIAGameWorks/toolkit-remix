@@ -52,6 +52,7 @@ class RemixAllMeshesInteractionPlugin(RemixStageManagerUSDInteractionPlugin):
             "VisiblePrimsFilterPlugin",
             "MeshPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
+            "SceneEditFilterPlugin",
             "SearchFilterPlugin",
         ],
         exclude=True,

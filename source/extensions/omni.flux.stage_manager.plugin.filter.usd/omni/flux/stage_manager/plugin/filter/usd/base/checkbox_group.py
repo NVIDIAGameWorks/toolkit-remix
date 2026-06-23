@@ -38,7 +38,7 @@ def build_aligned_checkbox_row(label: str, label_width: int, identifier: str) ->
         height=0,
         spacing=ui.Pixel(CHECKBOX_GROUP_SPACING_ROW),
     ):
-        with ui.HStack(width=ui.Fraction(1)):
+        with ui.HStack():
             ui.Spacer(width=0)
             ui.Label(
                 label,
@@ -47,7 +47,7 @@ def build_aligned_checkbox_row(label: str, label_width: int, identifier: str) ->
                 alignment=ui.Alignment.RIGHT_CENTER,
                 elided_text=True,
             )
-        with ui.HStack(width=ui.Fraction(1)):
+        with ui.HStack():
             checkbox = ui.CheckBox(identifier=identifier)
             ui.Spacer(width=0)
     return checkbox
