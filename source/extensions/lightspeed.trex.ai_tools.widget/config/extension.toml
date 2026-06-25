@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.2.3"
+version = "1.2.4"
 authors = ["Sam Bourne <sbourne@nvidia.com>"]
 title = "NVIDIA RTX Remix AI Tools Widget"
 description = "AI Tools Widget for NVIDIA RTX Remix"

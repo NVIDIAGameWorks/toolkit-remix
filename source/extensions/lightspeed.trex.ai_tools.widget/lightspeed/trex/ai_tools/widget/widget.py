@@ -33,6 +33,7 @@ import omni.ui as ui
 from lightspeed.trex.ai_tools.widget.comfy import ConnectionState, Field, Workflow, get_comfy_interface
 from lightspeed.trex.ai_tools.widget.job_generator import ComfyJobGenerator, iter_selected_prims
 from lightspeed.trex.ai_tools.widget.lazy_values import LAZY_VALUE_REGISTRY, LazyValue
+from lightspeed.trex.utils.widget import WorkspaceWidget
 from omni.flux.utils.common import Event, EventSubscription
 from omni.flux.utils.common.decorators import ignore_function_decorator
 
@@ -749,8 +750,12 @@ class JobQueueWidget:
             self.queue_widget = None
 
 
-class AIToolsWidget:
+class AIToolsWidget(WorkspaceWidget):
+    """AI Tools workspace content widget."""
+
     def __init__(self, context_name: str = ""):
+        """Initialize the AI Tools workspace content."""
+        super().__init__()
         self.context_name = context_name
         self.root: ui.Frame | None = None
         self.job_queue_widget: JobQueueWidget | None = None
@@ -772,10 +777,14 @@ class AIToolsWidget:
         self.destroy()
 
     def show(self, visible: bool):
+        """Show or hide the AI Tools workspace content."""
+        super().show(visible)
         if self.root is not None:
             self.root.visible = visible
 
     def destroy(self):
+        """Clean up AI Tools workspace content."""
+        self._mark_destroyed()
         if self.job_queue_widget is not None:
             self.job_queue_widget.destroy()
             self.job_queue_widget = None
