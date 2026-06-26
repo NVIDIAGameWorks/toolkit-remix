@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.14.7]
+### Changed
+- Updated the credits list with Runtime contributors.
+
 ## [1.14.6]
 ### Added
 - Added `AI_TOOLS` layout file constant for the AI Tools workspace.
