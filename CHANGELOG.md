@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5571: Added RTX Remix Aftermath preload setup, crash artifact bundling, and crash-debug agent guidance for GPU crash investigations
 - REMIX-5334: Added the ability to transfer authored properties to other replacement layers.
 - REMIX-2666: Added Stage Manager "Edit State" filter across Stage Manager tabs for finding modified prims, untouched prims, and prims with unused edits, with context-bound source-layer filtering and a read-only Source Layer(s) picker
+- Added repo-local tokf filters, rewrite adapters, single-shim cross-platform hook config, clearly named Stop-hook
+  runner/check scripts, and clearer MR-body instructions for compact agent work.
 
 ### Changed
 

@@ -1,0 +1,22 @@
+command = "uninstall_hooks.bat"
+description = "Compact lightspeed-kit hook uninstall output"
+strip_ansi = true
+run = ".\\uninstall_hooks.bat {args}"
+
+skip = [
+  "^\\s*$",
+]
+
+[[section]]
+name = "hooks"
+match = "(?i)(removed|uninstalled|pre-commit|pre-push|error|failed)"
+collect_as = "hook_lines"
+
+[on_success]
+output = "{hook_lines | join: \"; \"}"
+
+[on_failure]
+output = "{hook_lines | join: \"; \"}"
+
+[fallback]
+tail = 12

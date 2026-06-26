@@ -1,0 +1,13 @@
+command = "repo.bat test -l"
+description = "One-line lightspeed-kit Kit test bucket count"
+strip_ansi = true
+run = ".\\repo.bat test -l {args}"
+
+[on_success]
+extract = { pattern = "Found (\\d+) test processes to run\\.", output = "kit test list: {1} buckets" }
+
+[on_failure]
+output = "kit test list: failed; {output | lines | keep: \"^(Error|\\[ERROR\\]|Found )\" | join: \"; \"}"
+
+[fallback]
+tail = 5

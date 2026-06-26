@@ -1,0 +1,25 @@
+command = ["build_docs.bat", "repo.bat docs"]
+description = "Compact lightspeed-kit docs build output"
+strip_ansi = true
+run = ".\\build_docs.bat {args}"
+
+skip = [
+  "^\\s*$",
+  "^Requirement already satisfied:",
+  "^Collecting ",
+  "^Using cached ",
+]
+
+[[section]]
+name = "docs"
+match = "(?i)(build succeeded|build finished|warning|error|traceback|exception|failed)"
+collect_as = "docs_lines"
+
+[on_success]
+output = "{docs_lines | join: \"; \"}"
+
+[on_failure]
+output = "{docs_lines | join: \"; \"}"
+
+[fallback]
+tail = 20

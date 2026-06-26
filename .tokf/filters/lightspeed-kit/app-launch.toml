@@ -1,0 +1,14 @@
+command = ["lightspeed.app.trex.bat", "lightspeed.app.trex_dev.bat"]
+description = "Show only Toolkit app launch errors after exit"
+strip_ansi = true
+trim_lines = true
+strip_empty_lines = true
+
+keep = [
+  "(?i)(error|failed|failure|fatal|traceback|exception|assertion failed|access violation|segmentation fault|crash)",
+]
+
+on_empty = "Ok"
+
+[on_failure]
+output = "error: app exited with failure\n{output}"

@@ -48,6 +48,21 @@ You don't need to memorize slash commands. Describe what you want naturally — 
 for my changes", "run the tests for this extension" — and the agent will auto-dispatch the right command from
 `.agents/commands/`. The slash command syntax (`/create-extension`, `/kit-test`, etc.) is a shortcut, not a requirement.
 
+### Recommended Plugins and Skills
+
+Use these plugins and skills to cut token use and keep agent work focused on code, tests, and review instead of filler
+or raw log noise:
+
+| Plugin/skill | Use |
+|--------------|-----|
+| Superpowers | Workflow skills for planning, debugging, TDD, review, and verification when the task warrants the extra structure. |
+| Ponytail | Keeps scope small: prefer existing repo patterns, standard tools, and the smallest correct diff. Install the plugin; no repo wiring is required. |
+| Caveman | Forces terse agent responses while preserving exact code, commands, and technical terms. Install/configure it user-locally; this repo does not enable terse mode by default. |
+| tokf | Filters verbose command output before it reaches the agent. Keep normal repo commands; the repo-local `.tokf` rewrites and filters make `build.bat`, `build_docs.bat`, `format_code.bat`, `lint_code.bat`, `repo.bat` subcommands, Kit tests, and Toolkit app BAT launches plug-and-play. |
+
+`tokf raw last` can expose full unfiltered command output; scrub it before sharing when commands may include tokens or
+service arguments.
+
 ### Inject Dynamic Context (Claude Code only)
 
 Use `` !`command` `` in your Claude Code prompt to inject the output of a shell command directly into the message. This
@@ -132,17 +147,19 @@ documented in `.agents/rules/agent-config.md`.
 
 ### Shared Hooks
 
-Codex, Claude Code, and Cursor all call the shared Packman Python launcher in `.agents/scripts/`, which runs hook targets
-from `.agents/hooks/`. The launcher exists so hooks use the vendored Packman Python on Windows and POSIX instead of
-whatever Python happens to be installed on a developer machine.
+Hooks run through one shared entrypoint: `.agents/scripts/run_packman_python.cmd`. The file is a polyglot shim: POSIX
+shells run its first line and exec `tools/packman/python.sh`; Windows `cmd.exe` treats that line as a label and runs
+`tools\packman\python.bat`. Codex, Claude Code, and Cursor all call the same shim; their config differs only in path
+syntax and arg-list syntax. Keep hook args as argv tokens; do not combine the script path and flags into one argument.
+Do not wrap hooks in Git aliases or call system Python.
 
 The shared hook targets are:
 
 | Hook target                               | Purpose                                                                                |
 |-------------------------------------------|----------------------------------------------------------------------------------------|
-| `.agents/hooks/stop_gate.py`              | Single stop-hook entry point; runs configured gates and formats output per agent        |
-| `.agents/hooks/completion_gates_check.py` | Checks changed source Python files against formatting/lint completion expectations      |
-| `.agents/hooks/memory_promotion_check.py` | Detects configured local memory changes that may need promotion to repo docs or rules   |
+| `.agents/hooks/run_stop_checks.py`        | Stop-hook runner; runs configured checks and formats failures per agent                 |
+| `.agents/hooks/check_completion_gates.py` | Checks changed source Python files against formatting/lint completion expectations      |
+| `.agents/hooks/check_memory_promotion.py` | Detects configured local memory changes that may need promotion to repo docs or rules   |
 
 Tool-specific hook configuration stays in `.claude/settings.json`, `.codex/hooks.json`, and `.cursor/hooks.json`.
 Those files should invoke shared `.agents/scripts/` launchers and `.agents/hooks/` targets instead of cloning logic.

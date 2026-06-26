@@ -1,0 +1,23 @@
+command = "repo.bat *"
+description = "Compact fallback for lightspeed-kit repo.bat subcommands"
+strip_ansi = true
+run = ".\\repo.bat {args}"
+
+skip = [
+  "^\\s*$",
+  "^\\[repo\\] ",
+]
+
+[[section]]
+name = "signal"
+match = "(?i)(error|failed|failure|fatal|traceback|exception|warning|warn|success|passed|completed|ok)"
+collect_as = "signal_lines"
+
+[on_success]
+output = "{signal_lines | join: \"; \"}"
+
+[on_failure]
+output = "{signal_lines | join: \"; \"}"
+
+[fallback]
+tail = 20

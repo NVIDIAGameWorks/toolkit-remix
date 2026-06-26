@@ -12,6 +12,7 @@
 *.cmd text eol=crlf
 *.kit text eol=crlf
 *.toml text eol=crlf
+.agents/scripts/run_packman_python.cmd text eol=lf
 
 # Make sure shell scripts have LF line endings, even when checked out on a Windows client with autocrlf=true
 *.sh text eol=lf

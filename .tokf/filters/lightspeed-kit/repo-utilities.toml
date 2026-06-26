@@ -1,0 +1,21 @@
+command = [
+  "python tools/utils/list_changed_exts.py",
+  "python tools/utils/update_pyright_from_settings.py",
+  "tools\\packman\\python.bat tools/utils/list_changed_exts.py",
+  "tools\\packman\\python.bat tools/utils/update_pyright_from_settings.py"
+]
+description = "Compact documented lightspeed-kit standalone utility output"
+strip_ansi = true
+
+skip = [
+  "^\\s*$",
+]
+
+[on_success]
+tail = 30
+
+[on_failure]
+tail = 40
+
+[fallback]
+tail = 20
