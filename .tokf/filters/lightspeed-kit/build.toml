@@ -1,0 +1,30 @@
+command = ["build.bat", "repo.bat build"]
+description = "Compact lightspeed-kit build output"
+strip_ansi = true
+run = ".\\repo.bat build {args}"
+
+skip = [
+  "^\\s*$",
+  "^\\[.*\\] Fetching ",
+  "^\\[.*\\] Extracting ",
+  "^\\[.*\\] Downloading ",
+]
+
+[[section]]
+name = "issues"
+match = "(?i)(error|failed|failure|fatal|traceback|exception)"
+collect_as = "issue_lines"
+
+[[section]]
+name = "summary"
+match = "(?i)(build (succeeded|failed|completed)|completed in|finished|success)"
+collect_as = "summary_lines"
+
+[on_success]
+output = "{summary_lines | join: \"; \"}"
+
+[on_failure]
+output = "{issue_lines | join: \"; \"}"
+
+[fallback]
+tail = 20

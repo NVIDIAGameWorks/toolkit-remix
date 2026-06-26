@@ -1,0 +1,25 @@
+command = ["format_code.bat", "repo.bat format"]
+description = "Compact lightspeed-kit format output"
+strip_ansi = true
+run = ".\\format_code.bat {args}"
+
+skip = [
+  "^Using:",
+  "^Running:",
+  "^Found \\d+ changed Python file",
+  "^\\s*$",
+]
+
+[[section]]
+name = "format"
+match = "^(Would reformat:|\\d+ files? would be reformatted|\\d+ files? already formatted|\\d+ files? reformatted|\\d+ files? left unchanged|All done!)"
+collect_as = "format_lines"
+
+[on_success]
+output = "format: ok; {format_lines | join: \"; \"}"
+
+[on_failure]
+output = "format: fail; {format_lines | join: \"; \"}"
+
+[fallback]
+tail = 10

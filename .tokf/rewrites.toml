@@ -1,0 +1,15 @@
+[[rewrite]]
+match = '^(?:\.\\)?_build\\windows-x86_64\\(?:debug|release)\\tests-[^\s]+\.bat\b.*$'
+replace = "tokf test {0}"
+
+[[rewrite]]
+match = '^(?:\.\\)?_build\\windows-x86_64\\(?:debug|release)\\.*\.cli\.bat\b.*$'
+replace = "tokf summary {0}"
+
+[[rewrite]]
+match = '^(?:\.\\)?source\\(?:shell|templates)\\.*\.cli\.bat\b.*$'
+replace = "tokf summary {0}"
+
+[[rewrite]]
+match = '^(?:\.\\)?source\\extensions\\.*\\bin\\cli\.bat\b.*$'
+replace = "tokf summary {0}"

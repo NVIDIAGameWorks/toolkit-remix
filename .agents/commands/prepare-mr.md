@@ -36,6 +36,19 @@ git push -u origin $(git branch --show-current)
 
 ## Step 3 - Create MR/PR
 
+### Required MR Body
+
+Every MR/PR description starts with these sections, in this order, before any template marker/checklist:
+
+1. `## What`
+2. `## Why`
+3. `## How`
+4. `## Test Coverage`
+
+Do not replace this with `Summary`, `Validation`, or command logs. Mention only tests/coverage that help the reviewer
+assess changed behavior. For GitLab, paste the stock template below `Please don't delete after this line` and only toggle
+checkboxes there.
+
 Detect CLI:
 
 ```bash
@@ -45,7 +58,7 @@ which gh 2>/dev/null && echo "github" || (which glab 2>/dev/null && echo "gitlab
 - `gh`: `gh pr create --base <target-branch> --title "<title>" --body "<body>"`.
 - `glab`:
   - Body source: `.gitlab/merge_request_templates/Default.md`.
-  - Body before `Please don't delete after this line`: `What`, `Why`, `How`, `Test Coverage`. Small patch -> small body.
+  - Body before `Please don't delete after this line`: use Required MR Body. Small patch -> small body.
   - `Test Coverage` section above marker: include actual measured percent from real `--coverage` report for modified
     extension(s). No percent -> not ready. If coverage run fails from unrelated baseline/log issues, keep real percent
     and state short failure reason.

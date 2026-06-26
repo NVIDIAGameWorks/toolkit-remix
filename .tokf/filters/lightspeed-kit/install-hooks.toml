@@ -1,0 +1,22 @@
+command = "install_hooks.bat"
+description = "Compact lightspeed-kit hook install output"
+strip_ansi = true
+run = ".\\install_hooks.bat {args}"
+
+skip = [
+  "^\\s*$",
+]
+
+[[section]]
+name = "hooks"
+match = "(?i)(hooks installed|pre-commit|pre-push|error|failed)"
+collect_as = "hook_lines"
+
+[on_success]
+output = "{hook_lines | join: \"; \"}"
+
+[on_failure]
+output = "{hook_lines | join: \"; \"}"
+
+[fallback]
+tail = 12

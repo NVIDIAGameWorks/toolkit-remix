@@ -23,22 +23,22 @@ import subprocess
 import sys
 from pathlib import Path
 
-DESCRIPTION = "Shared stop hook runner for project completion gates."
-GATE_RUNNER_TIMEOUT = 300
+DESCRIPTION = "Run configured Stop-hook checks and format failures for each agent."
+CHECK_TIMEOUT = 300
 
 
-def _run_gate(script: Path, stdin_data: str) -> tuple[int, str]:
+def _run_check(script: Path, stdin_data: str) -> tuple[int, str]:
     try:
         result = subprocess.run(
             [sys.executable, str(script)],
             input=stdin_data,
             capture_output=True,
             text=True,
-            timeout=GATE_RUNNER_TIMEOUT,
+            timeout=CHECK_TIMEOUT,
             check=False,
         )
     except subprocess.TimeoutExpired:
-        return 2, f"{script.stem}: timed out after {GATE_RUNNER_TIMEOUT}s"
+        return 2, f"{script.stem}: timed out after {CHECK_TIMEOUT}s"
 
     output = "\n".join(part for part in (result.stdout.strip(), result.stderr.strip()) if part)
     return result.returncode, output
@@ -64,22 +64,22 @@ def _emit_failure(agent: str, message: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=DESCRIPTION)
     parser.add_argument("--agent", choices=("claude", "codex", "cursor"), required=True)
-    parser.add_argument("scripts", nargs="+", type=Path)
+    parser.add_argument("checks", nargs="+", type=Path)
     args = parser.parse_args()
 
     stdin_data = "" if sys.stdin.isatty() else sys.stdin.read()
     failures: list[str] = []
 
-    for script in args.scripts:
-        if not script.exists():
-            failures.append(f"{script}: hook script not found")
+    for check in args.checks:
+        if not check.exists():
+            failures.append(f"{check}: hook check not found")
             continue
 
-        code, output = _run_gate(script, stdin_data)
+        code, output = _run_check(check, stdin_data)
         if code == 0:
             continue
 
-        label = script.stem.replace("_", " ")
+        label = check.stem.replace("_", " ")
         if code == 2:
             failures.append(f"{label} failed:\n{output or 'blocked without remediation text'}")
         else:

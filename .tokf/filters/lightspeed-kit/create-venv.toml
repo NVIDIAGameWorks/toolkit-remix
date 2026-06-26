@@ -1,0 +1,22 @@
+command = "create_venv.bat"
+description = "Compact lightspeed-kit venv creation output"
+strip_ansi = true
+run = ".\\create_venv.bat {args}"
+
+skip = [
+  "^\\s*$",
+]
+
+[[section]]
+name = "venv"
+match = "(?i)(virtual environment|created|already exists|error|failed)"
+collect_as = "venv_lines"
+
+[on_success]
+output = "{venv_lines | join: \"; \"}"
+
+[on_failure]
+output = "{venv_lines | join: \"; \"}"
+
+[fallback]
+tail = 10

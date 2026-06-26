@@ -3,7 +3,7 @@
   "hooks": {
     "stop": [
       {
-        "command": "git -c alias.agent-hook=!./.agents/scripts/run_packman_python.sh agent-hook .agents/hooks/stop_gate.py --agent cursor .agents/hooks/completion_gates_check.py .agents/hooks/memory_promotion_check.py",
+        "command": "\"../.agents/scripts/run_packman_python.cmd\" .agents/hooks/run_stop_checks.py --agent=cursor .agents/hooks/check_completion_gates.py .agents/hooks/check_memory_promotion.py",
         "timeout": 600,
         "loop_limit": 5,
         "failClosed": true

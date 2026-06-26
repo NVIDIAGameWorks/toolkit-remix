@@ -1,0 +1,29 @@
+command = ["lint_code.bat", "repo.bat lint"]
+description = "Compact lightspeed-kit lint output"
+strip_ansi = true
+run = ".\\repo.bat lint {args}"
+
+skip = [
+  "^\\[repo_lint\\] Selected linters:",
+  "^\\[repo_lint\\] list of modified files:",
+  "^\\[repo_lint\\] files selected:",
+  "^\\[repo_lint\\]\\[ruff\\] running linter",
+  "^\\[repo_lint\\]\\[ruff\\] linter output (start|end)",
+  "^\\[repo_lint\\]\\[ruff\\] files checked:",
+  "^\\[repo_lint\\]\\[ruff\\] executed in",
+  "^\\s*$",
+]
+
+[[section]]
+name = "lint"
+match = "^(All checks passed!|[^:]+:\\d+:\\d+:\\s+\\w+\\d+|Found \\d+ error)"
+collect_as = "lint_lines"
+
+[on_success]
+output = "lint: ok; {lint_lines | join: \"; \"}"
+
+[on_failure]
+output = "lint: fail; {lint_lines | join: \"; \"}"
+
+[fallback]
+tail = 10

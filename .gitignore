@@ -88,6 +88,7 @@ deps/kit-sdk.packman.xml.user*
 *.local.json
 *.local.toml
 _consensus_*.json
+.tokf/cache/
 
 # NICC CLI version tracking (per-user, not committed)
 .nicc_resource_versions.json
