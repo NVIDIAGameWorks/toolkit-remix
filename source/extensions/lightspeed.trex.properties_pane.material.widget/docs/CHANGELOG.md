@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.0]
+### Fixed
+- Fixed texture set assignment so hidden material texture rows are populated before their controlling options are enabled.
+
 ## [2.2.0]
 ### Added
 - Added layer-transfer callback forwarding for material property menus.

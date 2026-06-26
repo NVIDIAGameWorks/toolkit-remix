@@ -840,6 +840,75 @@ class TestMaterialPropertyWidget(AsyncTestCase):
         finally:
             await self.__destroy(_window, _material_property_wid)
 
+    async def test_texture_set_assignment_preserves_hidden_emissive_texture(self):
+        # setup
+        _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test
+
+        try:
+            with tempfile.TemporaryDirectory(
+                dir=_get_test_data("usd/project_example/sources/textures/ingested/")
+            ) as temp_dir:
+                temp_dir_obj = Path(temp_dir)
+                source_texture = _get_test_data(
+                    "usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds"
+                )
+                source_texture_meta = _get_test_data(
+                    "usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds.meta"
+                )
+                asset_path = temp_dir_obj / "test_emissive.e.rtex.dds"
+                shutil.copy(source_texture, asset_path)
+                shutil.copy(source_texture_meta, temp_dir_obj / "test_emissive.e.rtex.dds.meta")
+
+                # select
+                usd_context = omni.usd.get_context()
+                usd_context.get_selection().set_selected_prim_paths(
+                    ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"], False
+                )
+                await ui_test.human_delay(human_delay_speed=10)
+
+                material_items = {
+                    value_model.attributes[0].GetName(): item
+                    for item in _material_property_wid._material_properties_widget.property_model.get_all_items(
+                        include_hidden=True
+                    )
+                    for value_model in item.value_models
+                }
+                enable_emission_item = material_items["inputs:enable_emission"]
+                emissive_texture_item = material_items["inputs:emissive_mask_texture"]
+                self.assertTrue(emissive_texture_item.hidden)
+
+                assign_button = ui_test.find_all(
+                    f"{_window.title}//Frame/**/Button[*].identifier=='AssignTextureSetButton'"
+                )
+
+                # Check that hidden texture fields are assigned before they are made visible
+                await assign_button[0].click()
+                await ui_test.human_delay(3)
+
+                picker_buttons = await self.__find_file_picker_buttons("Select Texture Set")
+                await ui_test.human_delay(50)
+                await picker_buttons[TestComponents.FILE_PICKER_DIRECTORY].input(
+                    str(asset_path), end_key=KeyboardInput.ENTER
+                )
+                await picker_buttons[TestComponents.FILE_PICKER_OPEN].click()
+                await ui_test.human_delay(10)
+
+                action_button = ui_test.find_all("Texture Assignment//Frame/**/Button[*].identifier=='AssignButton'")
+                await action_button[0].click()
+                await ui_test.human_delay(3)
+
+                enable_emission_item.value_models[0].set_value(True)
+                await ui_test.human_delay(3)
+
+                rel_path = omni.client.normalize_url(
+                    omni.usd.make_path_relative_to_current_edit_target(str(asset_path))
+                ).replace("\\", "/")
+                self.assertFalse(emissive_texture_item.hidden)
+                self.assertEqual(rel_path, emissive_texture_item.value_models[0].get_value_as_string())
+
+        finally:
+            await self.__destroy(_window, _material_property_wid)
+
     async def test_texture_set_multiple_assignment(self):
         # setup
         _window, _material_property_wid = await self.__setup_widget()  # Keep in memory during test

@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed bounded numeric drag text edits and drags when Kit skips widget mouse or double-click callbacks, preserving immediate USD typed updates and single undo entries for drags.
 - REMIX-5246: Fixed bounded numeric drag retargeting so Ctrl-clicks, double-clicks, and arrow steps stay on the intended vector row after an active numeric edit.
 - Fixed project-open repair for invalid `deps` directories by prompting before non-empty rebuilds from Stagecraft, the Home recent-projects page, and the Home Open file-picker flow; empty `deps` directories are rebuilt silently, the warning calls out destructive deletion without showing the full path, includes Reveal in Explorer, and defers confirmed wizard repair by one frame.
+- REMIX-5588: Fixed Assign Texture Sets so emissive textures are preserved while emission is disabled and appear when emissivity is enabled.
 
 ## [1.5.2-0]
 
