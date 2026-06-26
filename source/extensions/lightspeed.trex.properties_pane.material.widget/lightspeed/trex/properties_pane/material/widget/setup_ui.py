@@ -251,7 +251,7 @@ class SetupUI:
             return
 
         # Only do work if there are material settings and prims available to work on
-        items = self._material_properties_widget.property_model.get_all_items()
+        items = self._material_properties_widget.property_model.get_all_items(include_hidden=True)
         prim_paths = self._context.get_selection().get_selected_prim_paths()
         if not prim_paths or not items:
             return
@@ -283,7 +283,7 @@ class SetupUI:
         Set callback that will check if an asset was ingested. For now, we handle only Asset type (texture) from
         material. And setting callback for setting texture edit status.
         """
-        items = self._material_properties_widget.property_model.get_all_items()
+        items = self._material_properties_widget.property_model.get_all_items(include_hidden=True)
         for item in items:
             for value_model in item.value_models:
                 if usd_properties_utils.get_type_name(value_model.metadata) in {Sdf.ValueTypeNames.Asset}:
@@ -449,7 +449,7 @@ class SetupUI:
         """
 
         def find_texture_set(paths: list[str]):
-            items = self._material_properties_widget.property_model.get_all_items()
+            items = self._material_properties_widget.property_model.get_all_items(include_hidden=True)
             paths = [Path(path) for path in paths]
             first_path = paths[0]
             basename = first_path.name
