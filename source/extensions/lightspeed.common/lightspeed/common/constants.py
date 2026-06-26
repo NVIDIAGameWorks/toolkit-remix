@@ -236,34 +236,49 @@ CREDITS = """
             Alex Dunn
         Product Manager
             Nyle Usmani
+            Ike Nnoli
         Producer
+            David Driver-Gomm
             Wendy Gram
         Dev Ops
             Zachary Kupu - Lead
+            Eugenio Naselli
+            Ian Hutchings
+            Peter Thacker
         QA
             Dmitriy Marshak - Lead
-            David Driver-Gromm
             David Vega
+            Jason Howard
+            Jasper Wilson
             Lindsay Lutz
             Sunny Thakkar
+            Chris Workman
         Rendering
             Nuno Subtil - Lead
+            Jerran Schmidt
+            Jeremy Shopf
             Mark Henderson
             Peter Kristof
             Riley Alston
             Sultim Tsyrendashiev
             Xiangshun Bei
             Yaobin Ouyang
+            Luis Mendez
+            Alexey Panteleev
+            Ilya Terentiev
         Systems
             Sascha Sertel - Lead
             Alexander Jaus
+            Kamil Sławicki
+            Jeremy Ingham
             Lakshmi Vengesanam
             Nicholas Freybler
         Tools
-            Damien Bataille - Lead
+            Nicolas Kendall-Bar - Lead
+            Carlos Anguiano
+            Damien Bataille
             Ed Leafe
             Emanuel Kozerski
-            Nicolas Kendall-Bar
             Pierre-Olivier Trottier
             Sam Ahiro
             Sam Bourne
@@ -271,8 +286,75 @@ CREDITS = """
             Shona Gillard
         AI Research
             James Lucas
-        Art Lead
-            Vern Andres-Quentin
+        Art
+            Vernon Andres-Quentin - Lead
+            Filippo Baraccani
+            Kelsey Blanton
+            Stan Brown
+            Rafael Chies
+            Derk Elshof
+            Ivan Filipchenko
+            Hunter Hazen
+            Fred Hooper
+            Vadym Kovalenko
+            Max Kozhevnikov
+            Gabriele Leone
+            Evgeny Leonov
+            Emmanuel Marshall
+            Aleksey Semenov
+            Ilya Shelementsev
+            Dmytro Siromakha
+            Oleksandr Smirnov
+            Mostafa Sobhi
+            Chase Telegin
+            Oleksii Tronchuk
+        PR/Marketing
+            Tim Adams
+            Brian Burke
+            Andrew Iain Burnes
+            Dave Janssen
+            Jessie Lawrence
+            Randy Niu
+            Mike Pepe
+            Mark Religioso
+            Kris Rey
+            Suroosh Taeb
+            Chris Turner
+            Keoki Young
+            Jakob Zamora
+        Special Thanks
+            Alex Hyder
+            Keith Li
+            Jarvis McGee
+            Liam Middlebrook
+            Adam Moss
+            Jason Paul
+            Seth Schneider
+            Mike Songy
+            John Spitzer
+            Sylvain Trottier
+            --
+            Everyone contributing to #ct-lss-classic-rtx
+            Valve
+        In Memory
+            Landon Montgomery
+        Github Contributors
+            Lorenzo 'King Vulpes' Acevedo IV
+            Quinn 'Binq Adams' Baddams
+            Samuel 'CR' Bowman
+            Alexis 'Sortifal' Bruneteau
+            Ethan 'Xenthio' Cardwell
+            Alexander 'xoxor4d' Engel
+            James Horsley 'mmdanggg2'
+            Kim 'Kim2091'
+            Leonardo Leotte
+            Jeffrey 'skurtyyskirts' Munoz
+            Nico Rodrigues-McKenna
+            Friedrich 'pixelcluster' Vock
+            James 'jdswebb' Webb
+            David 'King David' Wiltos
+            Dayton 'watbulb'
+            Basil 'EliteCombineSoldier'
         """
 
 LICENSE_AGREEMENT_URL = (
