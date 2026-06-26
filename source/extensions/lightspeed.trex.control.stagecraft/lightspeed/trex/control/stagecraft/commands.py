@@ -39,13 +39,17 @@ class SwitchCaptureCommand(omni.kit.commands.Command):
         )
 
     @staticmethod
-    def _get_current_lighting_mode(usd_context: omni.usd.UsdContext) -> str:
+    def _make_lighting_mode_setting_key(usd_context: omni.usd.UsdContext) -> str:
         stage_id = 0
         stage = usd_context.get_stage() if usd_context else None
         if stage:
             stage_id = UsdUtils.StageCache.Get().GetId(stage).ToLongInt()
+        return f"/exts/omni.kit.viewport.menubar.lighting/lightingMode/{stage_id}"
+
+    @staticmethod
+    def _get_current_lighting_mode(usd_context: omni.usd.UsdContext) -> str:
         settings = carb.settings.get_settings()
-        return settings.get(f"/exts/omni.kit.viewport.menubar.lighting/lightingMode/{stage_id}") or (
+        return settings.get(SwitchCaptureCommand._make_lighting_mode_setting_key(usd_context)) or (
             SwitchCaptureCommand._DEFAULT_LIGHTING_MODE
         )
 
@@ -63,6 +67,7 @@ class SwitchCaptureCommand(omni.kit.commands.Command):
         # Skip the dispatch when there is nothing meaningful to set.
         if lighting_mode and lighting_mode != self._DEFAULT_LIGHTING_MODE:
             with omni.kit.undo.disabled():
+                carb.settings.get_settings().set(self._make_lighting_mode_setting_key(usd_context), "")
                 omni.kit.commands.execute(
                     "SetLightingMenuModeCommand",
                     lighting_mode=lighting_mode,

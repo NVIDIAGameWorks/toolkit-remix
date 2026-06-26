@@ -21,6 +21,8 @@ import shutil
 from pathlib import Path
 
 import carb.input
+import carb.settings
+import omni.kit.commands
 import omni.kit.undo
 import omni.ui as ui
 import omni.usd
@@ -31,6 +33,7 @@ from lightspeed.common.constants import WindowNames as _WindowNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
+from lightspeed.trex.control.stagecraft.commands import SwitchCaptureCommand as _SwitchCaptureCommand
 from lightspeed.trex.contexts.extension import get_instance as _get_context_manager
 from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from lightspeed.trex.viewports.shared.widget import get_instance as _get_viewport_instance
@@ -39,9 +42,12 @@ from omni.flux.utils.tests.context_managers import open_test_project
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.ui_test import Vec2
-from pxr import Usd
+from pxr import Usd, UsdLux
 
 _ALT_CAPTURE_NAME = "capture_alt.usda"
+_LIGHT_RIG_PATH = "/OmniKit_Viewport_LightRig"
+_LIGHTING_MODE = "Default"
+_LIGHT_MANIPULATOR_VISIBLE_SETTING = "/persistent/app/viewport/manipulator/lightManipulatorsVisible"
 _UNDO_CAPTURE_CHANGE_DIALOG_TITLE = "Undo Capture Change"
 _TEST_SELECTION_PRIM = (
     "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
@@ -52,9 +58,82 @@ _TEST_EDITOR_LABEL = "Cube_01"
 
 class TestCaptureSwapUndo(AsyncTestCase):
     async def tearDown(self):
+        if hasattr(self, "_previous_light_manipulator_visible"):
+            carb.settings.get_settings().set(
+                _LIGHT_MANIPULATOR_VISIBLE_SETTING, self._previous_light_manipulator_visible
+            )
+            del self._previous_light_manipulator_visible
         omni.kit.undo.clear_stack()
         omni.kit.undo.clear_history()
         await self._close_open_stage()
+
+    async def test_capture_swap_restores_real_viewport_light_rig(self):
+        self._context_name = _Contexts.STAGE_CRAFT.value
+        _get_context_manager().set_current_context(_Contexts.STAGE_CRAFT)
+        self._usd_context = omni.usd.get_context(self._context_name)
+
+        omni.kit.undo.clear_stack()
+        omni.kit.undo.clear_history()
+
+        settings = carb.settings.get_settings()
+        self._previous_light_manipulator_visible = settings.get(_LIGHT_MANIPULATOR_VISIBLE_SETTING)
+        settings.set(_LIGHT_MANIPULATOR_VISIBLE_SETTING, False)
+
+        # Set up a real StageCraft project copy with a second capture file so the swap uses live USD layers.
+        async with open_test_project(
+            "usd/project_example/combined.usda",
+            "lightspeed.trex.app.resources",
+            self._context_name,
+        ) as temp_project_url:
+            await self._close_open_stage()
+            temp_project = Path(temp_project_url.path)
+            deps_path = temp_project.parent / _REMIX_DEPENDENCIES_FOLDER
+            remix_path = temp_project.parent / _REMIX_FOLDER
+            shutil.move(deps_path, remix_path)
+            _create_folder_symlinks([(deps_path, remix_path)], create_junction=True)
+
+            captures_dir = temp_project.parent / "deps" / "captures"
+            original_capture_path = captures_dir / "capture.usda"
+            replacement_capture_path = captures_dir / _ALT_CAPTURE_NAME
+            shutil.copy(original_capture_path, replacement_capture_path)
+            replacement_stage = Usd.Stage.Open(str(replacement_capture_path))
+            replacement_stage.Save()
+
+            await self._usd_context.open_stage_async(str(temp_project))
+
+            for _ in range(120):
+                if self._get_current_capture_path_or_none() == original_capture_path.resolve():
+                    break
+                await ui_test.wait_n_updates(2)
+            else:
+                self.fail(f"Initial capture layer did not resolve to {original_capture_path.resolve()}")
+
+            # Apply a real viewport light rig and assert the rig authored actual USD lights before the swap.
+            lighting_mode_setting = _SwitchCaptureCommand._make_lighting_mode_setting_key(self._usd_context)
+            carb.settings.get_settings().set(lighting_mode_setting, "")
+            omni.kit.commands.execute(
+                "SetLightingMenuModeCommand",
+                lighting_mode=_LIGHTING_MODE,
+                usd_context_name=self._context_name,
+            )
+            self.assertGreater(await self._wait_for_light_rig_count(), 0)
+
+            # Swap to the second capture through the real command path that used to leave stale lighting state behind.
+            omni.kit.commands.execute(
+                "SwitchCaptureCommand",
+                new_capture_path=str(replacement_capture_path),
+                context_name=self._context_name,
+            )
+
+            for _ in range(80):
+                if self._get_current_capture_path_or_none() == replacement_capture_path.resolve():
+                    break
+                await ui_test.wait_n_updates(2)
+            else:
+                self.fail(f"Capture layer did not resolve to {replacement_capture_path.resolve()}")
+
+            # The preserved viewport rig should be reauthored after the capture swap, not skipped as already active.
+            self.assertGreater(await self._wait_for_light_rig_count(), 0)
 
     async def test_capture_swap_undo_has_no_ghost_entries_in_real_ui_flow(self):
         self._context_name = _Contexts.STAGE_CRAFT.value
@@ -444,6 +523,10 @@ class TestCaptureSwapUndo(AsyncTestCase):
         self.assertIsNotNone(capture_layer)
         return Path(capture_layer.realPath).resolve()
 
+    def _get_current_capture_path_or_none(self) -> Path | None:
+        capture_layer = _LayerManagerCore(context_name=self._context_name).get_layer_of_type(_LayerType.capture)
+        return Path(capture_layer.realPath).resolve() if capture_layer else None
+
     def _get_prim_bool_attribute(self, prim_path: str, attribute_name: str) -> bool:
         stage = self._usd_context.get_stage()
         prim = stage.GetPrimAtPath(prim_path)
@@ -451,6 +534,22 @@ class TestCaptureSwapUndo(AsyncTestCase):
         attribute = prim.GetAttribute(attribute_name)
         self.assertTrue(attribute.IsValid(), msg=f"Missing attribute '{attribute_name}' on {prim_path}")
         return bool(attribute.Get())
+
+    async def _wait_for_light_rig_count(self) -> int:
+        for _ in range(80):
+            light_count = self._get_light_rig_count()
+            if light_count:
+                return light_count
+            await ui_test.wait_n_updates(2)
+        return 0
+
+    def _get_light_rig_count(self) -> int:
+        stage = self._usd_context.get_stage()
+        self.assertIsNotNone(stage)
+        rig_prim = stage.GetPrimAtPath(_LIGHT_RIG_PATH)
+        if not rig_prim.IsValid():
+            return 0
+        return sum(1 for prim in Usd.PrimRange(rig_prim) if UsdLux.LightAPI(prim))
 
     @staticmethod
     def _get_undo_stack_names() -> list[str]:

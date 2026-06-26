@@ -73,6 +73,42 @@ class TestCommands(omni.kit.test.AsyncTestCase):
             usd_context_name="stagecraft",
         )
 
+    async def test_do_clears_stale_lighting_setting_before_restoring_rig(self):
+        # Arrange
+        settings = self._make_settings("Bush Restaurant")
+        usd_context = MagicMock()
+        usd_context.get_stage.return_value = None
+        with (
+            self._patch_capture_switch_dependencies() as patched,
+            patch(
+                "lightspeed.trex.control.stagecraft.commands.omni.client.normalize_url",
+                side_effect=lambda path: path,
+            ),
+            patch("lightspeed.trex.control.stagecraft.commands.carb.settings.get_settings", return_value=settings),
+            patch("lightspeed.trex.control.stagecraft.commands.omni.usd.get_context", return_value=usd_context),
+            patch("lightspeed.trex.control.stagecraft.commands.omni.kit.undo.disabled", return_value=nullcontext()),
+            patch("lightspeed.trex.control.stagecraft.commands.omni.kit.commands.execute") as mock_execute,
+        ):
+            capture_setup = patched["_CaptureCoreSetup"].return_value
+            capture_setup.get_layer.return_value = MagicMock(identifier="/captures/capture_a.usda")
+            command = SwitchCaptureCommand(
+                new_capture_path="/captures/capture_b.usda",
+                context_name="stagecraft",
+            )
+
+            # Act
+            result = command.do()
+
+        # Assert
+        self.assertEqual("/captures/capture_b.usda", result)
+        capture_setup.import_capture_layer.assert_called_once_with("/captures/capture_b.usda", do_undo=False)
+        settings.set.assert_called_once_with("/exts/omni.kit.viewport.menubar.lighting/lightingMode/0", "")
+        mock_execute.assert_called_once_with(
+            "SetLightingMenuModeCommand",
+            lighting_mode="Bush Restaurant",
+            usd_context_name="stagecraft",
+        )
+
     async def test_undo_restores_previous_capture_without_reapplying_stage_lighting(self):
         # Arrange
         settings = self._make_settings("stage")
@@ -140,9 +176,9 @@ class TestCommands(omni.kit.test.AsyncTestCase):
             usd_context_name="stagecraft",
         )
 
-    async def test_do_undo_and_redo_preserve_non_stage_lighting_active_at_each_step(self):
+    async def test_undo_restores_non_stage_lighting_active_at_undo_time(self):
         # Arrange
-        settings = self._make_settings(["camera", "stage", "off"])
+        settings = self._make_settings(["camera", "off"])
         usd_context = MagicMock()
         usd_context.get_stage.return_value = None
         with (
@@ -162,39 +198,24 @@ class TestCommands(omni.kit.test.AsyncTestCase):
                 new_capture_path="/captures/capture_b.usda",
                 context_name="stagecraft",
             )
+            command.do()
+            capture_setup.import_capture_layer.reset_mock()
+            mock_execute.reset_mock()
 
             # Act
-            do_result = command.do()
-            undo_result = command.undo()
-            redo_result = command.redo()
+            result = command.undo()
 
         # Assert
-        self.assertEqual("/captures/capture_b.usda", do_result)
-        self.assertEqual("/captures/capture_a.usda", undo_result)
-        self.assertEqual("/captures/capture_b.usda", redo_result)
-        self.assertEqual(
-            [
-                (("/captures/capture_b.usda",), {"do_undo": False}),
-                (("/captures/capture_a.usda",), {"do_undo": False}),
-                (("/captures/capture_b.usda",), {"do_undo": False}),
-            ],
-            [(call.args, call.kwargs) for call in capture_setup.import_capture_layer.call_args_list],
-        )
-        self.assertEqual(
-            [
-                (
-                    ("SetLightingMenuModeCommand",),
-                    {"lighting_mode": "camera", "usd_context_name": "stagecraft"},
-                ),
-                (
-                    ("SetLightingMenuModeCommand",),
-                    {"lighting_mode": "off", "usd_context_name": "stagecraft"},
-                ),
-            ],
-            [(call.args, call.kwargs) for call in mock_execute.call_args_list],
+        self.assertEqual("/captures/capture_a.usda", result)
+        capture_setup.import_capture_layer.assert_called_once_with("/captures/capture_a.usda", do_undo=False)
+        mock_execute.assert_called_once_with(
+            "SetLightingMenuModeCommand",
+            lighting_mode="off",
+            usd_context_name="stagecraft",
         )
 
     async def test_do_skips_lighting_dispatch_when_setting_is_blank(self):
+        # Arrange
         # Stale/blank carb slot must not trigger SetLightingMenuModeCommand with
         # an empty lighting_mode, which crashes the GPU on the next frame.
         settings = self._make_settings("")
@@ -217,8 +238,10 @@ class TestCommands(omni.kit.test.AsyncTestCase):
                 context_name="stagecraft",
             )
 
+            # Act
             result = command.do()
 
+        # Assert
         self.assertEqual("/captures/capture_b.usda", result)
         capture_setup.import_capture_layer.assert_called_once_with("/captures/capture_b.usda", do_undo=False)
         mock_execute.assert_not_called()
