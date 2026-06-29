@@ -1,6 +1,9 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Added
+- REMIX-4628: Added "PROJECT OVERRIDE" collapsible subsection to the Camera Properties panel with an enable toggle and Near/Far clip fields. Edits flow through `lightspeed.trex.project_settings.core` and are applied to all camera prims by `lightspeed.event.camera_clip_range_override`. An inline gold indicator dot appears next to the toggle when the override is active, mirroring (but distinguishing from) the blue per-property override dot on the `clippingRange` row.
 
 ## [1.1.2]
 ### Changed

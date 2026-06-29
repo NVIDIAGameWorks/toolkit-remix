@@ -1,0 +1,32 @@
+[package]
+version = "1.0.0"
+authors = ["jingham@nvidia.com"]
+title = "Lightspeed Event Camera Clip Range Override"
+description = "Lightspeed Event that applies the project-scoped camera clipping override to all UsdGeomCamera prims on the session layer."
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+category = "internal"
+keywords = ["event", "camera", "clipping", "viewport", "override"]
+changelog = "docs/CHANGELOG.md"
+icon = "data/icon.png"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.events_manager" = {}
+"lightspeed.trex.project_settings.core" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.event.camera_clip_range_override"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
