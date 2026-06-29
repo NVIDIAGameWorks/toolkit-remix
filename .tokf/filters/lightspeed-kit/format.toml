@@ -1,6 +1,8 @@
 command = ["format_code.bat", "repo.bat format"]
 description = "Compact lightspeed-kit format output"
 strip_ansi = true
+trim_lines = true
+strip_empty_lines = true
 run = ".\\format_code.bat {args}"
 
 skip = [
@@ -10,16 +12,12 @@ skip = [
   "^\\s*$",
 ]
 
-[[section]]
-name = "format"
-match = "^(Would reformat:|\\d+ files? would be reformatted|\\d+ files? already formatted|\\d+ files? reformatted|\\d+ files? left unchanged|All done!)"
-collect_as = "format_lines"
+keep = [
+  "^(Would reformat:|\\d+ files? would be reformatted|\\d+ files? already formatted|\\d+ files? reformatted|\\d+ files? left unchanged|All done!)",
+  "(?i)(warning|error|failed|traceback|exception)",
+]
 
-[on_success]
-output = "format: ok; {format_lines | join: \"; \"}"
+on_empty = "error: format output had no status lines"
 
 [on_failure]
-output = "format: fail; {format_lines | join: \"; \"}"
-
-[fallback]
-tail = 10
+output = "{output}"

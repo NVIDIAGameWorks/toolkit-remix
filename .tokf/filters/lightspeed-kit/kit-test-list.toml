@@ -1,13 +1,17 @@
 command = "repo.bat test -l"
 description = "One-line lightspeed-kit Kit test bucket count"
 strip_ansi = true
+trim_lines = true
+strip_empty_lines = true
 run = ".\\repo.bat test -l {args}"
 
-[on_success]
-extract = { pattern = "Found (\\d+) test processes to run\\.", output = "kit test list: {1} buckets" }
+keep = [
+  "Found \\d+ test processes to run\\.",
+  "(?i)^\\s*(warning|warn|error|failed|failure|fatal|traceback|exception)\\b.*$",
+  "(?i)^.*\\[(warning|warn|error|fail)\\].*$",
+]
+
+on_empty = "error: kit test list output had no status lines"
 
 [on_failure]
-output = "kit test list: failed; {output | lines | keep: \"^(Error|\\[ERROR\\]|Found )\" | join: \"; \"}"
-
-[fallback]
-tail = 5
+output = "{output}"

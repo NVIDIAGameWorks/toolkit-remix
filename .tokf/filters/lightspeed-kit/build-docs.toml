@@ -1,6 +1,8 @@
 command = ["build_docs.bat", "repo.bat docs"]
 description = "Compact lightspeed-kit docs build output"
 strip_ansi = true
+trim_lines = true
+strip_empty_lines = true
 run = ".\\build_docs.bat {args}"
 
 skip = [
@@ -10,16 +12,12 @@ skip = [
   "^Using cached ",
 ]
 
-[[section]]
-name = "docs"
-match = "(?i)(build succeeded|build finished|warning|error|traceback|exception|failed)"
-collect_as = "docs_lines"
+keep = [
+  "(?i)(^.*\\bwarning[:\\]]|^\\s*warning\\b|\\b\\w+warning\\b|\\[Warning\\]|^.*\\b(error|traceback|exception|failed|fatal)\\b)",
+  "(?i)build succeeded\\.",
+]
 
-[on_success]
-output = "{docs_lines | join: \"; \"}"
+on_empty = "error: docs build output had no warning/error lines and no build succeeded line"
 
 [on_failure]
-output = "{docs_lines | join: \"; \"}"
-
-[fallback]
-tail = 20
+output = "{output}"

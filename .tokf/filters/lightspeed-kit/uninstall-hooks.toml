@@ -1,22 +1,19 @@
 command = "uninstall_hooks.bat"
 description = "Compact lightspeed-kit hook uninstall output"
 strip_ansi = true
+trim_lines = true
+strip_empty_lines = true
 run = ".\\uninstall_hooks.bat {args}"
 
 skip = [
   "^\\s*$",
 ]
 
-[[section]]
-name = "hooks"
-match = "(?i)(removed|uninstalled|pre-commit|pre-push|error|failed)"
-collect_as = "hook_lines"
+keep = [
+  "(?i)(uninstalling pre-commit hooks|pre-commit (uninstalled|not found)|pre-push uninstalled|\\.venv directory removed|hooks uninstalled|warning|error|failed|traceback|exception)",
+]
 
-[on_success]
-output = "{hook_lines | join: \"; \"}"
+on_empty = "error: uninstall_hooks output had no status lines"
 
 [on_failure]
-output = "{hook_lines | join: \"; \"}"
-
-[fallback]
-tail = 12
+output = "{output}"

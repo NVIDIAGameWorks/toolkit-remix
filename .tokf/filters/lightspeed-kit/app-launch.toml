@@ -1,14 +1,30 @@
-command = ["lightspeed.app.trex.bat", "lightspeed.app.trex_dev.bat"]
-description = "Show only Toolkit app launch errors after exit"
+command = [
+  "lightspeed.app.trex.bat",
+  "lightspeed.app.trex.sh",
+  "lightspeed.app.trex_dev.bat",
+  "lightspeed.app.trex_dev.sh",
+  "lightspeed.app.trex.profile.bat",
+  "lightspeed.app.trex.profile.sh",
+  "lightspeed.app.trex_dev.profile.bat",
+  "lightspeed.app.trex_dev.profile.sh",
+  "lightspeed.app.trex.profile_startup.bat",
+  "lightspeed.app.trex.profile_startup.sh",
+  "lightspeed.app.trex_dev.profile_startup.bat",
+  "lightspeed.app.trex_dev.profile_startup.sh",
+]
+description = "Show Toolkit app launcher warnings/errors and success"
 strip_ansi = true
 trim_lines = true
 strip_empty_lines = true
 
 keep = [
-  "(?i)(error|failed|failure|fatal|traceback|exception|assertion failed|access violation|segmentation fault|crash)",
+  "(?i)^.*(?:\\[(?:warning|warn|error|fatal)\\]|\\b(?:warning|warn|fatal|\\w*error)(?::\\s|\\s{2,})|\\b(?:failed|failure|traceback|exception)\\b).*$",
+  "(?i)^.*\\b(assertion failed|access violation|segmentation fault|crash(?:ed)?)\\b.*$",
+  "(?i)\\bapp ready\\b",
+  "(?i)startup_profile\\.gz",
 ]
 
-on_empty = "Ok"
+on_empty = "error: app launcher output had no warning/error lines and no success line"
 
 [on_failure]
-output = "error: app exited with failure\n{output}"
+output = "error: app launcher exited with failure\n{output}"
