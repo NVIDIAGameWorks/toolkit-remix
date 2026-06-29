@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.29.1]
+### Changed
+- REMIX-4628: Stage Manager `default_schema.json` Prims tab now ignores `/ProjectSettings` so project-scoped settings prims (e.g., `CameraClippingOverride`) do not appear in the scene tree.
+
 ## [1.29.0]
 ### Added
 - Added a check icon for property transfer layer indicators.

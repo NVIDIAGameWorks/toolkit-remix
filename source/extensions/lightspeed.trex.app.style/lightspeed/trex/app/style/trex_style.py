@@ -91,6 +91,7 @@ _MIXED = 0xFF07B6FF
 _PALE_ORANGE_40 = 0x4D4682B4
 _PALE_ORANGE_60 = 0x994682B4
 _ORANGE = 0xFF00AEFF
+_GOLD = 0xFF00D7FF
 
 _DEFAULT_FIELD_READ_VALUE = {
     "background_color": _DARK_00,
@@ -1030,6 +1031,20 @@ current_dict.update(
         "OverrideIndicatorForceDisabled": {"background_color": _GREY_70, "border_width": 0},
         "OverrideIndicator": {"background_color": _BLUE_ACTION, "border_width": 0},
         "OverrideIndicator:hovered": {"background_color": 0xFFFFDE88},
+        # Gold dot for "project-wide override is active" affordances.
+        # Distinct from OverrideIndicator (blue), which marks per-attribute
+        # authoring.
+        "ProjectOverrideActiveIndicator": {"background_color": _GOLD, "border_width": 0},
+        # No-hover variant of PropertiesWidgetField for project-override
+        # value fields.
+        "ProjectOverrideValueField": {
+            "background_color": _GREY_50,
+            "color": _WHITE_80,
+            "border_width": 1,
+            "border_radius": 5,
+            "border_color": _WHITE_20,
+            "font_size": 14,
+        },
         "OverrideBackground": {"background_color": _GREY_42},
         "OverrideBackgroundHovered": {"background_color": _BLUE_HOVERED},
         "OverrideBackgroundSelected": {"background_color": _BLUE_SELECTED},

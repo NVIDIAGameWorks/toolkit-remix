@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.24.0]
+### Added
+- REMIX-4628: `ProjectOverrideActiveIndicator` named style for the gold "project-wide override is active" indicator dot, and `ProjectOverrideValueField` (no-hover variant of `PropertiesWidgetField`) for value fields inside project-override sections.
+
 ## [1.23.0]
 ### Added
 - Added property transfer state indicator, disabled ellipsis, and disabled layer-label styles.

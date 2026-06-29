@@ -1,0 +1,29 @@
+[package]
+version = "1.0.0"
+authors = ["jingham@nvidia.com"]
+title = "Lightspeed Project Settings Core"
+description = "Project-scoped USD Settings prim API for persistent toolkit settings stored under /ProjectSettings/..."
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+category = "internal"
+keywords = ["project", "settings", "usd", "persistence"]
+changelog = "docs/CHANGELOG.md"
+icon = "data/icon.png"
+preview_image = "data/preview.png"
+
+[dependencies]
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.project_settings.core"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

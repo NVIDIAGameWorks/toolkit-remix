@@ -34,6 +34,7 @@ A tool to edit stage(s) captured from game(s)
 "lightspeed.event.validate_project" = {}  # enforce a given project structure
 "lightspeed.event.camera_light" = {} # set camera light
 "lightspeed.hdremix.renderer_settings" = {} # HdRemix renderer preferences (GI integrator)
+"lightspeed.event.camera_clip_range_override" = {}  # apply project-scoped camera clipping override
 
 [settings]
 "@import@" = [
@@ -87,6 +88,9 @@ context = ""
 context = ""
 
 [settings.exts."lightspeed.event.generate_thumbnail"]
+context = ""
+
+[settings.exts."lightspeed.event.camera_clip_range_override"]
 context = ""
 
 [[test]]
