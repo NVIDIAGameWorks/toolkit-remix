@@ -6,16 +6,22 @@ command = [
 ]
 description = "Compact documented lightspeed-kit standalone utility output"
 strip_ansi = true
+trim_lines = true
+strip_empty_lines = true
 
 skip = [
   "^\\s*$",
 ]
 
-[on_success]
-tail = 30
+keep = [
+  "^\\d+ total extensions changed",
+  "^\\d+ need version bumps",
+  "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)+$",
+  "^Wrote pyrightconfig\\.json with \\d+ extraPaths entries\\.",
+  "(?i)^.*\\b(warning|warn|error|failed|fatal|traceback|exception)\\b.*$",
+]
+
+on_empty = "error: utility output had no status lines"
 
 [on_failure]
-tail = 40
-
-[fallback]
-tail = 20
+output = "{output}"

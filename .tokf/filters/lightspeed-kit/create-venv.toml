@@ -1,22 +1,21 @@
 command = "create_venv.bat"
 description = "Compact lightspeed-kit venv creation output"
 strip_ansi = true
+trim_lines = true
+strip_empty_lines = true
 run = ".\\create_venv.bat {args}"
 
 skip = [
   "^\\s*$",
 ]
 
-[[section]]
-name = "venv"
-match = "(?i)(virtual environment|created|already exists|error|failed)"
-collect_as = "venv_lines"
+keep = [
+  "(?i)virtual environment (already exists|created)",
+  "(?i)creating virtual environment",
+  "(?i)^.*\\b(error|failed|fatal|traceback|exception)\\b.*$",
+]
 
-[on_success]
-output = "{venv_lines | join: \"; \"}"
+on_empty = "error: create_venv output had no status lines"
 
 [on_failure]
-output = "{venv_lines | join: \"; \"}"
-
-[fallback]
-tail = 10
+output = "{output}"

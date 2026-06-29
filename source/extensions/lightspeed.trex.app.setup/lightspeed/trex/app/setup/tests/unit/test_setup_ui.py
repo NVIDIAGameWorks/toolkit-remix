@@ -144,6 +144,8 @@ class TestMenubarIgnore(omni.kit.test.AsyncTestCase):
         self.assertTrue(menubar_ignore.is_ignored("Edit/Undo"))
         self.assertFalse(menubar_ignore.is_ignored("Edit/Preferences"))
         self.assertTrue(menubar_ignore.is_ignored("Window/Debug"))
+        self.assertFalse(menubar_ignore.is_ignored("Window/Profiler"))
+        self.assertFalse(menubar_ignore.is_ignored("Profiler/Start"))
         self.assertFalse(menubar_ignore.is_ignored("File/Open"))
 
     async def test_get_menubar_layout_removes_ignored_items_and_keeps_visible_menus(self):
@@ -168,7 +170,8 @@ class TestMenubarIgnore(omni.kit.test.AsyncTestCase):
                     MenuItem("AlsoHidden", None),
                 ],
             },
-            "Window": {"items": [MenuItem("Debug", None), MenuItem("Viewport", None)]},
+            "Window": {"items": [MenuItem("Debug", None), MenuItem("Profiler", None), MenuItem("Viewport", None)]},
+            "Profiler": {"items": [MenuItem("Start", None), MenuItem("Stop", None)]},
         }
 
         with patch(
@@ -179,10 +182,12 @@ class TestMenubarIgnore(omni.kit.test.AsyncTestCase):
         file_layout = next(layout for layout in layouts if layout.name == "File")
         edit_layout = next(layout for layout in layouts if layout.name == "Edit")
         window_layout = next(layout for layout in layouts if layout.name == "Window")
+        profiler_layout = next(layout for layout in layouts if layout.name == "Profiler")
 
         self.assertFalse(file_layout.remove)
         self.assertFalse(edit_layout.remove)
         self.assertFalse(window_layout.remove)
+        self.assertFalse(profiler_layout.remove)
         self.assertEqual([item.name for item in edit_layout.items], ["Undo", "Advanced"])
         self.assertTrue(edit_layout.items[0].remove)
         self.assertTrue(edit_layout.items[1].remove)

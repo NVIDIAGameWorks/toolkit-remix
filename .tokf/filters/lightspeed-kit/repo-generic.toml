@@ -1,6 +1,8 @@
 command = "repo.bat *"
-description = "Compact fallback for lightspeed-kit repo.bat subcommands"
+description = "Compact default for lightspeed-kit repo.bat subcommands"
 strip_ansi = true
+trim_lines = true
+strip_empty_lines = true
 run = ".\\repo.bat {args}"
 
 skip = [
@@ -8,16 +10,11 @@ skip = [
   "^\\[repo\\] ",
 ]
 
-[[section]]
-name = "signal"
-match = "(?i)(error|failed|failure|fatal|traceback|exception|warning|warn|success|passed|completed|ok)"
-collect_as = "signal_lines"
+keep = [
+  "(?i)^.*\\b(warning|warn|error|failed|failure|fatal|traceback|exception|success(?:ful)?|passed|completed|ok)\\b.*$",
+]
 
-[on_success]
-output = "{signal_lines | join: \"; \"}"
+on_empty = "repo command: no warning/error/success status lines matched"
 
 [on_failure]
-output = "{signal_lines | join: \"; \"}"
-
-[fallback]
-tail = 20
+output = "{output}"

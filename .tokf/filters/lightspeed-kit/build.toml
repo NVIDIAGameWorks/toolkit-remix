@@ -1,6 +1,8 @@
 command = ["build.bat", "repo.bat build"]
 description = "Compact lightspeed-kit build output"
 strip_ansi = true
+trim_lines = true
+strip_empty_lines = true
 run = ".\\repo.bat build {args}"
 
 skip = [
@@ -10,21 +12,12 @@ skip = [
   "^\\[.*\\] Downloading ",
 ]
 
-[[section]]
-name = "issues"
-match = "(?i)(error|failed|failure|fatal|traceback|exception)"
-collect_as = "issue_lines"
+keep = [
+  "(?i)^.*\\b(warning|warn|error|failed|failure|fatal|traceback|exception)\\b.*$",
+  "(?i)\\bapp ready\\b",
+]
 
-[[section]]
-name = "summary"
-match = "(?i)(build (succeeded|failed|completed)|completed in|finished|success)"
-collect_as = "summary_lines"
-
-[on_success]
-output = "{summary_lines | join: \"; \"}"
+on_empty = "error: build output had no warning/error lines and no app ready line"
 
 [on_failure]
-output = "{issue_lines | join: \"; \"}"
-
-[fallback]
-tail = 20
+output = "{output}"

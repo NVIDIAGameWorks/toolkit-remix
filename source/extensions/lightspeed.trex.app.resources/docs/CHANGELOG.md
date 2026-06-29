@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.29.2]
+### Fixed
+- Kept Profiler menu entries visible when profiler extensions are enabled in the production app.
+
 ## [1.29.1]
 ### Changed
 - REMIX-4628: Stage Manager `default_schema.json` Prims tab now ignores `/ProjectSettings` so project-scoped settings prims (e.g., `CameraClippingOverride`) do not appear in the scene tree.

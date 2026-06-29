@@ -1,6 +1,7 @@
 command = "repo.bat test"
 description = "One-line lightspeed-kit Kit test summary"
 strip_ansi = true
+strip_empty_lines = true
 run = ".\\repo.bat test {args}"
 
 skip = [
@@ -11,28 +12,16 @@ skip = [
   "^\\s*$",
 ]
 
-[[section]]
-name = "status"
-match = "^\\[\\s*(ok|fail)\\s*\\].*$"
-collect_as = "status_lines"
+keep = [
+  "^\\[\\s*(ok|fail)\\s*\\].*$",
+  "^\\[(OK|ERROR)\\].*$",
+  "^Failing tests",
+  "^\\s+-\\s+",
+  "(?i)^\\s*(warning|warn|error|failed|failure|fatal|traceback|exception)\\b.*$",
+  "(?i)^.*\\[(warning|warn|error|fail)\\].*$",
+]
 
-[[section]]
-name = "failures"
-enter = "^Failing tests"
-exit = "^=+$"
-match = "^\\s+-\\s+"
-collect_as = "failure_lines"
-
-[[section]]
-name = "result"
-match = "^\\[(OK|ERROR)\\].*$"
-collect_as = "result_lines"
-
-[on_success]
-output = "kit tests: {result_lines | join: \" | \"}; {status_lines | join: \" | \"}"
+on_empty = "error: kit test output had no status lines"
 
 [on_failure]
-output = "kit tests: {result_lines | join: \" | \"}; {status_lines | join: \" | \"}; failures: {failure_lines | join: \"; \"}"
-
-[fallback]
-tail = 12
+output = "{output}"
