@@ -23,6 +23,7 @@ import sys
 from unittest.mock import patch
 
 import omni.ui as ui
+from omni.flux.utils.tests.menu import assert_menu_items_render_top_to_bottom, wait_for_menu_items
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 from omni.flux.validator.manager.widget import ValidatorManagerWidget as _ValidatorManagerWidget
 from omni.flux.validator.plugin.check.usd.example.print_prims import PrintPrims as _PrintPrims
@@ -161,11 +162,19 @@ class TestManagerWidget(AsyncTestCase):
 
         # grab the buttons and set the sub
         expand_plugins = ui_test.find_all(f"{window.title}//Frame/**/Image[*].identifier=='expand_plugin'")
-        self.assertIsNotNone(expand_plugins)
+        self.assertGreater(
+            len(expand_plugins),
+            0,
+            "Expected at least one plugin expander before opening the first check plugin",
+        )
         await expand_plugins[0].click()  # expand first check
 
         expand_plugins = ui_test.find_all(f"{window.title}//Frame/**/Image[*].identifier=='expand_plugin'")
-        self.assertIsNotNone(expand_plugins)
+        self.assertGreater(
+            len(expand_plugins),
+            2,
+            "Expected at least three plugin expanders after opening the first check plugin",
+        )
         await expand_plugins[1].click()  # expand first context
         await expand_plugins[2].click()  # expand first context
 
@@ -177,10 +186,13 @@ class TestManagerWidget(AsyncTestCase):
 
         # grab the buttons and set the sub
         expand_plugins = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='plugin_title'")
+        self.assertGreater(
+            len(expand_plugins),
+            1,
+            "Expected at least two plugin title labels before opening the validator context menu",
+        )
         await expand_plugins[1].click()
         await ui_test.human_delay()
-
-        self.assertIsNotNone(expand_plugins)
 
         await expand_plugins[1].right_click()
         await ui_test.human_delay()
@@ -204,6 +216,41 @@ class TestManagerWidget(AsyncTestCase):
         await ui_test.human_delay()
 
         await self.__destroy_setup(window, _core, _wid)
+
+    async def test_right_click_menu_items_render_top_to_bottom(self):
+        # setup
+        window, _core, _wid = await self.__setup_widget(
+            "test_right_click_menu_items_render_top_to_bottom"
+        )  # Keep in memory during test
+
+        try:
+            # grab the buttons and set the sub
+            expand_plugins = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='plugin_title'")
+            self.assertGreater(
+                len(expand_plugins),
+                1,
+                "Expected at least two plugin title labels before opening the validator context menu",
+            )
+            await expand_plugins[1].click()
+            await ui_test.human_delay()
+
+            await expand_plugins[1].right_click()
+            await ui_test.human_delay()
+            menu_items = await wait_for_menu_items(
+                ui.Menu.get_current(),
+                [
+                    "Re-run all",
+                    "Re-run context + selected item(s)",
+                    "Re-run context + from selected item(s) to last item",
+                ],
+            )
+
+            assert_menu_items_render_top_to_bottom(self, menu_items)
+        finally:
+            current_menu = ui.Menu.get_current()
+            if current_menu and current_menu.shown:
+                current_menu.hide()
+            await self.__destroy_setup(window, _core, _wid)
 
     async def test_run_pause_resume(self):
         finished = False

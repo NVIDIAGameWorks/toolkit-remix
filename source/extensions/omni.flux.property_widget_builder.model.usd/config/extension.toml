@@ -53,6 +53,7 @@ icon = "data/images/icon.png"
 
 [[test]]
 dependencies = [
+    "omni.flux.utils.tests",
     "omni.kit.ui_test",
 ]
 

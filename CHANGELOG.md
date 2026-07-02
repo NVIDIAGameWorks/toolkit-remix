@@ -88,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - REMIX-5607: Fixed StageCraft undo context initialization, clarified the teleport viewport tooltip, and aligned Existing Graphs action icons in the logic properties pane.
 - REMIX-5608: Fixed AI Tools layout restore so the workspace widget exposes the shared lifecycle state expected by Kit 110 workspace windows.
+- REMIX-5610: Fixed Kit SDK 110 popup menus rendering horizontally by removing legacy horizontal menu directions from affected Layer, Modification, and Validator menus.
 
 ## [1.5.2-0]
 

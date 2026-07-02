@@ -1,7 +1,7 @@
 [package]
 kit_sdk_version = "110.*"
 # Semantic Versionning is used: https://semver.org/
-version = "1.1.4"
+version = "1.1.5"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -33,6 +33,8 @@ icon = "data/icon.png"
 [dependencies]
 "omni.client" = {}
 "omni.flux.utils.common" = {}
+"omni.kit.ui_test" = {}
+"omni.ui" = {}
 
 [[python.module]]
 name = "omni.flux.utils.tests"

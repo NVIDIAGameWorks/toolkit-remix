@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.6]
+### Added
+- Added regression coverage for vertical layer popup menu placement.
+
+### Fixed
+- Removed the explicit horizontal direction from layer context menus so Kit SDK 110 uses the native vertical `ui.Menu` default.
+
 ## [1.15.5]
 ### Fixed
 - Preserved pending edit-target selection while the layer tree hides and rebuilds during Kit SDK 110 refreshes.

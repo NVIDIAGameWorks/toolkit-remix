@@ -476,7 +476,7 @@ class USDDelegate(_Delegate):
         # TODO: This is a temporary fix. We need to find a better way to handle this.
         # OGN node properties don't support layer-based override deletion because it will remove the attr type.
         enabled = not self._is_ogn_item(item)
-        self._context_menu_widgets[id(item)] = ui.Menu("Modification menu", direction=ui.Direction.LEFT_TO_RIGHT)
+        self._context_menu_widgets[id(item)] = ui.Menu("Modification menu")
         with self._context_menu_widgets[id(item)]:
             sub_layers = set()
             stage = omni.usd.get_context(model.context_name).get_stage()

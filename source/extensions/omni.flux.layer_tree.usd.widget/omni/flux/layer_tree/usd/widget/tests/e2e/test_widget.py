@@ -24,6 +24,7 @@ import omni.ui as ui
 import omni.usd
 from carb.input import KeyboardInput
 from omni.flux.layer_tree.usd.widget import LayerDelegate, LayerModel, LayerTreeWidget
+from omni.flux.utils.tests.menu import assert_menu_items_render_top_to_bottom, wait_for_menu_items
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows
@@ -511,6 +512,35 @@ class TestWidget(AsyncTestCase):
             if label.widget.visible
         ]
         self.assertEqual(["Root Layer", renamed_path.name], item_labels)
+
+    async def test_context_menu_items_render_top_to_bottom(self):
+        # Arrange
+        layer_path = Path(self.temp_dir.name) / "layer.usda"
+        layer = Sdf.Layer.CreateNew(layer_path.as_posix())
+        layer.Save()
+        self.stage.GetRootLayer().subLayerPaths.append(layer.identifier)
+
+        await arrange_windows(topleft_window="Stage")
+        window = ui.Window("TestLayerTreeWindow", height=400, width=400)
+        with window.frame:
+            layer_tree = LayerTreeWidget(context_name="", height=240, expansion_default=True)
+        self.__track_widget(window, layer_tree)
+        await ui_test.human_delay()
+        layer_tree.show(True)
+        await ui_test.human_delay(20)
+
+        layer_row = ui_test.find(f"{window.title}//Frame/**/Frame[*].tooltip=='{layer.identifier}'")
+        self.assertIsNotNone(layer_row)
+
+        # Act
+        await layer_row.click(right_click=True)
+        menu_items = await wait_for_menu_items(
+            ui.Menu.get_current(),
+            ["Export Layer...", "Rename Layer...", "Reveal in File Explorer"],
+        )
+
+        # Assert
+        assert_menu_items_render_top_to_bottom(self, menu_items)
 
     async def test_empty_layer_context_menu_disables_transfer_action(self):
         # Arrange
