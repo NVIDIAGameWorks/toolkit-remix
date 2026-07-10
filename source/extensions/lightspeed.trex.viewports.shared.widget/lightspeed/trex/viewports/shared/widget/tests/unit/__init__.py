@@ -16,5 +16,6 @@
 """
 
 from .test_delegate import TestViewportEventDelegateMouseWheel
+from .test_setup_ui import TestSetupUIGameCameraBoundary
 
-__all__ = ["TestViewportEventDelegateMouseWheel"]
+__all__ = ["TestSetupUIGameCameraBoundary", "TestViewportEventDelegateMouseWheel"]

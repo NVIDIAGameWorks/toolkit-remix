@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.7]
+### Fixed
+- Forced perspective camera sync to use the active capture layer's game camera and clear stale game-camera overrides
+- Frame Kit orthographic cameras to capture meshes and instances when a capture loads
+
+### Changed
+- Configure Front, Top, and Right inspection cameras as session-only perspective cameras before framing capture geometry
+
 ## [1.4.6]
 ### Fixed
 - Keep capture-camera center-of-interest updates out of the undo stack when syncing the perspective view

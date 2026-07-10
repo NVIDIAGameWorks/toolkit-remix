@@ -21,6 +21,11 @@ from typing import Any, cast
 import carb
 import omni.kit.app
 import omni.usd
+from lightspeed.trex.utils.common.camera import (
+    ensure_editable_camera_for_navigation as _ensure_editable_camera,
+    is_pseudo_orthographic_camera_path as _is_pseudo_orthographic_camera_path,
+    lock_pseudo_orthographic_camera_orientation as _lock_pseudo_orthographic_camera_orientation,
+)
 from omni.flux.utils.common.interactive_usd_notices import begin_interaction as _begin_interaction
 from omni.flux.utils.common.interactive_usd_notices import end_interaction as _end_interaction
 from omni.kit.manipulator.camera import ViewportCameraManipulator as _BaseViewportCameraManipulator
@@ -34,8 +39,15 @@ from .protocols import ViewportAPIProtocol as _ViewportAPIProtocol
 class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
     """Camera manipulator that brackets camera gestures with USD notice interactions."""
 
-    def __init__(self, viewport_api: _ViewportAPIProtocol, *args, **kwargs):
+    def __init__(
+        self,
+        viewport_api: _ViewportAPIProtocol,
+        *args,
+        ensure_editable_camera: bool = True,
+        **kwargs,
+    ):
         self.__viewport_api = viewport_api
+        self.__ensure_editable_camera = ensure_editable_camera
         self.__notice_interaction = None
         self.__wrapped_gesture_ids: set[int] = set()
         super().__init__(viewport_api, *args, **kwargs)
@@ -47,6 +59,7 @@ class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
         screen = cast(_GestureScreenProtocol, self._screen)
         for gesture in screen.gestures:
             self.__wrap_gesture_lifecycle(gesture)
+        self.__sync_pseudo_orthographic_navigation()
 
     def __wrap_gesture_lifecycle(self, gesture: _CameraGestureProtocol):
         gesture_id = id(gesture)
@@ -61,7 +74,14 @@ class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
         def wrapped_on_began(*args, **kwargs):
             self._begin_interaction()
             try:
-                return on_began(*args, **kwargs)
+                if self.__ensure_editable_camera and not _ensure_editable_camera(self.__viewport_api, "Camera gesture"):
+                    self._end_interaction()
+                    return None
+                # Lock pseudo-ortho views before base gesture setup so pan/zoom never inherit a rotated view.
+                self.__lock_pseudo_orthographic_camera_orientation()
+                result = on_began(*args, **kwargs)
+                self.__sync_pseudo_orthographic_navigation()
+                return result
             except Exception:
                 self._end_interaction()
                 raise
@@ -81,12 +101,32 @@ class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
             try:
                 return on_ended(*args, **kwargs)
             finally:
-                self._end_interaction()
+                try:
+                    self.__lock_pseudo_orthographic_camera_orientation()
+                finally:
+                    self._end_interaction()
 
         gesture.on_began = wrapped_on_began
         gesture.on_changed = wrapped_on_changed
         gesture.on_ended = wrapped_on_ended
         self.__wrapped_gesture_ids.add(gesture_id)
+
+    def __is_pseudo_orthographic_camera(self) -> bool:
+        return _is_pseudo_orthographic_camera_path(self.__viewport_api.camera_path)
+
+    def __sync_pseudo_orthographic_navigation(self):
+        if not self.__is_pseudo_orthographic_camera():
+            self.model.set_ints("disable_tumble", [0])
+            self.model.set_ints("disable_look", [0])
+            return
+        self.model.set_ints("disable_tumble", [1])
+        self.model.set_ints("disable_look", [1])
+        self.model.set_ints("disable_pan", [0])
+        self.model.set_ints("disable_zoom", [0])
+
+    def __lock_pseudo_orthographic_camera_orientation(self):
+        if self.__is_pseudo_orthographic_camera():
+            _lock_pseudo_orthographic_camera_orientation(self.__viewport_api.stage, self.__viewport_api.camera_path)
 
     def _begin_interaction(self):
         """Start deferring USD notices for the viewport stage."""

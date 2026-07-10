@@ -1,5 +1,5 @@
 [package]
-version = "1.6.6"
+version = "1.7.0"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -15,6 +15,7 @@ preview_image = "data/preview.png"
 "lightspeed.common" = {}
 "lightspeed.trex.asset_replacements.core.shared" = {}
 "lightspeed.trex.contexts" = {}
+"lightspeed.trex.utils.common" = {}
 "lightspeed.hydra.remix.core" = {}
 "omni.kit.manipulator.camera" = {}
 "omni.kit.manipulator.prim" = {}

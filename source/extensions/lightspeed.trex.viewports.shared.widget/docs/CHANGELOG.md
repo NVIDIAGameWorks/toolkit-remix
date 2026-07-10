@@ -2,6 +2,10 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.7.4]
+### Fixed
+- Kept plain viewport focus on the capture game camera while redirecting mutating navigation, zoom, and frame/focus actions to the perspective camera, canceling safely if the redirect fails
+
 ## [1.7.3]
 ### Fixed
 - Fixed scroll-wheel zoom distance not scaling with Camera Speed setting in the viewport

@@ -16,6 +16,7 @@
 """
 
 from .unit import (
+    TestCameraAuthority,
     TestFindPrimWithReferences,
     TestGetPrototype,
     TestGetReferenceFilePaths,
@@ -27,6 +28,7 @@ from .unit import (
 )
 
 __all__ = [
+    "TestCameraAuthority",
     "TestFindPrimWithReferences",
     "TestGetPrototype",
     "TestGetReferenceFilePaths",

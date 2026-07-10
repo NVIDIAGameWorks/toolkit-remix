@@ -29,6 +29,7 @@ import omni.usd
 from lightspeed.common.constants import GlobalEventNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.app.style import update_viewport_menu_style
+from lightspeed.trex.utils.common.camera import ensure_editable_camera_for_navigation as _ensure_editable_camera
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
 from lightspeed.trex.viewports.properties_pane.widget import EnumItems as _PropertiesPaneEnumItems
 from lightspeed.trex.viewports.properties_pane.widget import SetupUI as _PropertiesPaneSetupUI
@@ -229,6 +230,8 @@ class SetupUI(_WorkspaceWidget):
             self.set_active(True)
 
     def frame_viewport_selection(self, selection: list[str] = None):
+        if not _ensure_editable_camera(self._viewport_layers.viewport_api, "Frame/focus"):
+            return
         if selection is None:
             # frame the current selection:
             _frame_viewport_selection(viewport_api=self._viewport_layers.viewport_api)

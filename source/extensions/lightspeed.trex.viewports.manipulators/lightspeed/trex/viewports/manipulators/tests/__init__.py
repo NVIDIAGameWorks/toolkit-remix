@@ -19,5 +19,12 @@ from .e2e.test_widget import TestViewportManipulators
 from .unit.test_camera_default import TestCameraDefault
 from .unit.test_global_selection import TestGlobalSelection
 from .unit.test_prim_transform_model import TestPrimTransformModel
+from .unit.test_zoom import TestZoomOperation
 
-__all__ = ["TestCameraDefault", "TestGlobalSelection", "TestPrimTransformModel", "TestViewportManipulators"]
+__all__ = [
+    "TestCameraDefault",
+    "TestGlobalSelection",
+    "TestPrimTransformModel",
+    "TestViewportManipulators",
+    "TestZoomOperation",
+]

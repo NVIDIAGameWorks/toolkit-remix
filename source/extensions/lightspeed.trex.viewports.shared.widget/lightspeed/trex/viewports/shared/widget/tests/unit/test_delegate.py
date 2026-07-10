@@ -27,6 +27,7 @@ class TestViewportEventDelegateMouseWheel(omni.kit.test.AsyncTestCase):
     async def setUp(self):
         self._scene_view = MagicMock()
         self._viewport_api = MagicMock()
+        self._viewport_api.camera_path = "/OmniverseKit_Persp"
         self._delegate = ViewportEventDelegate(self._scene_view, self._viewport_api)
 
     async def tearDown(self):
@@ -126,3 +127,17 @@ class TestViewportEventDelegateMouseWheel(omni.kit.test.AsyncTestCase):
             self._delegate.mouse_wheel(0, -1.0, 0)
 
         mock_zoom.assert_called_once_with(0, -1.0 * (2.5 / 5.0), self._viewport_api)
+
+    async def test_zoom_delegates_camera_boundary_to_zoom_operation(self):
+        """Mouse-wheel zoom lets the zoom helper own game-camera redirect decisions."""
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = 5.0
+
+        with (
+            patch.object(self._delegate, "adjust_flight_speed", return_value=False),
+            patch("carb.settings.get_settings", return_value=mock_settings),
+            patch(_ZOOM_OP) as mock_zoom,
+        ):
+            self._delegate.mouse_wheel(0, 1.0, 0)
+
+        mock_zoom.assert_called_once_with(0, 1.0, self._viewport_api)

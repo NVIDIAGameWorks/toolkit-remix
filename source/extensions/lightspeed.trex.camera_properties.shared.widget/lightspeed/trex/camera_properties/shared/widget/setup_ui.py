@@ -29,6 +29,9 @@ from lightspeed.trex.project_settings.core import (
 from lightspeed.trex.project_settings.core import (
     set_camera_clipping_override as _set_camera_clipping_override,
 )
+from lightspeed.trex.utils.common.camera import PERSPECTIVE_CAMERA_PATH as _PERSPECTIVE_CAMERA_PATH
+from lightspeed.trex.utils.common.camera import copy_composed_game_camera_to_perspective as _copy_game_camera_to_persp
+from lightspeed.trex.utils.common.camera import is_game_camera_path as _is_game_camera_path
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.collapsable_frame import PropertyCollapsableFrame as _PropertyCollapsableFrame
@@ -357,6 +360,10 @@ class SetupUI:
         stage = self._context.get_stage()
         if not stage:
             return
+        if _is_game_camera_path(path):
+            if not _copy_game_camera_to_persp(stage, path):
+                return
+            path = str(_PERSPECTIVE_CAMERA_PATH)
         # Track the camera path so we can re-refresh the embedded PropertyWidget
         # when the override toggle is changed (see __on_override_value_changed).
         self._current_camera_path = path

@@ -18,7 +18,7 @@
 from collections.abc import Callable, Sequence
 from typing import Any, Protocol
 
-from pxr import Usd
+from pxr import Sdf, Usd
 
 __all__ = ["CameraGestureProtocol", "GestureScreenProtocol", "ViewportAPIProtocol"]
 
@@ -27,10 +27,12 @@ class ViewportAPIProtocol(Protocol):
     """Viewport API surface used by viewport manipulators.
 
     Attributes:
+        camera_path: Active viewport camera path.
         usd_context_name: Name of the USD context owned by the viewport.
         stage: Stage currently displayed by the viewport, when one is available.
     """
 
+    camera_path: Sdf.Path | str
     usd_context_name: str
     stage: Usd.Stage | None
 
