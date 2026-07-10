@@ -7,7 +7,7 @@ CurveEditorLayout -- Standard dict schema for the curve editor's hierarchy panel
 The curve editor is agnostic of USD, property panels, or any domain.
 Consumers build a CurveEditorLayout dict describing the hierarchy of curves
 to display. The editor uses it to render a TreeView with visibility toggles
-and color swatches. Curve IDs are opaque strings passed to CurveModel as-is.
+and color swatches. Curve IDs are opaque strings passed to GroupedKeysModel as-is.
 """
 
 from __future__ import annotations

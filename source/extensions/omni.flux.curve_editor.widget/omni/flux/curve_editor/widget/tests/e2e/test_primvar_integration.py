@@ -14,7 +14,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 
-E2E tests for PrimvarCurveModel + CurveEditorWidget integration.
+E2E tests for PropertyPrimvarCurveModel + CurveEditorWidget integration.
 
 Tests that user interactions in the visual editor (dragging keyframes,
 changing tangent types via toolbar, adding/deleting keys) are correctly
@@ -34,16 +34,25 @@ import omni.appwindow
 import omni.kit.app
 import omni.kit.test
 import omni.kit.ui_test as ui_test
-import omni.kit.undo
 import omni.usd
 from carb.input import KeyboardEventType, KeyboardInput
 from omni import ui
-from pxr import UsdGeom
+from pxr import Sdf, UsdGeom
 
 from omni.flux.fcurve.widget import FCurve, FCurveKey, TangentType
-from omni.flux.curve_editor.widget import CurveEditorWidget, PrimvarCurveModel
+from omni.flux.curve_editor.widget import CurveEditorWidget
+from omni.flux.curve_editor.widget.payload import curve_to_payload, payload_to_curve
+from omni.flux.property_widget_builder.model.usd.curve_primvar import PropertyPrimvarCurveModel
 
 __all__ = ["TestPrimvarIntegration"]
+
+
+def _commit_payload(model, curve_id: str, curve: FCurve) -> None:
+    model.commit_payload(curve_id, curve_to_payload(curve))
+
+
+def _get_curve(model, curve_id: str) -> FCurve | None:
+    return payload_to_curve(curve_id, model.get_payload(curve_id))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -71,6 +80,16 @@ SCALAR_SUFFIXES = (
 
 #: All primvar suffixes for a curve
 ALL_SUFFIXES = ARRAY_SUFFIXES + SCALAR_SUFFIXES
+
+
+def _curve_attr_type(suffix: str):
+    if suffix in {"times", "values", "inTangentTimes", "inTangentValues", "outTangentTimes", "outTangentValues"}:
+        return Sdf.ValueTypeNames.DoubleArray
+    if suffix in {"inTangentTypes", "outTangentTypes"}:
+        return Sdf.ValueTypeNames.TokenArray
+    if suffix == "tangentBrokens":
+        return Sdf.ValueTypeNames.BoolArray
+    return Sdf.ValueTypeNames.Token
 
 
 def _approx_equal_tuples(a, b, tol=1e-3):
@@ -107,7 +126,7 @@ class ModifierKeyDownScope:
 
 
 class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
-    """E2E tests: CurveEditorWidget + PrimvarCurveModel -> USD primvars."""
+    """E2E tests: CurveEditorWidget + property USD curve model -> USD primvars."""
 
     # ─────────────────────────────────────────────────────────────────────────
     # Setup / Teardown
@@ -144,10 +163,17 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
     # Model / Widget helpers
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _create_model(self, curve_ids: list[str]) -> PrimvarCurveModel:
-        """Create a PrimvarCurveModel for the given curve_ids."""
-        self._model = PrimvarCurveModel(
-            prim_path=self._prim_path,
+    def _create_model(self, curve_ids: list[str]) -> PropertyPrimvarCurveModel:
+        """Create a property USD curve model for the given curve_ids."""
+        prim = self._stage.GetPrimAtPath(self._prim_path)
+        for curve_id in curve_ids:
+            for suffix in ALL_SUFFIXES:
+                attr_name = f"primvars:{curve_id}:{suffix}"
+                attr = prim.GetAttribute(attr_name)
+                if not attr or not attr.IsValid():
+                    prim.CreateAttribute(attr_name, _curve_attr_type(suffix))
+        self._model = PropertyPrimvarCurveModel(
+            prim_paths=[self._prim_path],
             curve_ids=curve_ids,
             usd_context_name="",
         )
@@ -318,7 +344,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
 
     def _get_model_key(self, curve_id: str, key_index: int) -> FCurveKey:
         """Get a key from the model (reads from USD)."""
-        curve = self._model.get_curve(curve_id)
+        curve = _get_curve(self._model, curve_id)
         return curve.keys[key_index]
 
     def _snapshot_all_primvars(self, curve_id: str) -> dict:
@@ -401,33 +427,6 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
                     f"{msg_prefix}primvars:{curve_id}:{suffix} does not match snapshot",
                 )
 
-    async def _undo(self) -> None:
-        """Perform a single undo and wait for the USD change to propagate."""
-        omni.kit.undo.undo()
-
-    async def _undo_until_snapshot(
-        self,
-        curve_id: str,
-        snapshot: dict,
-        max_undos: int = 20,
-    ) -> None:
-        """Undo repeatedly until the primvars match the snapshot (or max_undos reached).
-
-        A single mouse drag may generate multiple undo entries (one per
-        intermediate mouse position). This helper undoes enough times to
-        fully reverse such operations.
-        """
-        for _i in range(max_undos):
-            omni.kit.undo.undo()
-
-            current = self._snapshot_all_primvars(curve_id)
-            # Check if times array matches (sufficient indicator for drag reversal)
-            if _approx_equal_tuples(current.get("times"), snapshot.get("times")):
-                # Give extra frames for full settle
-                return
-
-        self.fail(f"Failed to reach target snapshot after {max_undos} undos")
-
     # ─────────────────────────────────────────────────────────────────────────
     # Curve setup helpers
     # ─────────────────────────────────────────────────────────────────────────
@@ -474,7 +473,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
         curve = self._make_curve(curve_id)
-        model.commit_curve(curve_id, curve)
+        _commit_payload(model, curve_id, curve)
 
         self._assert_primvar_format(curve_id)
 
@@ -492,7 +491,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """After add/delete/edit, all per-key arrays must have the same length."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(curve_id, self._make_curve(curve_id))
+        _commit_payload(model, curve_id, self._make_curve(curve_id))
         await self._build_widget()
 
         # Initial: 3 keys
@@ -523,7 +522,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """Dragging a keyframe should update the times and values primvar arrays."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(curve_id, self._make_curve(curve_id))
+        _commit_payload(model, curve_id, self._make_curve(curve_id))
         await self._build_widget()
 
         orig_times = list(self._read_primvar(curve_id, "times"))
@@ -547,7 +546,9 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """Dragging a keyframe must not change the tangent type primvars."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(curve_id, self._make_curve(curve_id, in_type=TangentType.SMOOTH, out_type=TangentType.FLAT))
+        _commit_payload(
+            model, curve_id, self._make_curve(curve_id, in_type=TangentType.SMOOTH, out_type=TangentType.FLAT)
+        )
         await self._build_widget()
 
         orig_in_types = list(self._read_primvar(curve_id, "inTangentTypes"))
@@ -567,7 +568,9 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """Dragging a keyframe with AUTO tangents must recompute tangent handles in primvars."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(curve_id, self._make_curve(curve_id, in_type=TangentType.AUTO, out_type=TangentType.AUTO))
+        _commit_payload(
+            model, curve_id, self._make_curve(curve_id, in_type=TangentType.AUTO, out_type=TangentType.AUTO)
+        )
         await self._build_widget()
 
         orig_in_times = list(self._read_primvar(curve_id, "inTangentTimes"))
@@ -602,7 +605,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """Adding a keyframe should grow every per-key primvar array by 1."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(curve_id, self._make_curve(curve_id))
+        _commit_payload(model, curve_id, self._make_curve(curve_id))
         await self._build_widget()
 
         self.assertEqual(len(self._read_primvar(curve_id, "times")), 3)
@@ -623,7 +626,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """Deleting a keyframe should shrink every per-key primvar array by 1."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(curve_id, self._make_curve(curve_id))
+        _commit_payload(model, curve_id, self._make_curve(curve_id))
         await self._build_widget()
 
         self.assertEqual(len(self._read_primvar(curve_id, "times")), 3)
@@ -644,7 +647,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """A new keyframe's tangent type should be stored correctly in primvars."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(curve_id, self._make_curve(curve_id))
+        _commit_payload(model, curve_id, self._make_curve(curve_id))
         await self._build_widget()
 
         await self._click_key(curve_id, 0)
@@ -708,7 +711,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
             ],
             color=0xFF3560FF,
         )
-        model.commit_curve(curve_id, curve)
+        _commit_payload(model, curve_id, curve)
         await self._build_widget()
 
         orig_out_times = list(self._read_primvar(curve_id, "outTangentTimes"))
@@ -768,7 +771,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
             ],
             color=0xFF3560FF,
         )
-        model.commit_curve(curve_id, curve)
+        _commit_payload(model, curve_id, curve)
         await self._build_widget()
 
         orig_in_times = list(self._read_primvar(curve_id, "inTangentTimes"))
@@ -816,7 +819,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
             ],
             color=0xFF3560FF,
         )
-        model.commit_curve(curve_id, curve)
+        _commit_payload(model, curve_id, curve)
         await self._build_widget()
 
         # Click key, then drag its out-tangent to change angle
@@ -847,7 +850,9 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """Setting LINEAR via toolbar should store 'linear' type and midpoint handles."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(curve_id, self._make_curve(curve_id, in_type=TangentType.AUTO, out_type=TangentType.AUTO))
+        _commit_payload(
+            model, curve_id, self._make_curve(curve_id, in_type=TangentType.AUTO, out_type=TangentType.AUTO)
+        )
         await self._build_widget()
 
         await self._click_key(curve_id, 1)
@@ -872,8 +877,8 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """Setting AUTO via toolbar should store 'auto' and recompute handle positions."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(
-            curve_id, self._make_curve(curve_id, in_type=TangentType.LINEAR, out_type=TangentType.LINEAR)
+        _commit_payload(
+            model, curve_id, self._make_curve(curve_id, in_type=TangentType.LINEAR, out_type=TangentType.LINEAR)
         )
         await self._build_widget()
 
@@ -896,7 +901,9 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """Setting FLAT via toolbar should store 'flat' and set tangent Y to 0 (horizontal)."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(curve_id, self._make_curve(curve_id, in_type=TangentType.AUTO, out_type=TangentType.AUTO))
+        _commit_payload(
+            model, curve_id, self._make_curve(curve_id, in_type=TangentType.AUTO, out_type=TangentType.AUTO)
+        )
         await self._build_widget()
 
         await self._click_key(curve_id, 1)
@@ -918,7 +925,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """Setting STEP via toolbar should store 'step' in outTangentTypes primvar."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(curve_id, self._make_curve(curve_id))
+        _commit_payload(model, curve_id, self._make_curve(curve_id))
         await self._build_widget()
 
         await self._click_key(curve_id, 1)
@@ -932,7 +939,9 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         """Switching to CUSTOM should store 'custom' type with non-default handle positions."""
         curve_id = "opacity:x"
         model = self._create_model([curve_id])
-        model.commit_curve(curve_id, self._make_curve(curve_id, in_type=TangentType.AUTO, out_type=TangentType.AUTO))
+        _commit_payload(
+            model, curve_id, self._make_curve(curve_id, in_type=TangentType.AUTO, out_type=TangentType.AUTO)
+        )
         await self._build_widget()
 
         # Click key, switch in-tangent to CUSTOM
@@ -971,7 +980,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
             ],
             color=0xFF3560FF,
         )
-        model.commit_curve(curve_id, curve)
+        _commit_payload(model, curve_id, curve)
         await self._build_widget()
 
         await self._click_key(curve_id, 1)
@@ -1008,7 +1017,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
             ],
             color=0xFF3560FF,
         )
-        model.commit_curve(curve_id, curve)
+        _commit_payload(model, curve_id, curve)
         await self._build_widget()
 
         orig_in_types = list(self._read_primvar(curve_id, "inTangentTypes"))
@@ -1036,8 +1045,8 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         cid_size = "size:x"
         model = self._create_model([cid_opacity, cid_size])
 
-        model.commit_curve(cid_opacity, self._make_curve(cid_opacity, color=0xFF3560FF))
-        model.commit_curve(cid_size, self._make_curve(cid_size, color=0xFF60FF35))
+        _commit_payload(model, cid_opacity, self._make_curve(cid_opacity, color=0xFF3560FF))
+        _commit_payload(model, cid_size, self._make_curve(cid_size, color=0xFF60FF35))
 
         self._assert_primvar_format(cid_opacity)
         self._assert_primvar_format(cid_size)
@@ -1056,7 +1065,8 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         model = self._create_model([cid_opacity, cid_size])
 
         # Use distinct key positions so keyframes don't overlap on screen
-        model.commit_curve(
+        _commit_payload(
+            model,
             cid_opacity,
             self._make_curve(
                 cid_opacity,
@@ -1064,7 +1074,8 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
                 key_positions=[(0.0, 0.3), (0.5, 0.9), (1.0, 0.5)],
             ),
         )
-        model.commit_curve(
+        _commit_payload(
+            model,
             cid_size,
             self._make_curve(
                 cid_size,
@@ -1096,7 +1107,8 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         model = self._create_model([cid_opacity, cid_size])
 
         # Use distinct value positions so ctrl+click targets don't overlap
-        model.commit_curve(
+        _commit_payload(
+            model,
             cid_opacity,
             self._make_curve(
                 cid_opacity,
@@ -1104,7 +1116,8 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
                 key_positions=[(0.0, 0.3), (0.5, 0.9), (1.0, 0.5)],
             ),
         )
-        model.commit_curve(
+        _commit_payload(
+            model,
             cid_size,
             self._make_curve(
                 cid_size,
@@ -1137,9 +1150,9 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         cid_z = "translate:z"
         model = self._create_model([cid_x, cid_y, cid_z])
 
-        model.commit_curve(cid_x, self._make_curve(cid_x, color=0xFFFF0000))
-        model.commit_curve(cid_y, self._make_curve(cid_y, color=0xFF00FF00))
-        model.commit_curve(cid_z, self._make_curve(cid_z, color=0xFF0000FF))
+        _commit_payload(model, cid_x, self._make_curve(cid_x, color=0xFFFF0000))
+        _commit_payload(model, cid_y, self._make_curve(cid_y, color=0xFF00FF00))
+        _commit_payload(model, cid_z, self._make_curve(cid_z, color=0xFF0000FF))
 
         for cid in (cid_x, cid_y, cid_z):
             self._assert_primvar_format(cid)
@@ -1163,7 +1176,8 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         model = self._create_model([cid_x, cid_y, cid_z])
 
         # Use distinct value positions so keyframes don't overlap on screen
-        model.commit_curve(
+        _commit_payload(
+            model,
             cid_x,
             self._make_curve(
                 cid_x,
@@ -1171,7 +1185,8 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
                 key_positions=[(0.0, 0.9), (0.5, 0.85), (1.0, 0.8)],
             ),
         )
-        model.commit_curve(
+        _commit_payload(
+            model,
             cid_y,
             self._make_curve(
                 cid_y,
@@ -1179,7 +1194,8 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
                 key_positions=[(0.0, 0.5), (0.5, 0.5), (1.0, 0.5)],
             ),
         )
-        model.commit_curve(
+        _commit_payload(
+            model,
             cid_z,
             self._make_curve(
                 cid_z,
@@ -1212,262 +1228,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
             )
 
     # ═════════════════════════════════════════════════════════════════════════
-    # Group 8: Undo Solo
-    # ═════════════════════════════════════════════════════════════════════════
-
-    async def test_undo_drag_keyframe_restores_full_curve_state(self):
-        """Drag a keyframe, undo, assert all primvars match the original snapshot.
-
-        Uses CUSTOM tangent curves so tangent handle values are preserved exactly
-        through widget load/reload cycles (auto-computed types like LINEAR recompute
-        boundary handles, making exact snapshot comparison impossible).
-
-        A mouse drag generates multiple intermediate commits (one per mouse move
-        step), so we undo repeatedly until the state matches the original.
-        """
-        curve_id = "opacity:x"
-        model = self._create_model([curve_id])
-        model.commit_curve(
-            curve_id,
-            self._make_curve(
-                curve_id,
-                in_type=TangentType.CUSTOM,
-                out_type=TangentType.CUSTOM,
-            ),
-        )
-        await self._build_widget()
-
-        snapshot_before = self._snapshot_all_primvars(curve_id)
-
-        # Drag middle keyframe
-        from_pos = self._get_key_screen_pos(curve_id, 1)
-        to_pos = self._model_to_screen(0.6, 0.9)
-        await self._drag(from_pos, to_pos)
-
-        # Verify something actually changed
-        snapshot_after_drag = self._snapshot_all_primvars(curve_id)
-        self.assertNotEqual(snapshot_after_drag["times"], snapshot_before["times"], "Drag should have changed times")
-
-        # Undo all intermediate drag steps
-        await self._undo_until_snapshot(curve_id, snapshot_before)
-        self._assert_primvars_match_snapshot(curve_id, snapshot_before, "After undo: ")
-
-    async def test_undo_add_keyframe_restores_full_curve_state(self):
-        """Add a keyframe, undo, assert all primvars match the original snapshot."""
-        curve_id = "opacity:x"
-        model = self._create_model([curve_id])
-        model.commit_curve(
-            curve_id,
-            self._make_curve(
-                curve_id,
-                in_type=TangentType.CUSTOM,
-                out_type=TangentType.CUSTOM,
-            ),
-        )
-        await self._build_widget()
-
-        snapshot_before = self._snapshot_all_primvars(curve_id)
-        # Add keyframe
-        await self._click_key(curve_id, 0)
-        await self._click_button(self._toolbar._add_key_btn)
-
-        # Verify key count changed
-        self.assertEqual(len(self._read_primvar(curve_id, "times")), 4)
-
-        # Undo
-        await self._undo()
-        self._assert_primvars_match_snapshot(curve_id, snapshot_before, "After undo: ")
-
-    async def test_undo_delete_keyframe_restores_full_curve_state(self):
-        """Delete a keyframe, undo, assert all primvars match the original snapshot."""
-        curve_id = "opacity:x"
-        model = self._create_model([curve_id])
-        model.commit_curve(
-            curve_id,
-            self._make_curve(
-                curve_id,
-                in_type=TangentType.CUSTOM,
-                out_type=TangentType.CUSTOM,
-            ),
-        )
-        await self._build_widget()
-
-        snapshot_before = self._snapshot_all_primvars(curve_id)
-
-        # Delete middle key
-        await self._click_key(curve_id, 1)
-        await self._click_button(self._toolbar._delete_key_btn)
-
-        # Verify key count changed
-        self.assertEqual(len(self._read_primvar(curve_id, "times")), 2)
-
-        # Undo
-        await self._undo()
-        self._assert_primvars_match_snapshot(curve_id, snapshot_before, "After undo: ")
-
-    async def test_undo_tangent_type_change_restores_full_curve_state(self):
-        """Change tangent type, undo, assert all primvars match the original snapshot."""
-        curve_id = "opacity:x"
-        model = self._create_model([curve_id])
-        model.commit_curve(
-            curve_id,
-            self._make_curve(
-                curve_id,
-                in_type=TangentType.CUSTOM,
-                out_type=TangentType.CUSTOM,
-            ),
-        )
-        await self._build_widget()
-
-        snapshot_before = self._snapshot_all_primvars(curve_id)
-
-        # Change key 1 in-tangent to FLAT
-        await self._click_key(curve_id, 1)
-        await self._click_button(self._toolbar._left_tangent_btns[TangentType.FLAT])
-
-        # Verify type changed
-        in_types = list(self._read_primvar(curve_id, "inTangentTypes"))
-        self.assertEqual(in_types[1], "flat")
-
-        # Undo
-        await self._undo()
-        self._assert_primvars_match_snapshot(curve_id, snapshot_before, "After undo: ")
-
-    async def test_undo_link_tangents_restores_full_curve_state(self):
-        """Link tangents, undo, assert all primvars match the original snapshot."""
-        curve_id = "opacity:x"
-        model = self._create_model([curve_id])
-        curve = FCurve(
-            id=curve_id,
-            keys=[
-                FCurveKey(
-                    time=0.0,
-                    value=0.5,
-                    in_tangent_type=TangentType.CUSTOM,
-                    out_tangent_type=TangentType.CUSTOM,
-                    in_tangent_x=-0.15,
-                    in_tangent_y=0.0,
-                    out_tangent_x=0.15,
-                    out_tangent_y=0.1,
-                    tangent_broken=True,
-                ),
-                FCurveKey(
-                    time=0.5,
-                    value=0.8,
-                    in_tangent_type=TangentType.CUSTOM,
-                    out_tangent_type=TangentType.CUSTOM,
-                    in_tangent_x=-0.15,
-                    in_tangent_y=-0.1,
-                    out_tangent_x=0.15,
-                    out_tangent_y=0.1,
-                    tangent_broken=True,
-                ),
-                FCurveKey(
-                    time=1.0,
-                    value=0.3,
-                    in_tangent_type=TangentType.CUSTOM,
-                    out_tangent_type=TangentType.CUSTOM,
-                    in_tangent_x=-0.15,
-                    in_tangent_y=-0.1,
-                    out_tangent_x=0.15,
-                    out_tangent_y=0.0,
-                    tangent_broken=True,
-                ),
-            ],
-            color=0xFF3560FF,
-        )
-        model.commit_curve(curve_id, curve)
-        await self._build_widget()
-
-        snapshot_before = self._snapshot_all_primvars(curve_id)
-
-        # Link tangents on key 1
-        await self._click_key(curve_id, 1)
-        await self._click_button(self._toolbar._link_tangents_btn)
-
-        # Verify broken changed
-        broken_arr = list(self._read_primvar(curve_id, "tangentBrokens"))
-        self.assertFalse(broken_arr[1])
-
-        # Undo
-        await self._undo()
-        self._assert_primvars_match_snapshot(curve_id, snapshot_before, "After undo: ")
-
-    # ═════════════════════════════════════════════════════════════════════════
-    # Group 9: Chained Undo
-    # ═════════════════════════════════════════════════════════════════════════
-
-    async def test_undo_chain_restores_each_step_exactly(self):
-        """Perform a sequence of different actions, then undo each one.
-
-        At each undo step, assert the ENTIRE curve state matches the
-        expected snapshot from before that action was performed.
-
-        Uses CUSTOM tangent curves so handle values are preserved exactly.
-        """
-        curve_id = "opacity:x"
-        model = self._create_model([curve_id])
-        model.commit_curve(
-            curve_id,
-            self._make_curve(
-                curve_id,
-                in_type=TangentType.CUSTOM,
-                out_type=TangentType.CUSTOM,
-            ),
-        )
-        await self._build_widget()
-
-        snapshot_0 = self._snapshot_all_primvars(curve_id)
-
-        # Step 1: drag key 1
-        from_pos = self._get_key_screen_pos(curve_id, 1)
-        to_pos = self._model_to_screen(0.6, 0.7)
-        await self._drag(from_pos, to_pos)
-        snapshot_1 = self._snapshot_all_primvars(curve_id)
-        self.assertNotEqual(snapshot_1["times"], snapshot_0["times"])
-
-        # Step 2: change key 1 in-tangent to FLAT
-        await self._click_key(curve_id, 1)
-        await self._click_button(self._toolbar._left_tangent_btns[TangentType.FLAT])
-        snapshot_2 = self._snapshot_all_primvars(curve_id)
-        self.assertNotEqual(snapshot_2["inTangentTypes"], snapshot_1["inTangentTypes"])
-
-        # Step 3: add key
-        await self._click_key(curve_id, 0)
-        await self._click_button(self._toolbar._add_key_btn)
-        snapshot_3 = self._snapshot_all_primvars(curve_id)
-        self.assertNotEqual(len(snapshot_3["times"]), len(snapshot_2["times"]))
-
-        # Step 4: delete key 2
-        await self._click_key(curve_id, 2)
-        await self._click_button(self._toolbar._delete_key_btn)
-        snapshot_4 = self._snapshot_all_primvars(curve_id)
-        self.assertNotEqual(len(snapshot_4["times"]), len(snapshot_3["times"]))
-
-        # Step 5: change key 1 out-tangent to STEP
-        await self._click_key(curve_id, 1)
-        await self._click_button(self._toolbar._right_tangent_btns[TangentType.STEP])
-        self._snapshot_all_primvars(curve_id)
-
-        # Undo each step; verify full curve state at each point
-        await self._undo()
-        self._assert_primvars_match_snapshot(curve_id, snapshot_4, "After undo step 5→4: ")
-
-        await self._undo()
-        self._assert_primvars_match_snapshot(curve_id, snapshot_3, "After undo step 4→3: ")
-
-        await self._undo()
-        self._assert_primvars_match_snapshot(curve_id, snapshot_2, "After undo step 3→2: ")
-
-        await self._undo()
-        self._assert_primvars_match_snapshot(curve_id, snapshot_1, "After undo step 2→1: ")
-
-        # Step 1 was a drag — undo all intermediate commits
-        await self._undo_until_snapshot(curve_id, snapshot_0)
-        self._assert_primvars_match_snapshot(curve_id, snapshot_0, "After undo step 1→0: ")
-
-    # ═════════════════════════════════════════════════════════════════════════
-    # Group 10: Load .usda Fixture
+    # Group 8: Load .usda Fixture
     # ═════════════════════════════════════════════════════════════════════════
 
     async def _open_fixture_stage(self) -> None:
@@ -1556,7 +1317,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         await self._build_widget()
 
         # Read key positions from the model (USD)
-        curve = self._model.get_curve(curve_id)
+        curve = _get_curve(self._model, curve_id)
         self.assertIsNotNone(curve)
 
         # For each key, verify the screen position computed from model coords

@@ -18,23 +18,17 @@ Curve Editor Tests.
 """
 
 from .e2e.test_integration import (
-    TestUndoRedo,
     TestMultiCurveEditing,
-    TestDataFlow,
     TestTangentTypes,
     TestInfinityTypes,
 )
 from .e2e.test_toolbar import TestToolbar
 from .e2e.test_primvar_integration import TestPrimvarIntegration
-from .e2e.test_fcurve_only import TestFCurveOnly
 
 __all__ = [
-    "TestDataFlow",
-    "TestFCurveOnly",
     "TestInfinityTypes",
     "TestMultiCurveEditing",
     "TestPrimvarIntegration",
     "TestTangentTypes",
     "TestToolbar",
-    "TestUndoRedo",
 ]

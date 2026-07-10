@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.4]
+### Changed
+- Added tooltip support to shared item group name models so grouped outlet rows can reuse generic static labels.
+
 ## [2.12.3]
 ### Changed
 - Added default property edit interaction hooks to shared item models so delegates can use explicit model calls

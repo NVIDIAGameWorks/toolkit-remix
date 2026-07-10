@@ -17,26 +17,42 @@
 
 import carb
 import omni.ext
+import omni.kit.commands
 
+from . import commands
 from .listener import USDListener as _USDListener
 
-_USD_LISTENER_INSTANCE = None
+_USD_LISTENER_INSTANCE: _USDListener | None = None
 
 
-def get_usd_listener_instance():
+def get_usd_listener_instance() -> _USDListener | None:
+    """Return the extension-owned USD listener, if the extension is started.
+
+    Returns:
+        Shared USD listener singleton, or ``None`` during extension startup/shutdown.
+    """
     return _USD_LISTENER_INSTANCE
 
 
 class USDPropertyWidgetExtension(omni.ext.IExt):
-    """Create Final Configuration"""
+    """Register USD property-widget commands and own the shared listener singleton."""
 
-    def on_startup(self, ext_id):
+    def on_startup(self, ext_id: str) -> None:
+        """Register generic USD commands and create the shared listener.
+
+        Args:
+            ext_id: Kit extension id supplied by the extension manager.
+        """
         global _USD_LISTENER_INSTANCE
         carb.log_info("[omni.flux.property_widget_builder.model.usd] Startup")
+        omni.kit.commands.register_all_commands_in_module(commands)
         _USD_LISTENER_INSTANCE = _USDListener()
 
-    def on_shutdown(self):
+    def on_shutdown(self) -> None:
+        """Unregister generic USD commands and destroy the shared listener."""
         global _USD_LISTENER_INSTANCE
         carb.log_info("[omni.flux.property_widget_builder.model.usd] Shutdown")
-        _USD_LISTENER_INSTANCE.destroy()
+        omni.kit.commands.unregister_module_commands(commands)
+        if _USD_LISTENER_INSTANCE is not None:
+            _USD_LISTENER_INSTANCE.destroy()
         _USD_LISTENER_INSTANCE = None

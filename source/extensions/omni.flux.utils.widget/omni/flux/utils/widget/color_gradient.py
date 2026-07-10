@@ -19,12 +19,12 @@ from __future__ import annotations
 
 __all__ = ["GRADIENT_PRESETS", "ColorGradientWidget"]
 
-import contextlib
 import itertools
 import random
 import weakref
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from functools import partial
+from typing import Any
 
 import carb
 import carb.input
@@ -33,6 +33,7 @@ import omni.kit.app
 import omni.ui as ui
 
 from .gradient import create_checkerboard, create_multi_stop_gradient, sample_gradient_at_time
+from .grouped_keys_model import GroupedKeysModel, GroupedKeysPayload
 from .resources import get_icons
 
 # ---------------------------------------------------------------------------
@@ -182,10 +183,10 @@ class ColorGradientWidget:
     constant-color editing.
 
     Args:
-        keyframes: Initial keyframes as ``(time, (r, g, b, a))`` pairs.
+        model: Grouped-key payload storage model.
+        group_id: Group id to edit in ``model``.
         default_color: Solid fill color when no keyframes are present.
         read_only: If ``True``, all mouse interactions and editing are disabled.
-        on_gradient_changed_fn: Callback ``(times, values)`` fired on every edit.
         time_range: ``(min, max)`` bounds for keyframe time values.
             Defaults to ``(0.0, 1.0)``.  The gradient left edge corresponds to
             *min* and the right edge to *max*.
@@ -200,26 +201,36 @@ class ColorGradientWidget:
 
     def __init__(
         self,
-        keyframes: Sequence[Keyframe] | None = None,
+        model: GroupedKeysModel,
+        group_id: str,
         default_color: Color4 = (0.2, 0.2, 0.2, 1.0),
         read_only: bool = False,
-        on_gradient_changed_fn: Callable[[list[float], list[Color4]], None] | None = None,
         time_range: tuple[float, float] = (0.0, 1.0),
         title: str = "",
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
+        """Create a grouped-key-backed color gradient widget.
+
+        Args:
+            model: Grouped-key payload storage model.
+            group_id: Group id to edit in ``model``.
+            default_color: Solid fill color when no keyframes are present.
+            read_only: Whether to disable editing interactions.
+            time_range: Inclusive time bounds for keyframe placement.
+            title: Optional popup window title prefix.
+            **kwargs: UI options forwarded to the outer container.
+        """
+        self._model: GroupedKeysModel | None = model
+        self._group_id = group_id
+        self._model_sub = self._model.subscribe(self._on_model_changed)
         self._time_min, self._time_max = time_range
         self._title = title
 
-        self._keyframes: list[_KF] = sorted(
-            [_KF(t, c) for t, c in (keyframes or [])],
-            key=lambda kf: kf.time,
-        )
+        self._keyframes: list[_KF] = []
         self._default_color: Color4 = default_color
         self._read_only: bool = read_only
-        self._gradient_changed_fns: list = []
-        if on_gradient_changed_fn is not None:
-            self._gradient_changed_fns.append(on_gradient_changed_fn)
+        self._is_editing_model = False
+        self._set_keyframes(self._read_model_keyframes(), refresh=False)
 
         # Auto-select first keyframe if available
         self._selected_uid: int | None = self._keyframes[0].uid if self._keyframes else None
@@ -253,9 +264,6 @@ class ColorGradientWidget:
         self._ignore_swatch_change = False
         # Ref-count: > 0 while the color picker popup is open (suppress outside-click dismiss).
         self._color_picker_active: int = 0
-
-        self._drag_started_fns: list = []
-        self._drag_ended_fns: list = []
 
         # Outside-click watcher: per-frame LMB poll that hides the popup when the
         # user clicks anywhere outside the popup window.
@@ -370,8 +378,10 @@ class ColorGradientWidget:
             self._show_popup()
 
     def _show_popup(self) -> None:
+        """Open the floating gradient editor popup and load current model state."""
         if self._popup_window and self._popup_window.visible:
             return  # Already shown
+        self._load_from_model()
 
         # Dismiss any other gradient popup that may be open.
         active_ref = ColorGradientWidget._active_popup_widget
@@ -436,6 +446,7 @@ class ColorGradientWidget:
         self._popup_window.visible = True
 
     def _hide_popup(self) -> None:
+        """Hide the popup window and clear active popup/color-picker state."""
         self._color_picker_active = 0
         self._update_sub = None
         active_ref = ColorGradientWidget._active_popup_widget
@@ -445,8 +456,13 @@ class ColorGradientWidget:
             self._popup_window.visible = False
 
     def _on_window_close(self, visible: bool) -> None:
-        """Handle the title-bar X close button (or any external visibility change)."""
+        """Handle the title-bar X close button or any external visibility change.
+
+        Args:
+            visible: New popup visibility state reported by the window.
+        """
         if not visible:
+            self._fire_drag_ended()
             self._color_picker_active = 0
             self._update_sub = None
             active_ref = ColorGradientWidget._active_popup_widget
@@ -751,7 +767,6 @@ class ColorGradientWidget:
         self._color_picker_active = max(0, self._color_picker_active - 1)
         if self._color_picker_active == 0:
             self._fire_drag_ended()
-            self._fire_changed()
 
     def _on_swatch_component_changed(self, model):
         """Called on every R/G/B/A change from the swatch color picker."""
@@ -842,7 +857,6 @@ class ColorGradientWidget:
         if button == 0:
             self._rebuild_edit_row()
             self._fire_drag_ended()
-            self._fire_changed()
 
     def _on_marker_dragged(self, uid: int, offset) -> None:
         """Handle Placer offset_x change during drag."""
@@ -1052,7 +1066,7 @@ class ColorGradientWidget:
     # ------------------------------------------------------------------
 
     def _refresh_all(self) -> None:
-        """Refresh all UI components and fire the changed callback."""
+        """Refresh all UI components and commit the current payload."""
         self._update_gradient_image()
         self._update_swatch()
         self._rebuild_markers()
@@ -1088,52 +1102,87 @@ class ColorGradientWidget:
         return sample_gradient_at_time(stops, time)
 
     def _fire_drag_started(self) -> None:
-        for fn in self._drag_started_fns:
-            fn()
+        """Notify the model that a continuous widget edit has started."""
+        model = self._model
+        if self._is_editing_model or model is None:
+            return
+        self._is_editing_model = True
+        model.begin_edit(self._group_id)
 
     def _fire_drag_ended(self) -> None:
-        for fn in self._drag_ended_fns:
-            fn()
+        """Notify the model that the current continuous widget edit has ended."""
+        if not self._is_editing_model:
+            return
+        self._is_editing_model = False
+        model = self._model
+        if model is None:
+            return
+        model.end_edit(self._group_id)
 
-    def _fire_changed(self):
-        times = [kf.time for kf in self._keyframes]
-        values = [kf.color for kf in self._keyframes]
-        for fn in self._gradient_changed_fns:
-            fn(times, values)
+    def _fire_changed(self) -> None:
+        """Commit current keyframes as one grouped payload."""
+        if self._model is not None:
+            self._model.commit_payload(self._group_id, self._keyframes_to_payload())
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
+    def _keyframes_to_payload(self) -> GroupedKeysPayload:
+        """Serialize current keyframes to the generic grouped-key payload.
 
-    def subscribe_gradient_changed_fn(self, fn: Callable[[list, list], None]) -> None:
-        """Register an additional callback fired on every gradient edit."""
-        self._gradient_changed_fns.append(fn)
+        Returns:
+            Payload with ``times`` and ``values`` suffix entries.
+        """
+        return {
+            "times": [kf.time for kf in self._keyframes],
+            "values": [kf.color for kf in self._keyframes],
+        }
 
-    def unsubscribe_gradient_changed_fn(self, fn: Callable[[list, list], None]) -> None:
-        """Remove a previously registered callback."""
-        with contextlib.suppress(ValueError):
-            self._gradient_changed_fns.remove(fn)
+    @staticmethod
+    def _payload_to_keyframes(payload: GroupedKeysPayload | None) -> list[Keyframe]:
+        """Convert a grouped-key payload into widget keyframes.
 
-    def subscribe_drag_started_fn(self, fn: Callable[[], None]) -> None:
-        """Register a callback fired when a marker drag begins."""
-        self._drag_started_fns.append(fn)
+        Args:
+            payload: Payload read from the grouped-key model, or ``None``.
 
-    def unsubscribe_drag_started_fn(self, fn: Callable[[], None]) -> None:
-        """Unregister a previously registered drag-started callback."""
-        with contextlib.suppress(ValueError):
-            self._drag_started_fns.remove(fn)
+        Returns:
+            List of ``(time, color)`` keyframes.
+        """
+        if payload is None:
+            return []
+        times = payload.get("times") or []
+        values = payload.get("values") or []
+        keyframes = []
+        for time, value in zip(times, values):
+            keyframes.append((float(time), tuple(float(channel) for channel in value)))
+        return keyframes
 
-    def subscribe_drag_ended_fn(self, fn: Callable[[], None]) -> None:
-        """Register a callback fired when a marker drag ends."""
-        self._drag_ended_fns.append(fn)
+    def _read_model_keyframes(self) -> list[Keyframe]:
+        """Read current keyframes from the grouped-key model.
 
-    def unsubscribe_drag_ended_fn(self, fn: Callable[[], None]) -> None:
-        """Unregister a previously registered drag-ended callback."""
-        with contextlib.suppress(ValueError):
-            self._drag_ended_fns.remove(fn)
+        Returns:
+            Keyframes converted from the current model payload.
+        """
+        return self._payload_to_keyframes(self._model.get_payload(self._group_id) if self._model is not None else None)
 
-    def set_keyframes(self, keyframes: Sequence[Keyframe]):
-        """Replace all keyframes and refresh the widget."""
+    def _load_from_model(self) -> None:
+        """Reload widget state from the grouped-key model and refresh visible UI."""
+        self._set_keyframes(self._read_model_keyframes(), refresh=True)
+
+    def _on_model_changed(self, group_id: str) -> None:
+        """Reload when the backing model reports an external change for this group.
+
+        Args:
+            group_id: Changed group id from the model.
+        """
+        if group_id != self._group_id or self._is_editing_model:
+            return
+        self._load_from_model()
+
+    def _set_keyframes(self, keyframes: Sequence[Keyframe], refresh: bool) -> None:
+        """Replace internal keyframes and optionally refresh dependent UI.
+
+        Args:
+            keyframes: Keyframes to store in the widget.
+            refresh: Whether to rebuild gradient, swatch, marker, and edit-row UI.
+        """
         if len(keyframes) > _MAX_KEYFRAMES:
             carb.log_warn(
                 f"ColorGradientWidget: keyframe count {len(keyframes)} exceeds _MAX_KEYFRAMES={_MAX_KEYFRAMES}; "
@@ -1144,12 +1193,24 @@ class ColorGradientWidget:
             [_KF(t, c) for t, c in keyframes],
             key=lambda kf: kf.time,
         )
-        # Auto-select first keyframe if available
         self._selected_uid = self._keyframes[0].uid if self._keyframes else None
-        self._update_gradient_image()
-        self._update_swatch()
-        self._rebuild_markers()
-        self._rebuild_edit_row()
+        if refresh:
+            self._update_gradient_image()
+            self._update_swatch()
+            self._rebuild_markers()
+            self._rebuild_edit_row()
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def set_keyframes(self, keyframes: Sequence[Keyframe]) -> None:
+        """Replace all keyframes locally and refresh the widget without committing.
+
+        Args:
+            keyframes: Keyframes to display.
+        """
+        self._set_keyframes(keyframes, refresh=True)
 
     def get_keyframes(self) -> list[Keyframe]:
         """Return the current keyframes as ``(time, color)`` tuples."""
@@ -1160,8 +1221,13 @@ class ColorGradientWidget:
         """Whether the widget is in read-only mode."""
         return self._read_only
 
-    def destroy(self):
+    def destroy(self) -> None:
         """Release resources."""
+        self._fire_drag_ended()
+        self._color_picker_active = 0
+        self._update_sub = None
+        self._color_subs.clear()
+        self._subs.clear()
         if self._presets_menu is not None:
             self._presets_menu.destroy()
             self._presets_menu = None
@@ -1171,12 +1237,9 @@ class ColorGradientWidget:
             self._popup_window = None
         self._popup_markers_frame = None
         self._popup_edit_frame = None
-        self._color_subs.clear()
-        self._subs.clear()
         self._marker_widgets.clear()
         self._marker_placers.clear()
         self._popup_gradient_overlay = None
-        self._update_sub = None
         self._app_mouse = None
         self._carb_input = None
         self._checker_provider = None
@@ -1186,10 +1249,9 @@ class ColorGradientWidget:
         self._color_widget = None
         self._presets_button = None
         self._outer_container = None
-        self._gradient_changed_fns.clear()
-        self._drag_started_fns.clear()
-        self._drag_ended_fns.clear()
         self._keyframes.clear()
         active_ref = ColorGradientWidget._active_popup_widget
         if active_ref is not None and active_ref() is self:
             ColorGradientWidget._active_popup_widget = None
+        self._model_sub = None
+        self._model = None

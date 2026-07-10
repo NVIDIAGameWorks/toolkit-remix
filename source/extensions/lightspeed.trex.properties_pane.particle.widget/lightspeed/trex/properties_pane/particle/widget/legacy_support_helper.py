@@ -22,10 +22,10 @@ from typing import Any
 
 import carb
 import omni.kit.commands
+import omni.kit.undo
 import omni.usd
 from lightspeed.common.constants import PARTICLE_SCHEMA_NAME
 from lightspeed.trex.schemas.utils import get_schema_prim
-from omni.flux.fcurve.widget import FCurve, FCurveKey
 from omni.flux.utils.common.types import RealNumber
 from pxr import Sdf, Usd
 
@@ -33,8 +33,10 @@ from .particle_edit_groups import PARTICLE_LEGACY_ANIMATION_MAPPINGS
 
 __all__ = [
     "animated_attr_has_usable_keys",
+    "get_legacy_seed_payload",
     "normalize_scalar_value",
-    "seed_current_animated_attr_from_legacy",
+    "seed_current_animated_attrs_from_legacy",
+    "seed_current_animated_attrs_from_payload",
     "values_equal",
 ]
 
@@ -188,65 +190,139 @@ def _get_seed_points_for_animated(
     return kind, points, has_non_default_legacy
 
 
-def seed_current_animated_attr_from_legacy(
-    animated_attr_name: str,
-    context_name: str,
-    prim_path: str,
-) -> bool:
-    """Seed one empty animated particle attr from mapped legacy values.
-
-    Existing animated keys are authoritative and are never overwritten.
+def _normalize_animated_attr_names(animated_attr_names: str | Iterable[str] | None) -> list[str]:
+    """Normalize optional single/multiple animated attr names into a list.
 
     Args:
-        animated_attr_name: Animated curve or gradient base primvar to seed.
-        context_name: USD context name.
-        prim_path: Particle prim path.
+        animated_attr_names: One animated attr name, several names, or ``None``.
 
     Returns:
-        ``True`` when the attr was seeded, otherwise ``False``.
+        List of animated attr names to seed.
     """
+    if animated_attr_names is None:
+        return []
+    if isinstance(animated_attr_names, str):
+        return [animated_attr_names]
+    return list(animated_attr_names)
+
+
+def get_legacy_seed_payload(
+    animated_attr_names: str | Iterable[str] | None,
+    context_name: str,
+    target_paths: list[str],
+) -> list[dict[str, Any]]:
+    """Build a read-only legacy migration payload for selected particle targets.
+
+    Hidden legacy attrs may still be authored directly in ASCII USDA files. This returns the curve/gradient
+    seed data needed to populate currently empty animated attrs before the editor opens.
+
+    Args:
+        animated_attr_names: Animated curve/gradient attrs to inspect.
+        context_name: USD context containing selected particles.
+        target_paths: Ordered selected particle prim paths.
+
+    Returns:
+        Seed entries for empty animated attrs with non-default legacy values.
+    """
+    names_to_seed = _normalize_animated_attr_names(animated_attr_names)
+    if not names_to_seed or not target_paths:
+        return []
+
     context: Any = omni.usd.get_context(context_name)
     stage = context.get_stage() if context else None
-    prim = stage.GetPrimAtPath(prim_path) if stage else None
-    if prim is None or not prim.IsValid():
-        return False
+    if stage is None:
+        return []
 
     _schema_layer, schema_prim = get_schema_prim(PARTICLE_SCHEMA_NAME)
-    kind, points, has_non_default_legacy = _get_seed_points_for_animated(prim, schema_prim, animated_attr_name)
-    has_keys = animated_attr_has_usable_keys(prim, animated_attr_name, kind) if kind else False
-    if kind not in ("curve", "gradient") or not points or not has_non_default_legacy:
-        return False
-    if has_keys:
+    if schema_prim is None:
+        return []
+    payload: list[dict[str, Any]] = []
+    for prim_path in target_paths:
+        prim = stage.GetPrimAtPath(prim_path)
+        if prim is None or not prim.IsValid():
+            continue
+        for animated_attr_name in names_to_seed:
+            kind, points, has_non_default_legacy = _get_seed_points_for_animated(prim, schema_prim, animated_attr_name)
+            if kind not in ("curve", "gradient") or not points or not has_non_default_legacy:
+                continue
+            if animated_attr_has_usable_keys(prim, animated_attr_name, kind):
+                continue
+            payload.append(
+                {
+                    "prim_path": str(prim.GetPath()),
+                    "animated_attr_name": animated_attr_name,
+                    "kind": kind,
+                    "points": points,
+                }
+            )
+    return payload
+
+
+def seed_current_animated_attrs_from_payload(payload: list[dict[str, Any]], context_name: str) -> bool:
+    """Author a previously planned legacy seed payload through the shared grouped-key command.
+
+    Args:
+        payload: Seed entries from ``get_legacy_seed_payload``.
+        context_name: USD context containing selected particles.
+
+    Returns:
+        ``True`` when at least one animated attr was seeded.
+    """
+    if not payload:
         return False
 
-    match kind:
-        case "curve":
-            curve_id = animated_attr_name.removeprefix("primvars:")
-            curve = FCurve(
-                id=curve_id,
-                keys=[FCurveKey(time=float(time), value=float(value)) for time, value in points],
-            )
-            omni.kit.commands.execute(
-                "SetCurvePrimvars",
-                prim_path=prim_path,
-                curve_id=curve_id,
-                curve=curve,
-                usd_context_name=context_name,
-            )
-            return True
-        case "gradient":
-            omni.kit.commands.execute(
-                "SetGradientPrimvars",
-                prim_path=prim_path,
-                base_name=animated_attr_name,
-                times=[float(time) for time, _value in points],
-                values=[value for _time, value in points],
-                usd_context_name=context_name,
-            )
-            return True
-        case _:
-            carb.log_warn(
-                f"Unhandled legacy seed kind {kind!r} for {animated_attr_name!r}; "
-                "update seed_current_animated_attr_from_legacy when adding new mapping kinds."
-            )
-            return False
+    seeded_any = False
+    with omni.kit.undo.group():  # pyright: ignore[reportAttributeAccessIssue]
+        for entry in payload:
+            animated_attr_name = entry["animated_attr_name"]
+            points = entry["points"]
+            match entry["kind"]:
+                case "curve":
+                    omni.kit.commands.execute(
+                        "SetDataPrimvars",
+                        prim_paths=[entry["prim_path"]],
+                        group_id=animated_attr_name,
+                        payload={
+                            "times": [float(time) for time, _value in points],
+                            "values": [float(value) for _time, value in points],
+                        },
+                        usd_context_name=context_name,
+                    )
+                    seeded_any = True
+                case "gradient":
+                    omni.kit.commands.execute(
+                        "SetDataPrimvars",
+                        prim_paths=[entry["prim_path"]],
+                        group_id=animated_attr_name,
+                        payload={
+                            "times": [float(time) for time, _value in points],
+                            "values": [value for _time, value in points],
+                        },
+                        usd_context_name=context_name,
+                    )
+                    seeded_any = True
+                case _:
+                    carb.log_warn(
+                        f"Unhandled legacy seed kind {entry['kind']!r} for {animated_attr_name!r}; "
+                        "update seed_current_animated_attrs_from_payload when adding new mapping kinds."
+                    )
+    return seeded_any
+
+
+def seed_current_animated_attrs_from_legacy(
+    animated_attr_names: str | Iterable[str] | None,
+    context_name: str,
+    target_paths: list[str],
+) -> bool:
+    """Seed selected empty animated particle attrs from mapped legacy values, if any exist.
+
+    Args:
+        animated_attr_names: Animated curve/gradient attrs to inspect.
+        context_name: USD context containing selected particles.
+        target_paths: Ordered selected particle prim paths.
+
+    Returns:
+        ``True`` when at least one animated attr was seeded.
+    """
+    payload = get_legacy_seed_payload(animated_attr_names, context_name, target_paths)
+    return seed_current_animated_attrs_from_payload(payload, context_name)

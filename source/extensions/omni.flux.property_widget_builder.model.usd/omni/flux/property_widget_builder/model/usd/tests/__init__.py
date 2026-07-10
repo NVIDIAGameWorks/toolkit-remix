@@ -16,20 +16,21 @@
 """
 
 from .unit.test_clipboard_roundtrip import TestClipboardRoundtrip
-from .unit.test_delegate_alignment import TestDelegateAlignment
 from .unit.test_bounds_adapter import TestBoundsAdapter
 from .unit.test_conditional_visibility_orchestrator import TestConditionalVisibilityOrchestrator
-from .unit.test_drag_write_throttling import (
-    TestCurveEditorInteractiveNotices,
-    TestDragWriteThrottling,
+from .unit.test_usd_edit_lifecycle import (
+    TestCurvePrimvarModelInteractiveNotices,
+    TestCurvePrimvarModelMixedFirstEdit,
     TestUSDModelInteractiveNotices,
+    TestUsdAttributeValueModelEditBatching,
     TestVirtualAttributeWrites,
 )
 from .unit.test_expression_evaluator import TestExpressionEvaluator
 from .unit.test_field_builder_bounds import TestFieldBuilderBounds
 from .unit.test_file_texture_picker import TestFileTexturePicker
-from .unit.test_gradient_widget import TestUsdGradientWidgetDragLifecycle
+from .unit.test_gradient_direct_writes import TestGradientDirectWrites
 from .unit.test_listener import TestUSDListener
+from .unit.test_logical_groups import TestLogicalGroups
 from .unit.test_multichannel_paste import TestMultichannelPaste
 from .unit.test_relationship_item import TestUSDRelationshipItem
 from .unit.test_relationship_utils import TestRelationshipUtils
@@ -37,33 +38,40 @@ from .unit.test_relationship_value_model import TestUsdRelationshipValueModel
 from .unit.test_usd_attribute_item_bounds import TestUSDAttributeItemBounds
 from .unit.test_value_tooltips import TestUSDAttributeValueTooltips
 
+from .e2e.test_delegate_alignment import TestDelegateAlignment
 from .e2e.test_gradient_command import (
     TestGradientEditorUndo,
-    TestSetGradientPrimvarsCommand,
+    TestSetDataPrimvarsCommand,
+    TestUsdGradientWidgetDragLifecycle,
     TestUsdGradientWidgetLifecycle,
+    TestUsdGradientWidgetMixedFirstEdit,
 )
 
 __all__ = [
     "TestBoundsAdapter",
     "TestClipboardRoundtrip",
     "TestConditionalVisibilityOrchestrator",
-    "TestCurveEditorInteractiveNotices",
+    "TestCurvePrimvarModelInteractiveNotices",
+    "TestCurvePrimvarModelMixedFirstEdit",
     "TestDelegateAlignment",
-    "TestDragWriteThrottling",
     "TestExpressionEvaluator",
     "TestFieldBuilderBounds",
     "TestFileTexturePicker",
+    "TestGradientDirectWrites",
     "TestGradientEditorUndo",
+    "TestLogicalGroups",
     "TestMultichannelPaste",
     "TestRelationshipUtils",
-    "TestSetGradientPrimvarsCommand",
+    "TestSetDataPrimvarsCommand",
     "TestUSDAttributeItemBounds",
     "TestUSDAttributeValueTooltips",
     "TestUSDListener",
     "TestUSDModelInteractiveNotices",
     "TestUSDRelationshipItem",
+    "TestUsdAttributeValueModelEditBatching",
     "TestUsdGradientWidgetDragLifecycle",
     "TestUsdGradientWidgetLifecycle",
+    "TestUsdGradientWidgetMixedFirstEdit",
     "TestUsdRelationshipValueModel",
     "TestVirtualAttributeWrites",
 ]

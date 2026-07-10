@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.16.3]
+### Changed
+- Removed obsolete USD gradient-builder integration coverage from the generic delegates extension.
+- `ColorGradientField` now embeds the shared model-backed `ColorGradientWidget` through `GroupedKeysModel` payload storage.
+
+### Fixed
+- Fixed `ColorGradientField.build_ui` type references so generated documentation can resolve the property-widget item type.
+
 ## [1.16.2]
 ### Removed
 - Removed numeric edit controller wiring from drag delegates so float and int fields use native drag widget behavior directly

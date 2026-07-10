@@ -2,6 +2,28 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.36.0]
+### Changed
+- Routed USD property row indicators, reset, and override deletion through row-owned state and attribute ownership methods.
+- Added shared USD logical group definitions for gradient and standalone curve row state and ownership.
+- Made USD logical row pre-open and owned-value-model APIs explicit for curve and gradient editor rows.
+- Moved USD gradient persistence and edit-session behavior onto property rows and removed the duplicate legacy USD gradient builder.
+- Moved USD curve primvar persistence and property curve editor sessions into the USD property row model layer.
+- Removed stale logical-row compatibility method names in favor of row-owned USD property APIs.
+- Exposed row-item construction for USD gradient editors through `PropertyGroupedKeysModel.from_item`.
+- Renamed curve outlet rows to `USDLogicalGroupOutletItem`.
+- Shared USD curve and gradient property-editor edit lifecycle through `PropertyGroupedKeysModel`.
+- Centralized grouped-key primvar persistence and undo command handling in `PropertyGroupedKeysModel`.
+- Inferred grouped-key command logical definitions from payload shape for curve and gradient primvar writes.
+
+### Fixed
+- Gradient and curve logical rows now evaluate mixed/default/reset state across their companion USD attributes for multi-selected particles.
+- Skipped redundant gradient writes for equivalent USD array payloads, skipped deleted gradient targets during undo restore, and avoided mixed-state curve rescans for unrelated USD notices.
+- Centralized USD logical row state, reset, and override deletion for scalar, gradient, and curve edit-group rows.
+- Aligned curve outlet reset/default and curve undo snapshot semantics with regular USD property rows.
+- Deferred grouped curve and gradient primvar writes consistently while preventing partial grouped writes when schema attrs are missing.
+- Kept transform vector fields editable when tabbing to the next channel after resetting a row modification.
+
 ## [2.35.1]
 ### Added
 - Added optional USD property delegate callbacks for transferring authored property modifications to another layer.

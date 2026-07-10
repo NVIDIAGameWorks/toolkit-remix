@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5588: Fixed Assign Texture Sets so emissive textures are preserved while emission is disabled and appear when emissivity is enabled.
 - REMIX-5638: Fixed viewport light rigs no-oping after capture swaps by clearing stale lighting state before restoring the preserved rig.
 - REMIX-4533: Fixed capture camera authority so capture loads clear stale game-camera overrides, navigation redirects edits to a perspective camera with center of interest, orthographic cameras frame capture meshes and instances, and pseudo-orthographic inspection cameras copy perspective render attributes, keep close clipping, and disable tumble/look for smooth pan/zoom navigation
+- REMIX-5368: Fixed particle gradient and curve logical rows for multi-select editing, StageCraft startup layout loading so it does not pull users out of an already-open workspace, and USD transform vector fields so tabbing to the next channel stays editable after resetting a row modification.
 
 ## [1.5.2-0]
 

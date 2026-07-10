@@ -18,7 +18,6 @@
 __all__ = (
     "TestAbstractDragFieldGroup",
     "TestColorField",
-    "TestColorGradientDelegateIntegration",
     "TestColorGradientField",
     "TestFloatDragFieldGroup",
     "TestIntDragFieldGroup",
@@ -26,7 +25,6 @@ __all__ = (
 
 from .test_abstract_drag import TestAbstractDragFieldGroup
 from .test_color_gradient import TestColorGradientField
-from .test_color_gradient_integration import TestColorGradientDelegateIntegration
 from .test_float_drag_group import TestFloatDragFieldGroup
 from .test_float_value import TestColorField
 from .test_int_drag_group import TestIntDragFieldGroup

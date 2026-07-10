@@ -18,7 +18,10 @@
 from __future__ import annotations
 
 import abc
+import asyncio
 import typing
+
+import omni.kit.app
 import omni.usd
 from omni.flux.property_widget_builder.widget import Model as _Model
 from omni.flux.utils.common import Event as _Event
@@ -59,6 +62,7 @@ class USDModel(_Model):
         self.supress_usd_events_during_widget_edit = False
         self._active_edit_model_counts = {}
         self._usd_notice_token = None
+        self._pending_property_edit_finish_task = None
         self._is_cancelling_property_edit = False
         self._attribute_create_cancelled_count = 0
 
@@ -81,6 +85,7 @@ class USDModel(_Model):
                 "supress_usd_events_during_widget_edit": None,
                 "_active_edit_model_counts": None,
                 "_usd_notice_token": None,
+                "_pending_property_edit_finish_task": None,
                 "_is_cancelling_property_edit": None,
                 "_attribute_create_cancelled_count": None,
                 "_value_changed_callbacks": None,
@@ -152,10 +157,42 @@ class USDModel(_Model):
 
     def _finish_property_edit_interaction(self):
         self.supress_usd_events_during_widget_edit = False
+        self._active_edit_model_counts.clear()
         token = self._usd_notice_token
         self._usd_notice_token = None
         if token is not None:
             _end_interaction(token)
+
+    def _cancel_pending_property_edit_finish(self):
+        task = self._pending_property_edit_finish_task
+        if task is not None and not task.done():
+            task.cancel()
+        self._pending_property_edit_finish_task = None
+
+    def destroy(self):
+        """Release pending property-edit cleanup before resetting model state."""
+        self._cancel_pending_property_edit_finish()
+        if self._active_edit_model_counts is not None:
+            self._finish_property_edit_interaction()
+        super().destroy()
+
+    def _schedule_finish_property_edit_interaction(self):
+        task = self._pending_property_edit_finish_task
+        if task is not None and not task.done():
+            return
+
+        async def finish_async():
+            try:
+                await omni.kit.app.get_app().next_update_async()
+                await omni.kit.app.get_app().next_update_async()
+                if not self._active_edit_model_counts:
+                    self._finish_property_edit_interaction()
+            finally:
+                if self._pending_property_edit_finish_task is task:
+                    self._pending_property_edit_finish_task = None
+
+        task = asyncio.ensure_future(finish_async())
+        self._pending_property_edit_finish_task = task
 
     def _ensure_property_edit_interaction(self):
         if self._usd_notice_token is None:
@@ -164,6 +201,7 @@ class USDModel(_Model):
                 self._usd_notice_token = _begin_interaction(stage)
 
     def _begin_property_edit(self, model_id):
+        self._cancel_pending_property_edit_finish()
         self._ensure_property_edit_interaction()
         self._active_edit_model_counts[model_id] = self._active_edit_model_counts.get(model_id, 0) + 1
         self.supress_usd_events_during_widget_edit = True
@@ -176,7 +214,7 @@ class USDModel(_Model):
             model_id
         )
 
-    def _end_property_edit(self, model_id):
+    def _end_property_edit(self, model_id, defer_final_finish: bool = False):
         if self._is_cancelling_property_edit:
             self._active_edit_model_counts.pop(model_id, None)
             return
@@ -193,9 +231,13 @@ class USDModel(_Model):
             self._active_edit_model_counts.pop(model_id)
         if self._active_edit_model_counts:
             return
+        if defer_final_finish:
+            self._schedule_finish_property_edit_interaction()
+            return
         self._finish_property_edit_interaction()
 
     def cancel_property_edit_interaction(self):
+        self._cancel_pending_property_edit_finish()
         attribute_create_model_id = id(_ATTRIBUTE_CREATE_EDIT_GROUP_KEY)
         self._attribute_create_cancelled_count += self._active_edit_model_counts.get(attribute_create_model_id, 0)
         was_cancelling = self._is_cancelling_property_edit
@@ -232,7 +274,7 @@ class USDModel(_Model):
                     callback()
                 self.__on_item_model_end_edit(model)
         finally:
-            self._end_property_edit(id(model))
+            self._end_property_edit(id(model), defer_final_finish=is_final_edit)
 
     def subscribe_item_model_end_edit(self, function):
         """

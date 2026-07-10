@@ -9,7 +9,7 @@ def Xform "World"
 {
     def Xform "CurveHost"
     {
-        # Curve "opacity:x" with 3 keyframes in PrimvarCurveModel format.
+        # Curve "opacity:x" with 3 keyframes in the property USD curve primvar format.
         #
         # Key 0: time=0.0, value=0.0, LINEAR/LINEAR, broken=false
         # Key 1: time=0.5, value=1.0, SMOOTH/SMOOTH, broken=true

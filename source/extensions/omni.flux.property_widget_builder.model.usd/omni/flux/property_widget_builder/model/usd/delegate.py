@@ -15,21 +15,21 @@
 * limitations under the License.
 """
 
-__all__ = ("BuildLayerTransferMenu", "USDDelegate")
+from __future__ import annotations
 
 import abc
 import dataclasses
 import functools
-from typing import TYPE_CHECKING, Any
 from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Any
 
-import omni.kit.undo
 import omni.ui as ui
 import omni.usd
 from omni.flux.property_widget_builder.delegates.default import CreatorField
 from omni.flux.property_widget_builder.delegates.string_value.default_label import NameField
 from omni.flux.property_widget_builder.widget import Delegate as _Delegate
 from omni.flux.property_widget_builder.widget import FieldBuilder
+from omni.flux.property_widget_builder.widget import Item as _Item
 from omni.flux.property_widget_builder.widget import ItemGroup as _ItemGroup
 from omni.flux.utils.widget.resources import get_icons as _get_icons
 from omni.kit.usd.layers import LayerUtils as _LayerUtils
@@ -37,12 +37,13 @@ from pxr import Sdf, Usd
 
 from .field_builders import ALL_FIELD_BUILDERS
 from .items import USDAttributeItemStub as _USDAttributeItemStub
-from .items import _BaseUSDAttributeItem
+from .items import USDLogicalGroupOutletItem as _USDLogicalGroupOutletItem
+from .logical_row import LogicalRowState as _LogicalRowState
 
 if TYPE_CHECKING:
-    from omni.flux.property_widget_builder.widget import Item as _Item
-
     from .model import USDModel as _USDModel
+
+__all__ = ("BuildLayerTransferMenu", "USDDelegate")
 
 BuildLayerTransferMenu = Callable[[Any, Any, list[Sdf.PropertySpec], set[str], bool], None]
 
@@ -105,11 +106,21 @@ class USDDelegate(_Delegate):
         return default_attr
 
     @property
-    def selection(self) -> list["_Item"]:
+    def selection(self) -> list[_Item]:
+        """Return the currently selected property tree items.
+
+        Returns:
+            Copy of selected items.
+        """
         return list(self._selection)
 
     @selection.setter
-    def selection(self, value: Iterable["_Item"]):
+    def selection(self, value: Iterable[_Item]) -> None:
+        """Update selected rows and refresh hover/selection styling.
+
+        Args:
+            value: Items to mark as selected.
+        """
         self._selection = list(value)
 
         # Reset the selected item look
@@ -125,20 +136,67 @@ class USDDelegate(_Delegate):
                 row.selected = True
                 self._on_item_hovered(True, item_id)
 
-    def reset(self):
+    def reset(self) -> None:
+        """Clear cached row widgets and context menus."""
         super().reset()
         self._context_menu_widgets.clear()
         self._rows.clear()
 
-    def value_model_updated(self, item: "_Item"):
+    @staticmethod
+    def _get_row_attributes(item: _Item) -> list[Usd.Attribute]:
+        """Return attrs owned by this renderable row, excluding visual item groups.
+
+        Args:
+            item: Tree item whose row is being rendered.
+
+        Returns:
+            USD attributes owned by the item, or an empty list for grouping rows.
+        """
+        if isinstance(item, _ItemGroup):
+            return []
+        return item.get_owned_attributes()
+
+    @staticmethod
+    def _get_row_properties(item: _Item) -> list[Usd.Property]:
+        """Return properties owned by this renderable row, excluding visual item groups.
+
+        Args:
+            item: Tree item whose row is being rendered.
+
+        Returns:
+            USD properties owned by the item, or an empty list for grouping rows.
+        """
+        if isinstance(item, _ItemGroup):
+            return []
+        return item.get_owned_properties()
+
+    @staticmethod
+    def _get_row_state(item: _Item) -> _LogicalRowState:
+        """Return mixed/default/override state for a renderable row.
+
+        Args:
+            item: Tree item whose indicators are being updated.
+
+        Returns:
+            Logical row state, or default state for grouping rows.
+        """
+        if isinstance(item, _ItemGroup):
+            return _LogicalRowState()
+        return item.get_row_state()
+
+    def value_model_updated(self, item: _Item) -> None:
         """
         Callback ran whenever an item's value model updates.
+
+        Args:
+            item: Item whose value model changed.
         """
         row = self._rows.get(id(item))
         if row:
-            has_override = any(v.is_overriden for v in item.value_models)
-            is_default = all(v.is_default for v in item.value_models)
-            is_mixed = any(v.is_mixed for v in item.value_models)
+            row_state = self._get_row_state(item)
+            has_override = row_state.is_overriden
+            is_default = row_state.is_default
+            is_mixed = row_state.is_mixed
             for bg_widget in row.override_background_widgets:
                 bg_widget.visible = has_override
 
@@ -157,12 +215,25 @@ class USDDelegate(_Delegate):
         return ALL_FIELD_BUILDERS
 
     def _build_item_widgets(
-        self, model: "_USDModel", item: "_Item", column_id: int, level: int, expanded: bool = False
-    ):
+        self, model: _USDModel, item: _Item, column_id: int, level: int, expanded: bool = False
+    ) -> list[ui.Widget] | None:
+        """Build the widgets for one property row cell.
+
+        Args:
+            model: USD property model backing the tree.
+            item: Item being rendered.
+            column_id: Column index to build.
+            level: Tree depth.
+            expanded: Whether the item is expanded.
+
+        Returns:
+            Built widgets for the cell, or ``None``.
+        """
         widgets = None
-        has_override = any(v.is_overriden for v in item.value_models)
-        is_default = all(v.is_default for v in item.value_models)
-        is_mixed = any(v.is_mixed for v in item.value_models)
+        row_state = self._get_row_state(item)
+        has_override = row_state.is_overriden
+        is_default = row_state.is_default
+        is_mixed = row_state.is_mixed
 
         row = self._rows.get(id(item))
         if row is None:
@@ -283,7 +354,8 @@ class USDDelegate(_Delegate):
                             NameField()(item, right_aligned=self._right_aligned_labels)
                         ui.Spacer()
                     widgets = [outer]
-                elif column_id == 1 and item.value_models:
+                # Logical group outlets render a value-column button but do not own value models.
+                elif column_id == 1 and (item.value_models or isinstance(item, _USDLogicalGroupOutletItem)):
                     builder = self.get_field_builder(item)
                     widgets = self._build_field_widgets(builder, item)
 
@@ -293,11 +365,18 @@ class USDDelegate(_Delegate):
         return widgets
 
     def build_branch(
-        self, model: "_USDModel", item: "_Item", column_id: int = 0, level: int = 0, expanded: bool = False
-    ):
+        self, model: _USDModel, item: _Item, column_id: int = 0, level: int = 0, expanded: bool = False
+    ) -> None:
         """
         Create a branch widget that opens or closes the subtree for item that can have children,
         or the default & override widgets for items that can't.
+
+        Args:
+            model: USD property model backing the tree.
+            item: Item being rendered.
+            column_id: Column index to build.
+            level: Tree depth.
+            expanded: Whether the item is expanded.
         """
         if column_id != 0:
             return
@@ -307,7 +386,7 @@ class USDDelegate(_Delegate):
             row = Row("".join(x.get_value_as_string() for x in item.name_models))
         self._rows[id(item)] = row
 
-        has_override = any(v.is_overriden for v in item.value_models)
+        has_override = self._get_row_state(item).is_overriden
 
         with ui.ZStack(
             mouse_hovered_fn=lambda hovered: self._on_item_hovered(hovered, id(item)),
@@ -325,17 +404,25 @@ class USDDelegate(_Delegate):
                     with ui.Frame(mouse_released_fn=lambda x, y, b, m: self._item_expanded(b, item, not expanded)):
                         super()._build_branch(model, item, column_id, level, expanded)
 
-    def _delete_overrides(self, item, layer=None):
+    def _delete_overrides(self, item: _Item, layer: Sdf.Layer | None = None) -> None:
         """
         Delete overrides on an item.
+
+        Args:
+            item: Row item whose overrides should be removed.
+            layer: Optional layer to target; ``None`` deletes all row overrides.
         """
-        if layer is None:
-            item.delete_all_overrides()
-        else:
-            item.delete_layer_override(layer)
+        item.delete_row_overrides(layer=layer)
         self.value_model_updated(item)
 
-    def _on_item_hovered(self, hovered, item_id, force=False):
+    def _on_item_hovered(self, hovered: bool, item_id: int, force: bool = False) -> None:
+        """Update row background style for hover, selection, and forced refresh.
+
+        Args:
+            hovered: Whether the mouse is currently over the row.
+            item_id: ``id`` of the hovered item.
+            force: Whether to refresh styling even when the row is selected.
+        """
         row = self._rows.get(item_id)
         if row is not None:
             for background_widget in row.override_background_widgets:
@@ -345,35 +432,46 @@ class USDDelegate(_Delegate):
                     style_name = "OverrideBackgroundHovered" if hovered else "OverrideBackground"
                 background_widget.style_type_name_override = style_name
 
-    def _on_reset_item(self, button, item):
-        if button != 0 or all(v.is_default for v in item.value_models):
+    def _on_reset_item(self, button: int, item: _Item) -> None:
+        """Reset a row to its default value on left click.
+
+        Args:
+            button: Mouse button id from omni.ui.
+            item: Row item to reset.
+        """
+        if button != 0:
             return
-        with omni.kit.undo.group():
-            for value_model in item.value_models:
-                value_model.reset_default_value()
 
-    @staticmethod
-    def _get_item_properties(item: _BaseUSDAttributeItem) -> list[Usd.Property]:
-        return item.get_all_properties()
+        if self._get_row_state(item).is_default:
+            return
+        item.reset_row_value()
+        self.value_model_updated(item)
 
-    def _is_ogn_item(self, item: "_Item") -> bool:
-        """Check if the item belongs to an OmniGraph node."""
-        if not isinstance(item, _BaseUSDAttributeItem):
-            return False
-        for prop in self._get_item_properties(item):
-            if not isinstance(prop, Usd.Attribute):
-                continue
-            prim = prop.GetPrim()
+    def _is_ogn_item(self, item: _Item) -> bool:
+        """Check if the item belongs to an OmniGraph node.
+
+        Args:
+            item: Row item whose owned attributes should be inspected.
+
+        Returns:
+            ``True`` when any owned attribute belongs to an ``OmniGraphNode`` prim.
+        """
+        for attribute in self._get_row_attributes(item):
+            prim = attribute.GetPrim()
             if prim.IsValid() and prim.GetTypeName() == "OmniGraphNode":
                 return True
         return False
 
-    def _show_override_menu(self, model, item, button):
-        if (
-            button != 0
-            or not isinstance(item, _BaseUSDAttributeItem)
-            or not any(v.is_overriden for v in item.value_models)
-        ):
+    def _show_override_menu(self, model: _USDModel, item: _Item, button: int) -> None:
+        """Open the override management menu for a row.
+
+        Args:
+            model: USD property model backing the tree.
+            item: Row item whose property stack should be shown.
+            button: Mouse button id from omni.ui.
+        """
+        row_state = self._get_row_state(item)
+        if button != 0 or not row_state.is_overriden:
             return
         # TODO: This is a temporary fix. We need to find a better way to handle this.
         # OGN node properties don't support layer-based override deletion because it will remove the attr type.
@@ -384,14 +482,13 @@ class USDDelegate(_Delegate):
             property_stack = []
             property_stack_keys = set()
             sub_layers = set()
-            # Find all the stack items and sub-layers
-            for value_model in item.value_models:
-                sub_layers.update(
-                    _LayerUtils.get_all_sublayers(
-                        value_model.stage, include_session_layers=True, include_anonymous_layers=False
-                    )
+            stage = omni.usd.get_context(model.context_name).get_stage()
+            if stage is not None:
+                sub_layers = sub_layers.union(
+                    _LayerUtils.get_all_sublayers(stage, include_session_layers=True, include_anonymous_layers=False)
                 )
-            for prop in self._get_item_properties(item):
+            # Find all the stack items and sub-layers
+            for prop in self._get_row_properties(item):
                 if not prop or not prop.IsValid():
                     continue
                 for stack_item in prop.GetPropertyStack(Usd.TimeCode.Default()):

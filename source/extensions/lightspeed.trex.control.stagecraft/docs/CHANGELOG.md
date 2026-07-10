@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+### Fixed
+- Prevent startup Home layout loading from pulling users out of an already-open StageCraft workspace.
+
 ## [1.7.8]
 ### Fixed
 - Reapply preserved viewport light rigs after capture swaps instead of no-oping on stale lighting state.
