@@ -18,11 +18,12 @@
 import contextlib
 import shutil
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import omni.kit.app
 import omni.kit.commands
 import omni.usd
+from lightspeed.common import constants
 from lightspeed.event.capture_persp_to_persp.core import EventCapturePerspToPerspCore as _EventCapturePerspToPerspCore
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
@@ -68,14 +69,20 @@ class TestCore(AsyncTestCase):
         # await wait_stage_loading()
         pass
 
-    def __get_camera_translate_from_stage(self, context) -> tuple[float, float, float] | None:
+    def __get_camera_translate_from_stage(
+        self, context, camera_path: str = "/OmniverseKit_Persp"
+    ) -> tuple[float, ...] | None:
         stage = context.get_stage()
-        camera_path = "/OmniverseKit_Persp"
         camera_prim = stage.GetPrimAtPath(camera_path)
         if not camera_prim.IsValid():
             return None
         xf_tr = camera_prim.GetProperty("xformOp:translate")
         return tuple(xf_tr.Get())
+
+    def __get_game_camera_translate_from_stage(self, context) -> tuple[float, ...] | None:
+        if context.get_stage().GetPrimAtPath(constants.CAPTURED_CAMERA).IsValid():
+            return self.__get_camera_translate_from_stage(context, constants.CAPTURED_CAMERA)
+        return self.__get_camera_translate_from_stage(context, constants.ROOTNODE_CAMERA)
 
     def __set_camera_translate_from_stage(self, value: tuple[float, float, float]):
         camera_path = "/OmniverseKit_Persp"
@@ -90,7 +97,7 @@ class TestCore(AsyncTestCase):
         root_layer = context.get_stage().GetRootLayer()
         return root_layer.customLayerData.get("cameraSettings").get("Perspective").get("position")
 
-    async def test_open_stage_with_camera_in_metadata(self):
+    async def test_open_stage_with_camera_in_metadata_uses_capture_camera(self):
         context = omni.usd.get_context()
         async with make_temp_directory(context) as temp_dir:
             shutil.copytree(_get_test_data("usd/project_example"), f"{temp_dir.name}/project_example")
@@ -99,11 +106,10 @@ class TestCore(AsyncTestCase):
             # flaky test. Wait 100 frames to test
             i = 0
             while True:
-                # Check the camera value. Should be the same as metadata
+                # Check the camera value. The game camera should win over stored perspective metadata.
                 translate_values = self.__get_camera_translate_from_stage(context)
-
-                metadata_value = self.__get_camera_translate_from_stage_custom_data(context)
-                if translate_values == metadata_value:
+                game_camera_value = self.__get_game_camera_translate_from_stage(context)
+                if translate_values == game_camera_value:
                     break
                 await omni.kit.app.get_app().next_update_async()
                 i += 1
@@ -111,10 +117,11 @@ class TestCore(AsyncTestCase):
                     raise ValueError("Camera is in the wrong position")
             # now wait 100 frames and test again that the camera didn't move
             translate_values = self.__get_camera_translate_from_stage(context)
-            metadata_value = self.__get_camera_translate_from_stage_custom_data(context)
+            game_camera_value = self.__get_game_camera_translate_from_stage(context)
             for _ in range(100):
                 await omni.kit.app.get_app().next_update_async()
-            self.assertEqual(translate_values, metadata_value)  # if we are here, it should fail
+            self.assertEqual(translate_values, game_camera_value)
+            self.assertNotEqual(translate_values, self.__get_camera_translate_from_stage_custom_data(context))
 
     async def test_open_stage_with_no_camera_in_metadata(self):
         context = omni.usd.get_context()
@@ -191,54 +198,174 @@ class TestCore(AsyncTestCase):
             # camera should be moved
             self.assertNotEqual(self.__get_camera_translate_from_stage(context), random_value)
 
-    async def test_set_perspective_camera_disables_undo_for_center_of_interest_update(self):
+    async def test_set_perspective_camera_does_not_overwrite_center_of_interest_after_copy(self):
         # Arrange
         core = _EventCapturePerspToPerspCore()
-        camera_prim = MagicMock()
-        camera_prim.IsValid.return_value = True
-        camera_prim.GetPath.return_value = Sdf.Path("/OmniverseKit_Persp")
-        camera_prim.GetAttributes.return_value = []
-        camera_prim.GetAttribute.return_value.Get.return_value = Gf.Vec3d(3.0, 4.0, 0.0)
-
-        captured_camera_prim = MagicMock()
-        captured_camera_prim.IsValid.return_value = True
-        captured_camera_prim.GetPath.return_value = Sdf.Path("/CapturedCamera")
-
         stage = MagicMock()
-        stage.GetSessionLayer.return_value = MagicMock()
-        stage.GetPrimAtPath.side_effect = lambda path: camera_prim if path == core._PERSP_PATH else captured_camera_prim
-
-        attr_position = MagicMock()
-        attr_position.GetName.return_value = "xformOp:translate"
+        invalid_prim = MagicMock()
+        invalid_prim.IsValid.return_value = False
+        stage.GetPrimAtPath.return_value = invalid_prim
 
         # Act
         with (
             patch.object(core, "_context", MagicMock(get_stage=MagicMock(return_value=stage))),
             patch.object(core, "_layer_manager", MagicMock(get_layer_of_type=MagicMock(return_value=MagicMock()))),
+            patch("lightspeed.event.capture_persp_to_persp.core._clear_game_camera_overrides") as mock_clear,
             patch(
-                "lightspeed.event.capture_persp_to_persp.core.Usd.EditContext", return_value=contextlib.nullcontext()
-            ),
-            patch("lightspeed.event.capture_persp_to_persp.core.Sdf.CopySpec") as mock_copy_spec,
-            patch("lightspeed.event.capture_persp_to_persp.core.omni.usd.TransformHelper") as mock_transform_helper,
+                "lightspeed.event.capture_persp_to_persp.core._copy_capture_camera_to_perspective",
+                return_value=Sdf.Path("/CapturedCamera"),
+            ) as mock_copy,
             patch(
                 "lightspeed.event.capture_persp_to_persp.core.omni.kit.undo.disabled",
                 return_value=contextlib.nullcontext(),
             ) as mock_disabled,
             patch("lightspeed.event.capture_persp_to_persp.core.omni.kit.commands.execute") as mock_execute,
         ):
-            mock_transform_helper.return_value.get_transform_attr.return_value = (attr_position, None, None, None)
             core._set_perspective_camera()
 
         # Assert
-        mock_copy_spec.assert_called_once()
+        mock_clear.assert_called_once()
+        mock_copy.assert_called_once()
         mock_disabled.assert_called_once_with()
-        mock_execute.assert_called_once_with(
-            "ChangePropertyCommand",
-            prop_path="/OmniverseKit_Persp.omni:kit:centerOfInterest",
-            value=Gf.Vec3d(0, 0, -5.0),
-            prev=None,
-            type_to_create_if_not_exist=Sdf.ValueTypeNames.Vector3d,
-            is_custom=True,
-            usd_context_name=_CONTEXT_NAME,
-            variability=Sdf.VariabilityUniform,
+        mock_execute.assert_not_called()
+
+    async def test_frame_orthographic_cameras_skips_unconfigured_inspection_cameras(self):
+        # Arrange
+        core = _EventCapturePerspToPerspCore()
+        valid_prim = MagicMock()
+        valid_prim.IsValid.return_value = True
+        invalid_prim = MagicMock()
+        invalid_prim.IsValid.return_value = False
+
+        prims = {
+            "/OmniverseKit_Front": valid_prim,
+            "/OmniverseKit_Top": valid_prim,
+            "/OmniverseKit_Right": valid_prim,
+            constants.ROOTNODE_MESHES: valid_prim,
+            constants.ROOTNODE_INSTANCES: valid_prim,
+        }
+
+        stage = MagicMock()
+        stage.GetPrimAtPath.side_effect = lambda path: prims.get(str(path), invalid_prim)
+
+        # Act
+        with (
+            patch(
+                "lightspeed.event.capture_persp_to_persp.core._configure_pseudo_orthographic_perspective_cameras",
+                return_value=[Sdf.Path("/OmniverseKit_Front"), Sdf.Path("/OmniverseKit_Right")],
+            ) as mock_configure_cameras,
+            patch("lightspeed.event.capture_persp_to_persp.core.omni.kit.commands.execute") as mock_execute,
+            patch("lightspeed.event.capture_persp_to_persp.core.carb.log_warn") as mock_log_warn,
+        ):
+            core._frame_orthographic_cameras(stage)
+
+        # Assert
+        capture_geometry_paths = [constants.ROOTNODE_MESHES, constants.ROOTNODE_INSTANCES]
+        mock_configure_cameras.assert_called_once_with(stage, capture_geometry_paths)
+        mock_execute.assert_has_calls(
+            [
+                call(
+                    "FramePrimsCommand",
+                    prim_to_move="/OmniverseKit_Front",
+                    prims_to_frame=capture_geometry_paths,
+                    time_code=Usd.TimeCode.Default(),
+                    usd_context_name=_CONTEXT_NAME,
+                    aspect_ratio=1.0,
+                    zoom=0.6,
+                ),
+                call(
+                    "FramePrimsCommand",
+                    prim_to_move="/OmniverseKit_Right",
+                    prims_to_frame=capture_geometry_paths,
+                    time_code=Usd.TimeCode.Default(),
+                    usd_context_name=_CONTEXT_NAME,
+                    aspect_ratio=1.0,
+                    zoom=0.6,
+                ),
+            ],
+            any_order=True,
+        )
+        self.assertEqual(mock_execute.call_count, 2)
+        mock_log_warn.assert_called_once_with(
+            "Orthographic camera /OmniverseKit_Top was not configured, won't frame it to capture geometry"
+        )
+
+    async def test_set_perspective_camera_frames_orthographic_cameras_to_capture_geometry(self):
+        # Arrange
+        core = _EventCapturePerspToPerspCore()
+        valid_prim = MagicMock()
+        valid_prim.IsValid.return_value = True
+        invalid_prim = MagicMock()
+        invalid_prim.IsValid.return_value = False
+
+        prims = {
+            "/OmniverseKit_Front": valid_prim,
+            "/OmniverseKit_Top": valid_prim,
+            "/OmniverseKit_Right": valid_prim,
+            constants.ROOTNODE_MESHES: valid_prim,
+            constants.ROOTNODE_INSTANCES: valid_prim,
+        }
+
+        stage = MagicMock()
+        stage.GetPrimAtPath.side_effect = lambda path: prims.get(str(path), invalid_prim)
+
+        # Act
+        with (
+            patch.object(core, "_context", MagicMock(get_stage=MagicMock(return_value=stage))),
+            patch.object(core, "_layer_manager", MagicMock(get_layer_of_type=MagicMock(return_value=MagicMock()))),
+            patch("lightspeed.event.capture_persp_to_persp.core._clear_game_camera_overrides"),
+            patch(
+                "lightspeed.event.capture_persp_to_persp.core._copy_capture_camera_to_perspective",
+                return_value=Sdf.Path("/CapturedCamera"),
+            ),
+            patch(
+                "lightspeed.event.capture_persp_to_persp.core.omni.kit.undo.disabled",
+                return_value=contextlib.nullcontext(),
+            ),
+            patch(
+                "lightspeed.event.capture_persp_to_persp.core._configure_pseudo_orthographic_perspective_cameras",
+                return_value=[
+                    Sdf.Path("/OmniverseKit_Front"),
+                    Sdf.Path("/OmniverseKit_Top"),
+                    Sdf.Path("/OmniverseKit_Right"),
+                ],
+            ) as mock_configure_cameras,
+            patch("lightspeed.event.capture_persp_to_persp.core.omni.kit.commands.execute") as mock_execute,
+        ):
+            core._set_perspective_camera()
+
+        # Assert
+        capture_geometry_paths = [constants.ROOTNODE_MESHES, constants.ROOTNODE_INSTANCES]
+        mock_configure_cameras.assert_called_once_with(stage, capture_geometry_paths)
+        mock_execute.assert_has_calls(
+            [
+                call(
+                    "FramePrimsCommand",
+                    prim_to_move="/OmniverseKit_Front",
+                    prims_to_frame=capture_geometry_paths,
+                    time_code=Usd.TimeCode.Default(),
+                    usd_context_name=_CONTEXT_NAME,
+                    aspect_ratio=1.0,
+                    zoom=0.6,
+                ),
+                call(
+                    "FramePrimsCommand",
+                    prim_to_move="/OmniverseKit_Top",
+                    prims_to_frame=capture_geometry_paths,
+                    time_code=Usd.TimeCode.Default(),
+                    usd_context_name=_CONTEXT_NAME,
+                    aspect_ratio=1.0,
+                    zoom=0.6,
+                ),
+                call(
+                    "FramePrimsCommand",
+                    prim_to_move="/OmniverseKit_Right",
+                    prims_to_frame=capture_geometry_paths,
+                    time_code=Usd.TimeCode.Default(),
+                    usd_context_name=_CONTEXT_NAME,
+                    aspect_ratio=1.0,
+                    zoom=0.6,
+                ),
+            ],
+            any_order=True,
         )

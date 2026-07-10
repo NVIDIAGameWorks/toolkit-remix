@@ -24,9 +24,11 @@ from .test_prim_utils import (
     TestIsGhostPrim,
     TestTransferableSpecs,
 )
+from .test_camera import TestCameraAuthority
 from .test_user_utils import TestUserUtils
 
 __all__ = [
+    "TestCameraAuthority",
     "TestFindPrimWithReferences",
     "TestGetPrototype",
     "TestGetReferenceFilePaths",

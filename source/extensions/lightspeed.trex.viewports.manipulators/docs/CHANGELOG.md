@@ -1,6 +1,12 @@
 ﻿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.0]
+### Changed
+- Disabled tumble and look gestures for pseudo-orthographic perspective inspection cameras so navigation pans and zooms smoothly
+- Redirected camera manipulator gestures from the capture game camera to the perspective camera before movement, canceling safely if the redirect fails
+- Keep pseudo-orthographic perspective inspection cameras locked to their Top, Front, or Right axis during viewport gestures
+
 ## [1.6.6]
 ### Fixed
 - Mark viewport prim and camera interactions as active so dependent property panels can defer refresh until release

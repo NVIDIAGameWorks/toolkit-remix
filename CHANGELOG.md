@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed project-open repair for invalid `deps` directories by prompting before non-empty rebuilds from Stagecraft, the Home recent-projects page, and the Home Open file-picker flow; empty `deps` directories are rebuilt silently, the warning calls out destructive deletion without showing the full path, includes Reveal in Explorer, and defers confirmed wizard repair by one frame.
 - REMIX-5588: Fixed Assign Texture Sets so emissive textures are preserved while emission is disabled and appear when emissivity is enabled.
 - REMIX-5638: Fixed viewport light rigs no-oping after capture swaps by clearing stale lighting state before restoring the preserved rig.
+- REMIX-4533: Fixed capture camera authority so capture loads clear stale game-camera overrides, navigation redirects edits to a perspective camera with center of interest, orthographic cameras frame capture meshes and instances, and pseudo-orthographic inspection cameras copy perspective render attributes, keep close clipping, and disable tumble/look for smooth pan/zoom navigation
 
 ## [1.5.2-0]
 

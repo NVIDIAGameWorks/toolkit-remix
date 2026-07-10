@@ -114,11 +114,6 @@ class Setup:
             layer_path = capture_layer.realPath or capture_layer.identifier
             self.__directory = omni.client.normalize_url(layer_path).rsplit("/", 1)[0]
 
-            root_layer = self._context.get_stage().GetRootLayer()
-            if not root_layer:
-                return
-            if root_layer.customLayerData.get("cameraSettings", {}).get("Perspective", {}).get("position", {}):
-                return
             _get_event_manager_instance().call_global_custom_event(
                 constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value
             )

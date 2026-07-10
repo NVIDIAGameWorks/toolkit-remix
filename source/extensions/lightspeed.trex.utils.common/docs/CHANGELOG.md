@@ -1,6 +1,17 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.0]
+### Added
+- Added session-layer pseudo-orthographic perspective camera helpers for Remix inspection views
+- Added shared helpers for capture game-camera authority, perspective camera copying, and navigation redirection
+
+### Fixed
+- Blocked camera-mutating actions with a warning when capture game-camera redirection fails
+- Copied perspective camera render attributes and close clipping to pseudo-orthographic inspection cameras
+- Copied composed game-camera schema values and world transforms when redirecting navigation to the perspective camera
+- Used authored transform operation values when reading camera translation
+
 ## [2.4.0]
 ### Added
 - Added transferable USD spec filtering utilities.

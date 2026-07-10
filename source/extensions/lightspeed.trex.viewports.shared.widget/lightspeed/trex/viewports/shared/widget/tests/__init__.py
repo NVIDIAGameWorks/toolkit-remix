@@ -16,5 +16,7 @@
 """
 
 from .e2e.test_widget import TestSharedViewportWidget
+from .unit.test_delegate import TestViewportEventDelegateMouseWheel
+from .unit.test_setup_ui import TestSetupUIGameCameraBoundary
 
-__all__ = ["TestSharedViewportWidget"]
+__all__ = ["TestSetupUIGameCameraBoundary", "TestSharedViewportWidget", "TestViewportEventDelegateMouseWheel"]

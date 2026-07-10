@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Changed
+- Always emit capture-loaded events for existing capture layers so capture cameras remain the camera source of truth
+
 ## [1.3.13]
 ### Changed
 - Applied new lint rules

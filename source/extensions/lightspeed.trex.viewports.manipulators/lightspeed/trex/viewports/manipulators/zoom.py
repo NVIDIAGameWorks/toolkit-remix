@@ -17,6 +17,7 @@
 
 import math
 
+from lightspeed.trex.utils.common.camera import ensure_editable_camera_for_navigation as _ensure_editable_camera
 from pxr import Gf
 
 from .camera_default import _ViewportCameraManipulator
@@ -27,7 +28,11 @@ __all__ = ["zoom_operation"]
 class _ZoomEvents:
     def __init__(self, viewport_api):
         self.__mouse = [0, 0]
-        self.__manipulator = _ViewportCameraManipulator(viewport_api, bindings={"ZoomGesture": "LeftButton"})
+        self.__manipulator = _ViewportCameraManipulator(
+            viewport_api,
+            bindings={"ZoomGesture": "LeftButton"},
+            ensure_editable_camera=False,
+        )
         self.__manipulator.on_build()
         # Upstream's mouse-wheel zoom helper uses these private members; there is no public API to get the
         # synthetic zoom gesture or disable its flight-mode setup.
@@ -60,6 +65,8 @@ def zoom_operation(x, y, viewport_api):
 
     if not viewport_api:
         return None
+    if not _ensure_editable_camera(viewport_api, "Mouse-wheel zoom"):
+        return False
     zoom_events = _ZoomEvents(viewport_api)
     try:
         zoom_events.update(x, y)

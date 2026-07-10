@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 
 import carb
 import carb.settings
@@ -30,14 +29,23 @@ from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
+from lightspeed.trex.utils.common.camera import clear_game_camera_overrides as _clear_game_camera_overrides
+from lightspeed.trex.utils.common.camera import PSEUDO_ORTHOGRAPHIC_CAMERA_PATHS as _ORTHOGRAPHIC_CAMERA_PATHS
+from lightspeed.trex.utils.common.camera import (
+    configure_pseudo_orthographic_perspective_cameras as _configure_pseudo_orthographic_perspective_cameras,
+)
+from lightspeed.trex.utils.common.camera import (
+    copy_capture_camera_to_perspective as _copy_capture_camera_to_perspective,
+)
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
-from pxr import Gf, Sdf, Usd
+from pxr import Usd
 
 _CONTEXT = "/exts/lightspeed.event.capture_persp_to_persp/context"
 
 
 class EventCapturePerspToPerspCore(_ILSSEvent):
-    _PERSP_PATH = "/OmniverseKit_Persp"
+    _CAPTURE_GEOMETRY_PATHS = (constants.ROOTNODE_MESHES, constants.ROOTNODE_INSTANCES)
+    _ORTHOGRAPHIC_FRAME_ZOOM = 0.6
 
     def __init__(self):
         super().__init__()
@@ -51,6 +59,42 @@ class EventCapturePerspToPerspCore(_ILSSEvent):
     def name(self) -> str:
         """Name of the event"""
         return "CapturePerspToPersp"
+
+    def _get_valid_capture_geometry_paths(self, stage) -> list[str]:
+        geometry_paths = []
+        for prim_path in self._CAPTURE_GEOMETRY_PATHS:
+            prim = stage.GetPrimAtPath(prim_path)
+            if prim.IsValid():
+                geometry_paths.append(prim_path)
+        return geometry_paths
+
+    def _frame_orthographic_cameras(self, stage):
+        geometry_paths = self._get_valid_capture_geometry_paths(stage)
+        if not geometry_paths:
+            carb.log_warn("Can't find capture geometry to frame orthographic cameras")
+            return
+
+        configured_camera_paths = set(_configure_pseudo_orthographic_perspective_cameras(stage, geometry_paths))
+        for camera_path in _ORTHOGRAPHIC_CAMERA_PATHS:
+            if camera_path not in configured_camera_paths:
+                carb.log_warn(
+                    f"Orthographic camera {camera_path} was not configured, won't frame it to capture geometry"
+                )
+                continue
+            camera_prim = stage.GetPrimAtPath(camera_path)
+            camera_path_string = str(camera_path)
+            if not camera_prim.IsValid():
+                carb.log_warn(f"Orthographic camera {camera_path} is invalid, won't frame it to capture geometry")
+                continue
+            omni.kit.commands.execute(
+                "FramePrimsCommand",
+                prim_to_move=camera_path_string,
+                prims_to_frame=geometry_paths,
+                time_code=Usd.TimeCode.Default(),
+                usd_context_name=self._context_name,
+                aspect_ratio=1.0,
+                zoom=self._ORTHOGRAPHIC_FRAME_ZOOM,
+            )
 
     def _install(self):
         """Function that will create the behavior"""
@@ -69,51 +113,18 @@ class EventCapturePerspToPerspCore(_ILSSEvent):
     def _set_perspective_camera(self):
         """Setup the session camera to match the capture camera"""
         stage = self._context.get_stage()
+        if stage is None:
+            return
         capture_layer = self._layer_manager.get_layer_of_type(_LayerType.capture)
         if capture_layer is None:
             carb.log_warn("Can't find a capture layer, won't be setting up the default camera to match game")
             return
-        session_layer = stage.GetSessionLayer()
-        with contextlib.suppress(Exception):
-            with Usd.EditContext(stage, session_layer):
-                carb.log_info("Setting up perspective camera from capture")
-                camera_prim = stage.GetPrimAtPath(self._PERSP_PATH)
-                if not camera_prim.IsValid():
-                    return
-                captured_camera_prim = stage.GetPrimAtPath(constants.CAPTURED_CAMERA)
-                if not captured_camera_prim.IsValid():  # support legacy camera location
-                    captured_camera_prim = stage.GetPrimAtPath(constants.ROOTNODE_CAMERA)
-                Sdf.CopySpec(capture_layer, captured_camera_prim.GetPath(), session_layer, self._PERSP_PATH)
 
-                attr_position, _attr_rotation, _attr_scale, _attr_order = omni.usd.TransformHelper().get_transform_attr(
-                    camera_prim.GetAttributes()
-                )
-                if attr_position:
-                    if attr_position.GetName() == "xformOp:translate":
-                        xf_tr = camera_prim.GetAttribute("xformOp:translate")
-                        translate: Gf.Vec3d = xf_tr.Get()
-                    elif attr_position.GetName() == "xformOp:transform":
-                        xf_tr = camera_prim.GetAttribute("xformOp:transform")
-                        value: Gf.Matrix4d = xf_tr.Get()
-                        if isinstance(value, Gf.Matrix4d):
-                            matrix = value
-                        else:
-                            matrix = Gf.Matrix4d(*value)
-                        translate = matrix.ExtractTranslation()
-
-                zlen = Gf.Vec3d(translate[0], translate[1], translate[2]).GetLength()
-
-                with omni.kit.undo.disabled():
-                    omni.kit.commands.execute(
-                        "ChangePropertyCommand",
-                        prop_path=str(camera_prim.GetPath().AppendProperty("omni:kit:centerOfInterest")),
-                        value=Gf.Vec3d(0, 0, -zlen),
-                        prev=None,
-                        type_to_create_if_not_exist=Sdf.ValueTypeNames.Vector3d,
-                        is_custom=True,
-                        usd_context_name=self._context_name,
-                        variability=Sdf.VariabilityUniform,
-                    )
+        carb.log_info("Setting up perspective camera from capture")
+        _clear_game_camera_overrides(stage, capture_layer)
+        _copy_capture_camera_to_perspective(stage, capture_layer)
+        with omni.kit.undo.disabled():
+            self._frame_orthographic_cameras(stage)
 
     @omni.usd.handle_exception
     async def _deferred_set_perspective_camera(self):
