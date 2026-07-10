@@ -9,6 +9,14 @@ You can show custom names for attributes. For example here, `translateY` is just
 
 There is a listener that will update the widget properties in real time.
 
+## Row-Owned Property State
+
+USD property rows can represent one authored USD attribute or a logical group of companion attributes. The delegate asks each row for owned value models, owned attributes, row state, reset, and override deletion.
+
+- Normal scalar rows use their own value models and USD attributes.
+- Grouped rows, such as particle gradients, use suffix-based logical group definitions so `:times` and `:values` are handled as one row.
+- Logical group outlets, such as particle curves, keep their display model inert but report the backing curve primvars through `get_owned_attributes()`.
+
 ## Usage
 
 ```python

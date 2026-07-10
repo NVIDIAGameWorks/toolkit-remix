@@ -17,16 +17,18 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import omni.kit.commands
 import omni.kit.test
 import omni.kit.ui_test as ui_test
 import omni.kit.undo
 import omni.usd
 from omni import ui
-from omni.flux.property_widget_builder.model.usd.field_builders.gradient import (
-    UsdColorGradientWidget,
-    _snapshot_gradient,
-)
+from omni.flux.property_widget_builder.model.usd import USDAttributeItem
+from omni.flux.property_widget_builder.model.usd.field_builders.gradient import _claim_gradients
+from omni.flux.property_widget_builder.model.usd.field_builders.gradient import UsdColorGradientWidget
+from omni.flux.property_widget_builder.model.usd.grouped_keys_primvar import PropertyGroupedKeysModel
 from omni.flux.utils.common.interactive_usd_notices import register_objects_changed_listener as _register_listener
 from omni.kit.ui_test import wait_n_updates as _wait
 from pxr import Gf, Sdf, Tf, Usd, Vt
@@ -38,13 +40,36 @@ _NEW_TIMES = Vt.DoubleArray([0.0, 0.5, 1.0])
 _NEW_VALUES = Vt.Vec4fArray([Gf.Vec4f(0, 1, 0, 1), Gf.Vec4f(1, 1, 0, 1), Gf.Vec4f(0, 0, 1, 1)])
 
 
+def _attr_path(prim_path: str, name: str) -> Sdf.Path:
+    return Sdf.Path(f"{prim_path}.{name}")
+
+
+def _make_gradient_item(context_name: str, prim_paths: list[str], base_name: str) -> USDAttributeItem:
+    times_item = USDAttributeItem(
+        context_name,
+        [_attr_path(path, f"{base_name}:times") for path in prim_paths],
+        value_type_name=Sdf.ValueTypeNames.DoubleArray,
+    )
+    values_item = USDAttributeItem(
+        context_name,
+        [_attr_path(path, f"{base_name}:values") for path in prim_paths],
+        value_type_name=Sdf.ValueTypeNames.Color4fArray,
+    )
+    _claim_gradients([times_item, values_item])
+    return values_item
+
+
+def _make_gradient_model(context_name: str, prim_paths: list[str], base_name: str) -> PropertyGroupedKeysModel:
+    return PropertyGroupedKeysModel.from_item(_make_gradient_item(context_name, prim_paths, base_name))
+
+
 # ============================================================================
-# Unit tests: SetGradientPrimvarsCommand
+# Unit tests: SetDataPrimvarsCommand
 # ============================================================================
 
 
-class TestSetGradientPrimvarsCommand(omni.kit.test.AsyncTestCase):
-    """Unit tests for the SetGradientPrimvars Kit command (do/undo/redo)."""
+class TestSetDataPrimvarsCommand(omni.kit.test.AsyncTestCase):
+    """Unit tests for the SetDataPrimvars Kit command (do/undo/redo)."""
 
     async def setUp(self):
         self._context = omni.usd.get_context()
@@ -56,37 +81,60 @@ class TestSetGradientPrimvarsCommand(omni.kit.test.AsyncTestCase):
         prim.CreateAttribute("primvars:test:times", Sdf.ValueTypeNames.DoubleArray).Set(_INITIAL_TIMES)
         prim.CreateAttribute("primvars:test:values", Sdf.ValueTypeNames.Color4fArray).Set(_INITIAL_VALUES)
 
+        self._other_prim_path = "/World/OtherGradient"
+        other_prim = self._stage.DefinePrim(self._other_prim_path, "Xform")
+        other_prim.CreateAttribute("primvars:test:times", Sdf.ValueTypeNames.DoubleArray).Set(
+            Vt.DoubleArray([0.0, 0.25, 1.0])
+        )
+        other_prim.CreateAttribute("primvars:test:values", Sdf.ValueTypeNames.Color4fArray).Set(
+            Vt.Vec4fArray(
+                [
+                    Gf.Vec4f(0.2, 0.2, 0.2, 1),
+                    Gf.Vec4f(0.4, 0.4, 0.4, 1),
+                    Gf.Vec4f(0.6, 0.6, 0.6, 1),
+                ]
+            )
+        )
+
         self._base_name = "primvars:test"
 
     async def tearDown(self):
         await self._context.close_stage_async()
 
-    def _read_times(self) -> list[float]:
-        prim = self._stage.GetPrimAtPath(self._prim_path)
-        return list(prim.GetAttribute(f"{self._base_name}:times").Get())
-
-    def _read_values(self) -> list[tuple[float, ...]]:
-        prim = self._stage.GetPrimAtPath(self._prim_path)
-        return [tuple(float(c) for c in v) for v in prim.GetAttribute(f"{self._base_name}:values").Get()]
+    def _read_gradient_payload(self, prim_path: str | None = None) -> tuple[list[float], list[tuple[float, ...]]]:
+        prim_path = prim_path or self._prim_path
+        prim = self._stage.GetPrimAtPath(prim_path)
+        times = list(prim.GetAttribute(f"{self._base_name}:times").Get())
+        values = [tuple(float(c) for c in v) for v in prim.GetAttribute(f"{self._base_name}:values").Get()]
+        return times, values
 
     def _execute(self, times=None, values=None, old_values=None):
         kwargs = {
-            "prim_path": self._prim_path,
-            "base_name": self._base_name,
-            "times": times if times is not None else _NEW_TIMES,
-            "values": values if values is not None else _NEW_VALUES,
+            "prim_paths": [self._prim_path],
+            "group_id": self._base_name,
+            "payload": {
+                "times": times if times is not None else _NEW_TIMES,
+                "values": values if values is not None else _NEW_VALUES,
+            },
             "usd_context_name": "",
         }
         if old_values is not None:
             kwargs["old_values"] = old_values
-        omni.kit.commands.execute("SetGradientPrimvars", **kwargs)
+        omni.kit.commands.execute("SetDataPrimvars", **kwargs)
+
+    def _snapshot_gradient(self, prim_path: str | None = None) -> dict:
+        prim_path = prim_path or self._prim_path
+        prim = self._stage.GetPrimAtPath(prim_path)
+        return {
+            "times": prim.GetAttribute(f"{self._base_name}:times").Get(),
+            "values": prim.GetAttribute(f"{self._base_name}:values").Get(),
+        }
 
     async def test_do_writes_correct_values(self):
         """Executing the command writes new times and values to USD."""
         self._execute()
 
-        times = self._read_times()
-        values = self._read_values()
+        times, values = self._read_gradient_payload()
         self.assertEqual(times, [0.0, 0.5, 1.0])
         self.assertEqual(len(values), 3)
         self.assertAlmostEqual(values[0][1], 1.0, places=5)
@@ -97,8 +145,7 @@ class TestSetGradientPrimvarsCommand(omni.kit.test.AsyncTestCase):
         self._execute()
         omni.kit.undo.undo()
 
-        times = self._read_times()
-        values = self._read_values()
+        times, values = self._read_gradient_payload()
         self.assertEqual(times, [0.0, 1.0])
         self.assertEqual(len(values), 2)
         self.assertAlmostEqual(values[0][0], 1.0, places=5)
@@ -110,14 +157,13 @@ class TestSetGradientPrimvarsCommand(omni.kit.test.AsyncTestCase):
         omni.kit.undo.undo()
         omni.kit.undo.redo()
 
-        times = self._read_times()
-        values = self._read_values()
+        times, values = self._read_gradient_payload()
         self.assertEqual(times, [0.0, 0.5, 1.0])
         self.assertEqual(len(values), 3)
 
     async def test_snapshot_captures_current_state(self):
-        """_snapshot_gradient returns the current times and values from USD."""
-        snapshot = _snapshot_gradient("", self._prim_path, self._base_name)
+        """The grouped snapshot helper returns the current times and values from USD."""
+        snapshot = self._snapshot_gradient()
 
         self.assertIn("times", snapshot)
         self.assertIn("values", snapshot)
@@ -128,7 +174,7 @@ class TestSetGradientPrimvarsCommand(omni.kit.test.AsyncTestCase):
 
     async def test_precaptured_old_values_used_for_undo(self):
         """When old_values is pre-captured (drag pattern), undo restores to that snapshot."""
-        drag_snapshot = _snapshot_gradient("", self._prim_path, self._base_name)
+        drag_snapshot = self._snapshot_gradient()
 
         # Simulate intermediate direct writes during drag
         prim = self._stage.GetPrimAtPath(self._prim_path)
@@ -140,11 +186,10 @@ class TestSetGradientPrimvarsCommand(omni.kit.test.AsyncTestCase):
         final_times = Vt.DoubleArray([0.0, 0.3, 1.0])
         final_values = Vt.Vec4fArray([Gf.Vec4f(0.5, 0.5, 0, 1), Gf.Vec4f(1, 0, 1, 1), Gf.Vec4f(0, 1, 1, 1)])
 
-        self._execute(times=final_times, values=final_values, old_values=drag_snapshot)
+        self._execute(times=final_times, values=final_values, old_values={self._prim_path: drag_snapshot})
         omni.kit.undo.undo()
 
-        times = self._read_times()
-        values = self._read_values()
+        times, values = self._read_gradient_payload()
         self.assertEqual(times, [0.0, 1.0])
         self.assertEqual(len(values), 2)
         self.assertAlmostEqual(values[0][0], 1.0, places=5)
@@ -164,6 +209,87 @@ class TestSetGradientPrimvarsCommand(omni.kit.test.AsyncTestCase):
 
         self.assertGreater(len(notices_received), 0, "Tf.Notice should fire on undo")
         del listener
+
+    async def test_multi_target_command_undo_restores_each_target_payload(self):
+        """Undo restores each selected prim to its own pre-edit gradient payload."""
+        first_before = self._read_gradient_payload(self._prim_path)
+        second_before = self._read_gradient_payload(self._other_prim_path)
+
+        omni.kit.commands.execute(
+            "SetDataPrimvars",
+            prim_paths=[self._prim_path, self._other_prim_path],
+            group_id=self._base_name,
+            payload={"times": _NEW_TIMES, "values": _NEW_VALUES},
+            usd_context_name="",
+        )
+
+        self.assertEqual(self._read_gradient_payload(self._prim_path)[0], [0.0, 0.5, 1.0])
+        self.assertEqual(self._read_gradient_payload(self._other_prim_path)[0], [0.0, 0.5, 1.0])
+
+        omni.kit.undo.undo()
+
+        self.assertEqual(self._read_gradient_payload(self._prim_path), first_before)
+        self.assertEqual(self._read_gradient_payload(self._other_prim_path), second_before)
+
+    async def test_multi_target_command_undo_skips_deleted_targets(self):
+        """Undo restores surviving targets when another edited gradient target was deleted."""
+        first_before = self._read_gradient_payload(self._prim_path)
+
+        omni.kit.commands.execute(
+            "SetDataPrimvars",
+            prim_paths=[self._prim_path, self._other_prim_path],
+            group_id=self._base_name,
+            payload={"times": _NEW_TIMES, "values": _NEW_VALUES},
+            usd_context_name="",
+        )
+        self._stage.RemovePrim(self._other_prim_path)
+
+        self.assertFalse(self._stage.GetPrimAtPath(self._other_prim_path).IsValid())
+
+        omni.kit.undo.undo()
+
+        self.assertEqual(self._read_gradient_payload(self._prim_path), first_before)
+        self.assertFalse(self._stage.GetPrimAtPath(self._other_prim_path).IsValid())
+
+    async def test_set_gradient_undo_restores_each_target_payload(self):
+        """Setting a grouped payload is undoable and preserves per-target originals."""
+        first_before = self._read_gradient_payload(self._prim_path)
+        second_before = self._read_gradient_payload(self._other_prim_path)
+
+        omni.kit.commands.execute(
+            "SetDataPrimvars",
+            prim_paths=[self._prim_path, self._other_prim_path],
+            group_id=self._base_name,
+            payload={"times": _NEW_TIMES, "values": _NEW_VALUES},
+            usd_context_name="",
+        )
+
+        self.assertEqual(self._read_gradient_payload(self._prim_path)[0], [0.0, 0.5, 1.0])
+        self.assertEqual(self._read_gradient_payload(self._other_prim_path)[0], [0.0, 0.5, 1.0])
+
+        omni.kit.undo.undo()
+
+        self.assertEqual(self._read_gradient_payload(self._prim_path), first_before)
+        self.assertEqual(self._read_gradient_payload(self._other_prim_path), second_before)
+
+    async def test_scalar_times_values_payload_infers_scalar_curve_shape(self):
+        """Scalar values use the two-suffix curve shape instead of color gradient storage."""
+        prim_path = "/World/ScalarCurve"
+        base_name = "primvars:scalarCurve"
+        prim = self._stage.DefinePrim(prim_path, "Xform")
+        prim.CreateAttribute(f"{base_name}:times", Sdf.ValueTypeNames.DoubleArray).Set(Vt.DoubleArray([0.0, 1.0]))
+        prim.CreateAttribute(f"{base_name}:values", Sdf.ValueTypeNames.DoubleArray).Set(Vt.DoubleArray([1.0, 2.0]))
+
+        omni.kit.commands.execute(
+            "SetDataPrimvars",
+            prim_paths=[prim_path],
+            group_id=base_name,
+            payload={"times": [0.0, 0.5, 1.0], "values": [3.0, 4.0, 5.0]},
+            usd_context_name="",
+        )
+
+        self.assertEqual(list(prim.GetAttribute(f"{base_name}:times").Get()), [0.0, 0.5, 1.0])
+        self.assertEqual(list(prim.GetAttribute(f"{base_name}:values").Get()), [3.0, 4.0, 5.0])
 
 
 # ============================================================================
@@ -187,6 +313,7 @@ class TestGradientEditorUndo(omni.kit.test.AsyncTestCase):
         )
         self._base_name = "primvars:color"
         self._window = None
+        self._model = None
         self._widget: UsdColorGradientWidget | None = None
 
     async def tearDown(self):
@@ -197,6 +324,7 @@ class TestGradientEditorUndo(omni.kit.test.AsyncTestCase):
             self._window.destroy()
             self._window = None
         self._widget = None
+        self._model = None
         await self._context.close_stage_async()
 
     def _read_times(self):
@@ -212,7 +340,8 @@ class TestGradientEditorUndo(omni.kit.test.AsyncTestCase):
     def _build_widget(self):
         self._window = ui.Window("GradientUndoTest", width=600, height=200)
         with self._window.frame:
-            self._widget = UsdColorGradientWidget("", self._prim_path, self._base_name)
+            self._model = _make_gradient_model("", [self._prim_path], self._base_name)
+            self._widget = UsdColorGradientWidget(self._model)
 
     def _popup_title(self) -> str:
         assert self._widget and self._widget._popup_window
@@ -453,6 +582,137 @@ class TestGradientEditorUndo(omni.kit.test.AsyncTestCase):
             subscription.Revoke()
 
 
+class TestUsdGradientWidgetDragLifecycle(omni.kit.test.AsyncTestCase):
+    async def setUp(self):
+        self._context = omni.usd.get_context()
+        await self._context.new_stage_async()
+        self._stage = self._context.get_stage()
+        self._prim_path = "/World/TestGradient"
+        self._base_name = "primvars:test"
+        self._widget = None
+
+        prim = self._stage.DefinePrim(self._prim_path, "Xform")
+        prim.CreateAttribute(f"{self._base_name}:times", Sdf.ValueTypeNames.DoubleArray).Set(Vt.DoubleArray([0.0, 1.0]))
+        prim.CreateAttribute(f"{self._base_name}:values", Sdf.ValueTypeNames.Color4fArray).Set(
+            Vt.Vec4fArray([Gf.Vec4f(1, 0, 0, 1), Gf.Vec4f(0, 0, 1, 1)])
+        )
+
+    async def tearDown(self):
+        if self._widget is not None:
+            self._widget.destroy()
+            self._widget = None
+        await self._context.close_stage_async()
+
+    async def test_noop_drag_end_does_not_create_gradient_command(self):
+        self._widget = UsdColorGradientWidget(_make_gradient_model("", [self._prim_path], self._base_name))
+        self._widget._model.begin_edit(self._base_name)
+
+        with patch(
+            "omni.flux.property_widget_builder.model.usd.grouped_keys_primvar.omni.kit.commands.execute"
+        ) as execute:
+            self._widget._model.end_edit(self._base_name)
+
+        execute.assert_not_called()
+
+
+class TestUsdGradientWidgetMixedFirstEdit(omni.kit.test.AsyncTestCase):
+    async def setUp(self):
+        self._context = omni.usd.get_context()
+        await self._context.new_stage_async()
+        self._stage = self._context.get_stage()
+        self._prim_path = "/World/GradientA"
+        self._other_prim_path = "/World/GradientB"
+        self._base_name = "primvars:test"
+        self._widget = None
+        omni.kit.undo.clear_stack()
+        omni.kit.undo.clear_history()
+
+        self._set_gradient(
+            self._prim_path,
+            Vt.DoubleArray([0.0, 1.0]),
+            Vt.Vec4fArray([Gf.Vec4f(1, 0, 0, 1), Gf.Vec4f(0, 0, 1, 1)]),
+        )
+        self._set_gradient(
+            self._other_prim_path,
+            Vt.DoubleArray([0.0, 0.25, 1.0]),
+            Vt.Vec4fArray([Gf.Vec4f(0.2, 0.2, 0.2, 1), Gf.Vec4f(0.4, 0.4, 0.4, 1), Gf.Vec4f(0.6, 0.6, 0.6, 1)]),
+        )
+
+    async def tearDown(self):
+        if self._widget is not None:
+            self._widget.destroy()
+            self._widget = None
+        omni.kit.undo.clear_stack()
+        omni.kit.undo.clear_history()
+        await self._context.close_stage_async()
+
+    def _set_gradient(self, prim_path: str, times, values) -> None:
+        prim = self._stage.DefinePrim(prim_path, "Xform")
+        prim.CreateAttribute(f"{self._base_name}:times", Sdf.ValueTypeNames.DoubleArray).Set(times)
+        prim.CreateAttribute(f"{self._base_name}:values", Sdf.ValueTypeNames.Color4fArray).Set(values)
+
+    def _read_gradient_payload(self, prim_path: str) -> tuple[list[float], list[tuple[float, ...]]]:
+        prim = self._stage.GetPrimAtPath(prim_path)
+        times = list(prim.GetAttribute(f"{self._base_name}:times").Get())
+        values = [tuple(float(c) for c in value) for value in prim.GetAttribute(f"{self._base_name}:values").Get()]
+        return times, values
+
+    def _build_widget(self) -> None:
+        self._widget = UsdColorGradientWidget(
+            _make_gradient_model("", [self._prim_path, self._other_prim_path], self._base_name),
+        )
+
+    async def test_mixed_discrete_edit_flattens_and_edits_as_one_undo_action(self):
+        self._build_widget()
+        first_before = self._read_gradient_payload(self._prim_path)
+        second_before = self._read_gradient_payload(self._other_prim_path)
+        edit_times = Vt.DoubleArray([0.0, 0.5, 1.0])
+        edit_values = Vt.Vec4fArray([Gf.Vec4f(0, 1, 0, 1), Gf.Vec4f(1, 1, 0, 1), Gf.Vec4f(0, 0, 1, 1)])
+
+        self._widget._model.commit_payload(self._base_name, {"times": edit_times, "values": edit_values})
+
+        self.assertEqual(
+            self._read_gradient_payload(self._prim_path), self._read_gradient_payload(self._other_prim_path)
+        )
+        self.assertEqual(self._read_gradient_payload(self._prim_path)[0], [0.0, 0.5, 1.0])
+
+        omni.kit.undo.undo()
+
+        self.assertEqual(self._read_gradient_payload(self._prim_path), first_before)
+        self.assertEqual(self._read_gradient_payload(self._other_prim_path), second_before)
+
+    async def test_mixed_drag_flattens_on_start_and_commits_drag_as_second_undo_action(self):
+        self._build_widget()
+        first_before = self._read_gradient_payload(self._prim_path)
+        second_before = self._read_gradient_payload(self._other_prim_path)
+        source_before = self._read_gradient_payload(self._other_prim_path)
+        edit_times = Vt.DoubleArray([0.0, 0.5, 1.0])
+        edit_values = Vt.Vec4fArray([Gf.Vec4f(0, 1, 0, 1), Gf.Vec4f(1, 1, 0, 1), Gf.Vec4f(0, 0, 1, 1)])
+
+        self._widget._model.begin_edit(self._base_name)
+
+        self.assertEqual(self._read_gradient_payload(self._prim_path), source_before)
+        self.assertEqual(self._read_gradient_payload(self._other_prim_path), source_before)
+
+        self._widget._model.commit_payload(self._base_name, {"times": edit_times, "values": edit_values})
+        self._widget._model.end_edit(self._base_name)
+
+        self.assertEqual(
+            self._read_gradient_payload(self._prim_path), self._read_gradient_payload(self._other_prim_path)
+        )
+        self.assertEqual(self._read_gradient_payload(self._prim_path)[0], [0.0, 0.5, 1.0])
+
+        omni.kit.undo.undo()
+
+        self.assertEqual(self._read_gradient_payload(self._prim_path), source_before)
+        self.assertEqual(self._read_gradient_payload(self._other_prim_path), source_before)
+
+        omni.kit.undo.undo()
+
+        self.assertEqual(self._read_gradient_payload(self._prim_path), first_before)
+        self.assertEqual(self._read_gradient_payload(self._other_prim_path), second_before)
+
+
 # ============================================================================
 # RAII lifecycle tests: notice registration tied to popup open/close
 # ============================================================================
@@ -489,7 +749,8 @@ class TestUsdGradientWidgetLifecycle(omni.kit.test.AsyncTestCase):
     def _build_widget(self):
         self._window = ui.Window("GradientLifecycleTest", width=600, height=200)
         with self._window.frame:
-            self._widget = UsdColorGradientWidget("", self._prim_path, self._base_name)
+            self._model = _make_gradient_model("", [self._prim_path], self._base_name)
+            self._widget = UsdColorGradientWidget(self._model)
 
     def _read_times(self):
         prim = self._stage.GetPrimAtPath(self._prim_path)
@@ -501,7 +762,7 @@ class TestUsdGradientWidgetLifecycle(omni.kit.test.AsyncTestCase):
         self._build_widget()
         await _wait(3)
 
-        self.assertIsNone(self._widget._usd_listener, "No listener before popup opens")
+        self.assertIsNone(self._model.usd_listener, "No listener before popup opens")
 
     async def test_listener_registered_on_popup_open(self):
         """Opening the popup registers a Tf.Notice listener."""
@@ -511,7 +772,7 @@ class TestUsdGradientWidgetLifecycle(omni.kit.test.AsyncTestCase):
         self._widget._show_popup()
         await _wait(3)
 
-        self.assertIsNotNone(self._widget._usd_listener, "Listener should exist after popup opens")
+        self.assertIsNotNone(self._model.usd_listener, "Listener should exist after popup opens")
 
     async def test_listener_revoked_on_popup_close(self):
         """Closing the popup revokes the Tf.Notice listener."""
@@ -520,12 +781,12 @@ class TestUsdGradientWidgetLifecycle(omni.kit.test.AsyncTestCase):
 
         self._widget._show_popup()
         await _wait(3)
-        self.assertIsNotNone(self._widget._usd_listener)
+        self.assertIsNotNone(self._model.usd_listener)
 
         self._widget._hide_popup()
         await _wait()
 
-        self.assertIsNone(self._widget._usd_listener, "Listener should be revoked after popup closes")
+        self.assertIsNone(self._model.usd_listener, "Listener should be revoked after popup closes")
 
     async def test_reopen_popup_re_registers_listener(self):
         """Open -> close -> reopen cycle re-registers the listener correctly."""
@@ -534,16 +795,16 @@ class TestUsdGradientWidgetLifecycle(omni.kit.test.AsyncTestCase):
 
         self._widget._show_popup()
         await _wait(3)
-        first_listener = self._widget._usd_listener
+        first_listener = self._model.usd_listener
         self.assertIsNotNone(first_listener)
 
         self._widget._hide_popup()
         await _wait()
-        self.assertIsNone(self._widget._usd_listener)
+        self.assertIsNone(self._model.usd_listener)
 
         self._widget._show_popup()
         await _wait(3)
-        self.assertIsNotNone(self._widget._usd_listener, "Listener re-registered after reopen")
+        self.assertIsNotNone(self._model.usd_listener, "Listener re-registered after reopen")
 
     async def test_external_usd_edit_refreshes_widget_while_popup_open(self):
         """An external USD edit while the popup is open updates the widget's keyframes."""
@@ -569,7 +830,7 @@ class TestUsdGradientWidgetLifecycle(omni.kit.test.AsyncTestCase):
         self._build_widget()
         await _wait(3)
 
-        self.assertIsNone(self._widget._usd_listener)
+        self.assertIsNone(self._model.usd_listener)
         self.assertEqual(len(self._widget._keyframes), 2)
 
         # External edit without popup open

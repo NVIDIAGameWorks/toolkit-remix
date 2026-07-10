@@ -19,7 +19,6 @@ __all__ = (
     "TestAbstractDragFieldGroup",
     "TestAbstractDragFieldUnit",
     "TestColorField",
-    "TestColorGradientDelegateIntegration",
     "TestColorGradientField",
     "TestFloatDragFieldGroup",
     "TestFloatDragFieldUnit",
@@ -30,7 +29,6 @@ __all__ = (
 from .e2e import (
     TestAbstractDragFieldGroup,
     TestColorField,
-    TestColorGradientDelegateIntegration,
     TestColorGradientField,
     TestFloatDragFieldGroup,
     TestIntDragFieldGroup,

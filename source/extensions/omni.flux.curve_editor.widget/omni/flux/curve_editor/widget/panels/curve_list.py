@@ -16,7 +16,7 @@
 
 CurveListPanel - Pure CDM-based curve list panel.
 
-This panel displays curves from a CurveModel with NO USD dependencies.
+This panel displays curves from a GroupedKeysModel with NO USD dependencies.
 All display names come from model.get_display_name().
 
 Visual appearance cascades from the parent's name-based style via widget
@@ -28,8 +28,7 @@ from dataclasses import dataclass
 from functools import partial
 
 import omni.ui as ui
-
-from ..model import CurveModel
+from omni.flux.utils.widget import GroupedKeysModel
 
 __all__ = ["CurveListPanel"]
 
@@ -54,7 +53,7 @@ class CurveListPanel(ui.Frame):
     """
     Pure CDM-based curve list panel.
 
-    Displays curves from a CurveModel with NO USD dependencies.
+    Displays curves from a GroupedKeysModel with NO USD dependencies.
     All display names come from model.get_display_name().
 
     Usage:
@@ -163,17 +162,17 @@ class CurveListPanel(ui.Frame):
     # Public API
     # ─────────────────────────────────────────────────────────────────────────
 
-    def populate(self, model: CurveModel):
+    def populate(self, model: GroupedKeysModel) -> None:
         """
-        Populate the panel from a CurveModel.
+        Populate the panel from a GroupedKeysModel.
 
         Args:
-            model: The CurveModel to display curves from.
+            model: The GroupedKeysModel to display curves from.
         """
         self._curves.clear()
 
         if model is not None:
-            curve_ids = model.get_curve_ids()
+            curve_ids = model.group_ids
             for curve_id in curve_ids:
                 display_name = model.get_display_name(curve_id)
                 self._curves.append(_CurveItemData(curve_id, display_name))

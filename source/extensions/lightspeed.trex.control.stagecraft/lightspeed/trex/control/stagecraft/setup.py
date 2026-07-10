@@ -63,11 +63,14 @@ _DEFAULT_LAYOUT = "/app/trex/default_layout"
 
 
 class Setup:
+    """Wire StageCraft services, menu actions, hotkeys, and startup layout behavior."""
+
     _SWITCH_CAPTURE_COMMAND_NAME = "SwitchCaptureCommand"
     _DISABLE_STAGE_OPEN_LIGHTING_UNDO = False
     _LIGHTING_STAGE_OPEN_ORIGINAL = None
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Create StageCraft setup services, subscriptions, and startup layout guards."""
         self._default_attr = {
             "_sub_wizard_completed": None,
             "_stage_core_setup": None,
@@ -138,7 +141,13 @@ class Setup:
         settings = carb.settings.get_settings()
         default_layout = settings.get(_DEFAULT_LAYOUT) or ""
         if default_layout == "stagecraft":
-            load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
+            # Only force the Home Page layout on a genuine first launch. A stale startup Home layout request
+            # can otherwise race with project opening and pull the user back to Home after the workspace is
+            # already active.
+            stage = self._context.get_stage()
+            has_open_project = bool(stage and not bool(stage.GetRootLayer().anonymous))
+            if not has_open_project:
+                load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
         self.__install_stage_open_lighting_undo_patch()
 
     @classmethod

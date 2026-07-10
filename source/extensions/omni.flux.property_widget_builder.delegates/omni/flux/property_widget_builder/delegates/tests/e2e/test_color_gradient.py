@@ -24,6 +24,16 @@ import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
 from omni.flux.property_widget_builder.delegates.float_value.color_gradient import ColorGradientField
+from omni.flux.utils.widget import InMemoryGroupedKeysModel
+
+_GROUP_ID = "gradient"
+
+
+def _payload_from_keyframes(keyframes):
+    return {
+        "times": [time for time, _color in keyframes],
+        "values": [color for _time, color in keyframes],
+    }
 
 
 async def _wait_updates(n: int = 3):
@@ -65,6 +75,7 @@ class TestColorGradientField(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         self._field = None
+        self._model = None
         self._widgets = None
 
     async def tearDown(self):
@@ -75,6 +86,9 @@ class TestColorGradientField(omni.kit.test.AsyncTestCase):
         if self._field and self._field._gradient_widget:
             self._field._gradient_widget.destroy()
         self._field = None
+        if self._model:
+            self._model.destroy()
+            self._model = None
         if self._window:
             self._window.destroy()
             self._window = None
@@ -82,10 +96,12 @@ class TestColorGradientField(omni.kit.test.AsyncTestCase):
     def _build_field(self, keyframes=None):
         """Build the ColorGradientField in the test window."""
         item = _MockItem()
+        payloads = {_GROUP_ID: _payload_from_keyframes(keyframes)} if keyframes is not None else None
+        self._model = InMemoryGroupedKeysModel(group_ids=[_GROUP_ID], payloads=payloads)
         with self._window.frame:
             self._field = ColorGradientField(
-                keyframes=keyframes,
-                on_gradient_changed_fn=lambda times, values: None,
+                model=self._model,
+                group_id=_GROUP_ID,
             )
             self._widgets = self._field.build_ui(item)
 

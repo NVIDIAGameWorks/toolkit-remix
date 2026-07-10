@@ -22,7 +22,7 @@ It combines:
 - CurveEditorToolbar: Action buttons for tangent types, key ops, view controls
 
 All curve rendering and interaction is delegated to FCurveWidget.
-Storage is handled via CurveModel.
+Storage is handled via GroupedKeysModel.
 """
 
 from __future__ import annotations
@@ -30,11 +30,11 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from omni import ui
-from omni.flux.fcurve.widget import CurveBounds, FCurve, FCurveWidget, SelectionInfo, TangentType
+from omni.flux.fcurve.widget import CurveBounds, FCurveWidget, SelectionInfo, TangentType
+from omni.flux.utils.widget import GroupedKeysModel
 
 from .canvas import CurveEditorCanvas
 from .layout import CurveEditorLayout
-from .model import CurveModel
 from .panels import CurveTreePanel
 from .style import build_default_style
 from .toolbar import CurveEditorToolbar
@@ -59,10 +59,13 @@ class CurveEditorWidget:
 
     Args:
         model: Storage backend for curve data.
+        layout: Optional curve tree layout and display metadata.
         time_range: Initial X-axis range (time_min, time_max).
         value_range: Initial Y-axis range (value_min, value_max).
+        per_curve_bounds: Optional hard time/value bounds keyed by curve id.
         show_toolbar: Whether to show the toolbar.
         toolbar_height: Toolbar height in pixels.
+        curve_panel_width: Width of the optional curve hierarchy panel.
         ruler_size: Ruler width/height in pixels.
         zoom_factor_base: Scroll-wheel zoom factor base.
         grid_time_divisions: Target number of time-axis grid divisions.
@@ -70,11 +73,13 @@ class CurveEditorWidget:
         grid_margin: Grid pixel margin.
         grid_min_viewport_size: Minimum viewport dimension before grid is hidden.
         on_change: Optional callback when curves are modified.
+        on_create_curve: Optional callback for add-curve actions.
+        on_delete_curve: Optional callback for delete-curve actions.
     """
 
     def __init__(
         self,
-        model: CurveModel,
+        model: GroupedKeysModel,
         layout: CurveEditorLayout | None = None,
         time_range: tuple[float, float] = (0.0, 1.0),
         value_range: tuple[float, float] = (0.0, 1.0),
@@ -91,7 +96,28 @@ class CurveEditorWidget:
         on_change: Callable[[], None] | None = None,
         on_create_curve: Callable[[str], None] | None = None,
         on_delete_curve: Callable[[str], None] | None = None,
-    ):
+    ) -> None:
+        """Create the curve editor widget.
+
+        Args:
+            model: Grouped-key storage backend for curve payloads.
+            layout: Optional curve tree layout and display metadata.
+            time_range: Initial X-axis range.
+            value_range: Initial Y-axis range.
+            per_curve_bounds: Optional hard time/value bounds keyed by curve id.
+            show_toolbar: Whether to show the toolbar.
+            toolbar_height: Toolbar height in pixels.
+            curve_panel_width: Width of the optional curve hierarchy panel.
+            ruler_size: Ruler width/height in pixels.
+            zoom_factor_base: Scroll-wheel zoom factor base.
+            grid_time_divisions: Target number of time-axis grid divisions.
+            grid_value_divisions: Target number of value-axis grid divisions.
+            grid_margin: Grid pixel margin.
+            grid_min_viewport_size: Minimum viewport dimension before grid is hidden.
+            on_change: Optional callback when any curve changes.
+            on_create_curve: Optional callback for add-curve actions.
+            on_delete_curve: Optional callback for delete-curve actions.
+        """
         self._model = model
         self._layout = layout
         self._time_range = time_range
@@ -140,7 +166,7 @@ class CurveEditorWidget:
         return None
 
     @property
-    def model(self) -> CurveModel:
+    def model(self) -> GroupedKeysModel:
         """Access the curve storage model."""
         return self._model
 
@@ -343,50 +369,6 @@ class CurveEditorWidget:
         """Adjust viewport to fit all curve data."""
         if self._canvas:
             self._canvas.fit_to_data()
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Curve Operations
-    # ─────────────────────────────────────────────────────────────────────────
-
-    def add_curve(self, curve: FCurve) -> None:
-        """
-        Add a curve to the editor.
-
-        Args:
-            curve: The FCurve to add.
-        """
-        self._model.commit_curve(curve.id, curve)
-
-    def remove_curve(self, curve_id: str) -> None:
-        """
-        Remove a curve from the editor.
-
-        Args:
-            curve_id: ID of the curve to remove.
-        """
-        empty_curve = FCurve(id=curve_id, keys=[])
-        self._model.commit_curve(curve_id, empty_curve)
-
-    def get_curve(self, curve_id: str) -> FCurve | None:
-        """
-        Get a curve by ID.
-
-        Args:
-            curve_id: The curve ID.
-
-        Returns:
-            The FCurve, or None if not found.
-        """
-        return self._model.get_curve(curve_id)
-
-    def get_curve_ids(self) -> list[str]:
-        """
-        Get all curve IDs.
-
-        Returns:
-            List of curve IDs.
-        """
-        return self._model.get_curve_ids()
 
     # ─────────────────────────────────────────────────────────────────────────
     # Lifecycle

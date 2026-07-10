@@ -19,6 +19,18 @@ from .color_gradient import GRADIENT_PRESETS
 from .color_gradient import ColorGradientWidget
 from .drag_field import FloatBoundedDrag
 from .drag_field import IntBoundedDrag
+from .grouped_keys_model import GroupedKeysModel
+from .grouped_keys_model import GroupedKeysPayload
+from .grouped_keys_model import InMemoryGroupedKeysModel
 from .search import SearchExtension
 
-__all__ = ["GRADIENT_PRESETS", "ColorGradientWidget", "FloatBoundedDrag", "IntBoundedDrag", "SearchExtension"]
+__all__ = [
+    "GRADIENT_PRESETS",
+    "ColorGradientWidget",
+    "FloatBoundedDrag",
+    "GroupedKeysModel",
+    "GroupedKeysPayload",
+    "InMemoryGroupedKeysModel",
+    "IntBoundedDrag",
+    "SearchExtension",
+]

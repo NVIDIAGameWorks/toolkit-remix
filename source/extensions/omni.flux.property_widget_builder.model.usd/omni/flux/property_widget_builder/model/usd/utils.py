@@ -129,12 +129,26 @@ def delete_all_overrides(attribute, context_name=""):
         delete_layer_override(stack_item.layer, attribute, context_name=context_name)
 
 
-def delete_layer_override(layer, attribute, context_name=""):
+def delete_layer_override(layer: Sdf.Layer, attribute: Usd.Attribute, context_name: str = "") -> None:
+    """Schedule deletion of one authored layer override.
+
+    Args:
+        layer: Layer containing the override.
+        attribute: Attribute whose override should be removed.
+        context_name: USD context used for layer-lock checks.
+    """
     asyncio.ensure_future(delete_layer_override_async(layer, attribute, context_name=context_name))
 
 
 @omni.usd.handle_exception
-async def delete_layer_override_async(layer, attribute, context_name=""):
+async def delete_layer_override_async(layer: Sdf.Layer, attribute: Usd.Attribute, context_name: str = "") -> None:
+    """Delete one authored layer override and prune empty scaffold prim specs.
+
+    Args:
+        layer: Layer containing the override.
+        attribute: Attribute whose override should be removed.
+        context_name: USD context used for layer-lock checks.
+    """
     # Only delete properties on unlocked layers
     if omni.usd.is_layer_locked(omni.usd.get_context(context_name), layer.identifier):
         return
@@ -152,9 +166,19 @@ async def delete_layer_override_async(layer, attribute, context_name=""):
     await omni.kit.app.get_app().next_update_async()
 
     # Cleanup empty prims
-    def cleanup_prims_recursive(spec):
+    def cleanup_prims_recursive(spec: Sdf.PrimSpec | None) -> None:
+        """Remove empty scaffold prim specs while preserving meaningful authored opinions.
+
+        Args:
+            spec: Prim spec to inspect after a property override is removed.
+        """
         # If the prim has no properties and children, it can be cleaned up
         if not spec or spec.properties or spec.nameChildren:
+            return
+        # Preserve prim specs that still carry meaningful opinions (applied API schemas,
+        # type, references, variants, etc.). Only bare empty overrides are scaffolding;
+        # removing a spec that holds apiSchemas/typeName would drop those opinions too.
+        if set(spec.ListInfoKeys()) - {"specifier"}:
             return
         parent = spec.nameParent
         _remove_prim_spec(layer, spec.path)

@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.30.0]
+### Added
+- Added shared `GroupedKeysModel` and `InMemoryGroupedKeysModel` storage for curve and gradient grouped-key payload editing.
+
+### Changed
+- `ColorGradientWidget` now persists gradient payloads through `GroupedKeysModel` instead of constructor keyframe/change callbacks.
+
 ## [1.29.1]
 ### Removed
 - Removed custom numeric expression editing from bounded drag widgets so they use native `omni.ui` drag/edit behavior while preserving hard-bound clamping for numeric values

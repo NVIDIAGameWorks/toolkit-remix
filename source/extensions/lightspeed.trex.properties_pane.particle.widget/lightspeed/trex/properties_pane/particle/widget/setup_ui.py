@@ -18,7 +18,8 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
+from typing import Any
 
 import carb
 import omni.kit
@@ -27,13 +28,17 @@ import omni.usd
 from lightspeed.common.constants import PARTICLE_PRIMVAR_PREFIX, PARTICLE_SCHEMA_NAME
 from lightspeed.trex.schemas.utils import get_schema_prim as _get_schema_prim
 from omni.flux.property_widget_builder.model.usd import BuildLayerTransferMenu as _BuildLayerTransferMenu
-from omni.flux.property_widget_builder.model.usd import USDAttributeEditGroupItem as _USDAttributeEditGroupItem
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.property_widget_builder.model.usd import USDAttrListItem as _USDAttrListItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
+from omni.flux.property_widget_builder.model.usd import USDLogicalGroupOutletItem as _USDLogicalGroupOutletItem
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
 from omni.flux.property_widget_builder.model.usd import USDPropertyWidget as _PropertyWidget
 from omni.flux.property_widget_builder.model.usd import get_usd_listener_instance as _get_usd_listener_instance
+from omni.flux.property_widget_builder.model.usd.logical_group_constants import (
+    CURVE_LOGICAL_GROUP_DEFINITION as _CURVE_LOGICAL_GROUP_DEFINITION,
+)
+from omni.flux.property_widget_builder.model.usd.logical_row import LogicalGroupDefinition as _LogicalGroupDefinition
 from omni.flux.property_widget_builder.widget import FieldBuilder as _FieldBuilder
 from omni.flux.property_widget_builder.widget import ItemGroup as _ItemGroup
 from omni.flux.utils.common import Event as _Event
@@ -47,16 +52,28 @@ from .particle_edit_groups import PARTICLE_EDIT_GROUPS as _PARTICLE_EDIT_GROUPS
 from .particle_edit_groups import PARTICLE_LEGACY_ANIMATION_MAPPINGS as _PARTICLE_LEGACY_ANIMATION_MAPPINGS
 from .particle_lookup_table import get_particle_lookup_table as _get_particle_lookup_table
 from .bounds_adapter import ParticleBoundsAdapter as _ParticleBoundsAdapter
-from .legacy_support_helper import seed_current_animated_attr_from_legacy as _seed_current_animated_attr_from_legacy
+from .legacy_support_helper import seed_current_animated_attrs_from_legacy as _seed_current_animated_attrs_from_legacy
 
 
 PARTICLE_ATTR_GROUP_FALLBACK = "Extra"
 PARTICLE_ATTR_GROUP_ORDER = ("General", "Spawn", "Target", "Visual", "Collision", "Simulation")
 _PreOpenCallback = Callable[[Callable[[], None]], None]
 _CURVE_VALUES_SUFFIX = ":values"
+_PARTICLE_CURVE_OPTIONAL_SUFFIXES = frozenset({"preInfinity", "postInfinity"})
+_PARTICLE_CURVE_REQUIRED_SUFFIXES = frozenset(_CURVE_LOGICAL_GROUP_DEFINITION.suffixes).difference(
+    _PARTICLE_CURVE_OPTIONAL_SUFFIXES
+)
 
 
 def _get_schema_attr_display_group(schema_attr: Sdf.AttributeSpec | None) -> str | None:
+    """Return a non-empty schema display group, if one is authored.
+
+    Args:
+        schema_attr: Schema attribute to inspect.
+
+    Returns:
+        Trimmed display group, or ``None``.
+    """
     if schema_attr is None:
         return None
     display_group = schema_attr.GetInfo(Sdf.AttributeSpec.DisplayGroupKey)
@@ -67,7 +84,16 @@ def _get_schema_attr_display_group(schema_attr: Sdf.AttributeSpec | None) -> str
     return None
 
 
-def _resolve_edit_group_outlet_group(schema_prim: Sdf.PrimSpec, edit_group_layout: dict) -> str | None:
+def _resolve_edit_group_outlet_group(schema_prim: Sdf.PrimSpec, edit_group_layout: dict[str, Any]) -> str | None:
+    """Resolve the UI group for a particle curve outlet from schema metadata.
+
+    Args:
+        schema_prim: Generated particle schema prim.
+        edit_group_layout: Particle edit-group layout definition.
+
+    Returns:
+        Display group for the outlet, fallback group, or ``None`` when the layout has no curves.
+    """
     curve_map = edit_group_layout.get("curve_map")
     if not curve_map:
         return None
@@ -77,6 +103,95 @@ def _resolve_edit_group_outlet_group(schema_prim: Sdf.PrimSpec, edit_group_layou
         if display_group:
             return display_group
     return PARTICLE_ATTR_GROUP_FALLBACK
+
+
+def _resolve_curve_logical_group_definition(
+    schema_prim: Sdf.PrimSpec, edit_group_layout: dict[str, Any]
+) -> _LogicalGroupDefinition:
+    """Resolve the curve suffix set supported by the generated particle schema.
+
+    Particle curves must have the required scalar curve suffixes. Optional full-FCurve suffixes such as
+    infinity mode are included only when the schema declares them for every curve in the edit group.
+
+    Args:
+        schema_prim: Generated particle schema prim.
+        edit_group_layout: Particle edit-group layout definition.
+
+    Returns:
+        Logical group definition matching the schema-supported suffixes.
+
+    Raises:
+        ValueError: If the edit group is missing curve entries or required curve schema attrs.
+    """
+    curve_map = edit_group_layout.get("curve_map")
+    if not curve_map:
+        message = "Particle curve edit group is missing curve_map entries."
+        raise ValueError(message)
+
+    missing_attrs = []
+    for curve_id in curve_map:
+        missing_attrs.extend(
+            f"{curve_id}:{suffix}"
+            for suffix in _PARTICLE_CURVE_REQUIRED_SUFFIXES
+            if f"{curve_id}:{suffix}" not in schema_prim.properties
+        )
+    if missing_attrs:
+        message = f"Particle curve edit group is missing required curve schema attrs: {missing_attrs}"
+        raise ValueError(message)
+
+    schema_suffixes = {
+        suffix
+        for suffix in _CURVE_LOGICAL_GROUP_DEFINITION.suffixes
+        if all(f"{curve_id}:{suffix}" in schema_prim.properties for curve_id in curve_map)
+    }
+    if schema_suffixes == set(_CURVE_LOGICAL_GROUP_DEFINITION.suffixes):
+        return _CURVE_LOGICAL_GROUP_DEFINITION
+    return _LogicalGroupDefinition(suffixes=tuple(sorted(schema_suffixes)), widget_kind="curve")
+
+
+def _add_edit_group_outlets(
+    group_items: dict[str, _ItemGroup],
+    schema_prim: Sdf.PrimSpec,
+    edit_groups: Iterable[dict[str, Any]],
+    context_name: str,
+    target_paths: list[str],
+    pre_open_callback_builder: Callable[[list[str], list[str]], _PreOpenCallback],
+) -> None:
+    """Append valid particle edit-group outlet rows to grouped property items.
+
+    Args:
+        group_items: Mutable map of display group names to item groups.
+        schema_prim: Generated particle schema prim.
+        edit_groups: Particle edit-group layout definitions.
+        context_name: USD context name for the outlet rows.
+        target_paths: Selected particle prim paths.
+        pre_open_callback_builder: Callback factory for legacy value seeding before editor open.
+    """
+    for group in edit_groups:
+        outlet_group = _resolve_edit_group_outlet_group(schema_prim, group)
+        if outlet_group is None:
+            continue
+        try:
+            logical_group_definition = _resolve_curve_logical_group_definition(schema_prim, group)
+        except ValueError as exc:
+            carb.log_error(str(exc))
+            continue
+        if outlet_group not in group_items:
+            group_items[outlet_group] = _ItemGroup(outlet_group)
+        outlet = _USDLogicalGroupOutletItem(
+            edit_group_layout=group,
+            context_name=context_name,
+            target_paths=target_paths,
+        )
+        outlet.logical_group_definition = logical_group_definition
+        # Edit group outlets are curve-only today. Gradient-based outlets need their own
+        # seeding list if they are added to PARTICLE_EDIT_GROUPS later.
+        animated_attr_names = list(group.get("curve_map", {}))
+        outlet.pre_open_callback = pre_open_callback_builder(
+            animated_attr_names,
+            target_paths,
+        )
+        outlet.parent = group_items[outlet_group]
 
 
 class ParticleSystemPropertyWidget:
@@ -238,7 +353,7 @@ class ParticleSystemPropertyWidget:
         self,
         paths: list[str | Sdf.Path] | None = None,
         valid_target_paths: list[str | Sdf.Path] | None = None,
-    ):
+    ) -> None:
         """Refresh the panel asynchronously after USD selection updates settle.
 
         Args:
@@ -300,32 +415,19 @@ class ParticleSystemPropertyWidget:
             group_items = {}
             valid_paths = list(valid_paths_by_key.values())
             num_prims = len(valid_paths)
-            first_prim_path = str(valid_paths[0]) if valid_paths else None
-            single_prim_path = first_prim_path if num_prims == 1 else None
 
             # Create edit group outlet buttons first so curve outlets (Particle Size, Velocity, etc.)
             # render at the top of their schema-defined group, before the regular per-attribute rows.
-            if first_prim_path:
-                for group in _PARTICLE_EDIT_GROUPS.values():
-                    outlet_group = _resolve_edit_group_outlet_group(schema_prim, group)
-                    if outlet_group is None:
-                        continue
-                    if outlet_group not in group_items:
-                        group_items[outlet_group] = _ItemGroup(outlet_group)
-                    outlet = _USDAttributeEditGroupItem(
-                        edit_group_layout=group,
-                        context_name=self._context_name,
-                        prim_path=first_prim_path,
-                    )
-                    if single_prim_path:
-                        # Edit group outlets are curve-only today. Gradient-based outlets need their own
-                        # seeding list if they are added to PARTICLE_EDIT_GROUPS later.
-                        animated_attr_names = list(group.get("curve_map", {}))
-                        outlet.pre_open_callback = self._build_pre_open_callback(
-                            animated_attr_names,
-                            single_prim_path,
-                        )
-                    outlet.parent = group_items[outlet_group]
+            if valid_paths:
+                target_paths = [str(path) for path in valid_paths]
+                _add_edit_group_outlets(
+                    group_items=group_items,
+                    schema_prim=schema_prim,
+                    edit_groups=_PARTICLE_EDIT_GROUPS.values(),
+                    context_name=self._context_name,
+                    target_paths=target_paths,
+                    pre_open_callback_builder=self._build_pre_open_callback,
+                )
 
             # Sort attribute names for better organization (min/max pairs together, then alphabetical)
             sorted_attr_names = self._sort_particle_attributes(list(attr_added.keys()))
@@ -385,11 +487,11 @@ class ParticleSystemPropertyWidget:
                         bounds_adapter=bounds_adapter,
                     )
 
-                if single_prim_path and attr_name.endswith(":values"):
+                if attr_name.endswith(":values"):
                     animated_attr_name = attr_name[: -len(":values")]
                     attr_item.pre_open_callback = self._build_pre_open_callback(
                         animated_attr_name,
-                        single_prim_path,
+                        [str(attr.GetPrim().GetPath()) for attr in attributes],
                     )
 
                 # Collect items by group (but don't add to items list yet)
@@ -448,7 +550,7 @@ class ParticleSystemPropertyWidget:
     def _build_pre_open_callback(
         self,
         animated_attr_names: str | list[str] | None,
-        prim_path: str,
+        target_paths: list[str],
     ) -> _PreOpenCallback:
         """Build a curve-editor pre-open hook for legacy animated values.
 
@@ -456,18 +558,25 @@ class ParticleSystemPropertyWidget:
         from legacy values before opening the editor. ``None`` intentionally
         skips seeding while still opening the editor, which lets callers share
         the same hook shape for controls without legacy animated data.
+
+        Args:
+            animated_attr_names: Animated particle attribute name or names to
+                seed from legacy values, or ``None`` when no legacy seeding is
+                needed.
+            target_paths: Ordered selected particle target prim paths to seed.
+
+        Returns:
+            Callback that performs any legacy seeding and then opens the editor.
         """
 
-        def _callback(open_editor_fn):
-            if animated_attr_names is not None:
-                names_to_seed = [animated_attr_names] if isinstance(animated_attr_names, str) else animated_attr_names
-                with omni.kit.undo.group():  # pyright: ignore[reportAttributeAccessIssue]
-                    for animated_attr_name in names_to_seed:
-                        _seed_current_animated_attr_from_legacy(
-                            animated_attr_name,
-                            self._context_name,
-                            prim_path,
-                        )
+        def _callback(open_editor_fn: Callable[[], None]) -> None:
+            """Seed legacy animated attrs, refresh the property model, then open the editor.
+
+            Args:
+                open_editor_fn: Final editor-opening callback to invoke after seeding.
+            """
+            if _seed_current_animated_attrs_from_legacy(animated_attr_names, self._context_name, target_paths):
+                self._property_model.refresh()
             open_editor_fn()
 
         return _callback

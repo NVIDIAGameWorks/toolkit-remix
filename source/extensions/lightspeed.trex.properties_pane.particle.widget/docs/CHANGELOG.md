@@ -1,6 +1,16 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.0]
+### Changed
+- Particle curve editor outlets now use the shared USD logical group outlet item.
+
+### Fixed
+- Seeded legacy animated particle attributes for every selected target before opening curve editors.
+- Routed legacy animated particle seeding through the shared grouped primvar command.
+- Particle curve edit-group rows now carry the ordered selected particle target paths used by the shared USD property builders.
+- Particle curve edit-group schema validation now fails on missing required curve attrs instead of falling back to scalar definitions.
+
 ## [1.6.1]
 ### Added
 - Added layer-transfer callback forwarding for particle property menus.

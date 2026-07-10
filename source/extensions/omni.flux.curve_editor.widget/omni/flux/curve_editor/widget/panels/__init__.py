@@ -16,7 +16,7 @@
 
 Curve Editor Panels - Pure CDM-based UI components.
 
-These panels consume only from CurveModel, with NO USD dependencies.
+These panels consume only from GroupedKeysModel, with NO USD dependencies.
 """
 
 from .curve_list import CurveListPanel

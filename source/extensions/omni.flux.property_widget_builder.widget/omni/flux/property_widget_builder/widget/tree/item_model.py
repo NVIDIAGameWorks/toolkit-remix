@@ -228,8 +228,8 @@ class ItemModelBase(Serializable, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def refresh(self):
-        """Called by the watcher when something change"""
+    def refresh(self) -> None:
+        """Refresh hook for watcher compatibility; static group names do not change."""
         pass
 
     def get_tool_tip(self):
@@ -406,19 +406,41 @@ class ItemModel(ItemModelBase, ui.AbstractItemModel, metaclass=AbstractItemValue
 
 
 class ItemGroupNameModel(ItemValueModel):
-    """The value model that handle the name an attribute"""
+    """Read-only static name model for grouped tree rows."""
 
-    def __init__(self, name):
+    def __init__(self, name: str, tooltip: str = "") -> None:
+        """Create a read-only name model for a synthetic group row.
+
+        Args:
+            name: Display text for the group row.
+            tooltip: Optional tooltip for the group row.
+        """
         super().__init__()
         self._name = name
+        self._tooltip = tooltip
         self._read_only = True
         self.__display_fn = None
 
-    def refresh(self):
-        """Called by the watcher when something change"""
+    def refresh(self) -> None:
+        """Refresh hook for watcher compatibility; static group names do not change."""
         pass
 
-    def get_value(self):
+    def get_tooltip(self) -> str:
+        """Return the tooltip text for the group row.
+
+        Returns:
+            Tooltip string, or an empty string.
+        """
+        return self._tooltip
+
+    get_tool_tip = get_tooltip
+
+    def get_value(self) -> str:
+        """Return the display name value.
+
+        Returns:
+            Static group row display text.
+        """
         return self._name
 
     def _get_value_as_string(self) -> str:

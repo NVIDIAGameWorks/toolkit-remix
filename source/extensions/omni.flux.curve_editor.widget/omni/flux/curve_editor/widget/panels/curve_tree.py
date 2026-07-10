@@ -13,11 +13,12 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from omni import ui
+from omni.flux.curve_editor.widget.payload import payload_to_curve
 from omni.flux.utils.widget.scrolling_tree_view import ScrollingTreeWidget
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase, TreeItemBase, TreeModelBase
+from omni.flux.utils.widget import GroupedKeysModel
 
 from ..layout import CurveEditorLayout
-from ..model import CurveModel
 
 _ROW_HEIGHT = 24
 _INDENT_PX = 12
@@ -78,7 +79,13 @@ class _CurveTreeItem(TreeItemBase):
 class CurveTreeModel(TreeModelBase[_CurveTreeItem]):
     """Builds a tree of _CurveTreeItem from a CurveEditorLayout dict."""
 
-    def __init__(self, layout: CurveEditorLayout, curve_model: CurveModel | None = None):
+    def __init__(self, layout: CurveEditorLayout, curve_model: GroupedKeysModel | None = None) -> None:
+        """Create a tree model from editor layout metadata.
+
+        Args:
+            layout: Curve editor hierarchy and curve display metadata.
+            curve_model: Optional grouped-key model used to detect authored curve data.
+        """
         super().__init__()
         self._root_items: list[_CurveTreeItem] = []
         self._curve_model = curve_model
@@ -86,12 +93,21 @@ class CurveTreeModel(TreeModelBase[_CurveTreeItem]):
 
     @property
     def default_attr(self) -> dict[str, None]:
+        """Return attributes reset by the model cleanup helper."""
         return {"_root_items": None}
 
     def _has_curve_data(self, curve_id: str) -> bool:
+        """Return whether one curve currently has authored keys.
+
+        Args:
+            curve_id: Curve id to inspect.
+
+        Returns:
+            ``True`` when the grouped-key payload converts to a curve with keys.
+        """
         if not self._curve_model:
             return False
-        curve = self._curve_model.get_curve(curve_id)
+        curve = payload_to_curve(curve_id, self._curve_model.get_payload(curve_id))
         return bool(curve and curve.keys)
 
     def _build_from_layout(
@@ -230,6 +246,13 @@ class CurveTreeDelegate(TreeDelegateBase):
                     ui.Spacer()
 
     def _toggle_visibility(self, item: _CurveTreeItem, visible: bool, model: CurveTreeModel) -> None:
+        """Update one curve item's visibility and notify external subscribers.
+
+        Args:
+            item: Tree item whose visibility changed.
+            visible: New visibility state.
+            model: Tree model that owns the item.
+        """
         item.visible = visible
         model._item_changed(item)  # noqa: SLF001
         if self._on_visibility_changed and item.curve_id:
@@ -246,7 +269,7 @@ class CurveTreePanel:
 
     Args:
         layout: CurveEditorLayout dict describing the hierarchy.
-        curve_model: CurveModel to check authored state and create/delete curves.
+        curve_model: GroupedKeysModel to check authored state and create/delete curves.
         on_visibility_changed: Called with (curve_id, visible) when user toggles.
         on_create_curve: Called with curve_id when user clicks the add icon.
         on_delete_curve: Called with curve_id when user clicks the delete icon.
@@ -255,11 +278,20 @@ class CurveTreePanel:
     def __init__(
         self,
         layout: CurveEditorLayout,
-        curve_model: CurveModel | None = None,
+        curve_model: GroupedKeysModel | None = None,
         on_visibility_changed: Callable[[str, bool], None] | None = None,
         on_create_curve: Callable[[str], None] | None = None,
         on_delete_curve: Callable[[str], None] | None = None,
-    ):
+    ) -> None:
+        """Create a hierarchical curve tree panel.
+
+        Args:
+            layout: Curve editor hierarchy and curve display metadata.
+            curve_model: Grouped-key model used to show authored state.
+            on_visibility_changed: Optional callback when a curve visibility toggle changes.
+            on_create_curve: Optional callback when the add icon is clicked.
+            on_delete_curve: Optional callback when the delete icon is clicked.
+        """
         self._model = CurveTreeModel(layout, curve_model)
         self._delegate = CurveTreeDelegate(on_visibility_changed, on_create_curve, on_delete_curve)
         self._tree = ScrollingTreeWidget(
@@ -271,12 +303,13 @@ class CurveTreePanel:
             root_visible=False,
         )
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Re-check curve data state and redraw icons."""
         self._model.refresh_has_data()
         self._tree.dirty_widgets()
 
-    def destroy(self):
+    def destroy(self) -> None:
+        """Release tree widget and delegate references."""
         self._tree = None
         if self._delegate:
             self._delegate.destroy()

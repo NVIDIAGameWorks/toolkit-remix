@@ -25,7 +25,7 @@ from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _P
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import get_test_data_path, open_stage, wait_stage_loading
-from pxr import Gf, Sdf
+from pxr import Gf, Sdf, UsdGeom, UsdLux
 
 WINDOW_HEIGHT = 1000
 WINDOW_WIDTH = 1436
@@ -77,8 +77,8 @@ class TestUSDPropertiesWidget(AsyncTestCase):
             await omni.kit.ui_test.emulate_char_press(char)
             await omni.kit.ui_test.wait_n_updates(1)
 
-    def __find_xform_widgets(self, window_title: str, xform_op_name: str):
-        attribute_path = f"/Xform/Cube.xformOp:{xform_op_name}"
+    def __find_xform_widgets(self, window_title: str, xform_op_name: str, prim_path: str = "/Xform/Cube"):
+        attribute_path = f"{prim_path}.xformOp:{xform_op_name}"
         widgets = ui_test.find_all(
             f"{window_title}//Frame/**/FloatBoundedDrag[*].identifier=="
             f"'{attribute_path},{attribute_path},{attribute_path}'"
@@ -88,6 +88,43 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
     def __find_translate_widgets(self, window_title: str):
         return self.__find_xform_widgets(window_title, "translate")
+
+    @staticmethod
+    def __visible(selector: str):
+        return [
+            widget
+            for widget in ui_test.find_all(selector)
+            if widget.widget.visible and widget.widget.computed_width > 0 and widget.widget.computed_height > 0
+        ]
+
+    async def __replace_focused_float_value(self, value: str, end_key: carb.input.KeyboardInput) -> None:
+        for _ in range(8):
+            await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.BACKSPACE)
+        await self.__type_text(value)
+        await ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(end_key)
+        await omni.kit.ui_test.wait_n_updates(5)
+
+    async def __replace_float_value(
+        self, widget: ui_test.WidgetRef, value: str, end_key: carb.input.KeyboardInput
+    ) -> None:
+        await widget.click()
+        await ui_test.human_delay()
+        await widget.double_click()
+        await ui_test.human_delay()
+        await self.__replace_focused_float_value(value, end_key)
+
+    async def __reset_row_value(self, window_title: str, row_widget: ui_test.WidgetRef) -> None:
+        indicators = [
+            indicator
+            for indicator in self.__visible(
+                f"{window_title}//Frame/**/Circle[*].style_type_name_override=='OverrideIndicator'"
+            )
+            if abs(indicator.center.y - row_widget.center.y) <= 8 and indicator.center.x < row_widget.center.x
+        ]
+        self.assertGreater(len(indicators), 0, "Expected row reset indicator to be visible.")
+        await min(indicators, key=lambda indicator: row_widget.center.x - indicator.center.x).click()
+        await ui_test.human_delay()
 
     async def test_setting_a_value_by_script_update_ui(self):
         """
@@ -113,6 +150,36 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
         # we check that the value of the UI element changed
         self.assertAlmostEqual(property_branches[0].widget.model.get_value_as_float(), 123456789.0, places=5)
+
+        await self.__destroy(_window, _widget)
+
+    async def test_light_transform_tab_keeps_next_channel_editable_after_row_reset(self):
+        """Tabbing from X to Y should preserve focus after resetting the transform row."""
+        # setup
+        _window, _widget = await self.__setup_widget()
+        usd_context = omni.usd.get_context(_CONTEXT_NAME)
+        stage = usd_context.get_stage()
+        light_path = "/Xform/FocusLight"
+        light = UsdLux.SphereLight.Define(stage, light_path)
+        translate_attr = UsdGeom.Xformable(light.GetPrim()).AddTranslateOp().GetAttr()
+        translate_attr.Set(Gf.Vec3d(0.0, 0.0, 0.0))
+        usd_context.get_selection().set_selected_prim_paths([light_path], False)
+        _widget.refresh([light_path])
+        await omni.kit.ui_test.wait_n_updates(15)
+
+        widgets = self.__find_xform_widgets(_window.title, "translate", prim_path=light_path)
+        await self.__replace_float_value(widgets[0], "1.25", carb.input.KeyboardInput.ENTER)
+        self.assertAlmostEqual(translate_attr.Get()[0], 1.25, places=5)
+
+        await self.__reset_row_value(_window.title, widgets[0])
+        self.assertEqual(translate_attr.Get(), Gf.Vec3d(0.0, 0.0, 0.0))
+
+        widgets = self.__find_xform_widgets(_window.title, "translate", prim_path=light_path)
+        await self.__replace_float_value(widgets[0], "2.5", carb.input.KeyboardInput.TAB)
+        await self.__replace_focused_float_value("3.5", carb.input.KeyboardInput.ENTER)
+
+        self.assertAlmostEqual(translate_attr.Get()[0], 2.5, places=5)
+        self.assertAlmostEqual(translate_attr.Get()[1], 3.5, places=5)
 
         await self.__destroy(_window, _widget)
 

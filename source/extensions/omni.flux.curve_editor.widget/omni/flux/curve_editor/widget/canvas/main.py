@@ -25,22 +25,20 @@ This is the primary display area for curve editing. It:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from collections.abc import Callable
 
 import carb.input
 import omni.appwindow
 import omni.kit.app
 from omni import ui
-from omni.flux.fcurve.widget import CurveBounds, FCurveWidget, SelectionInfo
+from omni.flux.fcurve.widget import CurveBounds, FCurve, FCurveWidget, SelectionInfo
+from omni.flux.utils.widget import GroupedKeysModel
 
 from .grid import GridRenderer
 from .rulers import TimelineRuler, ValueRuler
 from .ticks import compute_nice_interval, format_value
 from .viewport import ViewportState
-
-if TYPE_CHECKING:
-    from ..model import CurveModel
+from ..payload import curve_to_payload, payload_to_curve
 
 __all__ = ["CurveEditorCanvas"]
 
@@ -53,7 +51,7 @@ class CurveEditorCanvas:
     - Hosts FCurveWidget for curve rendering
     - Handles pan/zoom gestures (mouse wheel, RMB drag)
     - Renders grid
-    - Wires FCurveWidget events to CurveModel
+    - Wires FCurveWidget events to GroupedKeysModel
 
     Visual appearance cascades from the parent's name-based style.
 
@@ -71,7 +69,7 @@ class CurveEditorCanvas:
 
     def __init__(
         self,
-        model: CurveModel,
+        model: GroupedKeysModel,
         per_curve_bounds: dict[str, CurveBounds] | None = None,
         ruler_size: int = 24,
         zoom_factor_base: float = 1.1,
@@ -81,7 +79,21 @@ class CurveEditorCanvas:
         grid_min_viewport_size: int = 10,
         on_selection_changed: Callable[[SelectionInfo], None] | None = None,
         on_curve_changed: Callable[[str], None] | None = None,
-    ):
+    ) -> None:
+        """Create the curve editor canvas.
+
+        Args:
+            model: Grouped-key model used to read/write curve payloads.
+            per_curve_bounds: Optional per-curve viewport bounds.
+            ruler_size: Ruler width/height in pixels.
+            zoom_factor_base: Scroll-wheel zoom factor base.
+            grid_time_divisions: Target number of time-axis grid divisions.
+            grid_value_divisions: Target number of value-axis grid divisions.
+            grid_margin: Grid pixel margin.
+            grid_min_viewport_size: Minimum viewport dimension before grid is hidden.
+            on_selection_changed: Optional callback for selection changes.
+            on_curve_changed: Optional callback after a curve payload is committed.
+        """
         self._model = model
         self._per_curve_bounds = per_curve_bounds or {}
         self._ruler_size = ruler_size
@@ -327,14 +339,18 @@ class CurveEditorCanvas:
     # Event Handlers
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _commit_to_storage(self, curve_id: str, curve) -> None:
+    def _commit_to_storage(self, curve_id: str, curve: FCurve) -> None:
         """
         Synchronous commit callback for FCurveWidget.
 
         Called by FCurveWidget BEFORE it fires curve_changed event.
         This ensures storage is always up-to-date when subscribers react.
+
+        Args:
+            curve_id: Curve id being committed.
+            curve: FCurve-like object supplied by ``FCurveWidget``.
         """
-        self._model.commit_curve(curve_id, curve)
+        self._model.commit_payload(curve_id, curve_to_payload(curve))
 
     def _on_curve_changed(self, curve_id: str) -> None:
         """
@@ -407,8 +423,8 @@ class CurveEditorCanvas:
             return
 
         curves = {}
-        for curve_id in self._model.get_curve_ids():
-            curve = self._model.get_curve(curve_id)
+        for curve_id in self._model.group_ids:
+            curve = payload_to_curve(curve_id, self._model.get_payload(curve_id))
             if curve:
                 if curve_id in self._curve_colors:
                     curve.color = self._curve_colors[curve_id]

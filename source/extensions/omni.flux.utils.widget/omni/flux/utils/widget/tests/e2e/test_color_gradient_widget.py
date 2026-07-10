@@ -24,6 +24,7 @@ import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
 
+from omni.flux.utils.widget import InMemoryGroupedKeysModel
 from omni.flux.utils.widget.color_gradient import (
     ColorGradientWidget,
     _GRADIENT_BORDER_RADIUS,
@@ -34,6 +35,34 @@ from omni.flux.utils.widget.color_gradient import (
     _POPUP_MIN_WIDTH,
     _get_local_style,
 )
+
+_GROUP_ID = "gradient"
+
+
+def _payload_from_keyframes(keyframes):
+    return {
+        "times": [time for time, _color in keyframes],
+        "values": [color for _time, color in keyframes],
+    }
+
+
+class _LoggingGroupedKeysModel(InMemoryGroupedKeysModel):
+    def __init__(self, payload=None):
+        payloads = {_GROUP_ID: payload} if payload is not None else None
+        super().__init__(group_ids=[_GROUP_ID], payloads=payloads)
+        self.commit_log = []
+        self.begin_log = []
+        self.end_log = []
+
+    def commit_payload(self, group_id: str, payload: dict) -> None:
+        super().commit_payload(group_id, payload)
+        self.commit_log.append((group_id, payload))
+
+    def begin_edit(self, group_id: str) -> None:
+        self.begin_log.append(group_id)
+
+    def end_edit(self, group_id: str) -> None:
+        self.end_log.append(group_id)
 
 
 async def _wait_updates(n: int = 3):
@@ -54,30 +83,28 @@ class TestColorGradientWidget(omni.kit.test.AsyncTestCase):
             position_y=0,
         )
         self._gradient_widget = None
-        self._last_callback_times = None
-        self._last_callback_values = None
+        self._gradient_model = None
 
     async def tearDown(self):
         if self._gradient_widget:
             self._gradient_widget.destroy()
             self._gradient_widget = None
+        if self._gradient_model:
+            self._gradient_model.destroy()
+            self._gradient_model = None
         if self._window:
             self._window.destroy()
             self._window = None
 
-    def _on_gradient_changed(self, times, values):
-        self._last_callback_times = times
-        self._last_callback_values = values
-
-    def _build_widget(self, keyframes=None, default_color=None, read_only=False, on_gradient_changed_fn=None):
+    def _build_widget(self, keyframes=None, default_color=None, read_only=False):
+        self._gradient_model = _LoggingGroupedKeysModel(
+            _payload_from_keyframes(keyframes) if keyframes is not None else None
+        )
         kwargs = {
-            "on_gradient_changed_fn": on_gradient_changed_fn
-            if on_gradient_changed_fn is not None
-            else self._on_gradient_changed,
+            "model": self._gradient_model,
+            "group_id": _GROUP_ID,
             "read_only": read_only,
         }
-        if keyframes is not None:
-            kwargs["keyframes"] = keyframes
         if default_color is not None:
             kwargs["default_color"] = default_color
         with self._window.frame:
@@ -217,19 +244,44 @@ class TestColorGradientWidget(omni.kit.test.AsyncTestCase):
         self._gradient_widget.destroy()
         self._gradient_widget = None
 
+    async def test_destroy_ends_active_model_edit(self):
+        """destroy() should finish an active edit before releasing the model."""
+        self._build_widget(keyframes=[(0.5, (1.0, 1.0, 1.0, 1.0))])
+        await _wait_updates()
+
+        self._gradient_widget._fire_drag_started()
+        self._gradient_widget.destroy()
+
+        self.assertEqual([_GROUP_ID], self._gradient_model.begin_log)
+        self.assertEqual([_GROUP_ID], self._gradient_model.end_log)
+        self._gradient_widget = None
+
+    async def test_destroy_ignores_late_drag_end_after_model_release(self):
+        """destroy() should tolerate late drag-end callbacks after the model is released."""
+        self._build_widget(keyframes=[(0.5, (1.0, 1.0, 1.0, 1.0))])
+        await _wait_updates()
+
+        self._gradient_widget._is_editing_model = True
+        self._gradient_widget._model = None
+        self._gradient_widget.destroy()
+
+        self.assertFalse(self._gradient_widget._is_editing_model)
+        self.assertEqual([], self._gradient_model.end_log)
+        self._gradient_widget = None
+
     # ------------------------------------------------------------------
-    # Callback firing
+    # Model commit behavior
     # ------------------------------------------------------------------
 
-    async def test_callback_not_fired_on_set_keyframes(self):
-        """set_keyframes should NOT fire the on_gradient_changed_fn callback."""
+    async def test_set_keyframes_does_not_commit_payload(self):
+        """set_keyframes updates local UI state without writing to the model."""
         self._build_widget()
         await _wait_updates()
 
         self._gradient_widget.set_keyframes([(0.0, (1.0, 0.0, 0.0, 1.0))])
         await _wait_updates()
 
-        self.assertIsNone(self._last_callback_times)
+        self.assertEqual(self._gradient_model.commit_log, [])
 
     # ------------------------------------------------------------------
     # Bar click → keyframe creation
@@ -286,8 +338,8 @@ class TestColorGradientWidget(omni.kit.test.AsyncTestCase):
         self.assertAlmostEqual(color[2], 0.5, delta=0.1)  # blue rising
         self.assertAlmostEqual(color[3], 1.0, delta=0.05)  # alpha stays 1
 
-    async def test_bar_release_fires_callback(self):
-        """Releasing on the popup gradient bar should fire the on_gradient_changed callback."""
+    async def test_bar_release_commits_payload(self):
+        """Releasing on the popup gradient bar should commit the updated payload."""
         self._build_widget(
             keyframes=[
                 (0.0, (1.0, 0.0, 0.0, 1.0)),
@@ -297,15 +349,15 @@ class TestColorGradientWidget(omni.kit.test.AsyncTestCase):
         await _wait_updates(10)
         await self._show_widget_popup()
 
-        self.assertIsNone(self._last_callback_times)
+        self._gradient_model.commit_log.clear()
 
         bar = self._gradient_widget._popup_gradient_overlay
         click_x = bar.screen_position_x + bar.computed_width * 0.25
         self._gradient_widget._on_popup_bar_released(click_x, 0.0, 0, 0)
         await _wait_updates()
 
-        self.assertIsNotNone(self._last_callback_times)
-        self.assertEqual(len(self._last_callback_times), 3)
+        self.assertEqual(len(self._gradient_model.commit_log), 1)
+        self.assertEqual(len(self._gradient_model.commit_log[0][1]["times"]), 3)
 
     async def test_marker_scale_matches_gradient_length(self):
         """Triangle marker tips (centers) at time 0 and 1 should align with gradient bar edges."""
@@ -669,10 +721,10 @@ class TestColorGradientWidget(omni.kit.test.AsyncTestCase):
         # The default color should be updated
         self.assertEqual(self._gradient_widget._default_color, new_color)
 
-        # The callback should have been fired with empty lists
-        self.assertIsNotNone(self._last_callback_times)
-        self.assertEqual(len(self._last_callback_times), 0)
-        self.assertEqual(len(self._last_callback_values), 0)
+        # The model should receive an empty gradient payload.
+        self.assertGreater(len(self._gradient_model.commit_log), 0)
+        self.assertEqual(self._gradient_model.commit_log[-1][1]["times"], [])
+        self.assertEqual(self._gradient_model.commit_log[-1][1]["values"], [])
 
     async def test_edit_row_no_clipping_at_various_widths(self):
         """Presets button and gradient bar should remain visible at various window widths."""
@@ -999,13 +1051,12 @@ class TestColorGradientWidget(omni.kit.test.AsyncTestCase):
         )
 
     # ------------------------------------------------------------------
-    # Callback contract / undo grouping
+    # Model contract / edit lifecycle
     # ------------------------------------------------------------------
 
-    async def test_gradient_changed_callback_fires_once_per_add(self):
-        """on_gradient_changed_fn fires exactly once when a keyframe is added."""
-        call_log = []
-        self._build_widget(on_gradient_changed_fn=lambda t, v: call_log.append((list(t), [tuple(c) for c in v])))
+    async def test_commit_payload_fires_once_per_add(self):
+        """Adding a keyframe commits one complete gradient payload."""
+        self._build_widget()
         await _wait_updates()
 
         # Simulate click-to-add by calling the internal handler directly
@@ -1017,81 +1068,41 @@ class TestColorGradientWidget(omni.kit.test.AsyncTestCase):
         self._gradient_widget._refresh_all()
         await _wait_updates()
 
-        self.assertEqual(len(call_log), 1, "callback should fire exactly once per add")
-        self.assertAlmostEqual(call_log[0][0][0], 0.5)
+        self.assertEqual(len(self._gradient_model.commit_log), 1)
+        group_id, payload = self._gradient_model.commit_log[0]
+        self.assertEqual(group_id, _GROUP_ID)
+        self.assertAlmostEqual(payload["times"][0], 0.5)
 
-    async def test_gradient_changed_callback_fires_once_on_drag_end(self):
-        """on_gradient_changed_fn fires on drag moves and on release."""
-        call_log = []
-        self._build_widget(
-            keyframes=[(0.5, (1.0, 0.0, 0.0, 1.0))],
-            on_gradient_changed_fn=lambda t, v: call_log.append((list(t), [tuple(c) for c in v])),
-        )
+    async def test_drag_commits_during_moves_and_ends_edit_on_release(self):
+        """Dragging writes live payloads and closes the model edit on release."""
+        self._build_widget(keyframes=[(0.5, (1.0, 0.0, 0.0, 1.0))])
         await _wait_updates(10)
         await self._show_widget_popup()
 
         uid = self._gradient_widget._keyframes[0].uid
         self._gradient_widget._on_marker_pressed(uid, 0)
-        call_log.clear()
+        self._gradient_model.commit_log.clear()
 
         self._gradient_widget._on_marker_dragged(uid, ui.Percent(30.0))
         self._gradient_widget._on_marker_dragged(uid, ui.Percent(20.0))
         await _wait_updates()
 
-        move_count = len(call_log)
-        self.assertGreater(move_count, 0, "callback fires during drag moves")
+        move_count = len(self._gradient_model.commit_log)
+        self.assertEqual(self._gradient_model.begin_log, [_GROUP_ID])
+        self.assertGreater(move_count, 0, "drag moves should commit live payloads")
 
         self._gradient_widget._on_marker_released(uid, 0)
         await _wait_updates()
 
-        self.assertGreater(len(call_log), move_count, "callback fires on release too")
+        self.assertEqual(len(self._gradient_model.commit_log), move_count)
+        self.assertEqual(self._gradient_model.end_log, [_GROUP_ID])
 
-    async def test_drag_does_not_fire_changed_during_move(self):
-        """Dragging a marker fires changed on each move and on release."""
-        call_log = []
-        self._build_widget(
-            keyframes=[(0.5, (1.0, 0.0, 0.0, 1.0))],
-            on_gradient_changed_fn=lambda t, v: call_log.append(list(t)),
-        )
-        await _wait_updates(10)
-        await self._show_widget_popup()
-
-        uid = self._gradient_widget._keyframes[0].uid
-        self._gradient_widget._on_marker_pressed(uid, 0)
-        await _wait_updates(2)
-
-        call_log.clear()
-        for pct in [40.0, 30.0, 20.0, 10.0]:
-            self._gradient_widget._on_marker_dragged(uid, ui.Percent(pct))
-        await _wait_updates(3)
-
-        self.assertGreater(len(call_log), 0, "changed callback fires during drag moves")
-
-        self._gradient_widget._on_marker_released(uid, 0)
-        await _wait_updates(3)
-
-    async def test_drag_produces_single_undoable_commit(self):
-        """A complete drag produces exactly one on_gradient_changed_fn call.
-
-        The caller (USD layer) wraps each call in a single undo group, so one call = one
-        undo step.  Moving a marker through many intermediate positions must result in a
-        single undo step that returns the marker all the way back to its starting position,
-        not just one increment.
-        """
+    async def test_drag_lifecycle_final_payload_matches_widget_state(self):
+        """A complete drag leaves the model with the same final payload shown by the widget."""
         initial_time = 0.5
         initial_color = (1.0, 0.0, 0.0, 1.0)
 
-        # Simple undo stack mirroring what the USD layer does: each entry is the full
-        # (times, values) snapshot passed to on_gradient_changed_fn.
-        undo_stack = [([initial_time], [initial_color])]  # pre-drag baseline
-
-        def on_changed(times, values):
-            undo_stack.append((list(times), [tuple(c) for c in values]))
-
-        self._build_widget(
-            keyframes=[(initial_time, initial_color)],
-            on_gradient_changed_fn=on_changed,
-        )
+        self._build_widget(keyframes=[(initial_time, initial_color)])
         await _wait_updates(10)
         await self._show_widget_popup()
 
@@ -1102,45 +1113,16 @@ class TestColorGradientWidget(omni.kit.test.AsyncTestCase):
         self._gradient_widget._on_marker_released(uid, 0)
         await _wait_updates(3)
 
-        # At least one callback should have fired (may be more with per-move firing).
-        self.assertGreater(
-            len(undo_stack),
-            1,
-            "A drag must produce at least one on_gradient_changed_fn call",
-        )
-
-        # The single entry reflects the final position.
-        drag_final_time = undo_stack[-1][0][0]
+        self.assertEqual(self._gradient_model.begin_log, [_GROUP_ID])
+        self.assertEqual(self._gradient_model.end_log, [_GROUP_ID])
+        self.assertGreater(len(self._gradient_model.commit_log), 0)
+        drag_final_time = self._gradient_model.commit_log[-1][1]["times"][0]
         actual_final_time = self._gradient_widget.get_keyframes()[0][0]
         self.assertAlmostEqual(
             drag_final_time,
             actual_final_time,
             places=4,
-            msg="The single undo-stack entry must capture the final drag position",
-        )
-
-        # Simulate undo: restore the pre-drag baseline (first entry).
-        pre_times, pre_values = undo_stack[0]
-        self._gradient_widget.set_keyframes(list(zip(pre_times, pre_values)))
-        await _wait_updates(3)
-
-        self.assertAlmostEqual(
-            self._gradient_widget.get_keyframes()[0][0],
-            initial_time,
-            places=4,
-            msg="After undo the keyframe must return to its pre-drag time",
-        )
-
-        # Simulate redo: re-apply the drag entry.
-        redo_times, redo_values = undo_stack[-1]
-        self._gradient_widget.set_keyframes(list(zip(redo_times, redo_values)))
-        await _wait_updates(3)
-
-        self.assertAlmostEqual(
-            self._gradient_widget.get_keyframes()[0][0],
-            drag_final_time,
-            places=4,
-            msg="After redo the keyframe must return to the post-drag time",
+            msg="The final model payload must capture the final drag position",
         )
         self.assertNotAlmostEqual(
             self._gradient_widget.get_keyframes()[0][0],

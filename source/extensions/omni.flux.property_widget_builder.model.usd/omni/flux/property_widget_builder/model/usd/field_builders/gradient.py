@@ -17,32 +17,22 @@
 
 from __future__ import annotations
 
-import contextlib
-from collections.abc import Callable
 from typing import Any
 
-import carb
-import omni.kit.commands
 import omni.ui as ui
-import omni.usd
 from omni.flux.property_widget_builder.widget import ClaimResult, FieldBuilder, Item
-from omni.flux.utils.common.interactive_usd_notices import begin_interaction as _begin_interaction
-from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices as _defer_usd_notices
-from omni.flux.utils.common.interactive_usd_notices import end_interaction as _end_interaction
+from omni.flux.utils.common.interactive_usd_notices import InteractionToken
 from omni.flux.utils.widget.color_gradient import ColorGradientWidget
-from pxr import Sdf, Tf, Usd
+from pxr import Sdf
 
-from ..extension import get_usd_listener_instance as _get_usd_listener_instance
+from ..grouped_keys_primvar import PropertyGroupedKeysModel
 from ..items import _BaseUSDAttributeItem
-from ..listener import DisableAllListenersBlock as _DisableAllListenersBlock
+from ..logical_group_constants import GRADIENT_LOGICAL_GROUP_DEFINITION, GRADIENT_LOGICAL_SUFFIXES
 from .base import _generate_identifier
 
 __all__ = ("GRADIENT_FIELD_BUILDERS", "UsdColorGradientWidget")
 
-_GRADIENT_SUFFIXES = frozenset({"times", "values"})
 _PRIMARY_SUFFIX = "values"
-_PRIMVAR_PREFIX = "primvars:"
-_PreOpenCallback = Callable[[Callable[[], None]], None]
 _FIELD_LEADING_SPACER_WIDTH = 8
 
 _COLOR_ARRAY_TYPES = {
@@ -65,7 +55,15 @@ def _is_color_array(item: _BaseUSDAttributeItem) -> bool:
 
 
 def _claim_gradients(items: list[Item]) -> ClaimResult:
-    """Bucket items by base name; satisfy only when both suffixes present and values is a color array."""
+    """Bucket items by base name; satisfy only when both suffixes present and values is a color array.
+
+    Args:
+        items: Property-panel items to scan for gradient suffix companions.
+
+    Returns:
+        Claim result containing the primary gradient rows and companion rows
+        consumed by those primaries.
+    """
     groups: dict[str, dict[str, Item]] = {}
     for item in items:
         if not isinstance(item, _BaseUSDAttributeItem):
@@ -74,7 +72,7 @@ def _claim_gradients(items: list[Item]) -> ClaimResult:
         if not attr_paths:
             continue
         parts = attr_paths[0].name.rsplit(":", 1)
-        if len(parts) != 2 or parts[1] not in _GRADIENT_SUFFIXES:
+        if len(parts) != 2 or parts[1] not in GRADIENT_LOGICAL_SUFFIXES:
             continue
         if parts[1] == "values" and not _is_color_array(item):
             continue
@@ -83,306 +81,84 @@ def _claim_gradients(items: list[Item]) -> ClaimResult:
     primary: list[Item] = []
     companions: list[Item] = []
     for collected in groups.values():
-        if collected.keys() < _GRADIENT_SUFFIXES:
+        if collected.keys() < GRADIENT_LOGICAL_SUFFIXES:
             continue
+        logical_group_items = [collected[suffix] for suffix in sorted(GRADIENT_LOGICAL_SUFFIXES)]
+        collected[_PRIMARY_SUFFIX].logical_group_items = logical_group_items
+        collected[_PRIMARY_SUFFIX].logical_group_definition = GRADIENT_LOGICAL_GROUP_DEFINITION
         for suffix, item in collected.items():
             (primary if suffix == _PRIMARY_SUFFIX else companions).append(item)
 
     return ClaimResult(primary=primary, companions=companions)
 
 
-# ---------------------------------------------------------------------------
-# USD helpers
-# ---------------------------------------------------------------------------
-
-
-def _read_gradient(context_name: str, prim_path: str, base_name: str):
-    """Read times + color values from USD, return keyframes list."""
-    stage = omni.usd.get_context(context_name).get_stage()
-    prim = stage.GetPrimAtPath(prim_path)
-    times_attr = prim.GetAttribute(f"{base_name}:times")
-    values_attr = prim.GetAttribute(f"{base_name}:values")
-    times = times_attr.Get() or []
-    values = values_attr.Get() or []
-    return [(float(t), tuple(float(c) for c in v)) for t, v in zip(times, values)]
-
-
-def _snapshot_gradient(context_name: str, prim_path: str, base_name: str) -> dict[str, Any]:
-    """Snapshot current times + values for undo."""
-    stage = omni.usd.get_context(context_name).get_stage()
-    prim = stage.GetPrimAtPath(prim_path)
-    result = {}
-    for suffix in ("times", "values"):
-        attr = prim.GetAttribute(f"{base_name}:{suffix}")
-        result[suffix] = attr.Get() if attr and attr.IsValid() else None
-    return result
-
-
-@contextlib.contextmanager
-def _suppress_panel_listener():
-    """Suppress the property panel's USD listener if available."""
-    listener = _get_usd_listener_instance()
-    if listener:
-        with _DisableAllListenersBlock(listener):
-            yield
-    else:
-        yield
-
-
-def _write_gradient_direct(context_name: str, prim_path: str, base_name: str, times, values):
-    """Write gradient to USD directly (no command, no undo entry). Suppresses panel listener."""
-    stage = omni.usd.get_context(context_name).get_stage()
-    with _defer_usd_notices(stage), _suppress_panel_listener():
-        prim = stage.GetPrimAtPath(prim_path)
-        prim.GetAttribute(f"{base_name}:times").Set(times)
-        prim.GetAttribute(f"{base_name}:values").Set(values)
-
-
-def _restore_gradient(context_name: str, prim_path: str, base_name: str, old_values: dict[str, Any]):
-    """Restore snapshotted gradient values (for undo). Suppresses panel listener."""
-    stage = omni.usd.get_context(context_name).get_stage()
-    with _defer_usd_notices(stage), _suppress_panel_listener():
-        prim = stage.GetPrimAtPath(prim_path)
-        for suffix, value in old_values.items():
-            attr = prim.GetAttribute(f"{base_name}:{suffix}")
-            if attr and attr.IsValid() and value is not None:
-                attr.Set(value)
-
-
-# ---------------------------------------------------------------------------
-# Kit Command
-# ---------------------------------------------------------------------------
-
-
-class SetGradientPrimvarsCommand(omni.kit.commands.Command):
-    """Atomically set gradient primvars (times + values) with undo support.
-
-    Args:
-        prim_path: USD prim path.
-        base_name: Primvar base name (e.g. "primvars:particle:color").
-        times: New time values.
-        values: New color values.
-        usd_context_name: USD context name.
-        old_values: Pre-captured old values for undo (from drag snapshot).
-    """
-
-    def __init__(
-        self,
-        prim_path: str,
-        base_name: str,
-        times: list,
-        values: list,
-        usd_context_name: str = "",
-        old_values: dict[str, Any] | None = None,
-    ):
-        self._prim_path = prim_path
-        self._base_name = base_name
-        self._times = times
-        self._values = values
-        self._usd_context_name = usd_context_name
-        self._old_values: dict[str, Any] | None = old_values
-
-    def do(self) -> None:
-        if self._old_values is None:
-            self._old_values = _snapshot_gradient(self._usd_context_name, self._prim_path, self._base_name)
-        _write_gradient_direct(self._usd_context_name, self._prim_path, self._base_name, self._times, self._values)
-
-    def undo(self) -> None:
-        _restore_gradient(self._usd_context_name, self._prim_path, self._base_name, self._old_values)
-
-
-omni.kit.commands.register(SetGradientPrimvarsCommand)
-
-
-# ---------------------------------------------------------------------------
-# USD-aware gradient widget
-# ---------------------------------------------------------------------------
-
-
 class UsdColorGradientWidget(ColorGradientWidget):
-    """ColorGradientWidget with USD undo support.
+    """Thin ColorGradientWidget adapter that delegates USD behavior to its row item."""
 
-    RAII: registers Tf.Notice on popup open, revokes on popup close.
-    All USD writes go through Kit commands for undo/redo.
-    Continuous edits (drag, color picker) are grouped into single undo entries.
-    Stage Manager notices stay deferred until the popup edit ends.
-    """
+    def __init__(self, model: PropertyGroupedKeysModel, **kwargs: Any) -> None:
+        """Create a gradient widget bound to the row-owned USD grouped-key model.
 
-    def __init__(
-        self,
-        context_name: str,
-        prim_path: str,
-        base_name: str,
-        pre_open_callback: _PreOpenCallback | None = None,
-        **kwargs,
-    ):
-        self._usd_context_name = context_name
-        self._usd_prim_path = prim_path
-        self._usd_base_name = base_name
-        self._pre_open_callback = pre_open_callback
-        self._usd_listener = None
-        self._is_writing = False
-        self._is_dragging = False
-        self._drag_committed = False
-        self._drag_snapshot: dict[str, Any] = {}
-        self._usd_notice_token = None
-
-        keyframes = _read_gradient(context_name, prim_path, base_name)
+        Args:
+            model: USD grouped-key model that reads/writes the gradient payload.
+            **kwargs: UI construction options forwarded to ``ColorGradientWidget``.
+        """
+        self._model = model
+        group_ids = model.group_ids
         super().__init__(
-            keyframes=keyframes,
-            on_gradient_changed_fn=self._on_usd_changed_callback,
+            model=model,
+            group_id=group_ids[0],
             **kwargs,
         )
-        self.subscribe_drag_started_fn(self._on_usd_drag_started)
-        self.subscribe_drag_ended_fn(self._on_usd_drag_ended)
+
+    @property
+    def _usd_notice_token(self) -> InteractionToken | None:
+        """Return the row model's active USD notice token for compatibility with older tests.
+
+        Returns:
+            Active interaction token, or ``None`` when the popup edit session is closed.
+        """
+        return self._model.usd_notice_token
 
     def _show_popup(self) -> None:
-        if callable(self._pre_open_callback):
-            self._pre_open_callback(self._show_popup_after_pre_open)
+        """Run any row pre-open work before showing the gradient popup."""
+        if callable(self._model.pre_open_callback):
+            self._model.pre_open_callback(self._show_popup_after_pre_open)
             return
 
         self._show_popup_impl()
 
     def _show_popup_after_pre_open(self) -> None:
-        """Reload authored gradient values before opening after pre-open work."""
-        self._reload_from_usd()
+        """Continue popup opening after pre-open work; the base popup path refreshes model data."""
         self._show_popup_impl()
 
     def _show_popup_impl(self) -> None:
-        super()._show_popup()
-        self._drag_committed = False
-        if self._usd_notice_token is None:
-            self._usd_notice_token = _begin_interaction(omni.usd.get_context(self._usd_context_name).get_stage())
-        if not self._usd_listener:
-            self._usd_listener = Tf.Notice.Register(
-                Usd.Notice.ObjectsChanged,
-                self._on_usd_notice,
-                omni.usd.get_context(self._usd_context_name).get_stage(),
-            )
-
-    def _hide_popup(self) -> None:
+        """Begin the row edit session and show the base gradient popup."""
+        self._model.begin_session()
         try:
-            super()._hide_popup()
-        finally:
-            try:
-                self._revoke_usd_listener()
-            finally:
-                self._finish_gradient_edit()
+            super()._show_popup()
+        except Exception:
+            self._model.finish_session()
+            raise
 
     def _on_window_close(self, visible: bool) -> None:
+        """Finish the row edit session when the popup window becomes hidden.
+
+        Args:
+            visible: Current popup window visibility.
+        """
         super()._on_window_close(visible)
-        if not visible:
-            try:
-                self._revoke_usd_listener()
-            finally:
-                self._finish_gradient_edit()
+        if not visible and self._model is not None:
+            self._model.finish_session()
 
-    def destroy(self):
-        """Release callback references and USD edit listeners owned by this widget."""
-        self._pre_open_callback = None
+    def destroy(self) -> None:
+        """Release callback references and row-owned edit listeners."""
+        model = self._model
         try:
-            self._revoke_usd_listener()
+            super().destroy()
         finally:
-            try:
-                self._finish_gradient_edit()
-            finally:
-                super().destroy()
-
-    def _revoke_usd_listener(self) -> None:
-        listener = self._usd_listener
-        self._usd_listener = None
-        if listener is not None:
-            try:
-                listener.Revoke()
-            except (Tf.ErrorException, RuntimeError) as exc:
-                carb.log_warn(f"Failed to revoke gradient USD notice listener: {exc}")
-
-    def _on_usd_changed_callback(self, times, values):
-        # The base widget fires _fire_changed() immediately after _fire_drag_ended().
-        # Since drag-end already committed a command, suppress this redundant write.
-        if self._drag_committed:
-            self._drag_committed = False
-            return
-        if self._is_dragging:
-            self._is_writing = True
-            try:
-                _write_gradient_direct(self._usd_context_name, self._usd_prim_path, self._usd_base_name, times, values)
-            finally:
-                self._is_writing = False
-        else:
-            self._is_writing = True
-            try:
-                omni.kit.commands.execute(
-                    "SetGradientPrimvars",
-                    prim_path=self._usd_prim_path,
-                    base_name=self._usd_base_name,
-                    times=times,
-                    values=values,
-                    usd_context_name=self._usd_context_name,
-                )
-            finally:
-                self._is_writing = False
-
-    def _on_usd_drag_started(self):
-        self._is_dragging = True
-        self._drag_snapshot = _snapshot_gradient(self._usd_context_name, self._usd_prim_path, self._usd_base_name)
-
-    def _on_usd_drag_ended(self):
-        self._finish_usd_drag()
-
-    def _finish_usd_drag(self) -> None:
-        self._is_dragging = False
-        if not self._drag_snapshot:
-            self._drag_committed = False
-            return
-        current = _snapshot_gradient(self._usd_context_name, self._usd_prim_path, self._usd_base_name)
-        if current == self._drag_snapshot:
-            self._drag_snapshot = {}
-            self._drag_committed = False
-            return
-        self._is_writing = True
-        try:
-            omni.kit.commands.execute(
-                "SetGradientPrimvars",
-                prim_path=self._usd_prim_path,
-                base_name=self._usd_base_name,
-                times=current.get("times", []),
-                values=current.get("values", []),
-                usd_context_name=self._usd_context_name,
-                old_values=self._drag_snapshot,
-            )
-        finally:
-            self._is_writing = False
-        self._drag_snapshot = {}
-        self._drag_committed = True
-
-    def _finish_gradient_edit(self) -> None:
-        try:
-            self._finish_usd_drag()
-        finally:
-            token = self._usd_notice_token
-            self._usd_notice_token = None
-            if token is not None:
-                _end_interaction(token)
-
-    def _on_usd_notice(self, notice: Usd.Notice.ObjectsChanged, stage: Usd.Stage):
-        if self._is_writing:
-            return
-        if stage != omni.usd.get_context(self._usd_context_name).get_stage():
-            return
-        prefix = f"{self._usd_prim_path}.{self._usd_base_name}"
-        for path in notice.GetChangedInfoOnlyPaths():
-            if str(path).startswith(prefix):
-                self._reload_from_usd()
-                return
-        for path in notice.GetResyncedPaths():
-            if str(path).startswith(prefix):
-                self._reload_from_usd()
-                return
-
-    def _reload_from_usd(self):
-        new_kfs = _read_gradient(self._usd_context_name, self._usd_prim_path, self._usd_base_name)
-        self.set_keyframes(new_kfs)
+            if model is not None:
+                model.destroy()
+            self._model = None
 
 
 # ---------------------------------------------------------------------------
@@ -390,25 +166,24 @@ class UsdColorGradientWidget(ColorGradientWidget):
 # ---------------------------------------------------------------------------
 
 
-def _gradient_builder(item):
+def _gradient_builder(item: Item) -> list[ui.Widget]:
+    """Build a USD-backed color gradient field for the primary gradient item.
+
+    Args:
+        item: Primary gradient item claimed by ``_claim_gradients``.
+
+    Returns:
+        Widgets to render in the value column.
+    """
     identifier = _generate_identifier(item)
-    attr_paths = item.attribute_paths
-    if not attr_paths:
+    if not item.attribute_paths:
         return []
-    attr_path = attr_paths[0]
-    prim_path = str(attr_path.GetPrimPath())
-    base_name = attr_path.name.rsplit(":", 1)[0]
 
     frame = ui.Frame(identifier=identifier)
     with frame:
         with ui.HStack(spacing=0):
             ui.Spacer(width=ui.Pixel(_FIELD_LEADING_SPACER_WIDTH))
-            UsdColorGradientWidget(
-                item.context_name,
-                prim_path,
-                base_name,
-                pre_open_callback=getattr(item, "pre_open_callback", None),
-            )
+            UsdColorGradientWidget(PropertyGroupedKeysModel.from_item(item))
     return [frame]
 
 

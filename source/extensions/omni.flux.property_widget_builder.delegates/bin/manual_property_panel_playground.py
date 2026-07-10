@@ -57,7 +57,8 @@ def _create_item_group(name: str, children: list) -> ItemGroup:
     return group
 
 
-async def main():
+async def main() -> None:
+    """Build a manual property-panel playground stage and window."""
     print("=" * 80)
     print("Property Panel Playground — Particle Gradient Attributes")
     print("=" * 80)
@@ -142,11 +143,14 @@ async def main():
     p = prim_path  # shorthand
 
     # Gradient items (grouped under "Lifetime Animation")
-    # Only list the :values attributes — the ColorGradientField delegate
-    # automatically reads the companion :times attribute from USD.
+    # List both companion attrs; the USD model claims :values as the visible
+    # gradient row and hides/manages the matching :times row.
     gradient_items = [
+        USDAttributeItem("", [_attr_path(p, "primvars:particle:minColor:times")]),
         USDAttributeItem("", [_attr_path(p, "primvars:particle:minColor:values")]),
+        USDAttributeItem("", [_attr_path(p, "primvars:particle:maxColor:times")]),
         USDAttributeItem("", [_attr_path(p, "primvars:particle:maxColor:values")]),
+        USDAttributeItem("", [_attr_path(p, "primvars:particle:alpha:times")]),
         USDAttributeItem("", [_attr_path(p, "primvars:particle:alpha:values")]),
     ]
 

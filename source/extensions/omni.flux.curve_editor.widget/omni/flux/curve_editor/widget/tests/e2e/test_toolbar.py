@@ -29,9 +29,19 @@ from carb.input import KeyboardEventType, KeyboardInput
 from omni import ui
 
 from omni.flux.fcurve.widget import FCurve, FCurveKey, TangentType
-from omni.flux.curve_editor.widget import CurveEditorWidget, InMemoryCurveModel
+from omni.flux.curve_editor.widget import CurveEditorWidget
+from omni.flux.curve_editor.widget.payload import curve_to_payload, payload_to_curve
+from omni.flux.utils.widget import InMemoryGroupedKeysModel
 
 __all__ = ["TestToolbar"]
+
+
+def _commit_payload(model, curve_id: str, curve: FCurve) -> None:
+    model.commit_payload(curve_id, curve_to_payload(curve))
+
+
+def _get_curve(model, curve_id: str) -> FCurve | None:
+    return payload_to_curve(curve_id, model.get_payload(curve_id))
 
 
 class ModifierKeyDownScope:
@@ -67,7 +77,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
     async def setUp(self):
         """Initialize model - widget is created lazily after curves are set up."""
         await omni.kit.app.get_app().next_update_async()
-        self._model = InMemoryCurveModel()
+        self._model = InMemoryGroupedKeysModel()
         self._widget = None
         self.window = None
         await omni.kit.app.get_app().next_update_async()
@@ -157,7 +167,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
             ],
             color=0xFF3560FF,
         )
-        self._model.commit_curve("test", curve)
+        _commit_payload(self._model, "test", curve)
 
     def _setup_two_curves(self) -> None:
         """Setup two curves for multi-curve tests."""
@@ -215,8 +225,8 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
             ],
             color=0xFF60FF35,
         )
-        self._model.commit_curve("curve1", curve1)
-        self._model.commit_curve("curve2", curve2)
+        _commit_payload(self._model, "curve1", curve1)
+        _commit_payload(self._model, "curve2", curve2)
 
     @property
     def _toolbar(self):
@@ -283,7 +293,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
 
     def _get_model_key(self, curve_id: str, key_index: int) -> FCurveKey:
         """Get a key from the model."""
-        curve = self._model.get_curve(curve_id)
+        curve = _get_curve(self._model, curve_id)
         return curve.keys[key_index]
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -404,7 +414,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
                 ),
             ],
         )
-        self._model.commit_curve("test", curve)
+        _commit_payload(self._model, "test", curve)
         await self._build_widget()
         await omni.kit.app.get_app().next_update_async()
 
@@ -434,7 +444,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
                 FCurveKey(time=1.0, value=0.3, tangent_broken=True),
             ],
         )
-        self._model.commit_curve("test", curve)
+        _commit_payload(self._model, "test", curve)
         await self._build_widget()
 
         # Select broken key
@@ -472,7 +482,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
                 FCurveKey(time=1.0, value=0.3, tangent_broken=True),
             ],
         )
-        self._model.commit_curve("test", curve)
+        _commit_payload(self._model, "test", curve)
         await self._build_widget()
 
         # Select key 1 and click Link button
@@ -508,7 +518,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
                 FCurveKey(time=1.0, value=0.3),
             ],
         )
-        self._model.commit_curve("test", curve)
+        _commit_payload(self._model, "test", curve)
         await self._build_widget()
 
         # Get original tangent values before making changes
@@ -551,7 +561,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
                 FCurveKey(time=1.0, value=0.3),
             ],
         )
-        self._model.commit_curve("test", curve)
+        _commit_payload(self._model, "test", curve)
         await self._build_widget()
 
         # Select key 1
@@ -586,7 +596,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
                 FCurveKey(time=1.0, value=0.3),
             ],
         )
-        self._model.commit_curve("test", curve)
+        _commit_payload(self._model, "test", curve)
         await self._build_widget()
 
         # Select key 1
@@ -637,7 +647,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
                 ),
             ],
         )
-        self._model.commit_curve("test", curve)
+        _commit_payload(self._model, "test", curve)
         await self._build_widget()
 
         # Select key 0, then ctrl+click key 1 to multi-select
@@ -723,8 +733,8 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
         await self._click_button(self._toolbar._delete_key_btn)
 
         # Assert model: Both curves now have 2 keys
-        curve1 = self._model.get_curve("curve1")
-        curve2 = self._model.get_curve("curve2")
+        curve1 = _get_curve(self._model, "curve1")
+        curve2 = _get_curve(self._model, "curve2")
         self.assertEqual(len(curve1.keys), 2, "curve1 should have 2 keys after delete")
         self.assertEqual(len(curve2.keys), 2, "curve2 should have 2 keys after delete")
 
@@ -776,7 +786,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
         await self._build_widget()
 
         # Original key times: 0.0, 0.5, 1.0
-        orig_curve = self._model.get_curve("test")
+        orig_curve = _get_curve(self._model, "test")
         self.assertEqual(len(orig_curve.keys), 3)
 
         # Select key 0 (time=0.0) and click add
@@ -784,7 +794,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
         await self._click_button(self._toolbar._add_key_btn)
 
         # Assert: New key added between key 0 and key 1
-        curve = self._model.get_curve("test")
+        curve = _get_curve(self._model, "test")
         self.assertEqual(len(curve.keys), 4, "Should have 4 keys after add")
         # New key should be at time ~0.25 (midpoint between 0.0 and 0.5)
         self.assertAlmostEqual(curve.keys[1].time, 0.25, delta=0.01)
@@ -801,7 +811,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
         await self._click_button(self._toolbar._add_key_btn)
 
         # Assert: New key added after key 0
-        curve = self._model.get_curve("test")
+        curve = _get_curve(self._model, "test")
         self.assertEqual(len(curve.keys), 4, "Should have 4 keys after add")
         # New key should be at time ~0.25 (midpoint between 0.0 and 0.5)
         self.assertAlmostEqual(curve.keys[1].time, 0.25, delta=0.01)
@@ -816,10 +826,10 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
         await self._click_button(self._toolbar._add_key_btn)
 
         # Assert: New key added after last key
-        curve = self._model.get_curve("test")
+        curve = _get_curve(self._model, "test")
         self.assertEqual(len(curve.keys), 4, "Should have 4 keys after add")
         # New key should be at time ~1.1 (0.1 offset from last key)
-        self.assertAlmostEqual(curve.keys[3].time, 1.001, delta=0.01)
+        self.assertAlmostEqual(curve.keys[3].time, 1.1, delta=0.01)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Tests: Delete Keyframe
@@ -836,7 +846,7 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
         await self._click_button(self._toolbar._delete_key_btn)
 
         # Assert model: Only 2 keys remain
-        curve = self._model.get_curve("test")
+        curve = _get_curve(self._model, "test")
         self.assertEqual(len(curve.keys), 2, "Should have 2 keys after delete")
         # Keys should be at 0.0 and 1.0 (middle key removed)
         self.assertAlmostEqual(curve.keys[0].time, 0.0, delta=0.01)
@@ -855,19 +865,19 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
                 FCurveKey(time=1.0, value=0.5),
             ],
         )
-        self._model.commit_curve("test", curve)
+        _commit_payload(self._model, "test", curve)
         await self._build_widget()
 
         # Select first key and delete - should work
         await self._click_key("test", 0)
         await self._click_button(self._toolbar._delete_key_btn)
 
-        curve = self._model.get_curve("test")
+        curve = _get_curve(self._model, "test")
         self.assertEqual(len(curve.keys), 1, "Should have 1 key after first delete")
 
         # Select the remaining key and try to delete - should be no-op
         await self._click_key("test", 0)
         await self._click_button(self._toolbar._delete_key_btn)
 
-        curve = self._model.get_curve("test")
+        curve = _get_curve(self._model, "test")
         self.assertEqual(len(curve.keys), 1, "Should still have 1 key - cannot delete last")

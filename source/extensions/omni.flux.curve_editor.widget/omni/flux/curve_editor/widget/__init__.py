@@ -20,22 +20,12 @@ decoupled from animation systems. Designed for programmatic use.
 """
 
 from .curve_editor_widget import CurveEditorWidget
-from .extension import CurveEditorExtension
 from .layout import CurveEditorLayout, CurveEntry
-from .model import (
-    CurveModel,
-    InMemoryCurveModel,
-    PrimvarCurveModel,
-)
 from .toolbar import CurveEditorToolbar
 
 __all__ = [
-    "CurveEditorExtension",
     "CurveEditorLayout",
     "CurveEditorToolbar",
     "CurveEditorWidget",
     "CurveEntry",
-    "CurveModel",
-    "InMemoryCurveModel",
-    "PrimvarCurveModel",
 ]

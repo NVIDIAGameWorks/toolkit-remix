@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.14.0]
+### Changed
+- Added light transform E2E coverage for tabbing to the next vector channel after resetting a row modification.
+
 ## [2.13.1]
 ### Changed
 - Removed object properties E2E coverage for the retired drag numeric edit controller and expression overlay

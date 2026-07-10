@@ -112,6 +112,7 @@ class TestDelegateAlignment(omni.kit.test.AsyncTestCase):
         p = self._prim_path
 
         gradient_items = [
+            USDAttributeItem("", [_attr_path(p, "primvars:particle:testColor:times")]),
             USDAttributeItem("", [_attr_path(p, "primvars:particle:testColor:values")]),
         ]
         scalar_items = [
@@ -140,7 +141,10 @@ class TestDelegateAlignment(omni.kit.test.AsyncTestCase):
         """Build a PropertyWidget with flat (ungrouped) items."""
         p = self._prim_path
 
-        gradient_item = USDAttributeItem("", [_attr_path(p, "primvars:particle:testColor:values")])
+        gradient_items = [
+            USDAttributeItem("", [_attr_path(p, "primvars:particle:testColor:times")]),
+            USDAttributeItem("", [_attr_path(p, "primvars:particle:testColor:values")]),
+        ]
         scalar_item = USDAttributeItem("", [_attr_path(p, "primvars:particle:mass")])
 
         model = USDModel(context_name="")
@@ -150,7 +154,7 @@ class TestDelegateAlignment(omni.kit.test.AsyncTestCase):
         with window.frame:
             widget = USDPropertyWidget(context_name="", model=model, delegate=delegate)
 
-        model.set_items([gradient_item, scalar_item])
+        model.set_items([*gradient_items, scalar_item])
         await _wait(15)
         await asyncio.sleep(0.3)
         await _wait(10)
