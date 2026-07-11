@@ -11,9 +11,11 @@ Handles two modes:
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 
 import carb.input
+import omni.kit.app
 import omni.usd
 import omni.ui as ui
 from omni.flux.curve_editor.widget import CurveEditorLayout, CurveEditorWidget
@@ -254,6 +256,7 @@ def _open_curve_editor(
         raise
     model_destroyed = False
     window_destroyed = False
+    cleanup_task = None
 
     def destroy_model() -> None:
         """Destroy the grouped-key model once."""
@@ -269,15 +272,24 @@ def _open_curve_editor(
             window_destroyed = True
             window.destroy()
 
+    async def destroy_after_update() -> None:
+        """Destroy the model and window after UI event dispatch completes."""
+        await omni.kit.app.get_app().next_update_async()
+        destroy_model()
+        destroy_window()
+
     def destroy_model_on_close(visible: bool) -> None:
-        """Destroy the model/window after the editor window is hidden.
+        """Schedule cleanup after the editor window is hidden.
 
         Args:
             visible: Current window visibility.
         """
-        if not visible:
-            destroy_model()
-            destroy_window()
+        nonlocal cleanup_task
+        if visible or model_destroyed or window_destroyed:
+            return
+        if cleanup_task is not None and not cleanup_task.done():
+            cleanup_task.cancel()
+        cleanup_task = asyncio.ensure_future(destroy_after_update())
 
     window.set_visibility_changed_fn(destroy_model_on_close)
     try:
