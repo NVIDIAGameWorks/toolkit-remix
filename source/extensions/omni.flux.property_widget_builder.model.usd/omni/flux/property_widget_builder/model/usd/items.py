@@ -94,6 +94,45 @@ class _LogicalRowApiMixin:
             return
         action()
 
+    def get_property_stack(self) -> list[Sdf.PropertySpec]:
+        """Return unique authored property specs for every property owned by this row.
+
+        Returns:
+            Composed property specs without duplicate layer/path pairs.
+        """
+        property_stack = []
+        property_stack_keys = set()
+        for prop in self.get_owned_properties():
+            if not prop or not prop.IsValid():
+                continue
+            for stack_item in prop.GetPropertyStack(Usd.TimeCode.Default()):
+                key = (stack_item.layer.identifier, stack_item.path)
+                if key in property_stack_keys:
+                    continue
+                property_stack_keys.add(key)
+                property_stack.append(stack_item)
+        return property_stack
+
+    def get_layer_override_layers(self, layer_identifiers: Iterable[str]) -> list[Sdf.Layer]:
+        """Return logical override layers for authored property specs owned by this row.
+
+        Args:
+            layer_identifiers: Layer identifiers allowed to appear in the result.
+
+        Returns:
+            Unique layers, one per allowed layer identifier, with authored property specs for this row.
+        """
+        layer_identifiers = set(layer_identifiers)
+        layers = []
+        seen = set()
+        for stack_item in self.get_property_stack():
+            layer_identifier = stack_item.layer.identifier
+            if layer_identifier not in layer_identifiers or layer_identifier in seen:
+                continue
+            seen.add(layer_identifier)
+            layers.append(stack_item.layer)
+        return layers
+
 
 def _get_value_model_attributes(value_models: Iterable[_AttributeBackedValueModel]) -> list[Usd.Attribute]:
     """Return unique valid USD attributes exposed by value models.
@@ -298,6 +337,18 @@ class _BaseUSDAttributeItem(_LogicalRowApiMixin, _Item):
 
         return _get_value_model_attributes(cast(Iterable[_AttributeBackedValueModel], self.get_owned_value_models()))
 
+    @property
+    def is_overriden(self) -> bool:
+        """Return whether the row has authored attribute overrides.
+
+        Returns:
+            True if any owned USD attribute has an override.
+        """
+        attributes = self.get_owned_attributes()
+        if attributes:
+            return _is_item_overriden(self._stage, attributes)
+        return any(value_model.is_overriden for value_model in self.get_owned_value_models())
+
     def get_owned_properties(self) -> list[Usd.Property]:
         """Return the USD properties owned by this visible property row."""
         if not self.logical_group_items and self.logical_group_definition is None:
@@ -351,12 +402,16 @@ class _BaseUSDAttributeItem(_LogicalRowApiMixin, _Item):
         if definition is not None and base_name is not None:
             return _LogicalRowState(
                 is_mixed=definition.is_mixed(self._context_name, self.get_target_paths(), base_name),
-                is_overriden=_is_item_overriden(self._stage, self.get_owned_attributes()),
+                is_overriden=self.is_overriden,
                 is_default=all(value_model.is_default for value_model in value_models),
             )
         return _LogicalRowState(
             is_mixed=any(value_model.is_mixed for value_model in value_models),
-            is_overriden=any(value_model.is_overriden for value_model in value_models),
+            is_overriden=(
+                any(value_model.is_overriden for value_model in value_models)
+                if self.logical_group_items
+                else self.is_overriden
+            ),
             is_default=all(value_model.is_default for value_model in value_models),
         )
 
@@ -425,6 +480,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         default_value: optional override for the default value
         read_only: show the attribute(s) as read only
         value_type_name: if None, the type name will be inferred
+        related_override_paths: optional related properties that should receive specs with value writes
         ui_metadata: optional dict of UI hints used only when constructing the
             default ``BoundsAdapter``. Treat as a producer payload for bounds
             normalization rather than a direct bounds source.
@@ -442,6 +498,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         default_value: Any = None,
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
+        related_override_paths: list[Sdf.Path] | None = None,
         ui_metadata: dict | None = None,
         bounds_adapter: _BoundsAdapter | None = None,
     ):
@@ -466,6 +523,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
             read_only=read_only,
             value_type_name=value_type_name,
             display_attr_names=display_attr_names,
+            related_override_paths=related_override_paths,
         )
         self._ui_metadata = ui_metadata
 
@@ -536,6 +594,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
         display_attr_names: list[str] | None = None,
+        related_override_paths: list[Sdf.Path] | None = None,
     ):
         # Value tooltips use the base display name for every vector channel; the value model adds X/Y/Z/W suffixes.
         self._value_models = [
@@ -547,6 +606,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
                 read_only=read_only,
                 value_type_name=value_type_name,
                 tooltip_display_name=display_attr_names[0] if display_attr_names else None,
+                related_override_paths=related_override_paths,
             )
             for i in range(self._element_count)
         ]
@@ -573,6 +633,7 @@ class USDAttributeXformItem(USDAttributeItem):
         display_attr_names_tooltip: list[str] | None = None,
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
+        related_attribute_paths: list[Sdf.Path] | None = None,
     ) -> None:
         """Create an xform item that authors all sibling xform ops together.
 
@@ -583,7 +644,9 @@ class USDAttributeXformItem(USDAttributeItem):
             display_attr_names_tooltip: Optional per-channel tooltips.
             read_only: Whether the row is editable.
             value_type_name: Optional explicit USD value type.
+            related_attribute_paths: Related xform property paths to author with value writes.
         """
+        related_attribute_paths = list(dict.fromkeys(related_attribute_paths or []))
         super().__init__(
             context_name,
             attribute_paths,
@@ -591,11 +654,9 @@ class USDAttributeXformItem(USDAttributeItem):
             display_attr_names_tooltip=display_attr_names_tooltip,
             read_only=read_only,
             value_type_name=value_type_name,
+            related_override_paths=related_attribute_paths,
         )
-
-        self._edit_subs = []
-        for model in self._value_models:
-            self._edit_subs.append(model.subscribe_end_edit_fn(self.__override_all_xform_ops))
+        self._related_attribute_paths = related_attribute_paths
 
     @property
     @abc.abstractmethod
@@ -604,21 +665,10 @@ class USDAttributeXformItem(USDAttributeItem):
         default_attr = super().default_attr
         default_attr.update(
             {
-                "_edit_subs": None,
+                "_related_attribute_paths": None,
             }
         )
         return default_attr
-
-    def __override_all_xform_ops(self, *_) -> None:
-        with omni.kit.undo.group():
-            for attr in self.get_all_attributes():
-                omni.kit.commands.execute(
-                    "ChangeProperty",
-                    prop_path=attr.GetPath(),
-                    value=attr.Get(),
-                    prev=None,
-                    usd_context_name=self._context_name,
-                )
 
     def __show_confirmation_dialog(self, handler: Callable) -> None:
         def handle_ok(_dialog: _MessageDialog) -> None:
@@ -655,6 +705,18 @@ class USDAttributeXformItem(USDAttributeItem):
         Returns:
             List of authored USD attributes the item acts on.
         """
+        if self._related_attribute_paths:
+            attributes = []
+            seen = set()
+            for attribute_path in self._related_attribute_paths:
+                if attribute_path in seen:
+                    continue
+                seen.add(attribute_path)
+                attr = self._stage.GetAttributeAtPath(attribute_path) if self._stage else None
+                if attr and attr.IsValid():
+                    attributes.append(attr)
+            return attributes
+
         attributes = set()
         for prim in self._get_prims(super().get_all_attributes()):
             xformable_prim = UsdGeom.Xformable(prim)
@@ -744,6 +806,7 @@ class VirtualUSDAttributeItem(USDAttributeItem):
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
         display_attr_names: list[str] | None = None,
+        related_override_paths: list[Sdf.Path] | None = None,
     ):
         # Note: VirtualUSDAttributeItem uses self._default_value from __init__, ignoring passed default_value
         if not value_type_name:
@@ -759,6 +822,7 @@ class VirtualUSDAttributeItem(USDAttributeItem):
                 metadata=self._metadata,
                 create_callback=self._create_callback,
                 tooltip_display_name=display_attr_names[0] if display_attr_names else None,
+                related_override_paths=related_override_paths,
             )
             for i in range(self._element_count)
         ]
@@ -977,6 +1041,7 @@ class USDAttributeItemStub(USDAttributeItem):
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
         display_attr_names: list[str] | None = None,
+        related_override_paths: list[Sdf.Path] | None = None,
     ):
         self._value_models = []
 

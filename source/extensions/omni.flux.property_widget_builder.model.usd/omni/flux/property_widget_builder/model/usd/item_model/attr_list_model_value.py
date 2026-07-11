@@ -19,8 +19,6 @@ from typing import Any
 from collections.abc import Callable
 
 import omni.kit.commands
-import omni.kit.undo
-import omni.usd
 from pxr import Sdf, Usd
 
 from .base_list_model_value import UsdListModelBaseValueModel as _UsdListModelBaseValueModel
@@ -29,32 +27,22 @@ from .base_list_model_value import UsdListModelBaseValueModel as _UsdListModelBa
 class UsdListModelAttrValueModel(_UsdListModelBaseValueModel):
     """Represent an attribute that has multiple value choices like enums"""
 
-    def _set_attribute_value(self, attr, new_value: str):
+    def _set_attribute_value(self, attr: Usd.Attribute, new_value: str, target_layer: Sdf.Layer | None = None) -> bool:
         attribute_path = str(attr.GetPath())
         if self._use_index_in_usd:
             new_value = self._list_options.index(new_value)
 
-        # OM-75480: For props inside session layer, it will always change specs
-        # in the session layer to avoid shadowing. Why it needs to be def is that
-        # session layer is used for several runtime data for now as built-in cameras,
-        # MDL material params, and etc. Not all of them create runtime prims inside
-        # session layer. For those that are not defined inside session layer, we should
-        # avoid leaving delta inside other sublayers as they are shadowed and useless after
-        # stage close.
-        target_layer, _ = omni.usd.find_spec_on_session_or_its_sublayers(
-            self._stage, attr.GetPath().GetPrimPath(), lambda spec: spec.specifier == Sdf.SpecifierDef
+        if target_layer is None:
+            target_layer = self._get_target_layer(attr)
+        omni.kit.commands.execute(
+            "ChangeProperty",
+            prop_path=attribute_path,
+            value=new_value,
+            target_layer=target_layer,
+            prev=None,
+            usd_context_name=self._context_name,
         )
-        if not target_layer:
-            target_layer = self._stage.GetEditTarget().GetLayer()
-        with omni.kit.undo.group():
-            omni.kit.commands.execute(
-                "ChangeProperty",
-                prop_path=attribute_path,
-                value=new_value,
-                target_layer=target_layer,
-                prev=None,
-                usd_context_name=self._context_name,
-            )
+        return True
 
     def _get_attribute_value(self, attr) -> str:
         if self._use_index_in_usd:
@@ -107,10 +95,10 @@ class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):
     def metadata(self):
         return self._metadata
 
-    def _create_and_set_attribute_value(self, attr, new_value):
+    def _create_and_set_attribute_value(self, attr: Usd.Attribute, new_value: str) -> bool:
         # If it's the default value, no need to create anything
         if new_value == self._default_value:
-            return
+            return False
 
         index = self._list_options.index(new_value)
         # If a create_callback is set, use that
@@ -120,7 +108,7 @@ class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):
         else:
             path = attr.GetPath()
             if not path.IsPropertyPath():
-                return
+                return False
             prim = self._stage.GetPrimAtPath(path.GetPrimPath())
             omni.kit.commands.execute(
                 "CreateUsdAttributeCommand",
@@ -129,12 +117,12 @@ class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):
                 attr_type=self._value_type_name,
                 attr_value=index,
             )
+        return True
 
-    def _set_attribute_value(self, attr, new_value):
+    def _set_attribute_value(self, attr: Usd.Attribute, new_value: str, target_layer: Sdf.Layer | None = None) -> bool:
         if attr:
-            super()._set_attribute_value(attr, new_value)
-        else:
-            self._create_and_set_attribute_value(attr, new_value)
+            return super()._set_attribute_value(attr, new_value, target_layer)
+        return self._create_and_set_attribute_value(attr, new_value)
 
     def _get_attribute_value(self, attr) -> str | None:
         value: int = attr.Get()

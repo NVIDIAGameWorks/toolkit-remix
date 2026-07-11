@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.36.2]
+### Fixed
+- Grouped related xform property specs into one layer modification entry in the USD property override menu.
+- Kept focus-only xform edits from authoring USD overrides and authored related xform specs only with value writes.
+
 ## [2.36.1]
 ### Fixed
 - Deferred curve editor popup cleanup until after UI event dispatch to prevent crashes when closing with Escape.

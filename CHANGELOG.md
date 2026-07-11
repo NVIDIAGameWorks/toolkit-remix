@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4533: Fixed capture camera authority so capture loads clear stale game-camera overrides, navigation redirects edits to a perspective camera with center of interest, orthographic cameras frame capture meshes and instances, and pseudo-orthographic inspection cameras copy perspective render attributes, keep close clipping, and disable tumble/look for smooth pan/zoom navigation
 - REMIX-5368: Fixed particle gradient and curve logical rows for multi-select editing, StageCraft startup layout loading so it does not pull users out of an already-open workspace, and USD transform vector fields so tabbing to the next channel stays editable after resetting a row modification.
 - REMIX-5730: Fixed curve editor popup crashes when closing with Escape by deferring cleanup until after UI event dispatch.
+- REMIX-5609: Fixed xform override handling so focus-only edits do not author USD overrides, value edits author the full logical xform set, and related xform specs appear as one layer modification entry.
 
 ## [1.5.2-0]
 

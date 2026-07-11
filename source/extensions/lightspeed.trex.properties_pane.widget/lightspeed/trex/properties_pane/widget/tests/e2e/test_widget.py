@@ -23,6 +23,8 @@ import omni.kit.undo
 import omni.ui as ui
 import omni.usd
 from carb.input import KeyboardInput
+from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
+from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.properties_pane.particle.widget.particle_lookup_table import (
     get_particle_lookup_table as _get_particle_lookup_table,
 )
@@ -165,6 +167,27 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         self.assertGreater(len(branches), 0)
         await min(branches, key=lambda branch: label.center.x - branch.center.x).click()
         await ui_test.human_delay(human_delay_speed=8)
+
+    def __float_drags_for_attribute(self, window_title: str, attribute_path: str):
+        fields = []
+        for widget_type in ("FloatBoundedDrag", "FloatDrag"):
+            for field in self.__visible(f"{window_title}//Frame/**/{widget_type}[*]"):
+                if attribute_path in field.widget.identifier.split(","):
+                    fields.append(field)
+        self.assertGreater(len(fields), 0)
+        return sorted(fields, key=lambda field: field.center.x)
+
+    @staticmethod
+    def __remove_property_specs(layer: Sdf.Layer, property_paths: tuple[str, ...]) -> None:
+        with Sdf.ChangeBlock():
+            for property_path in property_paths:
+                path = Sdf.Path(property_path)
+                prop_spec = layer.GetPropertyAtPath(path)
+                if prop_spec is None:
+                    continue
+                prim_spec = layer.GetPrimAtPath(path.GetPrimPath())
+                if prim_spec is not None:
+                    prim_spec.RemoveProperty(prop_spec)
 
     async def __confirm_transfer(self, transfer_window_title: str, target_layer: Sdf.Layer):
         target_layer_frame = ui_test.find(
@@ -376,6 +399,58 @@ class TestAssetReplacementsWidget(AsyncTestCase):
             self.assertIsNotNone(target_layer.GetPrimAtPath(logic_graph_path))
             self.assertIsNotNone(target_layer.GetPropertyAtPath(logic_property_path))
         finally:
+            await self.__destroy(_window, _wid)
+
+    async def test_xform_double_click_does_not_author_override_until_value_changes(self):
+        object_selection_path = "/RootNode/instances/inst_FEE1DEADF00D0001_0/reference_override/Cube_01"
+        object_property_paths = (
+            "/RootNode/meshes/mesh_FEE1DEADF00D0001/reference_override/Cube_01.xformOp:translate",
+            "/RootNode/meshes/mesh_FEE1DEADF00D0001/reference_override/Cube_01.xformOp:rotateXYZ",
+            "/RootNode/meshes/mesh_FEE1DEADF00D0001/reference_override/Cube_01.xformOp:scale",
+            "/RootNode/meshes/mesh_FEE1DEADF00D0001/reference_override/Cube_01.xformOpOrder",
+        )
+        layer_manager = _LayerManagerCore(context_name="")
+        replacement_layer = layer_manager.get_layer_of_type(_LayerType.replacement)
+        self.assertIsNotNone(replacement_layer)
+        replacement_layer_before = replacement_layer.ExportToString()
+        stage = omni.usd.get_context().get_stage()
+        translate_attr = stage.GetAttributeAtPath(object_property_paths[0])
+        self.assertIsNotNone(translate_attr)
+        _window, _wid = await self.__setup_widget(
+            "test_xform_double_click_does_not_author_override_until_value_changes"
+        )
+
+        try:
+            layer_manager.set_edit_target_layer_of_type(_LayerType.replacement, do_undo=False)
+            self.__remove_property_specs(replacement_layer, object_property_paths)
+            await self.__set_selection([object_selection_path])
+
+            x_field, *_ = self.__float_drags_for_attribute(_window.title, object_property_paths[0])
+            await x_field.double_click(human_delay_speed=2)
+            await ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+            await ui_test.human_delay(human_delay_speed=8)
+
+            self.assertEqual(
+                [],
+                [path for path in object_property_paths if replacement_layer.GetPropertyAtPath(path) is not None],
+            )
+
+            x_field, *_ = self.__float_drags_for_attribute(_window.title, object_property_paths[0])
+            await x_field.double_click(human_delay_speed=2)
+            await ui_test.emulate_char_press("2.0")
+            await ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
+            await ui_test.human_delay(human_delay_speed=8)
+
+            translate_value = translate_attr.Get()
+            self.assertAlmostEqual(translate_value[0], 2.0)
+            self.assertEqual(
+                set(object_property_paths),
+                {path for path in object_property_paths if replacement_layer.GetPropertyAtPath(path) is not None},
+            )
+        finally:
+            replacement_layer.ImportFromString(replacement_layer_before)
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
             await self.__destroy(_window, _wid)
 
     async def test_layer_project_transfer_uses_shared_transfer_window(self):
