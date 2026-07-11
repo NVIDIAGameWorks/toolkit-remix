@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.36.1]
+### Fixed
+- Deferred curve editor popup cleanup until after UI event dispatch to prevent crashes when closing with Escape.
+
 ## [2.36.0]
 ### Changed
 - Routed USD property row indicators, reset, and override deletion through row-owned state and attribute ownership methods.

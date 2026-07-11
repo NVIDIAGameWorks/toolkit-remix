@@ -38,6 +38,7 @@ from .unit.test_relationship_value_model import TestUsdRelationshipValueModel
 from .unit.test_usd_attribute_item_bounds import TestUSDAttributeItemBounds
 from .unit.test_value_tooltips import TestUSDAttributeValueTooltips
 
+from .e2e.test_curve_editor_popup import TestCurveEditorPopupLifecycle
 from .e2e.test_delegate_alignment import TestDelegateAlignment
 from .e2e.test_gradient_command import (
     TestGradientEditorUndo,
@@ -51,6 +52,7 @@ __all__ = [
     "TestBoundsAdapter",
     "TestClipboardRoundtrip",
     "TestConditionalVisibilityOrchestrator",
+    "TestCurveEditorPopupLifecycle",
     "TestCurvePrimvarModelInteractiveNotices",
     "TestCurvePrimvarModelMixedFirstEdit",
     "TestDelegateAlignment",
