@@ -15,15 +15,24 @@
 * limitations under the License.
 """
 
+from pathlib import Path
+import tempfile
 from unittest.mock import Mock, patch
 
+import omni.kit.undo
 import omni.kit.test
 import omni.usd
-from omni.flux.property_widget_builder.model.usd import BoundsAdapter, USDAttributeItem, USDLogicalGroupOutletItem
+from omni.flux.property_widget_builder.model.usd import (
+    BoundsAdapter,
+    USDAttrListItem,
+    USDAttributeItem,
+    USDAttributeXformItem,
+    USDLogicalGroupOutletItem,
+)
 from omni.flux.property_widget_builder.model.usd import items as _items_module
 from omni.flux.property_widget_builder.model.usd.items import VirtualUSDAttributeItem
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from pxr import Gf, Sdf
+from pxr import Gf, Sdf, UsdGeom
 
 
 class _UiMetadataAdapter(BoundsAdapter):
@@ -62,6 +71,35 @@ def _make_item(stage, ui_metadata=None, custom_data=None, bounds_adapter=None):
         attribute_paths=[Sdf.Path("/BoundsTestPrim.testFloat")],
         ui_metadata=ui_metadata,
         bounds_adapter=bounds_adapter or (_UiMetadataAdapter(ui_metadata) if ui_metadata is not None else None),
+    )
+
+
+def _make_xform_override_test_stage(stage, prim_path="/XformOverrideTest"):
+    """Create a composed xform prim from a weak layer with an empty root edit target."""
+    root_layer = stage.GetRootLayer()
+    weak_layer = Sdf.Layer.CreateAnonymous("weak_xform.usda")
+    root_layer.subLayerPaths.append(weak_layer.identifier)
+    stage.SetEditTarget(weak_layer)
+
+    prim = stage.DefinePrim(prim_path, "Xform")
+    xformable = UsdGeom.Xformable(prim)
+    translate_op = xformable.AddTranslateOp()
+    translate_op.Set(Gf.Vec3d(1.0, 0.0, 0.0))
+    rotate_op = xformable.AddRotateXYZOp()
+    rotate_op.Set(Gf.Vec3f(0.0, 10.0, 0.0))
+    scale_op = xformable.AddScaleOp()
+    scale_op.Set(Gf.Vec3f(1.0, 2.0, 1.0))
+
+    stage.SetEditTarget(root_layer)
+    return (
+        root_layer,
+        translate_op.GetAttr().GetPath(),
+        [
+            translate_op.GetAttr().GetPath(),
+            rotate_op.GetAttr().GetPath(),
+            scale_op.GetAttr().GetPath(),
+            xformable.GetXformOpOrderAttr().GetPath(),
+        ],
     )
 
 
@@ -221,6 +259,116 @@ class TestUSDAttributeItemBounds(omni.kit.test.AsyncTestCase):
         self.assertEqual(layer, delete_layer_override_mock.call_args.args[0])
         self.assertEqual("", delete_layer_override_mock.call_args.kwargs["context_name"])
         callback.assert_called_once_with()
+
+    async def test_xform_item_groups_related_property_specs_under_one_layer_override(self):
+        """Xform rows should expose one logical layer override for all related xform specs."""
+
+        # Arrange
+        prim = self.stage.DefinePrim("/XformOverrideTest", "Xform")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            layer = Sdf.Layer.CreateNew(str(Path(temp_dir) / "xform_override.usda"))
+            self.stage.GetRootLayer().subLayerPaths.append(layer.identifier)
+            self.stage.SetEditTarget(layer)
+
+            xformable = UsdGeom.Xformable(prim)
+            translate_op = xformable.AddTranslateOp()
+            translate_op.Set(Gf.Vec3d(1.0, 0.0, 0.0))
+            rotate_op = xformable.AddRotateXYZOp()
+            rotate_op.Set(Gf.Vec3f(0.0, 10.0, 0.0))
+            scale_op = xformable.AddScaleOp()
+            scale_op.Set(Gf.Vec3f(1.0, 2.0, 1.0))
+            related_paths = [
+                translate_op.GetAttr().GetPath(),
+                rotate_op.GetAttr().GetPath(),
+                scale_op.GetAttr().GetPath(),
+                xformable.GetXformOpOrderAttr().GetPath(),
+            ]
+
+            item = USDAttributeXformItem("", [translate_op.GetAttr().GetPath()], related_attribute_paths=related_paths)
+
+            # Act
+            property_stack = item.get_property_stack()
+            override_layers = item.get_layer_override_layers({layer.identifier})
+
+            # Assert
+            self.assertEqual(
+                {
+                    Sdf.Path("/XformOverrideTest.xformOp:translate"),
+                    Sdf.Path("/XformOverrideTest.xformOp:rotateXYZ"),
+                    Sdf.Path("/XformOverrideTest.xformOp:scale"),
+                    Sdf.Path("/XformOverrideTest.xformOpOrder"),
+                },
+                {spec.path for spec in property_stack if spec.layer.identifier == layer.identifier},
+            )
+            self.assertTrue(item.is_overriden)
+            self.assertEqual([layer], override_layers)
+
+    async def test_xform_item_end_edit_without_value_change_does_not_author_overrides(self):
+        """Focus-only xform edits should not author override specs."""
+        # Arrange
+        omni.kit.undo.clear_stack()
+        omni.kit.undo.clear_history()
+        target_layer, translate_path, related_paths = _make_xform_override_test_stage(self.stage)
+        item = USDAttributeXformItem("", [translate_path], related_attribute_paths=related_paths)
+
+        try:
+            # Act
+            item.value_models[0].begin_edit()
+            item.value_models[0].end_edit()
+
+            # Assert
+            self.assertEqual([], [path for path in related_paths if target_layer.GetPropertyAtPath(path) is not None])
+            self.assertFalse(
+                [entry for entry in omni.kit.undo.get_history().values() if entry.name == "ChangeProperty"]
+            )
+        finally:
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+
+    async def test_xform_item_value_write_authors_related_overrides_in_one_undo(self):
+        """Changing one xform channel should author the full logical xform override set."""
+        # Arrange
+        omni.kit.undo.clear_stack()
+        omni.kit.undo.clear_history()
+        target_layer, translate_path, related_paths = _make_xform_override_test_stage(self.stage)
+        item = USDAttributeXformItem("", [translate_path], related_attribute_paths=related_paths)
+
+        try:
+            # Act
+            item.value_models[0].set_value(2.0)
+
+            # Assert
+            self.assertEqual(
+                set(related_paths),
+                {path for path in related_paths if target_layer.GetPropertyAtPath(path) is not None},
+            )
+
+            omni.kit.undo.undo()
+
+            self.assertEqual([], [path for path in related_paths if target_layer.GetPropertyAtPath(path) is not None])
+        finally:
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+
+    async def test_attr_list_item_value_write_uses_common_write_path(self):
+        """List-backed attribute writes should keep working through the shared write transaction."""
+        # Arrange
+        prim = self.stage.DefinePrim("/ListAttributeTest")
+        attr = prim.CreateAttribute("choice", Sdf.ValueTypeNames.Token)
+        attr.Set("A")
+        item = USDAttrListItem(
+            "",
+            [Sdf.Path("/ListAttributeTest.choice")],
+            default_value="A",
+            options=["A", "B"],
+            value_type_name=Sdf.ValueTypeNames.Token,
+        )
+
+        # Act
+        item.value_models[0].set_value("B")
+
+        # Assert
+        self.assertEqual("B", attr.Get())
 
     async def test_ui_metadata_vector_bounds_are_preserved(self):
         """Vector-like ui metadata bounds should be preserved for widget-level scalar indexing."""

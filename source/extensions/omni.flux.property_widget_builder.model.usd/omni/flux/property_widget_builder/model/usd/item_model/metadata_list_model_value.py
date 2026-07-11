@@ -16,8 +16,7 @@
 """
 
 import omni.kit.commands
-import omni.kit.undo
-import omni.usd
+from pxr import Sdf, Usd
 
 from ..utils import get_default_attribute_value as _get_default_attribute_value
 from .base_list_model_value import UsdListModelBaseValueModel as _UsdListModelBaseValueModel
@@ -57,15 +56,15 @@ class UsdListModelAttrMetadataValueModel(_UsdListModelBaseValueModel):
             elif isinstance(default_value, int):
                 self.set_value(default_value)
 
-    def _set_attribute_value(self, attr, new_value: str):
-        with omni.kit.undo.group():
-            omni.kit.commands.execute(
-                "ChangeMetadata",
-                object_paths=[attr.GetPath()],
-                key=self._metadata_key,
-                value=new_value,
-                usd_context_name=self._context_name,
-            )
+    def _set_attribute_value(self, attr: Usd.Attribute, new_value: str, _target_layer: Sdf.Layer | None = None) -> bool:
+        omni.kit.commands.execute(
+            "ChangeMetadata",
+            object_paths=[attr.GetPath()],
+            key=self._metadata_key,
+            value=new_value,
+            usd_context_name=self._context_name,
+        )
+        return True
 
     def _get_attribute_value(self, attr) -> str:
         return self.metadata.get(self._metadata_key, self._default_value)

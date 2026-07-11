@@ -478,25 +478,13 @@ class USDDelegate(_Delegate):
         enabled = not self._is_ogn_item(item)
         self._context_menu_widgets[id(item)] = ui.Menu("Modification menu", direction=ui.Direction.LEFT_TO_RIGHT)
         with self._context_menu_widgets[id(item)]:
-            # Ensure there are no repeated entries in the menu
-            property_stack = []
-            property_stack_keys = set()
             sub_layers = set()
             stage = omni.usd.get_context(model.context_name).get_stage()
             if stage is not None:
                 sub_layers = sub_layers.union(
                     _LayerUtils.get_all_sublayers(stage, include_session_layers=True, include_anonymous_layers=False)
                 )
-            # Find all the stack items and sub-layers
-            for prop in self._get_row_properties(item):
-                if not prop or not prop.IsValid():
-                    continue
-                for stack_item in prop.GetPropertyStack(Usd.TimeCode.Default()):
-                    key = (stack_item.layer.identifier, stack_item.path)
-                    if key in property_stack_keys:
-                        continue
-                    property_stack_keys.add(key)
-                    property_stack.append(stack_item)
+            property_stack = item.get_property_stack()
             delete_all_overrides_label = "Revert This Property Modification"
             if not enabled:
                 delete_all_overrides_label += " [DISABLED FOR THIS PROPERTY]"
@@ -506,24 +494,21 @@ class USDDelegate(_Delegate):
             )
             top_menu_item.enabled = enabled
             with ui.MenuItemCollection("Revert This Property Modification on Layer..."):
-                for stack_item in property_stack:
-                    if stack_item.layer.identifier in sub_layers:
-                        # If the layer is locked, we should not delete overrides on it
-                        is_locked = omni.usd.is_layer_locked(
-                            omni.usd.get_context(model.context_name), stack_item.layer.identifier
-                        )
-                        layer_name = _LayerUtils.get_custom_layer_name(stack_item.layer)
-                        if is_locked:
-                            layer_name += " [LOCKED]"
-                        if not enabled:
-                            layer_name += " [DISABLED FOR THIS PROPERTY]"
-                        # Disable locked layers items
-                        menu_item = ui.MenuItem(
-                            layer_name,
-                            triggered_fn=functools.partial(self._delete_overrides, item, layer=stack_item.layer),
-                            tooltip=stack_item.layer.identifier,
-                        )
-                        menu_item.enabled = not is_locked and enabled
+                for layer in item.get_layer_override_layers(sub_layers):
+                    # If the layer is locked, we should not delete overrides on it
+                    is_locked = omni.usd.is_layer_locked(omni.usd.get_context(model.context_name), layer.identifier)
+                    layer_name = _LayerUtils.get_custom_layer_name(layer)
+                    if is_locked:
+                        layer_name += " [LOCKED]"
+                    if not enabled:
+                        layer_name += " [DISABLED FOR THIS PROPERTY]"
+                    # Disable locked layers items
+                    menu_item = ui.MenuItem(
+                        layer_name,
+                        triggered_fn=functools.partial(self._delete_overrides, item, layer=layer),
+                        tooltip=layer.identifier,
+                    )
+                    menu_item.enabled = not is_locked and enabled
             if self._layer_transfer_menu_fn:
                 self._layer_transfer_menu_fn(model, item, property_stack, sub_layers, enabled)
         self._context_menu_widgets[id(item)].show()

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.1]
+### Fixed
+- Added regression coverage for replacement xform edits that must not author overrides until a value changes.
+
 ## [1.17.0]
 ### Added
 - Added property editor menu actions to transfer authored property modifications to another replacement layer.

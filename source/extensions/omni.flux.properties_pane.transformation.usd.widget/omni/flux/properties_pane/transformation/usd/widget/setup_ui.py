@@ -177,6 +177,7 @@ class TransformPropertyWidget:
             prims = [stage.GetPrimAtPath(path) for path in self._paths]
 
             attrs_added = {}
+            related_xform_paths_by_prim_path = {}
             # pre-pass to check valid prims with the attribute
             for prim in prims:
                 if not prim.IsValid():
@@ -185,6 +186,9 @@ class TransformPropertyWidget:
 
                 xform = UsdGeom.Xformable(prim)
                 xform_ops = xform.GetOrderedXformOps() or []
+                related_xform_paths_by_prim_path[prim.GetPath()] = [
+                    xform_op.GetAttr().GetPath() for xform_op in xform_ops
+                ] + [xform.GetXformOpOrderAttr().GetPath()]
 
                 for xform_op in xform_ops:
                     attr = xform_op.GetAttr()
@@ -196,6 +200,15 @@ class TransformPropertyWidget:
                 if 1 < len(attrs) != num_prims:
                     continue
 
+                related_attribute_paths = []
+                related_attribute_paths_seen = set()
+                for attr in attrs:
+                    for related_path in related_xform_paths_by_prim_path.get(attr.GetPrimPath(), []):
+                        if related_path in related_attribute_paths_seen:
+                            continue
+                        related_attribute_paths_seen.add(related_path)
+                        related_attribute_paths.append(related_path)
+
                 items.append(
                     (
                         xform_op_type,
@@ -203,6 +216,7 @@ class TransformPropertyWidget:
                             self._context_name,
                             [attr_.GetPath() for attr_ in attrs],
                             display_attr_names=self.__get_xform_custom_name(attr_name),
+                            related_attribute_paths=related_attribute_paths,
                         ),
                     )
                 )

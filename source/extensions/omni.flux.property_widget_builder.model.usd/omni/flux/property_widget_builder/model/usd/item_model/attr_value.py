@@ -87,6 +87,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         value_type_name: Sdf.ValueTypeName | None = None,
         tooltip_display_name: str | None = None,
         tooltip_channel_name: str | None = None,
+        related_override_paths: list[Sdf.Path] | None = None,
     ):
         """
         Base model of a USD attribute value.
@@ -100,11 +101,13 @@ class UsdAttributeBase(_Serializable, abc.ABC):
             value_type_name: the type name of the attribute
             tooltip_display_name: optional display name used to prefix value widget tooltips
             tooltip_channel_name: optional channel suffix used to identify multichannel value widget tooltips
+            related_override_paths: optional related properties that should receive specs with this value write
         """
         super().__init__()
         self._context_name = context_name
         self._stage = omni.usd.get_context(context_name).get_stage()
         self._attribute_paths = attribute_paths
+        self._related_override_paths = list(dict.fromkeys(related_override_paths or []))
         self._read_only = read_only
         self._is_mixed = False
         self._tooltip_display_name = tooltip_display_name
@@ -246,7 +249,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _set_attribute_value(self, attr, new_value) -> bool:
+    def _set_attribute_value(self, attr: Usd.Attribute, new_value: Any, target_layer: Sdf.Layer | None = None) -> bool:
         pass
 
     def _get_value_as_string(self) -> str:
@@ -386,7 +389,13 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         if not self._stage:
             return False
 
-        if self._write_value_to_usd():
+        if self._related_override_paths:
+            with omni.kit.undo.group():
+                wrote_value = self._write_value_to_usd()
+        else:
+            wrote_value = self._write_value_to_usd()
+
+        if wrote_value:
             self.refresh()
             return True
         # value was not changed, but we do want to refresh the delegate
@@ -415,13 +424,55 @@ class UsdAttributeBase(_Serializable, abc.ABC):
                         else:
                             continue
                         if current_value != self._value:
-                            wrote_any = self._set_attribute_value(attr, self._value) or wrote_any
+                            target_layer = self._get_target_layer(attr)
+                            wrote_any = self._ensure_related_override_specs(attr, target_layer) or wrote_any
+                            wrote_any = self._set_attribute_value(attr, self._value, target_layer) or wrote_any
         except Exception:
             if self._read_value_from_usd():
                 self._on_dirty()
             raise
         finally:
             self._ignore_refresh = False
+        return wrote_any
+
+    def _get_target_layer(self, attr: Usd.Attribute) -> Sdf.Layer:
+        """Get the layer that should receive a value write for the attribute."""
+        # OM-75480: For props inside session layer, it will always change specs
+        # in the session layer to avoid shadowing. Why it needs to be def is that
+        # session layer is used for several runtime data for now as built-in cameras,
+        # MDL material params, and etc. Not all of them create runtime prims inside
+        # session layer. For those that are not defined inside session layer, we should
+        # avoid leaving delta inside other sublayers as they are shadowed and useless after
+        # stage close.
+        target_layer, _ = omni.usd.find_spec_on_session_or_its_sublayers(
+            self._stage, attr.GetPath().GetPrimPath(), lambda spec: spec.specifier == Sdf.SpecifierDef
+        )
+        if not target_layer:
+            target_layer = self._stage.GetEditTarget().GetLayer()
+        return target_layer
+
+    def _ensure_related_override_specs(self, attr: Usd.Attribute, target_layer: Sdf.Layer) -> bool:
+        """Author missing related property specs in the same layer as a value write."""
+        wrote_any = False
+        attr_path = attr.GetPath()
+        prim_path = attr_path.GetPrimPath()
+        for related_path in self._related_override_paths:
+            if related_path == attr_path or related_path.GetPrimPath() != prim_path:
+                continue
+            if target_layer.GetPropertyAtPath(related_path) is not None:
+                continue
+            related_attr = self._stage.GetAttributeAtPath(related_path)
+            if not related_attr or not related_attr.IsValid():
+                continue
+            omni.kit.commands.execute(
+                "ChangeProperty",
+                prop_path=str(related_path),
+                value=related_attr.Get(),
+                target_layer=target_layer,
+                prev=None,
+                usd_context_name=self._context_name,
+            )
+            wrote_any = True
         return wrote_any
 
     def begin_batch_edit(self):
@@ -486,6 +537,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         read_only: bool = False,
         value_type_name: Sdf.ValueTypeName | None = None,
         tooltip_display_name: str | None = None,
+        related_override_paths: list[Sdf.Path] | None = None,
     ):
         """
         Value model of an attribute value
@@ -498,6 +550,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             value_type_name: the type name of the attribute
             tooltip_display_name: optional display name used to prefix value widget tooltips
             default_value: optional override for the default value
+            related_override_paths: optional related properties that should receive specs with this value write
         """
         super().__init__(
             context_name,
@@ -505,6 +558,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             read_only=read_only,
             value_type_name=value_type_name,
             tooltip_display_name=tooltip_display_name,
+            related_override_paths=related_override_paths,
         )
         self._channel_index = channel_index
         # should we treat value as a "multi" value or by channel.
@@ -667,7 +721,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         self._has_wrong_value = False
         return True, new_value
 
-    def _set_attribute_value(self, attr, new_value) -> bool:
+    def _set_attribute_value(self, attr: Usd.Attribute, new_value: Any, target_layer: Sdf.Layer | None = None) -> bool:
         if not attr.IsValid():
             return False
         attribute_path = str(attr.GetPath())
@@ -675,18 +729,8 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         if not is_valid:
             return False
 
-        # OM-75480: For props inside session layer, it will always change specs
-        # in the session layer to avoid shadowing. Why it needs to be def is that
-        # session layer is used for several runtime data for now as built-in cameras,
-        # MDL material params, and etc. Not all of them create runtime prims inside
-        # session layer. For those that are not defined inside session layer, we should
-        # avoid leaving delta inside other sublayers as they are shadowed and useless after
-        # stage close.
-        target_layer, _ = omni.usd.find_spec_on_session_or_its_sublayers(
-            self._stage, attr.GetPath().GetPrimPath(), lambda spec: spec.specifier == Sdf.SpecifierDef
-        )
-        if not target_layer:
-            target_layer = self._stage.GetEditTarget().GetLayer()
+        if target_layer is None:
+            target_layer = self._get_target_layer(attr)
 
         omni.kit.commands.execute(
             "ChangeProperty",
@@ -720,6 +764,7 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         metadata: dict | None = None,
         create_callback: Callable[[Usd.Attribute, Any], None] | None = None,
         tooltip_display_name: str | None = None,
+        related_override_paths: list[Sdf.Path] | None = None,
     ):
         self._create_callback = create_callback
 
@@ -737,6 +782,7 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
             read_only=read_only,
             value_type_name=value_type_name,
             tooltip_display_name=tooltip_display_name,
+            related_override_paths=related_override_paths,
         )
 
         # Set _default_value AFTER super().__init__() to avoid being overwritten by the parent class
@@ -766,7 +812,7 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         # If virtual attributes don't exist, they take on the default value.
         return self._default_value
 
-    def _create_and_set_attribute_value(self, attr, new_value) -> bool:
+    def _create_and_set_attribute_value(self, attr: Usd.Attribute, new_value: Any) -> bool:
         # If it's the default value, no need to create anything
         if new_value == self._default_value:
             return False
@@ -791,12 +837,12 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
             )
         return True
 
-    def _set_attribute_value(self, attr, new_value) -> bool:
+    def _set_attribute_value(self, attr: Usd.Attribute, new_value: Any, target_layer: Sdf.Layer | None = None) -> bool:
         """
         Override to set the attribute value.
 
         If a virtual attribute is changed we need to first create it.
         """
         if attr.IsValid():
-            return super()._set_attribute_value(attr, new_value)
+            return super()._set_attribute_value(attr, new_value, target_layer)
         return self._create_and_set_attribute_value(attr, new_value)
