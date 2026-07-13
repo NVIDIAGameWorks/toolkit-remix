@@ -5,6 +5,7 @@
     # Scheduled pipelines: https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/pipeline_schedules
     - if: $CI_PIPELINE_SOURCE == "schedule" && $NIGHTLY_SOAK_TEST == "TRUE"
       when: always
+      interruptible: false
 
 .soak_check_rules:
   rules:
