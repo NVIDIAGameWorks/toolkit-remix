@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import threading
 
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
@@ -133,24 +133,36 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
-    def _build_items(self, items: Iterable[_StageManagerItem]) -> list[SkeletonTreeItem] | None:
+    def _build_items(
+        self,
+        items: list[_StageManagerItem],
+        cancel_event: threading.Event,
+    ) -> list[SkeletonTreeItem] | None:
         """
         Recursively build the model items from Stage Manager items
 
         Args:
-            items: an iterable of Stage Manager items
+            items: Read-only Stage Manager items in parent-before-child order.
+            cancel_event: Signal set when this refresh has been superseded.
 
         Returns:
-            A list of Stage Manager items or None if the input items are None
+            Root skeleton tree items, or None when cancellation is requested.
         """
-        orphan_group: SkeletonTreeItem | None = None
+        if cancel_event.is_set():
+            return None
 
-        self._unique_item_names = _StageManagerUtils.get_unique_names(items)
+        orphan_group: SkeletonTreeItem | None = None
+        unique_item_names = _StageManagerUtils.get_unique_names(items)
 
         tree_items: list[SkeletonTreeItem] = []
+        tree_item_by_stage_item = {}
         for item in items:
-            tree_item = self._create_tree_item_from_stage_item(item)
-            item.tree_item = tree_item
+            if cancel_event.is_set():
+                return None
+            tree_item = self._create_tree_item_from_stage_item(item, unique_item_names, cancel_event)
+            if tree_item is None:
+                return None
+            tree_item_by_stage_item[item] = tree_item
 
             parent = item.parent
             if parent is None:
@@ -167,13 +179,15 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
                     tree_item.parent = orphan_group
             else:
                 # Add to the parent
-                tree_item.parent = parent.tree_item
+                tree_item.parent = tree_item_by_stage_item[parent]
 
         # Add orphan group last
         if orphan_group:
             tree_items.append(orphan_group)
 
         # Sort the parent items alphabetically
+        if cancel_event.is_set():
+            return None
         self.sort_items(tree_items, sort_children=False)
 
         return tree_items
@@ -186,7 +200,6 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
         display_name_ancestor: str = "",
         skel_root: Usd.Prim | None = None,
         skel_prim: Usd.Prim | None = None,
-        bound_prim: Usd.Prim | None = None,
         long_name: str = "",
         index: int | None = None,
     ) -> SkeletonTreeItem:
@@ -203,7 +216,6 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
             display_name_ancestor: Ancestor path prefix for display
             skel_root: The skeleton root prim
             skel_prim: The skeleton prim
-            bound_prim: The bound mesh prim if applicable
             long_name: Full joint path used as cache key for recycling
             index: Joint index (required when creating SkeletonJointItem)
 
@@ -251,92 +263,111 @@ class SkeletonGroupsModel(_VirtualGroupsModel):
             bound_prim=data,
         )
 
-    def _create_tree_item_from_stage_item(self, item: _StageManagerItem) -> SkeletonTreeItem:
+    def _create_tree_item_from_stage_item(
+        self,
+        item: _StageManagerItem,
+        unique_item_names: dict[_StageManagerItem, tuple[str, str | None]],
+        cancel_event: threading.Event,
+    ) -> SkeletonTreeItem | None:
         """
         Function used to transform Stage Manager items into TreeView items
 
         Args:
             item: Stage Manager item
+            unique_item_names: Prepared unique display names for this refresh.
+            cancel_event: Signal set when this refresh has been superseded.
 
         Returns:
-            A fully built TreeView item
+            A fully built TreeView item, or None when cancellation is requested.
         """
+
+        if cancel_event.is_set():
+            return None
 
         def get_skel_root(prim_) -> Usd.Prim | None:
             skel_root_ = prim_.GetParent()
             while skel_root_ and skel_root_.GetTypeName() != "SkelRoot":
+                if cancel_event.is_set():
+                    return None
                 skel_root_ = skel_root_.GetParent()
             return skel_root_
 
         prim: Usd.Prim = item.data
-        item_name, parent_name = self._unique_item_names.get(item, (None, None))
-        if item_name is None:
-            item_name = prim.GetName()
+        item_name, parent_name = unique_item_names[item]
+        prim_type = prim.GetTypeName()
+        path_str = str(prim.GetPath())
+        tooltip = f"{prim_type}: {path_str}"
 
-        if prim.GetTypeName() == "SkelRoot":
-            return self._build_item(
-                item_name,
-                prim,
-                tooltip=f"{prim.GetTypeName()}: {prim.GetPath()}",
-                display_name_ancestor=parent_name,
-            )
-
-        if prim.GetTypeName() == "Skeleton":
-            skel_root = get_skel_root(prim)
+        if prim_type == "SkelRoot":
             tree_item = self._build_item(
                 item_name,
                 prim,
-                tooltip=f"{prim.GetTypeName()}: {prim.GetPath()}",
+                tooltip=tooltip,
+                display_name_ancestor=parent_name,
+            )
+            tree_item.path = path_str
+            return tree_item
+
+        if prim_type == "Skeleton":
+            skel_root = get_skel_root(prim)
+            if cancel_event.is_set():
+                return None
+            tree_item = self._build_item(
+                item_name,
+                prim,
+                tooltip=tooltip,
                 display_name_ancestor=parent_name,
                 skel_root=skel_root,
             )
+            tree_item.path = path_str
 
             # Build tree items for each joint
             joint_items: dict[int, SkeletonJointItem] = {}
             skeleton = UsdSkel.Skeleton(prim)
             joints_attr = skeleton.GetJointsAttr()
-            if joints_attr:
-                joint_names = joints_attr.Get()
-                topology = UsdSkel.Topology(joint_names)
-                for i, joint_name in enumerate(joint_names):
-                    short_name = joint_name.rsplit("/", 1)[-1]
+            joint_names = joints_attr.Get() if joints_attr else []
+            topology = UsdSkel.Topology(joint_names)
+            for i, joint_name in enumerate(joint_names):
+                if cancel_event.is_set():
+                    return None
+                short_name = joint_name.rsplit("/", 1)[-1]
 
-                    joint_item = self._build_item(
-                        short_name,
-                        None,  # messy to have all joints select same prim
-                        tooltip=f"Joint: {prim.GetPath()}, {joint_name}",
-                        index=i,
-                        skel_root=skel_root,
-                        skel_prim=prim,
-                        long_name=joint_name,
-                    )
-                    joint_items[i] = joint_item
+                joint_item = self._build_item(
+                    short_name,
+                    None,  # messy to have all joints select same prim
+                    tooltip=f"Joint: {path_str}, {joint_name}",
+                    index=i,
+                    skel_root=skel_root,
+                    skel_prim=prim,
+                    long_name=joint_name,
+                )
+                joint_items[i] = joint_item
 
-                    # Add joints to the right parent in the hierarchy
-                    if topology.IsRoot(i):
-                        joint_item.parent = tree_item
-                    else:
-                        parent_index = topology.GetParent(i)
-                        joint_item.parent = joint_items[parent_index]
+                # Add joints to the right parent in the hierarchy
+                if topology.IsRoot(i):
+                    joint_item.parent = tree_item
+                else:
+                    joint_item.parent = joint_items[topology.GetParent(i)]
 
             return tree_item
+
         if prim.HasAPI(UsdSkel.BindingAPI):
             skel_root = get_skel_root(prim)
-            skel_prim = None
+            if cancel_event.is_set():
+                return None
             skeleton = UsdSkel.BindingAPI(prim).GetSkeleton()
-            if skeleton:
-                skel_prim = skeleton.GetPrim()
-            return self._build_item(
+            tree_item = self._build_item(
                 item_name,
                 prim,
-                tooltip=f"{prim.GetTypeName()}: {prim.GetPath()}",
+                tooltip=tooltip,
                 display_name_ancestor=parent_name,
                 skel_root=skel_root,
-                skel_prim=skel_prim,
-                bound_prim=prim,
+                skel_prim=skeleton.GetPrim() if skeleton else None,
             )
+            tree_item.path = path_str
+            return tree_item
 
-        raise ValueError(f"Unexpected prim type: {prim.GetTypeName()}, path: {prim.GetPath()}")
+        raise ValueError(f"Unexpected prim type: {prim_type}, path: {path_str}")
 
 
 class SkeletonGroupsDelegate(_VirtualGroupsDelegate):

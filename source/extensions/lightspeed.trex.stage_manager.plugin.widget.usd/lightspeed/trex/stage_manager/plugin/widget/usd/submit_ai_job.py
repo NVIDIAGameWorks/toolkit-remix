@@ -56,7 +56,7 @@ class SubmitAIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageManage
         comfy = get_comfy_interface()
         workflow = comfy.workflow
         comfy_ready = workflow is not None
-        prim_valid = self._is_prim_valid(item.data)
+        prim_valid = comfy_ready and self._is_prim_valid(item.data)
 
         enabled = comfy_ready and prim_valid
 

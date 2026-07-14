@@ -17,8 +17,8 @@
 
 from __future__ import annotations
 
+import threading
 from typing import TYPE_CHECKING
-from collections.abc import Iterable
 
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
@@ -114,11 +114,21 @@ class LightGroupsModel(_VirtualGroupsModel):
             light_type=light_type,
         )
 
-    def _build_items(self, items: Iterable[_StageManagerItem]) -> list[LightGroupsItem] | None:
+    def _build_items(
+        self,
+        items: list[_StageManagerItem],
+        cancel_event: threading.Event,
+    ) -> list[LightGroupsItem] | None:
+        """Build light groups unless the refresh is cancelled."""
+        if cancel_event.is_set():
+            return None
+
         tree_items = {}
 
         # Build the group items
         for light_type in _LightTypes:
+            if cancel_event.is_set():
+                return None
             # Since this is a group, make plural
             display_name = f"{light_type.value}s"
             tree_items[light_type] = self._build_item(
@@ -132,24 +142,27 @@ class LightGroupsModel(_VirtualGroupsModel):
 
         # Add light items to the groups
         for item in items:
+            if cancel_event.is_set():
+                return None
             light_type = _get_light_type(item.data.GetTypeName())
             if light_type not in tree_items:
                 continue
 
-            prim_path = item.data.GetPath()
-            item_name, parent_name = item_names.get(item, (None, None))
-            if item_name is None:
-                item_name = prim_path.name
+            path_str = str(item.data.GetPath())
+            item_name, parent_name = item_names[item]
 
             light_tree_item = self._build_item(
                 item_name,
                 item.data,
-                tooltip=str(prim_path),
+                tooltip=path_str,
                 display_name_ancestor=parent_name,
             )
+            light_tree_item.path = path_str
             light_tree_item.parent = tree_items[light_type]
 
         # Filter out empty groups and sort the items alphabetically (both parents and children)
+        if cancel_event.is_set():
+            return None
         filtered_items = [item for item in tree_items.values() if item.children]
         self.sort_items(filtered_items)
 

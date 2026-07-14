@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.0]
+### Changed
+- Read USD facts and build Remix Category and Mesh groups in cancellable model workers.
+- Declared the direct Pydantic runtime dependency.
+
+### Fixed
+- Preserve ancestor labels for duplicate category and mesh names.
+
 ## [2.2.2]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

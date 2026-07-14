@@ -17,6 +17,7 @@
 
 __all__ = ["TestScrollingTreeWidget"]
 import gc
+import threading
 
 import omni.usd
 from omni import ui
@@ -714,3 +715,28 @@ class TestScrollingTreeWidget(AsyncTestCase):
         # Cleanup
         del widget
         window.destroy()
+
+    def test_resolve_expansion_plan_restores_duplicate_paths_and_ancestors(self):
+        """Path fallback should restore every duplicate row and its ancestors in root-first order."""
+        # Arrange
+        child_a = MockTreeItem("ChildA")
+        child_b = MockTreeItem("ChildB")
+        root_a = MockTreeItem("RootA", children=[child_a])
+        root_b = MockTreeItem("RootB", children=[child_b])
+        previous_hash = 1234
+
+        # Act
+        recursive_items, ordered_items, cache_state = ScrollingTreeWidget._resolve_expansion_plan(
+            {previous_hash: True},
+            {previous_hash: "/World/Shared"},
+            {hash(item): item for item in (root_a, child_a, root_b, child_b)},
+            {"/World/Shared": [child_a, child_b]},
+            [root_a, root_b],
+            True,
+            threading.Event(),
+        )
+
+        # Assert
+        self.assertEqual([root_a, root_b], recursive_items)
+        self.assertEqual([root_a, child_a, root_b, child_b], ordered_items)
+        self.assertEqual(dict.fromkeys(map(hash, ordered_items), True), cache_state)

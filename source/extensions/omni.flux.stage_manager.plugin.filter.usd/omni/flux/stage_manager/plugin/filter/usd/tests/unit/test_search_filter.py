@@ -238,3 +238,20 @@ class TestSearchFilterPluginUnit(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertFalse(result)
+
+    async def test_prepared_filter_predicate_keeps_search_term_snapshot(self):
+        # Arrange
+        plugin = SearchFilterPlugin()
+        _set_search_term(plugin, "foo")
+        foo_item = _make_item("FooMesh")
+        bar_item = _make_item("BarMesh")
+        predicate = plugin.prepare_filter_predicate()
+        _set_search_term(plugin, "bar")
+
+        # Act
+        foo_matches = predicate(foo_item)
+        bar_matches = predicate(bar_item)
+
+        # Assert
+        self.assertTrue(foo_matches)
+        self.assertFalse(bar_matches)

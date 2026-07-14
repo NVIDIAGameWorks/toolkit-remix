@@ -2,6 +2,9 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.6.5]
+### Added
+- Added regression coverage for registered Remix interactions and inherited shared refresh routing.
+
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.
 

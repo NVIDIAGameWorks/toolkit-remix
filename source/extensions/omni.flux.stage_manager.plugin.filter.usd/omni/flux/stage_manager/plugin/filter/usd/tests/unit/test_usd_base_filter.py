@@ -18,6 +18,7 @@
 from typing import ClassVar
 
 import omni.kit.test
+from omni.flux.stage_manager.factory import StageManagerItem
 from omni.flux.stage_manager.factory.plugins.filter_plugin import StageManagerFilterPlugin
 from omni.flux.stage_manager.plugin.filter.usd.additional_filters import AdditionalFilterPlugin
 from omni.flux.stage_manager.plugin.filter.usd.base import StageManagerUSDFilterPlugin, ToggleableUSDFilterPlugin
@@ -25,7 +26,7 @@ from omni.flux.stage_manager.plugin.filter.usd.custom_tags import CustomTagsFilt
 from omni.flux.stage_manager.plugin.filter.usd.ignore_prims import IgnorePrimsFilterPlugin
 from omni.flux.stage_manager.plugin.filter.usd.search import SearchFilterPlugin
 from omni.flux.stage_manager.plugin.filter.usd.visible_prims import VisiblePrimsFilterPlugin
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
 __all__ = ["TestStageManagerUSDFilterPluginUnit"]
 
@@ -45,6 +46,20 @@ class _WatchedFieldFilterPlugin(StageManagerUSDFilterPlugin):
 
     def _refresh_filter_active(self) -> None:
         self.filter_active = self.watched_value != "All"
+
+
+class _PreparedLookupFilterPlugin(StageManagerUSDFilterPlugin):
+    display_name: str = Field(default="Prepared Lookup Filter", exclude=True)
+    tooltip: str = Field(default="", exclude=True)
+
+    _calls: int = PrivateAttr(default=0)
+
+    def build_ui(self):
+        pass
+
+    def filter_predicate(self, item) -> bool:
+        self._calls += 1
+        return item.identifier == "keep"
 
 
 class TestStageManagerUSDFilterPluginUnit(omni.kit.test.AsyncTestCase):
@@ -74,18 +89,32 @@ class TestStageManagerUSDFilterPluginUnit(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertTrue(plugin.filter_active)
 
-    async def test_watched_field_assignment_should_refresh_filter_active_from_subclass_state(self):
+    async def test_watched_field_assignment_should_track_default_state(self):
         # Arrange
         plugin = _WatchedFieldFilterPlugin()
 
         # Act
         plugin.watched_value = "Specific"
-
-        # Assert
-        self.assertTrue(plugin.filter_active)
-
-        # Act
+        active_for_non_default = plugin.filter_active
         plugin.watched_value = "All"
 
         # Assert
+        self.assertTrue(active_for_non_default)
         self.assertFalse(plugin.filter_active)
+
+    async def test_prepare_filter_predicate_should_defer_evaluation_until_called(self):
+        # Arrange
+        plugin = _PreparedLookupFilterPlugin()
+        kept_item = StageManagerItem("keep")
+        rejected_item = StageManagerItem("reject")
+        unknown_item = StageManagerItem("unknown")
+
+        # Act
+        prepared_predicate = plugin.prepare_filter_predicate()
+        calls_after_preparation = plugin._calls
+        prepared_results = [prepared_predicate(item) for item in (kept_item, rejected_item, unknown_item)]
+
+        # Assert
+        self.assertEqual(0, calls_after_preparation)
+        self.assertEqual([True, False, False], prepared_results)
+        self.assertEqual(3, plugin._calls)

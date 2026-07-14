@@ -1,9 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [2.9.3]
+## [2.10.0]
 ### Changed
+- Evaluate USD filter predicates directly in the model worker instead of preparing per-item main-thread lookup maps.
+- Capture Custom Tags filter inputs per refresh without mutating shared plugin caches.
 - Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Keep prepared Custom Tags predicates valid across context replacement and plugin destruction.
+- Snapshot Search matching state so overlapping workers are unaffected by later search edits.
 
 ## [2.9.2]
 ### Changed

@@ -17,9 +17,11 @@
 
 __all__ = ["ScrollingTreeWidget"]
 
+import asyncio
+import threading
 from asyncio import Future, ensure_future
 from collections import deque
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
 import omni.kit.app
 import omni.usd
@@ -117,9 +119,15 @@ class ScrollingTreeWidget:
             self._extra_tree_view_args.setdefault("expand_on_branch_click", False)
 
         self._selection_update_task: Future | None = None
-        self._deferred_refresh_task: Future | None = None
+        self._model_change_sync_task: Future | None = None
+        self._suppress_model_change_sync = False
+        self._suppress_selection_changed = False
+        self._destroyed = False
 
         self._item_expansion_states: dict[int, bool] = {}
+        self._item_paths_by_hash: dict[int, str] = {}
+        self._expansion_resolve_cancel_event: threading.Event | None = None
+        self._refresh_commit_lock = asyncio.Lock()
 
         self._build_ui()
 
@@ -157,13 +165,31 @@ class ScrollingTreeWidget:
         if self._selection_update_task and not self._selection_update_task.done():
             self._selection_update_task.cancel()
 
-        self._selection_update_task = ensure_future(self._set_selection(items))
+        self._selection_update_task = ensure_future(self.set_selection_async(items))
 
-    async def _set_selection(self, items: list[TreeItemBase]):
+    async def set_selection_async(self, items: list[TreeItemBase]):
+        """
+        Apply tree selection after optional frame-to-selection work.
+        """
+        if self._destroyed:
+            return
+
         if self._frame_selection:
             await self.expand_to_items(items)
+            if self._destroyed:
+                return
             await self.scroll_to_items(items)
-        self._tree_widget.selection = items
+            if self._destroyed:
+                return
+        self._set_tree_selection_without_notification(items)
+
+    def _set_tree_selection_without_notification(self, items: list[TreeItemBase]):
+        previous_suppression = self._suppress_selection_changed
+        self._suppress_selection_changed = True
+        try:
+            self._tree_widget.selection = items
+        finally:
+            self._suppress_selection_changed = previous_suppression
 
     @property
     def delegate(self) -> TreeDelegateBase:
@@ -240,6 +266,186 @@ class ScrollingTreeWidget:
         if self._update_content_size_task:
             self._update_content_size_task.cancel()
         self._update_content_size_task = ensure_future(self._update_content_size_deferred())
+
+    async def refresh_model(
+        self,
+        expand_filtered_roots: bool = False,
+    ):
+        """
+        Run a full model refresh through the prepare/publish pipeline.
+
+        Returns:
+            The successfully published refresh result, or None when refresh work is discarded.
+        """
+        previous_cancel_event = self._expansion_resolve_cancel_event
+        if previous_cancel_event is not None:
+            previous_cancel_event.set()
+
+        cancel_event = threading.Event()
+        self._expansion_resolve_cancel_event = cancel_event
+        try:
+            model = self._model
+            result = await model.refresh_threaded()
+            if result is None or cancel_event.is_set() or self._destroyed:
+                return None
+
+            expansion_plan = ([], [], {})
+            if self._item_expansion_states or expand_filtered_roots:
+                expansion_plan = await asyncio.to_thread(
+                    self._resolve_expansion_plan,
+                    dict(self._item_expansion_states),
+                    self._item_paths_by_hash,
+                    result.item_by_hash,
+                    result.items_by_path,
+                    result.root_items,
+                    expand_filtered_roots,
+                    cancel_event,
+                )
+                if expansion_plan is None or cancel_event.is_set() or self._destroyed:
+                    return None
+
+            commit_task = asyncio.create_task(self._commit_refresh_result(model, result, expansion_plan, cancel_event))
+            try:
+                committed = await asyncio.shield(commit_task)
+            except asyncio.CancelledError:
+                cancel_event.set()
+                await commit_task
+                raise
+            if not committed:
+                return None
+            return result
+        except asyncio.CancelledError:
+            cancel_event.set()
+            raise
+        finally:
+            if self._expansion_resolve_cancel_event is cancel_event:
+                self._expansion_resolve_cancel_event = None
+
+    async def _commit_refresh_result(self, model, result, expansion_plan, cancel_event: threading.Event) -> bool:
+        """Publish model and expansion state as one serialized main-thread commit."""
+        async with self._refresh_commit_lock:
+            if cancel_event.is_set() or self._destroyed:
+                return False
+
+            self._suppress_model_change_sync = True
+            self._suppress_selection_changed = True
+            try:
+                model.publish_refresh_result(result)
+                if self._destroyed:
+                    return False
+                self._tree_widget.selection = []
+                if self._destroyed:
+                    return False
+
+                if self._model_change_sync_task and not self._model_change_sync_task.done():
+                    self._model_change_sync_task.cancel()
+
+                if self._alternating_rows and self._alternating_row_widget:
+                    self._alternating_row_widget.refresh(item_count=self._model.get_children_count())
+                    if self._destroyed:
+                        return False
+
+                recursive_items, ordered_items, expansion_cache_state = expansion_plan
+                if recursive_items or ordered_items:
+                    await omni.kit.app.get_app().next_update_async()
+                    if self._destroyed:
+                        return False
+
+                for item in recursive_items:
+                    if self._destroyed:
+                        return False
+                    if not self._tree_widget.is_expanded(item):
+                        self.set_expanded(item, True, True, update_cache=False)
+
+                for item in ordered_items:
+                    if self._destroyed:
+                        return False
+                    if not self._tree_widget.is_expanded(item):
+                        self.set_expanded(item, True, False, update_cache=False)
+
+                if self._expansion_caching:
+                    self._item_expansion_states.clear()
+                    self._item_expansion_states.update(expansion_cache_state)
+                self._item_paths_by_hash = result.path_by_hash
+                return True
+            finally:
+                self._suppress_model_change_sync = False
+                self._suppress_selection_changed = False
+
+    @staticmethod
+    def _resolve_expansion_plan(
+        expansion_state_by_hash: dict[int, bool],
+        previous_path_by_hash: dict[int, str],
+        item_by_hash: dict[int, TreeItemBase],
+        items_by_path: dict[str, list[TreeItemBase]],
+        root_items: list[TreeItemBase],
+        expand_filtered_roots: bool,
+        cancel_event: threading.Event,
+    ) -> tuple[list[TreeItemBase], list[TreeItemBase], dict[int, bool]] | None:
+        """
+        Resolve cached expansion against one rebuilt tree.
+
+        Args:
+            expansion_state_by_hash: Expansion state captured from the current tree.
+            previous_path_by_hash: Stable paths associated with the current tree hashes.
+            item_by_hash: Rebuilt items indexed by hash.
+            items_by_path: Rebuilt items indexed by stable path.
+            root_items: Rebuilt root items.
+            expand_filtered_roots: Whether roots with filtered children should expand recursively.
+            cancel_event: Signal that stops resolution for a superseded refresh.
+
+        Returns:
+            Recursive roots, ancestor-first restored items, and replacement cache state, or None when cancelled.
+        """
+        target_items: dict[int, TreeItemBase] = {}
+        for item_hash, expanded in expansion_state_by_hash.items():
+            if cancel_event.is_set():
+                return None
+            if not expanded:
+                continue
+
+            exact_item = item_by_hash.get(item_hash)
+            if exact_item is not None:
+                target_items.setdefault(hash(exact_item), exact_item)
+
+            path = previous_path_by_hash.get(item_hash)
+            if path is None:
+                continue
+            for item in items_by_path.get(path, []):
+                if cancel_event.is_set():
+                    return None
+                target_items.setdefault(hash(item), item)
+
+        ordered_items = []
+        ordered_hashes = set()
+        for item in target_items.values():
+            if cancel_event.is_set():
+                return None
+
+            item_chain = [item]
+            parent = item.parent
+            while parent:
+                if cancel_event.is_set():
+                    return None
+                item_chain.append(parent)
+                parent = parent.parent
+
+            for chained_item in reversed(item_chain):
+                item_hash = hash(chained_item)
+                if item_hash in ordered_hashes:
+                    continue
+                ordered_hashes.add(item_hash)
+                ordered_items.append(chained_item)
+
+        recursive_items = []
+        if expand_filtered_roots:
+            for item in root_items:
+                if cancel_event.is_set():
+                    return None
+                if item.children:
+                    recursive_items.append(item)
+
+        return recursive_items, ordered_items, dict.fromkeys(ordered_hashes, True)
 
     def iter_visible_items(self, recursive=True) -> Iterable[TreeItemBase]:
         """
@@ -336,6 +542,12 @@ class ScrollingTreeWidget:
             center_ratio: where to frame first item (0.0: top, 0.5: center, 1.0: bottom)
         """
         await omni.kit.app.get_app().next_update_async()
+        if self._destroyed:
+            return
+
+        if self._update_content_size_task:
+            self._update_content_size_task.cancel()
+
         items_set = set(items)
         for i, child in enumerate(self.iter_visible_items()):
             if child in items_set:
@@ -351,6 +563,9 @@ class ScrollingTreeWidget:
         self._tree_scroll_frame.scroll_y = scroll_y - target_from_top
 
     async def _deferred_expansion_state_restore(self):
+        if not self._item_expansion_states:
+            return
+
         await omni.kit.app.get_app().next_update_async()
 
         for item in self.model.iter_items_children():
@@ -360,8 +575,20 @@ class ScrollingTreeWidget:
                 continue
             self.set_expanded(item, expanded, False)
 
-    async def _deferred_refresh(self):
-        if self._expansion_caching:
+    async def _sync_ui_after_model_change(self, restore_expansion: bool = True):
+        """
+        Synchronize cached tree UI state after a model change.
+
+        Args:
+            restore_expansion: Whether the model change replaced the tree hierarchy.
+        """
+        if self._destroyed:
+            return
+
+        if self._suppress_model_change_sync:
+            return
+
+        if self._expansion_caching and restore_expansion:
             await self._deferred_expansion_state_restore()
 
         if self._alternating_rows and self._alternating_row_widget:
@@ -402,12 +629,18 @@ class ScrollingTreeWidget:
         Automatically refreshes the alternating row widget to stay in sync
         with the model's item count. No-op if alternating_rows is disabled.
         """
-        if self._deferred_refresh_task and not self._deferred_refresh_task.done():
-            self._deferred_refresh_task.cancel()
+        if self._destroyed:
+            return
 
-        self._deferred_refresh_task = ensure_future(self._deferred_refresh())
+        if self._suppress_model_change_sync:
+            return
 
-    def subscribe_selection_changed(self, *args, **kwargs):
+        if self._model_change_sync_task and not self._model_change_sync_task.done():
+            self._model_change_sync_task.cancel()
+
+        self._model_change_sync_task = ensure_future(self._sync_ui_after_model_change(restore_expansion=_item is None))
+
+    def subscribe_selection_changed(self, callback: Callable[[list[TreeItemBase]], None]):
         """
         Subscribe to selection change events.
 
@@ -419,7 +652,13 @@ class ScrollingTreeWidget:
             EventSubscription: Subscription handle. Keep a reference to
                 maintain the subscription; releasing it unsubscribes.
         """
-        return self._tree_widget.subscribe_selection_changed(*args, **kwargs)
+
+        def _on_selection_changed(items):
+            if self._suppress_selection_changed:
+                return
+            callback(items)
+
+        return self._tree_widget.subscribe_selection_changed(_on_selection_changed)
 
     def dirty_widgets(self, *args, **kwargs):
         """
@@ -427,7 +666,7 @@ class ScrollingTreeWidget:
         """
         return self._tree_widget.dirty_widgets(*args, **kwargs)
 
-    def set_expanded(self, item, expanded, recursive):
+    def set_expanded(self, item, expanded, recursive, update_cache: bool = True):
         """
         Set the expansion state of an item.
 
@@ -437,7 +676,7 @@ class ScrollingTreeWidget:
             recursive: If True, also applies to all children
         """
         self._tree_widget.set_expanded(item, expanded, recursive)
-        if self._expansion_caching:
+        if self._expansion_caching and update_cache:
             items = [item]
             if recursive:
                 items.extend(self._model.iter_items_children([item]))
@@ -477,16 +716,27 @@ class ScrollingTreeWidget:
         """
         return self._tree_widget.on_selection_changed(*args, **kwargs)
 
-    def __del__(self):
+    def destroy(self):
         """Destroy all subwidgets and release resources."""
+        self._destroyed = True
+        if self._expansion_resolve_cancel_event:
+            self._expansion_resolve_cancel_event.set()
+            self._expansion_resolve_cancel_event = None
         if self._update_content_size_task:
             self._update_content_size_task.cancel()
+            self._update_content_size_task = None
         if self._selection_update_task:
             self._selection_update_task.cancel()
-        if self._deferred_refresh_task:
-            self._deferred_refresh_task.cancel()
+            self._selection_update_task = None
+        if self._model_change_sync_task:
+            self._model_change_sync_task.cancel()
+            self._model_change_sync_task = None
 
         # Release the subscription - this automatically unsubscribes from the event stream
         self._app_window_size_changed_sub = None
         self._item_changed_sub = None
         self._item_expanded_sub = None
+
+    def __del__(self):
+        """Destroy all subwidgets and release resources."""
+        self.destroy()

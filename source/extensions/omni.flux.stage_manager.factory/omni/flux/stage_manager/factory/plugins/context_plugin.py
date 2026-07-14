@@ -16,6 +16,7 @@
 """
 
 import abc
+import threading
 from typing import Any
 from collections.abc import Callable
 
@@ -53,13 +54,17 @@ class StageManagerContextPlugin(_StageManagerPluginBase, abc.ABC):
         return list(dict.fromkeys(v))
 
     @abc.abstractmethod
-    def get_items(self) -> list[_StageManagerItem]:
+    def get_items(self, cancel_event: threading.Event | None = None) -> list[_StageManagerItem] | None:
         """
         Get the items that should be used by the other plugins. This will be called whenever the interaction plugin
         needs updated data.
 
+        Args:
+            cancel_event: Signal set when the collection has been superseded.
+
         Returns:
-            A list of items to be used by the other plugins.
+            A newly allocated hierarchy of item wrappers owned exclusively by this context refresh, or None when
+            cancelled. Implementations must not cache or reuse wrapper instances across calls.
         """
         pass
 

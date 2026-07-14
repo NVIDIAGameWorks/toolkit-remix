@@ -1,10 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-
 ## [2.6.2]
 ### Changed
+- Declared the direct Pydantic runtime dependency.
 - Updated extension metadata for Kit SDK 110 compatibility.
+- Restored direct source-layer and USD layer dependencies required by scene edit-state filters.
 
 ## [2.6.1]
 ### Fixed

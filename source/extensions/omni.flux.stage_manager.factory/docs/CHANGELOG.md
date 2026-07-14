@@ -1,6 +1,26 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.0.0]
+### Added
+- Added duplicate-aware path/hash indexes and `clear_items()` support for immediate, state-preserving tab refreshes.
+- Added configured-sampling refresh telemetry with before/after filter counts from visible context/filter requests through post-refresh selection framing.
+
+### Changed
+- Moved context traversal, filtering, tree construction, and indexing into cancellable worker phases while keeping publication and UI work on the main thread.
+- Made refresh state local to each worker, skipped inactive filter work, and rejected stale results.
+- Moved context collection into the interaction pipeline and expansion restoration into the scrolling widget; live interaction selection is reapplied after publication.
+- Updated extension contracts to use the `selection` property, filter-plugin registration, `prepare_filter_predicate()`, `set_context_items()`, and `_build_items(items, cancel_event)`.
+
+### Fixed
+- Cancel superseded context requests before their initial frame can publish stale data, while allowing user-filter
+  refreshes to proceed during delegate-only redraws.
+- Preserve explicit refresh-task cancellation, stop active model workers before destruction, and allow immediate
+  reactivation to schedule queued context work.
+
+### Removed
+- Removed `debounce_frames`, `StageManagerItem.tree_item`, model-side context collection, and legacy selection/predicate APIs.
+
 ## [4.12.4]
 ### Fixed
 - Preserve Stage Manager tree selection across refreshes when selected prims are rebuilt.

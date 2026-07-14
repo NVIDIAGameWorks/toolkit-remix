@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.4]
+### Fixed
+- Clear cached tree rows without traversing descendants before rebuilding a selected Stage Manager tab.
+
 ## [1.7.3]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

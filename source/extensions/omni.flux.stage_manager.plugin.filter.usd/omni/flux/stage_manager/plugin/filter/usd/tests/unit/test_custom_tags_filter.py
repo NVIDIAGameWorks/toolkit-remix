@@ -390,6 +390,63 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
         self.assertFalse(result)
         plugin._core.prim_has_any_tag.assert_called_once_with(item.data, [Sdf.Path(_TAG_CAR)])
 
+    async def test_prepared_filter_predicate_should_capture_tag_paths_without_mutating_plugin_caches(self):
+        # Arrange
+        plugin = _make_plugin_with_core(selected_tags=[_TAG_CAR], include_untagged=True)
+        plugin._all_tag_paths = []
+        plugin._prim_counts = {_TAG_CAR: 1}
+        plugin._core.get_all_tags.return_value = [Sdf.Path(_TAG_CAR), Sdf.Path(_TAG_RED)]
+        plugin._core.prim_has_any_tag.side_effect = [False, False]
+        item = _make_item()
+
+        # Act
+        predicate = plugin.prepare_filter_predicate()
+        result = predicate(item)
+
+        # Assert
+        self.assertTrue(result)
+        self.assertEqual([], plugin._all_tag_paths)
+        self.assertEqual({_TAG_CAR: 1}, plugin._prim_counts)
+        plugin._core.get_all_tags.assert_called_once_with()
+        plugin._core.prim_has_any_tag.assert_any_call(item.data, (Sdf.Path(_TAG_CAR),))
+        plugin._core.prim_has_any_tag.assert_any_call(item.data, (Sdf.Path(_TAG_CAR), Sdf.Path(_TAG_RED)))
+
+    async def test_plugin_teardown_does_not_destroy_core_captured_by_worker_predicate(self):
+        """Cancelling a to_thread task does not join its worker, so the captured core must remain valid."""
+        # Arrange
+        plugin = _make_plugin_with_core(selected_tags=[_TAG_CAR])
+        original_core = plugin._core
+        original_core.prim_has_any_tag.return_value = True
+        replacement_core = Mock()
+        item = _make_item()
+        predicate = plugin.prepare_filter_predicate()
+
+        with patch(
+            "omni.flux.stage_manager.plugin.filter.usd.custom_tags._CustomTagsCore",
+            return_value=replacement_core,
+        ):
+            plugin.set_context_name("replacement")
+        plugin.destroy()
+        state_before_evaluation = (
+            plugin._all_tag_paths,
+            plugin._prim_counts,
+            plugin._selected_tag_paths,
+            plugin._checkboxes_frame,
+        )
+
+        # Act
+        result = predicate(item)
+
+        # Assert
+        self.assertTrue(result)
+        original_core.destroy.assert_not_called()
+        replacement_core.destroy.assert_not_called()
+        original_core.prim_has_any_tag.assert_called_once_with(item.data, (Sdf.Path(_TAG_CAR),))
+        self.assertEqual(
+            state_before_evaluation,
+            (plugin._all_tag_paths, plugin._prim_counts, plugin._selected_tag_paths, plugin._checkboxes_frame),
+        )
+
     # ------------------------------------------------------------------
     # Group 4 — _on_tag_toggled / _on_untagged_toggled
     # ------------------------------------------------------------------

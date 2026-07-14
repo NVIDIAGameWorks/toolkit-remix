@@ -35,8 +35,12 @@ icon = "data/images/icon.png"
 "lightspeed.layer_manager.core" = {}
 "lightspeed.trex.asset_replacements.core.shared" = {}
 "lightspeed.trex.utils.common" = {}
+"lightspeed.trex.source_layer_picker.window" = {}
+"omni.flux.pip_archive" = {}
 "omni.flux.stage_manager.plugin.filter.usd" = {}
+"omni.kit.usd.layers" = {}
 "omni.ui" = {}
+"omni.usd" = {}
 
 [[python.module]]
 name = "lightspeed.trex.stage_manager.plugin.filter.usd"

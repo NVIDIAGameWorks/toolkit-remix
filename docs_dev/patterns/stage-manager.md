@@ -132,6 +132,60 @@ lightspeed.trex.stage_manager.widget (composition)
 
 ---
 
+## Refresh Pipeline
+
+Every registered interaction uses the same cancellable refresh pipeline:
+
+```text
+main thread    configure context, clear stale rows, show loading state
+context worker traverse USD, apply context filters, create context wrappers
+model worker   apply active user filters, build tree data and identity indexes
+widget worker  resolve cached expansion against the rebuilt tree
+main thread    publish, apply expansion, synchronize USD selection, build UI
+```
+
+Visible context and filter requests create a `Stage Manager Refresh` telemetry transaction using the configured
+telemetry sampling policy. The transaction remains open through context and model workers, publication, expansion,
+result-frame rebuilding, and the interaction's post-refresh work. For USD interactions, `_items_changed_task` is the
+completion boundary: it awaits the selection task that reads the current USD selection, expands selected-item
+ancestors, applies scrolling, and updates tree/model selection. The existing Kit frame before selection synchronization
+only orders rebuilt rows before framing; it is not the telemetry endpoint. Completion means Stage Manager-controlled
+state has been applied, not that the GPU has presented the resulting frame. Transactions use the bounded
+`refresh.trigger` tag (`context` or `filter`) and report `ok`, `cancelled`, or `internal_error` without recording scene
+paths, names, filter text, or selection values. The historical `input_items_count` and `output_items_count` data fields
+record the number of context wrappers before and after user filtering. `ScrollingTreeWidget.refresh_model()` returns the
+published refresh result so the interaction can attach these counts without rescanning the tree or retaining extra model
+state.
+
+Concrete interactions inherit this pipeline and should not implement their own refresh path. Read-only USD traversal,
+filtering, grouping, and tree-data construction run in workers. Context configuration, USD mutation, publication,
+selection changes, `build_widget()`, and all `omni.ui` work remain on the main thread.
+
+Each worker phase owns its mutable results. Context wrappers are refresh-owned until they are transferred to the model;
+the model then treats them as read-only. Tree builders use refresh-local state to create and connect
+`StageManagerTreeItem` objects. A newer refresh signals the current phase's cancellation event, and expensive loops must
+poll that event so stale work exits without publishing. Cooperative supersession returns no refresh result, while an
+explicitly cancelled refresh task propagates `asyncio.CancelledError` to its owner.
+
+`ScrollingTreeWidget` resolves expansion before entering a serialized main-thread commit. A stale result may be dropped
+before that commit starts; once publication begins, the widget applies the matching rows, expansion state, and path cache
+as one operation before a newer refresh can publish.
+
+USD selection synchronization coalesces notifications received while selected-item framing is in progress. The active
+selection task rereads the live scene selection until no newer notification is pending, so the latest selection wins.
+
+Extension implementations must follow these contracts:
+
+- `prepare_filter_predicate()` returns a worker-safe predicate whose captured state cannot change during evaluation. It
+  must not access `omni.ui` or mutate plugin state.
+- `_build_items(items, cancel_event)` treats `items` as read-only, keeps temporary state local, assigns stable
+  `StageManagerTreeItem.path` values, and returns `None` when cancelled.
+- `ScrollingTreeWidget` owns expansion caching and applies resolved expansion on the main thread.
+- `StageManagerTreeModel.get_items_by_path(path)` returns every visible row for a USD path, including duplicates under
+  virtual or grouped trees.
+
+---
+
 ## Key Extension Paths
 
 | Extension                                              | Role                                                                                               |

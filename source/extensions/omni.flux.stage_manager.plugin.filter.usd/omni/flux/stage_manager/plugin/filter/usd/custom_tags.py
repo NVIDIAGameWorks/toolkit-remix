@@ -81,8 +81,8 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
         self._model_ready = True
 
     def set_context_name(self, name: str) -> None:
-        if self._core is not None:
-            self._core.destroy()
+        # CustomTagsCore owns no subscriptions. Prepared worker predicates may retain the old core,
+        # so replace this reference without calling destroy() and invalidating its stage.
         self._core = _CustomTagsCore(context_name=name)
         self._all_tag_paths = None
         self._prim_counts = None
@@ -121,6 +121,28 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
         return self.include_untagged and not self._core.prim_has_any_tag(
             prim, self._get_all_tag_paths(refresh_stage=self._all_tag_paths is None)
         )
+
+    def prepare_filter_predicate(self):
+        """Capture refresh-local tag state and retain its query core for the worker."""
+        filter_enabled = self._filter_enabled
+        include_untagged = self.include_untagged
+        selected_tag_paths = tuple(self._selected_tag_paths)
+        core = self._core
+        if not filter_enabled or (not selected_tag_paths and not include_untagged) or core is None:
+            return lambda _item: True
+
+        all_tag_paths = (
+            tuple(tag_path for tag_path in (core.get_all_tags() or []) if tag_path and not tag_path.isEmpty)
+            if include_untagged
+            else ()
+        )
+
+        def _predicate(item: _StageManagerItem) -> bool:
+            if selected_tag_paths and core.prim_has_any_tag(item.data, selected_tag_paths):
+                return True
+            return include_untagged and not core.prim_has_any_tag(item.data, all_tag_paths)
+
+        return _predicate
 
     def _filter_items_changed(self):
         self._all_tag_paths = None
@@ -265,8 +287,9 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
 
     def destroy(self):
         self._tag_subs.clear()
-        if self._core is not None:
-            self._core.destroy()
+        # _tag_subs are this plugin's only subscriptions; CustomTagsCore owns only stage/context references.
+        # A cancelled to_thread worker may still use a core captured by prepare_filter_predicate(), so drop
+        # this reference without calling destroy(); the worker closure owns the core until completion.
         self._core = None
         self._all_tag_paths = None
         self._prim_counts = None

@@ -3,8 +3,19 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.30.1]
+### Added
+- Added `ScrollingTreeWidget.refresh_model()` for prepare/publish model refreshes with preserved expansion state and access to the published result.
+- Added `set_selection_async()` and explicit `destroy()` lifecycle APIs for cancelling frame-based selection and refresh work safely.
+
 ### Changed
+- Resolve Stage Manager expansion from model identity indexes in a cancellable widget worker without recursively traversing cached rows on the main thread.
+- Keep generic expansion restoration in the widget while skipping full-tree rediscovery for empty caches and item-specific notifications.
 - Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Prevent pending content-size scroll restoration from overriding explicit item framing.
+- Stop asynchronous selection framing when its tree widget is destroyed.
+- Publish rebuilt rows, expansion state, and path caches as one serialized widget commit.
 
 ## [1.30.0]
 ### Added

@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import threading
 
 from omni.flux.custom_tags.core import CustomTagsCore as _CustomTagsCore
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
@@ -56,54 +56,63 @@ class CustomTagGroupsModel(_VirtualGroupsModel):
             display_name_ancestor=display_name_ancestor,
         )
 
-    def _build_items(self, items: Iterable[_StageManagerItem]) -> list[CustomTagGroupsItem] | None:
+    def _build_items(
+        self,
+        items: list[_StageManagerItem],
+        cancel_event: threading.Event,
+    ) -> list[CustomTagGroupsItem] | None:
+        """Build custom-tag groups unless the refresh is cancelled."""
+        if cancel_event.is_set():
+            return None
+
         tree_items = []
         tag_items = {}
-
         core = _CustomTagsCore(context_name=self._context_name)
-
-        # Build the group items
-        for tag_path in core.get_all_tags():
-            group_item = self._build_item(
-                core.get_tag_name(tag_path),
-                None,
-                tooltip=f"Items tagged with the '{core.get_tag_name(tag_path)}' custom tag",
-            )
-
-            tree_items.append(group_item)
-            for prim_path in core.get_tag_prims(tag_path):
-                if prim_path not in tag_items:
-                    tag_items[prim_path] = []
-
-                tag_items[prim_path].append(group_item)
-
-        # If no tags were found, we can quick return
-        if not tree_items:
-            return tree_items
-
-        # Get unique item names
-        item_names = _StageManagerUtils.get_unique_names(items)
-
-        # Fill the groups with the context items
-        for item in items:
-            prim_path = item.data.GetPath()
-            if prim_path not in tag_items:
-                continue
-
-            item_name, parent_name = item_names.get(item, (None, None))
-            if item_name is None:
-                item_name = item.data.GetPath().name
-
-            for group_item in tag_items[prim_path]:
-                cust_tree_item = self._build_item(
-                    item_name, item.data, tooltip=str(prim_path), display_name_ancestor=parent_name
+        try:
+            for tag_path in core.get_all_tags():
+                if cancel_event.is_set():
+                    return None
+                tag_name = core.get_tag_name(tag_path)
+                group_item = self._build_item(
+                    tag_name,
+                    None,
+                    tooltip=f"Items tagged with the '{tag_name}' custom tag",
                 )
-                cust_tree_item.parent = group_item
+                group_item.path = str(tag_path)
+                tree_items.append(group_item)
+                for prim_path in core.get_tag_prims(tag_path):
+                    if cancel_event.is_set():
+                        return None
+                    tag_items.setdefault(prim_path, []).append(group_item)
 
-        # Sort the items alphabetically (both parents and children)
-        self.sort_items(tree_items)
+            if not tree_items:
+                return tree_items
 
-        return tree_items
+            item_names = _StageManagerUtils.get_unique_names(items)
+            for item in items:
+                if cancel_event.is_set():
+                    return None
+                prim_path = item.data.GetPath()
+                if prim_path not in tag_items:
+                    continue
+
+                item_name, parent_name = item_names[item]
+                for group_item in tag_items[prim_path]:
+                    if cancel_event.is_set():
+                        return None
+                    path_str = str(prim_path)
+                    cust_tree_item = self._build_item(
+                        item_name, item.data, tooltip=path_str, display_name_ancestor=parent_name
+                    )
+                    cust_tree_item.path = path_str
+                    cust_tree_item.parent = group_item
+
+            if cancel_event.is_set():
+                return None
+            self.sort_items(tree_items)
+            return tree_items
+        finally:
+            core.destroy()
 
 
 class CustomTagGroupsDelegate(_VirtualGroupsDelegate):

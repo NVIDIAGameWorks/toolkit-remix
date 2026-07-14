@@ -43,7 +43,6 @@ class LogicGraphWidgetPlugin(StageManagerStateWidgetPlugin, StageManagerMenuMixi
     ) -> None:
         # NOTE: we build an empty widget here
         ui.Spacer(height=0, width=0)
-        item.build_widget()
 
     @classmethod
     def _create_logic_graph(cls, payload: dict) -> None:

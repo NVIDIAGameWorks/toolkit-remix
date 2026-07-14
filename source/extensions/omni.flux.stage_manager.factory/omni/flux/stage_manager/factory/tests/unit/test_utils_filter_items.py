@@ -15,12 +15,14 @@
 * limitations under the License.
 """
 
-import time
-from unittest.mock import AsyncMock, Mock, patch
+import asyncio
+import threading
+from unittest.mock import Mock, patch
 
 import omni.kit.test
 from omni.flux.stage_manager.factory.items import StageManagerItem
 from omni.flux.stage_manager.factory.utils import StageManagerUtils
+from omni.flux.utils.common.task_budget import TaskPartition
 
 __all__ = ["TestStageManagerUtilsFilterItems"]
 
@@ -46,7 +48,8 @@ class TestStageManagerUtilsFilterItems(omni.kit.test.AsyncTestCase):
         result = await StageManagerUtils.filter_items(items, [keep_only_b], include_invalid_parents=True)
 
         # Assert
-        self.assertEqual(result, [items[0], items[1], items[2]])
+        self.assertEqual(["root", "a", "b"], [item.identifier for item in result])
+        self.assertEqual(items[:3], result)
 
     async def test_filter_items_include_invalid_parents_false(self):
         # Arrange
@@ -59,119 +62,164 @@ class TestStageManagerUtilsFilterItems(omni.kit.test.AsyncTestCase):
         result = await StageManagerUtils.filter_items(items, [keep_only_b], include_invalid_parents=False)
 
         # Assert
-        self.assertEqual(result, [items[2]])
+        self.assertEqual(["b"], [item.identifier for item in result])
+        self.assertIs(result[0], items[2])
+        self.assertIsNone(result[0].parent)
 
-    async def test_filter_items_accepts_iterables(self):
-        # Arrange
-        items = _make_tree([("root", None), ("a", 0), ("b", 1)])
-
-        def keep_non_b(item):
-            return item.identifier != "b"
-
-        # Act
-        result_list = await StageManagerUtils.filter_items(items, [keep_non_b])
-        result_iter = await StageManagerUtils.filter_items(iter(items), iter([keep_non_b]))
-
-        # Assert
-        self.assertEqual(result_iter, result_list)
-
-    async def test_filter_items_resets_state_each_run(self):
-        # Arrange
-        items = _make_tree([("root", None), ("a", 0), ("b", 1)])
-
-        def keep_only_b(item):
-            return item.identifier == "b"
-
-        def keep_only_a(item):
-            return item.identifier == "a"
-
-        # Act
-        first_run = await StageManagerUtils.filter_items(items, [keep_only_b], include_invalid_parents=False)
-        second_run = await StageManagerUtils.filter_items(items, [keep_only_a], include_invalid_parents=False)
-
-        # Assert
-        self.assertEqual(first_run, [items[2]])
-        self.assertEqual(second_run, [items[1]])
-        self.assertFalse(items[2].is_valid)
-
-    async def test_filter_items_uses_partitioned_executor_calls(self):
+    async def test_filter_items_reparents_to_nearest_valid_ancestor_when_invalid_parents_are_excluded(self):
         # Arrange
         items = _make_tree([("root", None), ("a", 0), ("b", 1), ("c", 2)])
-        execution = {"calls": 0, "executor": "not-set", "callable_name": ""}
-        fake_budget = Mock()
-        fake_budget.compute_partition.return_value = Mock(task_count=2, chunk_size=2)
+
+        def keep_a_and_c(item):
+            return item.identifier in {"a", "c"}
+
+        # Act
+        result = await StageManagerUtils.filter_items(items, [keep_a_and_c], include_invalid_parents=False)
+
+        # Assert
+        self.assertEqual(["a", "c"], [item.identifier for item in result])
+        self.assertIs(result[1].parent, result[0])
+        self.assertEqual([items[1], items[3]], result)
+
+    async def test_filter_items_updates_owned_wrappers_in_place(self):
+        # Arrange
+        items = _make_tree([("root", None), ("child", 0)])
+
+        # Act
+        result = await StageManagerUtils.filter_items(
+            items,
+            [lambda item: item.identifier == "child"],
+            include_invalid_parents=True,
+        )
+
+        # Assert
+        self.assertEqual(["root", "child"], [item.identifier for item in result])
+        self.assertEqual(items, result)
+        self.assertIs(result[1].parent, items[0])
+        self.assertFalse(hasattr(result[1], "prepared_data"))
+        self.assertTrue(items[0].is_child_valid)
+        self.assertTrue(items[1].is_valid)
+
+    async def test_filter_items_does_not_reset_fresh_wrappers(self):
+        # Arrange
+        items = _make_tree([("root", None), ("child", 0)])
+        for item in items:
+            item.reset_filter_state = Mock()
+
+        # Act
+        await StageManagerUtils.filter_items(items, [lambda _item: True])
+
+        # Assert
+        for item in items:
+            item.reset_filter_state.assert_not_called()
+
+    async def test_filter_items_cancel_event_returns_none(self):
+        # Arrange
+        items = _make_tree([("root", None), ("child", 0)])
+        worker_started = threading.Event()
+        release_worker = threading.Event()
+        cancel_event = threading.Event()
+
+        def blocking_predicate(item):
+            worker_started.set()
+            release_worker.wait(timeout=2)
+            return item.identifier == "child"
+
+        worker = asyncio.create_task(
+            StageManagerUtils.filter_items(
+                items,
+                [blocking_predicate],
+                include_invalid_parents=False,
+                cancel_event=cancel_event,
+            )
+        )
+        while not worker_started.is_set():
+            await asyncio.sleep(0)
+
+        # Act
+        cancel_event.set()
+        release_worker.set()
+        result = await worker
+
+        # Assert
+        self.assertIsNone(result)
+        self.assertIs(items[1].parent, items[0])
+
+    async def test_filter_items_runs_predicates_off_caller_thread(self):
+        # Arrange
+        items = _make_tree([("root", None), ("a", 0), ("b", 1), ("c", 2)])
+        caller_thread_id = threading.get_ident()
+        predicate_thread_ids = []
 
         def keep_non_c(item):
+            predicate_thread_ids.append(threading.get_ident())
             return item.identifier != "c"
 
-        async def _fake_run_in_executor(executor, callback, *args):
-            execution["calls"] += 1
-            execution["executor"] = executor
-            execution["callable_name"] = callback.__name__
-            return callback(*args)
-
-        fake_loop = Mock()
-        fake_loop.run_in_executor = AsyncMock(side_effect=_fake_run_in_executor)
-        fake_loop.time = Mock(side_effect=time.perf_counter)
-
         # Act
-        with (
-            patch("omni.flux.stage_manager.factory.utils.asyncio.get_event_loop", return_value=fake_loop),
-            patch.object(StageManagerUtils, "_task_budget", fake_budget),
-        ):
-            result = await StageManagerUtils.filter_items(items, [keep_non_c], include_invalid_parents=False)
+        result = await StageManagerUtils.filter_items(items, [keep_non_c], include_invalid_parents=False)
 
         # Assert
-        self.assertEqual(execution["calls"], 2)
-        self.assertIsNotNone(execution["executor"])
-        self.assertEqual(execution["callable_name"], "_run_chunk")
-        self.assertEqual(result, [items[0], items[1], items[2]])
-        fake_budget.compute_partition.assert_called_once_with(len(items), 1)
-        fake_budget.update_metrics.assert_called_once()
-        self.assertEqual(fake_budget.update_metrics.call_args.kwargs["task_count"], execution["calls"])
+        self.assertTrue(all(thread_id != caller_thread_id for thread_id in predicate_thread_ids))
+        self.assertEqual(["root", "a", "b"], [item.identifier for item in result])
 
-    async def test_filter_items_reports_executed_chunk_count_to_metrics(self):
+    async def test_filter_items_blocked_worker_keeps_event_loop_responsive(self):
         # Arrange
-        items = _make_tree([("root", None), ("a", 0), ("b", 1), ("c", 2), ("d", 3)])
-        execution = {"calls": 0}
-        fake_budget = Mock()
-        fake_budget.compute_partition.return_value = Mock(task_count=8, chunk_size=2)
+        items = _make_tree([(str(index), None) for index in range(1024)])
+        worker_started = threading.Event()
+        release_worker = threading.Event()
+        blocked = False
 
-        async def _fake_run_in_executor(_executor, callback, *args):
-            execution["calls"] += 1
-            return callback(*args)
+        def blocking_predicate(_item):
+            nonlocal blocked
+            if not blocked:
+                blocked = True
+                worker_started.set()
+                release_worker.wait(timeout=1)
+            return True
 
-        fake_loop = Mock()
-        fake_loop.run_in_executor = AsyncMock(side_effect=_fake_run_in_executor)
-        fake_loop.time = Mock(side_effect=time.perf_counter)
+        async def release_from_event_loop():
+            while not worker_started.is_set():
+                await asyncio.sleep(0)
+            release_worker.set()
+
+        release_task = asyncio.create_task(release_from_event_loop())
 
         # Act
-        with (
-            patch("omni.flux.stage_manager.factory.utils.asyncio.get_event_loop", return_value=fake_loop),
-            patch.object(StageManagerUtils, "_task_budget", fake_budget),
-        ):
-            await StageManagerUtils.filter_items(items, [lambda _: True], include_invalid_parents=False)
+        try:
+            result = await StageManagerUtils.filter_items(items, [blocking_predicate])
+            await release_task
+        finally:
+            release_worker.set()
+            release_task.cancel()
 
         # Assert
-        self.assertEqual(execution["calls"], 3)
-        self.assertEqual(fake_budget.update_metrics.call_args.kwargs["task_count"], execution["calls"])
+        self.assertEqual(len(items), len(result))
 
-    async def test_filter_items_with_empty_list_skips_executor_work(self):
+    async def test_filter_items_uses_adaptive_task_budget_and_updates_metrics(self):
         # Arrange
-        fake_budget = Mock()
-        fake_budget.compute_partition.return_value = Mock(task_count=0, chunk_size=1)
-        fake_loop = Mock()
-        fake_loop.run_in_executor = AsyncMock()
-        fake_loop.time = Mock(side_effect=time.perf_counter)
+        items = _make_tree([(str(index), None) for index in range(1024)])
+        task_budget = Mock()
+        task_budget.compute_partition.return_value = TaskPartition(task_count=2, chunk_size=512)
+        to_thread = asyncio.to_thread
+        submitted_chunks = []
+
+        async def record_to_thread(callback, *args):
+            if callback.__name__ == "filter_chunk":
+                submitted_chunks.append(args)
+            return await to_thread(callback, *args)
 
         # Act
         with (
-            patch("omni.flux.stage_manager.factory.utils.asyncio.get_event_loop", return_value=fake_loop),
-            patch.object(StageManagerUtils, "_task_budget", fake_budget),
+            patch.object(StageManagerUtils, "_task_budget", task_budget, create=True),
+            patch(
+                "omni.flux.stage_manager.factory.utils.asyncio.to_thread",
+                side_effect=record_to_thread,
+            ),
         ):
-            result = await StageManagerUtils.filter_items([], [lambda _: True], include_invalid_parents=False)
+            result = await StageManagerUtils.filter_items(items, [lambda _: True])
 
         # Assert
-        self.assertEqual(result, [])
-        fake_loop.run_in_executor.assert_not_called()
-        fake_budget.update_metrics.assert_called_once()
+        self.assertEqual(len(items), len(result))
+        self.assertEqual([(0, 512), (512, 1024)], submitted_chunks)
+        task_budget.compute_partition.assert_called_once_with(len(items), 1)
+        task_budget.update_metrics.assert_called_once()

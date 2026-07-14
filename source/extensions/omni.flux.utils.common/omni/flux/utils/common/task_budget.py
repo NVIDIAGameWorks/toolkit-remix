@@ -126,7 +126,7 @@ class AdaptiveTaskBudget:
         lower_bound = min(item_count, self._min_task_count)
         upper_bound = min(item_count, self._max_task_count, k_max)
         if upper_bound < lower_bound:
-            task_count = upper_bound
+            task_count = lower_bound
         else:
             task_count = min(max(k_min, lower_bound), upper_bound)
 

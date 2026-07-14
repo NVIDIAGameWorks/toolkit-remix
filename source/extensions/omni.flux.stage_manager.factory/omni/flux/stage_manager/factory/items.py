@@ -19,13 +19,9 @@ from __future__ import annotations
 
 __all__ = ["StageManagerItem"]
 
-import threading
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from omni.flux.utils.common import reset_default_attrs
-
-if TYPE_CHECKING:
-    from .plugins.tree_plugin import StageManagerTreeItem
 
 
 class StageManagerItem:
@@ -48,9 +44,6 @@ class StageManagerItem:
 
         self._is_valid = None
         self._is_child_valid = None
-        self._tree_item = None
-
-        self._lock = threading.Lock()
 
     @property
     def default_attr(self) -> dict[str, None]:
@@ -109,16 +102,11 @@ class StageManagerItem:
         Args:
             value: The new value for the item.
         """
-        with self._lock:
-            if self.is_valid is True:
-                return
+        if self.is_valid is True:
+            return
 
-            self._is_valid = value
-
-            # Check if we need to update the parent while we hold the lock
-            update_parent = value is True and self.parent
-
-        if update_parent:
+        self._is_valid = value
+        if value is True and self.parent:
             self.parent.is_child_valid = value
 
     @property
@@ -131,35 +119,12 @@ class StageManagerItem:
 
     @is_child_valid.setter
     def is_child_valid(self, value: bool):
-        with self._lock:
-            if self.is_child_valid is True:
-                return
+        if self.is_child_valid is True:
+            return
 
-            self._is_child_valid = value
-
-            # Check if we need to update the parent while we hold the lock
-            update_parent = value is True and self.parent
-
-        if update_parent:
+        self._is_child_valid = value
+        if value is True and self.parent:
             self.parent.is_child_valid = value
-
-    @property
-    def tree_item(self) -> StageManagerTreeItem:
-        """
-        Returns:
-            The TreeView item for the stage item.
-        """
-        return self._tree_item
-
-    @tree_item.setter
-    def tree_item(self, value: StageManagerTreeItem):
-        """
-        Set the TreeView item for the stage item.
-
-        Args:
-            value: The new TreeView item.
-        """
-        self._tree_item = value
 
     def reset_filter_state(self):
         """

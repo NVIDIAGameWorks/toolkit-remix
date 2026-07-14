@@ -201,6 +201,8 @@ class StageManagerWidget:
             return
 
         interaction = enabled_interactions[index]
+        if interaction.tree.model.get_children_count(recursive=False):
+            interaction.tree.model.clear_items()
 
         self._tab_backgrounds[hash(interaction)].name = self._active_style
 

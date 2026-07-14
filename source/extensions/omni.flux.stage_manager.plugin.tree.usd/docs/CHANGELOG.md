@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.0]
+### Changed
+- Read USD facts and build Prim, Light, Material, Tag, and Skeleton groups in cancellable model workers.
+- Declared the direct Pydantic runtime dependency.
+
+### Fixed
+- Keep skeleton naming, parent wiring, and custom-tag helper lifetimes local to each refresh worker.
+
 ## [2.6.5]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

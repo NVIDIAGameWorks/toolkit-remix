@@ -34,6 +34,44 @@ def _is_path_search_term(search_term: str) -> bool:
     return "/" in search_term
 
 
+def _get_search_state(search_term: str) -> tuple[bool, str, re.Pattern | None, bool]:
+    """Return immutable matching state for a search term."""
+    path_mode = _is_path_search_term(search_term)
+    if path_mode or not any(char in _REGEX_META_CHARS for char in search_term):
+        return path_mode, search_term.casefold(), None, False
+    try:
+        return path_mode, "", re.compile(search_term, re.IGNORECASE), False
+    except re.error:
+        return path_mode, "", None, True
+
+
+def _matches_search_item(
+    item: _StageManagerItem,
+    path_mode: bool,
+    literal_search_term: str,
+    compiled_pattern: re.Pattern | None,
+    invalid_regex: bool,
+) -> bool:
+    """Return whether an item matches immutable search state."""
+    if invalid_regex:
+        return False
+
+    prim_path = item.data.GetPath()
+    if path_mode:
+        strings_to_search = [str(prim_path)]
+    else:
+        strings_to_search = [prim_path.name]
+        nickname_attr = item.data.GetAttribute("nickname")
+        if nickname_attr.IsValid() and nickname_attr.HasValue():
+            strings_to_search.append(str(nickname_attr.Get()))
+
+    if literal_search_term:
+        return any(literal_search_term in value.casefold() for value in strings_to_search)
+    if compiled_pattern is None:
+        return False
+    return any(compiled_pattern.search(value) for value in strings_to_search)
+
+
 class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
     # TODO StageManager: Build proper plugin
 
@@ -66,24 +104,19 @@ class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
         # Self-contained: filter_items_by_category pre-checks filter_active, but async filter_items and direct callers do not.
         if not self.filter_active:
             return True
-        if self._invalid_regex:
-            return False
+        return _matches_search_item(
+            item,
+            _is_path_search_term(self.search_term),
+            self._literal_search_term,
+            self._compiled_pattern,
+            self._invalid_regex,
+        )
 
-        prim_path = item.data.GetPath()
-        if _is_path_search_term(self.search_term):
-            strings_to_search = [str(prim_path)]
-        else:
-            strings_to_search = [prim_path.name]
-            nickname_attr = item.data.GetAttribute("nickname")
-            if nickname_attr.IsValid() and nickname_attr.HasValue():
-                strings_to_search.append(str(nickname_attr.Get()))
-
-        if self._literal_search_term:
-            return any(self._literal_search_term in s.casefold() for s in strings_to_search)
-
-        if self._compiled_pattern is None:
-            return False
-        return any(self._compiled_pattern.search(s) for s in strings_to_search)
+    def prepare_filter_predicate(self):
+        """Capture immutable search state for worker filtering."""
+        search_term = self.search_term
+        search_state = _get_search_state(search_term)
+        return lambda item: not search_term or _matches_search_item(item, *search_state)
 
     def _on_edit(self, model):
         """Update the search term from the text field and refresh filtering."""
@@ -93,27 +126,9 @@ class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
 
     def _prepare_search_term(self, search_term: str):
         """Precompute literal or regex matching state for the current search term."""
-        self._compiled_pattern = None
-        self._literal_search_term = ""
-        self._invalid_regex = False
+        _, self._literal_search_term, self._compiled_pattern, self._invalid_regex = _get_search_state(search_term)
         self._prepared_search_term = search_term
         self.filter_active = bool(search_term)
-
-        if not search_term:
-            return
-
-        if _is_path_search_term(search_term):
-            self._literal_search_term = search_term.casefold()
-            return
-
-        if not any(char in _REGEX_META_CHARS for char in search_term):
-            self._literal_search_term = search_term.casefold()
-            return
-
-        try:
-            self._compiled_pattern = re.compile(search_term, re.IGNORECASE)
-        except re.error:
-            self._invalid_regex = True
 
     def build_ui(self):
         with ui.HStack(height=ui.Pixel(24)):

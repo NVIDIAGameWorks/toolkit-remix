@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import threading
 
 from lightspeed.common import constants
 from lightspeed.trex.utils.common.prim_utils import is_empty_mesh_prim as _is_empty_mesh_prim
@@ -60,12 +60,20 @@ class MeshGroupsModel(_VirtualGroupsModel):
         return MeshGroupsItem(
             display_name=display_name,
             data=data,
-            tooltip=str(data.GetPath()),
+            tooltip=tooltip,
             display_name_ancestor=display_name_ancestor,
             is_virtual=is_virtual,
         )
 
-    def _build_items(self, items: Iterable[_StageManagerItem]) -> list[MeshGroupsItem] | None:
+    def _build_items(
+        self,
+        items: list[_StageManagerItem],
+        cancel_event: threading.Event,
+    ) -> list[MeshGroupsItem] | None:
+        """Build mesh groups unless the refresh is cancelled."""
+        if cancel_event.is_set():
+            return None
+
         tree_items = {}
 
         # Create mesh group items as parents and create instance list.
@@ -73,50 +81,57 @@ class MeshGroupsModel(_VirtualGroupsModel):
         # branches can safely share a single pass over items.
         instance_items = []
         for item in items:
+            if cancel_event.is_set():
+                return None
             if _is_instance(item.data):
                 instance_items.append(item)
 
+            prim_path = item.data.GetPath()
+            item_path = str(prim_path)
             if _is_mesh_prototype(item.data):
                 # Display name should be the mesh_HASH prim instead of "mesh", otherwise keep the original name
-                item_path = item.data.GetPath()
-                display_name = item_path.GetParentPath().name if item_path.name == "mesh" else item_path.name
-                tree_items[str(item_path)] = self._build_item(
-                    display_name,
-                    item.data,
-                    tooltip=str(item_path),
-                    is_virtual=True,
-                )
-            elif _is_empty_mesh_prim(item.data):
-                item_path = str(item.data.GetPath())
+                display_name = prim_path.GetParentPath().name if prim_path.name == "mesh" else prim_path.name
                 tree_items[item_path] = self._build_item(
-                    item.data.GetPath().name,
+                    display_name,
                     item.data,
                     tooltip=item_path,
                     is_virtual=True,
                 )
+                tree_items[item_path].path = item_path
+            elif _is_empty_mesh_prim(item.data):
+                tree_items[item_path] = self._build_item(
+                    prim_path.name,
+                    item.data,
+                    tooltip=item_path,
+                    is_virtual=True,
+                )
+                tree_items[item_path].path = item_path
 
         # Create instance group items as children of mesh group items
         for item in instance_items:
+            if cancel_event.is_set():
+                return None
             # Get item name and parent name for hierarchy labeling
-            item_name = item.data.GetPath().name
-            parent_name = item.data.GetParent().GetPath().name
-
-            # Use the parent mesh path found with regex
-            parent_mesh_path = str(
-                constants.COMPILED_REGEX_INSTANCE_TO_MESH_SUB.sub(rf"{constants.MESH_PATH}\2", str(item.data.GetPath()))
-            )
+            prim_path = item.data.GetPath()
+            path_str = str(prim_path)
+            item_name = prim_path.name
+            parent_name = prim_path.GetParentPath().name
+            parent_mesh_path = constants.COMPILED_REGEX_INSTANCE_TO_MESH_SUB.sub(rf"{constants.MESH_PATH}\2", path_str)
 
             if parent_mesh_path in tree_items:
                 mesh_tree_item = self._build_item(
                     item_name,
                     item.data,
-                    tooltip=str(item.data.GetPath()),
+                    tooltip=path_str,
                     display_name_ancestor=parent_name,
                     is_virtual=False,
                 )
+                mesh_tree_item.path = path_str
                 mesh_tree_item.parent = tree_items[parent_mesh_path]
 
         # Sort the items alphabetically (both parents and children)
+        if cancel_event.is_set():
+            return None
         sorted_tree_items = list(tree_items.values())
         self.sort_items(sorted_tree_items)
 
