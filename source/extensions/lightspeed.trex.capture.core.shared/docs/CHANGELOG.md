@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.0]
+### Fixed
+- Prevented a GPU device-loss when opening or switching to an over-budget capture by loading it with Opacity Micromaps disabled before the stage is realized
+
+### Added
+- Added the `autoSafeModeOnHeavyCapture` setting (default on) to auto-disable Opacity Micromaps for captures at or above the heavy-capture prim budget
+
 ## [1.4.0]
 ### Changed
 - Always emit capture-loaded events for existing capture layers so capture cameras remain the camera source of truth
