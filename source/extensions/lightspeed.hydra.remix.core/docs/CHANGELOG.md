@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.1]
+### Fixed
+- Disabled legacy HdRemix selection highlighting to avoid performance degradation on USD 25+.
+
 ## [0.8.0]
 ### Changed
 - Simplified HdRemix bootstrap path registration and unsupported-state reporting.
