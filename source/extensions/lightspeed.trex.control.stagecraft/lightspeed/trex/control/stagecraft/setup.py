@@ -61,6 +61,43 @@ from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quic
 _TREX_IGNORE_UNSAVED_STAGE_ON_EXIT = "/app/file/trexIgnoreUnsavedOnExit"
 _DEFAULT_LAYOUT = "/app/trex/default_layout"
 
+# Capture GPU device-loss / hang hardening.
+# A game capture is thousands of small alpha-tested draw-call meshes. Building Opacity Micromaps
+# (OMM) for all of them during stage realization can overrun the path tracer's GPU working set and
+# fault the Vulkan device (VK_ERROR_DEVICE_LOST) or wedge the main thread. Prim count does NOT
+# reliably predict which captures do this (a 599 KB capture froze while larger ones did not), so we
+# disable OMM for ANY capture project opened in StageCraft -- OMM is only a render-time optimization
+# for alpha-tested geometry, so turning it off never changes visuals and never affects editing or
+# asset replacement; it only trades a little alpha-tested render performance for stability. We push
+# the override before ``open_stage`` (so it applies before the capture realizes) and keep re-asserting
+# it, because dxvk-remix re-applies the capture's OWN graphics preset a few seconds after it realizes
+# (re-enabling OMM / the Neural Radiance Cache integrator) WITHOUT touching the carb ``/rtx/*`` nodes,
+# so a one-shot override silently loses and the GPU faults ~1 minute later anyway.
+_RTX_OPTION_GRAPHICS_PRESET = "rtx.graphicsPreset"
+_RTX_OPTION_INTEGRATE_INDIRECT_MODE = "rtx.integrateIndirectMode"
+_RTX_OPTION_OMM_ENABLE = "rtx.opacityMicromap.enable"
+# dxvk-remix RtxOptions enums: GraphicsPreset 4 == Custom (so the User-layer writes win over the
+# Quality preset), IntegrateIndirectMode 1 == ReSTIR GI (off the heavier Neural Radiance Cache).
+_RTX_GRAPHICS_PRESET_CUSTOM = "4"
+_RTX_INTEGRATE_INDIRECT_MODE_RESTIR = "1"
+_RTX_OMM_DISABLED = "0"
+# When enabled (default), any capture project is opened with Opacity Micromaps disabled so it cannot
+# fault/hang the GPU. Set to false to load captures with OMM enabled (full renderer settings).
+_SETTING_AUTO_SAFE_MODE = "/exts/lightspeed.trex.control.stagecraft/autoDisableOpacityMicromaps"
+# How often (seconds) to re-assert the renderer overrides while a capture is loaded.
+# ``hdremix_set_configvar`` writes straight to the dxvk-remix RtxOptions User layer (it does NOT
+# touch carb ``/rtx/*`` or omni.usd), so it cannot trigger the render-settings-reload deadlock, and
+# re-pushing an already-current value is a runtime no-op. Set <= 0 to disable the periodic re-assert.
+_SETTING_REASSERT_INTERVAL = "/exts/lightspeed.trex.control.stagecraft/opacityMicromapReassertIntervalSeconds"
+_DEFAULT_REASSERT_INTERVAL_SECONDS = 5.0
+
+
+def _set_hdremix_configvar(key: str, value: str):
+    """Set an HdRemix (dxvk-remix RtxOptions User-layer) config variable through the runtime bridge."""
+    from lightspeed.hydra.remix.core import hdremix_set_configvar as _hdremix_set_configvar  # noqa: PLC0415
+
+    _hdremix_set_configvar(key, value)
+
 
 class Setup:
     """Wire StageCraft services, menu actions, hotkeys, and startup layout behavior."""
@@ -68,6 +105,10 @@ class Setup:
     _SWITCH_CAPTURE_COMMAND_NAME = "SwitchCaptureCommand"
     _DISABLE_STAGE_OPEN_LIGHTING_UNDO = False
     _LIGHTING_STAGE_OPEN_ORIGINAL = None
+    # Capture safe-mode bookkeeping. Class-level defaults keep the hooks safe even when a
+    # unit test builds Setup via ``__new__`` (bypassing ``__init__``).
+    _safe_mode_capture_path = None
+    _reassert_watch_task = None
 
     def __init__(self) -> None:
         """Create StageCraft setup services, subscriptions, and startup layout guards."""
@@ -94,6 +135,9 @@ class Setup:
             "_sub_stage_event": None,
             "_context": None,
             "_capture_swap_undo_dialog_open": False,
+            # Capture safe-mode bookkeeping
+            "_safe_mode_capture_path": None,
+            "_reassert_watch_task": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -284,6 +328,9 @@ class Setup:
 
     def _on_import_layer(self, layer_type: _LayerType, path: str, existing_file: bool = False):
         if layer_type == _LayerType.capture:
+            # Disable Opacity Micromaps before the switched-to capture is realized so it cannot
+            # fault the GPU, and re-assert the overrides if safe mode is already armed this session.
+            self._apply_capture_safe_mode_on_switch(path)
             capture_layer = self._capture_core_setup.get_layer()
             requested_capture_identifier = omni.client.normalize_url(path) if path else None
             current_capture_identifier = capture_layer.identifier if capture_layer else None
@@ -318,6 +365,10 @@ class Setup:
         if not _ProjectWizardSchema.are_project_symlinks_valid(project_path):
             self.__show_project_open_wizard(project_path)
             return
+        # Disable Opacity Micromaps before this project's capture is realized so it cannot fault/hang
+        # the GPU on open. This MUST run before ``open_stage`` -- the renderer realizes the capture
+        # during ``open_stage``, so the override cannot wait for a post-open (stage-opened) event.
+        self._apply_capture_safe_mode(project_path)
         self.__set_stage_open_lighting_undo_disabled(True)
         omni.kit.window.file.open_stage(path)
         load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
@@ -451,7 +502,121 @@ class Setup:
         has_project = root_layer and not bool(root_layer.anonymous)
         self.__sub_sidebar_items.set_enabled(bool(has_project))
 
+    # --- Capture GPU device-loss / hang safe mode ------------------------------------------------
+
+    def _reassert_interval_seconds(self) -> float:
+        """Resolve the periodic re-assert interval (seconds); falls back to the default."""
+        value = carb.settings.get_settings().get(_SETTING_REASSERT_INTERVAL)
+        try:
+            return float(value) if value is not None else _DEFAULT_REASSERT_INTERVAL_SECONDS
+        except (TypeError, ValueError):
+            return _DEFAULT_REASSERT_INTERVAL_SECONDS
+
+    def _push_stability_configvars(self):
+        """Push the renderer overrides that keep a capture from faulting/hanging the GPU."""
+        # graphicsPreset=Custom first so the Quality preset stops shadowing the User-layer writes,
+        # then force ReSTIR GI (off the Neural Radiance Cache) and disable Opacity Micromaps.
+        _set_hdremix_configvar(_RTX_OPTION_GRAPHICS_PRESET, _RTX_GRAPHICS_PRESET_CUSTOM)
+        _set_hdremix_configvar(_RTX_OPTION_INTEGRATE_INDIRECT_MODE, _RTX_INTEGRATE_INDIRECT_MODE_RESTIR)
+        _set_hdremix_configvar(_RTX_OPTION_OMM_ENABLE, _RTX_OMM_DISABLED)
+
+    def _arm_safe_mode(self, source_path: str):
+        """Disable Opacity Micromaps, remember the source, and start the periodic re-assert watchdog."""
+        try:
+            self._push_stability_configvars()
+        except Exception as error:  # noqa: BLE001 - never break project open on a runtime hiccup
+            carb.log_warn(f"Failed to disable Opacity Micromaps for '{source_path}': {error}")
+            return
+        self._safe_mode_capture_path = str(source_path).replace("\\", "/").lower()
+        carb.log_info(
+            f"Disabled Opacity Micromaps for capture project '{source_path}' (graphicsPreset=Custom, "
+            "integrateIndirectMode=ReSTIR GI, opacityMicromap.enable=0) before stage realization to "
+            "avoid a GPU device-loss/hang; re-asserting periodically."
+        )
+        self._start_reassert_watchdog()
+
+    def _apply_capture_safe_mode(self, project_path: Path):
+        """On project open: disable Opacity Micromaps before the capture is realized.
+
+        StageCraft opens game-capture projects, and a dense capture's Opacity-Micromap build can
+        fault/hang the GPU. Prim count does not reliably predict which captures do this, and OMM is
+        only a render-time optimization (no effect on visuals, editing, or asset replacement), so --
+        gated by a single toggle -- we disable OMM for any capture project rather than trying to
+        guess which ones are dangerous.
+        """
+        if not carb.settings.get_settings().get(_SETTING_AUTO_SAFE_MODE):
+            self._stop_reassert_watchdog()
+            self._safe_mode_capture_path = None
+            carb.log_info(
+                f"Opacity Micromap auto-disable is off (autoDisableOpacityMicromaps=false); opening "
+                f"'{project_path}' with full renderer settings."
+            )
+            return
+        self._arm_safe_mode(str(project_path))
+
+    def _apply_capture_safe_mode_on_switch(self, capture_path: str | None):
+        """On capture switch: keep Opacity Micromaps disabled for the switched-to capture."""
+        if not carb.settings.get_settings().get(_SETTING_AUTO_SAFE_MODE):
+            return
+        if self._safe_mode_capture_path is not None:
+            # Safe mode already armed this session -- just re-assert the overrides.
+            self._reassert_overrides_if_active()
+            return
+        self._arm_safe_mode(str(capture_path) if capture_path else "capture switch")
+
+    def _reassert_overrides_if_active(self):
+        """Re-push the overrides if safe mode is currently armed."""
+        if self._safe_mode_capture_path is None:
+            return
+        try:
+            self._push_stability_configvars()
+        except Exception as error:  # noqa: BLE001 - never break on a runtime hiccup
+            carb.log_warn(f"Failed to re-assert Opacity Micromap override: {error}")
+
+    def _start_reassert_watchdog(self):
+        """Periodically re-push the overrides so the capture's own preset cannot re-enable OMM.
+
+        The pre-open push only covers the initial realization. When the capture finishes realizing,
+        dxvk-remix applies the capture's own graphics preset, flipping ``graphicsPreset`` off Custom
+        and re-enabling Opacity Micromaps + the Neural Radiance Cache integrator. The runtime does
+        not mirror that into the ``/rtx/*`` carb nodes, so no settings callback fires; re-pushing the
+        configvars on a short cadence corrects the drift before OMM baking can OOM and pin the GPU
+        into the acceleration-structure rebuild that ends in a device loss.
+        """
+        interval = self._reassert_interval_seconds()
+        if interval <= 0:
+            return
+        if self._reassert_watch_task is not None and not self._reassert_watch_task.done():
+            return
+        self._reassert_watch_task = ensure_future(self._reassert_watch_loop(interval))
+        carb.log_info(
+            f"Started capture stability watchdog (re-asserting renderer overrides every {interval:g}s so "
+            "the loaded capture's preset cannot re-enable Opacity Micromaps mid-session)."
+        )
+
+    def _stop_reassert_watchdog(self):
+        """Cancel the periodic re-assert loop (no-op if it was never started)."""
+        if self._reassert_watch_task is not None and not self._reassert_watch_task.done():
+            self._reassert_watch_task.cancel()
+        self._reassert_watch_task = None
+
+    async def _reassert_watch_loop(self, interval: float):
+        """Re-assert the overrides every ``interval`` seconds while a capture stays loaded."""
+        try:
+            while self._safe_mode_capture_path is not None:
+                await asyncio.sleep(interval)
+                # The project may have been closed/swapped out while we slept.
+                if self._safe_mode_capture_path is None:
+                    break
+                try:
+                    self._push_stability_configvars()
+                except Exception as error:  # noqa: BLE001 - a transient hiccup must not kill the loop
+                    carb.log_warn(f"Periodic capture stability re-assert failed: {error}")
+        except asyncio.CancelledError:
+            pass
+
     def destroy(self):
+        self._stop_reassert_watchdog()
         self.__set_stage_open_lighting_undo_disabled(False)
         self.__uninstall_stage_open_lighting_undo_patch()
         _reset_default_attrs(self)

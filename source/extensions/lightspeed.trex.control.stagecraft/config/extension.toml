@@ -2,7 +2,7 @@
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix control for the StageCraft"
 description = "Control will connect back end and front end for NVIDIA RTX Remix StageCraft App"
-version = "1.8.0"
+version = "1.8.1"
 readme = "docs/README.md"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.control.stagecraft"
 category = "internal"
@@ -15,6 +15,7 @@ icon = "data/icon.png"
 "lightspeed.event.shutdown_base" = {}
 "lightspeed.event.events" = {}
 "lightspeed.events_manager" = {}
+"lightspeed.hydra.remix.core" = {optional=true}  # optional: heavy-capture safe mode pushes renderer config through it (absent in headless/CLI apps)
 "lightspeed.layer_manager.core" = {}
 "lightspeed.trex.capture.core.shared" = {}
 "lightspeed.trex.contexts" = {}
@@ -38,6 +39,18 @@ icon = "data/icon.png"
 "omni.kit.viewport.menubar.lighting" = {}
 "omni.kit.window.file" = {}
 "omni.ui" = {}
+
+[settings]
+# Disable Opacity Micromaps (OMM) for any capture project opened in StageCraft -- before the stage is
+# realized -- and re-assert it periodically. A dense game capture's OMM build can overrun the GPU and
+# fault/hang it, and prim count does not reliably predict which captures do this. OMM is a render-time
+# optimization only: disabling it never changes visuals and never affects editing or asset replacement,
+# it just trades a little alpha-tested render performance for stability. Set to false to load captures
+# with Opacity Micromaps enabled (full renderer settings).
+exts."lightspeed.trex.control.stagecraft".autoDisableOpacityMicromaps = true
+# How often (seconds) to re-assert the override while a capture is loaded. Set to 0 to disable the
+# periodic re-assert.
+exts."lightspeed.trex.control.stagecraft".opacityMicromapReassertIntervalSeconds = 5.0
 
 [[python.module]]
 name = "lightspeed.trex.control.stagecraft"

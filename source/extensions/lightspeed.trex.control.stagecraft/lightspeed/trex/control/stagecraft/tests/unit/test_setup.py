@@ -343,3 +343,210 @@ class TestSetup(omni.kit.test.AsyncTestCase):
             mock_reset_default_attrs.assert_called_once_with(setup)
 
         Setup._DISABLE_STAGE_OPEN_LIGHTING_UNDO = original_disable_lighting_undo
+
+    # --- Capture GPU device-loss / hang safe mode ------------------------------------------------
+
+    async def test_open_stage_applies_capture_safe_mode_before_open_stage(self):
+        # Regression: the earlier gate disabled Opacity Micromaps on the stage-OPENED event, i.e.
+        # AFTER the capture was already realized and could fault/hang the GPU. The override MUST run
+        # before ``open_stage``. This pins that ordering.
+        setup = Setup.__new__(Setup)
+        calls = []
+        setup._apply_capture_safe_mode = MagicMock(side_effect=lambda project_path: calls.append("safe_mode"))
+
+        with (
+            patch("lightspeed.trex.control.stagecraft.setup._ProjectWizardSchema") as mock_schema,
+            patch("lightspeed.trex.control.stagecraft.setup._should_confirm_link_path_replacement", return_value=False),
+            patch(
+                "lightspeed.trex.control.stagecraft.setup.omni.kit.window.file.open_stage",
+                side_effect=lambda path: calls.append("open_stage"),
+            ),
+            patch("lightspeed.trex.control.stagecraft.setup.load_layout"),
+            patch("lightspeed.trex.control.stagecraft.setup._get_quicklayout_config"),
+            patch.object(Setup, "_Setup__set_stage_open_lighting_undo_disabled"),
+        ):
+            mock_schema.is_project_file_valid.return_value = True
+            mock_schema.is_deps_directory_valid.return_value = True
+            mock_schema.are_project_symlinks_valid.return_value = True
+            setup._Setup__open_stage_and_load_layout("C:/proj/TRLRTX.usda")
+
+        # Assert: safe mode applied first, then the stage is opened.
+        self.assertEqual(calls, ["safe_mode", "open_stage"])
+        setup._apply_capture_safe_mode.assert_called_once()
+
+    async def test_apply_capture_safe_mode_arms_when_enabled(self):
+        # With the toggle on, opening any capture project disables OMM (push), remembers the source,
+        # and starts the periodic re-assert watchdog.
+        setup = Setup.__new__(Setup)
+        setup._safe_mode_capture_path = None
+        setup._push_stability_configvars = MagicMock()
+        setup._start_reassert_watchdog = MagicMock()
+
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = True  # autoDisableOpacityMicromaps enabled
+
+        from pathlib import Path as _Path  # noqa: PLC0415
+
+        with patch("lightspeed.trex.control.stagecraft.setup.carb.settings.get_settings", return_value=mock_settings):
+            setup._apply_capture_safe_mode(_Path("C:/proj/TRLRTX.usda"))
+
+        setup._push_stability_configvars.assert_called_once_with()
+        setup._start_reassert_watchdog.assert_called_once_with()
+        self.assertEqual(setup._safe_mode_capture_path, "c:/proj/trlrtx.usda")
+
+    async def test_apply_capture_safe_mode_disabled_when_toggle_off(self):
+        # With the toggle off, nothing is pushed and any prior watchdog is torn down.
+        setup = Setup.__new__(Setup)
+        setup._safe_mode_capture_path = "c:/old/trlrtx.usda"
+        setup._stop_reassert_watchdog = MagicMock()
+        setup._push_stability_configvars = MagicMock()
+
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = False
+
+        from pathlib import Path as _Path  # noqa: PLC0415
+
+        with patch("lightspeed.trex.control.stagecraft.setup.carb.settings.get_settings", return_value=mock_settings):
+            setup._apply_capture_safe_mode(_Path("C:/proj/TRLRTX.usda"))
+
+        setup._stop_reassert_watchdog.assert_called_once_with()
+        setup._push_stability_configvars.assert_not_called()
+        self.assertIsNone(setup._safe_mode_capture_path)
+
+    async def test_apply_capture_safe_mode_on_switch_reasserts_when_armed(self):
+        # Switching capture while safe mode is already armed just re-asserts the override.
+        setup = Setup.__new__(Setup)
+        setup._safe_mode_capture_path = "c:/proj/trlrtx.usda"
+        setup._reassert_overrides_if_active = MagicMock()
+        setup._arm_safe_mode = MagicMock()
+
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = True
+
+        with patch("lightspeed.trex.control.stagecraft.setup.carb.settings.get_settings", return_value=mock_settings):
+            setup._apply_capture_safe_mode_on_switch("c:/proj/deps/captures/england__5.usd")
+
+        setup._reassert_overrides_if_active.assert_called_once_with()
+        setup._arm_safe_mode.assert_not_called()
+
+    async def test_apply_capture_safe_mode_on_switch_arms_when_not_armed(self):
+        # Switching capture when safe mode is not yet armed arms it for the switched-to capture.
+        setup = Setup.__new__(Setup)
+        setup._safe_mode_capture_path = None
+        setup._arm_safe_mode = MagicMock()
+
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = True
+
+        with patch("lightspeed.trex.control.stagecraft.setup.carb.settings.get_settings", return_value=mock_settings):
+            setup._apply_capture_safe_mode_on_switch("c:/proj/deps/captures/england__5.usd")
+
+        setup._arm_safe_mode.assert_called_once_with("c:/proj/deps/captures/england__5.usd")
+
+    async def test_reassert_watch_loop_reasserts_configvars(self):
+        # The pre-open push only covers initial realization; dxvk-remix re-applies the capture's own
+        # preset a few seconds later (re-enabling OMM / NRC) WITHOUT touching the /rtx/* carb nodes,
+        # so the periodic watchdog is what corrects the drift -- it must re-push every tick while a
+        # capture stays loaded.
+        setup = Setup.__new__(Setup)
+        setup._safe_mode_capture_path = "c:/proj/deps/captures/bolivia__2.usd"
+
+        ticks = {"count": 0}
+
+        def _push_and_eventually_close():
+            ticks["count"] += 1
+            if ticks["count"] >= 2:
+                setup._safe_mode_capture_path = None  # simulate the project closing after two re-asserts
+
+        setup._push_stability_configvars = MagicMock(side_effect=_push_and_eventually_close)
+
+        with patch("lightspeed.trex.control.stagecraft.setup.asyncio.sleep", new=AsyncMock()) as mock_sleep:
+            await setup._reassert_watch_loop(5.0)
+
+        self.assertEqual(setup._push_stability_configvars.call_count, 2)
+        mock_sleep.assert_awaited_with(5.0)
+        self.assertIsNone(setup._safe_mode_capture_path)
+
+    async def test_reassert_watch_loop_noop_when_safe_mode_inactive(self):
+        # Safe mode not armed -> the loop exits immediately without sleeping or pushing.
+        setup = Setup.__new__(Setup)
+        setup._safe_mode_capture_path = None
+        setup._push_stability_configvars = MagicMock()
+
+        with patch("lightspeed.trex.control.stagecraft.setup.asyncio.sleep", new=AsyncMock()) as mock_sleep:
+            await setup._reassert_watch_loop(5.0)
+
+        mock_sleep.assert_not_awaited()
+        setup._push_stability_configvars.assert_not_called()
+
+    async def test_reassert_watch_loop_survives_push_failure(self):
+        # A transient runtime hiccup during a re-assert must not kill the loop; it should log and
+        # keep protecting the session until the project closes.
+        setup = Setup.__new__(Setup)
+        setup._safe_mode_capture_path = "c:/proj/deps/captures/bolivia__2.usd"
+
+        ticks = {"count": 0}
+
+        def _flaky_push():
+            ticks["count"] += 1
+            if ticks["count"] == 1:
+                raise RuntimeError("HdRemix not ready")
+            setup._safe_mode_capture_path = None
+
+        setup._push_stability_configvars = MagicMock(side_effect=_flaky_push)
+
+        with (
+            patch("lightspeed.trex.control.stagecraft.setup.asyncio.sleep", new=AsyncMock()),
+            patch("lightspeed.trex.control.stagecraft.setup.carb.log_warn") as mock_log_warn,
+        ):
+            await setup._reassert_watch_loop(5.0)
+
+        self.assertEqual(setup._push_stability_configvars.call_count, 2)
+        mock_log_warn.assert_called_once()
+
+    async def test_start_reassert_watchdog_disabled_when_interval_non_positive(self):
+        # Interval <= 0 disables the periodic re-assert entirely.
+        setup = Setup.__new__(Setup)
+        setup._reassert_watch_task = None
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = 0
+
+        with (
+            patch("lightspeed.trex.control.stagecraft.setup.carb.settings.get_settings", return_value=mock_settings),
+            patch("lightspeed.trex.control.stagecraft.setup.ensure_future") as mock_ensure_future,
+        ):
+            setup._start_reassert_watchdog()
+
+        mock_ensure_future.assert_not_called()
+        self.assertIsNone(setup._reassert_watch_task)
+
+    async def test_start_reassert_watchdog_creates_task(self):
+        # A positive interval schedules the watch loop exactly once.
+        setup = Setup.__new__(Setup)
+        setup._reassert_watch_task = None
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = 5.0
+        sentinel_task = MagicMock()
+        sentinel_task.done.return_value = False
+
+        with (
+            patch("lightspeed.trex.control.stagecraft.setup.carb.settings.get_settings", return_value=mock_settings),
+            patch("lightspeed.trex.control.stagecraft.setup.ensure_future", return_value=sentinel_task) as mock_ef,
+            # Avoid building a real coroutine (and its "never awaited" warning) since ensure_future is mocked.
+            patch.object(Setup, "_reassert_watch_loop", return_value=MagicMock()),
+        ):
+            setup._start_reassert_watchdog()
+
+        mock_ef.assert_called_once()
+        self.assertIs(setup._reassert_watch_task, sentinel_task)
+
+    async def test_stop_reassert_watchdog_cancels_task(self):
+        setup = Setup.__new__(Setup)
+        task = MagicMock()
+        task.done.return_value = False
+        setup._reassert_watch_task = task
+
+        setup._stop_reassert_watchdog()
+
+        task.cancel.assert_called_once_with()
+        self.assertIsNone(setup._reassert_watch_task)
