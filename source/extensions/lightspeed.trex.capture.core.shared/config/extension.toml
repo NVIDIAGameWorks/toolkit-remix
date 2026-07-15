@@ -1,5 +1,5 @@
 [package]
-version = "1.5.0"
+version = "1.4.0"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -16,18 +16,11 @@ preview_image = "data/preview.png"
 "lightspeed.event.capture_persp_to_persp" = {optional=true}  # because this extension subscribe to the global event
 "lightspeed.event.events" = {}
 "lightspeed.events_manager" = {}
-"lightspeed.hydra.remix.core" = {optional=true}  # optional: heavy-capture safe mode pushes renderer config through it
 "lightspeed.layer_manager.core" = {}
 "omni.client" = {}
 "omni.flux.pip_archive" = {}  # For PIL
 "omni.flux.utils.common" = {}
 "omni.usd" = {}
-
-[settings]
-# When enabled, a capture at or above the heavy-capture prim budget is loaded with Opacity
-# Micromaps disabled so an over-budget capture cannot fault the GPU (VK_ERROR_DEVICE_LOST) on
-# project open or capture switch. Set to false to always load captures at full quality.
-exts."lightspeed.trex.capture.core.shared".autoSafeModeOnHeavyCapture = true
 
 [[python.module]]
 name = "lightspeed.trex.capture.core.shared"

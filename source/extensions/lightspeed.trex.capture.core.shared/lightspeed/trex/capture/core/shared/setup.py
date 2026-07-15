@@ -21,7 +21,6 @@ from contextlib import nullcontext
 from pathlib import Path
 
 import carb
-import carb.settings
 import omni.client
 import omni.kit.undo
 import omni.usd
@@ -33,85 +32,6 @@ from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from PIL import Image
 from pxr import Sdf, Usd, UsdGeom
-
-# Heavy game captures (e.g. Tomb Raider: Legend's bolivia__2 / peru, ~18k prims) can overrun the
-# GPU acceleration-structure / Opacity-Micromap working set during stage realization and fault the
-# Vulkan device (VK_ERROR_DEVICE_LOST). A capture at or above this prim count is loaded in a
-# degraded-safe renderer state (Opacity Micromaps disabled) so it cannot take the GPU down.
-_HEAVY_CAPTURE_PRIM_BUDGET = 12000
-_SETTING_AUTO_SAFE_MODE = "/exts/lightspeed.trex.capture.core.shared/autoSafeModeOnHeavyCapture"
-# dxvk-remix RtxOptions pushed through the HdRemix bridge. graphicsPreset=Custom (enum 4) disables
-# the Quality preset layer so the User-layer opacityMicromap write wins; opacityMicromap.enable=0
-# is the lever that removes the over-budget OMM build.
-_RTX_OPTION_GRAPHICS_PRESET = "rtx.graphicsPreset"
-_RTX_GRAPHICS_PRESET_CUSTOM = "4"
-_RTX_OPTION_OMM_ENABLE = "rtx.opacityMicromap.enable"
-_RTX_OMM_DISABLED = "0"
-
-
-def estimate_layer_prim_count(path: str) -> int | None:
-    """Cheaply count prim specs on a capture layer without composing the stage.
-
-    Args:
-        path: File path or identifier of the capture layer to inspect.
-
-    Returns:
-        The number of prim specs in the layer, or ``None`` if the layer cannot be opened.
-    """
-    try:
-        layer = Sdf.Layer.FindOrOpen(path)
-        if not layer:
-            return None
-        count = 0
-        stack = list(layer.pseudoRoot.nameChildren)
-        while stack:
-            prim_spec = stack.pop()
-            count += 1
-            stack.extend(prim_spec.nameChildren)
-        return count
-    except Exception as error:  # noqa: BLE001 - inspection must never break a capture load
-        carb.log_warn(f"Could not estimate capture prim count for '{path}': {error}")
-        return None
-
-
-def apply_heavy_capture_safe_mode_if_needed(path: str | None) -> bool:
-    """Degrade an over-budget capture to a safe renderer state before it is realized.
-
-    When the ``autoSafeModeOnHeavyCapture`` setting is enabled and ``path`` points at a capture
-    whose prim count meets or exceeds :data:`_HEAVY_CAPTURE_PRIM_BUDGET`, force
-    ``graphicsPreset=Custom`` and then disable Opacity Micromaps through the HdRemix bridge so the
-    heavy capture cannot exhaust the GPU acceleration-structure / OMM working set and fault the
-    Vulkan device (``VK_ERROR_DEVICE_LOST``).
-
-    Args:
-        path: File path or identifier of the capture layer about to be realized.
-
-    Returns:
-        ``True`` if safe mode was applied, ``False`` otherwise.
-    """
-    if not path or not carb.settings.get_settings().get(_SETTING_AUTO_SAFE_MODE):
-        return False
-    prim_count = estimate_layer_prim_count(path)
-    if prim_count is None or prim_count < _HEAVY_CAPTURE_PRIM_BUDGET:
-        return False
-    try:
-        from lightspeed.hydra.remix.core import hdremix_set_configvar  # noqa: PLC0415
-
-        # graphicsPreset=Custom first so the Quality layer stops shadowing the User-layer write,
-        # then force Opacity Micromaps off.
-        hdremix_set_configvar(_RTX_OPTION_GRAPHICS_PRESET, _RTX_GRAPHICS_PRESET_CUSTOM)
-        hdremix_set_configvar(_RTX_OPTION_OMM_ENABLE, _RTX_OMM_DISABLED)
-    except ImportError:
-        # The HdRemix renderer bridge is an optional dependency (absent in headless / CLI apps).
-        return False
-    except Exception as error:  # noqa: BLE001 - never block a capture load on a runtime hiccup
-        carb.log_warn(f"Heavy-capture safe mode could not push renderer config for '{path}': {error}")
-        return False
-    carb.log_warn(
-        f"Heavy capture '{path}' (~{prim_count} prims >= {_HEAVY_CAPTURE_PRIM_BUDGET}) loaded in "
-        "degraded-safe mode (Opacity Micromaps disabled) to avoid a GPU device-loss."
-    )
-    return True
 
 
 class Setup:
@@ -192,9 +112,6 @@ class Setup:
             # even if the layer is later removed (e.g. by validate_project cleanup).
             # Use realPath for on-disk layers; fall back to identifier for anonymous/in-memory layers.
             layer_path = capture_layer.realPath or capture_layer.identifier
-            # Degrade an over-budget capture to safe mode (Opacity Micromaps disabled) as soon as
-            # the stage opens, before the renderer realizes the heavy geometry and can fault the GPU.
-            apply_heavy_capture_safe_mode_if_needed(layer_path)
             self.__directory = omni.client.normalize_url(layer_path).rsplit("/", 1)[0]
 
             _get_event_manager_instance().call_global_custom_event(
@@ -213,9 +130,6 @@ class Setup:
 
     def import_capture_layer(self, path: str, do_undo: bool = True):
         carb.log_info(f"Import capture layer {path}")
-        # Degrade an over-budget capture to safe mode (Opacity Micromaps disabled) before the
-        # stage is realized so a heavy capture cannot fault the GPU on a manual capture switch.
-        apply_heavy_capture_safe_mode_if_needed(path)
         # copy over layer-meta-data from capture layer
         stage = self._context.get_stage()
         capture_stage = Usd.Stage.Open(path)

@@ -15,14 +15,13 @@
 * limitations under the License.
 """
 
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import omni.kit.test
 import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
-from lightspeed.trex.capture.core.shared import setup as _capture_setup
 from pxr import Sdf, Usd, UsdGeom
 
 
@@ -326,86 +325,3 @@ class TestSetup(omni.kit.test.AsyncTestCase):
                 "MESH0CAA733B0850",
             },
         )
-
-    async def test_estimate_layer_prim_count_counts_nested_prim_specs(self):
-        # Arrange
-        layer = Sdf.Layer.CreateAnonymous("count_test.usda")
-        for prim_path in ("/A", "/A/B", "/A/B/C", "/D"):
-            Sdf.CreatePrimInLayer(layer, prim_path)
-
-        # Act
-        result = _capture_setup.estimate_layer_prim_count(layer.identifier)
-
-        # Assert
-        self.assertEqual(result, 4)
-
-    async def test_estimate_layer_prim_count_returns_none_when_layer_missing(self):
-        # Act
-        result = _capture_setup.estimate_layer_prim_count("Z:/does/not/exist.usda")
-
-        # Assert
-        self.assertIsNone(result)
-
-    async def test_apply_heavy_capture_safe_mode_over_budget_disables_opacity_micromaps(self):
-        # Arrange
-        mock_settings = MagicMock()
-        mock_settings.get.return_value = True  # autoSafeModeOnHeavyCapture on
-        mock_bridge = MagicMock()
-        fake_hydra_module = MagicMock()
-        fake_hydra_module.hdremix_set_configvar = mock_bridge
-
-        # Act
-        with (
-            patch("carb.settings.get_settings", return_value=mock_settings),
-            patch.object(_capture_setup, "estimate_layer_prim_count", return_value=20000),
-            patch.dict("sys.modules", {"lightspeed.hydra.remix.core": fake_hydra_module}),
-        ):
-            result = _capture_setup.apply_heavy_capture_safe_mode_if_needed("C:/proj/deps/captures/heavy.usda")
-
-        # Assert
-        self.assertTrue(result)
-        # graphicsPreset=Custom (4) must be pushed before opacityMicromap.enable=0 so the write sticks.
-        self.assertEqual(
-            mock_bridge.call_args_list,
-            [call("rtx.graphicsPreset", "4"), call("rtx.opacityMicromap.enable", "0")],
-        )
-
-    async def test_apply_heavy_capture_safe_mode_under_budget_does_not_push(self):
-        # Arrange
-        mock_settings = MagicMock()
-        mock_settings.get.return_value = True
-        mock_bridge = MagicMock()
-        fake_hydra_module = MagicMock()
-        fake_hydra_module.hdremix_set_configvar = mock_bridge
-
-        # Act
-        with (
-            patch("carb.settings.get_settings", return_value=mock_settings),
-            patch.object(_capture_setup, "estimate_layer_prim_count", return_value=5000),
-            patch.dict("sys.modules", {"lightspeed.hydra.remix.core": fake_hydra_module}),
-        ):
-            result = _capture_setup.apply_heavy_capture_safe_mode_if_needed("C:/proj/deps/captures/light.usda")
-
-        # Assert
-        self.assertFalse(result)
-        mock_bridge.assert_not_called()
-
-    async def test_apply_heavy_capture_safe_mode_setting_off_does_not_push(self):
-        # Arrange
-        mock_settings = MagicMock()
-        mock_settings.get.return_value = False  # autoSafeModeOnHeavyCapture off
-        mock_bridge = MagicMock()
-        fake_hydra_module = MagicMock()
-        fake_hydra_module.hdremix_set_configvar = mock_bridge
-
-        # Act
-        with (
-            patch("carb.settings.get_settings", return_value=mock_settings),
-            patch.object(_capture_setup, "estimate_layer_prim_count", return_value=20000),
-            patch.dict("sys.modules", {"lightspeed.hydra.remix.core": fake_hydra_module}),
-        ):
-            result = _capture_setup.apply_heavy_capture_safe_mode_if_needed("C:/proj/deps/captures/heavy.usda")
-
-        # Assert
-        self.assertFalse(result)
-        mock_bridge.assert_not_called()
