@@ -81,5 +81,39 @@ lightspeed.app.trex.migration.cli.bat distant-lights-z-direction -d "PROJECT_DIR
 
 Where `PROJECT_DIRECTORY_HERE` is replaced with the actual project directory where the migration should be applied.
 
+### UsdLux Light Inputs
+
+Projects authored with older USD versions may store UsdLux light properties directly on light prims, such as
+`intensity`, `color`, or `shaping:cone:angle`. USD 25.11 expects those properties to use the `inputs:` namespace, such as
+`inputs:intensity`, `inputs:color`, and `inputs:shaping:cone:angle`.
+
+Run this migration for older projects that have missing or black lighting after updating to a USD 25.11 based Toolkit.
+The migration updates ASCII USD files (`.usda` and ASCII `.usd`) in place. Binary USD crate files (`.usdc` or binary
+`.usd`) are skipped and reported by the tool.
+
+#### Migration Name
+
+`usdlux-light-inputs`
+
+#### Purpose
+
+Migrate legacy UsdLux light attributes to the USD 25.11 `inputs:` attribute names.
+
+#### Arguments
+
+| Argument                                   | Description                                                                                        |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `--file FILE`<br/>`-f FILE`                | Path to the USD file to migrate to the updated UsdLux standard                                     |
+| `--directory DIRECTORY`<br/>`-d DIRECTORY` | Path to the directory of USD files to migrate to the updated UsdLux standard                       |
+| `--recursive`<br/>`-r`                     | Recursively search for USD files in the given directory.<br/>Will be ignored if `--file` is given. |
+
+#### Example Command
+
+```bat
+lightspeed.app.trex.migration.cli.bat usdlux-light-inputs -d "PROJECT_DIRECTORY_HERE" -r
+```
+
+Where `PROJECT_DIRECTORY_HERE` is replaced with the actual project directory where the migration should be applied.
+
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

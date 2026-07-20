@@ -31,7 +31,9 @@ import omni.kit.undo
 import omni.kit.window.file
 import omni.ui
 import omni.usd
+from omni.kit.viewport.menubar.lighting import actions as _viewport_lighting_actions
 from omni.kit.viewport.menubar.lighting.menu_container import MenuContainer as _ViewportLightingMenuContainer
+from pxr import Sdf, Tf
 from lightspeed.common.constants import GlobalEventNames
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
@@ -67,6 +69,7 @@ class Setup:
 
     _SWITCH_CAPTURE_COMMAND_NAME = "SwitchCaptureCommand"
     _DISABLE_STAGE_OPEN_LIGHTING_UNDO = False
+    _LIGHTING_ADD_RIG_REFERENCE_ORIGINAL = None
     _LIGHTING_STAGE_OPEN_ORIGINAL = None
 
     def __init__(self) -> None:
@@ -148,7 +151,35 @@ class Setup:
             has_open_project = bool(stage and not bool(stage.GetRootLayer().anonymous))
             if not has_open_project:
                 load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
+        self.__install_light_rig_reference_validation_patch()
         self.__install_stage_open_lighting_undo_patch()
+
+    @classmethod
+    def __install_light_rig_reference_validation_patch(cls):
+        if cls._LIGHTING_ADD_RIG_REFERENCE_ORIGINAL is not None:
+            return
+
+        original = vars(_viewport_lighting_actions)["_add_rig_reference"]
+        cls._LIGHTING_ADD_RIG_REFERENCE_ORIGINAL = original
+
+        def _add_rig_reference_with_validation(light_rig_prim, rig_path: str):
+            try:
+                asset_layer = Sdf.Layer.FindOrOpen(rig_path)
+            except Tf.ErrorException as exc:
+                raise RuntimeError(f"Invalid light rig USD file: {rig_path}") from exc
+            if not asset_layer:
+                raise RuntimeError(f"Invalid light rig USD file: {rig_path}")
+            return original(light_rig_prim, rig_path)
+
+        vars(_viewport_lighting_actions)["_add_rig_reference"] = _add_rig_reference_with_validation
+
+    @classmethod
+    def __uninstall_light_rig_reference_validation_patch(cls):
+        if cls._LIGHTING_ADD_RIG_REFERENCE_ORIGINAL is None:
+            return
+
+        vars(_viewport_lighting_actions)["_add_rig_reference"] = cls._LIGHTING_ADD_RIG_REFERENCE_ORIGINAL
+        cls._LIGHTING_ADD_RIG_REFERENCE_ORIGINAL = None
 
     @classmethod
     def __install_stage_open_lighting_undo_patch(cls):
@@ -453,5 +484,6 @@ class Setup:
 
     def destroy(self):
         self.__set_stage_open_lighting_undo_disabled(False)
+        self.__uninstall_light_rig_reference_validation_patch()
         self.__uninstall_stage_open_lighting_undo_patch()
         _reset_default_attrs(self)

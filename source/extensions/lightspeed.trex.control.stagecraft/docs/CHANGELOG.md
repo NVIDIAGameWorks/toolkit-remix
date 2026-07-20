@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Updated extension metadata for Kit SDK 110 compatibility.
 
 ### Fixed
+- Reject invalid viewport light rig USD files before authoring their session-layer reference.
 - Set the StageCraft context at startup when StageCraft is the default layout so context-scoped undo/redo hotkeys work in the combined Remix app.
 
 ## [1.8.0]

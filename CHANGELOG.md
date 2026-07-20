@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a scheduled Remix target dependency bot to update hdremix, omni_core_materials, and remix_runtime pins using a durable reusable bot branch.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-9c46827-main`
 - REMIX-5155: Update Kit SDK version to 110.1.1 production.
+- REMIX-5605: Updated light rigs for USD 25.11 compatibility and added a migration for legacy project files.
 
 ### Removed
 
