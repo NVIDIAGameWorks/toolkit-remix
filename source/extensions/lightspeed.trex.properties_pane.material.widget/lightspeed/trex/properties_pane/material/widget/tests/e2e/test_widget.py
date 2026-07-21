@@ -124,8 +124,8 @@ class TestMaterialPropertyWidget(AsyncTestCase):
         layer_manager = _LayerManagerCore()
         layer_manager.set_edit_target_layer_of_type(_LayerType.replacement)
 
-    async def __setup_widget(self):
-        window = ui.Window("TestMaterialPropertyWidgetUI", height=800, width=500)
+    async def __setup_widget(self, width=500):
+        window = ui.Window("TestMaterialPropertyWidgetUI", height=800, width=width)
         with window.frame:
             with ui.HStack():
                 mat_property_wid = _MaterialPropertiesWidget("")
@@ -261,6 +261,35 @@ class TestMaterialPropertyWidget(AsyncTestCase):
                 self.assertFalse(frame_none.widget.visible)
             self.assertTrue(frame_material.widget.visible)
 
+        finally:
+            await self.__destroy(_window, _material_property_wid)
+
+    async def test_material_property_field_stays_inside_narrow_panel_when_shown_after_hidden_build(self):
+        _window, _material_property_wid = await self.__setup_widget(width=240)
+
+        try:
+            usd_context = omni.usd.get_context()
+            usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+            texture_file_fields = await self._get_group_texture_file_fields(_window, "Base Material")
+
+            frame_material = ui_test.find(
+                f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'"
+            ).widget
+            field_widget = texture_file_fields[0].widget
+            field_right = field_widget.screen_position_x + field_widget.computed_width
+            frame_right = frame_material.screen_position_x + frame_material.computed_width
+            self.assertGreater(frame_material.computed_width, 0, "Material property panel has no rendered width")
+            self.assertGreater(field_widget.computed_width, 0, "Material property field has no rendered width")
+            self.assertGreaterEqual(
+                field_widget.screen_position_x,
+                frame_material.screen_position_x - 1,
+                "Material property field begins outside the property panel",
+            )
+            self.assertLessEqual(
+                field_right,
+                frame_right + 1,
+                f"Material property field right edge {field_right} exceeded panel right edge {frame_right}",
+            )
         finally:
             await self.__destroy(_window, _material_property_wid)
 

@@ -6,6 +6,7 @@ import carb.input
 import omni.kit.clipboard
 import omni.kit.test
 import omni.kit.ui_test
+import omni.ui as ui
 from omni.flux.property_widget_builder.delegates import FloatDragFieldGroup
 from omni.flux.property_widget_builder.widget import FieldBuilderList, Item, ItemGroup
 
@@ -16,6 +17,18 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
     def assert_items_equal(self, a: Iterable[Item], b: Iterable[Item]):
         # custom sort key to just use the item id
         self.assertListEqual(sorted(a, key=id), sorted(b, key=id))
+
+    def assert_widget_inside_panel(self, field_widget, panel_frame, details=""):
+        field_right = field_widget.screen_position_x + field_widget.computed_width
+        panel_right = panel_frame.screen_position_x + panel_frame.computed_width
+        message = f"field right edge {field_right} exceeded panel right edge {panel_right}"
+        if details:
+            message = f"{message}. {details}"
+        self.assertLessEqual(
+            field_right,
+            panel_right + 1,
+            message,
+        )
 
     async def test_tree_selection(self):
         async with AsyncTestPropertyWidget() as helper:
@@ -149,3 +162,56 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
             await omni.kit.ui_test.emulate_char_press(str(typed_value))
             await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ENTER)
             self.assertAlmostEqual(item.get_value()[0], typed_value)
+
+    async def test_editor_property_fields_stay_inside_panel_when_resized(self):
+        field_builders = FieldBuilderList()
+
+        @field_builders.register_build(lambda _: True)
+        def build(item):
+            builder = FloatDragFieldGroup(0.0, 1.0)
+            return builder(item)
+
+        item = TestItem([("Width", 0.5)])
+        async with AsyncTestPropertyWidget(
+            tree_column_widths=[ui.Pixel(270), ui.Fraction(1)],
+            columns_resizable=True,
+            width=500,
+            use_scrolling_frame=True,
+            scrolling_frame_horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+        ) as helper:
+            helper.delegate.field_builders = field_builders
+            await helper.set_items([item])
+            await omni.kit.ui_test.wait_n_updates(4)
+
+            field_refs = omni.kit.ui_test.find_all(f"{helper.window.title}//Frame/**/FloatBoundedDrag[*]")
+            self.assertTrue(field_refs, "No float field found")
+            field_widget = field_refs[0].widget
+            wide_field_width = field_widget.computed_width
+            wide_label_width = helper.property_widget.tree_view.column_widths[0].value
+            self.assert_widget_inside_panel(field_widget, helper.window.frame)
+
+            helper.window.width = 340
+            await omni.kit.ui_test.wait_n_updates(8)
+
+            field_refs = omni.kit.ui_test.find_all(f"{helper.window.title}//Frame/**/FloatBoundedDrag[*]")
+            self.assertTrue(field_refs, "No resized float field found")
+            field_widget = field_refs[0].widget
+            narrow_label_width = helper.property_widget.tree_view.column_widths[0].value
+            self.assertLess(narrow_label_width, wide_label_width, "Label column width did not shrink with the panel")
+            self.assertLess(field_widget.computed_width, wide_field_width, "Field width did not shrink with the panel")
+            details = (
+                f"field_width={field_widget.computed_width}, "
+                f"field_x={field_widget.screen_position_x}, "
+                f"panel_width={helper.window.frame.computed_width}, "
+                f"panel_x={helper.window.frame.screen_position_x}, "
+                f"tree_width={helper.property_widget.tree_view.computed_width}, "
+                f"label_width={narrow_label_width}"
+            )
+            self.assert_widget_inside_panel(field_widget, helper.window.frame, details)
+            self.assertIsNotNone(helper.scrolling_frame)
+            self.assertLessEqual(
+                helper.scrolling_frame.scroll_x_max,
+                1,
+                f"Property widget created horizontal scroll range {helper.scrolling_frame.scroll_x_max} "
+                f"with no visible overflow. {details}",
+            )

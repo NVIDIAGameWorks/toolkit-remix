@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.2]
+### Fixed
+- Kept the Properties pane at least 240 pixels wide when dragging the viewport splitter.
+
 ## [1.8.1]
 ### Fixed
 - Improved the Teleport viewport toolbar tooltip to distinguish center-button teleport from mouse-cursor hotkey teleport.

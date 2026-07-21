@@ -95,6 +95,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
             "_layers_core": None,
             "_layer_manager": None,
             "root_widget": None,
+            "_root_scrolling_frame": None,
             "_layer_tree_widget": None,
             "_bookmark_tree_widget": None,
             "_selection_history_widget": None,
@@ -265,16 +266,21 @@ class AssetReplacementsPane(_WorkspaceWidget):
         return _EventSubscription(self.__on_go_to_ingest_tab, func)
 
     def __create_ui(self):
-        self.root_widget = ui.Frame()
+        self.root_widget = ui.Frame(horizontal_clipping=True)
         with self.root_widget:
-            with ui.ScrollingFrame(
+            self._root_scrolling_frame = ui.ScrollingFrame(
                 name="WorkspaceBackground",
-            ):
-                with ui.VStack():
+                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                horizontal_clipping=True,
+                scroll_x=0,
+                scroll_x_max=0,
+            )
+            with self._root_scrolling_frame:
+                with ui.VStack(width=ui.Fraction(1), content_clipping=True):
                     ui.Spacer(height=ui.Pixel(5))
-                    with ui.HStack():
+                    with ui.HStack(width=ui.Fraction(1), content_clipping=True):
                         ui.Spacer(width=ui.Pixel(5))
-                        with ui.VStack():
+                        with ui.VStack(width=ui.Fraction(1), content_clipping=True):
                             self._layer_collapsable_frame = _PropertyCollapsableFrameWithInfoPopup(
                                 "LAYERS",
                                 info_text="Visual representation of the USD layers in the mod.\n\n"

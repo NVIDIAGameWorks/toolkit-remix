@@ -155,6 +155,27 @@ class TestSharedViewportWidget(OmniUiTest):
                 count += 1
         return count
 
+    async def test_property_panel_splitter_enforces_minimum_width(self):
+        window, widget = await self.__setup_single_widget(width=600)
+        try:
+            widget.toggle_viewport_property_panel(forced_value=True, value=True)
+            await ui_test.wait_n_updates(4)
+
+            splitter_width = widget._property_panel_frame_spacer.computed_width
+            expected_panel_width = 240
+            self.assertAlmostEqual(expected_panel_width, widget._property_panel_frame.computed_width, delta=1)
+
+            requested_panel_width = 200
+            requested_offset = ui.Pixel(widget._root_frame.computed_width - splitter_width - requested_panel_width)
+            widget._on_property_viewport_splitter_change(requested_offset)
+            await ui_test.wait_n_updates(4)
+
+            expected_offset = widget._root_frame.computed_width - splitter_width - expected_panel_width
+            self.assertAlmostEqual(expected_panel_width, widget._property_panel_frame.computed_width, delta=1)
+            self.assertAlmostEqual(expected_offset, widget._splitter_property_viewport.offset_x.value, delta=1)
+        finally:
+            await self.__destroy(window, [widget])
+
     async def test_always_one_vp_enabled(self):
         """Test global viewport events that ensure only one viewport is active."""
 

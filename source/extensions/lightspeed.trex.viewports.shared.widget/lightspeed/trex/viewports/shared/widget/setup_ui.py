@@ -52,6 +52,8 @@ if TYPE_CHECKING:
 
 _SHOW_REMIX_SUPPORT_POPUP_SETTING = "/exts/lightspeed/hydra/remix/showpopup"
 _REMIX_FAILURE_DIALOG_SHOWN = False
+_PROPERTY_PANEL_MIN_WIDTH = 240
+_PROPERTY_VIEWPORT_SPLITTER_WIDTH = 12
 
 
 def _show_remix_failure_dialog(error_message: str) -> bool:
@@ -203,7 +205,7 @@ class SetupUI(_WorkspaceWidget):
                         # do viewport updates initially
                         self.set_active(True)
 
-                    self._property_panel_frame_spacer = ui.Spacer(width=ui.Pixel(12))
+                    self._property_panel_frame_spacer = ui.Spacer(width=ui.Pixel(_PROPERTY_VIEWPORT_SPLITTER_WIDTH))
 
                     self._property_panel_frame = ui.Frame(width=ui.Percent(30))
                     with self._property_panel_frame:
@@ -219,7 +221,7 @@ class SetupUI(_WorkspaceWidget):
                 )
                 with self._splitter_property_viewport:
                     with ui.Frame(build_fn=self.__init_splitter):  # to keep the Z depth order
-                        with ui.ZStack(width=ui.Pixel(12), opaque_for_mouse_events=True):
+                        with ui.ZStack(width=ui.Pixel(_PROPERTY_VIEWPORT_SPLITTER_WIDTH), opaque_for_mouse_events=True):
                             ui.Rectangle(name="WorkspaceBackground")
                             with ui.VStack():
                                 for _ in range(3):
@@ -542,10 +544,16 @@ class SetupUI(_WorkspaceWidget):
 
     @_ignore_function_decorator(attrs=["_ignore_property_viewport_splitter_change"])
     def _on_property_viewport_splitter_change(self, x):
+        max_splitter_offset = max(
+            self._root_frame.computed_width - _PROPERTY_VIEWPORT_SPLITTER_WIDTH - _PROPERTY_PANEL_MIN_WIDTH,
+            0,
+        )
         if x.value < 0:
-            self._splitter_property_viewport.offset_x = ui.Pixel(0)
-        elif x.value + 12 >= self._root_frame.computed_width:
-            self._splitter_property_viewport.offset_x = ui.Pixel(self._root_frame.computed_width - 12)
+            x = ui.Pixel(0)
+            self._splitter_property_viewport.offset_x = x
+        elif x.value > max_splitter_offset:
+            x = ui.Pixel(max_splitter_offset)
+            self._splitter_property_viewport.offset_x = x
         elif (
             self._last_root_frame_width_value is not None
             and self._root_frame.computed_width > self._last_root_frame_width_value
@@ -578,7 +586,11 @@ class SetupUI(_WorkspaceWidget):
         if x.value < 0:
             x = ui.Pixel(0)
         result = (
-            100 - ((x.value / (self._root_frame.computed_width / 100)) + (12 / (self._root_frame.computed_width / 100)))
+            100
+            - (
+                (x.value / (self._root_frame.computed_width / 100))
+                + (_PROPERTY_VIEWPORT_SPLITTER_WIDTH / (self._root_frame.computed_width / 100))
+            )
             if self._root_frame.computed_width > 0
             else 0
         )

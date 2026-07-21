@@ -154,11 +154,32 @@ class AsyncTestPropertyWidget:
     Helper context manager that simplifies testing PropertyWidget.
     """
 
-    def __init__(self, model: Model | None = None, delegate: Delegate = None):
+    def __init__(
+        self,
+        model: Model | None = None,
+        delegate: Delegate = None,
+        tree_column_widths: list[ui.Length] | None = None,
+        columns_resizable: bool = False,
+        width: int = 400,
+        height: int = 400,
+        use_scrolling_frame: bool = False,
+        scrolling_frame_horizontal_scrollbar_policy: ui.ScrollBarPolicy | None = None,
+    ):
         self.model = model if model is not None else Model()
         self.delegate = delegate if delegate is not None else TestDelegate()
+        self.tree_column_widths = tree_column_widths
+        self.columns_resizable = columns_resizable
+        self.width = width
+        self.height = height
+        self.use_scrolling_frame = use_scrolling_frame
+        self.scrolling_frame_horizontal_scrollbar_policy = (
+            ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED
+            if scrolling_frame_horizontal_scrollbar_policy is None
+            else scrolling_frame_horizontal_scrollbar_policy
+        )
 
         self.window = None
+        self.scrolling_frame = None
         self.property_widget = None
 
         self._is_built = False
@@ -166,18 +187,35 @@ class AsyncTestPropertyWidget:
     async def build(self):
         self.window = ui.Window(
             f"{self.__class__.__name__}_{str(uuid.uuid1())}",
-            height=200,
-            width=200,
+            height=self.height,
+            width=self.width,
             position_x=0,
             position_y=0,
         )
         with self.window.frame:
-            self.property_widget = PropertyWidget(
-                model=self.model,
-                delegate=self.delegate,
-            )
-        self.window.width = 400
-        self.window.height = 400
+            if self.use_scrolling_frame:
+                self.scrolling_frame = ui.ScrollingFrame(
+                    width=ui.Fraction(1),
+                    height=ui.Fraction(1),
+                    horizontal_scrollbar_policy=self.scrolling_frame_horizontal_scrollbar_policy,
+                    vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED,
+                )
+                with self.scrolling_frame:
+                    self.property_widget = PropertyWidget(
+                        model=self.model,
+                        delegate=self.delegate,
+                        tree_column_widths=self.tree_column_widths,
+                        columns_resizable=self.columns_resizable,
+                    )
+            else:
+                self.property_widget = PropertyWidget(
+                    model=self.model,
+                    delegate=self.delegate,
+                    tree_column_widths=self.tree_column_widths,
+                    columns_resizable=self.columns_resizable,
+                )
+        self.window.width = self.width
+        self.window.height = self.height
 
         await asyncio.sleep(0.1)
         self._is_built = True
@@ -185,6 +223,7 @@ class AsyncTestPropertyWidget:
     async def destroy(self):
         self.property_widget.destroy()
         self.window.destroy()
+        self.scrolling_frame = None
         self._is_built = False
 
     async def __aenter__(self) -> AsyncTestPropertyWidgetT:
