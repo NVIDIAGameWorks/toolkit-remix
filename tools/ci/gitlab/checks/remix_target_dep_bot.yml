@@ -1,0 +1,60 @@
+remix-target-dep-bot:
+  extends:
+    - .release_defaults
+    - .linux_build_agent
+  stage: check_mr
+  variables:
+    GIT_DEPTH: "0"
+    REMIX_TARGET_DEP_BOT_BRANCH: "dependabot/update-rtx-remix-target-deps"
+  needs: []
+  resource_group: remix-target-dep-bot
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $REMIX_TARGET_DEP_BOT == "TRUE"
+      when: always
+  before_script:
+    - git config user.name "${GITLAB_USER_NAME:-Remix Target Dependency Bot}"
+    - git config user.email "${GITLAB_USER_EMAIL:-remix-target-dependency-bot@nvidia.com}"
+  script:
+    - 'git fetch origin "$CI_DEFAULT_BRANCH:refs/remotes/origin/$CI_DEFAULT_BRANCH"'
+    - BOT_BRANCH_EXISTS=0
+    - 'git fetch origin "$REMIX_TARGET_DEP_BOT_BRANCH:refs/remotes/origin/$REMIX_TARGET_DEP_BOT_BRANCH" && BOT_BRANCH_EXISTS=1 || true'
+    - 'if [ "$BOT_BRANCH_EXISTS" = "1" ]; then git checkout -B "$REMIX_TARGET_DEP_BOT_BRANCH" "origin/$REMIX_TARGET_DEP_BOT_BRANCH"; else git checkout -B "$REMIX_TARGET_DEP_BOT_BRANCH" "origin/$CI_DEFAULT_BRANCH"; fi'
+    - 'if [ "$BOT_BRANCH_EXISTS" = "1" ]; then git merge --no-edit -X theirs "origin/$CI_DEFAULT_BRANCH"; fi'
+    - git checkout "origin/$CI_DEFAULT_BRANCH" -- deps/target-deps.packman.xml CHANGELOG.md
+    - 'GITLAB_TOKEN="$TOOLKIT_GITLAB_DXVK_ACCESS" ./tools/packman/python.sh tools/ci/scripts/remix_target_dep_bot.py --apply --summary-file remix-target-dep-bot-summary.md'
+    - 'if git diff --quiet "origin/$CI_DEFAULT_BRANCH" -- deps/target-deps.packman.xml CHANGELOG.md && [ "$BOT_BRANCH_EXISTS" != "1" ]; then echo "Remix target dependency bot found no updates."; curl -fsS -X POST -H "Authorization: Bearer $SLACK_TOKEN_LIGHTSPEED_CI" --data-urlencode "channel=$SLACK_CHANNEL_ID_LIGHTSPEED_CI" --data-urlencode "text=:white_check_mark: Remix dependency bot ran for ${CI_PROJECT_PATH}: no updates found. ${CI_PIPELINE_URL}" https://slack.com/api/chat.postMessage | grep -Eq "\"ok\"[[:space:]]*:[[:space:]]*true" || echo "Slack notification failed."; exit 0; fi'
+    - git add deps/target-deps.packman.xml CHANGELOG.md
+    - 'if git diff --cached --quiet -- deps/target-deps.packman.xml CHANGELOG.md; then git commit --allow-empty -m "chore: recheck RTX Remix target dependencies" -m "Selected Remix target dependency update already exists on the bot branch."; elif git diff --quiet "origin/$CI_DEFAULT_BRANCH" -- deps/target-deps.packman.xml CHANGELOG.md; then git commit -m "chore: recheck RTX Remix target dependencies" -m "Remix target dependencies are already current. Reset bot-managed files to the latest default branch state."; else git commit -m "chore: bump RTX Remix target dependencies" -m "$(cat remix-target-dep-bot-summary.md)"; fi'
+    - 'git push origin "HEAD:$REMIX_TARGET_DEP_BOT_BRANCH" -o merge_request.create -o merge_request.target="$CI_DEFAULT_BRANCH" -o merge_request.title="chore: bump RTX Remix target dependencies" -o merge_request.squash -o merge_request.remove_source_branch'
+  after_script:
+    - 'if [ "$CI_JOB_STATUS" != "success" ]; then curl -fsS -X POST -H "Authorization: Bearer $SLACK_TOKEN_LIGHTSPEED_CI" --data-urlencode "channel=$SLACK_CHANNEL_ID_LIGHTSPEED_CI" --data-urlencode "text=:red_circle: Remix dependency bot scheduled job failed for ${CI_PROJECT_PATH}. Source SHA: ${CI_COMMIT_SHA}. Repro latest bot branch if present: git fetch origin ${REMIX_TARGET_DEP_BOT_BRANCH} && git checkout origin/${REMIX_TARGET_DEP_BOT_BRANCH}. Pipeline: ${CI_PIPELINE_URL}" https://slack.com/api/chat.postMessage | grep -Eq "\"ok\"[[:space:]]*:[[:space:]]*true" || echo "Slack notification failed."; fi'
+
+remix-target-dep-bot-notify-success:
+  extends:
+    - .defaults
+    - .linux_build_agent
+  stage: .post
+  allow_failure: true
+  variables:
+    GIT_STRATEGY: none
+    REMIX_TARGET_DEP_BOT_BRANCH: "dependabot/update-rtx-remix-target-deps"
+  script:
+    - 'curl -fsS -X POST -H "Authorization: Bearer $SLACK_TOKEN_LIGHTSPEED_CI" --data-urlencode "channel=$SLACK_CHANNEL_ID_LIGHTSPEED_CI" --data-urlencode "text=:white_check_mark: Remix dependency bot MR pipeline passed for ${CI_PROJECT_PATH}: ${CI_PROJECT_URL}/-/merge_requests/${CI_MERGE_REQUEST_IID}. Commit: ${CI_COMMIT_SHA}. Pipeline: ${CI_PIPELINE_URL}" https://slack.com/api/chat.postMessage | grep -Eq "\"ok\"[[:space:]]*:[[:space:]]*true"'
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $REMIX_TARGET_DEP_BOT_BRANCH
+      when: on_success
+
+remix-target-dep-bot-notify-failure:
+  extends:
+    - .defaults
+    - .linux_build_agent
+  stage: .post
+  allow_failure: true
+  variables:
+    GIT_STRATEGY: none
+    REMIX_TARGET_DEP_BOT_BRANCH: "dependabot/update-rtx-remix-target-deps"
+  script:
+    - 'curl -fsS -X POST -H "Authorization: Bearer $SLACK_TOKEN_LIGHTSPEED_CI" --data-urlencode "channel=$SLACK_CHANNEL_ID_LIGHTSPEED_CI" --data-urlencode "text=:red_circle: Remix dependency bot MR pipeline failed for ${CI_PROJECT_PATH}: ${CI_PROJECT_URL}/-/merge_requests/${CI_MERGE_REQUEST_IID}. Commit: ${CI_COMMIT_SHA}. Repro: git fetch origin ${REMIX_TARGET_DEP_BOT_BRANCH} && git checkout ${CI_COMMIT_SHA}. Pipeline: ${CI_PIPELINE_URL}" https://slack.com/api/chat.postMessage | grep -Eq "\"ok\"[[:space:]]*:[[:space:]]*true"'
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $REMIX_TARGET_DEP_BOT_BRANCH
+      when: on_failure
