@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.1]
+### Fixed
+- Prevent a GPU device-loss (`VK_ERROR_DEVICE_LOST`) / main-thread hang when opening a project or switching captures. A game capture is thousands of small alpha-tested meshes whose Opacity-Micromap (OMM) build can overrun the GPU and fault/hang it; prim count does not reliably predict which captures do this, so any capture project is now opened with Opacity Micromaps disabled (`graphicsPreset=Custom`, `integrateIndirectMode=ReSTIR GI`, `opacityMicromap.enable=0`, pushed through the HdRemix bridge) before the stage is realized. The override is re-asserted every `opacityMicromapReassertIntervalSeconds` (default 5s) so the capture's own graphics preset cannot silently re-enable Opacity Micromaps once it realizes and OOM the GPU. OMM is a render-time optimization only, so disabling it never changes visuals and never affects editing or asset replacement. Gated by the new `autoDisableOpacityMicromaps` setting (default on); the watchdog is torn down on `destroy`, when the setting is off (on project open or capture switch), and when the capture project is closed.
+
 ## [1.8.0]
 ### Fixed
 - Prevent startup Home layout loading from pulling users out of an already-open StageCraft workspace.

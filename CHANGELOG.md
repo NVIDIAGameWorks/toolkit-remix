@@ -75,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5368: Fixed particle gradient and curve logical rows for multi-select editing, StageCraft startup layout loading so it does not pull users out of an already-open workspace, and USD transform vector fields so tabbing to the next channel stays editable after resetting a row modification.
 - REMIX-5730: Fixed curve editor popup crashes when closing with Escape by deferring cleanup until after UI event dispatch.
 - REMIX-5609: Fixed xform override handling so focus-only edits do not author USD overrides, value edits author the full logical xform set, and related xform specs appear as one layer modification entry.
+- Fixed a GPU device-loss (VK_ERROR_DEVICE_LOST) / main-thread hang when opening a game-capture project or switching captures (e.g. dense Tomb Raider: Legend levels). A capture's Opacity-Micromap (OMM) build can overrun the GPU, and prim count does not reliably predict which captures do this, so `lightspeed.trex.control.stagecraft` now disables Opacity Micromaps (forcing `graphicsPreset=Custom` / `integrateIndirectMode=ReSTIR GI`) through the HdRemix bridge for any capture project before the stage is realized, and re-asserts it on a short watchdog cadence so the capture's own graphics preset cannot silently re-enable Opacity Micromaps and OOM the GPU after it realizes. OMM is a render-time optimization only, so this never changes visuals or affects editing/asset replacement. Gated by the new `autoDisableOpacityMicromaps` setting (default on).
 
 ## [1.5.2-0]
 
