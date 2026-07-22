@@ -34,7 +34,8 @@ dependabot_branch_name = "update-repo-tools"
 
 # update rtx-remix dependencies (all at once, to latest)
 [updater.rtx_remix_deps]
-enabled = true
+# Replaced by tools/ci/scripts/remix_target_dep_bot.py because generic package sorting picked stale artifacts.
+enabled = false
 type = "repo_update"
 schedule = "daily"
 mr_title = "bump rtx-remix dependencies"

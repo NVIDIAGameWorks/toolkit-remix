@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update hdremix and omni_core_materials to `ext-40aa278-main`
 - Moved extension publish verification into a dedicated final CI check that runs once
 - Updated the Toolkit credits list with Runtime credit contributors.
+- Added a scheduled Remix target dependency bot to update hdremix, omni_core_materials, and remix_runtime pins using a durable reusable bot branch.
 
 ### Removed
 
