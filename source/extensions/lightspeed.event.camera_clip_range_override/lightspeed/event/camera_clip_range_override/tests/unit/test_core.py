@@ -214,8 +214,13 @@ class TestEventCameraClipRangeOverride(AsyncTestCase):
     async def test_schedule_apply_sets_pending_and_queues_one_task(self):
         """First _schedule_apply sets the flag and queues one deferred task.
         Subsequent calls while pending must not queue duplicate tasks."""
-        # Arrange / Act
-        with patch.object(_core.asyncio, "ensure_future") as mock_ensure_future:
+
+        # Arrange
+        def _close_scheduled(coroutine):
+            coroutine.close()
+
+        # Act
+        with patch.object(_core.asyncio, "ensure_future", side_effect=_close_scheduled) as mock_ensure_future:
             self._event._schedule_apply()
             self._event._schedule_apply()
             self._event._schedule_apply()
