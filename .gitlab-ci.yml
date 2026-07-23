@@ -14,6 +14,7 @@ stages:
   - build_docs
   - publish_docs
   - build_package
+  - notify_pipeline
   - publish_extensions
   - publish_etm_list
   - publish_package
