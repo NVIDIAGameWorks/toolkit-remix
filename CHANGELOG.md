@@ -93,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4943: Reduced Stage Manager refresh latency and viewport blocking with cancellable worker-side traversal, filtering, tree construction, and expansion planning, plus atomic publication, live-selection framing, and refresh telemetry.
 - REMIX-5606: Fixed HdRemix selection highlight performance on USD 25+ by updating the HdRemix package and disabling the legacy selection highlight path.
 - REMIX-5630: Fixed property panel fields exceeding the panel width after Editor panel resizing, removed hidden horizontal side-scrolling, and prevented MCP port bind failures from aborting launch
+- REMIX-5605: Fixed packaged builds to use the corrected light-rig package so USD 25.11-compatible rig presets resolve at the app-configured path.
 
 ## [1.5.2-0]
 
