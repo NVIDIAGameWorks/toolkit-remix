@@ -3,6 +3,17 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [4.3.0]
+### Added
+- Exposed each texture conversion plugin's `max_workers` field in its standalone UI; ingestion schemas can bind both fields to one shared Mass Validation control
+
+### Changed
+- Made the number of concurrent texture conversion processes configurable via `max_workers` (default lowered to `2`) in the `ConvertToDDS` and `ConvertToOctahedral` plugins to prevent VRAM exhaustion on large texture sets
+
+### Fixed
+- Restored each standalone conversion field to its previous value when Pydantic rejects an invalid `max_workers` edit
+- Released texture conversion thread pools when an unexpected error interrupts a fix
+
 ## [4.2.8]
 ### Removed
 - Removed legacy `GeneratePBRMaterial` AI checker plugin and its tests

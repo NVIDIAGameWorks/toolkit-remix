@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.1]
+### Fixed
+- Cleaned up provisional Mass Validation pages and deferred owned-core destruction until pending UI builds finish
+
 ## [2.2.0]
 ### Added
 - Drop-aware `TabPage` frame so OS file drops are routed to the correct tab in Ingest Craft

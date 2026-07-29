@@ -170,6 +170,39 @@ async def _mass_build_ui(self, schema_data: Data) -> Any:
 For example here, it will expose a button into the Mass Validation UI.
 Each time the user click on it, it will append a random file into the `input_files` attribute of the plugin.
 
+### Shared integer fields
+
+When one Mass Validation setting must control multiple top-level check plugins, declare a shared integer field in the
+schema's top-level `data.mass_ui.shared_int_fields` metadata. Mass Core renders one field and atomically applies each
+accepted value to every target before cooking the schema.
+
+```json
+{
+  "data": {
+    "mass_ui": {
+      "shared_int_fields": [{
+        "id": "MaxConcurrentTextureConversionsField",
+        "label": "Max Concurrent Texture Conversions",
+        "label_width": 120,
+        "tooltip": "Maximum number of texture conversions to run at the same time.",
+        "value": 2,
+        "targets": [
+          {"plugin": "ConvertToOctahedral", "field": "max_workers"},
+          {"plugin": "ConvertToDDS", "field": "max_workers"}
+        ]
+      }]
+    }
+  }
+}
+```
+
+Targets must identify unique top-level check plugins and fields declared as `int`. The declaration fails during schema
+setup if a plugin is missing or duplicated, a field is missing or not an integer, or a target rejects the initial
+value.
+The declaration's `value` is the authoritative initial value. Mass Core applies it to every target during schema
+setup, overriding any target-specific field values from the raw schema.
+Set `label_width` to the owning form's label-column width so the shared row aligns with its context-plugin controls.
+
 ## Action UI
 
 Action UI are UI widget exposed into the queue of the Mass Validation UI.

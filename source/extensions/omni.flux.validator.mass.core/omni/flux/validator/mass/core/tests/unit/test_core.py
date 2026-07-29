@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import copy
 from unittest.mock import patch
+from weakref import ref
 
 import carb
 import carb.settings
@@ -64,6 +65,29 @@ def _get_fake_context_not_cook_template():
             },
         ],
     }
+
+
+def _get_fake_schema_with_shared_integer():
+    schema = _get_fake_context_not_cook_template()
+    schema["check_plugins"] = schema["check_plugins"][:2]
+    schema["check_plugins"][1]["name"] = "FakeCheck2"
+    schema["data"] = {
+        "mass_ui": {
+            "shared_int_fields": [
+                {
+                    "id": "shared_workers",
+                    "label": "Shared Workers",
+                    "tooltip": "Shared by both checks.",
+                    "value": 2,
+                    "targets": [
+                        {"plugin": "FakeCheck", "field": "shared_int"},
+                        {"plugin": "FakeCheck2", "field": "shared_int"},
+                    ],
+                }
+            ]
+        }
+    }
+    return schema
 
 
 class TestCore(AsyncTestCase):
@@ -147,6 +171,79 @@ class TestCore(AsyncTestCase):
         # because we didn't enabled "cook_mass_template" anywhere in the schema, the output is the same
         # than the input. Nothing changed.
         self.assertDictEqual(result[0], _ValidationSchema(**fake_schema).model_dump(serialize_as_any=True))
+
+    async def test_shared_integer_is_applied_to_every_target_in_cooked_schema(self):
+        core = _ManagerMassCore()
+        core.add_schemas([_get_fake_schema_with_shared_integer()])
+        item = core.schema_model.get_item_children(None)[0]
+
+        self.assertEqual(len(item.shared_int_fields), 1)
+        self.assertTrue(item.shared_int_fields[0].set_value(3))
+
+        result = await item.cook_template()
+
+        self.assertEqual(result[0]["check_plugins"][0]["data"]["shared_int"], 3)
+        self.assertEqual(result[0]["check_plugins"][1]["data"]["shared_int"], 3)
+
+    async def test_destroy_with_schema_releases_owned_resources(self):
+        # Arrange
+        core = _ManagerMassCore()
+        core.add_schemas([_get_fake_schema_with_shared_integer()])
+        item = core.schema_model.get_item_children(None)[0]
+        manager_core = item.model
+        shared_int_field = item.shared_int_fields[0]
+        cook_subscription = manager_core.model.context_plugin.instance.subscribe_mass_cook_template(
+            item.on_mass_cook_template
+        )
+        item._Item__sub_mass_cook_template = cook_subscription
+        cook_subscription_ref = ref(cook_subscription)
+        del cook_subscription
+        self.assertEqual(1, len(core.schema_model._Model__subs_mass_cook_template))
+
+        # Act
+        with (
+            patch.object(shared_int_field, "destroy", wraps=shared_int_field.destroy) as destroy_shared_field_mock,
+            patch.object(manager_core, "destroy", wraps=manager_core.destroy) as destroy_manager_core_mock,
+        ):
+            core.destroy()
+
+        # Assert
+        destroy_shared_field_mock.assert_called_once()
+        destroy_manager_core_mock.assert_called_once()
+        self.assertIsNone(item.model)
+        self.assertEqual((), item.shared_int_fields)
+        self.assertIsNone(item._Item__sub_mass_cook_template)
+        self.assertIsNone(cook_subscription_ref())
+        self.assertEqual([], core.schema_model.get_item_children(None))
+        self.assertEqual([], core.schema_model._Model__subs_mass_cook_template)
+
+    async def test_destroy_after_core_destroy_does_not_release_item_resources_again(self):
+        # Arrange
+        core = _ManagerMassCore()
+        core.add_schemas([_get_fake_schema_with_shared_integer()])
+        item = core.schema_model.get_item_children(None)[0]
+        manager_core = item.model
+        shared_int_field = item.shared_int_fields[0]
+
+        with (
+            patch.object(shared_int_field, "destroy", wraps=shared_int_field.destroy) as destroy_shared_field_mock,
+            patch.object(manager_core, "destroy", wraps=manager_core.destroy) as destroy_manager_core_mock,
+        ):
+            core.destroy()
+            destroy_shared_field_mock.reset_mock()
+            destroy_manager_core_mock.reset_mock()
+
+            # Act
+            item.destroy()
+
+            # Assert
+            destroy_shared_field_mock.assert_not_called()
+            destroy_manager_core_mock.assert_not_called()
+            self.assertIsNone(item.model)
+            self.assertEqual((), item.shared_int_fields)
+            self.assertIsNone(item._Item__sub_mass_cook_template)
+            self.assertEqual([], core.schema_model.get_item_children(None))
+            self.assertEqual([], core.schema_model._Model__subs_mass_cook_template)
 
     async def test_cook_same_templates_context(self):
         for i in range(4):

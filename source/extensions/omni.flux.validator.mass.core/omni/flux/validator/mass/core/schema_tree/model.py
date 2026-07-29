@@ -27,6 +27,8 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
 from omni.flux.validator.manager.core import ValidationSchema as _ValidationSchema
 
+from .shared_ui import SharedIntField as _SharedIntField
+
 HEADER_DICT = {0: "Items"}
 
 
@@ -40,11 +42,21 @@ class Item(ui.AbstractItem):
         self.title_model = ui.SimpleStringModel(self.title)
         # for each schema, we create a default Pydantic model
         self._model = _ManagerCore(data)
+        self._shared_int_fields = self._resolve_shared_int_fields()
 
         self.__on_mouse_released = _Event()
         self.__on_mass_cook_template = _Event()
 
         self.__sub_mass_cook_template = None
+
+    def _resolve_shared_int_fields(self) -> list[_SharedIntField]:
+        """Resolve schema-level shared integer controls against plugin data."""
+        schema_data = self._model.model.data or {}
+        mass_ui_data = schema_data.get("mass_ui", {})
+        return [
+            _SharedIntField.from_schema(self._model.model, declaration)
+            for declaration in mass_ui_data.get("shared_int_fields", [])
+        ]
 
     def can_item_have_children(self, item: Item) -> bool:
         """
@@ -174,6 +186,11 @@ class Item(ui.AbstractItem):
                 with ui.Frame():
                     await self._model.model.context_plugin.instance.mass_build_ui(self._model.model.context_plugin.data)
                 ui.Spacer(height=ui.Pixel(8))
+            for shared_int_field in self._shared_int_fields:
+                was_build = True
+                with ui.Frame():
+                    shared_int_field.build_ui()
+                ui.Spacer(height=ui.Pixel(8))
             for check_plugin_model in self._model.model.check_plugins:
                 if check_plugin_model.context_plugin.data.expose_mass_ui:
                     was_build = True
@@ -273,6 +290,22 @@ class Item(ui.AbstractItem):
         return self._model
 
     @property
+    def shared_int_fields(self) -> tuple[_SharedIntField, ...]:
+        """Return the schema-level shared integer controls."""
+        return tuple(self._shared_int_fields)
+
+    def destroy(self):
+        """Release resources owned by this item."""
+        self.__sub_mass_cook_template = None
+        for shared_int_field in self._shared_int_fields:
+            shared_int_field.destroy()
+        self._shared_int_fields = []
+        model = self._model
+        self._model = None
+        if model is not None:
+            model.destroy()
+
+    @property
     def title(self) -> str:
         """The title that will be showed on the tree"""
         return self._title
@@ -336,5 +369,9 @@ class Model(ui.AbstractItemModel):
         return None
 
     def destroy(self):
+        """Release items and event subscriptions owned by the model."""
+        for item in self.__items:
+            item.destroy()
         self.__items = []
         self.__sub_mouse_pressed = []
+        self.__subs_mass_cook_template = []

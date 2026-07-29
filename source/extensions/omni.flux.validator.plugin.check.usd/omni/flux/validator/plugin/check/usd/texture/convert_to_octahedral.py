@@ -19,6 +19,7 @@ import functools
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import IntEnum
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,7 @@ import carb.tokens
 import omni.client
 import omni.ui as ui
 import omni.usd
+from omni.flux.info_icon.widget import InfoIconWidget as _InfoIconWidget
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.utils.common.path_utils import get_new_hash as _get_new_hash
 from omni.flux.utils.common.path_utils import get_udim_sequence as _get_udim_sequence
@@ -37,7 +39,7 @@ from omni.flux.utils.octahedral_converter import OctahedralConverter
 from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import utils as _validator_factory_utils
 from pxr import Sdf
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
@@ -83,6 +85,8 @@ class ConversionArgs(BaseModel):
 
 
 class ConvertToOctahedral(_CheckBaseUSD):
+    DEFAULT_UI_WIDTH_PIXEL = 120
+
     class Data(_CheckBaseUSD.Data):
         conversion_args: dict[str, ConversionArgs] = Field(
             default={
@@ -100,6 +104,10 @@ class ConvertToOctahedral(_CheckBaseUSD):
             }
         )
         replace_udim_textures_by_empty: bool = Field(default=False)
+        # Number of concurrent conversion processes. Each conversion is GPU/compute heavy and holds
+        # the source texture (plus mip chain) in VRAM, so high values can exhaust VRAM on large
+        # (e.g. 8K) texture sets. Configurable so limited-VRAM systems can throttle it. See REMIX-4404.
+        max_workers: int = Field(default=2, ge=1)
 
         _compatible_data_flow_names = ["InOutData"]
         data_flows: list[_InOutDataFlow] | None = Field(default=None)
@@ -108,6 +116,11 @@ class ConvertToOctahedral(_CheckBaseUSD):
     tooltip = "This plugin will ensure all normal maps are octahedral encoded"
     data_type = Data
     display_name = "Convert Normal Maps to Octahedral"
+
+    def __init__(self):
+        super().__init__()
+
+        self._max_workers_field_validate_sub = None
 
     @omni.usd.handle_exception
     async def _check(
@@ -241,87 +254,119 @@ class ConvertToOctahedral(_CheckBaseUSD):
         # generate all the files
         processed_files = []
         futures = []
-        executor = ThreadPoolExecutor(max_workers=4)
-        for out_path_str, (in_path_str, is_udim, encoding, attrs) in files_needed.items():
-            out_path = Path(out_path_str)
-            src_hash = _get_new_hash(in_path_str, out_path_str)
+        with ThreadPoolExecutor(max_workers=schema_data.max_workers) as executor:
+            for out_path_str, (in_path_str, is_udim, encoding, attrs) in files_needed.items():
+                out_path = Path(out_path_str)
+                src_hash = _get_new_hash(in_path_str, out_path_str)
 
-            _validator_factory_utils.push_input_data(schema_data, [in_path_str])
+                _validator_factory_utils.push_input_data(schema_data, [in_path_str])
 
-            if not out_path.exists() or src_hash is not None:
-                future = None
-                if encoding == NormalMapEncodings.TANGENT_SPACE_DX.value:
-                    future = executor.submit(
-                        functools.partial(OctahedralConverter.convert_dx_file_to_octahedral, in_path_str, out_path_str)
-                    )
-                elif encoding == NormalMapEncodings.TANGENT_SPACE_OGL.value:
-                    future = executor.submit(
-                        functools.partial(OctahedralConverter.convert_ogl_file_to_octahedral, in_path_str, out_path_str)
-                    )
-                if future:
-                    future.attrs = attrs
-                    future.is_udim = is_udim
-                    future.out_path = out_path
-                    future.src_hash = src_hash
-                    futures.append(future)
-                    processed_files.append(in_path_str)
-            else:
-                # octahedral texture exists and doesn't need to be updated
-                with Sdf.ChangeBlock():
-                    for attr, encoding_attr in attrs:
-                        value = out_path_str
-                        if is_udim:
-                            if schema_data.replace_udim_textures_by_empty:
-                                value = ""
-                            else:
-                                value = _texture_to_udim(out_path_str)
-                        attr.Set(value)
-                        encoding_attr.Set(NormalMapEncodings.OCTAHEDRAL.value)
-                message += f"- PASS: reused existing octahedral map: {out_path}\n"
-
-        if futures:
-            # Update all the attributes as the files are generated.
-            progress = 0
-            self.on_progress(progress, "Start", True)
-            to_add = 1 / len(futures)
-            for future in as_completed(futures):
-                progress += to_add
-                try:
-                    result = future.result()
-                    carb.log_info("Octahedral command result: " + str(result))
-                    out_path_str = str(future.out_path)
-                    _write_metadata(out_path_str, "src_hash", future.src_hash)
+                if not out_path.exists() or src_hash is not None:
+                    future = None
+                    if encoding == NormalMapEncodings.TANGENT_SPACE_DX.value:
+                        future = executor.submit(
+                            functools.partial(
+                                OctahedralConverter.convert_dx_file_to_octahedral, in_path_str, out_path_str
+                            )
+                        )
+                    elif encoding == NormalMapEncodings.TANGENT_SPACE_OGL.value:
+                        future = executor.submit(
+                            functools.partial(
+                                OctahedralConverter.convert_ogl_file_to_octahedral, in_path_str, out_path_str
+                            )
+                        )
+                    if future:
+                        future.attrs = attrs
+                        future.is_udim = is_udim
+                        future.out_path = out_path
+                        future.src_hash = src_hash
+                        futures.append(future)
+                        processed_files.append(in_path_str)
+                else:
+                    # octahedral texture exists and doesn't need to be updated
                     with Sdf.ChangeBlock():
-                        for attr, encoding_attr in future.attrs:
+                        for attr, encoding_attr in attrs:
                             value = out_path_str
-                            if future.is_udim:
+                            if is_udim:
                                 if schema_data.replace_udim_textures_by_empty:
                                     value = ""
                                 else:
                                     value = _texture_to_udim(out_path_str)
                             attr.Set(value)
                             encoding_attr.Set(NormalMapEncodings.OCTAHEDRAL.value)
+                    message += f"- PASS: reused existing octahedral map: {out_path}\n"
 
-                    _validator_factory_utils.push_output_data(schema_data, [out_path_str])
+            if futures:
+                # Update all the attributes as the files are generated.
+                progress = 0
+                self.on_progress(progress, "Start", True)
+                to_add = 1 / len(futures)
+                for future in as_completed(futures):
+                    progress += to_add
+                    try:
+                        result = future.result()
+                        carb.log_info("Octahedral command result: " + str(result))
+                        out_path_str = str(future.out_path)
+                        _write_metadata(out_path_str, "src_hash", future.src_hash)
+                        with Sdf.ChangeBlock():
+                            for attr, encoding_attr in future.attrs:
+                                value = out_path_str
+                                if future.is_udim:
+                                    if schema_data.replace_udim_textures_by_empty:
+                                        value = ""
+                                    else:
+                                        value = _texture_to_udim(out_path_str)
+                                attr.Set(value)
+                                encoding_attr.Set(NormalMapEncodings.OCTAHEDRAL.value)
 
-                    message += f"- PASS: created octahedral map {future.out_path}\n"
-                    self.on_progress(progress, f"Compressed to {future.out_path}", True)
-                except Exception:  # noqa: BLE001
-                    carb.log_error(
-                        f"Exception when creating octahedral map at {future.out_path}.\n" + traceback.format_exc()
-                    )
-                    message += f"- FAIL: exception during octahedral conversion: {future.out_path}.\n"
-                    self.on_progress(progress, f"Error from {future.out_path}", True)
-                    all_pass = False
+                        _validator_factory_utils.push_output_data(schema_data, [out_path_str])
 
-        executor.shutdown(wait=True)
+                        message += f"- PASS: created octahedral map {future.out_path}\n"
+                        self.on_progress(progress, f"Compressed to {future.out_path}", True)
+                    except Exception:  # noqa: BLE001
+                        carb.log_error(
+                            f"Exception when creating octahedral map at {future.out_path}.\n" + traceback.format_exc()
+                        )
+                        message += f"- FAIL: exception during octahedral conversion: {future.out_path}.\n"
+                        self.on_progress(progress, f"Error from {future.out_path}", True)
+                        all_pass = False
+
         await omni.kit.app.get_app().next_update_async()
 
         return all_pass, message, None
+
+    def _on_max_workers_field_edit_end(self, schema_data: Data, model):
+        try:
+            schema_data.max_workers = model.get_value_as_int()
+        except ValidationError:
+            model.set_value(schema_data.max_workers)
 
     @omni.usd.handle_exception
     async def _build_ui(self, schema_data: Data) -> Any:
         """
         Build the UI for the plugin
         """
-        ui.Label("None")
+        with ui.HStack():
+            with ui.HStack(width=ui.Pixel(self.DEFAULT_UI_WIDTH_PIXEL)):
+                ui.Spacer()
+                ui.Label("Max Concurrent Conversions", width=0, name="PropertiesWidgetLabel")
+            ui.Spacer(height=0, width=ui.Pixel(8))
+            max_workers_field = ui.IntField(identifier="MaxWorkersField")
+            max_workers_field.model.set_value(schema_data.max_workers)
+            self._max_workers_field_validate_sub = max_workers_field.model.subscribe_end_edit_fn(
+                partial(self._on_max_workers_field_edit_end, schema_data)
+            )
+            ui.Spacer(width=ui.Pixel(8))
+            with ui.VStack(width=0):
+                ui.Spacer(width=0)
+                _InfoIconWidget(
+                    "Number of normal map conversions to run at the same time.\n\n"
+                    "Each conversion is GPU/compute heavy and holds the source texture (plus its mip chain) in VRAM, "
+                    "so higher values can exhaust VRAM on large (e.g. 8K) texture sets.\n\n"
+                    "Lower this value if ingestion stalls or runs out of VRAM on limited-VRAM systems."
+                )
+                ui.Spacer(width=0)
+
+    def destroy(self):
+        self._max_workers_field_validate_sub = None
+        super().destroy()

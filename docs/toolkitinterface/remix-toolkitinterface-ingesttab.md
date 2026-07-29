@@ -1,5 +1,12 @@
 # Ingest Tab
 
+Both ingestion modes include a **Max Concurrent Texture Conversions** field. This shared value limits how many DDS
+and octahedral texture conversions can run at the same time. The default is `2`; lower it if ingestion stalls or runs
+out of VRAM. Set the value before adding assets to the queue.
+
+In **Model(s)**, the field appears below **Output Extension**. In **Material(s)**, it appears below **Output
+Directory**.
+
 ## Model Ingestion
 
 ![Model Ingestion](../data/images/remix-ingestion-models-001.png)
@@ -15,6 +22,7 @@
 |  7  | Output Directory             | Directory to import the converted input files to                                      |
 |  8  | Opens File Explorer          |
 |  9  | Output Extension             | USD file extension to use for the converted input file                                |
+|  —  | Max Concurrent Texture Conversions | Limits concurrent DDS and octahedral texture conversions to the shared value     |
 | 10  | Apply Unit Scale to Mesh     | Applies the “metersPerUnit” scaling to a mesh’s XForm scale                           |
 | 11  | Add to Queue                 | Adds imported assets from the Input File Path and places them in the Output Directory |
 | 12  | Selected Asset               |
@@ -44,6 +52,7 @@
 |  6  | Remove                             | Remove Files from the directory path field                                                                                                                                    |
 |  7  | Output Directory                   | Directory to import the converted input files to                                                                                                                              |
 |  8  | Opens File Explorer                |
+|  —  | Max Concurrent Texture Conversions | Limits concurrent DDS and octahedral texture conversions to the shared value                                                                                                  |
 |  9  | Add to Queue                       | Adds imported assets from the Input File Path and places them in the Output Directory                                                                                         |
 | 10  | Selected Asset                     |
 | 11  | Queue Asset Ingestion Progress Bar | Percentage of completion                                                                                                                                                      |

@@ -74,6 +74,8 @@ class SetupUI(_WorkspaceWidget):
         self._sub_mass_cores_started = None
         self._sub_mass_cores_finished = None
         self._mass_cores_are_running = None
+        if self._mass_ingest_widget:
+            self._mass_ingest_widget.destroy()
         self._mass_ingest_widget = None
         self.root_widget = None
 
