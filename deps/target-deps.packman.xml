@@ -6,7 +6,7 @@
     <package name="python" version="3.12.13+nv1-${platform_target_abi}" />
   </dependency>
   <dependency name="rtx-remix-hdremix" linkPath="../_build/target-deps/hdremix">
-    <package name="rtx-remix-hdremix" version="ext-5f7110e-private-usd-25-11-hd" />
+    <package name="rtx-remix-hdremix" version="ext-40d3025-main" />
   </dependency>
   <dependency name="rtx-remix-lookdev-lighting" linkPath="../_build/target-deps/content/rtx-remix-lookdev-lighting">
     <package name="rtx-remix-lookdev-lighting" version="2026.0.1" />
