@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.5]
+### Changed
+- Expanded production ingestion workflow coverage for shared texture conversion concurrency and teardown lifecycle
+
 ## [2.1.4]
 ### Changed
 - Modernize python style and enable more ruff checks

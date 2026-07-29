@@ -15,8 +15,8 @@
 * limitations under the License.
 """
 
-from typing import Any
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 import omni.ui as ui
 import omni.usd
@@ -25,6 +25,7 @@ from omni.flux.validator.factory import ContextBase as _ContextBase
 from omni.flux.validator.factory import SelectorBase as _SelectorBase
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import get_instance as _get_factory_instance
+from pydantic import Field
 
 
 class FakeContext(_ContextBase):
@@ -253,6 +254,8 @@ class FakeSelector(_SelectorBase):
 class FakeCheck(_CheckBase):
     class Data(_CheckBase.Data):
         fake_data: str | None = None
+        shared_int: int = Field(default=2, ge=1)
+        shared_text: str = "not an integer"
 
     name = "FakeCheck"
     tooltip = "Fake check plugin"
@@ -360,9 +363,21 @@ class FakeCheck(_CheckBase):
         pass
 
 
+class FakeCheck2(FakeCheck):
+    """Provide a second uniquely named check plugin for schema-binding tests."""
+
+    class Data(FakeCheck.Data):
+        """Provide a field that rejects values above two for rollback tests."""
+
+        shared_limited_int: int = Field(default=2, ge=1, le=2)
+
+    name = "FakeCheck2"
+    data_type = Data
+
+
 def register_fake_plugins():
-    _get_factory_instance().register_plugins([FakeContext, FakeSelector, FakeCheck])
+    _get_factory_instance().register_plugins([FakeContext, FakeSelector, FakeCheck, FakeCheck2])
 
 
 def unregister_fake_plugins():
-    _get_factory_instance().unregister_plugins([FakeContext, FakeSelector, FakeCheck])
+    _get_factory_instance().unregister_plugins([FakeContext, FakeSelector, FakeCheck, FakeCheck2])

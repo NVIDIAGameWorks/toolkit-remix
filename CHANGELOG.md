@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5730: Fixed curve editor popup crashes when closing with Escape by deferring cleanup until after UI event dispatch.
 - REMIX-5609: Fixed xform override handling so focus-only edits do not author USD overrides, value edits author the full logical xform set, and related xform specs appear as one layer modification entry.
 - Fixed Remix target dependency bot CI by skipping harmless Git LFS authentication checks and routing Slack result notifications by outcome.
+- REMIX-4404: Fixed texture ingestion saturating VRAM by making DDS and octahedral conversion concurrency configurable (`max_workers`, default `2`) through one shared ingestion UI control.
 
 ## [1.5.2-0]
 

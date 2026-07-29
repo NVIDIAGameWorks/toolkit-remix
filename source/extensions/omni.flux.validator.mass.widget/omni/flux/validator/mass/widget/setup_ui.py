@@ -120,6 +120,7 @@ class ValidatorMassWidget:
         """
 
         self._default_attr = {
+            "_core": None,
             "_manager_cores": None,
             "_style": None,
             "_schema_tree_view": None,
@@ -144,6 +145,7 @@ class ValidatorMassWidget:
             "_current_process_executor": None,
             "_external_process_executor": None,
             "_previous_selection": None,
+            "_build_mass_ui_task": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -234,7 +236,9 @@ class ValidatorMassWidget:
 
     def _on_item_changed(self, items):
         # we pre-build the ui of ZStack
-        asyncio.ensure_future(self._build_mass_ui_plugin())
+        if self._build_mass_ui_task:
+            self._build_mass_ui_task.cancel()
+        self._build_mass_ui_task = asyncio.ensure_future(self._build_mass_ui_plugin())
 
     def force_toggle(self, item: _Item, value: bool):
         """Toggle or not a tab"""
@@ -280,34 +284,41 @@ class ValidatorMassWidget:
 
             with self._schema_tree_view.get_frame(item.title):
                 frame = TabPage(visible=(i == 0))
-                # handle_drop is an optional capability — not every ContextBase
-                # subclass supports drops (e.g. test fakes, headless plugins).
-                # The omni.flux.validator.mass.widget e2e tests use a FakeContext
-                # that doesn't implement handle_drop, so accessing it directly
-                # would raise AttributeError and break _build_mass_ui_plugin.
-                if instance is not None and hasattr(instance, "handle_drop"):
-                    frame.set_plugin_drop_handler(instance.handle_drop)
+                try:
+                    # handle_drop is an optional capability — not every ContextBase
+                    # subclass supports drops (e.g. test fakes, headless plugins).
+                    # The omni.flux.validator.mass.widget e2e tests use a FakeContext
+                    # that doesn't implement handle_drop, so accessing it directly
+                    # would raise AttributeError and break _build_mass_ui_plugin.
+                    if instance is not None and hasattr(instance, "handle_drop"):
+                        frame.set_plugin_drop_handler(instance.handle_drop)
 
-                with frame:
-                    with ui.VStack():
-                        ui.Spacer(height=ui.Pixel(16))
-                        with ui.HStack(height=0):
-                            with ui.ZStack():
-                                ui.Rectangle(name="BackgroundWithBorder")
-                                with ui.VStack():
-                                    ui.Spacer(height=ui.Pixel(8))
-                                    with ui.HStack():
-                                        ui.Spacer(width=ui.Pixel(8), height=0)
-                                        frame_build = ui.Frame(height=0)
-                                        with frame_build:
-                                            was_built = await item.build_ui()
-                                        ui.Spacer(width=ui.Pixel(8), height=0)
-                                    ui.Spacer(height=ui.Pixel(8))
-                            ui.Spacer(width=ui.Pixel(8), height=0)
+                    with frame:
+                        with ui.VStack():
+                            ui.Spacer(height=ui.Pixel(16))
+                            with ui.HStack(height=0):
+                                with ui.ZStack():
+                                    ui.Rectangle(name="BackgroundWithBorder")
+                                    with ui.VStack():
+                                        ui.Spacer(height=ui.Pixel(8))
+                                        with ui.HStack():
+                                            ui.Spacer(width=ui.Pixel(8), height=0)
+                                            frame_build = ui.Frame(height=0)
+                                            with frame_build:
+                                                was_built = await item.build_ui()
+                                                if asyncio.current_task() is not self._build_mass_ui_task:
+                                                    return
+                                            ui.Spacer(width=ui.Pixel(8), height=0)
+                                        ui.Spacer(height=ui.Pixel(8))
+                                ui.Spacer(width=ui.Pixel(8), height=0)
 
-                        self._mass_queue_frame[item] = ui.Frame()
+                            self._mass_queue_frame[item] = ui.Frame()
 
-                self._pages[item] = (frame, was_built, frame_build)
+                    self._pages[item] = (frame, was_built, frame_build)
+                    frame = None
+                finally:
+                    if frame is not None:
+                        frame.destroy()
 
         # here or we will have a style/refresh bug. Do not move above.
         if items and self._mass_queue_widget is None:
@@ -549,9 +560,21 @@ class ValidatorMassWidget:
             self._on_schema_selection_changed(self._schema_tree_view.selection[0].title)
 
     def destroy(self):
+        build_mass_ui_task = self._build_mass_ui_task
+        core = self._core
+        self._build_mass_ui_task = None
+        self._core = None
+        if build_mass_ui_task:
+            build_mass_ui_task.cancel()
+        if core is not None:
+            if build_mass_ui_task and not build_mass_ui_task.done():
+                build_mass_ui_task.add_done_callback(lambda _task, captured_core=core: captured_core.destroy())
+            else:
+                core.destroy()
         for frame, _was_built, _frame_build in (self._pages or {}).values():
             frame.destroy()
         self._pages = {}
-        self.__root_frame.clear()
+        if self.__root_frame:
+            self.__root_frame.clear()
         self.__root_frame = None
         _reset_default_attrs(self)

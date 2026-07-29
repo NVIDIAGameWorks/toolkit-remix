@@ -17,6 +17,8 @@
 
 from .e2e.generic.test_value_mapping import *
 from .e2e.meta.test_default_prim_ui import *
+from .e2e.texture.test_convert_to_dds import TestConvertToDDSUI
+from .e2e.texture.test_convert_to_octahedral import TestConvertToOctahedralUI
 from .unit.generic.test_value_mapping import *
 from .unit.material.test_default_material import *
 from .unit.material.test_material_shaders import *

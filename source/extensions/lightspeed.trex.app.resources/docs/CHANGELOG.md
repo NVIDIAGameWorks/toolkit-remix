@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.30.0]
+### Added
+- Added one shared texture conversion concurrency control to the material and model ingestion UIs; it updates `max_workers` for both `ConvertToDDS` and `ConvertToOctahedral`.
+
 ## [1.29.2]
 ### Fixed
 - Kept Profiler menu entries visible when profiler extensions are enabled in the production app.

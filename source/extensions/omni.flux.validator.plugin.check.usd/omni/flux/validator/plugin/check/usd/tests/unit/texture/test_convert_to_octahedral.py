@@ -21,7 +21,7 @@ import os
 import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import omni.usd
 from omni.flux.utils.common.omni_url import OmniUrl
@@ -59,6 +59,61 @@ class TestConvertToOctahedral(AsyncTestCase):
                 ],
             }
         )
+
+    async def test_destroy_releases_base_schema(self):
+        # Arrange
+        await omni.usd.get_context().new_stage_async()
+        plugin = self._make_core().model.check_plugins[0].instance
+        plugin._schema = object()
+
+        # Act
+        plugin.destroy()
+
+        # Assert
+        self.assertIsNone(plugin._schema)
+
+    async def test_on_max_workers_field_edit_end_with_invalid_value_restores_model(self):
+        # Arrange
+        await omni.usd.get_context().new_stage_async()
+        check_plugin = self._make_core().model.check_plugins[0]
+        model = MagicMock()
+        model.get_value_as_int.return_value = 0
+
+        # Act
+        check_plugin.instance._on_max_workers_field_edit_end(check_plugin.data, model)
+
+        # Assert
+        self.assertEqual(2, check_plugin.data.max_workers)
+        model.set_value.assert_called_once_with(2)
+
+    async def test_fix_when_data_flow_raises_releases_executor(self):
+        # Arrange
+        shutil.copytree(get_test_data_path(__name__, "usd/pillow_cube"), self.temp_path / Path("pillow_cube"))
+        await open_stage(str(self.temp_path / Path("pillow_cube/pillow_cube.usda")))
+        check_plugin = self._make_core().model.check_plugins[0]
+        check_plugin.data.max_workers = 1
+        shader = omni.usd.get_context().get_stage().GetPrimAtPath("/World/Looks/M_Prop_CompanionCube_Pillow_A/Shader")
+        executor_context = MagicMock()
+        executor_context.__enter__.return_value = MagicMock()
+        executor_context.__exit__.return_value = False
+
+        # Act
+        with (
+            patch(
+                "omni.flux.validator.plugin.check.usd.texture.convert_to_octahedral.ThreadPoolExecutor",
+                return_value=executor_context,
+            ) as thread_pool_executor,
+            patch(
+                "omni.flux.validator.plugin.check.usd.texture.convert_to_octahedral._validator_factory_utils.push_input_data",
+                side_effect=RuntimeError("Data flow failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "Data flow failed"),
+        ):
+            await check_plugin.instance._fix.__wrapped__(check_plugin.instance, check_plugin.data, "", [shader])
+
+        # Assert
+        thread_pool_executor.assert_called_once_with(max_workers=1)
+        executor_context.__exit__.assert_called_once()
 
     async def test_run_nothing_to_fix(self):
         # Arrange

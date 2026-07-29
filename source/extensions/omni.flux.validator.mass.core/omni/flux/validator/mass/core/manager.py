@@ -180,4 +180,4 @@ class ManagerMassCore:
         return result
 
     def destroy(self):
-        pass
+        self.__schema_model.destroy()

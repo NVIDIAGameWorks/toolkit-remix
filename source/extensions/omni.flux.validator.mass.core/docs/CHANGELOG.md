@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0]
+### Added
+- Added schema-level shared integer controls for editing multiple check-plugin data fields from one Mass Validation UI field
+
+### Fixed
+- Released Mass Validation schema items, owned validator managers, shared controls, and cook-template subscriptions through `ManagerMassCore.destroy()`
+
 ## [2.1.4]
 ### Changed
 - Applied new lint rules

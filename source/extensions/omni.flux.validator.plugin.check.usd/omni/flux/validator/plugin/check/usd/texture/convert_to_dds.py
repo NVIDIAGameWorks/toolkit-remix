@@ -17,6 +17,7 @@
 
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,7 @@ from omni.flux.asset_importer.core.data_models import (
 )
 from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP as _TEXTURE_TYPE_INPUT_MAP
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
+from omni.flux.info_icon.widget import InfoIconWidget as _InfoIconWidget
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.utils.common.path_utils import get_new_hash as _get_new_hash
 from omni.flux.utils.common.path_utils import get_udim_sequence as _get_udim_sequence
@@ -39,7 +41,7 @@ from omni.flux.utils.common.path_utils import write_metadata as _write_metadata
 from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import utils as _validator_factory_utils
 from pxr import Sdf
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from ..base.check_base_usd import CheckBaseUSD as _CheckBaseUSD
 
@@ -59,6 +61,8 @@ class ConversionArgs(BaseModel):
 
 
 class ConvertToDDS(_CheckBaseUSD):
+    DEFAULT_UI_WIDTH_PIXEL = 120
+
     class Data(_CheckBaseUSD.Data):
         conversion_args: dict[str, ConversionArgs] = Field(
             default={
@@ -91,6 +95,10 @@ class ConvertToDDS(_CheckBaseUSD):
         )
         replace_udim_textures_by_empty: bool = Field(default=False)
         suffix: str = Field(default=".rtex.dds")
+        # Number of concurrent nvtt_export processes. Each process uses the GPU and holds the
+        # source texture (plus mip chain) in VRAM, so high values can exhaust VRAM on large
+        # (e.g. 8K) texture sets. Configurable so limited-VRAM systems can throttle it. See REMIX-4404.
+        max_workers: int = Field(default=2, ge=1)
 
         _compatible_data_flow_names = ["InOutData"]
         data_flows: list[_InOutDataFlow] | None = Field(default=None)
@@ -106,6 +114,11 @@ class ConvertToDDS(_CheckBaseUSD):
     tooltip = "This plugin will ensure all textures are encoded as DDS"
     data_type = Data
     display_name = "Convert Textures to DDS"
+
+    def __init__(self):
+        super().__init__()
+
+        self._max_workers_field_validate_sub = None
 
     @omni.usd.handle_exception
     async def _check(
@@ -234,86 +247,116 @@ class ConvertToDDS(_CheckBaseUSD):
         # generate all the files
         processed_files = []
         futures = []
-        executor = ThreadPoolExecutor(max_workers=4)
-        nvtt_path = carb.tokens.get_tokens_interface().resolve("${omni.flux.resources}/deps/tools/nvtt/nvtt_export.exe")
-        for out_path_str, (in_path_str, is_udim, settings, attrs) in files_needed.items():
-            out_path = Path(out_path_str)
-            src_hash = _get_new_hash(in_path_str, out_path_str)
+        with ThreadPoolExecutor(max_workers=schema_data.max_workers) as executor:
+            nvtt_path = carb.tokens.get_tokens_interface().resolve(
+                "${omni.flux.resources}/deps/tools/nvtt/nvtt_export.exe"
+            )
+            for out_path_str, (in_path_str, is_udim, settings, attrs) in files_needed.items():
+                out_path = Path(out_path_str)
+                src_hash = _get_new_hash(in_path_str, out_path_str)
 
-            _validator_factory_utils.push_input_data(schema_data, [in_path_str])
+                _validator_factory_utils.push_input_data(schema_data, [in_path_str])
 
-            if not out_path.exists() or src_hash is not None:
-                cmd = [nvtt_path, in_path_str, "--output", out_path_str] + settings.args
-                carb.log_info("Queuing DDS conversion: " + str(cmd))
-                future = executor.submit(
-                    subprocess.run, cmd, check=True, capture_output=True, text=True, stdin=subprocess.DEVNULL
-                )
-                future.original_command = cmd
-                future.attrs = attrs
-                future.out_path = out_path
-                future.is_udim = is_udim
-                future.src_hash = src_hash
-                futures.append(future)
-                processed_files.append(in_path_str)
-            else:
-                # compressed texture exists and doesn't need to be updated
-                with Sdf.ChangeBlock():
-                    for attr in attrs:
-                        value = out_path_str
-                        if is_udim:
-                            if schema_data.replace_udim_textures_by_empty:
-                                value = ""
-                            else:
-                                value = _texture_to_udim(out_path_str)
-                        attr.Set(value)
-                message += f"- PASS: reused existing compressed texture: {out_path_str}\n"
-
-        # Update all the attributes as the files are generated.
-        if futures:
-            progress = 0
-            self.on_progress(progress, "Start", True)
-            to_add = 1 / len(futures)
-            for future in as_completed(futures):
-                progress += to_add
-                try:
-                    result = future.result()
-                    carb.log_info("DDS command result: " + str(result))
-                    out_path_str = str(future.out_path)
-                    _write_metadata(out_path_str, "src_hash", future.src_hash)
+                if not out_path.exists() or src_hash is not None:
+                    cmd = [nvtt_path, in_path_str, "--output", out_path_str] + settings.args
+                    carb.log_info("Queuing DDS conversion: " + str(cmd))
+                    future = executor.submit(
+                        subprocess.run, cmd, check=True, capture_output=True, text=True, stdin=subprocess.DEVNULL
+                    )
+                    future.original_command = cmd
+                    future.attrs = attrs
+                    future.out_path = out_path
+                    future.is_udim = is_udim
+                    future.src_hash = src_hash
+                    futures.append(future)
+                    processed_files.append(in_path_str)
+                else:
+                    # compressed texture exists and doesn't need to be updated
                     with Sdf.ChangeBlock():
-                        for attr in future.attrs:
+                        for attr in attrs:
                             value = out_path_str
-                            if future.is_udim:
+                            if is_udim:
                                 if schema_data.replace_udim_textures_by_empty:
                                     value = ""
                                 else:
                                     value = _texture_to_udim(out_path_str)
                             attr.Set(value)
+                    message += f"- PASS: reused existing compressed texture: {out_path_str}\n"
 
-                    _validator_factory_utils.push_output_data(schema_data, [out_path_str])
+            # Update all the attributes as the files are generated.
+            if futures:
+                progress = 0
+                self.on_progress(progress, "Start", True)
+                to_add = 1 / len(futures)
+                for future in as_completed(futures):
+                    progress += to_add
+                    try:
+                        result = future.result()
+                        carb.log_info("DDS command result: " + str(result))
+                        out_path_str = str(future.out_path)
+                        _write_metadata(out_path_str, "src_hash", future.src_hash)
+                        with Sdf.ChangeBlock():
+                            for attr in future.attrs:
+                                value = out_path_str
+                                if future.is_udim:
+                                    if schema_data.replace_udim_textures_by_empty:
+                                        value = ""
+                                    else:
+                                        value = _texture_to_udim(out_path_str)
+                                attr.Set(value)
 
-                    message += f"- PASS: created compressed texture {future.out_path}\n"
-                    self.on_progress(progress, f"Compressed to {future.out_path}", True)
-                except subprocess.CalledProcessError as e:
-                    carb.log_error(
-                        "Exception when converting texture to dds.\n"
-                        f"cmd: {e.cmd}\noutput: {e.output}\nstdout: {e.stdout}\nstderr: {e.stderr}"
-                    )
-                    message += f"- FAIL: failure in dds compression command: {future.original_command}.\n"
-                    self.on_progress(progress, f"Error from {future.out_path}", True)
-                    all_pass = False
+                        _validator_factory_utils.push_output_data(schema_data, [out_path_str])
 
-        executor.shutdown(wait=True)
+                        message += f"- PASS: created compressed texture {future.out_path}\n"
+                        self.on_progress(progress, f"Compressed to {future.out_path}", True)
+                    except subprocess.CalledProcessError as e:
+                        carb.log_error(
+                            "Exception when converting texture to dds.\n"
+                            f"cmd: {e.cmd}\noutput: {e.output}\nstdout: {e.stdout}\nstderr: {e.stderr}"
+                        )
+                        message += f"- FAIL: failure in dds compression command: {future.original_command}.\n"
+                        self.on_progress(progress, f"Error from {future.out_path}", True)
+                        all_pass = False
+
         await omni.kit.app.get_app().next_update_async()
 
         return all_pass, message, None
+
+    def _on_max_workers_field_edit_end(self, schema_data: Data, model):
+        try:
+            schema_data.max_workers = model.get_value_as_int()
+        except ValidationError:
+            model.set_value(schema_data.max_workers)
 
     @omni.usd.handle_exception
     async def _build_ui(self, schema_data: Data) -> Any:
         """
         Build the UI for the plugin
         """
-        ui.Label("None")
+        with ui.HStack():
+            with ui.HStack(width=ui.Pixel(self.DEFAULT_UI_WIDTH_PIXEL)):
+                ui.Spacer()
+                ui.Label("Max Concurrent Conversions", width=0, name="PropertiesWidgetLabel")
+            ui.Spacer(height=0, width=ui.Pixel(8))
+            max_workers_field = ui.IntField(identifier="MaxWorkersField")
+            max_workers_field.model.set_value(schema_data.max_workers)
+            self._max_workers_field_validate_sub = max_workers_field.model.subscribe_end_edit_fn(
+                partial(self._on_max_workers_field_edit_end, schema_data)
+            )
+            ui.Spacer(width=ui.Pixel(8))
+            with ui.VStack(width=0):
+                ui.Spacer(width=0)
+                _InfoIconWidget(
+                    "Number of texture conversions to run at the same time.\n\n"
+                    "Each conversion uses the GPU and holds the source texture (plus its mip chain) in VRAM, so "
+                    "higher values can exhaust VRAM on large (e.g. 8K) texture sets.\n\n"
+                    "Lower this value if ingestion stalls or runs out of VRAM on limited-VRAM systems."
+                )
+                ui.Spacer(width=0)
+
+    def destroy(self):
+        self._max_workers_field_validate_sub = None
+        super().destroy()
 
     def __get_texture_type_suffix(self, attr_name: str) -> str:
         """

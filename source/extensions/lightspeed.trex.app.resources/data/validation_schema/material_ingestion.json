@@ -1,5 +1,20 @@
 {
     "name": "Material(s)",
+    "data": {
+        "mass_ui": {
+            "shared_int_fields": [{
+                "id": "MaxConcurrentTextureConversionsField",
+                "label": "Max Concurrent Texture Conversions",
+                "label_width": 115,
+                "tooltip": "Maximum number of texture conversions to run at the same time across DDS and octahedral conversion. Lower this value if ingestion stalls or runs out of VRAM.",
+                "value": 2,
+                "targets": [
+                    {"plugin": "ConvertToOctahedral", "field": "max_workers"},
+                    {"plugin": "ConvertToDDS", "field": "max_workers"}
+                ]
+            }]
+        }
+    },
     "context_plugin":
         {
             "name": "TextureImporter",
