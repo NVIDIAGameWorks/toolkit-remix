@@ -20,16 +20,17 @@ import os
 import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import carb
 import omni.kit
 import omni.kit.test
 import omni.usd
-from carb.input import KeyboardInput
+from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardInput
 from omni import ui
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.asset_importer.widget.texture_import_list import TextureImportListDelegate
+from omni.flux.validator.plugin.context.usd_stage import texture_importer as texture_importer_module
 from omni.flux.validator.plugin.context.usd_stage.texture_importer import TextureImporter
 from omni.kit import ui_test
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
@@ -38,12 +39,17 @@ from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
 class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
     # Before running each test
     async def setUp(self):
+        self._widget_instances: list[tuple[TextureImporter, ui.Window]] = []
         await omni.usd.get_context().new_stage_async()
         self.stage = omni.usd.get_context().get_stage()
         self.temp_dir = TemporaryDirectory()
 
     # After running each test
     async def tearDown(self):
+        for texture_importer, window in self._widget_instances:
+            texture_importer.destroy()
+            window.destroy()
+        self._widget_instances.clear()
         if omni.usd.get_context().get_stage():
             await omni.usd.get_context().close_stage_async()
         self.temp_dir.cleanup()
@@ -54,8 +60,9 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
         await arrange_windows(topleft_window="Stage")
 
         window = ui.Window("TestTextureImporterWindow", height=400, width=800)
+        texture_importer = TextureImporter()
+        self._widget_instances.append((texture_importer, window))
         with window.frame:
-            texture_importer = TextureImporter()
             await texture_importer._build_ui(schema_data)
 
         await ui_test.human_delay()
@@ -98,7 +105,7 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
         await self.__run_edit_output_directory_field(False, False, False)
 
     async def test_edit_output_directory_field_valid_should_update_style_and_update_schema_on_end_edit(self):
-        await self.__run_edit_output_directory_field(True, False, False)
+        await self.__run_edit_output_directory_field(True, False, False, reset_on_project_open=True)
 
     async def test_edit_output_directory_field_matching_input_file_should_update_style_and_reset_on_end_edit(self):
         await self.__run_edit_output_directory_field(False, False, True)
@@ -108,6 +115,54 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
 
     async def test_output_directory_file_picker_valid(self):
         await self.__run_edit_output_directory_field(True, True, False)
+
+    async def test_reactivate_after_clearing_output_directory_should_restore_server_default(self):
+        """Reject a blank edit without preventing the next server-default refresh."""
+        _input_files, _output_path, schema_data = await self.__setup_schema_data()
+        schema_data.create_output_directory_if_missing = True
+        window, texture_importer = await self.__setup_widget(schema_data)
+        output_directory_field = ui_test.find(
+            f"{window.title}//Frame/**/StringField[*].identifier=='output_directory_field'"
+        )
+        self.assertIsNotNone(output_directory_field)
+        previous_schema_output_directory = schema_data.output_directory
+        previous_field_value = output_directory_field.widget.model.get_value_as_string()
+
+        await output_directory_field.click()
+        await ui_test.human_delay()
+        await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
+        await ui_test.human_delay()
+        await ui_test.emulate_keyboard_press(KeyboardInput.DEL)
+        await ui_test.human_delay()
+
+        self.assertEqual("", output_directory_field.widget.model.get_value_as_string())
+        self.assertEqual("FieldError", output_directory_field.widget.style_type_name_override)
+        self.assertEqual(previous_schema_output_directory, schema_data.output_directory)
+
+        await ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
+        await ui_test.human_delay()
+
+        self.assertEqual(previous_field_value, output_directory_field.widget.model.get_value_as_string())
+        self.assertEqual("Field", output_directory_field.widget.style_type_name_override)
+        self.assertEqual(previous_schema_output_directory, schema_data.output_directory)
+
+        server_output_directory = (Path(self.temp_dir.name) / "server_output").resolve()
+        server_output_directory.mkdir()
+        default_output_endpoint = "https://example.invalid/default-output-directory"
+        schema_data.default_output_endpoint = default_output_endpoint
+        send_request_mock = AsyncMock(return_value={"directory_path": str(server_output_directory)})
+        with patch.object(texture_importer_module, "_send_request", send_request_mock):
+            texture_importer.show(True, schema_data)
+            await ui_test.human_delay()
+            send_request_mock.assert_awaited_once_with("GET", default_output_endpoint)
+
+        self.assertEqual(
+            server_output_directory.as_posix(), Path(str(schema_data.output_directory)).resolve().as_posix()
+        )
+        self.assertEqual(
+            server_output_directory.as_posix(),
+            Path(output_directory_field.widget.model.get_value_as_string()).resolve().as_posix(),
+        )
 
     async def test_edit_input_files_should_update_schema(self):
         mock_callback = Mock()
@@ -309,7 +364,9 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
         await ui_test.human_delay()
         self.assertEqual("Field", output_directory_field.widget.style_type_name_override)
 
-    async def __run_edit_output_directory_field(self, is_valid: bool, use_filepicker: bool, output_in_input: bool):
+    async def __run_edit_output_directory_field(
+        self, is_valid: bool, use_filepicker: bool, output_in_input: bool, reset_on_project_open: bool = False
+    ):
         # Setup the test
         new_output_dir_path = (Path(self.temp_dir.name) / "new_output").resolve()
 
@@ -324,7 +381,8 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
         input_files, output_path, schema_data = await self.__setup_schema_data()
         window, texture_importer = await self.__setup_widget(schema_data)  # Keep in memory during test
 
-        expected_output_path = str((new_output_dir_path if is_valid else output_path).resolve())
+        expected_import_path = new_output_dir_path if is_valid else output_path
+        expected_output_path = str(expected_import_path.resolve())
 
         output_directory_field = ui_test.find(
             f"{window.title}//Frame/**/StringField[*].identifier=='output_directory_field'"
@@ -421,6 +479,47 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
         )
         self.assertEqual("Field", output_directory_field.widget.style_type_name_override)
 
+        if is_valid:
+            server_output_dir_path = (Path(self.temp_dir.name) / "server_output").resolve()
+            os.makedirs(server_output_dir_path)
+            schema_data.default_output_endpoint = "https://example.invalid/default-output-directory"
+            send_request_mock = AsyncMock(return_value={"directory_path": str(server_output_dir_path)})
+            with patch.object(
+                texture_importer_module,
+                "_send_request",
+                new=send_request_mock,
+            ):
+                texture_importer.show(True, schema_data)
+                await ui_test.human_delay()
+                send_request_mock.assert_not_awaited()
+                self.assertEqual(
+                    Path(expected_output_path).as_posix(), Path(str(schema_data.output_directory)).resolve().as_posix()
+                )
+                self.assertEqual(
+                    Path(expected_output_path).as_posix(),
+                    Path(output_directory_field.widget.model.get_value_as_string()).resolve().as_posix(),
+                )
+
+                if reset_on_project_open:
+                    success, _ = await omni.usd.get_context("").open_stage_async(
+                        get_test_data_path(__name__, "usd/cubes.usda")
+                    )
+                    self.assertTrue(success)
+                    await ui_test.human_delay()
+                    send_request_mock.assert_awaited_once_with("GET", schema_data.default_output_endpoint)
+                    expected_import_path = server_output_dir_path
+                    expected_output_path = str(server_output_dir_path)
+
+                self.assertEqual(
+                    Path(expected_output_path).as_posix(), Path(str(schema_data.output_directory)).resolve().as_posix()
+                )
+                self.assertEqual(
+                    Path(expected_output_path).as_posix(),
+                    Path(output_directory_field.widget.model.get_value_as_string()).resolve().as_posix(),
+                )
+
+            schema_data.default_output_endpoint = None
+
         # Run the import
         await texture_importer._setup(schema_data, mock_callback, None)
 
@@ -428,7 +527,7 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
 
         # Make sure files were imported in the right output directory
         for input_file_path, _ in input_files:
-            self.assertTrue(((new_output_dir_path if is_valid else output_path) / input_file_path.name).exists())
+            self.assertTrue((expected_import_path / input_file_path.name).exists())
 
     async def __setup_schema_data(self, context: str = ""):
         base_path = Path(self.temp_dir.name)

@@ -154,6 +154,8 @@ class TextureImporter(_ContextBaseUSD):
     def __init__(self):
         super().__init__()
         self._output_field = None
+        self._output_directory_user_modified = False
+        self._project_stage_event_sub = None
         self._output_field_validate_sub = None
         self._output_field_update_sub = None
         self._file_list_field_item_changed_sub = None
@@ -423,6 +425,15 @@ class TextureImporter(_ContextBaseUSD):
                 )
                 _InfoIconWidget("The directory to import the converted input files to.")
 
+            self._project_stage_event_sub = None
+            self._project_stage_event_sub = (
+                omni.usd.get_context("")
+                .get_stage_event_stream()
+                .create_subscription_to_pop(
+                    partial(self.__on_project_stage_event, schema_data), name="Texture Importer Project Open"
+                )
+            )
+
             await self._update_default_output_directory(schema_data)
 
             self._output_field_validate_sub = self._output_field.model.subscribe_value_changed_fn(
@@ -436,7 +447,8 @@ class TextureImporter(_ContextBaseUSD):
 
     @omni.usd.handle_exception
     async def _update_default_output_directory(self, schema_data):
-        if schema_data.default_output_endpoint:
+        """Refresh the output directory without replacing a user-selected path."""
+        if not self._output_directory_user_modified and schema_data.default_output_endpoint:
             try:
                 response = await _send_request("GET", schema_data.default_output_endpoint)
                 schema_data.output_directory = _OmniUrl(response.get("directory_path"))
@@ -447,6 +459,12 @@ class TextureImporter(_ContextBaseUSD):
             self._output_field.model.set_value(
                 carb.tokens.get_tokens_interface().resolve(str(schema_data.output_directory))
             )
+
+    def __on_project_stage_event(self, schema_data: Data, event) -> None:
+        if event.type != int(omni.usd.StageEventType.OPENED):
+            return
+        self._output_directory_user_modified = False
+        ensure_future(self._update_default_output_directory(schema_data))
 
     def __open_dialog(self, schema_data: Data, model: ui.AbstractValueModel, _x, _y, b, _m):
         if b != 0:
@@ -468,7 +486,7 @@ class TextureImporter(_ContextBaseUSD):
         self, schema_data: Data, model: ui.AbstractValueModel, dirname: str, filename: str
     ):
         try:
-            schema_data.output_directory = _OmniUrl(dirname)
+            self.__set_output_directory(schema_data, dirname)
         except ValueError as e:
             PromptManager.post_simple_prompt(
                 "An Error Occurred",
@@ -481,7 +499,7 @@ class TextureImporter(_ContextBaseUSD):
 
     def __validate_dialog_selection(self, schema_data: Data, model: ui.AbstractValueModel, dirname: str, filename: str):
         try:
-            schema_data.output_directory = _OmniUrl(dirname)
+            self.__set_output_directory(schema_data, dirname)
             return True
         except ValueError:
             return False
@@ -489,7 +507,7 @@ class TextureImporter(_ContextBaseUSD):
     def __validate_output_directory(self, schema_data: Data, model: ui.AbstractValueModel):
         try:
             # trigger all checks for output_directory
-            schema_data.output_directory = _OmniUrl(model.get_value_as_string())
+            self.__set_output_directory(schema_data.model_copy(), model.get_value_as_string())
             # Valid output directory
             self._output_field.style_type_name_override = "Field"
             self._output_field.tooltip = ""
@@ -503,12 +521,19 @@ class TextureImporter(_ContextBaseUSD):
 
     def __update_output_directory_from_string(self, schema_data: Data, model: ui.AbstractValueModel, value: str):
         try:
-            schema_data.output_directory = _OmniUrl(value)
+            self.__set_output_directory(schema_data, value)
+            self._output_directory_user_modified = True
             model.set_value(value)
         except ValueError:
             # Invalid output directory
             carb.log_warn("The output directory would be invalid if the action was applied. Undoing the action.")
             model.set_value(carb.tokens.get_tokens_interface().resolve(str(schema_data.output_directory)))
+
+    def __set_output_directory(self, schema_data: Data, value: str) -> None:
+        resolved_value = carb.tokens.get_tokens_interface().resolve(value).strip()
+        if not resolved_value or resolved_value == ".":
+            raise ValueError("An output directory must be set.")
+        schema_data.output_directory = _OmniUrl(value)
 
     @_ignore_function_decorator(attrs=["_ignore_update_file_list"])
     def __update_file_list(self, schema_data: Data, model: _TextureImportListModel, *_):
@@ -542,6 +567,7 @@ class TextureImporter(_ContextBaseUSD):
         ensure_future(self._update_default_output_directory(schema_data))
 
     def destroy(self):
+        self._project_stage_event_sub = None
         self._output_field_validate_sub = None
         self._output_field_update_sub = None
         self._file_list_field_item_changed_sub = None
