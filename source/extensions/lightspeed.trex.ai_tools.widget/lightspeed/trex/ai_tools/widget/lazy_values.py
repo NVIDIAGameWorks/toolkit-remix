@@ -21,19 +21,20 @@ import dataclasses
 import inspect
 import pathlib
 from collections.abc import Callable
-from typing import Generic, TypeVar, get_type_hints
+from typing import Generic, TypeVar, cast, get_type_hints
 
 from lightspeed.trex.ai_tools.widget.comfy import Field
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from pxr import Usd
 
 T = TypeVar("T")
+ReturnT = TypeVar("ReturnT")
 
 
-def get_callable_interface(func: Callable[[Usd.Prim], T]) -> tuple[tuple[Field, ...], type[T]]:
+def get_callable_interface(func: Callable[[Usd.Prim], ReturnT]) -> tuple[tuple[Field, ...], type[ReturnT]]:  # noqa: UP047
     """Extract field definitions and return type from a callable."""
     fields = []
-    return_type = None
+    return_type = cast(type[ReturnT], type(None))
 
     if dataclasses.is_dataclass(func):
         type_hints = get_type_hints(type(func))
@@ -56,9 +57,12 @@ def get_callable_interface(func: Callable[[Usd.Prim], T]) -> tuple[tuple[Field, 
     if target and callable(target):
         sig = inspect.signature(target)
         type_hints = get_type_hints(target)
-        return_type = type_hints.get(
-            "return",
-            sig.return_annotation if sig.return_annotation != inspect.Signature.empty else type(None),
+        return_type = cast(
+            type[ReturnT],
+            type_hints.get(
+                "return",
+                sig.return_annotation if sig.return_annotation != inspect.Signature.empty else type(None),
+            ),
         )
 
         if not dataclasses.is_dataclass(func):

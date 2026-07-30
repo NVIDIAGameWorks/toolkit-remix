@@ -15,10 +15,12 @@
 * limitations under the License.
 """
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock
 
 import omni.kit.test
+from omni.flux.stage_manager.factory.items import StageManagerItem
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel
+from pxr import Sdf
 
 __all__ = ["TestStageManagerTreeModelSelection"]
 
@@ -41,64 +43,70 @@ class TestStageManagerTreeModelSelection(omni.kit.test.AsyncTestCase):
         item.data.GetPath.return_value = prim_path
         return item
 
+    def _make_context_item(self, prim_path="/World/Prim"):
+        prim = Mock()
+        prim.GetPath.return_value = Sdf.Path(prim_path)
+        return StageManagerItem(prim_path, data=prim)
+
     # ------------------------------------------------------------------
-    # set_selection / selection
+    # selection
     # ------------------------------------------------------------------
 
-    async def test_set_selection_stores_items(self):
-        """set_selection(items) should make items accessible via .selection."""
-        model = self._make_model()
-        self.addCleanup(model.destroy)
-        items = [self._make_item("/A"), self._make_item("/B")]
-
-        model.set_selection(items)
-
-        self.assertEqual(model.selection, items)
-
-    async def test_set_selection_empty_clears_selection(self):
-        """set_selection([]) should clear a previously stored selection."""
-        model = self._make_model()
-        self.addCleanup(model.destroy)
-        model.set_selection([self._make_item()])
-
-        model.set_selection([])
-
-        self.assertEqual(model.selection, [])
-
-    async def test_set_selection_returns_copy_not_reference(self):
-        """Mutating the list passed to set_selection must not change model.selection."""
+    async def test_selection_property_owns_assigned_items_and_can_be_cleared(self):
+        # Arrange
         model = self._make_model()
         self.addCleanup(model.destroy)
         items = [self._make_item("/A")]
 
-        model.set_selection(items)
-        items.append(self._make_item("/B"))  # mutate the original list
+        # Act
+        default_selection = model.selection
+        model.selection = items
+        assigned_selection = model.selection
+        items.append(self._make_item("/B"))
+        selection_after_input_mutation = model.selection
+        model.selection = []
 
-        self.assertEqual(len(model.selection), 1)
-
-    async def test_selection_default_is_empty(self):
-        """A freshly created model should have an empty selection."""
-        model = self._make_model()
-        self.addCleanup(model.destroy)
-
-        self.assertEqual(model.selection, [])
+        # Assert
+        self.assertEqual([], default_selection)
+        self.assertEqual([items[0]], assigned_selection)
+        self.assertEqual([items[0]], selection_after_input_mutation)
+        self.assertEqual([], model.selection)
 
     # ------------------------------------------------------------------
-    # refresh() clears stale selection
+    # refresh() clears selection for the interaction to restore from its active source
     # ------------------------------------------------------------------
 
     async def test_refresh_clears_stale_selection(self):
-        """refresh() must clear model.selection before rebuilding items.
-
-        Note: refresh() calls omni.kit.app.get_app().next_update_async() internally,
-        so this test requires the live Kit runtime (provided by the .bat test runner).
-        get_context_items is patched to avoid hitting the telemetry layer.
-        """
+        """refresh() should clear model.selection when the selected prim no longer exists."""
+        # Arrange
         model = self._make_model()
         self.addCleanup(model.destroy)
-        model.set_selection([self._make_item("/World/Stale")])
+        model.selection = [self._make_item("/World/Stale")]
+        model.set_context_items([])
 
-        with patch.object(model, "get_context_items", new_callable=AsyncMock, return_value=[]):
-            await model.refresh()
+        # Act
+        await model.refresh()
 
+        # Assert
         self.assertEqual(model.selection, [])
+
+    async def test_refresh_clears_selection_when_rebuilt_item_still_exists(self):
+        """refresh() should not preserve selection captured from the previous tree."""
+        # Arrange
+        model = self._make_model()
+        self.addCleanup(model.destroy)
+        prim_path = "/World/Prim"
+
+        model.set_context_items([self._make_context_item(prim_path)])
+        await model.refresh()
+
+        selected_item = model.get_item_children(None)[0]
+        model.selection = [selected_item]
+
+        # Act
+        model.set_context_items([self._make_context_item(prim_path)])
+        await model.refresh()
+
+        # Assert
+        self.assertEqual([], model.selection)
+        self.assertIsNot(selected_item, model.get_item_children(None)[0])

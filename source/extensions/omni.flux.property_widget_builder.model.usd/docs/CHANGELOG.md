@@ -2,6 +2,20 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.36.3]
+### Added
+- Added regression coverage for vertical modification popup menu placement.
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Restored the test utility dependency required by the USD property widget regression suite.
+- Released inherited property widget UI, subscriptions, and pending expansion updates when destroying USD property widgets.
+- Removed the explicit horizontal direction from USD property modification menus so Kit SDK 110 uses the native vertical `ui.Menu` default.
+- Removed stale listener suppression blocks when gradient edits fall back after listener disable fails.
+- Cleared logical group peer links before item teardown to avoid recursive cleanup.
+
 ## [2.36.2]
 ### Fixed
 - Grouped related xform property specs into one layer modification entry in the USD property override menu.

@@ -18,6 +18,7 @@
 from .e2e.test_capture_repair_on_open import TestCaptureRepairOnOpen
 from .e2e.test_capture_swap_undo import TestCaptureSwapUndo
 from .e2e.test_hotkeys import TestHotkeys
+from .e2e.test_lighting import TestLightingRigSwap
 from .e2e.test_stage_manager import TestStageManagerPropertiesInteraction
 from .unit.test_commands import TestCommands
 from .unit.test_setup import TestSetup as TestSetupUnit
@@ -28,6 +29,7 @@ __all__ = [
     "TestCaptureSwapUndo",
     "TestCommands",
     "TestHotkeys",
+    "TestLightingRigSwap",
     "TestSetupUnit",
     "TestStageManagerPropertiesInteraction",
     "TestStageManagerSchema",

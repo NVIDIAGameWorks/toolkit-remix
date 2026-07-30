@@ -47,7 +47,7 @@ class _ZoomEvents:
         self.__zoom_gesture.on_changed(self.__mouse)
 
     def destroy(self):
-        self.__zoom_gesture.on_ended()
+        self.__zoom_gesture.on_ended(self.__mouse)
         self.__manipulator.destroy()
 
 

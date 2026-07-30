@@ -1,24 +1,28 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.1]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [3.3.0]
 ### Added
 - Added layer-transfer helpers for unlocked replacement-layer targets.
 
 ## [3.2.1]
 ### Fixed
-- REMIX-5242: Fix `open_stage()` regression introduced in 3.2.0 — use `ensure_future(open_stage_async())` to avoid blocking the UI thread during stage open
+- REMIX-5242: Fix `open_stage()` regression introduced in 3.2.0 - use `ensure_future(open_stage_async())` to avoid blocking the UI thread during stage open
 
 ## [3.2.0]
 ### Changed
 - `create_layer()` now returns the newly created `Sdf.Layer` instance (previously returned `None` implicitly)
 - Add `omni.flux.commands` as a runtime dependency; required for `CreateOrInsertSublayer` command used in `create_layer()`
-- Rename identifier-based methods to shorter forms: `set_edit_target_layer_with_identifier` → `set_edit_target`, `move_layer_with_identifier` → `move_layer`, `remove_layer_with_identifier` → `remove_layer`, `mute_layer_with_identifier` → `mute_layer`, `lock_layer_with_identifier` → `lock_layer`, `save_layer_with_identifier` → `save_layer`
-- Rename type-based bulk methods to disambiguate from identifier methods: `save_layer` → `save_layer_of_type`, `set_edit_target_layer` → `set_edit_target_layer_of_type`, `lock_layer` → `lock_layers_of_type`, `mute_layer` → `mute_layers_of_type`, `remove_layer` → `remove_layers_of_type`
+- Rename identifier-based methods to shorter forms: `set_edit_target_layer_with_identifier` -> `set_edit_target`, `move_layer_with_identifier` -> `move_layer`, `remove_layer_with_identifier` -> `remove_layer`, `mute_layer_with_identifier` -> `mute_layer`, `lock_layer_with_identifier` -> `lock_layer`, `save_layer_with_identifier` -> `save_layer`
+- Rename type-based bulk methods to disambiguate from identifier methods: `save_layer` -> `save_layer_of_type`, `set_edit_target_layer` -> `set_edit_target_layer_of_type`, `lock_layer` -> `lock_layers_of_type`, `mute_layer` -> `mute_layers_of_type`, `remove_layer` -> `remove_layers_of_type`
 - Add `_get_layer_or_raise()` internal helper; use it in `get_loaded_project_with_data_models()`
 - Remove dead `game_current_game_capture_folder()` method and its test
-- Rename `set_edit_target_with_identifier()` → `set_edit_target_layer_with_identifier()` for API consistency
-- Rename `LayerManagerValidators._iter_sublayer_tree()` → `iter_sublayer_tree()` (now public)
+- Rename `set_edit_target_with_identifier()` -> `set_edit_target_layer_with_identifier()` for API consistency
+- Rename `LayerManagerValidators._iter_sublayer_tree()` -> `iter_sublayer_tree()` (now public)
 - Remove thin `*_with_data_model()` delegation wrappers (`create_layer_with_data_model`, `get_edit_target_with_data_model`, `set_edit_target_with_data_model`, `move_layer_with_data_model`, `remove_layer_with_data_model`, `mute_layer_with_data_model`, `lock_layer_with_data_model`, `save_layer_with_data_model`); logic moved to `lightspeed.layer_manager.service`
 - Eliminate redundant `Sdf.Layer.FindOrOpen` call in `create_layer()` by caching the newly created layer handle
 - Extracted `_iter_sublayer_tree()` static helper on `LayerManagerValidators`; eliminated two duplicate recursive layer-walk implementations

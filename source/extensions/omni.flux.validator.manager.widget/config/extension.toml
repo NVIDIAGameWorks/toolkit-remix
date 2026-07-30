@@ -2,8 +2,9 @@
 order = 100  # to start always after the plugins
 
 [package]
+kit_sdk_version = "110.*"
 # Semantic Versionning is used: https://semver.org/
-version = "1.7.3"
+version = "1.7.5"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -39,6 +40,7 @@ icon = "data/images/icon.png"
 "omni.flux.info_icon.widget" = {}
 "omni.flux.validator.factory" = {}
 "omni.flux.validator.manager.core" = {}
+"omni.kit.renderer.imgui" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 

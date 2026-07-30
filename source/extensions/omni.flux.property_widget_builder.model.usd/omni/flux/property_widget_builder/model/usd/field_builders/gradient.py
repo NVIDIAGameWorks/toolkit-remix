@@ -92,6 +92,11 @@ def _claim_gradients(items: list[Item]) -> ClaimResult:
     return ClaimResult(primary=primary, companions=companions)
 
 
+# ---------------------------------------------------------------------------
+# USD-aware gradient widget
+# ---------------------------------------------------------------------------
+
+
 class UsdColorGradientWidget(ColorGradientWidget):
     """Thin ColorGradientWidget adapter that delegates USD behavior to its row item."""
 

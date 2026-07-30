@@ -78,3 +78,31 @@ class TestZoomOperation(omni.kit.test.AsyncTestCase):
         gesture.on_changed.assert_called_once()
         gesture.on_ended.assert_called_once()
         manipulator.destroy.assert_called_once()
+
+
+class TestZoom(omni.kit.test.AsyncTestCase):
+    async def test_destroy_ends_zoom_gesture_with_last_mouse_position(self):
+        # Arrange
+        zoom_gesture = SimpleNamespace(
+            _disable_flight=Mock(),
+            on_began=Mock(),
+            on_changed=Mock(),
+            on_ended=Mock(),
+        )
+        manipulator = SimpleNamespace(
+            _screen=SimpleNamespace(gestures=[zoom_gesture]),
+            on_build=Mock(),
+            destroy=Mock(),
+            model=SimpleNamespace(get_as_floats=Mock(return_value=[10.0, 0.0, 0.0])),
+        )
+
+        with patch.object(_zoom_module, "_ViewportCameraManipulator", return_value=manipulator):
+            zoom_events = _zoom_module._ZoomEvents(object())
+            zoom_events.update(0, 40)
+
+            # Act
+            zoom_events.destroy()
+
+        # Assert
+        zoom_gesture.on_ended.assert_called_once_with([0.0, 1.0])
+        manipulator.destroy.assert_called_once()

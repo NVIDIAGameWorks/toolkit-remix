@@ -43,7 +43,7 @@ class ConverterBase(BaseModel):
         if v not in library_subidentifiers:
             # check if this is not just a regular USD node like UsdPreviewSurface
             sdr_registry = Sdr.Registry()
-            if v not in sdr_registry.GetNodeNames():
+            if v not in sdr_registry.GetShaderNodeNames():
                 raise ValueError(
                     f"The subidentifier ({v}) does not exist in the material library. If using non-default shaders, "
                     f"add your shader path to the following setting "

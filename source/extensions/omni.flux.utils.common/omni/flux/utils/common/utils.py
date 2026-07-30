@@ -25,15 +25,14 @@ from carb import log_warn as _log_warn
 
 
 def async_wrap(func) -> Callable:
-    """Wrap a function into an async executor"""
+    """Wrap a synchronous function into async executor"""
 
-    @asyncio.coroutine
     @functools.wraps(func)
-    def run(*args, loop=None, executor=None, **kwargs):
+    async def run(*args, loop=None, executor=None, **kwargs):
         if loop is None:
-            loop = asyncio.get_event_loop()
-        pfunc = functools.partial(func, *args, **kwargs)
-        return loop.run_in_executor(executor, pfunc)
+            loop = asyncio.get_running_loop()
+        partial_func = functools.partial(func, *args, **kwargs)
+        return await loop.run_in_executor(executor, partial_func)
 
     return run
 

@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.5]
+### Fixed
+- Skip unnecessary AI Tools validation, duplicate prim name field construction, and repeated replacement-layer scans during Stage Manager row builds.
+
+## [2.7.4]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.7.3]
 ### Fixed
 - Set deleted capture light intensity to zero and restore capture light intensity back to the capture value

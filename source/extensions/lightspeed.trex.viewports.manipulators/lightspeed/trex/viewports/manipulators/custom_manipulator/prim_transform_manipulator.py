@@ -40,9 +40,17 @@ class PrimTransformManipulator(_PrimTransformManipulator):
         Be default when the user click, it can't move anything. It will need to click on the reference on the
         selection panel to enable the manipulator
         """
-        base_result = super().on_selection_changed(stage, selection, *args, **kwargs)
         if self.__context_name == _TrexContexts.STAGE_CRAFT.value:
-            transformable = self._core.filter_transformable_prims(selection)
+            if selection is None:
+                self._model.set_path_redirect([])
+                self._model.on_selection_changed([])
+                return False
+            transformable = self._core.filter_transformable_prims(selection or [])
+            if not transformable:
+                self._model.set_path_redirect(transformable)
+                self._model.on_selection_changed([])
+                return False
             self._model.set_path_redirect(transformable)
-            return bool(transformable)
-        return base_result
+            super().on_selection_changed(stage, selection, *args, **kwargs)
+            return True
+        return super().on_selection_changed(stage, selection, *args, **kwargs)

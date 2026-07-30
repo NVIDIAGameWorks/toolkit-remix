@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.2]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+- Matched other viewport-backed tests by excluding known Kit SDK 110 OpenGL interop shutdown noise.
+
+### Fixed
+- Disabled empty horizontal scrolling in the Properties pane.
+
 ## [1.17.1]
 ### Fixed
 - Added regression coverage for replacement xform edits that must not author overrides until a value changes.

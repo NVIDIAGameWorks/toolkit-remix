@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.6]
+### Fixed
+- Restored the embedded "Show in viewport" panel by creating its viewport in the current mass-ingestion frame.
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.4.5]
 ### Fixed
 - Destroyed the Mass Validation child widget when tearing down the mass-ingestion layout

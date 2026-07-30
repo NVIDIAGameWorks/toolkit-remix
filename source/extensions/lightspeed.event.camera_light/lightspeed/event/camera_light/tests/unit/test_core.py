@@ -15,81 +15,57 @@
 * limitations under the License.
 """
 
-import contextlib
-import shutil
-import tempfile
+from unittest.mock import AsyncMock, call, patch
 
 import carb
 import omni.kit.app
-from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test import AsyncTestCase
-from omni.kit.test_suite.helpers import open_stage, wait_stage_loading
-
-_CONTEXT_NAME = ""
-
-
-@contextlib.asynccontextmanager
-async def make_temp_directory(context):
-    temp_dir = tempfile.TemporaryDirectory()
-    try:
-        yield temp_dir
-    finally:
-        await wait_stage_loading()
-        await context.new_stage_async()
-        await wait_stage_loading()
-        await omni.kit.app.get_app().next_update_async()
-        if context.can_close_stage():
-            await context.close_stage_async()
-        temp_dir.cleanup()
 
 
 class TestCore(AsyncTestCase):
-    async def __open_file(self, temp_dir):
-        shutil.copytree(_get_test_data("usd/project_example"), f"{temp_dir.name}/project_example")
-        await open_stage(f"{temp_dir.name}/project_example/combined.usda")
-        await wait_stage_loading()
-
-        for _ in range(10):
+    @staticmethod
+    async def __wait_for_camera_light_task():
+        for _ in range(2):
             await omni.kit.app.get_app().next_update_async()
 
     async def test_set_camera_light(self):
-        context = omni.usd.get_context()
-        async with make_temp_directory(context) as temp_dir:
-            await self.__open_file(temp_dir)
+        settings = carb.settings.get_settings()
+        with patch(
+            "lightspeed.event.camera_light.core._hdremix_set_configvar_async", new_callable=AsyncMock
+        ) as mock_set_configvar:
+            settings.set("/rtx/useViewLightingMode", False)
+            await self.__wait_for_camera_light_task()
+            mock_set_configvar.reset_mock()
 
-            # Turn on camera light mode
-            settings = carb.settings.get_settings()
             settings.set("/rtx/useViewLightingMode", True)
+            await self.__wait_for_camera_light_task()
 
-            log_file = settings.get("log/file")
-            with open(log_file, encoding="utf-8") as log:
-                lines = log.readlines()
+            mock_set_configvar.assert_has_awaits(
+                [
+                    call("rtx.fallbackLightMode", "2"),
+                    call("rtx.fallbackLightType", "1"),
+                    call("rtx.fallbackLightRadiance", "50, 50, 50"),
+                ]
+            )
 
-            # Check log file to make sure event was triggered
-            check = False
-            for line in reversed(lines):
-                if "[Info] [lightspeed.event.camera_light.core] Camera light set..." in line:
-                    check = True
-                    break
-            self.assertTrue(check)
+            settings.set("/rtx/useViewLightingMode", False)
+            await self.__wait_for_camera_light_task()
 
     async def test_reset_camera_light(self):
-        context = omni.usd.get_context()
-        async with make_temp_directory(context) as temp_dir:
-            await self.__open_file(temp_dir)
+        settings = carb.settings.get_settings()
+        with patch(
+            "lightspeed.event.camera_light.core._hdremix_set_configvar_async", new_callable=AsyncMock
+        ) as mock_set_configvar:
+            settings.set("/rtx/useViewLightingMode", True)
+            await self.__wait_for_camera_light_task()
+            mock_set_configvar.reset_mock()
 
-            # Turn on camera light mode
-            settings = carb.settings.get_settings()
             settings.set("/rtx/useViewLightingMode", False)
+            await self.__wait_for_camera_light_task()
 
-            log_file = settings.get("log/file")
-            with open(log_file, encoding="utf-8") as log:
-                lines = log.readlines()
-
-            # Check log file to make sure event was triggered
-            check = False
-            for line in reversed(lines):
-                if "[Info] [lightspeed.event.camera_light.core] Camera light reset..." in line:
-                    check = True
-                    break
-            self.assertTrue(check)
+            mock_set_configvar.assert_has_awaits(
+                [
+                    call("rtx.fallbackLightMode", "0"),
+                    call("rtx.fallbackLightRadiance", "0, 0, 0"),
+                ]
+            )

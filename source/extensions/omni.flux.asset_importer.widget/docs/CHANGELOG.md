@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.8]
+### Fixed
+- Kept scan-folder E2E tests on the intended local directory when Kit SDK 110's file picker returns a parent path.
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.6.7]
 ### Changed
 - File drop events are now received from the centralized drop router instead of subscribing directly to the window drop stream

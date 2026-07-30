@@ -16,5 +16,6 @@
 """
 
 from .unit.schema_loading import TestSchemaLoading
+from .unit.test_plugin import TestPlugin
 
-__all__ = ["TestSchemaLoading"]
+__all__ = ["TestPlugin", "TestSchemaLoading"]

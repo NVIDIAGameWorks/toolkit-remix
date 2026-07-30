@@ -17,7 +17,8 @@
 
 import pathlib
 
-import carb.imgui
+import carb
+import omni.kit.imgui
 from omni.ui import color as cl
 
 
@@ -88,8 +89,8 @@ _DEFAULT_DARK_PANEL_BACKGROUND_VALUE = {
 }
 
 # override global imgui style
-imgui = carb.imgui.acquire_imgui()
-imgui.push_style_color(carb.imgui.StyleColor.WindowShadow, carb.Float4(0, 0, 0, 0))
+imgui = omni.kit.imgui.acquire_imgui()
+imgui.push_style_color(omni.kit.imgui.StyleColor.WindowShadow, carb.Float4(0, 0, 0, 0))
 
 cl.validation_result_ok = cl(0.0, 0.6, 0.0, 1.0)
 cl.validation_result_failed = cl(0.6, 0.0, 0.0, 1.0)

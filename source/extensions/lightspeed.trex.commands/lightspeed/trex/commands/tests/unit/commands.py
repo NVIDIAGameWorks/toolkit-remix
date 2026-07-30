@@ -21,8 +21,7 @@ import omni.kit.commands
 import omni.kit.test
 import omni.kit.undo
 import omni.usd
-from lightspeed.common.constants import PARTICLE_CPP_SCHEMA_NAME, PARTICLE_SCHEMA_NAME
-
+from lightspeed.common.constants import PARTICLE_SCHEMA_NAME
 from pxr import Sdf, Usd, UsdGeom
 
 
@@ -98,8 +97,7 @@ class TestParticleSystemCommands(omni.kit.test.AsyncTestCase):
         self.assertTrue(test_prim.HasAPI(PARTICLE_SCHEMA_NAME))
         # Verify the API is still applied but not duplicated
         api_schemas = test_prim.GetAppliedSchemas()
-        # GetAppliedSchemas() returns the C++ schema names, not Python names
-        particle_api_count = sum(1 for schema in api_schemas if schema == PARTICLE_CPP_SCHEMA_NAME)
+        particle_api_count = sum(1 for schema in api_schemas if schema == PARTICLE_SCHEMA_NAME)
         self.assertEqual(particle_api_count, 1)  # Should be at least 1
 
     async def test_create_particle_system_command_undo(self):

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.6]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.0.5]
 ### Changed
 - Modernize python style and enable more ruff checks

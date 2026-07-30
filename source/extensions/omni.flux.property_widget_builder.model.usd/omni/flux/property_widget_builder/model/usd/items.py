@@ -223,6 +223,11 @@ class _BaseUSDAttributeItem(_LogicalRowApiMixin, _Item):
 
         self.__on_override_removed = _Event()
 
+    def destroy(self):
+        """Break logical peer links before destructive item cleanup."""
+        self.logical_group_items = []
+        super().destroy()
+
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
@@ -1341,6 +1346,11 @@ class USDLogicalGroupOutletItem(_LogicalRowApiMixin, _Item):
             }
         )
         return default_attr
+
+    def destroy(self):
+        """Break logical peer links before destructive item cleanup."""
+        self.logical_group_items = []
+        super().destroy()
 
     @property
     def element_count(self) -> int:

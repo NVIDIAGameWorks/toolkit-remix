@@ -3,7 +3,7 @@
 
 # Keep in sync with [project].requires-python in pyproject.toml
 # (Having a separate ruff.toml requires target-version be set here)
-target-version = "py310"
+target-version = "py312"
 
 line-length = 120
 
@@ -93,7 +93,7 @@ select = [
     "RUF100", # Unused noqa directive
 
     # --- Version Checks ---
-    # "YTT",    # flake8-2020: sys.version comparisons and checks # TODO: catch py310+ issues
+    # "YTT",    # flake8-2020: sys.version comparisons and checks # TODO: catch version-specific issues
 ]
 
 ignore = [
@@ -127,6 +127,8 @@ ignore = [
     "SIM117",  # Multiple with statements - ignored for omni.ui patterns
     "PERF203", # try-except in loop - often intentional for error collection patterns
     "PERF401", # Use list comprehension - too aggressive, not always more readable
+    "UP040",   # TypeAlias `type` syntax migration can be handled separately from the Python 3.12 runtime bump
+    "UP046",   # PEP 695 generic type parameter migration is a larger repo-wide refactor
 ]
 
 # B008: treat these as immutable (safe to use in default args; eval once, no mutable state).

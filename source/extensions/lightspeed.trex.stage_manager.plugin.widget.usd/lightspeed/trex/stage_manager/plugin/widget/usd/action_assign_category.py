@@ -108,7 +108,7 @@ class AssignCategoryActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
         selected_prim_paths = usd.get_context(context_name).get_selection().get_selected_prim_paths()
         cls._categories_dialog = _RemixCategoriesDialog(
             context_name=context_name,
-            paths=selected_prim_paths if selected_prim_paths else [str(item.data.GetPath())],
+            paths=selected_prim_paths or [str(item.data.GetPath())],
             refresh_func=partial(cls._assignment_callback, context_name),
         )
 

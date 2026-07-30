@@ -151,7 +151,7 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
             return
 
         if hovered and self._preview_on_hover:
-            self._bigger_image.source_url = item.image if item.image else ""
+            self._bigger_image.source_url = item.image or ""
             self._no_image_label.visible = not bool(item.image)
             if item.image:
                 self._window_bigger_image.width = self.DEFAULT_BIG_IMAGE_SIZE[0]

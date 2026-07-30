@@ -12,12 +12,12 @@ REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__fil
 REPO_DEPS_FILE = os.path.join(REPO_ROOT, "deps/repo-deps.packman.xml")
 REPO_DEPS_INTERNAL_FILE = os.path.join(REPO_ROOT, "deps/repo-deps-internal.packman.xml")
 
+
 def _repo_deps_files():
     deps_files = [REPO_DEPS_FILE]
     if os.path.exists(REPO_DEPS_INTERNAL_FILE):
         deps_files.append(REPO_DEPS_INTERNAL_FILE)
     return deps_files
-
 
 
 def bootstrap():

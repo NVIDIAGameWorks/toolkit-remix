@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import re
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -247,7 +246,7 @@ class MaterialShaders(_CheckBaseUSD):
                                 ) = await _MaterialConverterCore.find_matching_supported_material(shader)
                                 if converter is not None:
                                     subidentifier = tmp_subidenfifier.value
-                            except asyncio.TimeoutError:
+                            except TimeoutError:
                                 # Kit was frozen because an identifier was set but not found in the MDL
                                 converter = None
                     if not supported_identifier and converter is None:

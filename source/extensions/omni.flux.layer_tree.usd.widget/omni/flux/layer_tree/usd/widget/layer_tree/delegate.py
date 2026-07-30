@@ -256,7 +256,7 @@ class LayerDelegate(_TreeDelegateBase):
     def _show_context_menu(self, model, item):
         super()._show_context_menu(model, item)
 
-        self._context_menu_widgets[id(item)] = ui.Menu("Layer Menu", direction=ui.Direction.LEFT_TO_RIGHT)
+        self._context_menu_widgets[id(item)] = ui.Menu("Layer Menu")
         with self._context_menu_widgets[id(item)]:
             if item.data["savable"]:
                 ui.MenuItem(

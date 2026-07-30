@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.1]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.2.0]
 ### Fixed
 - Capture panel now restores the capture directory from the project structure when there is no active capture layer (e.g. after cancelling the repair wizard)

@@ -275,7 +275,7 @@ class TestEditor(omni.kit.test.AsyncTestCase):
                                 time_range=(0.0, 1.0),
                                 value_range=(0.0, 1.0),
                             )
-                        self._canvas_frame.set_zoom_changed_fn(lambda z: self.widget.set_zoom(z))
+                        self._canvas_frame.set_zoom_changed_fn(self.widget.set_zoom)
                         self._canvas_frame.set_computed_content_size_changed_fn(self._on_canvas_size_changed)
                     ui.Spacer(width=PADDING)
 

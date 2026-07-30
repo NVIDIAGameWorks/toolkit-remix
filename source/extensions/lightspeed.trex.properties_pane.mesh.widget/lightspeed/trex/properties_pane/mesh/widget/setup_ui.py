@@ -611,12 +611,17 @@ class SetupUI:
         else:
             value = path.replace("\\", "/")
             if not self.__ignore_ingest_check and layer is not None:
+                reference_file_items = list(self._current_reference_file_items)
                 _accept_asset_if_valid(
                     value,
                     layer,
                     self._core,
                     self._context,
-                    functools.partial(self.__accept_ref_mesh_field, change_prim_field=change_prim_field),
+                    functools.partial(
+                        self.__accept_validated_ref_mesh_field,
+                        change_prim_field=change_prim_field,
+                        reference_file_items=reference_file_items,
+                    ),
                     ignore_ingestion_handler=self.__ignore_warning_ingest_asset,
                     cancel_handler=self.__reset_ingest_asset,
                     go_to_ingest_handler=functools.partial(self.__reset_ingest_asset, go_to_ingest=True),
@@ -633,17 +638,51 @@ class SetupUI:
             self._ignore_mesh_ref_field_changed = False
 
     def __prompt_user_to_copy_usd_asset(self, path: str, layer: Sdf.Layer):
-        self.__ignore_ingest_check = True
+        reference_file_items = list(self._current_reference_file_items)
         _accept_asset_if_valid(
             path,
             layer,
             self._core,
             self._context,
-            lambda x: self.set_ref_mesh_field(path=x, change_prim_field=True, layer=layer),
+            functools.partial(
+                self.__accept_validated_ref_mesh_field,
+                change_prim_field=True,
+                reference_file_items=reference_file_items,
+            ),
             ignore_ingestion_handler=self.__ignore_warning_ingest_asset,
             cancel_handler=self.__reset_ingest_asset,
             go_to_ingest_handler=functools.partial(self.__reset_ingest_asset, go_to_ingest=True),
         )
+
+    def __accept_validated_ref_mesh_field(
+        self,
+        path: str,
+        change_prim_field: bool,
+        reference_file_items: list[_ItemReferenceFile],
+    ):
+        if not reference_file_items:
+            return
+
+        # The validation dialog can resolve after selection moves. Replay the accepted path against the
+        # captured reference item once, then restore the live UI selection/subscription state.
+        current_reference_file_items = self._current_reference_file_items
+        current_ignore_ingest_check = self.__ignore_ingest_check
+        current_ignore_mesh_ref_field_changed = self._ignore_mesh_ref_field_changed
+        had_sub_mesh_ref_field_changed = self._sub_mesh_ref_field_changed is not None
+        self._current_reference_file_items = reference_file_items
+        self.__ignore_ingest_check = True
+        self._sub_mesh_ref_field_changed = None
+        try:
+            self.__accept_ref_mesh_field(path, change_prim_field=change_prim_field)
+            self._do_mesh_ref_field_changed()
+        finally:
+            self._current_reference_file_items = current_reference_file_items
+            self.__ignore_ingest_check = current_ignore_ingest_check
+            self._ignore_mesh_ref_field_changed = current_ignore_mesh_ref_field_changed
+            if had_sub_mesh_ref_field_changed:
+                self._sub_mesh_ref_field_changed = self._mesh_ref_field.model.subscribe_value_changed_fn(
+                    self._on_mesh_ref_field_changed
+                )
 
     def __set_ref_mesh_prim_field(self):
         if not self._current_reference_file_items:

@@ -47,7 +47,6 @@ class PrimRenameNameActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
     def build_icon_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
         # NOTE: we build an empty widget here
         ui.Spacer(height=0, width=0)
-        item.build_widget()
 
     def _build_callback(self, payload: dict, callback: Callable, x: int, y: int, button: int, modifiers: int):
         if button != 0 or not self._can_rename_prim_name(payload):

@@ -70,10 +70,13 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
         # Arrange
         plugin = _TestFilterPlugin(lambda item: True)
 
-        # Act / Assert
-        self.assertIn("filter_active", plugin.model_fields)
-        self.assertFalse(plugin.model_fields["filter_active"].exclude)
-        self.assertTrue(plugin.filter_active)
+        # Act
+        filter_active_field = plugin.model_fields["filter_active"]
+        filter_active = plugin.filter_active
+
+        # Assert
+        self.assertFalse(filter_active_field.exclude)
+        self.assertTrue(filter_active)
 
     async def test_filter_result_closed_matches_single_predicate_filter_items(self):
         # Arrange: root -> a -> b -> c, predicate keeps only "b"
@@ -139,22 +142,6 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(set(result), expected)
 
-    async def test_filter_items_by_category_single_plugin_result_sorted_by_depth(self):
-        # Arrange: predicate keeps "a" and "c"
-        def predicate(item):
-            return item.identifier in ("a", "c")
-
-        items = _make_tree([("r", None), ("a", 0), ("b", 1), ("c", 2)])
-        plugin = _TestFilterPlugin(predicate, category=FilterCategory.OTHER)
-
-        # Act
-        result = StageManagerUtils.filter_items_by_category(items, [plugin])
-        depths = [StageManagerUtils._get_depth(item) for item in result]
-
-        # Assert
-        self.assertEqual(depths, sorted(depths))
-        self.assertEqual(set(result), set(_single_predicate_result(items, predicate)))
-
     async def test_filter_items_by_category_single_prim_filter_same_semantics_as_other(self):
         # Arrange
         def predicate(item):
@@ -170,21 +157,6 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(set(result), expected)
 
-    async def test_filter_items_by_category_result_always_sorted_by_depth(self):
-        # Arrange
-        def predicate(item):  # noqa F401
-            return True
-
-        items = _make_tree([("r", None), ("a", 0), ("b", 1), ("c", 1)])
-        plugin = _TestFilterPlugin(predicate, category=FilterCategory.OTHER)
-
-        # Act
-        result = StageManagerUtils.filter_items_by_category(items, [plugin])
-        depths = [StageManagerUtils._get_depth(item) for item in result]
-
-        # Assert
-        self.assertEqual(depths, sorted(depths))
-
     async def test_filter_items_by_category_same_input_yields_same_ordered_result(self):
         # Arrange
         def predicate(item):
@@ -199,21 +171,6 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(result_1, result_2)
-
-    async def test_filter_items_by_category_accepts_iterable_same_result_as_list(self):
-        # Arrange
-        def predicate(item):  # noqa F401
-            return True
-
-        items = _make_tree([("r", None), ("a", 0)])
-        plugin = _TestFilterPlugin(predicate, category=FilterCategory.OTHER)
-
-        # Act
-        result_list = StageManagerUtils.filter_items_by_category(items, [plugin])
-        result_iter = StageManagerUtils.filter_items_by_category(iter(items), [plugin])
-
-        # Assert
-        self.assertEqual(result_list, result_iter)
 
     async def test_filter_items_by_category_and_narrows_candidates_second_predicate_on_subset_only(self):
         # Arrange: root -> a -> b -> c. First filter keeps root,a. Second runs only on that subset.
@@ -275,8 +232,7 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
         result = StageManagerUtils.filter_items_by_category(items, [plugin])
 
         # Assert
-        self.assertEqual(set(items), set(result))
-        self.assertEqual([0, 1], [StageManagerUtils._get_depth(item) for item in result])
+        self.assertIs(items, result)
         self.assertEqual([], called)
 
     async def test_filter_items_by_category_inactive_filter_active_state_takes_precedence(self):
@@ -293,8 +249,7 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
         result = StageManagerUtils.filter_items_by_category(items, [plugin])
 
         # Assert
-        self.assertEqual(set(items), set(result))
-        self.assertEqual([0, 1, 1], [StageManagerUtils._get_depth(item) for item in result])
+        self.assertIs(items, result)
         self.assertEqual([], called)
 
     async def test_filter_items_by_category_uses_filter_active_property(self):

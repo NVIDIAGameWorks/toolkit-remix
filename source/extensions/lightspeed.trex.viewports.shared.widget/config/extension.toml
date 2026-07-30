@@ -1,5 +1,6 @@
 [package]
-version = "1.7.4"
+kit_sdk_version = "110.*"
+version = "1.8.2"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Viewports implementation"
 description = "Viewports implementation for NVIDIA RTX Remix App"
@@ -29,6 +30,7 @@ icon = "data/icon.png"
 "lightspeed.particle.gizmos" = {}
 "lightspeed.ui_scene.light_manipulator" = {}
 "omni.flux.utils.common" = {}
+"omni.appwindow" = {}
 "omni.kit.viewport.utility" = {}
 "omni.kit.hotkeys.core" = {}
 "omni.kit.notification_manager" = {}
@@ -41,6 +43,16 @@ icon = "data/icon.png"
 [settings]
 # Default legacy display options for any consumers (all visible but Skeletons)
 persistent.app.viewport.displayOptions = 32255
+
+[settings.exts.lightspeed.trex.viewports.shared.widget]
+remixViewportStableFrames = 10
+remixViewportStableTimeoutFrames = 240
+remixPostStableDwellFrames = 120
+registerOpenGLSceneLayers = true
+activateRemixRenderer = true
+
+[settings.exts."omni.kit.manipulator.prim.core".tools]
+enabled = false
 
 [settings.exts."omni.kit.viewport.window"]
 cameraSpeedLimit.0="scroll"
@@ -57,6 +69,13 @@ dependencies = [
 
 args = [
     "--/renderer/mdl/searchPaths/templates=${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
+    # Match lightspeed.app.trex.base.kit viewport-window startup settings; standalone
+    # extension tests bypass that app file and would otherwise spawn Kit's stock viewport UI.
+    "--/exts/omni.kit.viewport.window/startup/cameraManipulator/enabled=false",
+    "--/exts/omni.kit.viewport.window/startup/disableWindowOnLoad=true",
+    "--/exts/omni.kit.viewport.window/startup/showOnLaunch=false",
+    "--/exts/omni.kit.viewport.window/windowMenu/entryCount=0",
+    "--/exts/lightspeed/trex/viewports/shared/widget/registerOpenGLSceneLayers=false",
 ]
 
 stdoutFailPatterns.exclude = [

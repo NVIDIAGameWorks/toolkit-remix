@@ -16,20 +16,79 @@
 """
 
 import asyncio
+import ctypes
+import sys
+from ctypes import wintypes as _wintypes
 from fnmatch import fnmatch
 from pathlib import Path
 
 import carb
+import carb.windowing
 import omni.appwindow
 import omni.kit
+import omni.splash
 import omni.usd
 from omni.flux.utils.widget.resources import get_menubar_ignore_file as _get_menubar_ignore_file
 from omni.kit.menu.utils import MenuLayout
 
 _HIDE_MENU = "/exts/lightspeed.trex.app.setup/hide_menu"
 _APP_WINDOW_SETTING = "/app/window/enabled"  # setting affected by "--no-window" arg
+_DARK_TITLEBAR_ATTRIBUTES = (20, 19)
 
 MenuLayoutItemTypes = MenuLayout.Menu | MenuLayout.SubMenu | MenuLayout.Item
+
+
+def _get_capsule_pointer(capsule) -> int | None:
+    if capsule is None:
+        return None
+    if isinstance(capsule, int):
+        return capsule
+
+    python_api = ctypes.pythonapi
+    get_capsule_name = python_api.PyCapsule_GetName
+    get_capsule_name.argtypes = [ctypes.py_object]
+    get_capsule_name.restype = ctypes.c_char_p
+
+    get_capsule_pointer = python_api.PyCapsule_GetPointer
+    get_capsule_pointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
+    get_capsule_pointer.restype = ctypes.c_void_p
+    return get_capsule_pointer(capsule, get_capsule_name(capsule))
+
+
+def _set_windows_titlebar_dark(hwnd: int) -> bool:
+    enabled = _wintypes.BOOL(True)
+    for attribute in _DARK_TITLEBAR_ATTRIBUTES:
+        result = ctypes.windll.dwmapi.DwmSetWindowAttribute(  # type: ignore[attr-defined]
+            _wintypes.HWND(hwnd),
+            _wintypes.DWORD(attribute),
+            ctypes.byref(enabled),
+            ctypes.sizeof(enabled),
+        )
+        if result == 0:
+            return True
+    return False
+
+
+def _apply_windows_dark_titlebar() -> None:
+    if sys.platform != "win32" or not carb.settings.get_settings().get(_APP_WINDOW_SETTING):
+        return
+
+    try:
+        app_window = omni.appwindow.get_default_app_window()
+        carb_window = app_window.get_window() if app_window else None
+        native_window = carb.windowing.acquire_windowing_interface().get_native_window(carb_window)
+        hwnd = _get_capsule_pointer(native_window)
+    except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+        carb.log_warn(f"[lightspeed.trex.app.setup] Unable to resolve native app window handle: {exc}")
+        return
+
+    if not hwnd:
+        return
+
+    if _set_windows_titlebar_dark(hwnd):
+        carb.log_info("[lightspeed.trex.app.setup] Applied dark Windows titlebar styling")
+    else:
+        carb.log_warn("[lightspeed.trex.app.setup] Windows dark titlebar styling was not supported")
 
 
 class SetupUI:
@@ -38,31 +97,44 @@ class SetupUI:
         self.__settings = carb.settings.get_settings()
         self.__sub_app_ready = None
         self.__preferences_menu_hook = self.__clear_preferences_menu_tick
+        self.__hide_menu = bool(self.__settings.get(_HIDE_MENU))
         omni.kit.menu.utils.add_hook(self.__preferences_menu_hook)
         self.__preferences_menu_hook_registered = True
 
-        if self.__settings.get(_HIDE_MENU):
+        app = omni.kit.app.get_app()
+        if app.is_app_ready():
+            self._on_app_ready()
+        else:
             # Editor Menu API must be used when the app is ready.
-            startup_event_stream = omni.kit.app.get_app().get_startup_event_stream()
+            startup_event_stream = app.get_startup_event_stream()
             self.__sub_app_ready = startup_event_stream.create_subscription_to_pop_by_type(
                 omni.kit.app.EVENT_APP_READY,
-                self._hide_menu,
-                name="Hide Menubar - App Ready",
+                self._on_app_ready,
+                name="Lightspeed App Ready Setup",
             )
 
-    def _hide_menu(self, *args):
+    def _on_app_ready(self, *args):
         self.__sub_app_ready = None
 
-        async def deferred_hide_menu():
+        async def deferred_app_ready_setup():
             await omni.kit.app.get_app().next_update_async()
             await omni.kit.app.get_app().next_update_async()
             await omni.kit.app.get_app().next_update_async()
 
-            menubar_ignore = MenubarIgnore()
-            custom_layouts = menubar_ignore.get_menubar_layout()
-            omni.kit.menu.utils.add_layout(custom_layouts)
+            if self.__hide_menu:
+                menubar_ignore = MenubarIgnore()
+                custom_layouts = menubar_ignore.get_menubar_layout()
+                omni.kit.menu.utils.add_layout(custom_layouts)
 
-        asyncio.ensure_future(deferred_hide_menu())
+            self.__close_splash_screen()
+            _apply_windows_dark_titlebar()
+
+        asyncio.ensure_future(deferred_app_ready_setup())
+
+    @staticmethod
+    def __close_splash_screen():
+        omni.splash.acquire_splash_screen_interface().close_all()
+        carb.log_info("[lightspeed.trex.app.setup] Closed Kit splash screen")
 
     @staticmethod
     def __clear_preferences_menu_tick(merged_menu):

@@ -16,6 +16,14 @@
 """
 
 from .test_delegate import TestViewportEventDelegateMouseWheel
-from .test_setup_ui import TestSetupUIGameCameraBoundary
+from .test_layers import TestViewportLayersFactorySkip
+from .test_setup_ui import TestSetupUI, TestSetupUIGameCameraBoundary
+from .test_stats import TestViewportStatisticFading
 
-__all__ = ["TestSetupUIGameCameraBoundary", "TestViewportEventDelegateMouseWheel"]
+__all__ = [
+    "TestSetupUI",
+    "TestSetupUIGameCameraBoundary",
+    "TestViewportEventDelegateMouseWheel",
+    "TestViewportLayersFactorySkip",
+    "TestViewportStatisticFading",
+]

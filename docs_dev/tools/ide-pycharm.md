@@ -58,7 +58,7 @@ The committed file templates (license header, unit test scaffold) only work when
 
 ### 4. Configure the Python interpreter
 
-Point PyCharm to Kit's embedded Python 3.10:
+Point PyCharm to Kit's embedded Python 3.12:
 
 **Settings (`Ctrl+Alt+S`) > Python > Interpreter > Add Interpreter > Add Local Interpreter** — select the
 interpreter type and browse to:

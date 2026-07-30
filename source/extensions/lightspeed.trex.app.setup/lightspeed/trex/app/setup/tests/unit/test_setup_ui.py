@@ -26,6 +26,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import omni.kit.test
 
 from lightspeed.trex.app.setup.extension import TrexSetupExtension
+from lightspeed.trex.app.setup import setup_ui as _setup_ui
 from lightspeed.trex.app.setup.setup_ui import MenubarIgnore, MenuLayout, SetupUI
 
 MenuItem = namedtuple("MenuItem", ["name", "sub_menu"])
@@ -35,22 +36,28 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
     async def test_init_registers_preferences_menu_hook(self):
         settings = MagicMock()
         settings.get.return_value = False
+        startup_event_stream = MagicMock()
+        app = MagicMock()
+        app.is_app_ready.return_value = False
+        app.get_startup_event_stream.return_value = startup_event_stream
 
         with (
             patch("lightspeed.trex.app.setup.setup_ui.carb.settings.get_settings", return_value=settings),
             patch("lightspeed.trex.app.setup.setup_ui.omni.kit.menu.utils.add_hook") as add_hook_mock,
+            patch("lightspeed.trex.app.setup.setup_ui.omni.kit.app.get_app", return_value=app),
         ):
             setup_ui = SetupUI()
 
         add_hook_mock.assert_called_once_with(setup_ui._SetupUI__preferences_menu_hook)
         self.assertTrue(setup_ui._SetupUI__preferences_menu_hook_registered)
 
-    async def test_init_defers_hide_menu_until_app_ready_when_hide_menu_enabled(self):
+    async def test_init_defers_app_ready_setup_until_app_ready(self):
         settings = MagicMock()
         settings.get.return_value = True
         startup_event_stream = MagicMock()
         startup_event_stream.create_subscription_to_pop_by_type.return_value = "subscription"
         app = MagicMock()
+        app.is_app_ready.return_value = False
         app.get_startup_event_stream.return_value = startup_event_stream
 
         with (
@@ -62,18 +69,20 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
 
         startup_event_stream.create_subscription_to_pop_by_type.assert_called_once_with(
             omni.kit.app.EVENT_APP_READY,
-            setup_ui._hide_menu,
-            name="Hide Menubar - App Ready",
+            setup_ui._on_app_ready,
+            name="Lightspeed App Ready Setup",
         )
         self.assertEqual(setup_ui._SetupUI__sub_app_ready, "subscription")
 
-    async def test_hide_menu_applies_layout_after_deferred_updates(self):
+    async def test_app_ready_setup_hides_menu_and_closes_splash_after_deferred_updates(self):
         setup_ui = SetupUI.__new__(SetupUI)
         setup_ui._SetupUI__sub_app_ready = MagicMock()
+        setup_ui._SetupUI__hide_menu = True
         app = MagicMock()
         app.next_update_async = AsyncMock()
         menubar_ignore = MagicMock()
         menubar_ignore.get_menubar_layout.return_value = ["layout"]
+        splash = MagicMock()
         scheduled_coroutines = []
 
         def capture_coroutine(coroutine):
@@ -85,13 +94,109 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
             patch("lightspeed.trex.app.setup.setup_ui.asyncio.ensure_future", side_effect=capture_coroutine),
             patch("lightspeed.trex.app.setup.setup_ui.MenubarIgnore", return_value=menubar_ignore),
             patch("lightspeed.trex.app.setup.setup_ui.omni.kit.menu.utils.add_layout") as add_layout_mock,
+            patch(
+                "lightspeed.trex.app.setup.setup_ui.omni.splash.acquire_splash_screen_interface",
+                return_value=splash,
+            ) as acquire_splash_mock,
+            patch("lightspeed.trex.app.setup.setup_ui._apply_windows_dark_titlebar") as apply_titlebar_mock,
         ):
-            setup_ui._hide_menu()
+            setup_ui._on_app_ready()
             await scheduled_coroutines[0]
 
         self.assertIsNone(setup_ui._SetupUI__sub_app_ready)
         self.assertEqual(app.next_update_async.await_count, 3)
         add_layout_mock.assert_called_once_with(["layout"])
+        acquire_splash_mock.assert_called_once_with()
+        splash.close_all.assert_called_once_with()
+        apply_titlebar_mock.assert_called_once_with()
+
+    async def test_app_ready_setup_closes_splash_when_hide_menu_disabled(self):
+        # Dev builds keep menus visible, but still need the app-ready splash close.
+        setup_ui = SetupUI.__new__(SetupUI)
+        setup_ui._SetupUI__sub_app_ready = MagicMock()
+        setup_ui._SetupUI__hide_menu = False
+        app = MagicMock()
+        app.next_update_async = AsyncMock()
+        splash = MagicMock()
+        scheduled_coroutines = []
+
+        def capture_coroutine(coroutine):
+            scheduled_coroutines.append(coroutine)
+            return MagicMock()
+
+        with (
+            patch("lightspeed.trex.app.setup.setup_ui.omni.kit.app.get_app", return_value=app),
+            patch("lightspeed.trex.app.setup.setup_ui.asyncio.ensure_future", side_effect=capture_coroutine),
+            patch("lightspeed.trex.app.setup.setup_ui.MenubarIgnore") as menubar_ignore_mock,
+            patch("lightspeed.trex.app.setup.setup_ui.omni.kit.menu.utils.add_layout") as add_layout_mock,
+            patch(
+                "lightspeed.trex.app.setup.setup_ui.omni.splash.acquire_splash_screen_interface",
+                return_value=splash,
+            ) as acquire_splash_mock,
+            patch("lightspeed.trex.app.setup.setup_ui._apply_windows_dark_titlebar") as apply_titlebar_mock,
+        ):
+            setup_ui._on_app_ready()
+            await scheduled_coroutines[0]
+
+        self.assertIsNone(setup_ui._SetupUI__sub_app_ready)
+        self.assertEqual(app.next_update_async.await_count, 3)
+        menubar_ignore_mock.assert_not_called()
+        add_layout_mock.assert_not_called()
+        acquire_splash_mock.assert_called_once_with()
+        splash.close_all.assert_called_once_with()
+        apply_titlebar_mock.assert_called_once_with()
+
+    async def test_apply_windows_dark_titlebar_skips_non_windows(self):
+        with (
+            patch("lightspeed.trex.app.setup.setup_ui.sys.platform", "linux"),
+            patch("lightspeed.trex.app.setup.setup_ui.omni.appwindow.get_default_app_window") as get_app_window_mock,
+        ):
+            _setup_ui._apply_windows_dark_titlebar()
+
+        get_app_window_mock.assert_not_called()
+
+    async def test_apply_windows_dark_titlebar_uses_native_app_window_handle(self):
+        settings = MagicMock()
+        settings.get.return_value = True
+        app_window = MagicMock()
+        app_window.get_window.return_value = "carb_window"
+        windowing = MagicMock()
+        windowing.get_native_window.return_value = "native_capsule"
+
+        with (
+            patch("lightspeed.trex.app.setup.setup_ui.sys.platform", "win32"),
+            patch("lightspeed.trex.app.setup.setup_ui.carb.settings.get_settings", return_value=settings),
+            patch("lightspeed.trex.app.setup.setup_ui.omni.appwindow.get_default_app_window", return_value=app_window),
+            patch(
+                "lightspeed.trex.app.setup.setup_ui.carb.windowing.acquire_windowing_interface",
+                return_value=windowing,
+            ),
+            patch("lightspeed.trex.app.setup.setup_ui._get_capsule_pointer", return_value=1234),
+            patch("lightspeed.trex.app.setup.setup_ui._set_windows_titlebar_dark", return_value=True) as set_dark_mock,
+        ):
+            _setup_ui._apply_windows_dark_titlebar()
+
+        windowing.get_native_window.assert_called_once_with("carb_window")
+        set_dark_mock.assert_called_once_with(1234)
+
+    async def test_set_windows_titlebar_dark_falls_back_to_older_dark_mode_attribute(self):
+        calls: list[tuple[int, int]] = []
+
+        def set_window_attribute(hwnd, attribute, _value, _value_size):
+            calls.append((hwnd.value, attribute.value))
+            return 1 if len(calls) == 1 else 0
+
+        windll = SimpleNamespace(dwmapi=SimpleNamespace(DwmSetWindowAttribute=set_window_attribute))
+        with patch("lightspeed.trex.app.setup.setup_ui.ctypes.windll", windll, create=True):
+            self.assertTrue(_setup_ui._set_windows_titlebar_dark(4321))
+
+        self.assertEqual(
+            calls,
+            [
+                (4321, _setup_ui._DARK_TITLEBAR_ATTRIBUTES[0]),
+                (4321, _setup_ui._DARK_TITLEBAR_ATTRIBUTES[1]),
+            ],
+        )
 
     async def test_clear_preferences_menu_tick_keeps_preferences_unticked(self):
         preferences_item = SimpleNamespace(

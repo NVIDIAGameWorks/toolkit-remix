@@ -112,7 +112,7 @@ class TestSubscribeCurveChanged(omni.kit.test.AsyncTestCase):
             self._widget = FCurveWidget()
 
         self._changed_curve_ids: list[str] = []
-        self._sub = self._widget.subscribe_curve_changed(lambda cid: self._changed_curve_ids.append(cid))
+        self._sub = self._widget.subscribe_curve_changed(self._changed_curve_ids.append)
 
         # Set up test curve
         self._widget.set_curves(
@@ -353,7 +353,7 @@ class TestSetSelectedKeysTangentType(omni.kit.test.AsyncTestCase):
     async def test_fires_curve_changed_event(self):
         """Should fire curve_changed event."""
         changed_ids: list[str] = []
-        sub = self._widget.subscribe_curve_changed(lambda cid: changed_ids.append(cid))
+        sub = self._widget.subscribe_curve_changed(changed_ids.append)
 
         self._widget.select_keys([KeyReference("test", 0)])
         self._widget.set_selected_keys_tangent_type(TangentType.FLAT)

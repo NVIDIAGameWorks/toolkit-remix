@@ -1,6 +1,26 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.16.7]
+### Changed
+- Updated USD selection synchronization to select all Stage Manager rows that represent a selected prim path, including duplicate rows under virtual groups.
+- Reapply current USD scene selection after threaded tree publication instead of restoring a pre-refresh selection snapshot.
+- Route filtered-root expansion through `ScrollingTreeWidget` instead of applying expansion again from the interaction.
+- Await post-refresh selection expansion and framing so shared refresh telemetry finishes at applied interaction state, while logging standalone task failures.
+
+### Fixed
+- Exclude virtual group rows without backing USD data from scene selection synchronization.
+- Cancel pending selection synchronization before hidden interaction UI is destroyed.
+- Coalesce selection changes received during framing so the latest live USD selection is applied.
+
+## [2.16.6]
+### Fixed
+- Cleared stale Stage Manager tree selection when the active USD selection is empty or cannot be represented by the active tree, while ignoring transient empty tree callbacks during model refreshes that are still restoring the current USD selection.
+- Prevented delayed programmatic Stage Manager tree selection callbacks from clearing the active USD selection.
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.16.5]
 ### Fixed
 - Updated property-only USD resync handling to dirty Stage Manager widgets instead of rebuilding context items unless force-refresh rules require it.

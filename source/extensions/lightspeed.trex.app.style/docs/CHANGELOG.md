@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.24.1]
+### Changed
+- Added a shared viewport background style for Kit 110 HdRemix fallback rendering.
+- Updated extension metadata for Kit SDK 110 compatibility.
+- REMIX-5117: Renamed `FloatSliderField*` style keys to `DragField*` - shared by both float and int drag delegates
+
+### Fixed
+- Restored TreeView header background styling so table headers match the dark panel theme on Kit SDK 110.
+
 ## [1.24.0]
 ### Added
 - REMIX-4628: `ProjectOverrideActiveIndicator` named style for the gold "project-wide override is active" indicator dot, and `ProjectOverrideValueField` (no-hover variant of `PropertiesWidgetField`) for value fields inside project-override sections.
@@ -25,7 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.22.2]
 ### Changed
-- REMIX-5117: Renamed `FloatSliderField*` style keys to `DragField*` — shared by both float and int drag delegates
+- REMIX-5117: Renamed `FloatSliderField*` style keys to `DragField*` â€” shared by both float and int drag delegates
 
 ## [1.22.1]
 ### Added

@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+import threading
+
 import omni.usd
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -64,28 +66,36 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
         self._stage = omni.usd.get_context(self.context_name).get_stage()
         self.setup()
 
-    def get_items(self):
+    def get_items(self, cancel_event: threading.Event | None = None):
         """
         Fetch the list of prims other plugins should use
+
+        Args:
+            cancel_event: Signal set when the collection has been superseded.
 
         Raises:
             ValueError: If the context was not setup
 
         Returns:
-            List of USD prims
+            List of USD prims, or None when cancelled.
         """
         if not self._listener_event_occurred_subs:
             raise ValueError("The context plugin was not setup")
-        if not self._stage:
+        stage = self._stage
+        if not stage:
             return []  # no stage is open
 
         items = {}
-        current_layer = self._stage.GetPseudoRoot().GetChildren()
+        current_layer = stage.GetPseudoRoot().GetChildren()
 
         while current_layer:
+            if cancel_event and cancel_event.is_set():
+                return None
             next_layer = []
 
             for prim in current_layer:
+                if cancel_event and cancel_event.is_set():
+                    return None
                 item = _StageManagerItem(hash(prim), prim, parent=items.get(hash(prim.GetParent())))
                 items[item.identifier] = item
 

@@ -77,6 +77,9 @@ class LightGizmosModel(sc.AbstractManipulatorModel):
         return omni.usd.get_context(self._usd_context_name)
 
     def update_from_prim(self):
+        if not self._is_prim_valid(self._prim):
+            self.set_value(self.visible, False)
+            return
         self.set_value(self.transform, self._get_transform())
         self.set_value(self.light_type, self._get_light_type())
         self.set_value(self.visible, self._is_visible())
@@ -129,6 +132,8 @@ class LightGizmosModel(sc.AbstractManipulatorModel):
         stage = self._get_context().get_stage()
         if not stage or not self._current_path:
             return False
+        if not self._is_prim_valid(self._prim):
+            return False
         if not self._prim.IsActive():
             return False
         if not self._parent_resolves_in_composition(self._prim):
@@ -166,6 +171,8 @@ class LightGizmosModel(sc.AbstractManipulatorModel):
         final_transform = Gf.Matrix4d().SetScale(Gf.Vec3d(self._gizmo_scale))
         if not stage or not self._current_path:
             return [j for sub in final_transform for j in sub]
+        if not self._is_prim_valid(self._prim):
+            return [j for sub in final_transform for j in sub]
 
         # Get transform directly from USD
         light_transform = UsdGeom.Imageable(self._prim).ComputeLocalToWorldTransform(Usd.TimeCode.Default())
@@ -174,6 +181,8 @@ class LightGizmosModel(sc.AbstractManipulatorModel):
         return [j for sub in final_transform for j in sub]
 
     def _get_light_type(self):
+        if not self._is_prim_valid(self._prim):
+            return LightType.UnknownLight
         if self._prim.IsA(UsdLux.DomeLight):
             return LightType.DomeLight
         if self._prim.IsA(UsdLux.DiskLight):
@@ -187,3 +196,10 @@ class LightGizmosModel(sc.AbstractManipulatorModel):
         if self._prim.IsA(UsdLux.DistantLight):
             return LightType.DistantLight
         return LightType.UnknownLight
+
+    @staticmethod
+    def _is_prim_valid(prim: Usd.Prim) -> bool:
+        try:
+            return bool(prim and prim.IsValid())
+        except RuntimeError:
+            return False

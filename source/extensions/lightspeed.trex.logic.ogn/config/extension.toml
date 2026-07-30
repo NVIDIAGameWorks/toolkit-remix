@@ -1,7 +1,8 @@
 # Main extension description values
 [package]
+kit_sdk_version = "110.*"
 # The current extension version number - uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
-version = "1.0.4"
+version = "1.0.5"
 # The title of the extension that will appear in the extension window
 title = "Remix OmniGraph Python Nodes"
 # Longer description of the extension
@@ -43,9 +44,3 @@ pages = [
     "docs/Overview.md",
     "docs/CHANGELOG.md",
 ]
-
-# Some extensions are only needed when writing tests, including those automatically generated from a .ogn file.
-# Having special test-only dependencies lets you avoid introducing a dependency on the test environment when only
-# using the functionality.
-[[test]]
-dependencies = ["omni.usd",]

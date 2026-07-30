@@ -16,6 +16,7 @@
 """
 
 import asyncio
+import difflib
 import filecmp
 import tempfile
 from os import walk
@@ -45,6 +46,29 @@ def compare_files(fn1, fn2):
             return file1.read() == file2.read()
     except UnicodeDecodeError:  # not a text file
         return filecmp.cmp(fn1, fn2)
+
+
+def compare_files_message(fn1, fn2):
+    try:
+        with (
+            open(fn1, newline=None, encoding="utf8") as file1,
+            open(fn2, newline=None, encoding="utf8") as file2,
+        ):
+            expected_lines = file1.readlines()
+            actual_lines = file2.readlines()
+            if expected_lines == actual_lines:
+                return ""
+            return "\n".join(
+                difflib.unified_diff(
+                    expected_lines,
+                    actual_lines,
+                    fromfile=str(fn1),
+                    tofile=str(fn2),
+                    lineterm="",
+                )
+            )
+    except UnicodeDecodeError:
+        return f"The contents of the expected and actual binary files don't match: {fn1}"
 
 
 class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
@@ -735,7 +759,8 @@ class TestPackagingCoreE2E(omni.kit.test.AsyncTestCase):
                 )
                 self.assertTrue(
                     compare_files(expected_path, actual_path),
-                    msg=f"The contents of the expected and actual files don't match: {expected_path}",
+                    msg=compare_files_message(expected_path, actual_path)
+                    or f"The contents of the expected and actual files don't match: {expected_path}",
                 )
 
         # Make sure no extra files exist in the actual directory

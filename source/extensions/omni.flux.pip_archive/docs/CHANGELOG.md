@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.3]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.2.2]
 ### Removed
 - Removed internal pip prebundle module path

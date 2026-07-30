@@ -1,6 +1,7 @@
 [package]
+kit_sdk_version = "110.*"
 # Semantic Versionning is used: https://semver.org/
-version = "1.1.3"
+version = "1.1.4"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -28,14 +29,6 @@ preview_image = "data/preview.png"
 
 # Icon is shown in Extensions window, it is recommended to be square, of size 256x256.
 icon = "data/icon.png"
-
-#[dependencies]
-#"omni.kit.splash" = {}  # Instead of loading dependencies here, add them to the deferred dependencies
-
-[settings]
-exts."lightspeed.dependencies".deferred_dependencies = [
-    "omni.kit.splash",
-]
 
 [[python.module]]
 name = "lightspeed.dependencies"

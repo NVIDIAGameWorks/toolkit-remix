@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.1]
+### Added
+- Added narrow-panel E2E coverage for material property fields shown after hidden construction.
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.3.0]
 ### Fixed
 - Fixed texture set assignment so hidden material texture rows are populated before their controlling options are enabled.

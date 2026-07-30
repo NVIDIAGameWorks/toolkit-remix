@@ -112,10 +112,10 @@ class UsdPrimNameField:
             self._stage = None
 
         # Store callable functions for fresh queries
-        self._display_text_fn = display_text_fn if display_text_fn else lambda p: p.GetName()
-        self._tooltip_fn = tooltip_fn if tooltip_fn else lambda p: str(p.GetPath())
+        self._display_text_fn = display_text_fn or (lambda p: p.GetName())
+        self._tooltip_fn = tooltip_fn or (lambda p: str(p.GetPath()))
 
-        self._editable_check_fn = editable_check_fn if editable_check_fn else lambda p: True
+        self._editable_check_fn = editable_check_fn or (lambda p: True)
         self._show_display_name_ancestor = show_display_name_ancestor
 
         self._container: ui.Frame | None = None
@@ -142,7 +142,7 @@ class UsdPrimNameField:
             GLOBAL_SHOW_NICKNAMES_SETTING, self._on_global_toggle_changed
         )
 
-        self._identifier = identifier if identifier else "nickname_field"
+        self._identifier = identifier or "nickname_field"
         if self._nickname:
             self._show_indicator = True
             self._indicator_active = self.show_nickname

@@ -385,7 +385,8 @@ def _on_right_click(self, x, y, button, modifier):
     # menu.show_at(x, y)  — wrong: x/y are local, not screen coords
 ```
 
-Use the `direction` parameter on `ui.Menu` to control which side of the cursor the popup opens on.
+Leave `direction` unset for standard vertical popup menus. Use the `direction` parameter only
+when intentionally requesting a non-default menu layout; Kit 110 honors that per-menu state.
 
 ### 11. `ui.Image` — Always Set Both Width and Height
 

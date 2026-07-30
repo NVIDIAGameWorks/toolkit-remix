@@ -2,6 +2,20 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.5]
+### Added
+- Added shared test helpers for asserting popup menu item placement.
+
+### Fixed
+- Declared the UI test dependencies used by shared popup menu helpers.
+
+## [1.1.4]
+### Added
+- Added a helper for copying test project fixtures into temporary directories.
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.1.3]
 ### Changed
 - Added default test data extension support to shared test path helpers

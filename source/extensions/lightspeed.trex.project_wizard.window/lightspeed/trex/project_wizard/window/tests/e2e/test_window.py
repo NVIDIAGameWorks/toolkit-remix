@@ -433,8 +433,18 @@ class TestWizardWindow(AsyncTestCase):
         # _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
 
     async def test_create_project_should_create_project(self):
+        """Create a project while a completion subscriber releases itself during dispatch."""
         # Setup the test
         wizard_window = self.wizard._wizard_window._window
+        completion_payloads = []
+        completion_subscription = None
+
+        def on_wizard_completed(payload):
+            nonlocal completion_subscription
+            completion_payloads.append(payload)
+            completion_subscription = None
+
+        completion_subscription = self.wizard.subscribe_wizard_completed(on_wizard_completed)
 
         # Start the test
         self.wizard.show_project_wizard(reset_page=True)
@@ -482,6 +492,7 @@ class TestWizardWindow(AsyncTestCase):
 
         # Make sure the wizard was hidden
         self.assertFalse(wizard_window.visible)
+        self.assertEqual([self.project_path], [payload["project_file"] for payload in completion_payloads])
 
         # Evaluate the layer content
         project_layer = Sdf.Layer.FindOrOpen(str(self.project_path))

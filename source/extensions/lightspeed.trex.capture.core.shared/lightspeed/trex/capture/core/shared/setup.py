@@ -103,7 +103,7 @@ class Setup:
         callback(result)
 
     def __on_load_event(self, event):
-        if event.type not in {int(omni.usd.StageEventType.OPENED)}:
+        if event.type != int(omni.usd.StageEventType.OPENED):
             return
 
         capture_layer = self._layer_manager.get_layer_of_type(LayerType.capture)

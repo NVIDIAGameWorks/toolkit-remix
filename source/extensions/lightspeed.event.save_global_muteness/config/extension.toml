@@ -2,7 +2,8 @@
 order = 1
 
 [package]
-version = "1.2.3"
+kit_sdk_version = "110.*"
+version = "1.2.4"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"

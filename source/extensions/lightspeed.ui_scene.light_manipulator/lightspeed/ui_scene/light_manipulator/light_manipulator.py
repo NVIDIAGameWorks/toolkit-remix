@@ -550,7 +550,7 @@ class AbstractLightManipulator(sc.Manipulator):
         if stage is None:
             return default
         value = UsdGeom.GetStageMetersPerUnit(stage)
-        return value if value else default
+        return value or default
 
     def _get_source_radius(self) -> float:
         """Return the emitter's source radius in stage units.
@@ -762,9 +762,7 @@ class AbstractLightManipulator(sc.Manipulator):
 
     def _on_model_updated(self, item: sc.AbstractManipulatorItem):
         """Handle light subclass specific updates"""
-        if item in {
-            self.model.intensity,
-        }:
+        if item == self.model.intensity:
             # if intensity changed, update shape xform
             self.build_shape_xform()
 
@@ -1347,7 +1345,5 @@ class CylinderLightManipulator(IntensityMixinFor3DManipulators, AbstractLightMan
         """Handle light subclass specific updates"""
         if item in {self.model.radius, self.model.length}:
             self.build_shape_xform()
-        if item in {
-            self.model.intensity,
-        }:
+        if item == self.model.intensity:
             self.build_intensity_xform()

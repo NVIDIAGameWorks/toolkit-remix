@@ -47,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the Toolkit credits list with Runtime credit contributors.
 - Added a scheduled Remix target dependency bot to update hdremix, omni_core_materials, and remix_runtime pins using a durable reusable bot branch.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-9c46827-main`
+- REMIX-5155: Update Kit SDK version to 110.1.1 production.
+- REMIX-5605: Updated light rigs for USD 25.11 compatibility and added a migration for legacy project files.
+- Update hdremix to the latest DXVK that has USD 25.11
 
 ### Removed
 
@@ -78,6 +81,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5609: Fixed xform override handling so focus-only edits do not author USD overrides, value edits author the full logical xform set, and related xform specs appear as one layer modification entry.
 - Fixed Remix target dependency bot CI by skipping harmless Git LFS authentication checks and routing Slack result notifications by outcome.
 - REMIX-4404: Fixed texture ingestion saturating VRAM by making DDS and octahedral conversion concurrency configurable (`max_workers`, default `2`) through one shared ingestion UI control.
+
+- Fixed docs builds by keeping Sphinx imports compatible with Kit runtime modules outside Kit.
+
+- Fixed Kit 110 HdRemix startup, warmup compatibility, renderer initialization, and support retries.
+
+- Fixed Pyright config generation so Windows builds skip inaccessible generated extra paths instead of logging a pre-build error.
+
+- REMIX-5607: Fixed StageCraft undo context initialization, clarified the teleport viewport tooltip, and aligned Existing Graphs action icons in the logic properties pane.
+- REMIX-5608: Fixed AI Tools layout restore so the workspace widget exposes the shared lifecycle state expected by Kit 110 workspace windows.
+- REMIX-5610: Fixed Kit SDK 110 popup menus rendering horizontally by removing legacy horizontal menu directions from affected Layer, Modification, and Validator menus.
+- REMIX-4943: Reduced Stage Manager refresh latency and viewport blocking with cancellable worker-side traversal, filtering, tree construction, and expansion planning, plus atomic publication, live-selection framing, and refresh telemetry.
+- REMIX-5606: Fixed HdRemix selection highlight performance on USD 25+ by updating the HdRemix package and disabling the legacy selection highlight path.
+- REMIX-5630: Fixed property panel fields exceeding the panel width after Editor panel resizing, removed hidden horizontal side-scrolling, and prevented MCP port bind failures from aborting launch
+- REMIX-5605: Fixed packaged builds to use the corrected light-rig package so USD 25.11-compatible rig presets resolve at the app-configured path.
 
 ## [1.5.2-0]
 

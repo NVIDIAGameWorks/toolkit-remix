@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.2]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.0.1]
 ### Fixed
 - REMIX-5483: Gated the Integrate Indirect Illumination Mode dropdown's runtime push on the Override Capture Value checkbox so loaded capture presets are no longer overwritten when the box is unchecked.

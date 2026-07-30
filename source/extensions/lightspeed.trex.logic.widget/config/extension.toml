@@ -1,7 +1,8 @@
 [package]
+kit_sdk_version = "110.*"
 title = "Remix Logic Graph Editor"
 description = "Component editor window for Remix Component Graphs"
-version = "1.7.4"
+version = "1.7.5"
 authors = ["Chris Grebeldinger <cgrebeldinge@nvidia.com>", "Dean Edmonds <dedmonds@nvidia.com>", "Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.logic.widget"
 keywords = ["graph", "logic", "component", "remix", "ui"]
@@ -44,7 +45,6 @@ stdoutFailPatterns.exclude = [
 dependencies = [
     # we should update tests to use logic nodes only and remove these dependencies
     "omni.graph.nodes",
-    "omni.kit.mainwindow",
     "omni.kit.test_suite.helpers",
     "omni.graph.tutorials",
     "omni.kit.ui_test",

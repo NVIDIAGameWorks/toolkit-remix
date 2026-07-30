@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.5]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Kept fixed-label-column property fields inside the property panel while resizing.
+
 ## [2.12.4]
 ### Changed
 - Added tooltip support to shared item group name models so grouped outlet rows can reuse generic static labels.

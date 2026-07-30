@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.8]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Excluded known headless OpenGL interop diagnostics from the viewport-backed unit test run.
+
 ## [1.4.7]
 ### Fixed
 - Forced perspective camera sync to use the active capture layer's game camera and clear stale game-camera overrides

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.6]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.3.5]
 ### Fixed
 - Routed USD notice delivery through the shared interactive coalescer so stage manager listeners can defer interactive refreshes until drag completion
@@ -16,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [2.3.2]
 ### Changed
 - Modernize python style and enable more ruff checks
+
 ## [2.3.1]
 ### Changed
 - Switched to ruff for linting and formatting

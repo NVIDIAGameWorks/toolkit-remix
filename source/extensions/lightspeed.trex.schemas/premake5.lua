@@ -7,5 +7,6 @@ repo_build.prebuild_link {
     { "data", ext.target_dir.."/data" },
     { "docs", ext.target_dir.."/docs" },
     { "lightspeed", ext.target_dir.."/lightspeed" },
-    { "%{root}/_build/target-deps/hdremix/usd/plugins/RemixParticleSystem", ext.target_dir.."/usd/plugins/RemixParticleSystem" },
+    { "${target_deps}/hdremix", ext.target_dir.."/deps/hdremix" },
+    { "%{root}/_build/target-deps/hdremix/usd/plugins", ext.target_dir.."/usd/plugins" },
 }

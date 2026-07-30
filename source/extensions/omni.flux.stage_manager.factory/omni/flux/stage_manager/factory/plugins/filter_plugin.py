@@ -64,6 +64,15 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         pass
 
+    def prepare_filter_predicate(self) -> Callable[[_StageManagerItem], bool]:
+        """
+        Return a refresh-local predicate.
+
+        This method runs in the refresh worker. Implementations may capture
+        read-only state but must not access UI objects or mutate shared state.
+        """
+        return self.filter_predicate
+
     def subscribe_filter_items_changed(self, callback: Callable[[], None]) -> _EventSubscription:
         """
         Return the object that will automatically unsubscribe when destroyed.

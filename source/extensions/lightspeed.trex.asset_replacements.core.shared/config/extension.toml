@@ -1,5 +1,6 @@
 [package]
-version = "3.3.4"
+kit_sdk_version = "110.*"
+version = "3.3.5"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Asset Replacements extension for the StageCraft"
 description = "Extension that works on asset replacement data for NVIDIA RTX Remix StageCraft App"

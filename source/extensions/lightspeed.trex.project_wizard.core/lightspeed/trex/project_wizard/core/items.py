@@ -172,7 +172,7 @@ class ProjectWizardSchema(BaseModel):
             if result != omni.client.Result.OK or entries:
                 raise ValueError("The project should be created in a valid empty directory")
             # Try to validate the project doesn't already exist in rtx-remix if possible
-            remix_dir = values.get(ProjectWizardKeys.REMIX_DIRECTORY.value, None)
+            remix_dir = values.get(ProjectWizardKeys.REMIX_DIRECTORY.value)
             if remix_dir:
                 project_path = Path(remix_dir) / _constants.REMIX_MODS_FOLDER / v.parent.name
                 result, _ = omni.client.stat(str(project_path))
@@ -186,7 +186,7 @@ class ProjectWizardSchema(BaseModel):
         if not v:
             if not values.get(ProjectWizardKeys.EXISTING_PROJECT.value, False):
                 raise ValueError("The is mandatory for new projects")
-            if not cls.are_project_symlinks_valid(values.get(ProjectWizardKeys.PROJECT_FILE.value, None)):
+            if not cls.are_project_symlinks_valid(values.get(ProjectWizardKeys.PROJECT_FILE.value)):
                 raise ValueError("The project path symlinks are invalid. A Remix directory is required to fix them.")
 
         if v.stem != _constants.REMIX_FOLDER:

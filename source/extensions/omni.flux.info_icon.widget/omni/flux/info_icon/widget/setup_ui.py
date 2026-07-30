@@ -130,7 +130,7 @@ class TooltipWidget:
         flags |= ui.WINDOW_FLAGS_NO_SCROLLBAR
 
         # Use max_width if specified, otherwise default to 600
-        initial_width = self._max_width if self._max_width else 600
+        initial_width = self._max_width or 600
 
         self._tooltip_window = ui.Window(
             "Context Info",

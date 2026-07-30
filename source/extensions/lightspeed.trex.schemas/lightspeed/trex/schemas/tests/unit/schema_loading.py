@@ -17,11 +17,12 @@
 
 import pathlib
 
+from lightspeed.common.constants import PARTICLE_SCHEMA_NAME
 from lightspeed.trex.schemas.utils import get_schema_prim
 from omni.kit.test import AsyncTestCase
 from pxr import Sdf, Usd, UsdGeom
 
-TEST_PARTICLE_SCHEMA_NAME = "RemixParticleSystemAPI"
+TEST_PARTICLE_SCHEMA_NAME = PARTICLE_SCHEMA_NAME
 TEST_PARTICLE_PRIMVAR_PREFIX = "primvars:particle:"
 
 

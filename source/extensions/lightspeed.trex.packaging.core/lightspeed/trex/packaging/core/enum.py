@@ -15,13 +15,13 @@
 * limitations under the License.
 """
 
-from enum import Enum
+from enum import StrEnum
 
 from lightspeed.common.constants import SAVE_USD_FILE_EXTENSIONS_OPTIONS as _SAVE_USD_FILE_EXTENSIONS_OPTIONS
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
 
 
-class ModPackagingMode(str, Enum):
+class ModPackagingMode(StrEnum):
     REDIRECT = (
         "redirect",
         "Redirect dependencies",

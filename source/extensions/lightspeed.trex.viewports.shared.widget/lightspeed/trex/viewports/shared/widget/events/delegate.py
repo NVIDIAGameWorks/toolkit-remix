@@ -22,6 +22,7 @@ import math
 import traceback
 
 import carb
+import omni.appwindow
 from lightspeed.trex.viewports.manipulators.zoom import zoom_operation as _zoom_operation
 
 
@@ -35,6 +36,18 @@ def _limit_camera_velocity(value: float, settings: carb.settings.ISettings, cont
         if vel_max is not None:
             value = min(vel_max, value)
     return value
+
+
+def _regular_keyboard_inputs():
+    # Kit orders regular keyboard inputs before modifier keys; stop before LEFT_SHIFT and skip ESC.
+    for key_index in range(int(carb.input.KeyboardInput.LEFT_SHIFT)):
+        if key_index == int(carb.input.KeyboardInput.ESCAPE):
+            continue
+        with contextlib.suppress(ValueError, TypeError):
+            yield carb.input.KeyboardInput(key_index)
+
+
+_REGULAR_KEYBOARD_INPUTS = tuple(_regular_keyboard_inputs())
 
 
 class ViewportEventDelegate:
@@ -78,8 +91,6 @@ class ViewportEventDelegate:
 
     def adjust_flight_speed(self, x: float, y: float):
         try:
-            import omni.appwindow  # noqa: PLC0415
-
             iinput = carb.input.acquire_input_interface()
             app_window = omni.appwindow.get_default_app_window()
             mouse = app_window.get_mouse()
@@ -117,17 +128,8 @@ class ViewportEventDelegate:
         if self.adjust_flight_speed(x, y):
             return
         # If a key is down, ignore the wheel-event (i.e. don't zoom on paint b+scroll event)
-        if self.__key_down:
-            import omni.appwindow  # noqa: PLC0415
-
-            app_window = omni.appwindow.get_default_app_window()
-            key_input = carb.input.acquire_input_interface()
-            keyboard = app_window.get_keyboard()
-            app_window.get_keyboard()
-            for key in self.__key_down:
-                if key_input.get_keyboard_value(keyboard, key):
-                    return
-            self.__key_down = set()
+        if self.__regular_key_is_down():
+            return
 
         try:
             settings = carb.settings.get_settings()
@@ -137,6 +139,18 @@ class ViewportEventDelegate:
             _zoom_operation(x, y * speed_scale, self.viewport_api)
         except Exception:  # noqa: BLE001
             carb.log_error(f"Traceback:\n{traceback.format_exc()}")
+
+    def __regular_key_is_down(self):
+        app_window = omni.appwindow.get_default_app_window()
+        key_input = carb.input.acquire_input_interface()
+        keyboard = app_window.get_keyboard()
+        pressed_keys = set()
+        for key in {*self.__key_down, *_REGULAR_KEYBOARD_INPUTS}:
+            if key_input.get_keyboard_value(keyboard, key):
+                pressed_keys.add(key)
+
+        self.__key_down = pressed_keys
+        return bool(pressed_keys)
 
     def key_pressed(self, key_index: int, modifiers: int, is_down: bool):
         # Ignore all key-modifier up/down events, only care about escape or blocking scroll with real-key

@@ -82,6 +82,25 @@ class TestAdaptiveTaskBudget(omni.kit.test.AsyncTestCase):
         self.assertEqual(partition.task_count, 8)
         self.assertEqual(partition.chunk_size, 1250)
 
+    def test_overhead_budget_does_not_reduce_below_min_task_count(self):
+        # Arrange
+        budget = AdaptiveTaskBudget(
+            min_task_count=8,
+            max_task_count=64,
+            max_overhead_ms=1.0,
+            max_overhead_ratio=0.0,
+            overhead_warmup_samples=0,
+        )
+        budget._ema_item_predicate_ms = 0.02
+        budget._ema_task_overhead_ms = 1000.0
+
+        # Act
+        partition = budget.compute_partition(item_count=10000, predicate_count=2)
+
+        # Assert
+        self.assertEqual(partition.task_count, 8)
+        self.assertEqual(partition.chunk_size, 1250)
+
     def test_higher_compute_cost_requests_more_tasks(self):
         # Arrange
         budget = AdaptiveTaskBudget(min_task_count=1, max_task_count=64, max_overhead_ms=10000.0, target_chunk_ms=50.0)

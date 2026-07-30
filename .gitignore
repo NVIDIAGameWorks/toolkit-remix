@@ -164,3 +164,4 @@ pyrightconfig.json
 # Claude Code Superpowers Plugin
 .superpowers/**
 docs/superpowers/**
+docs/plans/**

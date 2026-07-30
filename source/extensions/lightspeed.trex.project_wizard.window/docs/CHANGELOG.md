@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.3]
+### Fixed
+- Prevented completion subscribers from invalidating Project Wizard event dispatch when they unsubscribe.
+
+## [2.2.2]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.2.1]
 ### Changed
 - Added a progress popup while the wizard probes projects for RTX IO packages and broken references.

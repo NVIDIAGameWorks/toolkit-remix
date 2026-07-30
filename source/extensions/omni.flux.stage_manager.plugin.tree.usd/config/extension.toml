@@ -1,6 +1,7 @@
 [package]
+kit_sdk_version = "110.*"
 # Semantic Versionning is used: https://semver.org/
-version = "2.6.4"
+version = "2.7.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -31,6 +32,7 @@ icon = "data/images/icon.png"
 
 [dependencies]
 "omni.flux.custom_tags.core" = {}
+"omni.flux.pip_archive" = {}
 "omni.flux.stage_manager.factory" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}

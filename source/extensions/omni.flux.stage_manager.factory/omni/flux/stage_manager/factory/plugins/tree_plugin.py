@@ -26,14 +26,14 @@ __all__ = [
 
 import abc
 import asyncio
+import threading
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import carb.settings
-import omni.kit.app
 import omni.kit.context_menu
 from omni import ui, usd
-from omni.flux.telemetry.core import get_telemetry_instance
 from omni.flux.utils.common.menus import Menu as _Menu
 from omni.flux.utils.common.menus import MenuGroup as _MenuGroup
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
@@ -42,6 +42,7 @@ from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 from omni.flux.utils.widget.usd.prims.string_field import UsdPrimNameField as _UsdPrimNameField
 from pydantic import Field
 
+from ..items import StageManagerItem as _StageManagerItem
 from ..utils import StageManagerUtils as _StageManagerUtils
 from .base import StageManagerPluginBase as _StageManagerPluginBase
 from .filter_plugin import StageManagerFilterPlugin as _StageManagerFilterPlugin
@@ -49,7 +50,6 @@ from .filter_plugin import StageManagerFilterPlugin as _StageManagerFilterPlugin
 if TYPE_CHECKING:
     from pxr import Usd
 
-    from ..items import StageManagerItem as _StageManagerItem
     from .column_plugin import StageManagerColumnPlugin as _StageManagerColumnPlugin
 
 
@@ -70,6 +70,7 @@ class StageManagerTreeItem(_TreeItemBase):
         data: Any,
         tooltip: str = "",
         display_name_ancestor: str | None = None,
+        path: str | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -77,6 +78,7 @@ class StageManagerTreeItem(_TreeItemBase):
         self._tooltip = tooltip
         self._data = data
         self._display_name_ancestor = display_name_ancestor
+        self._path = path
 
         self._parent = None
 
@@ -92,6 +94,7 @@ class StageManagerTreeItem(_TreeItemBase):
                 "_display_name": None,
                 "_tooltip": None,
                 "_data": None,
+                "_path": None,
                 "_parent_name": None,
                 "_settings": None,
                 "_nickname_field": None,
@@ -160,6 +163,20 @@ class StageManagerTreeItem(_TreeItemBase):
         return self._data
 
     @property
+    def path(self) -> str | None:
+        """
+        Stable data path represented by this tree item, when one exists.
+        """
+        return self._path
+
+    @path.setter
+    def path(self, value: str | None):
+        """
+        Set the stable data path represented by this tree item.
+        """
+        self._path = value
+
+    @property
     def icon(self) -> str | None:
         """
         The icon style name associated with the item. Can be used by the widgets
@@ -218,6 +235,32 @@ class StageManagerTreeItem(_TreeItemBase):
         return hash(self.long_display_path_name)
 
 
+@dataclass(frozen=True)
+class TreeRefreshResult:
+    """
+    Fully prepared tree data ready to publish on the main thread.
+
+    The lookup tables are built with the tree in one worker pass. They contain
+    references to the tree items rather than copies and avoid later tree scans
+    during publication, selection synchronization, and expansion restoration.
+
+    Attributes:
+        root_items: Root hierarchy published to the tree model.
+        items_by_path: All data-backed rows for each stable path, including duplicates.
+        item_by_hash: Every row indexed for exact expansion-state restoration.
+        path_by_hash: Stable-path fallback retained after the previous tree is released.
+        input_items_count: Context items considered before user filtering.
+        output_items_count: Context items retained after user filtering.
+    """
+
+    root_items: list[StageManagerTreeItem]
+    items_by_path: dict[str, list[StageManagerTreeItem]]
+    item_by_hash: dict[int, StageManagerTreeItem]
+    path_by_hash: dict[int, str]
+    input_items_count: int
+    output_items_count: int
+
+
 class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
     """
     A TreeView model used to define the structure of the tree
@@ -229,11 +272,17 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         super().__init__()
 
         self._context_items: list[_StageManagerItem] = []
-        self._user_filter_predicates: list[Callable[[_StageManagerItem], bool]] = []
         self._user_filter_plugins: list[_StageManagerFilterPlugin] = []
-        self._context_predicates: list[Callable[[_StageManagerItem], bool]] = []
         self._column_count = 0
         self._selection: list[StageManagerTreeItem] = []
+        self._items_by_path: dict[str, list[StageManagerTreeItem]] = {}
+        self._item_by_hash: dict[int, StageManagerTreeItem] = {}
+        self._refresh_cancel_event: threading.Event | None = None
+
+    def destroy(self):
+        if self._refresh_cancel_event:
+            self._refresh_cancel_event.set()
+        super().destroy()
 
     @property
     @abc.abstractmethod
@@ -243,10 +292,11 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             {
                 "_items": None,
                 "_context_items": None,
-                "_user_filter_predicates": None,
-                "_context_predicates": None,
                 "_column_count": None,
                 "_selection": None,
+                "_items_by_path": None,
+                "_item_by_hash": None,
+                "_refresh_cancel_event": None,
             }
         )
         return default_attr
@@ -256,56 +306,50 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         Get a dictionary of item hashes and items
         """
-        return {hash(item): item for item in self.iter_items_children()}
+        return (
+            dict(self._item_by_hash)
+            if self._item_by_hash
+            else {hash(item): item for item in self.iter_items_children()}
+        )
 
     @property
     def selection(self) -> list[StageManagerTreeItem]:
         """The tree items currently selected in the UI."""
         return list(self._selection)
 
-    def set_selection(self, items: Iterable[StageManagerTreeItem]):
+    @selection.setter
+    def selection(self, items: Iterable[StageManagerTreeItem]):
         """
         Store the currently selected tree items.
 
         A copy of ``items`` is stored; mutating the original list after calling
-        this method has no effect on the stored selection.
+        this setter has no effect on the stored selection.
 
         Called by the interaction plugin whenever the tree selection changes.
         """
         self._selection = list(items)
 
-    @usd.handle_exception
-    async def get_context_items(self) -> list[_StageManagerItem]:
+    def get_items_by_path(self, path: str) -> list[StageManagerTreeItem]:
         """
-        Get items set by the context plugin.
-
-        Items are filtered before they are returned
+        Get all tree items for a USD path without walking the tree.
         """
+        return list(self._items_by_path.get(path, []))
 
-        await omni.kit.app.get_app().next_update_async()
-        if self._context_items is None:
-            return []
-        telemetry = get_telemetry_instance()
-        if telemetry is None:
-            return _StageManagerUtils.filter_items_by_category(self._context_items, self._user_filter_plugins) or []
-        with telemetry.sentry_sdk.start_transaction(
-            op="stage_manager",
-            name="Refresh Stage Manager",
-            custom_sampling_context={"sample_rate_override": 0.25},
-        ) as transaction:
-            filtered_items = _StageManagerUtils.filter_items_by_category(self._context_items, self._user_filter_plugins)
-
-            if transaction is not None:
-                transaction.set_data("input_items_count", len(self._context_items))
-                transaction.set_data("output_items_count", len(filtered_items))
-
-            return filtered_items or []
-
-    def set_context_items(self, items: Iterable[_StageManagerItem]):
+    def set_context_items(self, items: list[_StageManagerItem]):
         """
-        Set items fetched in the context plugin
+        Take ownership of items fetched in the context worker without copying.
+
+        The interaction pipeline schedules the model refresh after this handoff.
         """
-        self._context_items = list(items)
+        self._context_items = items
+
+    def clear_items(self):
+        """Clear rendered tree state without dropping source context data."""
+        self._items = []
+        self.selection = []
+        self._items_by_path = {}
+        self._item_by_hash = {}
+        self._item_changed(None)
 
     @property
     def column_count(self) -> int:
@@ -326,15 +370,56 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         Method called when the `self._items` attribute should be refreshed
         """
-        await omni.kit.app.get_app().next_update_async()
-        filtered_items = await self.get_context_items()
+        result = await self.refresh_threaded()
+        if result is None:
+            return
+        self.publish_refresh_result(result)
 
-        for item in filtered_items:
-            item.tree_item = None
+    async def refresh_threaded(self) -> TreeRefreshResult | None:
+        """
+        Prepare a complete tree refresh result off the UI thread.
+        """
+        previous_cancel_event = self._refresh_cancel_event
+        if previous_cancel_event is not None:
+            previous_cancel_event.set()
 
-        self.set_selection([])
-        self._items = self._build_items(filtered_items)
+        cancel_event = threading.Event()
+        self._refresh_cancel_event = cancel_event
 
+        try:
+            context_items = self._context_items
+            user_filter_plugins = [
+                filter_plugin for filter_plugin in self._user_filter_plugins if filter_plugin.filter_active
+            ]
+            result = await asyncio.to_thread(
+                self._prepare_refresh_result,
+                context_items,
+                user_filter_plugins,
+                cancel_event,
+            )
+        except asyncio.CancelledError:
+            cancel_event.set()
+            raise
+        finally:
+            if self._refresh_cancel_event is cancel_event:
+                self._refresh_cancel_event = None
+
+        if result is None or cancel_event.is_set():
+            return None
+        return result
+
+    def publish_refresh_result(self, result: TreeRefreshResult):
+        """
+        Publish a prepared threaded refresh result on the main thread.
+
+        This is the low-level publication step used by ``refresh()`` and
+        ``ScrollingTreeWidget.refresh_model()``. Callers should normally use
+        one of those complete refresh entry points.
+        """
+        self._items = result.root_items
+        self.selection = []
+        self._items_by_path = result.items_by_path
+        self._item_by_hash = result.item_by_hash
         self._item_changed(None)
 
     def notify_item_changed(self, item: StageManagerTreeItem | None = None):
@@ -387,18 +472,6 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
     def get_item_value_model_count(self, item: StageManagerTreeItem):
         return self.column_count
 
-    def add_user_filter_predicates(self, value: list[Callable[[_StageManagerItem], bool]]):
-        """
-        Extend the filter predicates to apply to the items during filtering
-        """
-        self._user_filter_predicates.extend(value)
-
-    def clear_user_filter_predicates(self):
-        """
-        Clear the filter predicates to apply to the items during filtering
-        """
-        self._user_filter_predicates.clear()
-
     def add_user_filter_plugins(self, value: list[_StageManagerFilterPlugin]):
         """
         Extend the filter plugins to apply to the items during filtering
@@ -410,18 +483,6 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         Clear the filter plugins to apply to the items during filtering
         """
         self._user_filter_plugins.clear()
-
-    def add_context_predicates(self, value: list[Callable[[_StageManagerItem], bool]]):
-        """
-        Extend the context filter predicates that can be used by the model if required
-        """
-        self._context_predicates.extend(value)
-
-    def clear_context_predicates(self):
-        """
-        Clear the context filter predicates that can be used by the model if required
-        """
-        self._context_predicates.clear()
 
     def sort_items(self, items, sort_children: bool = True):
         """
@@ -451,32 +512,102 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         return StageManagerTreeItem(*args, **kwargs)
 
-    def _build_items(self, items: Iterable[_StageManagerItem]) -> list[StageManagerTreeItem] | None:
+    def _prepare_refresh_result(
+        self,
+        context_items: list[_StageManagerItem],
+        user_filter_plugins: list[_StageManagerFilterPlugin],
+        cancel_event: threading.Event,
+    ) -> TreeRefreshResult | None:
+        """Filter source items and build tree items and lookups for one refresh.
+
+        Args:
+            context_items: Read-only source wrappers in parent-before-child order.
+            user_filter_plugins: Active filters to apply before tree construction.
+            cancel_event: Signal set when this refresh has been superseded.
+
+        Returns:
+            The prepared tree result, or None when cancellation is requested.
+        """
+        if cancel_event.is_set():
+            return None
+
+        filtered_items = context_items
+        if user_filter_plugins:
+            filtered_items = _StageManagerUtils.filter_items_by_category(
+                context_items,
+                user_filter_plugins,
+                cancel_event,
+            )
+            if filtered_items is None or cancel_event.is_set():
+                return None
+
+        root_items = self._build_items(filtered_items, cancel_event) or []
+        if cancel_event.is_set():
+            return None
+
+        items_by_path: dict[str, list[StageManagerTreeItem]] = {}
+        item_by_hash: dict[int, StageManagerTreeItem] = {}
+        path_by_hash: dict[int, str] = {}
+
+        item_stack = list(reversed(root_items))
+        while item_stack:
+            if cancel_event.is_set():
+                return None
+
+            item = item_stack.pop()
+            item_stack.extend(reversed(item.children))
+            item_hash = hash(item)
+            item_by_hash[item_hash] = item
+            path = item.path
+            if path is None:
+                continue
+
+            path_by_hash[item_hash] = path
+            items_by_path.setdefault(path, []).append(item)
+
+        return TreeRefreshResult(
+            root_items=root_items,
+            items_by_path=items_by_path,
+            item_by_hash=item_by_hash,
+            path_by_hash=path_by_hash,
+            input_items_count=len(context_items),
+            output_items_count=len(filtered_items),
+        )
+
+    def _build_items(
+        self,
+        items: list[_StageManagerItem],
+        cancel_event: threading.Event,
+    ) -> list[StageManagerTreeItem] | None:
         """
         Recursively build the model items from Stage Manager items
 
         Args:
-            items: an iterable of Stage Manager items
+            items: Read-only Stage Manager items in parent-before-child order.
+            cancel_event: Signal set when this refresh has been superseded.
 
         Returns:
-            A list of Stage Manager items or None if the input items are None
+            Root tree items, or None when cancellation is requested.
         """
 
         tree_items = []
+        tree_item_by_stage_item = {}
         for item in items:
-            prim_path = item.data.GetPath()
-            display_name = str(prim_path.name)
-            tooltip = str(prim_path)
-            tree_item = self._build_item(display_name, item.data, tooltip=tooltip)
-
-            item.tree_item = tree_item
+            if cancel_event.is_set():
+                return None
+            path = item.data.GetPath()
+            path_str = str(path)
+            display_name = path.name
+            tree_item = self._build_item(display_name, item.data, tooltip=path_str)
+            tree_item.path = path_str
+            tree_item_by_stage_item[item] = tree_item
 
             if item.parent is None:
                 # Add to the root
                 tree_items.append(tree_item)
             else:
                 # Add to the parent
-                tree_item.parent = item.parent.tree_item
+                tree_item.parent = tree_item_by_stage_item[item.parent]
 
         return tree_items
 

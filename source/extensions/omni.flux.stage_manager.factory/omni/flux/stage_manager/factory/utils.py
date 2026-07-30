@@ -18,12 +18,11 @@
 __all__ = ["StageManagerUtils"]
 
 import asyncio
-import concurrent.futures
+import threading
 import time
 from collections import Counter
 from collections.abc import Callable, Iterable
 
-import omni.usd
 from omni.flux.utils.common.task_budget import AdaptiveTaskBudget
 
 from .items import StageManagerItem
@@ -35,7 +34,8 @@ def _filter_result_closed(
     universe: set[StageManagerItem],
     predicate: Callable[[StageManagerItem], bool],
     ancestor_universe: set[StageManagerItem] | None = None,
-) -> set[StageManagerItem]:
+    cancel_event: threading.Event | None = None,
+) -> set[StageManagerItem] | None:
     """
     Return the set of items that would be returned by filter_items with a single predicate
     (items passing the predicate plus all their ancestors that are in ancestor_universe).
@@ -44,11 +44,20 @@ def _filter_result_closed(
     """
     if ancestor_universe is None:
         ancestor_universe = universe
-    pass_set = {item for item in universe if predicate(item)}
+    pass_set = set()
+    for item in universe:
+        if cancel_event and cancel_event.is_set():
+            return None
+        if predicate(item):
+            pass_set.add(item)
     result = set(pass_set)
     for item in pass_set:
+        if cancel_event and cancel_event.is_set():
+            return None
         current = item.parent
         while current is not None:
+            if cancel_event and cancel_event.is_set():
+                return None
             if current in ancestor_universe:
                 result.add(current)
             current = current.parent
@@ -56,20 +65,7 @@ def _filter_result_closed(
 
 
 class StageManagerUtils:
-    # Shared adaptive budget is intentional for the current single interaction-plugin
-    # usage pattern. If multiple call sites with very different workloads emerge,
-    # move to per-plugin or keyed budgets to avoid cross-workload EMA bleed.
     _task_budget = AdaptiveTaskBudget()
-
-    @classmethod
-    def _get_depth(cls, item: StageManagerItem) -> int:
-        """Count how many ancestors an item has."""
-        depth = 0
-        current = item
-        while current.parent is not None:
-            depth += 1
-            current = current.parent
-        return depth
 
     @classmethod
     def get_unique_names(cls, items: Iterable[StageManagerItem]) -> dict[StageManagerItem, tuple[str, str | None]]:
@@ -78,12 +74,11 @@ class StageManagerUtils:
         If the name is not unique, the name and parent name will be returned.
 
         Args:
-            items: List of stage manager items
+            items: Stage Manager items wrapping USD prims.
 
         Returns:
             A dict of { path: unique_name } where unique_name is a list of prim names that should identify the path
         """
-        # Prepare initial mapping from path to its base name.
         default_names = {item: item.data.GetPath().name for item in items}
 
         # Count how many times each default name occurs.
@@ -101,108 +96,160 @@ class StageManagerUtils:
 
     @classmethod
     def filter_items_by_category(
-        cls, items: Iterable[StageManagerItem], filter_plugins: Iterable[_StageManagerFilterPlugin]
-    ) -> list[StageManagerItem]:
-        """
-        Filter items by category. Each filter's result matches what filter_items would
-        return for that predicate alone (passing items plus ancestors); results are
-        then combined by category: OR within named categories, AND within OTHER, AND between categories.
-        AND filters are applied sequentially so predicates run only on the current
-        candidate set, reducing work when items have already been ruled out.
-        """
-        filters_by_category = {category: [] for category in _FilterCategory}
-        items_set = set(items)
-        for filter_obj in filter_plugins:
-            filters_by_category[filter_obj.filter_category].append(filter_obj)
+        cls,
+        items: list[StageManagerItem],
+        filter_plugins: list[_StageManagerFilterPlugin],
+        cancel_event: threading.Event | None = None,
+    ) -> list[StageManagerItem] | None:
+        """Filter items using Stage Manager category combination rules.
 
-        candidates = items_set
+        Active filters in named categories are combined with OR, filters in the OTHER category are combined with AND,
+        and categories are applied with AND. Matching ancestors are retained to preserve the tree hierarchy.
+
+        Args:
+            items: Items to filter.
+            filter_plugins: Filters grouped by their configured category.
+            cancel_event: Signal set when this work has been superseded.
+
+        Returns:
+            Filtered items in input order, or ``None`` when cancelled.
+        """
+        if cancel_event and cancel_event.is_set():
+            return None
+        active_filters = [filter_obj for filter_obj in filter_plugins if filter_obj.filter_active]
+        if not active_filters:
+            return items
+
+        filters_by_category = {category: [] for category in _FilterCategory}
+        for filter_obj in active_filters:
+            if cancel_event and cancel_event.is_set():
+                return None
+            filters_by_category[filter_obj.filter_category].append(filter_obj.prepare_filter_predicate())
+
+        candidates = set(items)
         for category in _FilterCategory:
-            category_filters = filters_by_category.get(category, [])
-            if not category_filters:
-                continue
-            # Neutral filters return a pass-through predicate. Skip them through
-            # the public filter_active state before building closed result sets.
-            active_filters = [f for f in category_filters if f.filter_active]
-            if not active_filters:
+            if cancel_event and cancel_event.is_set():
+                return None
+            predicates = filters_by_category.get(category, [])
+            if not predicates:
                 continue
 
             if category.is_or:
-                closed_sets = [_filter_result_closed(candidates, f.filter_predicate) for f in active_filters]
-                if closed_sets:
-                    candidates = set().union(*closed_sets)
-            else:
-                for f in active_filters:
-                    candidates = _filter_result_closed(candidates, f.filter_predicate)
-                    if not candidates:
-                        break
+                category_candidates = set()
+                for predicate in predicates:
+                    result = _filter_result_closed(candidates, predicate, cancel_event=cancel_event)
+                    if result is None:
+                        return None
+                    category_candidates.update(result)
+                candidates = category_candidates
+                continue
 
-        return sorted(candidates, key=cls._get_depth)
+            for predicate in predicates:
+                filtered_candidates = _filter_result_closed(
+                    candidates,
+                    predicate,
+                    ancestor_universe=candidates,
+                    cancel_event=cancel_event,
+                )
+                if filtered_candidates is None:
+                    return None
+                candidates = filtered_candidates
+                if not candidates:
+                    break
+
+        if cancel_event and cancel_event.is_set():
+            return None
+        return [item for item in items if item in candidates]
 
     @classmethod
-    @omni.usd.handle_exception
     async def filter_items(
         cls,
-        items: Iterable[StageManagerItem],
-        predicates: Iterable[Callable[[StageManagerItem], bool]],
+        items: list[StageManagerItem],
+        predicates: list[Callable[[StageManagerItem], bool]],
         include_invalid_parents: bool = True,
-    ) -> list[StageManagerItem]:
+        cancel_event: threading.Event | None = None,
+    ) -> list[StageManagerItem] | None:
         """
-        Filter items using adaptive chunked tasks on a dedicated worker thread.
+        Filter refresh-owned items in bounded worker chunks.
 
         Note:
-            This path intentionally uses a single-worker thread pool. Prior
-            per-item fanout created substantial scheduling overhead and did not
-            produce effective multi-core scaling for this Python predicate
-            workload because of GIL contention.
+            The supplied wrappers must be owned exclusively by the current context refresh. This method intentionally
+            updates validity and may reparent surviving items before ownership transfers to the tree model.
 
         Args:
             items: Items to filter
             predicates: Predicates to execute on each item
             include_invalid_parents: Whether to include invalid parent items of valid items in the filtered list
+            cancel_event: Signal set when this work has been superseded
 
         Returns:
-            Filtered items list
+            Filtered items, including invalid ancestors when requested or reparented to the nearest valid ancestor
+            otherwise. The supplied wrappers are updated in place. Returns ``None`` when cancelled.
         """
-        item_list = list(items)
-        predicate_list = list(predicates)
+        if cancel_event and cancel_event.is_set():
+            return None
+        if not items or not predicates:
+            return items
 
-        partition = cls._task_budget.compute_partition(len(item_list), len(predicate_list))
-        task_count = partition.task_count
+        partition = cls._task_budget.compute_partition(len(items), len(predicates))
         chunk_size = partition.chunk_size
-        chunk_compute_ms = 0.0
 
-        def _run_chunk(start_index: int, end_index: int):
-            loop_start = time.perf_counter()
-            for item in item_list[start_index:end_index]:
-                item.reset_filter_state()
-                item.is_valid = all(predicate(item) for predicate in predicate_list)
-            return (time.perf_counter() - loop_start) * 1000.0
+        async def run_chunks(callback) -> bool:
+            for start_index in range(0, len(items), chunk_size):
+                if cancel_event and cancel_event.is_set():
+                    return False
+                end_index = min(start_index + chunk_size, len(items))
+                await asyncio.to_thread(callback, start_index, end_index)
+            return not cancel_event or not cancel_event.is_set()
+
+        def filter_chunk(start_index: int, end_index: int) -> float:
+            started = time.perf_counter()
+            for item in items[start_index:end_index]:
+                if cancel_event and cancel_event.is_set():
+                    break
+                item.is_valid = all(predicate(item) for predicate in predicates)
+            return (time.perf_counter() - started) * 1000.0
 
         loop = asyncio.get_event_loop()
-        wait_start = loop.time()
+        wait_started = loop.time()
+        chunk_compute_ms = 0.0
         executed_chunks = 0
-        # Intentionally single-worker: chunking improves responsiveness while
-        # avoiding per-item task overhead from broad thread fanout.
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="sm_filter_profile") as pool:
-            for chunk_index in range(task_count):
-                start_index = chunk_index * chunk_size
-                if start_index >= len(item_list):
-                    break
-                end_index = min(start_index + chunk_size, len(item_list))
-                chunk_compute_ms += await loop.run_in_executor(pool, _run_chunk, start_index, end_index)
-                executed_chunks += 1
-        executor_wait_ms = (loop.time() - wait_start) * 1000.0
+        for start_index in range(0, len(items), chunk_size):
+            if cancel_event and cancel_event.is_set():
+                return None
+            end_index = min(start_index + chunk_size, len(items))
+            chunk_compute_ms += await asyncio.to_thread(filter_chunk, start_index, end_index)
+            executed_chunks += 1
+        executor_wait_ms = (loop.time() - wait_started) * 1000.0
+
+        if cancel_event and cancel_event.is_set():
+            return None
         cls._task_budget.update_metrics(
             compute_ms=chunk_compute_ms,
             executor_wait_ms=executor_wait_ms,
             task_count=executed_chunks,
-            item_count=len(item_list),
-            predicate_count=len(predicate_list),
+            item_count=len(items),
+            predicate_count=len(predicates),
         )
 
         if include_invalid_parents:
-            result = list(filter(lambda f: f.is_valid or f.is_child_valid, item_list))
-        else:
-            result = list(filter(lambda f: f.is_valid, item_list))
+            return await asyncio.to_thread(lambda: [item for item in items if item.is_valid or item.is_child_valid])
 
-        return result
+        filtered_items = []
+
+        def collect_reparented_chunk(start_index: int, end_index: int):
+            for item in items[start_index:end_index]:
+                if cancel_event and cancel_event.is_set():
+                    return
+                if not item.is_valid:
+                    continue
+                parent = item.parent
+                while parent and not parent.is_valid:
+                    if cancel_event and cancel_event.is_set():
+                        return
+                    parent = parent.parent
+                # Establish the hierarchy among surviving refresh-owned items before transferring them to the model.
+                item.parent = parent
+                filtered_items.append(item)
+
+        return filtered_items if await run_chunks(collect_reparented_chunk) else None

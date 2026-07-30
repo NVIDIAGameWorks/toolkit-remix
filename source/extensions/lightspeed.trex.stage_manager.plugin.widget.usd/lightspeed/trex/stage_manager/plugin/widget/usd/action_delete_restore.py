@@ -90,7 +90,8 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         if prim.GetPath() in PROTECTED_PATHS:
             return self.ActionType.RESTOREDISABLED
 
-        rep_layers = self._layer_manager.get_replacement_layers()
+        # The capture and non-capture branches are mutually exclusive. Resolve replacement layers only inside the
+        # branch that needs them so each classification scans the layer tree at most once and early exits avoid it.
         if self._core.prim_is_from_a_capture_reference(prim):
             if prim_utils.is_ghost_prim(prim):
                 return self.ActionType.RESTOREGHOST
@@ -99,6 +100,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
             if refs:
                 return self.ActionType.DELETECAPTURE
 
+            rep_layers = self._layer_manager.get_replacement_layers()
             if prim_utils.has_replacement_ref_edits(prim, rep_layers):
                 return self.ActionType.RESTORE
 
@@ -113,6 +115,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         if edit_target_layer.GetPrimAtPath(prim.GetPath()):
             return self.ActionType.DELETE
 
+        rep_layers = self._layer_manager.get_replacement_layers()
         if any(layer.GetPrimAtPath(prim.GetPath()) for layer in rep_layers):
             return self.ActionType.DELETE
 

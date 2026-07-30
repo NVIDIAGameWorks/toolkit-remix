@@ -262,7 +262,7 @@ class RecentProjectsCore:
 
         try:
             result, _ = await asyncio.wait_for(omni.client.stat_async(thumbnail), timeout=10.0)
-        except (Exception, asyncio.TimeoutError):  # noqa: BLE001
+        except (TimeoutError, Exception):  # noqa: BLE001
             result = omni.client.Result.ERROR_NOT_FOUND
         if result == omni.client.Result.OK:
             return path, thumbnail

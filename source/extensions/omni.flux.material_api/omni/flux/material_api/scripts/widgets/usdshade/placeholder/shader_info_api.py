@@ -28,7 +28,12 @@ from omni.kit.window.preferences import PERSISTENT_SETTINGS_PREFIX
 from pxr import Sdf, Sdr, Usd, UsdShade
 
 from ..input_placeholder_attribute import UsdShadeInputPlaceholderAttribute
-from ..utils import deep_dict_update, get_sdr_shader_node_for_prim, get_sdr_shader_property_default_value
+from ..utils import (
+    deep_dict_update,
+    get_sdr_sdf_type_indicator_types,
+    get_sdr_shader_node_for_prim,
+    get_sdr_shader_property_default_value,
+)
 from .placeholder import UsdShadePropertyPlaceholder
 
 
@@ -101,7 +106,9 @@ class ShaderInfoAPI:
         """
 
         if self._sdr_node:
-            sdr_shader_properties = [self._sdr_node.GetInput(name) for name in self._sdr_node.GetInputNames()]
+            sdr_shader_properties = [
+                self._sdr_node.GetShaderInput(name) for name in self._sdr_node.GetShaderInputNames()
+            ]
             return self._get_placeholders(sdr_shader_properties, UsdShade.Tokens.inputs, property_name_filter)
 
         # If we are here that means we weren't able to retrive an SdrShaderNode from the SDR registry, which might be
@@ -119,7 +126,9 @@ class ShaderInfoAPI:
             return self._get_material_output_properties(property_name_filter)
 
         if self._sdr_node:
-            sdr_shader_properties = [self._sdr_node.GetOutput(name) for name in self._sdr_node.GetOutputNames()]
+            sdr_shader_properties = [
+                self._sdr_node.GetShaderOutput(name) for name in self._sdr_node.GetShaderOutputNames()
+            ]
             return self._get_placeholders(sdr_shader_properties, UsdShade.Tokens.outputs, property_name_filter)
 
         # If we are here that means we weren't able to retrive an SdrShaderNode from the SDR registry, which might be
@@ -259,10 +268,10 @@ class ShaderInfoAPI:
             metadata[Sdf.AttributeSpec.DisplayNameKey] = display_name
 
         def set_type_name(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:
-            ndr_type_indicator = sdr_shader_property.GetTypeAsSdfType()
-            type_name = ndr_type_indicator[1]
+            sdf_type, sdr_type = get_sdr_sdf_type_indicator_types(sdr_shader_property)
+            type_name = sdr_type
             if not type_name:
-                type_name = str(ndr_type_indicator[0])
+                type_name = str(sdf_type)
 
             metadata[Sdf.PrimSpec.TypeNameKey] = type_name
 
@@ -396,7 +405,7 @@ class ShaderInfoAPI:
 
             add_color_space = Sdr.PropertyMetadata.IsAssetIdentifier in metadata
 
-            render_type = metadata.get(Sdr.PropertyMetadata.RenderType, None)
+            render_type = metadata.get(Sdr.PropertyMetadata.RenderType)
             if render_type and (render_type != omni.UsdMdl.Types.Texture2d):
                 add_color_space = False
 

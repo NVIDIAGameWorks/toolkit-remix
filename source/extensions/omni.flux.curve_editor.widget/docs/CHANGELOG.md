@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.1]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.2.0]
 ### Changed
 - Removed USD primvar storage from the generic curve editor runtime; USD-backed property editing now lives in `omni.flux.property_widget_builder.model.usd`.

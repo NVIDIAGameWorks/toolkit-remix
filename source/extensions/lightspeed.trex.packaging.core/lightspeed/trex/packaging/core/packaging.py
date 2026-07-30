@@ -850,10 +850,17 @@ class PackagingCore:
 
             self.current_count += 1
 
+        root_original_path = (
+            self._get_original_path(temp_root_layer.identifier) or _OmniUrl(temp_root_layer.identifier).path
+        )
+        root_parent_path = _OmniUrl(root_original_path).parent_url
+
         # Collected dependencies will be populated during ModifyAssetPaths.
         # Layers will be pre-populated in case they don't have dependencies.
         self._collected_dependencies = {
-            _OmniUrl(temp_layer.identifier).path: f"./{_OmniUrl(temp_layer.identifier).name}"
+            _OmniUrl(temp_layer.identifier).path: self._get_initial_collected_dependency_path(
+                root_parent_path, temp_layer
+            )
             for temp_layer in temp_layers
             if self._get_original_path(temp_layer.identifier) not in redirected_dependencies
         }
@@ -930,6 +937,34 @@ class PackagingCore:
     def _get_original_path(self, temp_layer_path: str) -> str | None:
         original_name = self._temp_files.get(_OmniUrl(temp_layer_path).path)
         return _OmniUrl(temp_layer_path).with_name(original_name).path if original_name else None
+
+    def _get_initial_collected_dependency_path(self, root_parent_path: str, temp_layer: Sdf.Layer) -> str:
+        original_path = self._get_original_path(temp_layer.identifier)
+        if not original_path:
+            return f"./{_OmniUrl(temp_layer.identifier).name}"
+
+        relative_path = self._get_relative_path_under_parent(root_parent_path, original_path)
+        if relative_path is not None:
+            return f"./{relative_path}"
+
+        relative_path = (_OmniUrl(_REMIX_SUBUSD_RELATIVE_PATH) / _OmniUrl(original_path).name).path
+        if not relative_path.startswith("./") and not relative_path.startswith("../"):
+            relative_path = f"./{relative_path}"
+        return relative_path
+
+    @staticmethod
+    def _get_relative_path_under_parent(parent_path: str, child_path: str) -> str | None:
+        parent_url_path = _OmniUrl(parent_path).path.rstrip("/")
+        child_url_path = _OmniUrl(child_path).path
+
+        if child_url_path == parent_url_path:
+            return ""
+
+        parent_prefix = f"{parent_url_path}/"
+        if not child_url_path.startswith(parent_prefix):
+            return None
+
+        return child_url_path[len(parent_prefix) :]
 
     def _get_redirected_dependencies(
         self, all_layers: list[Sdf.Layer], all_assets: list[str], external_mod_paths: list[Path]

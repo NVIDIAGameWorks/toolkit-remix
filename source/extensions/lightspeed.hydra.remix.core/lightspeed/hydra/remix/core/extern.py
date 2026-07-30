@@ -28,6 +28,7 @@ import omni.kit.app
 
 _instance: None | RemixExtern = None
 _GLOBAL_OBJECTPICKING_REQUEST_ID: int = 0
+_support_check_task: asyncio.Task | None = None
 
 
 class RemixSupport(Enum):
@@ -38,10 +39,29 @@ class RemixSupport(Enum):
 
 _hdremix_support_level: RemixSupport = RemixSupport.WAITING_FOR_INIT
 _hdremix_error_message: str = "<HdRemixFinalizer.check_support was not called>"
+_last_waiting_message: str | None = None
+_TIMEOUT_ERROR_PREFIX = "Remix initialization timeout"
+REMIX_HYDRA_ENGINE_NAME = "pxr"
+REMIX_RENDER_MODE = "HdRemixRendererPlugin"
+REMIX_RENDERERS_SETTING = f"{REMIX_RENDER_MODE}:Remix"
 
 
 def is_remix_supported() -> tuple[RemixSupport, str]:
     return (_hdremix_support_level, _hdremix_error_message)
+
+
+def is_remix_timeout() -> bool:
+    return _hdremix_support_level == RemixSupport.NOT_SUPPORTED and _hdremix_error_message.startswith(
+        _TIMEOUT_ERROR_PREFIX
+    )
+
+
+def mark_remix_not_supported(error_message: str) -> None:
+    global _hdremix_support_level, _hdremix_error_message, _last_waiting_message
+
+    _hdremix_support_level = RemixSupport.NOT_SUPPORTED
+    _hdremix_error_message = error_message
+    _last_waiting_message = None
 
 
 def request_dict_push(request_dict: dict[int, tuple[int, Callable]], request_id: int, callback: Callable):
@@ -86,6 +106,9 @@ def request_dict_pop(request_dict: dict[int, tuple[int, Callable]], request_id: 
 
 
 class RemixExtern:
+    _hdremix_dll_path: str = "HdRemix.dll"
+    _hdremix_dll_handle: ctypes.CDLL | None = None
+
     # expected dll functions
     required_functions: list[str] = [
         "findworldposition_setcallback",
@@ -95,6 +118,17 @@ class RemixExtern:
         "objectpicking_setcallback_oncomplete",
         "hdremix_setconfigvariable",
     ]
+
+    @classmethod
+    def preload_hdremix_dll(cls, path: str) -> tuple[bool, str]:
+        cls._hdremix_dll_path = path
+        try:
+            cls.__load_hdremix_library()
+        except FileNotFoundError as exc:
+            return False, f"HdRemix.dll not found: {exc}"
+        except OSError as exc:
+            return False, f"HdRemix.dll load error: {exc}"
+        return True, "HdRemix.dll loaded."
 
     def __init__(self):
         self.__c_objectpicking_request = None
@@ -158,13 +192,19 @@ class RemixExtern:
         self.__requestdict_findworldposition: dict[int, tuple[int, Callable]] = {}
         self.__requestdict_objectpicking: dict[int, tuple[int, Callable]] = {}
 
-    @staticmethod
-    def check_support() -> tuple[RemixSupport, str]:
+    @classmethod
+    def check_support(cls) -> tuple[RemixSupport, str]:
         """Try to load HdRemix and see if it is supported."""
         try:
-            dll = ctypes.cdll.LoadLibrary("HdRemix.dll")
+            dll = cls.__load_hdremix_library()
         except FileNotFoundError:
             return RemixSupport.WAITING_FOR_INIT, "HdRemix.dll is not loaded into the process yet."
+        except OSError as e:
+            # DLL was found by name but failed to load — a transitive dependency is missing.
+            # Return NOT_SUPPORTED immediately so the poll loop exits rather than timing out.
+            msg = f"HdRemix.dll load error (missing dependency?): {e}"
+            carb.log_error(msg)
+            return RemixSupport.NOT_SUPPORTED, msg
 
         if not hasattr(dll, "hdremix_issupported"):
             msg = "HdRemix.dll doesn't have 'hdremix_issupported' function.\nAssuming that Remix is not supported."
@@ -195,9 +235,12 @@ class RemixExtern:
     @classmethod
     def __load_dll(cls):
         try:
-            dll = ctypes.cdll.LoadLibrary("HdRemix.dll")
+            dll = cls.__load_hdremix_library()
         except FileNotFoundError:
             carb.log_warn("Failed to find HdRemix.dll. Object picking, highlighting are disabled")
+            return None
+        except OSError as e:
+            carb.log_warn(f"Failed to load HdRemix.dll due to a dependency error: {e}")
             return None
 
         if not all(hasattr(dll, func) for func in cls.required_functions):
@@ -206,6 +249,20 @@ class RemixExtern:
             )
             return None
         return dll
+
+    @classmethod
+    def __load_hdremix_library(cls) -> ctypes.CDLL:
+        if cls._hdremix_dll_handle is None:
+            cls._hdremix_dll_handle = ctypes.cdll.LoadLibrary(cls._hdremix_dll_path)
+        return cls._hdremix_dll_handle
+
+    @classmethod
+    def clear_hdremix_dll_handle(cls) -> None:
+        cls._hdremix_dll_handle = None
+
+    @classmethod
+    def get_hdremix_dll_path(cls) -> str:
+        return cls._hdremix_dll_path
 
     def findworldposition_request(
         self, pix_x: int, pix_y: int, callback: Callable[[int, int, float, float, float], None], request_id: int
@@ -291,16 +348,16 @@ class RemixExtern:
         _instance.objectpicking_oncomplete(_GLOBAL_OBJECTPICKING_REQUEST_ID, selected_paths)
 
 
-async def _load_remix_extern_impl(is_async: bool) -> int:
+async def _load_remix_extern_impl(is_async: bool, timeout_frames: int | None = 500) -> int:
     """Implementation shared between sync and async versions of load_remix_extern."""
     frames_passed = 0
-    timeout = 500
 
     # set global vars
-    global _hdremix_support_level, _hdremix_error_message
+    global _hdremix_support_level, _hdremix_error_message, _last_waiting_message
+    _last_waiting_message = None
 
     # busy wait until Remix has been initialized
-    carb.log_info(r"Loading HdRemix.dll with ctypes.cdll.LoadLibrary(\"HdRemix.dll\")...")
+    carb.log_info(f'Loading HdRemix.dll with ctypes.cdll.LoadLibrary("{RemixExtern.get_hdremix_dll_path()}")...')
     while _hdremix_support_level == RemixSupport.WAITING_FOR_INIT:
         _hdremix_support_level, _hdremix_error_message = RemixExtern.check_support()
 
@@ -310,31 +367,38 @@ async def _load_remix_extern_impl(is_async: bool) -> int:
             time.sleep(0.05)
 
         frames_passed += 1
-        if frames_passed > timeout:
+        if timeout_frames is not None and frames_passed > timeout_frames:
             _hdremix_support_level = RemixSupport.NOT_SUPPORTED
-            _hdremix_error_message = f"Remix initialization timeout{' (async)' if is_async else ''}"
+            suffix = f": {_last_waiting_message}" if _last_waiting_message else ""
+            _hdremix_error_message = f"Remix initialization timeout{' (async)' if is_async else ''}{suffix}"
             carb.log_error(_hdremix_error_message)
             break
-        if _hdremix_support_level == RemixSupport.WAITING_FOR_INIT:
+        if _hdremix_support_level == RemixSupport.WAITING_FOR_INIT and _hdremix_error_message != _last_waiting_message:
             carb.log_info(f"{_hdremix_error_message}. Will Retry.")
+            _last_waiting_message = _hdremix_error_message
 
-    remix_extern_init()
+    if _hdremix_support_level == RemixSupport.SUPPORTED:
+        remix_extern_init()
 
     return frames_passed
 
 
-async def load_remix_extern_async() -> int:
+async def load_remix_extern_async(timeout_frames: int | None = 500) -> int:
     """Function to trigger loading the HdRemix.dll with a timeout."""
-    return await _load_remix_extern_impl(is_async=True)
+    global _support_check_task
+
+    if _support_check_task is None or _support_check_task.done():
+        _support_check_task = asyncio.create_task(_load_remix_extern_impl(is_async=True, timeout_frames=timeout_frames))
+    return await _support_check_task
 
 
-def load_remix_extern() -> int:
+def load_remix_extern(timeout_frames: int | None = 500) -> int:
     """Blocking function to trigger loading the HdRemix.dll with a timeout."""
     try:
         asyncio.get_running_loop()
     except RuntimeError:
         # No event loop running, safe to create one
-        return asyncio.run(_load_remix_extern_impl(is_async=False))
+        return asyncio.run(_load_remix_extern_impl(is_async=False, timeout_frames=timeout_frames))
     raise RuntimeError(
         "Cannot call load_remix_extern() from within a running event loop. Use load_remix_extern_async() instead."
     )
@@ -348,16 +412,63 @@ def remix_extern_init():
 
 
 def remix_extern_destroy():
-    global _instance
+    global _instance, _support_check_task
     _instance = None
+    _support_check_task = None
+    RemixExtern.clear_hdremix_dll_handle()
+
+
+def _require_remix_extern() -> RemixExtern:
+    if _instance:
+        return _instance
+
+    support_level, error_message = is_remix_supported()
+    raise RuntimeError(f"HdRemix extern is unavailable: {support_level.name}. {error_message}")
+
+
+def reset_remix_support_for_retry(reason: str = ""):
+    global _hdremix_support_level, _hdremix_error_message, _last_waiting_message, _support_check_task
+
+    suffix = f" ({reason})" if reason else ""
+    carb.log_info(f"[lightspeed.hydra.remix.core] Resetting HdRemix support check{suffix}.")
+    if _support_check_task is not None and not _support_check_task.done():
+        carb.log_info(
+            "[lightspeed.hydra.remix.core] Reusing in-flight HdRemix support check task instead of resetting."
+        )
+        return
+    _hdremix_support_level = RemixSupport.WAITING_FOR_INIT
+    _hdremix_error_message = "<HdRemix support retry requested>"
+    _last_waiting_message = None
+    _support_check_task = None
+
+
+async def retry_remix_support_async(timeout_frames: int = 500, reason: str = "") -> int:
+    support_level, error_message = is_remix_supported()
+    if support_level == RemixSupport.SUPPORTED:
+        carb.log_info("[lightspeed.hydra.remix.core] HdRemix is already supported; skipping retry.")
+        return 0
+    if support_level == RemixSupport.NOT_SUPPORTED and not is_remix_timeout():
+        carb.log_warn(
+            f"[lightspeed.hydra.remix.core] Skipping HdRemix retry because support failed definitively: {error_message}"
+        )
+        return 0
+
+    reset_remix_support_for_retry(reason)
+    return await load_remix_extern_async(timeout_frames=timeout_frames)
 
 
 def safe_remix_extern() -> RemixExtern:
     """Function to call if a RemixExtern is required. If not loaded yet, it will block until loaded."""
     if not _instance:
         load_remix_extern()
-    assert _instance, "load_remix_extern() should have set _instance"
-    return _instance
+    return _require_remix_extern()
+
+
+async def safe_remix_extern_async() -> RemixExtern:
+    """Function to call if a RemixExtern is required while an event loop is already running."""
+    if not _instance:
+        await load_remix_extern_async()
+    return _require_remix_extern()
 
 
 # Function ID to signed int32
@@ -388,6 +499,10 @@ def hdremix_highlight_paths(paths: list[str]) -> None:
 # https://github.com/NVIDIAGameWorks/dxvk-remix/blob/main/RtxOptions.md
 def hdremix_set_configvar(key: str, value: str) -> None:
     safe_remix_extern().set_configvar(key, value)
+
+
+async def hdremix_set_configvar_async(key: str, value: str) -> None:
+    (await safe_remix_extern_async()).set_configvar(key, value)
 
 
 class RemixRequestQueryType(Enum):

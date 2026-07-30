@@ -1,6 +1,25 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.2]
+### Fixed
+- Kept the Properties pane at least 240 pixels wide when dragging the viewport splitter.
+
+## [1.8.1]
+### Fixed
+- Improved the Teleport viewport toolbar tooltip to distinguish center-button teleport from mouse-cursor hotkey teleport.
+- Allowed embedded viewport panels to request a fresh widget while keeping default context-level viewport reuse.
+
+## [1.8.0]
+### Fixed
+- Reused the registered viewport instance for an existing context so active viewport lookups and hotkeys do not target a stale viewport.
+- Imported the viewport app window dependency at module load instead of through lazy scroll-event imports.
+- Kept standalone extension tests from creating Kit's stock viewport windows before the shared viewport instance starts.
+- Skipped Kit's stock viewport stats layer and kept Camera Speed popup animations primed so the RTX Remix HUD does not duplicate or disappear on Kit SDK 110.
+
+### Changed
+- Selected the HdRemix renderer after the shared viewport has a stable render product, camera, and viewport handle on Kit SDK 110.
+- Updated extension metadata for Kit SDK 110 compatibility.
 
 ## [1.7.4]
 ### Fixed

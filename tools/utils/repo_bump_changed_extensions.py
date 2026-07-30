@@ -14,11 +14,10 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+import importlib
 import subprocess
 from pathlib import Path
 
-from InquirerPy import inquirer
-from InquirerPy.base.control import Choice
 from omni.repo.kit_tools.bump import bump_extension, get_all_extensions
 
 
@@ -112,6 +111,10 @@ def setup_repo_tool(parser, _):
     )
 
     def run_repo_tool(options, config):
+        # Repo discovery imports this module before repo_kit_tools' Python deps are on sys.path.
+        inquirer = importlib.import_module("InquirerPy").inquirer
+        Choice = importlib.import_module("InquirerPy.base.control").Choice
+
         settings = config["repo_bump_changed_extensions"]
         source_commit = settings["source_commit"]
         original_commit = settings["original_commit"]

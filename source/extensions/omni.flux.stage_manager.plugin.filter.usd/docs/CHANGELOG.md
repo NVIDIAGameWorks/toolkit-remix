@@ -1,6 +1,16 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.10.0]
+### Changed
+- Evaluate USD filter predicates directly in the model worker instead of preparing per-item main-thread lookup maps.
+- Capture Custom Tags filter inputs per refresh without mutating shared plugin caches.
+- Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Keep prepared Custom Tags predicates valid across context replacement and plugin destruction.
+- Snapshot Search matching state so overlapping workers are unaffected by later search edits.
+
 ## [2.9.2]
 ### Changed
 - Made Stage Manager combobox filters fill the available control width in Additional Filters rows.
@@ -33,7 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.8.0]
 ### Removed
-- Removed `GeometryPrimsFilterPlugin` — a Lightspeed-specific implementation now owns this plugin name in the `StageManagerFactory`
+- Removed `GeometryPrimsFilterPlugin` - a Lightspeed-specific implementation now owns this plugin name in the `StageManagerFactory`
 
 ## [2.7.4]
 ### Changed

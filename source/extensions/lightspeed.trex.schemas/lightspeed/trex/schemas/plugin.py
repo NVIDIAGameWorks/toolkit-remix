@@ -19,8 +19,24 @@ __all__ = ["LightspeedSchemaPluginRegistry"]
 
 import os
 
+import carb
 from lightspeed.common.constants import PARTICLE_SCHEMA_NAME
 from pxr import Plug
+
+
+def _get_remix_particle_system_plugin_path(plugins_root: str) -> str:
+    """Return the available RemixParticleSystem USD plugin-info directory."""
+    remix_particle_system_path = os.path.join(plugins_root, "RemixParticleSystem")
+    # Kit 110 packages have shipped the particle plugInfo in both locations across platforms.
+    candidates = (
+        os.path.join(remix_particle_system_path, "resources"),
+        plugins_root,
+    )
+    for candidate in candidates:
+        if os.path.exists(os.path.join(candidate, "plugInfo.json")):
+            return candidate
+
+    raise FileNotFoundError(f"RemixParticleSystem plugInfo.json not found in {candidates[0]} or {candidates[1]}")
 
 
 class LightspeedSchemaPluginRegistry:
@@ -38,13 +54,14 @@ class LightspeedSchemaPluginRegistry:
 
     def _register_plugins(self):
         plugins_root = os.path.join(os.path.dirname(__file__), "../../../usd/plugins")
-        remix_particle_system_path = os.path.join(plugins_root, "RemixParticleSystem/resources")
         remix_particle_system_schema_path = os.path.join(plugins_root, "RemixParticleSystem/generatedSchema.usda")
-
-        if not os.path.exists(remix_particle_system_path):
-            raise FileNotFoundError(f"Plugin directory not found: {remix_particle_system_path}")
+        remix_particle_system_plugin_path = _get_remix_particle_system_plugin_path(plugins_root)
 
         self.register_schema(PARTICLE_SCHEMA_NAME, remix_particle_system_schema_path, "/ParticleSystemAPI")
 
-        # Register the plugin directory with USD
-        Plug.Registry().RegisterPlugins(remix_particle_system_path)
+        # Register the plugInfo.json directory with USD
+        plugins = Plug.Registry().RegisterPlugins(remix_particle_system_plugin_path)
+        carb.log_info(
+            "[lightspeed.trex.schemas] Registered USD schema plugins from "
+            f"{remix_particle_system_plugin_path}: {', '.join(plugin.name for plugin in plugins) or '<none>'}"
+        )

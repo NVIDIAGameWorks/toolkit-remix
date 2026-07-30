@@ -10,9 +10,9 @@ How the toolchain fits together — from `build.bat` to a running app with loade
 |-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------|
 | **repoman**     | NVIDIA repo orchestration tool. Coordinates dependencies, building, testing, packaging, and publishing. All `repo.bat` subcommands dispatch through it.                                                                                  | `tools/repoman/repoman.py`                  |
 | **packman**     | Binary package manager. Downloads and caches build dependencies (Kit SDK, premake, runtime assets) from NVIDIA servers. Packages are cached in `C:\packman-repo\` (Windows) or `~/.cache/packman/` (Linux) and symlinked into `_build/`. | `tools/packman/`                            |
-| **Kit SDK**     | The Omniverse application framework. Provides the extension system, UI framework (`omni.ui`), USD integration, and an embedded Python 3.10 interpreter. Pulled in by packman via `deps/kit-sdk.packman.xml`.                             | `_build/windows-x86_64/release/kit/`        |
+| **Kit SDK**     | The Omniverse application framework. Provides the extension system, UI framework (`omni.ui`), USD integration, and an embedded Python 3.12 interpreter. Pulled in by packman via `deps/kit-sdk.packman.xml`.                             | `_build/windows-x86_64/release/kit/`        |
 | **premake**     | Build system generator. In this repo, primarily used to discover extensions and create symlinks from `source/` to `_build/exts/` so Kit can load source code directly without copying.                                                   | `_build/host-deps/premake/`                 |
-| **Python 3.10** | Bundled with Kit — no system Python required. All extensions, tools, and scripts run under Kit's embedded interpreter.                                                                                                                   | `_build/windows-x86_64/release/kit/python/` |
+| **Python 3.12** | Bundled with Kit — no system Python required. All extensions, tools, and scripts run under Kit's embedded interpreter.                                                                                                                   | `_build/windows-x86_64/release/kit/python/` |
 
 ---
 
@@ -100,7 +100,7 @@ build.bat
 _build/windows-x86_64/release/
 ├── kit/                    ← Kit SDK (from packman)
 │   ├── kit.exe             ← The application
-│   ├── python/             ← Embedded Python 3.10 (+ pip packages)
+│   ├── python/             ← Embedded Python 3.12 (+ pip packages)
 │   └── exts/               ← Built-in Kit extensions
 ├── exts/                   ← Symlinked extensions from this repo (~190)
 ├── extscache/              ← Downloaded extension dependencies

@@ -28,6 +28,7 @@ class TestPrimTransformModel(omni.kit.test.AsyncTestCase):
     @staticmethod
     def _make_model(handle=None):
         model = PrimTransformModel.__new__(PrimTransformModel)
+        model.destroy = Mock()
         model._PrimTransformModel__notice_interaction = handle
         model._PrimTransformModel__usd_context_name = ""
         model._PrimTransformModel__redirect_paths = []

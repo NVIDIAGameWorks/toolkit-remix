@@ -1,5 +1,13 @@
-﻿# Changelog
+ï»¿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.2.5]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Closed Kit's auto-created splash screen after app-ready setup, even when dev menus remain visible.
+- Restored the dark Windows titlebar styling now that Kit SDK 110 no longer provides `omni.kit.window.modifier.titlebar`.
 
 ## [1.2.4]
 ### Fixed

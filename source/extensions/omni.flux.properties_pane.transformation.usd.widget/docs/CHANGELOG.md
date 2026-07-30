@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.10.1]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [2.10.0]
 ### Fixed
 - Passed related xform property paths into transform rows so xform overrides are authored as one logical set.

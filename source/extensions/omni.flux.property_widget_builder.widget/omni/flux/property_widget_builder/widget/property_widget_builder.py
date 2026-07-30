@@ -18,6 +18,7 @@
 __all__ = ("PropertyWidget",)
 
 import asyncio
+import math
 
 from omni import kit, ui, usd
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -25,6 +26,13 @@ from omni.flux.utils.widget.tree_widget import TreeWidget as _TreeWidget
 
 from .tree.delegate import Delegate
 from .tree.model import ItemGroup, Model
+
+_DEFAULT_NAME_COLUMN_PERCENT = 30
+_DEFAULT_MIN_COLUMN_WIDTH = 100
+_RESPONSIVE_NAME_COLUMN_MIN_WIDTH = _DEFAULT_MIN_COLUMN_WIDTH
+_RESPONSIVE_VALUE_COLUMN_MIN_WIDTH = 90
+# TreeView row chrome and field spacing take horizontal space outside the explicit value column.
+_RESPONSIVE_TREE_ROW_RESERVED_WIDTH = 32
 
 
 class PropertyWidget:
@@ -34,7 +42,7 @@ class PropertyWidget:
         self,
         model: Model | None = None,
         delegate: Delegate | None = None,
-        tree_column_widths: list[ui.Length] = None,
+        tree_column_widths: list[ui.Length] | None = None,
         columns_resizable: bool = False,
     ):
         """
@@ -43,6 +51,8 @@ class PropertyWidget:
         Args:
             model: model to use for the treeview
             delegate: delegate to use for the treeview
+            tree_column_widths: optional column widths to use for the treeview
+            columns_resizable: whether the treeview columns can be resized
         """
         self._default_attr = {
             "_model": None,
@@ -54,6 +64,8 @@ class PropertyWidget:
             "_on_item_expanded_sub": None,
             "_on_item_changed_sub": None,
             "_tree_view": None,
+            "_root_frame": None,
+            "_last_name_column_width": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -80,18 +92,75 @@ class PropertyWidget:
         return self._tree_view
 
     def _build_ui(self):
-        self._tree_view = _TreeWidget(
-            self._model,
-            self._delegate,
-            root_visible=False,
-            header_visible=False,
-            column_widths=(
-                [ui.Percent(30), ui.Fraction(1)] if self._tree_column_widths is None else self._tree_column_widths
-            ),
-            min_column_widths=[ui.Pixel(100), ui.Pixel(100)],
-            columns_resizable=self._columns_resizable,
-            name="PropertyWidget",
+        self._root_frame = ui.Frame(
+            width=ui.Fraction(1),
+            horizontal_clipping=True,
+            computed_content_size_changed_fn=self._on_content_size_changed,
         )
+        with self._root_frame:
+            self._tree_view = _TreeWidget(
+                self._model,
+                self._delegate,
+                root_visible=False,
+                header_visible=False,
+                width=ui.Fraction(1),
+                column_widths=self._get_column_widths(),
+                min_column_widths=self._get_min_column_widths(),
+                columns_resizable=self._columns_resizable,
+                name="PropertyWidget",
+            )
+
+    def _uses_responsive_pixel_columns(self) -> bool:
+        return (
+            self._tree_column_widths is not None
+            and len(self._tree_column_widths) >= 2
+            and self._tree_column_widths[0].unit == ui.UnitType.PIXEL
+        )
+
+    def _get_column_widths(self) -> list[ui.Length]:
+        column_widths = (
+            [ui.Percent(_DEFAULT_NAME_COLUMN_PERCENT), ui.Fraction(1)]
+            if self._tree_column_widths is None
+            else self._tree_column_widths
+        )
+        if not self._uses_responsive_pixel_columns():
+            return column_widths
+
+        available_width = self._root_frame.computed_width if self._root_frame else 0
+        max_name_width = column_widths[0].value
+        if not available_width or math.isclose(available_width, 0):
+            name_width = max_name_width
+        else:
+            name_width = min(
+                max_name_width,
+                max(
+                    _RESPONSIVE_NAME_COLUMN_MIN_WIDTH,
+                    available_width - _RESPONSIVE_VALUE_COLUMN_MIN_WIDTH - _RESPONSIVE_TREE_ROW_RESERVED_WIDTH,
+                ),
+            )
+        return [ui.Pixel(name_width), *column_widths[1:]]
+
+    def _get_min_column_widths(self) -> list[ui.Length]:
+        if not self._uses_responsive_pixel_columns():
+            return [ui.Pixel(_DEFAULT_MIN_COLUMN_WIDTH), ui.Pixel(_DEFAULT_MIN_COLUMN_WIDTH)]
+        return [
+            ui.Pixel(min(_RESPONSIVE_NAME_COLUMN_MIN_WIDTH, self._tree_column_widths[0].value)),
+            ui.Pixel(_RESPONSIVE_VALUE_COLUMN_MIN_WIDTH),
+        ]
+
+    def _on_content_size_changed(self):
+        if not self._tree_view or not self._uses_responsive_pixel_columns():
+            return
+
+        column_widths = self._get_column_widths()
+        name_column_width = column_widths[0].value
+        if self._last_name_column_width is not None and math.isclose(self._last_name_column_width, name_column_width):
+            return
+
+        self._last_name_column_width = name_column_width
+        self._tree_view.column_widths = column_widths
+        self._tree_view.min_column_widths = self._get_min_column_widths()
+        self._tree_view.dirty_widgets()
 
     def _update_expansion_state_deferred(self, *_):
         if self._update_task:

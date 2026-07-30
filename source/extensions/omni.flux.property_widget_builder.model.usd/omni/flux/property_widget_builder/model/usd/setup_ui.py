@@ -24,7 +24,6 @@ from collections.abc import Awaitable, Callable
 import omni.kit.usd.layers as _layers
 from omni import ui, usd
 from omni.flux.property_widget_builder.widget import PropertyWidget as _PropertyWidget
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 if TYPE_CHECKING:
     from omni.flux.property_widget_builder.widget import Delegate as _Delegate
@@ -56,12 +55,14 @@ class USDPropertyWidget(_PropertyWidget):
             model=model, delegate=delegate, tree_column_widths=tree_column_widths, columns_resizable=columns_resizable
         )
 
-        self._default_attr = {
+        usd_default_attr = {
             "_context_name": None,
             "_layer_events": None,
+            "_on_attribute_created_sub": None,
             "_on_override_removed_sub": None,
         }
-        for attr, value in self._default_attr.items():
+        self._default_attr.update(usd_default_attr)
+        for attr, value in usd_default_attr.items():
             setattr(self, attr, value)
 
         self._context_name = context_name
@@ -115,4 +116,4 @@ class USDPropertyWidget(_PropertyWidget):
 
         self.__refresh_task = None
 
-        _reset_default_attrs(self)
+        super().destroy()

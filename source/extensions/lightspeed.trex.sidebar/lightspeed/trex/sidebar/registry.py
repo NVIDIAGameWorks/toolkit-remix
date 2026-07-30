@@ -16,7 +16,7 @@
 """
 
 import asyncio
-from enum import Enum
+from enum import StrEnum
 from collections.abc import Callable
 
 import omni.kit.app
@@ -34,7 +34,7 @@ __all__ = [
 ]
 
 
-class Groups(str, Enum):
+class Groups(StrEnum):
     LAYOUTS = "Layouts"
     UNGROUPED = "Ungrouped"
 

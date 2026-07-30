@@ -199,7 +199,7 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
         self.assertIsNotNone(remove_button)
         self.assertEqual(len(input_files), len(input_file_labels))
 
-        self.assertEqual(context if context else "None", context_field.widget.model.get_value_as_string())
+        self.assertEqual(context or "None", context_field.widget.model.get_value_as_string())
         self.assertEqual(Path(output_path).as_posix(), Path(output_field.widget.model.get_value_as_string()).as_posix())
         self.assertEqual(
             1 if use_usda else 0, extension_combobox.widget.model.get_item_value_model().get_value_as_int()

@@ -35,6 +35,7 @@ from omni.flux.layer_tree.usd.widget import LayerTransferTarget as _LayerTransfe
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage
+from omni.kit.ui_test import Vec2
 from pxr import Sdf, Usd
 
 NUM_PIN_ICONS = 4  # Object, Material, Particles, Logic
@@ -50,6 +51,8 @@ class TestAssetReplacementsWidget(AsyncTestCase):
     PARTICLE_MESH_PATH = "/RootNode/meshes/transfer_workflow_particle_definition/mesh"
     SECOND_PARTICLE_MESH_PATH = "/RootNode/meshes/transfer_workflow_particle_override/mesh"
     NON_PARTICLE_INSTANCE_MESH_PATH = "/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"
+    MATERIAL_PATH = "/RootNode/Looks/mat_BC868CE5A075ABB1"
+    LIGHT_PATH = "/RootNode/lights/light_9907D0B07D040077"
 
     async def test_frame_prim_event_frames_active_viewport(self):
         prim = mock.Mock()
@@ -126,6 +129,96 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(prim_paths, False)
         await ui_test.human_delay(human_delay_speed=human_delay_speed)
+
+    async def __assert_no_horizontal_side_scroll(self, window: ui.Window, selection_name: str):
+        scrolling_frames = ui_test.find_all(f"{window.title}//Frame/**/ScrollingFrame[*]")
+        frame_details = []
+        for frame_ref in scrolling_frames:
+            frame = frame_ref.widget
+            if not frame.visible:
+                continue
+            frame.scroll_x = 0
+            await ui_test.emulate_mouse_move(frame_ref.center)
+            await ui_test.input.emulate_mouse_scroll(Vec2(-1200, 0))
+            await ui_test.human_delay(human_delay_speed=2)
+            if frame.scroll_x > 1:
+                frame_details.append(
+                    f"{frame.name or '<unnamed>'}: scroll_x={frame.scroll_x}, "
+                    f"scroll_x_max={frame.scroll_x_max}, width={frame.computed_width}"
+                )
+
+        self.assertListEqual(
+            frame_details,
+            [],
+            f"{selection_name} properties pane allowed empty horizontal side scrolling: " + "; ".join(frame_details),
+        )
+
+    async def test_properties_pane_disables_horizontal_scrollbar(self):
+        _window, _wid = await self.__setup_widget("test_properties_pane_disables_horizontal_scrollbar")
+
+        self.assertEqual(
+            _wid._root_scrolling_frame.horizontal_scrollbar_policy,
+            ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+        )
+
+        await self.__destroy(_window, _wid)
+
+    async def test_properties_pane_prevents_empty_horizontal_side_scroll(self):
+        _window, _wid = await self.__setup_widget("test_properties_pane_prevents_empty_horizontal_side_scroll")
+
+        _window.width = 340
+        for selection_name, prim_path in [
+            ("mesh", self.NON_PARTICLE_INSTANCE_MESH_PATH),
+            ("material", self.MATERIAL_PATH),
+            ("particle", self.PARTICLE_MESH_PATH),
+            ("light", self.LIGHT_PATH),
+        ]:
+            with self.subTest(selection_name=selection_name):
+                await self.__set_selection([prim_path])
+                await self.__assert_no_horizontal_side_scroll(_window, selection_name)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_light_transform_empty_space_does_not_select_position_row(self):
+        _window, _wid = await self.__setup_widget("test_light_transform_empty_space_does_not_select_position_row")
+
+        await self.__set_selection([self.LIGHT_PATH])
+        await ui_test.human_delay(human_delay_speed=10)
+
+        position_labels = [
+            label
+            for label in ui_test.find_all(f"{_window.title}//Frame/**/Label[*].name=='PropertiesWidgetLabel'")
+            if label.widget.text == "Position  X"
+        ]
+        self.assertTrue(position_labels, "Expected a Position X transform row")
+        position_label = position_labels[0]
+        position_y = position_label.center.y
+
+        position_row_fields = [
+            field
+            for field in ui_test.find_all(f"{_window.title}//Frame/**/FloatBoundedDrag[*]")
+            if field.widget.screen_position_y
+            <= position_y
+            <= field.widget.screen_position_y + field.widget.computed_height
+        ]
+        self.assertTrue(position_row_fields, "Expected transform drag fields on the Position X row")
+        field_right = max(field.widget.screen_position_x + field.widget.computed_width for field in position_row_fields)
+        panel_right = _window.frame.screen_position_x + _window.frame.computed_width
+        click_x = min(field_right + 20, panel_right - 5)
+        self.assertGreater(click_x, field_right)
+
+        transform_tree = _wid._mesh_properties_widget._transformation_widget._property_widget.tree_view
+        transform_tree.selection = []
+        await ui_test.emulate_mouse_move_and_click(Vec2(click_x, position_y))
+        await ui_test.human_delay(human_delay_speed=2)
+
+        self.assertListEqual(
+            list(transform_tree.selection),
+            [],
+            "Clicking empty space to the right of the transform fields selected the Position X row",
+        )
+
+        await self.__destroy(_window, _wid)
 
     @staticmethod
     def __visible(selector: str):

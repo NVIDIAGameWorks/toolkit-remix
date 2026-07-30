@@ -3,13 +3,13 @@
     <package name="nvtt-exporter-standalone" version="2023.4.0.1-dev-windows-x86_64" />
   </dependency>
   <dependency name="python" linkPath="../_build/target-deps/python">
-    <package name="python" version="3.10.10+nv1-${platform}" />
+    <package name="python" version="3.12.13+nv1-${platform_target_abi}" />
   </dependency>
   <dependency name="rtx-remix-hdremix" linkPath="../_build/target-deps/hdremix">
-    <package name="rtx-remix-hdremix" version="ext-9c46827-main" />
+    <package name="rtx-remix-hdremix" version="ext-40d3025-main" />
   </dependency>
   <dependency name="rtx-remix-lookdev-lighting" linkPath="../_build/target-deps/content/rtx-remix-lookdev-lighting">
-    <package name="rtx-remix-lookdev-lighting" version="2023.1.0" />
+    <package name="rtx-remix-lookdev-lighting" version="2026.0.1" />
   </dependency>
   <dependency name="rtx-remix-lookdev-modeling" linkPath="../_build/target-deps/content/rtx-remix-lookdev-modeling">
     <package name="rtx-remix-lookdev-modeling" version="2023.0.0" />
@@ -17,7 +17,7 @@
   <dependency name="rtx-remix-omni_core_materials" linkPath="../_build/target-deps/omni_core_materials">
     <package name="rtx-remix-omni_core_materials" version="ext-9c46827-main" />
   </dependency>
-  <dependency name="rtx-remix-remix_runtime" linkPath="../_build/${platform}/${config}/deps/remix_runtime">
+  <dependency name="rtx-remix-remix_runtime" linkPath="../_build/${platform_target}/${config}/deps/remix_runtime">
     <package name="rtx-remix-remix_runtime" version="remix-1.5.2" />
   </dependency>
   <dependency name="rtxio" linkPath="../_build/target-deps/rtxio">

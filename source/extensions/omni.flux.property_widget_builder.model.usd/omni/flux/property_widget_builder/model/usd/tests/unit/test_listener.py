@@ -20,7 +20,9 @@ from unittest.mock import Mock, call, patch
 
 import omni.kit.test
 import omni.usd
+from omni.flux.property_widget_builder.model.usd import grouped_keys_primvar as _grouped_keys_primvar_module
 from omni.flux.property_widget_builder.model.usd import listener as _listener_module
+from omni.flux.property_widget_builder.model.usd.grouped_keys_primvar import PropertyGroupedKeysModel
 from omni.flux.property_widget_builder.model.usd.listener import DisableAllListenersBlock
 from omni.flux.property_widget_builder.model.usd.listener import USDListener
 from pxr import Sdf
@@ -135,6 +137,28 @@ class TestUSDListener(omni.kit.test.AsyncTestCase):
         listener.tmp_disable_all_listeners.assert_called_once_with()
         listener.tmp_enable_all_listeners.assert_called_once_with()
         self.assertEqual([], DisableAllListenersBlock.LIST_SELF)
+
+    async def test_suppress_panel_listener_removes_block_when_listener_disable_fails(self):
+        # Arrange
+        class _BrokenListener:
+            def tmp_disable_all_listeners(self):
+                raise AttributeError("listener unavailable")
+
+        model = object.__new__(PropertyGroupedKeysModel)
+        DisableAllListenersBlock.LIST_SELF.clear()
+
+        try:
+            # Act
+            with patch.object(
+                _grouped_keys_primvar_module, "get_usd_listener_instance", return_value=_BrokenListener()
+            ):
+                with model._suppress_panel_listener():
+                    pass
+
+            # Assert
+            self.assertEqual([], DisableAllListenersBlock.LIST_SELF)
+        finally:
+            DisableAllListenersBlock.LIST_SELF.clear()
 
     async def test_tmp_disable_and_enable_all_listeners_moves_models_through_tmp_list(self):
         # Arrange

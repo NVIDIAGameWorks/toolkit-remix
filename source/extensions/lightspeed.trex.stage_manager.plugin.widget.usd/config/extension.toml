@@ -1,6 +1,7 @@
 [package]
+kit_sdk_version = "110.*"
 # Semantic Versionning is used: https://semver.org/
-version = "2.7.3"
+version = "2.7.5"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
@@ -58,11 +59,13 @@ name = "lightspeed.trex.stage_manager.plugin.widget.usd"
 dependencies = [
     "lightspeed.trex.tests.dependencies",
     "lightspeed.trex.stage_manager.plugin.tree.usd",
-    "omni.flux.stage_manager.factory",
 ]
 
 stdoutFailPatterns.exclude = [
-    "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at '{render_product_path}'*",
+    "*[omni.rtx] OpenGL error after call of glTextureStorageMem2DEXT(texture.tex, 1, glFormat, desc->width, desc->height, texture.mem, desc->offset), 1281 - 'A numeric argument is out of range.'*",
+    "*[omni.rtx] createGLInteropTexture() failed, Cannot import glTexture.*",
+    "*[omni.kit.widget.opengl.plugin] GLRenderTexture::addDepthTargets: Could not get OpenGL interop depth texture for RpResource[0]*",
+    "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at *",
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
     "*[omni.kit.registry.nucleus.index_v2.index_sync] Syncing registry index failed*",
     "*[lightspeed.hydra.remix.core.extern] Remix initialization timeout*",

@@ -66,7 +66,8 @@ and document reason here. Cursor skill discovery version-sensitive.
 - New rule -> `.agents/rules/`, Cursor wrapper if always/glob, shared + Claude skill if on-demand, wire
   `.agents/instructions.md`.
 - New command -> `.agents/commands/`, shared skill, Claude skill, `AGENTS.md`. No `.claude/commands/` duplicate unless
-  documented legacy-client need. Commands stay lean; omit generic knowledge.
+  documented legacy-client need. Commands stay compressed: repo-specific facts, sources, and gotchas only; link generic
+  vendor/process guidance instead of restating it.
 - Internal command -> `.agents/commands/internal/` + internal README. Do not list in `AGENTS.md` or shared tables unless
   intentionally public.
 - New subagent -> `.agents/subagents/`, `.claude/agents/<name>.md`, `.codex/agents/<name>.toml`, `AGENTS.md`,

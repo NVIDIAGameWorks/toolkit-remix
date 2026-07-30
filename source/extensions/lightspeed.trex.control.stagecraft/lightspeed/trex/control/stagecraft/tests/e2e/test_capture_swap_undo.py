@@ -41,7 +41,6 @@ from omni.flux.utils.common.symlink import create_folder_symlinks as _create_fol
 from omni.flux.utils.tests.context_managers import open_test_project
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
-from omni.kit.ui_test import Vec2
 from pxr import Usd, UsdLux
 
 _ALT_CAPTURE_NAME = "capture_alt.usda"
@@ -52,6 +51,8 @@ _UNDO_CAPTURE_CHANGE_DIALOG_TITLE = "Undo Capture Change"
 _TEST_SELECTION_PRIM = (
     "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
 )
+_TEST_CAPTURE_PRIM = "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
+_TEST_CAPTURE_LABEL = "Cube"
 _TEST_EDITOR_PRIM = "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01"
 _TEST_EDITOR_LABEL = "Cube_01"
 
@@ -210,52 +211,19 @@ class TestCaptureSwapUndo(AsyncTestCase):
             if hasattr(properties_window, "focus"):
                 properties_window.focus()
 
-            checkbox_selector = (
-                f"{_WindowNames.PROPERTIES.value}//Frame/**/CheckBox[*].identifier=='{_TEST_EDITOR_PRIM}.doubleSided'"
+            checkbox, first_property_prim = await self._find_or_select_double_sided_checkbox(
+                "initial selection", target_label=_TEST_EDITOR_LABEL
             )
-            for _ in range(80):
-                checkbox = ui_test.find(checkbox_selector)
-                if checkbox is not None and checkbox.widget.visible:
-                    break
+            self.assertEqual(_TEST_EDITOR_PRIM, first_property_prim)
 
-                item_prims = [
-                    widget
-                    for widget in ui_test.find_all(
-                        f"{_WindowNames.PROPERTIES.value}//Frame/**/Label[*].identifier=='item_prim'"
-                    )
-                    if widget.widget.visible
-                ]
-                if len(item_prims) >= 2:
-                    self.assertEqual(_TEST_EDITOR_LABEL, item_prims[-1].widget.text)
-                    await item_prims[-1].click()
-                    await ui_test.human_delay(human_delay_speed=5)
-                else:
-                    expand_buttons = [
-                        widget
-                        for widget in ui_test.find_all(
-                            f"{_WindowNames.PROPERTIES.value}//Frame/**/Image[*].identifier=='Expand'"
-                        )
-                        if widget.widget.visible
-                    ]
-                    if expand_buttons:
-                        await expand_buttons[0].click()
-                        await ui_test.human_delay(human_delay_speed=5)
-                await ui_test.human_delay(human_delay_speed=5)
-            else:
-                self.fail(f"Properties pane did not expose {_TEST_EDITOR_PRIM}.doubleSided")
-
-            original_double_sided = self._get_prim_bool_attribute(_TEST_EDITOR_PRIM, "doubleSided")
+            original_double_sided = self._get_prim_bool_attribute(first_property_prim, "doubleSided")
 
             # First real user edit: toggle the checkbox in the Properties pane.
-            checkbox = ui_test.find(checkbox_selector)
-            self.assertIsNotNone(checkbox)
-            await ui_test.emulate_mouse_move(checkbox.position + Vec2(3, 3))
-            await ui_test.human_delay()
-            await ui_test.emulate_mouse_click()
+            await checkbox.click()
             await ui_test.human_delay()
 
             for _ in range(80):
-                first_toggle_value = self._get_prim_bool_attribute(_TEST_EDITOR_PRIM, "doubleSided")
+                first_toggle_value = self._get_prim_bool_attribute(first_property_prim, "doubleSided")
                 if first_toggle_value != original_double_sided:
                     break
                 await ui_test.wait_n_updates(2)
@@ -350,63 +318,42 @@ class TestCaptureSwapUndo(AsyncTestCase):
             for _ in range(5):
                 await ui_test.wait_n_updates(2)
 
-            # Re-select the same prim after the capture swap and wait for the checkbox to rebuild.
+            # Re-select the instance after the capture swap so the Properties selection tree can remap it
+            # back to the editable replacement prim.
             self._usd_context.get_selection().clear_selected_prim_paths()
             await ui_test.wait_n_updates(10)
             self._usd_context.get_selection().set_selected_prim_paths([_TEST_SELECTION_PRIM], False)
             await ui_test.wait_n_updates(20)
             await ui_test.human_delay(human_delay_speed=5)
 
-            for _ in range(80):
-                checkbox = ui_test.find(checkbox_selector)
-                if checkbox is not None and checkbox.widget.visible:
-                    break
+            checkbox, second_property_prim = await self._find_or_select_double_sided_checkbox(
+                "capture swap",
+                target_label=_TEST_CAPTURE_LABEL,
+                selection_path=_TEST_SELECTION_PRIM,
+                click_target_item=False,
+            )
+            self.assertEqual(_TEST_CAPTURE_PRIM, second_property_prim)
 
-                item_prims = [
-                    widget
-                    for widget in ui_test.find_all(
-                        f"{_WindowNames.PROPERTIES.value}//Frame/**/Label[*].identifier=='item_prim'"
-                    )
-                    if widget.widget.visible
-                ]
-                if len(item_prims) >= 2:
-                    self.assertEqual(_TEST_EDITOR_LABEL, item_prims[-1].widget.text)
-                    await item_prims[-1].click()
-                    await ui_test.human_delay(human_delay_speed=5)
-                else:
-                    expand_buttons = [
-                        widget
-                        for widget in ui_test.find_all(
-                            f"{_WindowNames.PROPERTIES.value}//Frame/**/Image[*].identifier=='Expand'"
-                        )
-                        if widget.widget.visible
-                    ]
-                    if expand_buttons:
-                        await expand_buttons[0].click()
-                        await ui_test.human_delay(human_delay_speed=5)
-                await ui_test.human_delay(human_delay_speed=5)
-            else:
-                self.fail(f"Properties pane did not rebuild {_TEST_EDITOR_PRIM}.doubleSided after capture swap")
-
-            replacement_capture_double_sided = self._get_prim_bool_attribute(_TEST_EDITOR_PRIM, "doubleSided")
+            replacement_capture_double_sided = self._get_prim_bool_attribute(second_property_prim, "doubleSided")
             self.assertEqual(2, len(self._get_undo_stack_names()), msg=f"undo_stack={self._get_undo_stack_names()}")
             self.assertEqual("SwitchCaptureCommand", self._get_undo_stack_names()[-1])
 
             # Second real user edit: toggle the same checkbox after the capture swap.
-            checkbox = ui_test.find(checkbox_selector)
-            self.assertIsNotNone(checkbox)
-            await ui_test.emulate_mouse_move(checkbox.position + Vec2(3, 3))
-            await ui_test.human_delay()
-            await ui_test.emulate_mouse_click()
+            await checkbox.click()
             await ui_test.human_delay()
 
             for _ in range(80):
-                second_toggle_value = self._get_prim_bool_attribute(_TEST_EDITOR_PRIM, "doubleSided")
+                second_toggle_value = self._get_prim_bool_attribute(second_property_prim, "doubleSided")
                 if second_toggle_value != replacement_capture_double_sided:
                     break
                 await ui_test.wait_n_updates(2)
             else:
-                self.fail("Second property toggle did not change the USD value")
+                self.fail(
+                    "Second property toggle did not change the USD value\n"
+                    f"second_property_prim={second_property_prim}\n"
+                    f"checkbox_state={self._format_checkbox_state(checkbox)}\n"
+                    f"{self._format_properties_pane_state()}"
+                )
 
             # First Ctrl+Z should only revert the second checkbox edit.
             await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.Z, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
@@ -414,7 +361,7 @@ class TestCaptureSwapUndo(AsyncTestCase):
             self.assertEqual(replacement_capture_path.resolve(), self._get_current_capture_path())
             self.assertEqual(
                 replacement_capture_double_sided,
-                self._get_prim_bool_attribute(_TEST_EDITOR_PRIM, "doubleSided"),
+                self._get_prim_bool_attribute(second_property_prim, "doubleSided"),
             )
 
             # Second Ctrl+Z must immediately show the capture confirmation dialog.
@@ -471,51 +418,28 @@ class TestCaptureSwapUndo(AsyncTestCase):
             else:
                 self.fail(f"Capture layer did not restore to {original_capture_path.resolve()}")
 
-            # Re-select the same prim again and confirm the first checkbox edit is still the next undoable action.
+            # Re-select the instance again and confirm the first checkbox edit is still next.
             self._usd_context.get_selection().clear_selected_prim_paths()
             await ui_test.wait_n_updates(10)
             self._usd_context.get_selection().set_selected_prim_paths([_TEST_SELECTION_PRIM], False)
             await ui_test.wait_n_updates(20)
             await ui_test.human_delay(human_delay_speed=5)
 
-            for _ in range(80):
-                checkbox = ui_test.find(checkbox_selector)
-                if checkbox is not None and checkbox.widget.visible:
-                    break
+            _checkbox, restored_property_prim = await self._find_or_select_double_sided_checkbox(
+                "capture undo",
+                target_label=_TEST_CAPTURE_LABEL,
+                selection_path=_TEST_SELECTION_PRIM,
+                click_target_item=False,
+            )
+            self.assertEqual(_TEST_CAPTURE_PRIM, restored_property_prim)
 
-                item_prims = [
-                    widget
-                    for widget in ui_test.find_all(
-                        f"{_WindowNames.PROPERTIES.value}//Frame/**/Label[*].identifier=='item_prim'"
-                    )
-                    if widget.widget.visible
-                ]
-                if len(item_prims) >= 2:
-                    self.assertEqual(_TEST_EDITOR_LABEL, item_prims[-1].widget.text)
-                    await item_prims[-1].click()
-                    await ui_test.human_delay(human_delay_speed=5)
-                else:
-                    expand_buttons = [
-                        widget
-                        for widget in ui_test.find_all(
-                            f"{_WindowNames.PROPERTIES.value}//Frame/**/Image[*].identifier=='Expand'"
-                        )
-                        if widget.widget.visible
-                    ]
-                    if expand_buttons:
-                        await expand_buttons[0].click()
-                        await ui_test.human_delay(human_delay_speed=5)
-                await ui_test.human_delay(human_delay_speed=5)
-            else:
-                self.fail(f"Properties pane did not rebuild {_TEST_EDITOR_PRIM}.doubleSided after capture undo")
-
-            self.assertEqual(first_toggle_value, self._get_prim_bool_attribute(_TEST_EDITOR_PRIM, "doubleSided"))
+            self.assertEqual(first_toggle_value, self._get_prim_bool_attribute(first_property_prim, "doubleSided"))
             self.assertEqual(1, len(self._get_undo_stack_names()), msg=f"undo_stack={self._get_undo_stack_names()}")
 
             # Final Ctrl+Z must go straight to the original checkbox edit with no ghost undo in between.
             await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.Z, carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
             await ui_test.human_delay(human_delay_speed=5)
-            self.assertEqual(original_double_sided, self._get_prim_bool_attribute(_TEST_EDITOR_PRIM, "doubleSided"))
+            self.assertEqual(original_double_sided, self._get_prim_bool_attribute(first_property_prim, "doubleSided"))
             self.assertFalse(omni.kit.undo.can_undo(), msg=f"undo_stack={self._get_undo_stack_names()}")
 
     def _get_current_capture_path(self) -> Path:
@@ -554,6 +478,112 @@ class TestCaptureSwapUndo(AsyncTestCase):
     @staticmethod
     def _get_undo_stack_names() -> list[str]:
         return [entry.name for entry in omni.kit.undo.get_undo_stack()]
+
+    async def _find_or_select_double_sided_checkbox(
+        self,
+        context: str,
+        target_label: str | None = None,
+        selection_path: str | None = None,
+        click_target_item: bool = True,
+    ):
+        target_item_clicked = target_label is None or not click_target_item
+        for _ in range(80):
+            if selection_path and self._usd_context.get_selection().get_selected_prim_paths() != [selection_path]:
+                self._usd_context.get_selection().set_selected_prim_paths([selection_path], False)
+                target_item_clicked = target_label is None or not click_target_item
+                await ui_test.wait_n_updates(2)
+
+            checkbox, prim_path = self._get_visible_double_sided_checkbox(target_label=target_label)
+            if checkbox is not None and target_item_clicked:
+                return checkbox, prim_path
+
+            item_prims = [
+                widget
+                for widget in ui_test.find_all(
+                    f"{_WindowNames.PROPERTIES.value}//Frame/**/Label[*].identifier=='item_prim'"
+                )
+                if widget.widget.visible
+            ]
+            item_to_click = None
+            if target_label is not None:
+                item_to_click = next((item for item in item_prims if item.widget.text == target_label), None)
+            elif item_prims:
+                item_to_click = item_prims[-1]
+
+            if item_to_click is not None:
+                await item_to_click.click()
+                target_item_clicked = True
+                await ui_test.human_delay(human_delay_speed=5)
+            else:
+                expand_buttons = [
+                    widget
+                    for widget in ui_test.find_all(
+                        f"{_WindowNames.PROPERTIES.value}//Frame/**/Image[*].identifier=='Expand'"
+                    )
+                    if widget.widget.visible
+                ]
+                if expand_buttons:
+                    await expand_buttons[0].click()
+                    await ui_test.human_delay(human_delay_speed=5)
+            await ui_test.human_delay(human_delay_speed=5)
+
+        target = f" for {target_label}" if target_label else ""
+        self.fail(
+            f"Properties pane did not expose a doubleSided checkbox{target} during {context}\n"
+            f"{self._format_properties_pane_state()}"
+        )
+        return None
+
+    def _get_visible_double_sided_checkbox(self, target_label: str | None = None):
+        for checkbox in ui_test.find_all(f"{_WindowNames.PROPERTIES.value}//Frame/**/CheckBox[*]"):
+            if not checkbox.widget.visible:
+                continue
+            identifier = checkbox.widget.identifier
+            if not identifier or not identifier.endswith(".doubleSided"):
+                continue
+            prim_path = identifier.removesuffix(".doubleSided")
+            if target_label is not None and not prim_path.endswith(f"/{target_label}"):
+                continue
+            return checkbox, prim_path
+        return None, None
+
+    @staticmethod
+    def _format_checkbox_state(checkbox) -> dict[str, object]:
+        return {
+            "identifier": getattr(checkbox.widget, "identifier", None),
+            "visible": getattr(checkbox.widget, "visible", None),
+            "enabled": getattr(checkbox.widget, "enabled", None),
+            "checked": getattr(checkbox.widget, "checked", None),
+        }
+
+    def _format_properties_pane_state(self) -> str:
+        stage = self._usd_context.get_stage()
+        selection_prim = stage.GetPrimAtPath(_TEST_SELECTION_PRIM) if stage else None
+        prim = stage.GetPrimAtPath(_TEST_EDITOR_PRIM) if stage else None
+        attribute = prim.GetAttribute("doubleSided") if prim and prim.IsValid() else None
+        item_labels = [
+            widget.widget.text
+            for widget in ui_test.find_all(
+                f"{_WindowNames.PROPERTIES.value}//Frame/**/Label[*].identifier=='item_prim'"
+            )
+            if widget.widget.visible
+        ]
+        checkbox_identifiers = [
+            widget.widget.identifier
+            for widget in ui_test.find_all(f"{_WindowNames.PROPERTIES.value}//Frame/**/CheckBox[*]")
+            if widget.widget.visible
+        ]
+        return "\n".join(
+            [
+                f"stage_selection={self._usd_context.get_selection().get_selected_prim_paths()}",
+                f"selection_prim_valid={bool(selection_prim and selection_prim.IsValid())}",
+                f"target_prim_valid={bool(prim and prim.IsValid())}",
+                f"target_double_sided_valid={bool(attribute and attribute.IsValid())}",
+                f"visible_item_prims={item_labels}",
+                f"visible_checkbox_identifiers={checkbox_identifiers}",
+                f"undo_stack={self._get_undo_stack_names()}",
+            ]
+        )
 
     async def _close_open_stage(self):
         usd_context = getattr(self, "_usd_context", None)

@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.2]
+### Fixed
+- Vertically aligned the Existing Graphs action icons in the logic properties pane.
+
+## [1.5.1]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.5.0]
 ### Added
 - Added transfer actions for logic property modifications and logic graph definitions.

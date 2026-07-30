@@ -485,7 +485,7 @@ class ClickedGesture(sc.ClickGesture):
         pixel_loc, viewport_api = self._viewport_api.map_ndc_to_texture_pixel(ndc_location)
         if pixel_loc and viewport_api:
             GlobalSelection.get_instance().add_manipulator_selection(
-                self._viewport_api, pixel_loc, self.sender.gesture_payload.ray_distance, self._prim_path
+                self._viewport_api, pixel_loc, self.gesture_payload.ray_distance, self._prim_path
             )
 
 

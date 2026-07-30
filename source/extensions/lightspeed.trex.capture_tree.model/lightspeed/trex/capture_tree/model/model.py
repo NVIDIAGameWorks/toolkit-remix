@@ -155,7 +155,7 @@ class CaptureTreeModel(ui.AbstractItemModel):
 
     @usd.handle_exception
     async def __fetch_progress(self, items: list[CaptureTreeItem] | None = None):
-        collection = items if items else self.__children
+        collection = items or self.__children
         # Reset the UI item state
         for item in collection:
             item.replaced_items = None

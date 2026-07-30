@@ -26,6 +26,12 @@ import omni.kit.test
 from lightspeed.common import constants
 from lightspeed.trex.stage_manager.plugin.tree.usd.category_groups import CategoryGroupsItem as _CategoryGroupsItem
 from lightspeed.trex.stage_manager.plugin.tree.usd.category_groups import CategoryGroupsModel as _CategoryGroupsModel
+from lightspeed.trex.stage_manager.plugin.widget.usd.action_logic_graph import (
+    LogicGraphWidgetPlugin as _LogicGraphWidgetPlugin,
+)
+from lightspeed.trex.stage_manager.plugin.widget.usd.action_rename_prim import (
+    PrimRenameNameActionWidgetPlugin as _PrimRenameNameActionWidgetPlugin,
+)
 from lightspeed.trex.stage_manager.plugin.widget.usd.focus_in_viewport import (
     FocusInViewportActionWidgetPlugin as _FocusInViewportActionWidgetPlugin,
 )
@@ -123,6 +129,31 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
                 f'mklink /J "{self.project_path.parent / constants.REMIX_DEPENDENCIES_FOLDER}" "{self.remix_dir}"',
                 shell=True,
             )
+
+    async def test_prim_name_columns_render_one_name_field(self):
+        await arrange_windows(topleft_window="Stage")
+        window = ui.Window("TestSinglePrimNameField", width=400, height=100)
+        model = _StageManagerTreeModel()
+        item = _StageManagerTreeItem(
+            display_name="TestPrim",
+            tooltip="/World/TestPrim",
+            data=self.stage.DefinePrim("/World/TestPrim", "Xform"),
+        )
+
+        try:
+            with window.frame:
+                with ui.HStack():
+                    item.build_widget()
+                    _LogicGraphWidgetPlugin().build_icon_ui(model, item, 0, False)
+                    _PrimRenameNameActionWidgetPlugin().build_icon_ui(model, item, 0, False)
+
+            await ui_test.human_delay(5)
+
+            name_fields = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='nickname_field'")
+            self.assertEqual(1, len(name_fields))
+        finally:
+            model.destroy()
+            window.destroy()
 
     async def __cleanup_directories(self):
         shutil.rmtree(self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem, ignore_errors=True)

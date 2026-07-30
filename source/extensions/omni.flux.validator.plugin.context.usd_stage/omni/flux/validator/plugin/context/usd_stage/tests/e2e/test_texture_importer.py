@@ -209,7 +209,7 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
         self.assertEqual(len(input_files), len(input_file_labels))
         self.assertEqual(len(input_files), len(input_file_types))
 
-        self.assertEqual(context if context else "None", context_field.widget.model.get_value_as_string())
+        self.assertEqual(context or "None", context_field.widget.model.get_value_as_string())
         self.assertEqual(Path(output_path).as_posix(), Path(output_field.widget.model.get_value_as_string()).as_posix())
 
         for i, input_file in enumerate(input_files):

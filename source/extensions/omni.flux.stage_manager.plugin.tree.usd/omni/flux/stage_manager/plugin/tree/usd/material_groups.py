@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import threading
 
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common.materials import get_materials_from_prim_paths as _get_materials_from_prim_paths
@@ -76,45 +76,63 @@ class MaterialGroupsModel(_VirtualGroupsModel):
             display_name_ancestor=display_name_ancestor,
         )
 
-    def _build_items(self, items: Iterable[_StageManagerItem]) -> list[MaterialGroupsItem] | None:
+    def _build_items(
+        self,
+        items: list[_StageManagerItem],
+        cancel_event: threading.Event,
+    ) -> list[MaterialGroupsItem] | None:
+        """Build material groups unless the refresh is cancelled."""
+        if cancel_event.is_set():
+            return None
+
         tree_items = {}
 
         # Create material group items as parents and create mesh list
         mesh_items = []
         for item in items:
-            if item.data.IsA(UsdGeom.Mesh):
+            if cancel_event.is_set():
+                return None
+            prim = item.data
+            if prim.IsA(UsdGeom.Mesh):
                 mesh_items.append(item)
-            if item.data.IsA(UsdShade.Material):
-                item_path = item.data.GetPath()
-                tree_items[str(item_path)] = self._build_item(
-                    str(item_path.name),
-                    item.data,
-                    tooltip=str(item_path),
+            if prim.IsA(UsdShade.Material):
+                item_path = str(prim.GetPath())
+                tree_items[item_path] = self._build_item(
+                    prim.GetPath().name,
+                    prim,
+                    tooltip=item_path,
                     is_virtual=True,
                 )
+                tree_items[item_path].path = item_path
 
         # Create child mesh group items from mesh list
         for item in mesh_items:
+            if cancel_event.is_set():
+                return None
             # Grab item name and parent name for hierarchy labeling
-            item_name = item.data.GetPath().name
-            parent_name = item.data.GetParent().GetPath().name
+            prim_path = item.data.GetPath()
+            item_name = prim_path.name
+            parent_name = prim_path.GetParentPath().name
 
             # Find target materials; There should normally be 1, but handle multiple
-            target_materials = _get_materials_from_prim_paths([item.data.GetPath()])
-            for material in target_materials:
+            for material in _get_materials_from_prim_paths([prim_path]):
+                if cancel_event.is_set():
+                    return None
                 parent_material_path = str(material.GetPrim().GetPath())
-
                 # Create the mesh children per parent material
                 if parent_material_path in tree_items:
                     mat_tree_item = self._build_item(
                         item_name,
                         item.data,
-                        tooltip=str(item.data.GetPath()),
+                        tooltip=str(prim_path),
                         display_name_ancestor=parent_name,
                     )
+                    mat_tree_item.path = str(prim_path)
                     mat_tree_item.parent = tree_items[parent_material_path]
 
         # Sort the items alphabetically (both parents and children)
+        if cancel_event.is_set():
+            return None
         sorted_tree_items = list(tree_items.values())
         self.sort_items(sorted_tree_items)
 

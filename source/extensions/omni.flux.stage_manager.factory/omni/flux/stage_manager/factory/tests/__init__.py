@@ -15,8 +15,16 @@
 * limitations under the License.
 """
 
+from .unit.test_interaction_update_queue import TestStageManagerInteractionUpdateQueue
 from .unit.test_tree_model_selection import TestStageManagerTreeModelSelection
+from .unit.test_tree_model_threaded_refresh import TestStageManagerTreeModelThreadedRefresh
 from .unit.test_utils_filter_items import TestStageManagerUtilsFilterItems
 from .unit.test_utils_filter_items_by_category import TestStageManagerUtils
 
-__all__ = ["TestStageManagerTreeModelSelection", "TestStageManagerUtils", "TestStageManagerUtilsFilterItems"]
+__all__ = [
+    "TestStageManagerInteractionUpdateQueue",
+    "TestStageManagerTreeModelSelection",
+    "TestStageManagerTreeModelThreadedRefresh",
+    "TestStageManagerUtils",
+    "TestStageManagerUtilsFilterItems",
+]

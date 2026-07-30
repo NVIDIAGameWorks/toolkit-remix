@@ -16,7 +16,7 @@
 """
 
 import re
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, StrEnum
 from pathlib import Path
 
 from omni import ui
@@ -649,8 +649,7 @@ OMNI_GRAPH_NODE_TYPE = "OmniGraphNode"
 OMNI_GRAPH_NODE_TYPES = ("OmniGraph", "OmniGraphNode")
 
 # Particle System
-PARTICLE_SCHEMA_NAME = "RemixParticleSystemAPI"
-PARTICLE_CPP_SCHEMA_NAME = "ParticleSystemAPI"  # Use this with USDRT or low level code.
+PARTICLE_SCHEMA_NAME = "ParticleSystemAPI"
 PARTICLE_ALLOWED_PRIM_TYPES = ["Mesh", "Material"]
 PARTICLE_PRIMVAR_PREFIX = "primvars:particle:"
 PARTICLE_HIDE_EMITTER_ATTR = PARTICLE_PRIMVAR_PREFIX + "hideEmitter"
@@ -662,7 +661,7 @@ VIEWPORT_MENU_SHOW_BY_TYPE = "Show By Type"
 UNTITLED_PROJECT_NAME = "Untitled Project"
 
 
-class WindowNames(str, Enum):
+class WindowNames(StrEnum):
     """LightSpeed Studio window names for ui.Workspace integration"""
 
     VIEWPORT = "Viewport"
@@ -685,7 +684,7 @@ class Layouts(Enum):
     INGESTCRAFT = "IngestCraft"
 
 
-class LayoutFiles(str, Enum):
+class LayoutFiles(StrEnum):
     HOME_PAGE = "home_page_default_layout"
     WORKSPACE_PAGE = "stagecraft_default_layout"
     INGESTCRAFT = "ingestcraft_default_layout"

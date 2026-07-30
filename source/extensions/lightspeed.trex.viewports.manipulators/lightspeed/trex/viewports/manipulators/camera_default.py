@@ -35,6 +35,16 @@ from .protocols import CameraGestureProtocol as _CameraGestureProtocol
 from .protocols import GestureScreenProtocol as _GestureScreenProtocol
 from .protocols import ViewportAPIProtocol as _ViewportAPIProtocol
 
+# Kit's camera manipulator API expects string gesture names and binding grammar.
+_CAMERA_GESTURE_BINDINGS = {
+    "PanGesture": "Any MiddleButton",
+    "TumbleGesture": "Alt LeftButton",
+    "ZoomGesture": "Alt RightButton",
+    "LookGesture": "RightButton",
+    "FlightSpeedGesture": "RightButton",
+    "FlightMode": "RightButton",
+}
+
 
 class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
     """Camera manipulator that brackets camera gestures with USD notice interactions."""
@@ -174,7 +184,7 @@ class CameraDefault(IManipulator):
         super().__init__(viewport_api)
 
     def _create_manipulator(self):
-        self.__manipulator = _ViewportCameraManipulator(self.viewport_api)
+        self.__manipulator = _ViewportCameraManipulator(self.viewport_api, bindings=_CAMERA_GESTURE_BINDINGS.copy())
 
         def setting_changed(value, event_type, set_fn):
             if event_type != carb.settings.ChangeEventType.CHANGED:

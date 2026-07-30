@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .unit.test_interaction_defaults import TestStageManagerUSDInteractionDefaults
 from .unit.test_usd_base import TestStageManagerUSDInteractionPlugin
 
-__all__ = ["TestStageManagerUSDInteractionPlugin"]
+__all__ = ["TestStageManagerUSDInteractionDefaults", "TestStageManagerUSDInteractionPlugin"]

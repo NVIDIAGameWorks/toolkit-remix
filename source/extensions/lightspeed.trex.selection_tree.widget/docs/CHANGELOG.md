@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.10.1]
+### Fixed
+- Fixed replacement light selection to survive Kit 110 tree refreshes and asset row clicks.
+
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.10.0]
 ### Added
 - Added transfer actions for reference modifications and live stage-light definitions.

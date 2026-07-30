@@ -46,7 +46,6 @@ from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_p
 from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import utils as _validator_factory_utils
-from omni.kit.viewport.utility import get_active_viewport
 from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
 from pydantic import ConfigDict, Field, ValidationError, create_model, field_validator
 from pydantic.functional_validators import SkipValidation
@@ -408,13 +407,11 @@ class AssetImporter(_ContextBaseUSD):
         """
 
         def __open_output_file():
-            viewport_api = get_active_viewport(usd_context_name=schema_data.computed_context)
-            if viewport_api is not None:
-                carb.log_error("Can't open the stage, no viewport")
+            file_path = self.__get_imported_output_file(schema_data)
+            if not file_path:
+                carb.log_error("Can't open the stage, no imported output file")
                 return
-            # for mass ingestion, we only has 1 file
-            # we grab the tmp value of the schema of this plugin. This attribute is private in purpose
-            file_path = schema_data.output_files[str(schema_data.input_files[0])]
+
             context = omni.usd.get_context(schema_data.computed_context)
             context.open_stage(file_path)
             callback("show_in_viewport")
@@ -436,6 +433,23 @@ class AssetImporter(_ContextBaseUSD):
                     )
                     ui.Spacer(width=ui.Pixel(2))
             ui.Spacer(height=ui.Pixel(2))
+
+    @staticmethod
+    def __get_imported_output_file(schema_data: Data) -> str | None:
+        if schema_data.output_files:
+            input_file = str(schema_data.input_files[0])
+            file_path = schema_data.output_files.get(input_file)
+            if file_path:
+                return file_path
+
+        fallback_output = None
+        for data_flow in schema_data.data_flows or []:
+            if data_flow.name != "InOutData" or not data_flow.output_data:
+                continue
+            if data_flow.channel == "ingestion_output":
+                return data_flow.output_data[0]
+            fallback_output = fallback_output or data_flow.output_data[0]
+        return fallback_output
 
     @omni.usd.handle_exception
     async def _mass_build_ui(self, schema_data: Data) -> Any:

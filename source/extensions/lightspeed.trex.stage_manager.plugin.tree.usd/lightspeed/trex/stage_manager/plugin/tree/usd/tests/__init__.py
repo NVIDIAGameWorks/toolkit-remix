@@ -15,6 +15,6 @@
 * limitations under the License.
 """
 
-from .test_usd_base import TestStageManagerUSDInteractionPlugin
+from .unit.test_grouped_tree_worker_preparation import TestRemixUSDGroupedTreeWorkerPreparation
 
-__all__ = ["TestStageManagerUSDInteractionPlugin"]
+__all__ = ["TestRemixUSDGroupedTreeWorkerPreparation"]

@@ -286,7 +286,7 @@ class SetupUI:
         items = self._material_properties_widget.property_model.get_all_items(include_hidden=True)
         for item in items:
             for value_model in item.value_models:
-                if usd_properties_utils.get_type_name(value_model.metadata) in {Sdf.ValueTypeNames.Asset}:
+                if usd_properties_utils.get_type_name(value_model.metadata) == Sdf.ValueTypeNames.Asset:
                     value_model.set_callback_pre_set_value(self.__check_asset_was_ingested_and_in_proj_dir)
 
     def _texture_assignment(
@@ -541,7 +541,7 @@ class SetupUI:
                     self._context_name,
                     _constants.MATERIAL_OVERRIDE_PATH.format(prim_node=str(prim.GetPath())),
                     mdl_file_name,
-                    mdl_file_name.split(".")[0],
+                    mdl_file_name.split(".", maxsplit=1)[0],
                     prim,
                 )
 
@@ -767,8 +767,7 @@ class SetupUI:
                     partial(self.__convert_material, _constants.SHADER_NAME_TRANSLUCENT, opaque_prims)
                 )
 
-        # menu_compatibility required to get tooltip and hide_on_click working
-        self.__menu = omni.ui.Menu(menu_compatibility=False)
+        self.__menu = omni.ui.Menu()
         with self.__menu:
             shared_material_items: list[Usd.Prim] = []
             instance_material_items: list[Usd.Prim] = []

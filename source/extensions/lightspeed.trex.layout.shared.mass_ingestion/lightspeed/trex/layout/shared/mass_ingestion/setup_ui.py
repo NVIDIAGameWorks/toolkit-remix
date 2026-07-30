@@ -101,7 +101,8 @@ class SetupUI(_WorkspaceWidget):
                 )
                 self._frame_viewport = ui.Frame(separate_window=False, visible=False, width=ui.Fraction(20))
                 with self._frame_viewport:
-                    self._viewport = _create_viewport_instance(self._context_name)
+                    # This panel embeds a viewport in a freshly built frame; it cannot reuse a widget parented elsewhere.
+                    self._viewport = _create_viewport_instance(self._context_name, reuse_existing=False)
 
         self._properties_panel.add([self._VALIDATION_TAB_NAME, self._STAGE_VIEW_TAB_NAME])
         self._mass_ingest_widget.set_validator_widget_root_frame(

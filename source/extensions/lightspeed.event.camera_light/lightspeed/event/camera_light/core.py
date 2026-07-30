@@ -15,9 +15,11 @@
 * limitations under the License.
 """
 
+import asyncio
+
 import carb
+import omni.usd
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
-from lightspeed.hydra.remix.core import hdremix_set_configvar as _hdremix_set_configvar
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 _CONTEXT = "/exts/lightspeed.event.camera_light/context"
@@ -28,6 +30,19 @@ _CONTEXT = "/exts/lightspeed.event.camera_light/context"
 _FALLBACK_MODES = {"Never": "0", "NoLightsPresent": "1", "Always": "2"}
 # The different fallback types
 _FALLBACK_TYPES = {"Distant": "0", "Sphere": "1"}
+
+
+# Keep HdRemix imports lazy so the optional renderer dependency is only loaded when this event writes configvars.
+def _hdremix_set_configvar(key: str, value: str) -> None:
+    from lightspeed.hydra.remix.core import hdremix_set_configvar  # noqa: PLC0415
+
+    hdremix_set_configvar(key, value)
+
+
+async def _hdremix_set_configvar_async(key: str, value: str) -> None:
+    from lightspeed.hydra.remix.core import hdremix_set_configvar_async  # noqa: PLC0415
+
+    await hdremix_set_configvar_async(key, value)
 
 
 class EventCameraLightCore(_ILSSEvent):
@@ -54,16 +69,41 @@ class EventCameraLightCore(_ILSSEvent):
         """Function that will remove the behavior"""
         self._settings.subscribe_to_node_change_events("/rtx/useViewLightingMode", None)
 
+    @omni.usd.handle_exception
+    async def __set_configvars_async(self, configvars: list[tuple[str, str]], message: str):
+        for key, value in configvars:
+            await _hdremix_set_configvar_async(key, value)
+        carb.log_info(message)
+
+    def __set_configvars(self, configvars: list[tuple[str, str]], message: str):
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            for key, value in configvars:
+                _hdremix_set_configvar(key, value)
+            carb.log_info(message)
+            return
+
+        asyncio.ensure_future(self.__set_configvars_async(configvars, message))
+
     def _set_camera_light(self):
-        _hdremix_set_configvar("rtx.fallbackLightMode", _FALLBACK_MODES["Always"])
-        _hdremix_set_configvar("rtx.fallbackLightType", _FALLBACK_TYPES["Sphere"])
-        _hdremix_set_configvar("rtx.fallbackLightRadiance", "50, 50, 50")
-        carb.log_info("Camera light set...")
+        self.__set_configvars(
+            [
+                ("rtx.fallbackLightMode", _FALLBACK_MODES["Always"]),
+                ("rtx.fallbackLightType", _FALLBACK_TYPES["Sphere"]),
+                ("rtx.fallbackLightRadiance", "50, 50, 50"),
+            ],
+            "Camera light set...",
+        )
 
     def _reset_camera_light(self):
-        _hdremix_set_configvar("rtx.fallbackLightMode", _FALLBACK_MODES["Never"])
-        _hdremix_set_configvar("rtx.fallbackLightRadiance", "0, 0, 0")
-        carb.log_info("Camera light reset...")
+        self.__set_configvars(
+            [
+                ("rtx.fallbackLightMode", _FALLBACK_MODES["Never"]),
+                ("rtx.fallbackLightRadiance", "0, 0, 0"),
+            ],
+            "Camera light reset...",
+        )
 
     def __on_camera_light_event(self, *args, **kwargs):
         render_settings = self._settings.get("/rtx/useViewLightingMode")

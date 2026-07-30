@@ -1,10 +1,16 @@
-(changelog_lightspeed.trex.components.ogn)=
-
 # Changelog
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 This document records all notable changes to the **lightspeed.trex.logic.ogn** extension.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
+
+
+## [1.0.5]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
+(changelog_lightspeed.trex.components.ogn)=
 
 ## [1.0.4]
 ### Changed

@@ -1,5 +1,6 @@
 [package]
-version = "1.1.4"
+kit_sdk_version = "110.*"
+version = "1.1.5"
 authors =["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "Mod Packaging Details Widget"
 description = "Mod Packaging Details Widget implementation"

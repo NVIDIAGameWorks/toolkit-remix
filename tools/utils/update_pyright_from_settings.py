@@ -41,29 +41,53 @@ def read_vscode_settings(settings_path: Path) -> dict:
         return load_json_safe(text)
 
 
+def is_generated_extra_path(path: Path, workspace_root: Path) -> bool:
+    try:
+        rel_parts = path.relative_to(workspace_root).parts
+    except ValueError:
+        return False
+    return bool(rel_parts) and (rel_parts[0] in {"_build", "_compiler"} or "extscache" in rel_parts)
+
+
+def path_exists(path: Path, workspace_root: Path, inaccessible_paths: list[tuple[Path, OSError]]) -> bool:
+    """Return whether a path exists, treating inaccessible generated paths as absent."""
+    try:
+        return path.exists()
+    except OSError as exc:
+        if not is_generated_extra_path(path, workspace_root):
+            raise
+        inaccessible_paths.append((path, exc))
+        return False
+
+
 def normalize_extra_paths(extra_paths: list[str], workspace_root: Path) -> list[str]:
     normalized: set[str] = set()
+    inaccessible_paths: list[tuple[Path, OSError]] = []
     workspace_marker = "${workspaceFolder}"
     for raw_path in extra_paths:
         # Expand ${workspaceFolder} if present, otherwise keep paths relative to workspace root
         if isinstance(raw_path, str) and raw_path:
             if raw_path.startswith(workspace_marker):
                 if raw_path.startswith(workspace_marker + "/") or raw_path.startswith(workspace_marker + "\\"):
-                    rel = raw_path[len(workspace_marker) + 1:]
+                    rel = raw_path[len(workspace_marker) + 1 :]
                 elif raw_path == workspace_marker:
                     rel = ""
                 else:
                     # Handle malformed ${workspaceFolder} usage
-                    rel = raw_path[len(workspace_marker):]
-                search_path = (workspace_root / rewrite_build_exts_path(rel))
-                if search_path.exists():
+                    rel = raw_path[len(workspace_marker) :]
+                search_path = workspace_root / rewrite_build_exts_path(rel)
+                if path_exists(search_path, workspace_root, inaccessible_paths):
                     normalized.add(search_path.as_posix())
             else:
                 # Store as POSIX-style relative path for pyrightconfig.json
-                search_path = (workspace_root / rewrite_build_exts_path(raw_path))
-                if search_path.exists():
+                search_path = workspace_root / rewrite_build_exts_path(raw_path)
+                if path_exists(search_path, workspace_root, inaccessible_paths):
                     normalized.add(search_path.as_posix())
-    return sorted(list(normalized))
+    if inaccessible_paths:
+        print(f"Skipped {len(inaccessible_paths)} inaccessible generated extraPath entries:")
+        for path, exc in inaccessible_paths:
+            print(f"  {path}: {exc}")
+    return sorted(normalized)
 
 
 def rewrite_build_exts_path(path_str: str) -> str:

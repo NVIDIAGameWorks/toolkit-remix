@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import threading
 
 from lightspeed.common.constants import HIDDEN_REMIX_CATEGORIES as _HIDDEN_REMIX_CATEGORIES
 from lightspeed.common.constants import REMIX_CATEGORIES_DISPLAY_NAMES as _REMIX_CATEGORIES_DISPLAY_NAMES
@@ -97,13 +97,24 @@ class CategoryGroupsModel(_VirtualGroupsModel):
             display_name,
             data,
             tooltip=tooltip,
+            display_name_ancestor=display_name_ancestor,
             category=category,
         )
 
-    def _build_items(self, items: Iterable[_StageManagerItem]) -> list[CategoryGroupsItem] | None:
+    def _build_items(
+        self,
+        items: list[_StageManagerItem],
+        cancel_event: threading.Event,
+    ) -> list[CategoryGroupsItem] | None:
+        """Build category groups unless the refresh is cancelled."""
+        if cancel_event.is_set():
+            return None
+
         # Build the group items only needs to be done once (preserves expanded states)
         parent_lookup = {}
         for attr, display_name in _REMIX_CATEGORIES_DISPLAY_NAMES.items():
+            if cancel_event.is_set():
+                return None
             parent_lookup[attr] = self._build_item(display_name, None, tooltip=f"{display_name} Group", category=attr)
 
         # Get unique item names
@@ -111,21 +122,30 @@ class CategoryGroupsModel(_VirtualGroupsModel):
 
         # Add category items to the groups
         for item in items:
-            prim_path = item.data.GetPath()
+            if cancel_event.is_set():
+                return None
+            path_str = str(item.data.GetPath())
+            name, parent = item_names[item]
             for attr in item.data.GetAttributes():
-                if attr.GetName() in _REMIX_CATEGORIES_DISPLAY_NAMES and attr.Get():
-                    name, parent = item_names.get(item, (None, None))
+                if cancel_event.is_set():
+                    return None
+                attr_name = attr.GetName()
+                if attr_name not in parent_lookup or not attr.Get():
+                    continue
 
-                    tree_item = self._build_item(
-                        name,
-                        item.data,
-                        tooltip=str(prim_path),
-                        display_name_ancestor=parent,
-                    )
+                tree_item = self._build_item(
+                    name,
+                    item.data,
+                    tooltip=path_str,
+                    display_name_ancestor=parent,
+                )
 
-                    tree_item.parent = parent_lookup[attr.GetName()]
+                tree_item.path = path_str
+                tree_item.parent = parent_lookup[attr_name]
 
         # Filter out empty groups and sort alphabetically (both parents and children)
+        if cancel_event.is_set():
+            return None
         filtered_items = [item for item in parent_lookup.values() if item.children]
         self.sort_items(filtered_items)
 

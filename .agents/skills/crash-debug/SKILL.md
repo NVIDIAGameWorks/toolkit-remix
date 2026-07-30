@@ -26,10 +26,13 @@ layer only when the evidence supports it, and avoid unsupported root-cause claim
    tools\packman\python.bat tools\crash_debug\bundle_crash_artifacts.py --help
    ```
 
-6. Organize bundles under one case root:
+6. Organize bundles under one case root outside the repo by default. Use a user temp directory such as
+   `%TEMP%\lightspeed-kit-crash-artifacts\<case-name>` on Windows or `$TMPDIR/lightspeed-kit-crash-artifacts/<case-name>`
+   on Linux/macOS. Do not place crash bundles under the repo root unless the user explicitly asks for a repo-local
+   bundle.
 
    ```text
-   crash-artifacts/<case-name>/
+   %TEMP%\lightspeed-kit-crash-artifacts\<case-name>\
      CASE_MANIFEST.md
      RUN-001_<short-title>/
        RUN_MANIFEST.md

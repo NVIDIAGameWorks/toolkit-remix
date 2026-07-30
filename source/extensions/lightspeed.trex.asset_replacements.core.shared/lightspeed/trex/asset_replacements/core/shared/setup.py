@@ -393,6 +393,7 @@ class Setup:
 
         if selection:
             self.select_prim_paths(selection)
+        return selection
 
     def get_next_xform_children(self, prim, from_reference_layer_path: str = None) -> list[Usd.Prim]:
         children_prims = prim.GetChildren()

@@ -157,7 +157,7 @@ class _SinglePrimPicker:
                     read_only=True,
                     name="StagePrimPickerField",
                     identifier=f"{self._identifier}_button",
-                    tooltip=selected_value if selected_value else "",
+                    tooltip=selected_value or "",
                 )
 
                 # Icons overlay layer

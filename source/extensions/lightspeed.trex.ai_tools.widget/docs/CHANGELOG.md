@@ -1,6 +1,17 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.4]
+### Fixed
+- Restored the workspace lifecycle contract for the AI Tools widget during layout restore.
+
+## [1.2.3]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
+### Fixed
+- Kept lazy value type annotations compatible with the Python version used by docs generation.
+
 ## [1.2.2]
 ### Changed
 - Renamed workspace labels to `AI Tools (Experimental)`

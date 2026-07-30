@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import tempfile
+from pathlib import Path
 
 import carb
 import omni.kit.app
@@ -28,8 +30,9 @@ import omni.usd
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem, USDDelegate, USDModel
 from omni.flux.property_widget_builder.model.usd.setup_ui import USDPropertyWidget
 from omni.flux.property_widget_builder.widget import ItemGroup
+from omni.flux.utils.tests.menu import assert_menu_items_render_top_to_bottom, wait_for_menu_items
 from omni.flux.utils.widget.color_gradient import ColorGradientWidget
-from pxr import Gf, Sdf, Vt
+from pxr import Gf, Sdf, Usd, Vt
 
 
 def _attr_path(prim_path: str, name: str) -> Sdf.Path:
@@ -208,6 +211,45 @@ class TestDelegateAlignment(omni.kit.test.AsyncTestCase):
                 delta=4,
                 msg=f"{label} not top-aligned. Gradient offset={g_offset:.1f}, Scalar offset={s_offset:.1f}",
             )
+
+    async def test_modification_menu_items_render_top_to_bottom(self):
+        root_layer = self._stage.GetRootLayer()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            override_layer = Sdf.Layer.CreateNew(str(Path(tmpdir) / "modification_override.usda"))
+            root_layer.subLayerPaths.append(override_layer.identifier)
+            original_edit_target = self._stage.GetEditTarget()
+            try:
+                self._stage.SetEditTarget(Usd.EditTarget(override_layer))
+                override_prim = self._stage.OverridePrim(self._prim_path)
+                override_prim.CreateAttribute("primvars:particle:mass", Sdf.ValueTypeNames.Float).Set(2.5)
+            finally:
+                self._stage.SetEditTarget(original_edit_target)
+
+            item = USDAttributeItem("", [_attr_path(self._prim_path, "primvars:particle:mass")])
+            self.assertTrue(any(value_model.is_overriden for value_model in item.value_models))
+
+            model = USDModel(context_name="")
+            delegate = USDDelegate(
+                layer_transfer_menu_fn=lambda *args: ui.MenuItem("Transfer This Property Modification")
+            )
+            delegate._show_override_menu(model, item, 0)
+            menu = delegate._context_menu_widgets[id(item)]
+
+            try:
+                menu_items = await wait_for_menu_items(
+                    menu,
+                    [
+                        "Revert This Property Modification",
+                        "Transfer This Property Modification",
+                    ],
+                )
+                assert_menu_items_render_top_to_bottom(self, menu_items)
+            finally:
+                current_menu = ui.Menu.get_current()
+                if current_menu and current_menu.shown:
+                    current_menu.hide()
+                menu.destroy()
 
     async def test_branch_indicators_top_aligned_flat(self):
         """Branch indicators should be top-aligned in tall rows (flat items, no groups)."""

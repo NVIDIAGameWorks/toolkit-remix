@@ -445,10 +445,27 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
         finally:
             self._is_committing = was_committing
 
+    @contextlib.contextmanager
     def _suppress_panel_listener(self) -> contextlib.AbstractContextManager:
         """Temporarily suppress the broad property-panel listener during self-authored writes."""
         listener = get_usd_listener_instance()
-        return DisableAllListenersBlock(listener) if listener is not None else contextlib.nullcontext()
+        if listener is None:
+            yield
+            return
+
+        manager = DisableAllListenersBlock(listener)
+        try:
+            manager.__enter__()
+        except Exception:  # noqa: BLE001 - stale listeners should not strand a suppression block.
+            with contextlib.suppress(ValueError):
+                manager.LIST_SELF.remove(manager)
+            yield
+            return
+
+        try:
+            yield
+        finally:
+            manager.__exit__(None, None, None)
 
     def _end_usd_notice_interaction(self) -> None:
         """End and clear the active deferred USD notice token."""

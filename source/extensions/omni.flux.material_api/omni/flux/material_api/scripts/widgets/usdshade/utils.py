@@ -27,6 +27,7 @@ __all__ = [
     "get_display_group_for_render_context",
     "get_info_ids_for_prim",
     "get_mdl_subidentifiers_for_prim",
+    "get_sdr_sdf_type_indicator_types",
     "get_sdr_shader_node_for_prim",
     "get_sdr_shader_property_default_value",
     "get_shader_info",
@@ -257,7 +258,7 @@ def get_info_ids_for_prim(prim: Usd.Prim) -> list[str] | None:
 
     sdr_registry = Sdr.Registry()
 
-    sdr_node = sdr_registry.GetNodeByName(shader_id)
+    sdr_node = sdr_registry.GetShaderNodeByName(shader_id)
     if not sdr_node:
         return None  # pragma: no cover
 
@@ -266,8 +267,8 @@ def get_info_ids_for_prim(prim: Usd.Prim) -> list[str] | None:
         return None  # pragma: no cover
 
     allowed_tokens = []
-    for name in sdr_registry.GetNodeNames():
-        sdr_node = sdr_registry.GetNodeByNameAndType(name, source_type)
+    for name in sdr_registry.GetShaderNodeNames():
+        sdr_node = sdr_registry.GetShaderNodeByNameAndType(name, source_type)
         if sdr_node:
             allowed_tokens.append(name)
 
@@ -301,6 +302,15 @@ def get_display_group_for_render_context(render_context: str) -> str:
     return context_mapper.get(render_context, render_context)
 
 
+def get_sdr_sdf_type_indicator_types(sdr_shader_property: Sdr.ShaderProperty) -> tuple[Sdf.ValueTypeName, Any | None]:
+    indicator = sdr_shader_property.GetTypeAsSdfType()
+
+    # Kit 110's USD exposes Sdr.SdfTypeIndicator instead of the old tuple result.
+    sdf_type = indicator.GetSdfType()
+    sdr_type = indicator.GetSdrType() if not indicator.HasSdfType() else None
+    return sdf_type, sdr_type
+
+
 def get_sdr_shader_property_default_value(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> Any | None:
     """Returns the default value for a given SDR shader property considering the metadata.
 
@@ -321,14 +331,14 @@ def get_sdr_shader_property_default_value(sdr_shader_property: Sdr.ShaderPropert
         If this is the case we lookup the Tf.Type and if it exists and it has a Python class associated with it,
         we construct the Python class to extract a default value
         """
-        ndr_type_indicator = sdr_shader_property.GetTypeAsSdfType()
+        sdf_type, sdr_type = get_sdr_sdf_type_indicator_types(sdr_shader_property)
 
-        if ndr_type_indicator[1]:
-            tf_type = Sdf.GetTypeForValueTypeName(ndr_type_indicator[1])
+        if sdr_type:
+            tf_type = Sdf.GetTypeForValueTypeName(sdr_type)
             if not tf_type.isUnknown and tf_type.pythonClass:
                 return tf_type.pythonClass()
 
-        return ndr_type_indicator[0].defaultValue
+        return sdf_type.defaultValue
 
     default_value = sdr_shader_property.GetDefaultValue()
 
@@ -336,7 +346,7 @@ def get_sdr_shader_property_default_value(sdr_shader_property: Sdr.ShaderPropert
         default_value = get_default_from_type(sdr_shader_property)
 
     # ToDo - investigate why default value of False is stored as empty string.
-    type_name = metadata.get(Sdf.PrimSpec.TypeNameKey, None)
+    type_name = metadata.get(Sdf.PrimSpec.TypeNameKey)
     if (type_name == Sdf.ValueTypeNames.Bool) and default_value == "":
         default_value = False
 
@@ -385,7 +395,7 @@ def remove_properties_and_connections(prim: Usd.Prim) -> tuple[bool, list, dict]
         properties_removed = []
 
         for port in usdshade_ports:
-            placeholder = placeholders.get(port.GetFullName(), None)
+            placeholder = placeholders.get(port.GetFullName())
             if not placeholder or (get_type_name(placeholder) != port.GetTypeName()):
                 properties_removed.append(create_property_info(port.GetAttr()))
 

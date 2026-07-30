@@ -20,16 +20,40 @@ __all__ = ["MCPCore"]
 import asyncio
 import concurrent.futures
 import logging
+import socket
 from functools import partial
 
 import carb
 import fastmcp.server.openapi as fastmcp_openapi
 import omni.usd
+import uvicorn
 from fastmcp import FastMCP
 from omni.services.core import main
 from omni.services.transport.server.base import utils
 
 from .prompts import MCPPrompts
+
+_MAX_SERVER_START_ATTEMPTS = 2
+_PORT_SETTING_PATH = "/exts/lightspeed.trex.mcp.core/port"
+
+
+async def _run_mcp_server(mcp: FastMCP, host: str, port: int, log_level: str) -> None:
+    config = uvicorn.Config(
+        mcp.http_app(transport="sse"),
+        host=host,
+        port=port,
+        log_level=log_level,
+        lifespan="on",
+        timeout_graceful_shutdown=0,
+    )
+    family = socket.AF_INET6 if ":" in host else socket.AF_INET
+    server_socket = socket.socket(family=family)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        server_socket.bind((host, port))
+        await uvicorn.Server(config).serve(sockets=[server_socket])
+    finally:
+        server_socket.close()
 
 
 class MCPCore:
@@ -60,7 +84,7 @@ class MCPCore:
                     f"MCP server was meant to start on {port} but port is taken, "
                     f"starting on port {validated_port} instead"
                 )
-                carb.settings.get_settings().set("/exts/lightspeed.trex.mcp.core/port", validated_port)
+                carb.settings.get_settings().set(_PORT_SETTING_PATH, validated_port)
                 port = validated_port
 
             # Update the log level for the openapi module to avoid printing the startup message
@@ -85,7 +109,25 @@ class MCPCore:
 
             MCPPrompts.register_prompts(mcp)
 
-            # Run the MCP server in SSE mode with configured host and port
-            await mcp.run_async(transport="sse", host=host, port=port, log_level=log_level)
+            start_attempts = _MAX_SERVER_START_ATTEMPTS if allow_range else 1
+            for attempt in range(start_attempts):
+                try:
+                    # Run the MCP server in SSE mode with configured host and port
+                    await _run_mcp_server(mcp, host, port, log_level)
+                    break
+                except (OSError, SystemExit) as exc:
+                    if attempt == start_attempts - 1:
+                        carb.log_error(f"MCP server failed to start on {host}:{port}: {exc}")
+                        return
+
+                    failed_port = port
+                    port = await loop.run_in_executor(
+                        pool,
+                        partial(utils.validate_port, port + 1, allow_range=allow_range),
+                    )
+                    carb.log_warn(
+                        f"MCP server failed to start on {host}:{failed_port}, retrying on port {port} instead"
+                    )
+                    carb.settings.get_settings().set(_PORT_SETTING_PATH, port)
 
         carb.log_info(f"MCP server initialized on {host}:{port}")

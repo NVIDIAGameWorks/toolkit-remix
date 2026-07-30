@@ -21,7 +21,7 @@ from unittest.mock import MagicMock
 
 from omni.kit.test import AsyncTestCase
 
-from lightspeed.light.gizmos.model import LightGizmosModel
+from lightspeed.light.gizmos.model import LightGizmosModel, LightType
 
 
 class TestLightGizmosModel(AsyncTestCase):
@@ -83,3 +83,35 @@ class TestLightGizmosModel(AsyncTestCase):
 
         # Assert
         self.assertFalse(result)
+
+    async def test_get_light_type_returns_unknown_for_expired_prim(self):
+        """Expired USD prim handles can surface while scene items are rebuilt."""
+        # Arrange
+        prim = MagicMock()
+        prim.IsValid.side_effect = RuntimeError("Accessed invalid expired prim")
+        model = LightGizmosModel.__new__(LightGizmosModel)
+        model._prim = prim
+
+        # Act
+        result = model._get_light_type()
+
+        # Assert
+        self.assertEqual(LightType.UnknownLight, result)
+        prim.IsA.assert_not_called()
+
+    async def test_update_from_prim_hides_expired_prim_without_reading_light_data(self):
+        """Scene rebuilds can call light updates with expired USD prim handles."""
+        # Arrange
+        prim = MagicMock()
+        prim.IsValid.side_effect = RuntimeError("Accessed invalid expired prim")
+        model = LightGizmosModel.__new__(LightGizmosModel)
+        model._prim = prim
+        model.visible = object()
+        model.set_value = MagicMock()
+
+        # Act
+        model.update_from_prim()
+
+        # Assert
+        model.set_value.assert_called_once_with(model.visible, False)
+        prim.IsA.assert_not_called()

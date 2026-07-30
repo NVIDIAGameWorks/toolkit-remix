@@ -73,7 +73,7 @@ class CurrentProcessExecutor(_BaseExecutor):
             else:
                 await asyncio.wait_for(asyncio.shield(self._run(func, *args, **kwargs)), timeout=timeout)
             # await self._run(func, *args, **kwargs)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             message = f"Time out expired ({timeout}sc)"
             carb.log_error(message)
             future.set_result((False, message))

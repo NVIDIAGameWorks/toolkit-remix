@@ -61,7 +61,7 @@ class ProjectWizardBase(abc.ABC):
         self._wizard_completed_sub = None
         self._wizard_window = None
 
-        self.__on_wizard_completed = _Event()
+        self.__on_wizard_completed = _Event(copy=True)
 
     @property
     @abc.abstractmethod

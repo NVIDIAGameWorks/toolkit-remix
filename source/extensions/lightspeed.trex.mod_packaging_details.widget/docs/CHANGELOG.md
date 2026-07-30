@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.5]
+### Changed
+- Updated extension metadata for Kit SDK 110 compatibility.
+
 ## [1.1.4]
 ### Fixed
 - Populate safe default packaging details and apply fallback mod names to replacement layer metadata so the packaging window reads the resolved name consistently without forcing a layer save.

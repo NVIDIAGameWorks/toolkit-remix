@@ -210,9 +210,7 @@ class Delegate(ui.AbstractItemDelegate):
     def _show_context_menu(self, item, x, y, button, *_):
         if button != 1:
             return
-        self._context_menu_widgets[id(item)] = ui.Menu(
-            "Validator menu", direction=ui.Direction.LEFT_TO_RIGHT, identifier="right_click_menu"
-        )
+        self._context_menu_widgets[id(item)] = ui.Menu("Validator menu", identifier="right_click_menu")
         with self._context_menu_widgets[id(item)]:
             ui.MenuItem(
                 "Re-run all",

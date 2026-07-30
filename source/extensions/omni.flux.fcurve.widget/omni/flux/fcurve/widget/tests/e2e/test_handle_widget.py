@@ -106,7 +106,7 @@ class TestHandleWidgetOnly(omni.kit.test.AsyncTestCase):
                                 SEG_STYLE,
                             )
                             self.mgr.build(zstack)
-                    cf.set_zoom_changed_fn(lambda z: self.mgr.set_zoom(z))
+                    cf.set_zoom_changed_fn(self.mgr.set_zoom)
                 with ui.HStack(height=ui.Pixel(30)):
                     ui.Spacer()
                     ui.Button("Exit", width=80, clicked_fn=lambda: setattr(self, "_exit", True))

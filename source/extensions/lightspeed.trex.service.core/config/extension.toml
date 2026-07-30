@@ -1,5 +1,6 @@
 [package]
-version = "1.2.2"
+kit_sdk_version = "110.*"
+version = "1.2.3"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Micro-Service Core"
 description = "Micro-Service for NVIDIA RTX Remix Core"
