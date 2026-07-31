@@ -1,5 +1,5 @@
 ###########################################################
-# Publish Windows and Linux packages from Gitlab to Packman
+# Publish the Windows package from Gitlab to Packman
 ###########################################################
 publish-package-gitlab:
   extends:
@@ -7,8 +7,6 @@ publish-package-gitlab:
     - .linux_vault
     - .gitlab_release
   needs:
-    - job: build-package-gitlab-linux
-      artifacts: true
     - job: build-package-gitlab-windows
       artifacts: true
   before_script:
@@ -21,7 +19,7 @@ publish-package-gitlab:
     - '[ "$fail_wr" -eq 0 ] || exit 1'
 
 #######################################################
-# Publish Windows and Linux packages to Gitlab releases
+# Publish the Windows package to Gitlab releases
 #######################################################
 publish-gitlab-release:
   extends:
@@ -30,23 +28,17 @@ publish-gitlab-release:
   needs:
     - job: publish-package-gitlab
       artifacts: true
-    - job: build-package-gitlab-linux  # to get the env
-      artifacts: true
     - job: build-package-gitlab-windows  # to get the env
       artifacts: true
   script:
     - echo "Running release_job for $env:CI_COMMIT_TAG"
-    - echo "Grabbing zip file $env:ARTIFACT_WIN_ZIP_NAME and $env:ARTIFACT_LINUX_ZIP_NAME"
+    - echo "Grabbing zip file $env:ARTIFACT_WIN_ZIP_NAME"
     - .\repo.bat get_release_changelog -s _current_changelog.md -sh "[$env:CI_COMMIT_TAG]"
     - $env:ENCODED_ARTIFACT_WIN_ZIP_NAME=[URI]::EscapeDataString("$env:ARTIFACT_WIN_ZIP_NAME")
     - echo "Encoded window zip name is $env:ENCODED_ARTIFACT_WIN_ZIP_NAME"
-    - $env:ENCODED_ARTIFACT_LINUX_ZIP_NAME=[URI]::EscapeDataString("$env:ARTIFACT_LINUX_ZIP_NAME")
-    - echo "Encoded linux zip name is $env:ENCODED_ARTIFACT_LINUX_ZIP_NAME"
     - $env:WIN_URL="$env:PACKMAN_CLOUDFRONT_URL/$env:ENCODED_ARTIFACT_WIN_ZIP_NAME"
     - echo "Full asset url for WIN is $env:WIN_URL"
-    - $env:LINUX_URL="$env:PACKMAN_CLOUDFRONT_URL/$env:ENCODED_ARTIFACT_LINUX_ZIP_NAME"
-    - echo "Full asset url for LINUX is $env:LINUX_URL"
-    - $assetsJson = '[{\"name\":\"windows-x86_64.release\",\"url\":\"' + $env:WIN_URL + '\"},{\"name\":\"linux-x86_64.release\",\"url\":\"' + $env:LINUX_URL + '\"}]'
+    - $assetsJson = '[{\"name\":\"windows-x86_64.release\",\"url\":\"' + $env:WIN_URL + '\"}]'
     - glab auth login --token "$env:TOOLKIT_GITLAB_RELEASE_TOKEN" --hostname "$env:CI_SERVER_HOST"
     - glab release create "$env:CI_COMMIT_TAG" --name "$env:CI_COMMIT_TAG" --notes-file "_current_changelog.md" --ref "$env:CI_COMMIT_SHA" --assets-links "$assetsJson"
   after_script:

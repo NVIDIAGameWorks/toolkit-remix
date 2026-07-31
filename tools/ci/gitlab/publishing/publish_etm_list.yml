@@ -10,8 +10,6 @@ publish-etm-list:
   needs:
     - job: publish-extensions-windows
       artifacts: true
-    # - job: publish-extensions-linux
-    #   artifacts: false
   before_script:
     - !reference [ .windows_vault, before_script ]
     # Cleanup the Kit dir to avoid failure

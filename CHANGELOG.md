@@ -96,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5630: Fixed property panel fields exceeding the panel width after Editor panel resizing, removed hidden horizontal side-scrolling, and prevented MCP port bind failures from aborting launch
 - REMIX-5605: Fixed packaged builds to use the corrected light-rig package so USD 25.11-compatible rig presets resolve at the app-configured path.
 - REMIX-4570: Model and Material Output Directories persist within the current project and reset when another project opens.
+- Fixed Kit 110 documentation and Windows publishing workflows, and removed unused Linux packaging and release artifacts.
 
 ## [1.5.2-0]
 
