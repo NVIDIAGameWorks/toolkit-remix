@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.9]
+### Fixed
+- Model and Material Output Directories persist within the current project and reset to the project default when another project opens.
+
 ## [3.1.8]
 ### Fixed
 - Fixed mass-ingestion "Show in viewport" action to reopen the imported output after queue refreshes.
