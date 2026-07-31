@@ -1,5 +1,5 @@
 ########################################################
-# Build Packaging jobs for Windows and Linux
+# Build Packaging jobs for Windows
 # *Extended by other package building jobs*
 ########################################################
 build-package-windows:
@@ -38,30 +38,8 @@ build-package-windows-mr:
       allow_failure: true
 
 
-build-package-linux:
-  extends:
-    - .release_defaults
-    - .linux_gpu_agent
-  stage: build_package
-  before_script:
-    - ./build.sh --rebuild --release
-  script:
-    - ./repo.sh publish_exts --verify
-    - ./repo.sh package --mode main_package --platform linux-x86_64 --config release
-  # Artifacts required to make the publishing step work
-  artifacts:
-    when: on_success
-    paths:
-      - _build/packages
-  rules: ## Automatically run packaging job only on merge commit to main or feature branches
-    - if: $CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"
-      when: always
-    - if: $CI_COMMIT_REF_NAME =~  "/^feature\/.+/" && $CI_PIPELINE_SOURCE == "push"
-      when: always
-
-
 ########################################################
-# Gitlab build packaging jobs for Windows and Linux
+# Gitlab build packaging jobs for Windows
 ########################################################
 build-package-gitlab-windows:
   extends:
@@ -75,16 +53,3 @@ build-package-gitlab-windows:
     reports:
       # To ensure we've access to this file in the next stage
       dotenv: gitlab_release_win.env
-
-build-package-gitlab-linux:
-  extends:
-    - build-package-linux
-    - .gitlab_release
-  script:
-    - !reference [build-package-linux, script]
-    - find _build/packages -maxdepth 1 -name "*.release.zip" -type f -printf "ARTIFACT_LINUX_ZIP_NAME=%f\n" > gitlab_release_linux.env
-  # Artifacts required to make the publishing step work
-  artifacts:
-    reports:
-      # To ensure we've access to this file in the next stage
-      dotenv: gitlab_release_linux.env
