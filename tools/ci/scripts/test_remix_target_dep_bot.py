@@ -283,7 +283,7 @@ class TestRemixTargetDepBot(unittest.TestCase):
             text,
         )
 
-    def test_update_changelog_replaces_existing_remix_dependency_entry(self):
+    def test_update_changelog_preserves_previous_remix_dependency_entry(self):
         # Arrange
         changelog_path = self._write_temp_file(
             "CHANGELOG.md",
@@ -310,9 +310,41 @@ class TestRemixTargetDepBot(unittest.TestCase):
 
         # Assert
         text = changelog_path.read_text(encoding="utf-8")
-        self.assertNotIn("ext-bbbbbbb-main", text)
-        self.assertEqual(text.count("- Update Remix target dependencies:"), 1)
-        self.assertIn("- Existing changed entry\n" + entry + "\n\n### Fixed", text)
+        self.assertIn("ext-bbbbbbb-main", text)
+        self.assertEqual(text.count(entry), 1)
+        self.assertIn(
+            "- Existing changed entry\n"
+            "- Update Remix target dependencies: hdremix and omni_core_materials to `ext-bbbbbbb-main`\n"
+            + entry
+            + "\n\n### Fixed",
+            text,
+        )
+
+    def test_update_changelog_deduplicates_current_entry(self):
+        # Arrange
+        entry = "- Update Remix target dependencies: hdremix and omni_core_materials to `ext-ccccccc-main`"
+        changelog_path = self._write_temp_file(
+            "CHANGELOG.md",
+            f"""
+            # Changelog
+
+            ## [Unreleased]
+
+            ### Changed
+            - Existing changed entry
+            {entry}
+
+            ### Fixed
+            - Existing fixed entry
+            """,
+        )
+
+        # Act
+        update_changelog(changelog_path, entry)
+
+        # Assert
+        text = changelog_path.read_text(encoding="utf-8")
+        self.assertEqual(text.count(entry), 1)
 
     def test_format_changelog_entry_includes_changed_targets(self):
         # Arrange
