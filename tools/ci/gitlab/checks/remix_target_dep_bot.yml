@@ -6,6 +6,7 @@ remix-target-dep-bot:
   variables:
     GIT_DEPTH: "0"
     REMIX_TARGET_DEP_BOT_BRANCH: "dependabot/update-rtx-remix-target-deps"
+    REMIX_TARGET_DEP_BOT_NOTIFY: "TRUE"
   needs: []
   resource_group: remix-target-dep-bot
   rules:
@@ -22,12 +23,13 @@ remix-target-dep-bot:
     - 'if [ "$BOT_BRANCH_EXISTS" = "1" ]; then git merge --no-edit -X theirs "origin/$CI_DEFAULT_BRANCH"; fi'
     - git checkout "origin/$CI_DEFAULT_BRANCH" -- deps/target-deps.packman.xml CHANGELOG.md
     - 'GITLAB_TOKEN="$TOOLKIT_GITLAB_DXVK_ACCESS" ./tools/packman/python.sh tools/ci/scripts/remix_target_dep_bot.py --apply --summary-file remix-target-dep-bot-summary.md'
-    - 'if git diff --quiet "origin/$CI_DEFAULT_BRANCH" -- deps/target-deps.packman.xml CHANGELOG.md && [ "$BOT_BRANCH_EXISTS" != "1" ]; then echo "Remix target dependency bot found no updates."; ./tools/ci/scripts/notify_remix_target_dep_bot.sh no-updates || echo "Slack notification failed."; exit 0; fi'
+    - 'if git diff --quiet "origin/$CI_DEFAULT_BRANCH" -- deps/target-deps.packman.xml CHANGELOG.md && [ "$BOT_BRANCH_EXISTS" != "1" ]; then echo "Remix target dependency bot found no updates."; if [ "${REMIX_TARGET_DEP_BOT_NOTIFY:-TRUE}" != "FALSE" ]; then ./tools/ci/scripts/notify_remix_target_dep_bot.sh no-updates || echo "Slack notification failed."; fi; exit 0; fi'
     - git add deps/target-deps.packman.xml CHANGELOG.md
     - 'if git diff --cached --quiet -- deps/target-deps.packman.xml CHANGELOG.md; then git commit --allow-empty -m "chore: recheck RTX Remix target dependencies" -m "Selected Remix target dependency update already exists on the bot branch."; elif git diff --quiet "origin/$CI_DEFAULT_BRANCH" -- deps/target-deps.packman.xml CHANGELOG.md; then git commit -m "chore: recheck RTX Remix target dependencies" -m "Remix target dependencies are already current. Reset bot-managed files to the latest default branch state."; else git commit -m "chore: bump RTX Remix target dependencies" -m "$(cat remix-target-dep-bot-summary.md)"; fi'
-    - 'GIT_LFS_SKIP_PUSH=1 git push origin "HEAD:$REMIX_TARGET_DEP_BOT_BRANCH" -o merge_request.create -o merge_request.target="$CI_DEFAULT_BRANCH" -o merge_request.title="chore: bump RTX Remix target dependencies" -o merge_request.squash -o merge_request.remove_source_branch'
+    - 'if [ "${REMIX_TARGET_DEP_BOT_NOTIFY:-TRUE}" = "FALSE" ]; then REMIX_TARGET_DEP_BOT_NOTIFY_MR_OPTION="merge_request.label=remix-target-dep-bot-notify-disabled"; else REMIX_TARGET_DEP_BOT_NOTIFY_MR_OPTION="merge_request.unlabel=remix-target-dep-bot-notify-disabled"; fi'
+    - 'GIT_LFS_SKIP_PUSH=1 git push origin "HEAD:$REMIX_TARGET_DEP_BOT_BRANCH" -o merge_request.create -o merge_request.target="$CI_DEFAULT_BRANCH" -o merge_request.title="chore: bump RTX Remix target dependencies" -o merge_request.squash -o merge_request.remove_source_branch -o "$REMIX_TARGET_DEP_BOT_NOTIFY_MR_OPTION"'
   after_script:
-    - 'if [ "$CI_JOB_STATUS" != "success" ]; then ./tools/ci/scripts/notify_remix_target_dep_bot.sh scheduled-failure || echo "Slack notification failed."; fi'
+    - 'if [ "$CI_JOB_STATUS" != "success" ] && [ "${REMIX_TARGET_DEP_BOT_NOTIFY:-TRUE}" != "FALSE" ]; then ./tools/ci/scripts/notify_remix_target_dep_bot.sh scheduled-failure || echo "Slack notification failed."; fi'
 
 remix-target-dep-bot-notify:
   extends:
@@ -40,5 +42,5 @@ remix-target-dep-bot-notify:
   script:
     - ./tools/ci/scripts/notify_remix_target_dep_bot.sh pipeline
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $REMIX_TARGET_DEP_BOT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $REMIX_TARGET_DEP_BOT_BRANCH && $CI_MERGE_REQUEST_LABELS !~ /(^|,)remix-target-dep-bot-notify-disabled(,|$)/
       when: always

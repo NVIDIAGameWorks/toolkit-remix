@@ -255,7 +255,7 @@ def select_target_update(
 
 
 def update_changelog(path: Path, entry: str) -> None:
-    """Replace the root changelog's Remix target dependency entry."""
+    """Append the current Remix dependency update without duplicating it."""
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
     unreleased_start = _find_line(lines, "## [Unreleased]")
@@ -269,7 +269,7 @@ def update_changelog(path: Path, entry: str) -> None:
     else:
         changed_end = min(_find_next_heading(lines, changed_start + 1, "### "), next_release)
         lines[changed_start + 1 : changed_end] = [
-            line for line in lines[changed_start + 1 : changed_end] if not line.startswith(CHANGELOG_ENTRY_PREFIX)
+            line for line in lines[changed_start + 1 : changed_end] if line != entry
         ]
         next_release = _find_next_heading(lines, unreleased_start + 1, "## ")
         insert_at = _find_next_heading(lines, changed_start + 1, "### ")
