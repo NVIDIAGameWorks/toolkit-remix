@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
@@ -189,15 +190,15 @@ class ConvertToDDS(_CheckBaseUSD):
     async def _fix(
         self, schema_data: Data, context_plugin_data: Any, selector_plugin_data: Any
     ) -> tuple[bool, str, Any]:
-        """
-        Function that will be executed to triangulate the mesh prims (including geom subsets)
+        """Convert selected prim textures to DDS.
 
         Args:
-            schema_data: the data from the schema.
-            context_plugin_data: the data from the context plugin
-            selector_plugin_data: the data from the selector plugin
+            schema_data: The data from the schema.
+            context_plugin_data: The data from the context plugin.
+            selector_plugin_data: The data from the selector plugin.
 
-        Returns: True if the data where fixed, False if not
+        Returns:
+            A tuple containing the success state, status message, and no output data.
         """
         context = omni.usd.get_context(context_plugin_data)
         stage_url = context.get_stage_url()
@@ -251,6 +252,9 @@ class ConvertToDDS(_CheckBaseUSD):
             nvtt_path = carb.tokens.get_tokens_interface().resolve(
                 "${omni.flux.resources}/deps/tools/nvtt/nvtt_export.exe"
             )
+            nvtt_env = os.environ.copy()
+            # NVTTE 2023.4.0 can switch from NVTT's selected GPU to GPU 0, so expose only GPU 0.
+            nvtt_env["CUDA_VISIBLE_DEVICES"] = "0"
             for out_path_str, (in_path_str, is_udim, settings, attrs) in files_needed.items():
                 out_path = Path(out_path_str)
                 src_hash = _get_new_hash(in_path_str, out_path_str)
@@ -261,7 +265,13 @@ class ConvertToDDS(_CheckBaseUSD):
                     cmd = [nvtt_path, in_path_str, "--output", out_path_str] + settings.args
                     carb.log_info("Queuing DDS conversion: " + str(cmd))
                     future = executor.submit(
-                        subprocess.run, cmd, check=True, capture_output=True, text=True, stdin=subprocess.DEVNULL
+                        subprocess.run,
+                        cmd,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        stdin=subprocess.DEVNULL,
+                        env=nvtt_env,
                     )
                     future.original_command = cmd
                     future.attrs = attrs

@@ -17,7 +17,9 @@
 
 from __future__ import annotations
 
+import os
 import shutil
+import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
@@ -150,7 +152,8 @@ class TestConvertToDDS(AsyncTestCase):
         self.assertIsNone(core.model.check_plugins[0].data.data_flows[0].input_data)
         self.assertIsNone(core.model.check_plugins[0].data.data_flows[0].output_data)
 
-    async def test_run_fix(self):
+    async def test_run_fix_with_multiple_visible_gpus_limits_nvtt_to_gpu_zero(self):
+        """NVTT subprocesses see only GPU 0."""
         shutil.copytree(get_test_data_path(__name__, "usd/pillow_cube"), self.temp_path / Path("pillow_cube"))
 
         # Arrange
@@ -160,9 +163,21 @@ class TestConvertToDDS(AsyncTestCase):
         stage = usd_context.get_stage()
 
         # Act
-        await core.deferred_run()
+        with (
+            patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "1,0"}),
+            patch(
+                "omni.flux.validator.plugin.check.usd.texture.convert_to_dds.subprocess.run", wraps=subprocess.run
+            ) as subprocess_run_mock,
+        ):
+            await core.deferred_run()
+            parent_visible_devices = os.environ["CUDA_VISIBLE_DEVICES"]
 
         # Assert
+        self.assertEqual("1,0", parent_visible_devices)
+        self.assertGreater(len(subprocess_run_mock.call_args_list), 0)
+        for subprocess_call in subprocess_run_mock.call_args_list:
+            self.assertEqual("0", subprocess_call.kwargs["env"]["CUDA_VISIBLE_DEVICES"])
+
         prim = stage.GetPrimAtPath("/World/Looks/M_Prop_CompanionCube_Pillow_A/Shader")
         in_paths = [
             ("inputs:diffuse_texture", Path("pillow_cube/T_Prop_CompanionCube_Pillow_A_Albedo.png")),
