@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 from unittest.mock import AsyncMock, Mock, call, patch
 
@@ -27,9 +28,10 @@ import omni.kit
 import omni.kit.test
 import omni.usd
 from omni.flux.asset_importer.core import AssetImporterModel, ImporterCore
+from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.validator.plugin.context.usd_stage.asset_importer import AssetImporter
-from pxr import Sdf
+from pxr import Sdf, Usd, UsdShade
 
 
 class MockValidationInfo:
@@ -138,6 +140,60 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(input_file, val)
+
+    async def test_data_invalid_normal_map_convention_should_raise_value_error(self):
+        # Arrange
+        input_file = OmniUrl("./Test.fbx")
+
+        with patch.object(omni.client, "stat") as stat_mock, self.assertRaises(ValueError):
+            stat_mock.return_value = (omni.client.Result.OK, MockListEntry(str(input_file)))
+
+            # Act
+            AssetImporter.Data(
+                context_name="",
+                input_files=[input_file],
+                normal_map_convention="INVALID",
+                output_directory=OmniUrl("./Output"),
+            )
+
+    async def test_data_normal_map_convention_when_omitted_should_preserve_imported_value(self):
+        # Arrange
+        input_file = OmniUrl("./Test.fbx")
+
+        with patch.object(omni.client, "stat") as stat_mock:
+            stat_mock.return_value = (omni.client.Result.OK, MockListEntry(str(input_file)))
+
+            # Act
+            data = AssetImporter.Data(
+                context_name="",
+                input_files=[input_file],
+                output_directory=OmniUrl("./Output"),
+            )
+
+        # Assert
+        self.assertIsNone(data.normal_map_convention)
+        self.assertIsNone(AssetImporter._get_normal_map_convention(data))
+
+    async def test_data_normal_map_convention_with_supported_type_should_return_selected_type(self):
+        for convention in (TextureTypes.NORMAL_OGL, TextureTypes.NORMAL_DX, TextureTypes.NORMAL_OTH):
+            with self.subTest(title=f"normal_map_convention={convention.name}"):
+                # Arrange
+                input_file = OmniUrl("./Test.fbx")
+
+                with patch.object(omni.client, "stat") as stat_mock:
+                    stat_mock.return_value = (omni.client.Result.OK, MockListEntry(str(input_file)))
+
+                    # Act
+                    data = AssetImporter.Data(
+                        context_name="",
+                        input_files=[input_file],
+                        normal_map_convention=convention,
+                        output_directory=OmniUrl("./Output"),
+                    )
+
+                # Assert
+                self.assertEqual(convention.name, data.normal_map_convention)
+                self.assertEqual(convention, AssetImporter._get_normal_map_convention(data))
 
     async def test_data_can_have_children_not_okay_should_raise_value_error(self):
         # Arrange
@@ -258,6 +314,67 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             data_flows=[{"name": "InOutData", "push_input_data": True, "push_output_data": True}],
         )
 
+    async def test_setup_normal_map_convention_should_apply_batch_convention_and_save_each_asset(self):
+        await self.__run_setup(
+            True,
+            True,
+            "Files were imported successfully",
+            normal_map_convention=TextureTypes.NORMAL_DX,
+            authored_count=1,
+        )
+
+    async def test_setup_without_normal_map_convention_should_preserve_imported_values(self):
+        await self.__run_setup(
+            True,
+            True,
+            "Files were imported successfully",
+        )
+
+    async def test_setup_normal_map_convention_save_multi_value_result_should_not_crash(self):
+        await self.__run_setup(
+            True,
+            True,
+            "Files were imported successfully",
+            normal_map_convention=TextureTypes.NORMAL_OGL,
+            authored_count=1,
+            save_stage_extra_data=(["Test.usd"],),
+        )
+
+    async def test_mass_ui_should_render_model_selector_in_context_footer(self):
+        # Arrange
+        asset_importer = AssetImporter()
+        schema_data = Mock()
+
+        # Act
+        with (
+            patch.object(asset_importer, "_build_ui", new_callable=AsyncMock) as build_ui_mock,
+            patch.object(asset_importer, "_build_normal_map_convention_ui") as build_selector_mock,
+        ):
+            await asset_importer._mass_build_ui(schema_data)
+            footer_was_built = await asset_importer.mass_build_footer_ui(schema_data)
+
+        # Assert
+        build_ui_mock.assert_awaited_once_with(
+            schema_data,
+            force_build_ui=True,
+            show_normal_map_convention=False,
+        )
+        build_selector_mock.assert_called_once_with(
+            schema_data,
+            label_width=asset_importer.DEFAULT_UI_WIDTH_PIXEL,
+        )
+        self.assertTrue(footer_was_built)
+
+    async def test_setup_normal_map_convention_save_failure_should_stop_before_callback(self):
+        await self.__run_setup(
+            True,
+            True,
+            "Unable to save the normal map convention: Test Save Error",
+            normal_map_convention=TextureTypes.NORMAL_OGL,
+            authored_count=1,
+            save_stage_success=False,
+        )
+
     async def test_setup_open_stage_error_with_push_input_data_and_push_output_data(self):
         await self.__run_setup(
             True,
@@ -359,6 +476,109 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
                     # Assert
                     self.assertEqual(close_stage_mock.called, close_stage_on_exit)
 
+    async def test_apply_normal_map_convention_with_supported_type_should_author_expected_encoding(self):
+        cases = (
+            (TextureTypes.NORMAL_OGL, 1),
+            (TextureTypes.NORMAL_DX, 2),
+            (TextureTypes.NORMAL_OTH, 0),
+        )
+        for convention, expected_encoding in cases:
+            with self.subTest(title=f"normal_map_convention={convention.name}"):
+                # Arrange
+                normal_shader = UsdShade.Shader.Define(self.stage, "/NormalShader")
+                normal_shader.CreateInput("normalmap_texture", Sdf.ValueTypeNames.Asset).Set(
+                    Sdf.AssetPath("normal.png")
+                )
+                glass_normal_shader = UsdShade.Shader.Define(self.stage, "/GlassNormalShader")
+                glass_normal_shader.CreateInput("normal_map_texture", Sdf.ValueTypeNames.Asset).Set(
+                    Sdf.AssetPath("glass_normal.png")
+                )
+                unrelated_shader = UsdShade.Shader.Define(self.stage, "/UnrelatedShader")
+
+                # Act
+                authored_count = AssetImporter._apply_normal_map_convention(self.stage, convention)
+
+                # Assert
+                self.assertEqual(2, authored_count)
+                self.assertEqual(expected_encoding, normal_shader.GetInput("encoding").Get())
+                self.assertEqual(expected_encoding, glass_normal_shader.GetInput("encoding").Get())
+                self.assertFalse(unrelated_shader.GetInput("encoding"))
+
+    async def test_apply_normal_map_convention_should_persist_after_save_and_reopen(self):
+        for convention, expected_encoding in (
+            (TextureTypes.NORMAL_OGL, 1),
+            (TextureTypes.NORMAL_DX, 2),
+            (TextureTypes.NORMAL_OTH, 0),
+        ):
+            with self.subTest(title=f"normal_map_convention={convention.name}"), TemporaryDirectory() as temp_dir:
+                # Arrange
+                stage_path = Path(temp_dir) / f"{convention.name}.usda"
+                stage = Usd.Stage.CreateNew(str(stage_path))
+                normal_shader = UsdShade.Shader.Define(stage, "/NormalShader")
+                normal_shader.CreateInput("normalmap_texture", Sdf.ValueTypeNames.Asset).Set(
+                    Sdf.AssetPath("normal.png")
+                )
+
+                # Act
+                AssetImporter._apply_normal_map_convention(stage, convention)
+                stage.GetRootLayer().Save()
+                reopened_stage = Usd.Stage.Open(str(stage_path))
+
+                # Assert
+                reopened_shader = UsdShade.Shader(reopened_stage.GetPrimAtPath("/NormalShader"))
+                self.assertEqual(expected_encoding, reopened_shader.GetInput("encoding").Get())
+
+    async def test_apply_normal_map_convention_should_target_root_and_restore_edit_target(self):
+        # Arrange
+        normal_shader = UsdShade.Shader.Define(self.stage, "/NormalShader")
+        normal_shader.CreateInput("normalmap_texture", Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath("normal.png"))
+        session_layer = self.stage.GetSessionLayer()
+        self.stage.SetEditTarget(session_layer)
+
+        # Act
+        authored_count = AssetImporter._apply_normal_map_convention(self.stage, TextureTypes.NORMAL_DX)
+
+        # Assert
+        encoding_path = normal_shader.GetPrim().GetPath().AppendProperty("inputs:encoding")
+        self.assertEqual(1, authored_count)
+        self.assertEqual(2, normal_shader.GetInput("encoding").Get())
+        self.assertEqual(session_layer, self.stage.GetEditTarget().GetLayer())
+        self.assertIsNotNone(self.stage.GetRootLayer().GetAttributeAtPath(encoding_path))
+        self.assertIsNone(session_layer.GetAttributeAtPath(encoding_path))
+
+    async def test_apply_normal_map_convention_should_skip_empty_and_override_dependency_normal_maps(self):
+        # Arrange
+        empty_shader = UsdShade.Shader.Define(self.stage, "/EmptyNormalShader")
+        empty_shader.CreateInput("normalmap_texture", Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath())
+
+        dependency_layer = Sdf.Layer.CreateAnonymous("normal_dependency.usda")
+        dependency_stage = Usd.Stage.Open(dependency_layer)
+        dependency_shader = UsdShade.Shader.Define(dependency_stage, "/DependencyNormalShader")
+        dependency_shader.CreateInput("normalmap_texture", Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath("normal.png"))
+        self.stage.GetRootLayer().subLayerPaths.append(dependency_layer.identifier)
+
+        # Act
+        authored_count = AssetImporter._apply_normal_map_convention(self.stage, TextureTypes.NORMAL_OGL)
+
+        # Assert
+        encoding_path = dependency_shader.GetPrim().GetPath().AppendProperty("inputs:encoding")
+        composed_dependency_shader = UsdShade.Shader(self.stage.GetPrimAtPath("/DependencyNormalShader"))
+        self.assertEqual(1, authored_count)
+        self.assertFalse(empty_shader.GetInput("encoding"))
+        self.assertEqual(1, composed_dependency_shader.GetInput("encoding").Get())
+        self.assertIsNotNone(self.stage.GetRootLayer().GetAttributeAtPath(encoding_path))
+        self.assertIsNone(dependency_layer.GetAttributeAtPath(encoding_path))
+
+    async def test_apply_normal_map_convention_without_stage_should_return_zero(self):
+        # Arrange
+        stage = None
+
+        # Act
+        authored_count = AssetImporter._apply_normal_map_convention(stage, TextureTypes.NORMAL_OGL)
+
+        # Assert
+        self.assertEqual(0, authored_count)
+
     async def __run_check(self, success: bool):
         # Arrange
         input_file_path_0 = OmniUrl("./Test0.fbx")
@@ -450,6 +670,10 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
         expected_message: str,
         output_usd_extension: str = None,
         data_flows: list[dict[Any, Any]] | None = None,
+        normal_map_convention: TextureTypes | None = None,
+        authored_count: int = 0,
+        save_stage_success: bool = True,
+        save_stage_extra_data: tuple[Any, ...] = (),
     ):
         # Arrange
         input_file_path_0 = Path("./Test0.fbx")
@@ -472,11 +696,25 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
         context_mock = Mock()
         context_mock.open_stage_async.return_value = open_stage_future
         context_mock.get_stage.return_value = stage_mock
+        save_stage_future = asyncio.Future()
+        save_stage_future.set_result(
+            (
+                save_stage_success,
+                None if save_stage_success else "Test Save Error",
+                *save_stage_extra_data,
+            )
+        )
+        context_mock.save_stage_async.return_value = save_stage_future
 
         with (
             patch.object(omni.client, "stat") as stat_mock,
             patch.object(ImporterCore, "import_batch") as import_mock,
             patch.object(omni.usd, "get_context") as get_context_mock,
+            patch.object(
+                AssetImporter,
+                "_apply_normal_map_convention",
+                return_value=authored_count,
+            ) as apply_convention_mock,
         ):
             stat_mock.side_effect = _stat_side_effect(
                 [
@@ -503,6 +741,7 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
                 output_directory=output_folder_path,
                 output_usd_extension=output_usd_extension,
                 data_flows=data_flows,
+                normal_map_convention=normal_map_convention,
             )
             parent_schema = Mock()
             parent_schema.data = schema_data
@@ -512,7 +751,12 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             is_valid, message, value = await asset_importer._setup(schema_data, callback_mock, None)
 
         # Assert
-        self.assertEqual(valid_context and valid_stage, is_valid)
+        expected_success = (
+            valid_context
+            and valid_stage
+            and (normal_map_convention is None or save_stage_success or authored_count == 0)
+        )
+        self.assertEqual(expected_success, is_valid)
         self.assertEqual(expected_message, message)
 
         expected_files = [
@@ -521,7 +765,21 @@ class TestAssetImporterUnit(omni.kit.test.AsyncTestCase):
             )
             for f in input_files
         ]
-        self.assertEqual(expected_files if valid_context and valid_stage else None, value)
+        self.assertEqual(expected_files if expected_success else None, value)
+        self.assertEqual(len(input_files) if expected_success else 0, callback_mock.call_count)
+
+        expected_apply_count = 0
+        if valid_context and valid_stage and normal_map_convention is not None:
+            expected_apply_count = 1 if authored_count and not save_stage_success else len(input_files)
+        self.assertEqual(
+            [call(stage_mock, normal_map_convention)] * expected_apply_count,
+            apply_convention_mock.call_args_list,
+        )
+
+        expected_save_count = 0
+        if valid_context and valid_stage and normal_map_convention is not None and authored_count:
+            expected_save_count = len(input_files) if save_stage_success else 1
+        self.assertEqual(expected_save_count, context_mock.save_stage_async.call_count)
 
         data_flow_result = [
             data_flow_r.model_dump(serialize_as_any=True) for data_flow_r in schema_data.data_flows or []

@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   runner/check scripts, and clearer MR-body instructions for compact agent work.
 - REMIX-4628: Added a project-scoped persistent camera clipping range override. A "Project Override" subsection in the Camera Properties panel exposes a toggle and Near/Far fields; values persist with the project and are re-applied to every camera on stage open and whenever the settings change.
 - Added profile and profile_startup shell launchers for regular and dev Toolkit apps, and kept profiler menu entries visible when enabled.
+- REMIX-2607: Added aligned Normal Map Convention options for model and material ingestion, including optional model
+  overrides that preserve importer-authored conventions by default
 
 ### Changed
 

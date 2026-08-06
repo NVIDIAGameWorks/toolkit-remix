@@ -35,7 +35,11 @@ from omni.flux.asset_importer.core.data_models import (
     CASE_SENSITIVE_ASSET_EXTENSIONS as _CASE_SENSITIVE_ASSET_EXTENSIONS,
 )
 from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS as _SUPPORTED_ASSET_EXTENSIONS
+from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
 from omni.flux.asset_importer.core.data_models import UsdExtensions as _UsdExtensions
+from omni.flux.asset_importer.widget.common.normal_map_convention import (
+    NormalMapConventionSelector as _NormalMapConventionSelector,
+)
 from omni.flux.asset_importer.widget.file_import_list import FileImportListModel as _FileImportListModel
 from omni.flux.asset_importer.widget.file_import_list import FileImportListWidget as _FileImportListWidget
 from omni.flux.info_icon.widget import InfoIconWidget as _InfoIconWidget
@@ -47,11 +51,25 @@ from omni.flux.validator.factory import InOutDataFlow as _InOutDataFlow
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import utils as _validator_factory_utils
 from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
+from pxr import Sdf, Usd, UsdShade
 from pydantic import ConfigDict, Field, ValidationError, create_model, field_validator
 from pydantic.functional_validators import SkipValidation
 from pydantic_core.core_schema import ValidationInfo
 
 from .base.context_base_usd import ContextBaseUSD as _ContextBaseUSD
+
+
+_NORMAL_MAP_ENCODINGS = {
+    _TextureTypes.NORMAL_OTH: 0,
+    _TextureTypes.NORMAL_OGL: 1,
+    _TextureTypes.NORMAL_DX: 2,
+}
+_NORMAL_MAP_TEXTURE_INPUTS = ("normalmap_texture", "normal_map_texture")
+_MODEL_NORMAL_MAP_CONVENTION_TOOLTIP = (
+    "This applies to normal-map textures referenced by imported models, not mesh normals.\n\n"
+    "Preserve Imported keeps the convention authored by the model importer. Select OpenGL, DirectX, or Octahedral "
+    "only when every normal-map texture referenced by this ingestion batch uses that convention."
+)
 
 
 def _get_converter_context():
@@ -77,6 +95,7 @@ class AssetImporter(_ContextBaseUSD):
     class DataBase(_ContextBaseUSD.Data):
         allow_empty_input_files_list: bool | None = Field(default=False)
         input_files: list[_OmniUrl] = Field(...)
+        normal_map_convention: str | None = Field(default=None)
         create_output_directory_if_missing: bool = Field(default=True)
         output_directory: _OmniUrl = Field(...)
         output_usd_extension: _UsdExtensions | None = Field(default=None)
@@ -122,6 +141,20 @@ class AssetImporter(_ContextBaseUSD):
                     raise ValueError(f"The input file is not readable: {item}")
                 validated_items.append(item)
             return validated_items
+
+        @field_validator("normal_map_convention", mode="before")
+        @classmethod
+        def valid_normal_map_convention(cls, v: _TextureTypes | str | None) -> str | None:
+            if v is None:
+                return None
+            convention_name = v.name if isinstance(v, _TextureTypes) else v
+            valid_values = {normal_type.name for normal_type in _NORMAL_MAP_ENCODINGS}
+            if convention_name not in valid_values:
+                raise ValueError(
+                    f"Invalid normal map convention selected ({convention_name}). "
+                    f"Valid values are: {', '.join(sorted(valid_values))}"
+                )
+            return convention_name
 
         @field_validator("output_directory", mode="before")
         @classmethod
@@ -170,6 +203,9 @@ class AssetImporter(_ContextBaseUSD):
         self._extension_field_sub = None
         self._mass_content_tree_widget = None
         self._sub_mass_content_tree_widget_item_changed = None
+        self._file_list_field_sub = None
+        self._normal_map_convention_sub = None
+        self._normal_map_convention_selector = None
         self._file_list_field = None
         self._project_stage_event_sub = None
         # Tracks whether the user has manually set the output directory this session.
@@ -341,6 +377,14 @@ class AssetImporter(_ContextBaseUSD):
             if not result:
                 return False, error, None
 
+            convention = self._get_normal_map_convention(schema_data)
+            if convention is not None:
+                authored_conventions = self._apply_normal_map_convention(context.get_stage(), convention)
+                if authored_conventions:
+                    save_result, save_error, *_ = await context.save_stage_async()
+                    if not save_result:
+                        return False, f"Unable to save the normal map convention: {save_error}", None
+
             await run_callback(schema_data.computed_context)
 
             # Make sure the file is valid before appending to the final_data
@@ -470,10 +514,21 @@ class AssetImporter(_ContextBaseUSD):
         # this plugin will promote the regular UI into the mass UI.
         # meaning we don't need to show the UI into the regular validation UI
         # we use a custom kwargs (force_build_ui) for that
-        await self._build_ui(schema_data, force_build_ui=True)
+        await self._build_ui(schema_data, force_build_ui=True, show_normal_map_convention=False)
 
     @omni.usd.handle_exception
-    async def _build_ui(self, schema_data: Data, force_build_ui: bool = False) -> Any:
+    async def mass_build_footer_ui(self, schema_data: Data) -> bool:
+        """Build context-owned model ingestion options after exposed check controls."""
+        self._build_normal_map_convention_ui(schema_data, label_width=self.DEFAULT_UI_WIDTH_PIXEL)
+        return True
+
+    @omni.usd.handle_exception
+    async def _build_ui(
+        self,
+        schema_data: Data,
+        force_build_ui: bool = False,
+        show_normal_map_convention: bool = True,
+    ) -> Any:
         """
         Build the UI for the plugin
         """
@@ -539,6 +594,10 @@ class AssetImporter(_ContextBaseUSD):
             )
 
             ui.Spacer(height=ui.Pixel(self.DEFAULT_UI_SPACING_PIXEL))
+
+            if show_normal_map_convention:
+                self._build_normal_map_convention_ui(schema_data)
+                ui.Spacer(height=ui.Pixel(self.DEFAULT_UI_SPACING_PIXEL))
 
             # output directory
             with ui.HStack(
@@ -716,6 +775,53 @@ class AssetImporter(_ContextBaseUSD):
         selected_index = model.get_item_value_model().get_value_as_int()
         schema_data.output_usd_extension = self._extensions[selected_index]
 
+    def _build_normal_map_convention_ui(self, schema_data: Data, label_width: int | None = None) -> None:
+        self._normal_map_convention_selector = _NormalMapConventionSelector(
+            schema_data.normal_map_convention,
+            include_preserve_imported=True,
+            label_width=label_width,
+            tooltip=_MODEL_NORMAL_MAP_CONVENTION_TOOLTIP,
+        )
+        self._normal_map_convention_sub = self._normal_map_convention_selector.subscribe_changed(
+            partial(self.__update_normal_map_convention, schema_data)
+        )
+
+    @staticmethod
+    def _get_normal_map_convention(schema_data: Data) -> _TextureTypes | None:
+        convention = schema_data.normal_map_convention
+        if convention is None:
+            return None
+        if isinstance(convention, _TextureTypes):
+            return convention
+        return _TextureTypes[convention]
+
+    @staticmethod
+    def _apply_normal_map_convention(stage: Usd.Stage | None, convention: _TextureTypes) -> int:
+        if not stage:
+            return 0
+
+        encoding = _NORMAL_MAP_ENCODINGS[convention]
+        authored_count = 0
+        root_layer = stage.GetRootLayer()
+        with Usd.EditContext(stage, root_layer):
+            for prim in stage.Traverse():
+                if not prim.IsA(UsdShade.Shader):
+                    continue
+
+                shader = UsdShade.Shader(prim)
+                normal_map_values = [
+                    shader_input.Get()
+                    for input_name in _NORMAL_MAP_TEXTURE_INPUTS
+                    if (shader_input := shader.GetInput(input_name))
+                ]
+                if not any(isinstance(value, Sdf.AssetPath) and value.path for value in normal_map_values):
+                    continue
+
+                shader.CreateInput("encoding", Sdf.ValueTypeNames.Int).Set(encoding)
+                authored_count += 1
+
+        return authored_count
+
     @_ignore_function_decorator(attrs=["_ignore_update_file_list"])
     def __update_file_list(self, schema_data: Data, model: _FileImportListModel, *_):
         item_paths = [i.path for i in model.get_item_children(None)]
@@ -742,6 +848,10 @@ class AssetImporter(_ContextBaseUSD):
             self._output_field.style_type_name_override = "FieldError"
             self._output_field.tooltip = msg
 
+    @staticmethod
+    def __update_normal_map_convention(schema_data: Data, convention: _TextureTypes | None):
+        schema_data.normal_map_convention = convention.name if convention is not None else None
+
     def show(self, value: bool, schema_data: Data):
         if not value:
             return
@@ -753,6 +863,13 @@ class AssetImporter(_ContextBaseUSD):
         self._output_field_update_sub = None
         self._extension_field_sub = None
         self._sub_mass_content_tree_widget_item_changed = None
+        self._file_list_field_sub = None
+        self._normal_map_convention_sub = None
+        if self._normal_map_convention_selector:
+            self._normal_map_convention_selector.destroy()
+        self._normal_map_convention_selector = None
+        if self._file_list_field:
+            self._file_list_field.destroy()
         self._file_list_field = None
 
         super().destroy()

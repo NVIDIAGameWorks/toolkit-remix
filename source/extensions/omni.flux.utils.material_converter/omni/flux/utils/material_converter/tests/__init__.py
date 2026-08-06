@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .e2e.impl.test_omni_glass_to_aperture_pbr import TestOmniGlassToAperturePBRConverterBuilderE2E
 from .e2e.impl.test_omni_pbr_to_aperture_pbr import TestOmniPBRToAperturePBRConverterBuilderE2E
 from .e2e.test_utils import TestUtils
 from .unit.base.test_attribute_base import TestAttributeBase
@@ -27,6 +28,7 @@ __all__ = [
     "TestConverterBase",
     "TestConverterBuilder",
     "TestCore",
+    "TestOmniGlassToAperturePBRConverterBuilderE2E",
     "TestOmniPBRToAperturePBRConverterBuilderE2E",
     "TestOmniPBRToAperturePBRConverterBuilderUnit",
     "TestUtils",

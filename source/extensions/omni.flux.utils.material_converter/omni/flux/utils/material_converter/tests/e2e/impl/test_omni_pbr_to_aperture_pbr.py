@@ -24,6 +24,7 @@ from omni.flux.utils.material_converter import MaterialConverterCore
 from omni.flux.utils.material_converter.impl.omni_pbr_to_aperture_pbr import OmniPBRToAperturePBRConverterBuilder
 from omni.flux.utils.material_converter.utils import SupportedShaderOutputs
 from omni.kit.test_suite.helpers import get_test_data_path
+from pxr import Sdf, UsdShade
 
 _PRIM_PATHS = [
     "/World/Looks/M_Fixture_Elevator_Interior_02",
@@ -85,3 +86,29 @@ class TestOmniPBRToAperturePBRConverterBuilderE2E(omni.kit.test.AsyncTestCase):
         with open(aperture_pbr_path) as expected_file:
             with open(aperture_pbr_temp_path) as actual_file:
                 self.assertEqual(expected_file.read(), actual_file.read())
+
+    async def test_explicit_normal_encoding_should_override_legacy_flip_tangent_v(self):
+        # Arrange
+        omni_pbr_temp_path = Path(self.temp_dir.name) / "omni_pbr.usda"
+        shutil.copy(get_test_data_path(__name__, "usd/omni_pbr.usda"), omni_pbr_temp_path)
+        await self.context.open_stage_async(str(omni_pbr_temp_path))
+        stage = self.context.get_stage()
+        material_prim = stage.GetPrimAtPath(_PRIM_PATHS[0])
+        input_shader_prim = omni.usd.get_shader_from_material(material_prim, get_prim=True)
+        input_shader = UsdShade.Shader(input_shader_prim)
+        input_shader.CreateInput("encoding", Sdf.ValueTypeNames.Int).Set(0)
+        input_shader.CreateInput("flip_tangent_v", Sdf.ValueTypeNames.Bool).Set(True)
+        converter = OmniPBRToAperturePBRConverterBuilder().build(
+            material_prim,
+            SupportedShaderOutputs.APERTURE_PBR_OPACITY.value,
+        )
+
+        # Act
+        success, _message, was_skipped = await MaterialConverterCore.convert("", converter)
+
+        # Assert
+        output_material_prim = stage.GetPrimAtPath(_PRIM_PATHS[0])
+        output_shader_prim = omni.usd.get_shader_from_material(output_material_prim, get_prim=True)
+        self.assertTrue(success)
+        self.assertFalse(was_skipped)
+        self.assertEqual(0, UsdShade.Shader(output_shader_prim).GetInput("encoding").Get())

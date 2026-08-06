@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.10]
+### Fixed
+- Preserved importer-authored normal map conventions by default, applied overrides only when explicitly selected,
+  and aligned material and model convention controls in the ingestion options area
+
 ## [3.1.9]
 ### Fixed
 - Model and Material Output Directories persist within the current project and reset to the project default when another project opens.

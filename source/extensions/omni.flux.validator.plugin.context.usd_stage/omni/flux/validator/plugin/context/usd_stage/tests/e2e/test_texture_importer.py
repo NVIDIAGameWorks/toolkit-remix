@@ -75,6 +75,30 @@ class TestTextureImporterE2E(omni.kit.test.AsyncTestCase):
     async def test_render_widget_fields_with_context_should_render_correctly(self):
         await self.__run_render_widget(context="test_context")
 
+    async def test_normal_map_convention_should_render_as_material_import_option(self):
+        # Arrange
+        _input_files, _output_path, schema_data = await self.__setup_schema_data()
+        window, texture_importer = await self.__setup_widget(schema_data)
+
+        # Act
+        convention_label = ui_test.find(f"{window.title}//Frame/**/Label[*].identifier=='normal_map_convention_label'")
+        convention_field = ui_test.find(f"{window.title}//Frame/**/ComboBox[*].identifier=='normals_type_combobox'")
+        convention_model = convention_field.widget.model
+        with patch.object(texture_importer._file_list_field.model, "set_preferred_normal_type") as set_normal_type_mock:
+            convention_model.get_item_value_model().set_value(1)
+            await ui_test.human_delay()
+
+        # Assert
+        self.assertEqual("Normal Map Convention", convention_label.widget.text)
+        self.assertEqual(
+            [TextureTypes.NORMAL_OGL.value, TextureTypes.NORMAL_DX.value, TextureTypes.NORMAL_OTH.value],
+            [
+                convention_model.get_item_value_model(item).get_value_as_string()
+                for item in convention_model.get_item_children(None)
+            ],
+        )
+        set_normal_type_mock.assert_called_once_with(TextureTypes.NORMAL_DX)
+
     async def test_edit_context_field_should_be_readonly(self):
         # Setup the test
         context_name = "test_context"

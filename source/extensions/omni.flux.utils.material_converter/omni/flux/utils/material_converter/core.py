@@ -254,7 +254,7 @@ class MaterialConverterCore:
                 if has_default_value:
                     input_attr_value = value
 
-            translated_value = attr.translate_fn(input_attr_value, input_attr)
+            _, translated_value = attr.translate_fn(input_attr_value, input_attr)
 
             omni.kit.commands.execute(
                 "ChangePropertyCommand",
@@ -306,14 +306,13 @@ class MaterialConverterCore:
             if not input_shader_prim.HasAttribute(attr.input_attr_name):
                 # If a default output value was set, add it to the output shader if it doesn't exist already
                 if attr.output_default_value is not None and not input_shader_prim.HasAttribute(attr.output_attr_name):
-                    translated_type, _ = attr.translate_alt_fn(None, None, None)
                     omni.kit.commands.execute(
                         "ChangePropertyCommand",
                         prop_path=output_attr_path,
                         value=attr.output_default_value,
                         prev=None,
                         target_layer=root_layer,
-                        type_to_create_if_not_exist=translated_type,
+                        type_to_create_if_not_exist=attr.output_attr_type,
                         usd_context_name=context_name,
                     )
                 continue
@@ -328,14 +327,13 @@ class MaterialConverterCore:
             if not input_attr_spec_root and not input_attr_spec_session:
                 continue
 
-            input_attr_type = input_attr.GetTypeName()
             input_attr_value = input_attr.Get()
             if input_attr_value is None:
                 has_default_value, value = MaterialConverterCore._get_default_value(input_attr)
                 if has_default_value:
                     input_attr_value = value
 
-            translated_type, translated_value = attr.translate_alt_fn(input_attr_type, input_attr_value, input_attr)
+            translated_type, translated_value = attr.translate_fn(input_attr_value, input_attr)
 
             omni.kit.commands.execute(
                 "ChangePropertyCommand",

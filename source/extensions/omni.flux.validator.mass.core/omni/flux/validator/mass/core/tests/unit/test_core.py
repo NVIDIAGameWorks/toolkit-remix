@@ -23,6 +23,7 @@ from weakref import ref
 
 import carb
 import carb.settings
+import omni.ui as ui
 from omni.flux.validator.manager.core import ValidationSchema as _ValidationSchema
 from omni.flux.validator.mass.core import SCHEMA_PATH_SETTING as _SCHEMA_PATH_SETTING
 from omni.flux.validator.mass.core import ManagerMassCore as _ManagerMassCore
@@ -144,6 +145,53 @@ class TestCore(AsyncTestCase):
         with patch.object(core, "_on_core_added") as subscribe_core_added_mock:
             core.add_schemas([items[0]._data])
             self.assertEqual(subscribe_core_added_mock.call_count, 0)
+
+    async def test_build_ui_should_render_context_footer_after_exposed_scale_control(self):
+        # Arrange
+        schema = _get_fake_context_not_cook_template()
+        schema["context_plugin"]["data"].update({"expose_mass_ui": True, "build_mass_footer_ui": True})
+        schema["check_plugins"] = [schema["check_plugins"][0]]
+        schema["check_plugins"][0]["data"]["expose_mass_ui"] = True
+        schema["resultor_plugins"] = [{"name": "FakeResultor", "data": {"expose_mass_ui": True}}]
+
+        core = _ManagerMassCore()
+        core.add_schemas([schema])
+        item = core.schema_model.get_item_children(None)[0]
+        context_instance = item._model.model.context_plugin.instance
+        check_instance = item._model.model.check_plugins[0].instance
+        resultor_instance = item._model.model.resultor_plugins[0].instance
+        build_order = []
+
+        async def build_context_ui(*_):
+            build_order.append("context")
+
+        async def build_check_ui(*_):
+            build_order.append("asset_scale_factor")
+
+        async def build_context_footer_ui(*_):
+            build_order.append("normal_map_convention")
+            return True
+
+        async def build_resultor_ui(*_):
+            build_order.append("resultor")
+
+        # Act
+        frame = ui.Frame()
+        with (
+            frame,
+            patch.object(context_instance, "mass_build_ui", side_effect=build_context_ui),
+            patch.object(check_instance, "mass_build_ui", side_effect=build_check_ui),
+            patch.object(context_instance, "mass_build_footer_ui", side_effect=build_context_footer_ui),
+            patch.object(resultor_instance, "mass_build_ui", side_effect=build_resultor_ui),
+        ):
+            was_built = await item.build_ui()
+
+        # Assert
+        self.assertTrue(was_built)
+        self.assertEqual(
+            ["context", "asset_scale_factor", "normal_map_convention", "resultor"],
+            build_order,
+        )
 
     async def test_schemas_added_with_setting(self):
         value = ",".join(self.SCHEMAS)

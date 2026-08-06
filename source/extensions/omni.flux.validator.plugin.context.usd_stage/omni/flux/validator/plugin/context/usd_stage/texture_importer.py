@@ -32,6 +32,9 @@ import omni.usd
 from omni.flux.asset_importer.core import get_texture_sets as _get_texture_sets
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
+from omni.flux.asset_importer.widget.common.normal_map_convention import (
+    NormalMapConventionSelector as _NormalMapConventionSelector,
+)
 from omni.flux.asset_importer.widget.texture_import_list import TextureImportItem as _TextureImportItem
 from omni.flux.asset_importer.widget.texture_import_list import TextureImportListModel as _TextureImportListModel
 from omni.flux.asset_importer.widget.texture_import_list import TextureImportListWidget as _TextureImportListWidget
@@ -161,6 +164,8 @@ class TextureImporter(_ContextBaseUSD):
         self._file_list_field_item_changed_sub = None
         self._file_list_field_type_changed_sub = None
         self._file_list_field = None
+        self._normal_map_convention_selector = None
+        self._normal_map_convention_sub = None
 
     @property
     def visible(self) -> bool:
@@ -330,10 +335,21 @@ class TextureImporter(_ContextBaseUSD):
         # this plugin will promote the regular UI into the mass UI.
         # meaning we don't need to show the UI into the regular validation UI
         # we use a custom kwargs (force_build_ui) for that
-        await self._build_ui(schema_data, force_build_ui=True)
+        await self._build_ui(schema_data, force_build_ui=True, show_normal_map_convention=False)
 
     @omni.usd.handle_exception
-    async def _build_ui(self, schema_data: Data, force_build_ui: bool = False) -> Any:
+    async def mass_build_footer_ui(self, _schema_data: Data) -> bool:
+        """Build context-owned material ingestion options after the file-selection UI."""
+        self._build_normal_map_convention_ui(label_width=self.DEFAULT_UI_WIDTH_PIXEL)
+        return True
+
+    @omni.usd.handle_exception
+    async def _build_ui(
+        self,
+        schema_data: Data,
+        force_build_ui: bool = False,
+        show_normal_map_convention: bool = True,
+    ) -> Any:
         """
         Build the UI for the plugin
         """
@@ -401,6 +417,10 @@ class TextureImporter(_ContextBaseUSD):
             )
 
             ui.Spacer(height=ui.Pixel(self.DEFAULT_UI_SPACING_PIXEL))
+
+            if show_normal_map_convention:
+                self._build_normal_map_convention_ui()
+                ui.Spacer(height=ui.Pixel(self.DEFAULT_UI_SPACING_PIXEL))
 
             # output directory
             with ui.HStack(
@@ -535,6 +555,16 @@ class TextureImporter(_ContextBaseUSD):
             raise ValueError("An output directory must be set.")
         schema_data.output_directory = _OmniUrl(value)
 
+    def _build_normal_map_convention_ui(self, label_width: int | None = None) -> None:
+        self._normal_map_convention_selector = _NormalMapConventionSelector(label_width=label_width)
+        self._normal_map_convention_sub = self._normal_map_convention_selector.subscribe_changed(
+            self.__update_normal_map_convention
+        )
+
+    def __update_normal_map_convention(self, convention: _TextureTypes | None) -> None:
+        if convention is not None and self._file_list_field is not None:
+            self._file_list_field.model.set_preferred_normal_type(convention)
+
     @_ignore_function_decorator(attrs=["_ignore_update_file_list"])
     def __update_file_list(self, schema_data: Data, model: _TextureImportListModel, *_):
         item_paths = [(i.path, i.texture_type.name) for i in model.get_item_children(None)]
@@ -572,6 +602,12 @@ class TextureImporter(_ContextBaseUSD):
         self._output_field_update_sub = None
         self._file_list_field_item_changed_sub = None
         self._file_list_field_type_changed_sub = None
+        self._normal_map_convention_sub = None
+        if self._normal_map_convention_selector is not None:
+            self._normal_map_convention_selector.destroy()
+        self._normal_map_convention_selector = None
+        if self._file_list_field:
+            self._file_list_field.destroy()
         self._file_list_field = None
 
         super().destroy()

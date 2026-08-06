@@ -16,7 +16,6 @@
 """
 
 import asyncio
-from functools import partial
 from pathlib import Path
 from typing import Any
 from collections.abc import Callable
@@ -27,8 +26,6 @@ from omni.flux.asset_importer.core import destroy_scanner_dialog as _destroy_sca
 from omni.flux.asset_importer.core import scan_folder as _scan_folder
 from omni.flux.asset_importer.core import setup_scanner_dialog as _setup_scanner_dialog
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
-from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
-from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.path_utils import get_invalid_extensions as _get_invalid_extensions
 from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_picker
@@ -66,9 +63,11 @@ class TextureImportListWidget:
             "_file_tree_view": None,
             "_add_button": None,
             "_remove_button": None,
+            "_owns_model": False,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
+        self._owns_model = model is None
         self._model = model or TextureImportListModel()
         self._delegate = delegate or TextureImportListDelegate()
         self._allow_empty_input_files_list = allow_empty_input_files_list
@@ -83,11 +82,6 @@ class TextureImportListWidget:
         self._remove_button = None
 
         self.__update_width_task = None
-
-        self._normals_type_info_icon = None
-
-        self._preferred_normal_type: _TextureTypes | None = None
-        self._normal_types = [_TextureTypes.NORMAL_OGL, _TextureTypes.NORMAL_DX, _TextureTypes.NORMAL_OTH]
 
         self.__root_frame = ui.Frame()
         self.__create_ui()
@@ -173,47 +167,12 @@ class TextureImportListWidget:
 
                 ui.Spacer(height=ui.Pixel(self.__DEFAULT_SPACER_PIXEL))
 
-                # normals type
-                with ui.HStack(
-                    height=ui.Pixel(self.__DEFAULT_UI_HEIGHT_PIXEL), spacing=ui.Pixel(self.__DEFAULT_SPACER_PIXEL)
-                ):
-                    ui.Label("Convention", name="PropertiesWidgetLabel", alignment=ui.Alignment.LEFT_CENTER, width=0)
-
-                    try:
-                        selected_normals_type = self._normal_types.index(self._preferred_normal_type)
-                    except ValueError:
-                        selected_normals_type = 0
-
-                    normals_type_field = ui.ComboBox(
-                        selected_normals_type,
-                        *[t.value for t in self._normal_types],
-                        identifier="normals_type_combobox",
-                    )
-
-                    with ui.VStack(width=0):
-                        ui.Spacer()
-                        self._normals_type_info_icon = InfoIconWidget(
-                            message="Type convention for normal maps.\n\n"
-                            "The default type for normals we should use for this batch of textures.\n"
-                            "Generally, the application used to create normal maps will explain display\n"
-                            "the convention used.\n"
-                            "If selected incorrectly, the normal map when applied in meshes will appear as \n"
-                            "indentations rather than bumps."
-                        )
-                        ui.Spacer()
-
-                ui.Spacer(height=ui.Pixel(self.__DEFAULT_SPACER_PIXEL))
-
                 with ui.HStack(height=ui.Pixel(self.__DEFAULT_UI_HEIGHT_PIXEL)):
                     self._add_button = ui.Button("Add", clicked_fn=self.__add_item, identifier="add_file")
                     self._scan_folder_button = ui.Button(
                         "Scan Folder", clicked_fn=_scan_folder, identifier="scan_folder"
                     )
                     self._remove_button = ui.Button("Remove", clicked_fn=self.__remove_items, identifier="remove_file")
-
-        self._normals_type_field_sub = normals_type_field.model.subscribe_item_changed_fn(
-            partial(self.__update_normal_type)
-        )
 
     def __on_texture_changed(self, *_):
         self._file_tree_view.dirty_widgets()
@@ -271,13 +230,6 @@ class TextureImportListWidget:
             self.__update_width_task.cancel()
         self.__update_width_task = asyncio.ensure_future(self.__update_tree_view_width_async())
 
-    def __update_normal_type(self, model: ui.AbstractValueModel, _):
-        try:
-            selected_index = model.get_item_value_model().get_value_as_int()
-            self._model.set_preferred_normal_type(_TextureTypes[self._normal_types[selected_index].name])
-        except ValueError as e:
-            carb.log_warn("Could not set normal type.  Message:" + str(e))
-
     @usd.handle_exception
     async def __update_tree_view_width_async(self):
         await kit.app.get_app().next_update_async()
@@ -296,9 +248,12 @@ class TextureImportListWidget:
             self.__update_width_task.cancel()
         self.__update_width_task = None
 
-        if self._normals_type_info_icon is not None:
-            self._normals_type_info_icon.destroy()
-            self._normals_type_info_icon = None
+        self._sub_on_item_changed = None
+        self._sub_on_texture_type_changed = None
+        self._sub_on_texture_changed = None
+        if self._owns_model and self._model is not None:
+            self._model.refresh([])
+            self._model.destroy()
 
         _reset_default_attrs(self)
         _destroy_scanner_dialog()

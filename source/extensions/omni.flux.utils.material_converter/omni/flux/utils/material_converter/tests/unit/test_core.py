@@ -34,9 +34,9 @@ class TestConverterBuilder(ConverterBuilderBase):
             AttributeBase(
                 input_attr_name="inputs:flip_tangent_v",
                 output_attr_name="inputs:encoding",
+                output_attr_type=Sdf.ValueTypeNames.Int,
                 output_default_value=3,
                 translate_fn=self._convert_test,
-                translate_alt_fn=self._convert_test_alt,
             ),
         ]
         return ConverterBase(
@@ -45,13 +45,8 @@ class TestConverterBuilder(ConverterBuilderBase):
             attributes=attributes,
         )
 
-    def _convert_test(self, value: bool, input_attr: Usd.Attribute) -> int:
-        return value * 2
-
-    def _convert_test_alt(
-        self, _: Sdf.ValueTypeNames, value: bool, input_attr: Usd.Attribute | None
-    ) -> tuple[Sdf.ValueTypeNames, int]:
-        return (Sdf.ValueTypeNames.Int, value * 2)
+    def _convert_test(self, value: bool, _input_attr: Usd.Attribute) -> tuple[Sdf.ValueTypeName, int]:
+        return Sdf.ValueTypeNames.Int, value * 2
 
 
 class TestCore(omni.kit.test.AsyncTestCase):
@@ -461,13 +456,14 @@ class TestCore(omni.kit.test.AsyncTestCase):
     async def __run_convert_material_attributes(self, exists_on_input: bool):
         # Arrange
         def test_translate_fn(v, _):
-            return 2 * v
+            return Sdf.ValueTypeNames.Int, 2 * v
 
         context_name_mock = Mock()
 
         input_attr_name_mock = Mock()
         output_attr_name_mock = Mock()
-        output_default_value_mock = Mock()
+        output_default_type = Sdf.ValueTypeNames.Int
+        output_default_value = Mock()
 
         input_attr_spec_mock = Mock()
 
@@ -480,7 +476,8 @@ class TestCore(omni.kit.test.AsyncTestCase):
         attribute_mock = Mock()
         attribute_mock.input_attr_name = input_attr_name_mock
         attribute_mock.output_attr_name = output_attr_name_mock
-        attribute_mock.output_default_value = output_default_value_mock
+        attribute_mock.output_attr_type = output_default_type
+        attribute_mock.output_default_value = output_default_value
         attribute_mock.translate_fn.side_effect = test_translate_fn
 
         attributes_mock = [Mock(), Mock(), attribute_mock]
@@ -533,7 +530,7 @@ class TestCore(omni.kit.test.AsyncTestCase):
                 call(
                     "ChangePropertyCommand",
                     prop_path=output_attr_path_mock,
-                    value=test_translate_fn(input_value, None),
+                    value=test_translate_fn(input_value, None)[1],
                     prev=None,
                     target_layer=root_layer_mock,
                     usd_context_name=context_name_mock,
@@ -542,7 +539,7 @@ class TestCore(omni.kit.test.AsyncTestCase):
                 else call(
                     "ChangePropertyCommand",
                     prop_path=output_attr_path_mock,
-                    value=output_default_value_mock,
+                    value=output_default_value,
                     prev=None,
                     target_layer=root_layer_mock,
                     usd_context_name=context_name_mock,
@@ -553,30 +550,30 @@ class TestCore(omni.kit.test.AsyncTestCase):
 
     async def __run_create_material_attributes(self, exists_on_input: bool):
         # Arrange
-        def test_translate_alt_fn(_, v, __):
+        def test_translate_fn(v, _):
             return Sdf.ValueTypeNames.Int, 2 * v if v else None
 
         context_name_mock = Mock()
 
         input_attr_name_mock = Mock()
         output_attr_name_mock = Mock()
-        output_default_value_mock = Mock()
+        output_default_type = Sdf.ValueTypeNames.Int
+        output_default_value = Mock()
 
         input_attr_spec_mock = Mock()
 
         input_attr_path_mock = Mock()
         input_attr_mock = Mock()
-        input_type = Sdf.ValueTypeNames.Asset
         input_value = 2
         input_attr_mock.GetPath.return_value = input_attr_path_mock
-        input_attr_mock.GetTypeName.return_value = input_type
         input_attr_mock.Get.return_value = input_value
 
         attribute_mock = Mock()
         attribute_mock.input_attr_name = input_attr_name_mock
         attribute_mock.output_attr_name = output_attr_name_mock
-        attribute_mock.output_default_value = output_default_value_mock
-        attribute_mock.translate_alt_fn.side_effect = test_translate_alt_fn
+        attribute_mock.output_attr_type = output_default_type
+        attribute_mock.output_default_value = output_default_value
+        attribute_mock.translate_fn.side_effect = test_translate_fn
 
         attributes_mock = [Mock(), attribute_mock]
 
@@ -619,7 +616,7 @@ class TestCore(omni.kit.test.AsyncTestCase):
         if exists_on_input:
             self.assertEqual(call(input_attr_path_mock), get_attribute_at_path_mock.call_args_list[1])
 
-        expected_type, epected_value = test_translate_alt_fn(input_type, input_value, None)
+        expected_type, expected_value = test_translate_fn(input_value, None)
 
         self.assertEqual(1, command_mock.call_count)
         self.assertEqual(
@@ -627,7 +624,7 @@ class TestCore(omni.kit.test.AsyncTestCase):
                 call(
                     "ChangePropertyCommand",
                     prop_path=str(output_attr_path_mock),
-                    value=epected_value,
+                    value=expected_value,
                     prev=None,
                     target_layer=root_layer_mock,
                     type_to_create_if_not_exist=expected_type,
@@ -637,10 +634,10 @@ class TestCore(omni.kit.test.AsyncTestCase):
                 else call(
                     "ChangePropertyCommand",
                     prop_path=str(output_attr_path_mock),
-                    value=output_default_value_mock,
+                    value=output_default_value,
                     prev=None,
                     target_layer=root_layer_mock,
-                    type_to_create_if_not_exist=expected_type,
+                    type_to_create_if_not_exist=output_default_type,
                     usd_context_name=context_name_mock,
                 )
             ),

@@ -114,6 +114,18 @@ class TestTextureImportListWidget(omni.kit.test.AsyncTestCase):
         self.assertIsNotNone(remove_item)
         self.assertIsNotNone(scan_folder)
 
+    async def test_file_selection_should_not_render_normal_map_convention(self):
+        # Arrange
+        window = await self.__setup_widget()
+
+        # Act
+        convention_label = ui_test.find(f"{window.title}//Frame/**/Label[*].identifier=='normal_map_convention_label'")
+        convention_field = ui_test.find(f"{window.title}//Frame/**/ComboBox[*].identifier=='normals_type_combobox'")
+
+        # Assert
+        self.assertIsNone(convention_label)
+        self.assertIsNone(convention_field)
+
     async def test_tree_change_type_should_trigger_event(self):
         # Setup the test
         model = TextureImportListModel()

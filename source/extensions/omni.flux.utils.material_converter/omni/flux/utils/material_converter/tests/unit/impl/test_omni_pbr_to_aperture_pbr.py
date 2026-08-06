@@ -19,7 +19,7 @@ from unittest.mock import Mock
 
 import omni.kit.test
 from omni.flux.utils.material_converter.impl.omni_pbr_to_aperture_pbr import OmniPBRToAperturePBRConverterBuilder
-from pxr import Sdf
+from pxr import Sdf, Usd
 
 
 class TestOmniPBRToAperturePBRConverterBuilderUnit(omni.kit.test.AsyncTestCase):
@@ -28,39 +28,33 @@ class TestOmniPBRToAperturePBRConverterBuilderUnit(omni.kit.test.AsyncTestCase):
         converter_builder = OmniPBRToAperturePBRConverterBuilder()
 
         # Act
-        val = converter_builder._convert_normal_encoding(False, Mock())
+        output_type, output_value = converter_builder._convert_normal_encoding(False, Mock())
 
         # Assert
-        self.assertEqual(1, val)  # TANGENT_SPACE_OGL = 2
+        self.assertEqual(Sdf.ValueTypeNames.Int, output_type)
+        self.assertEqual(1, output_value)  # TANGENT_SPACE_OGL = 1
 
     async def test_convert_normal_encoding_value_true_should_return_tangent_space_dx(self):
         # Arrange
         converter_builder = OmniPBRToAperturePBRConverterBuilder()
 
         # Act
-        val = converter_builder._convert_normal_encoding(True, Mock())
+        output_type, output_value = converter_builder._convert_normal_encoding(True, Mock())
 
         # Assert
-        self.assertEqual(2, val)  # TANGENT_SPACE_DX = 2
+        self.assertEqual(Sdf.ValueTypeNames.Int, output_type)
+        self.assertEqual(2, output_value)  # TANGENT_SPACE_DX = 2
 
-    async def test_convert_normal_encoding_alt_value_false_should_return_int_type_and_tangent_space_ogl(self):
+    async def test_build_normal_encoding_should_use_typed_default(self):
         # Arrange
         converter_builder = OmniPBRToAperturePBRConverterBuilder()
+        stage = Usd.Stage.CreateInMemory()
+        input_material_prim = stage.DefinePrim("/Material")
 
         # Act
-        converted_type, converted_val = converter_builder._convert_normal_encoding_alt(Mock(), False, Mock())
+        converter = converter_builder.build(input_material_prim, "AperturePBR_Opacity")
+        encoding_attr = next(attr for attr in converter.attributes if attr.input_attr_name == "inputs:flip_tangent_v")
 
         # Assert
-        self.assertEqual(Sdf.ValueTypeNames.Int, converted_type)
-        self.assertEqual(1, converted_val)  # TANGENT_SPACE_OGL = 2
-
-    async def test_convert_normal_encoding_alt_value_true_should_return_int_type_and_tangent_space_dx(self):
-        # Arrange
-        converter_builder = OmniPBRToAperturePBRConverterBuilder()
-
-        # Act
-        converted_type, converted_val = converter_builder._convert_normal_encoding_alt(Mock(), True, Mock())
-
-        # Assert
-        self.assertEqual(Sdf.ValueTypeNames.Int, converted_type)
-        self.assertEqual(2, converted_val)  # TANGENT_SPACE_DX = 2
+        self.assertEqual(Sdf.ValueTypeNames.Int, encoding_attr.output_attr_type)
+        self.assertEqual(2, encoding_attr.output_default_value)  # TANGENT_SPACE_DX = 2

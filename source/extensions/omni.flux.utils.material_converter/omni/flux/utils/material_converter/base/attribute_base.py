@@ -19,56 +19,37 @@ from collections.abc import Callable
 from typing import Any
 
 from pxr import Sdf, Usd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
-def _translate(input_attr_value: Any, _input_attr: Usd.Attribute) -> Any:
+def _translate(input_attr_value: Any, input_attr: Usd.Attribute) -> tuple[Sdf.ValueTypeName, Any]:
     """
-    Allows translating the input value to produce the output value
+    Default translate_fn Implementation that returns the input attribute type and value unchanged.
 
     Args:
-        input_attr_value: The input attribute value
-        input_attr: The input attribute
+        input_attr_value: The input attribute value.
+        input_attr: The input attribute.
 
     Returns:
-        The translated value used to update the output attribute
+        The input attribute type and value.
     """
-    return input_attr_value
-
-
-def _translate_alt(
-    input_attr_type: Sdf.ValueTypeNames, input_attr_value: Any, _input_attr: Usd.Attribute
-) -> tuple[Sdf.ValueTypeNames, Any]:
-    """
-    Allows translating the input type and value to produce the output type and value when we need to create
-    attributes in the output material.
-
-    Args:
-        input_attr_type: The input attribute type
-        input_attr_value: The input attribute value
-        input_attr: The input attribute
-
-    Returns:
-        The translated type and value used to create the output attribute
-    """
-    return input_attr_type, input_attr_value
+    return input_attr.GetTypeName(), input_attr_value
 
 
 class AttributeBase(BaseModel):
-    """Represents 1 attribute to translate"""
+    """Represent an attribute mapping between input and output shaders."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # Attribute name used on the input shader
     input_attr_name: str
     # Attribute name used on the output shader
     output_attr_name: str
-    # If set, this value will be used to create the attribute on the output shader when it doesn't exist on the input
+    # Explicit type used when creating the output attribute from a default value
+    output_attr_type: Sdf.ValueTypeName | None = None
+    # Value used when the input attribute does not exist
     output_default_value: Any | None = None
-    # Function used to translate the value of the input shader to the value of the output shader
-    translate_fn: Callable[[Any, Usd.Attribute], Any] = Field(default=_translate)
+    # Function used to translate the input attribute into the output type and value
+    translate_fn: Callable[[Any, Usd.Attribute], tuple[Sdf.ValueTypeName, Any]] = Field(default=_translate)
     # tell if the attribute is a real attribute that exists by default, or if this is a fake one that was created
     fake_attribute: bool = False
-    # Function used to translate the value of the input shader to the value of the output shader when we need to
-    # create the attribute in the output material first.
-    translate_alt_fn: Callable[
-        [Sdf.ValueTypeNames | None, Any, Usd.Attribute | None], tuple[Sdf.ValueTypeNames | None, Any]
-    ] = Field(default=_translate_alt)
