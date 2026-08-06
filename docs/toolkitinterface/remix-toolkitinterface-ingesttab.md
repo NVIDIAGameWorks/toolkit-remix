@@ -11,6 +11,11 @@ Directory**.
 
 ![Model Ingestion](../data/images/remix-ingestion-models-001.png)
 
+The **Normal Map Convention** option appears below **Asset Scale Factor**. Leave it set to **Preserve Imported** to
+keep the conventions authored by the model importer, or override the model ingestion batch with **Normal - OpenGL**,
+**Normal - DirectX**, or **Normal - Octahedral**. This setting applies to normal-map textures referenced by imported
+models, not mesh normals. Changing the convention requires ingesting the models again.
+
 | Ref | Option                       | Description                                                                           |
 |:---:|:-----------------------------|:--------------------------------------------------------------------------------------|
 |  1  | Context                      | Ingestcraft                                                                           |
@@ -42,12 +47,16 @@ Directory**.
 
 ![Material Ingestion](../data/images/remix-ingestion-materials-001.png)
 
+The **Normal Map Convention** option appears with the material import options below the file-selection and output
+controls. It sets the default convention used when normal-map textures are added or discovered in the current batch.
+Material ingestion offers **Normal - OpenGL**, **Normal - DirectX**, and **Normal - Octahedral**.
+
 | Ref | Option                             | Description                                                                                                                                                                   |
 |:---:|:-----------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 |  1  | Context                            | Ingestcraft                                                                                                                                                                   |
 |  2  | Input File Paths                   | The list of files to import as USD files                                                                                                                                      |
 |  3  | Material Type Dropdown             | Select the material type from the list.  <p>Options include: Other, Albedo, Emissive Mask, Metallic, Normal - OpenGL, Normal - DirectX, Normal - Octahedral, or Roughness</p> |
-|  4  | Convention Dropdown                | Select the default convention type for <p>Normals to use in batch: Normal - OpenGL, Normal - DirectX, or Normal - Octahedral                                                  |
+|  4  | Normal Map Convention              | Select the default convention for normal-map textures in the batch: Normal - OpenGL, Normal - DirectX, or Normal - Octahedral                                                |
 |  5  | Add                                | Add Files to the directory path field                                                                                                                                         |
 |  6  | Remove                             | Remove Files from the directory path field                                                                                                                                    |
 |  7  | Output Directory                   | Directory to import the converted input files to                                                                                                                              |

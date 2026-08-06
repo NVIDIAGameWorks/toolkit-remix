@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.9]
+### Added
+- Provided a shared Normal Map Convention selector for material and model ingestion, with optional preservation of
+  imported conventions and placement outside file-selection widgets
+
 ## [2.6.8]
 ### Fixed
 - Kept scan-folder E2E tests on the intended local directory when Kit SDK 110's file picker returns a parent path.

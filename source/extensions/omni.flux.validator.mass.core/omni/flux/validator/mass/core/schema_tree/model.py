@@ -228,6 +228,16 @@ class Item(ui.AbstractItem):
                     with ui.Frame():
                         await check_plugin_model.instance.mass_build_ui(check_plugin_model.data)
                     ui.Spacer(height=ui.Pixel(8))
+
+            context_plugin = self._model.model.context_plugin
+            context_footer_builder = getattr(context_plugin.instance, "mass_build_footer_ui", None)
+            if context_plugin.data.expose_mass_ui and context_footer_builder is not None:
+                with ui.Frame():
+                    footer_was_built = await context_footer_builder(context_plugin.data)
+                if footer_was_built:
+                    was_build = True
+                    ui.Spacer(height=ui.Pixel(8))
+
             if self._model.model.resultor_plugins:
                 for resultor_plugin in self._model.model.resultor_plugins:
                     if resultor_plugin.data.expose_mass_ui:

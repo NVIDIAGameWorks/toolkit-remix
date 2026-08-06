@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import shutil
 from typing import Any
-from unittest.mock import Mock, PropertyMock, call, patch
+from unittest.mock import AsyncMock, Mock, PropertyMock, call, patch
 
 import omni.client
 import omni.kit.test
@@ -49,6 +49,28 @@ class MockListEntry:
 
 
 class TestTextureImporterUnit(omni.kit.test.AsyncTestCase):
+    async def test_mass_ui_should_render_material_selector_in_context_footer(self):
+        # Arrange
+        texture_importer = TextureImporter()
+        schema_data = Mock()
+
+        # Act
+        with (
+            patch.object(texture_importer, "_build_ui", new_callable=AsyncMock) as build_ui_mock,
+            patch.object(texture_importer, "_build_normal_map_convention_ui") as build_selector_mock,
+        ):
+            await texture_importer._mass_build_ui(schema_data)
+            footer_was_built = await texture_importer.mass_build_footer_ui(schema_data)
+
+        # Assert
+        build_ui_mock.assert_awaited_once_with(
+            schema_data,
+            force_build_ui=True,
+            show_normal_map_convention=False,
+        )
+        build_selector_mock.assert_called_once_with(label_width=texture_importer.DEFAULT_UI_WIDTH_PIXEL)
+        self.assertTrue(footer_was_built)
+
     async def test_data_at_least_one_with_none_should_raise_value_error(self):
         # Arrange
         input_files = []

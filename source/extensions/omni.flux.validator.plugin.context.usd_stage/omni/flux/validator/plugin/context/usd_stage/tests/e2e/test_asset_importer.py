@@ -28,6 +28,7 @@ import omni.kit.test
 import omni.usd
 from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardInput
 from omni import ui
+from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.validator.plugin.context.usd_stage import asset_importer as asset_importer_module
 from omni.flux.validator.plugin.context.usd_stage.asset_importer import AssetImporter
 from omni.kit import ui_test
@@ -232,6 +233,57 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
         self.assertFalse((output_path / input_files[0].name).with_suffix(".usd").exists())
         for input_file in input_files[1:]:
             self.assertTrue((output_path / input_file.name).with_suffix(".usd").exists())
+
+    async def test_edit_normal_map_convention_should_update_schema(self):
+        # Arrange
+        input_files, _output_path, schema_data = await self.__setup_schema_data()
+        window, asset_importer = await self.__setup_widget(schema_data)
+        convention_label = ui_test.find(f"{window.title}//Frame/**/Label[*].identifier=='normal_map_convention_label'")
+        convention_fields = ui_test.find_all(
+            f"{window.title}//Frame/**/ComboBox[*].identifier=='normals_type_combobox'"
+        )
+        convention_model = convention_fields[0].widget.model
+        self.assertIsNone(schema_data.normal_map_convention)
+        self.assertEqual(0, convention_model.get_item_value_model().get_value_as_int())
+
+        # Act
+        convention_model.get_item_value_model().set_value(3)
+        await ui_test.human_delay()
+
+        # Assert
+        self.assertEqual(3, len(input_files))
+        self.assertEqual("Normal Map Convention", convention_label.widget.text)
+        self.assertEqual(1, len(convention_fields))
+        self.assertEqual(
+            [
+                "Preserve Imported",
+                TextureTypes.NORMAL_OGL.value,
+                TextureTypes.NORMAL_DX.value,
+                TextureTypes.NORMAL_OTH.value,
+            ],
+            [
+                convention_model.get_item_value_model(item).get_value_as_string()
+                for item in convention_model.get_item_children(None)
+            ],
+        )
+        self.assertIn(
+            "normal-map textures referenced by imported models, not mesh normals",
+            asset_importer._normal_map_convention_selector._info_icon._message,
+        )
+        self.assertEqual(TextureTypes.NORMAL_OTH.name, schema_data.normal_map_convention)
+
+        input_file_labels = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
+        remove_button = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='remove_file'")
+        await input_file_labels[0].click()
+        await remove_button.click()
+        await ui_test.human_delay()
+
+        convention_fields = ui_test.find_all(
+            f"{window.title}//Frame/**/ComboBox[*].identifier=='normals_type_combobox'"
+        )
+        self.assertEqual(1, len(convention_fields))
+        self.assertEqual(3, convention_fields[0].widget.model.get_item_value_model().get_value_as_int())
+        self.assertEqual(TextureTypes.NORMAL_OTH.name, schema_data.normal_map_convention)
 
     async def __run_render_widget(self, context: str = "", use_usda: bool = False):
         # Setup the test

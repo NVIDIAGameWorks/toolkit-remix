@@ -76,10 +76,12 @@ class FileImportListWidget:
             "_remove_button": None,
             "_sub_on_file_changed": None,
             "_asset_browser": None,
+            "_owns_model": False,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
 
+        self._owns_model = model is None
         self._model = model or FileImportListModel()
         self._delegate = delegate or FileImportListDelegate()
         self.__drop_filter_fn = drop_filter_fn
@@ -266,6 +268,12 @@ class FileImportListWidget:
         if self.__update_width_task:
             self.__update_width_task.cancel()
         self.__update_width_task = None
+
+        self._sub_on_item_changed = None
+        self._sub_on_file_changed = None
+        if self._owns_model and self._model is not None:
+            self._model.refresh([])
+            self._model.destroy()
 
         _reset_default_attrs(self)
         _destroy_scanner_dialog()

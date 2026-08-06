@@ -52,14 +52,15 @@ class OmniGlassToAperturePBRConverterBuilder(ConverterBuilderBase):
             ),
             AttributeBase(input_attr_name="inputs:normal_map_texture", output_attr_name="inputs:normalmap_texture"),
             # Need conversion
-            AttributeBase(input_attr_name="inputs:encoding", output_attr_name="inputs:encoding", fake_attribute=True),
             AttributeBase(
                 input_attr_name="inputs:flip_tangent_v",
                 output_attr_name="inputs:encoding",
+                output_attr_type=Sdf.ValueTypeNames.Int,
                 output_default_value=_NormalMapEncodings.TANGENT_SPACE_DX.value,
                 translate_fn=self._convert_normal_encoding,
-                translate_alt_fn=self._convert_normal_encoding_alt,
             ),
+            # An explicit encoding is authoritative over the legacy flip_tangent_v input.
+            AttributeBase(input_attr_name="inputs:encoding", output_attr_name="inputs:encoding", fake_attribute=True),
         ]
         return ConverterBase(
             input_material_prim=input_material_prim,
@@ -67,13 +68,8 @@ class OmniGlassToAperturePBRConverterBuilder(ConverterBuilderBase):
             attributes=attributes,
         )
 
-    def _convert_normal_encoding(self, value: bool, input_attr: Usd.Attribute) -> int:
-        return _NormalMapEncodings.TANGENT_SPACE_DX.value if value else _NormalMapEncodings.TANGENT_SPACE_OGL.value
-
-    def _convert_normal_encoding_alt(
-        self, _: Sdf.ValueTypeNames, value: bool, input_attr: Usd.Attribute | None
-    ) -> tuple[Sdf.ValueTypeNames, int]:
-        return (
-            Sdf.ValueTypeNames.Int,
-            self._convert_normal_encoding(value, input_attr),
+    def _convert_normal_encoding(self, value: bool, _input_attr: Usd.Attribute) -> tuple[Sdf.ValueTypeName, int]:
+        output_value = (
+            _NormalMapEncodings.TANGENT_SPACE_DX.value if value else _NormalMapEncodings.TANGENT_SPACE_OGL.value
         )
+        return Sdf.ValueTypeNames.Int, output_value

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.2]
+### Added
+- Added an opt-in context footer for mass UI controls that must render after exposed check options
+
 ## [2.2.1]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

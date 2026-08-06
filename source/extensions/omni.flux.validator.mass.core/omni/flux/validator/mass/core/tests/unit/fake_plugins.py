@@ -22,6 +22,7 @@ import omni.ui as ui
 import omni.usd
 from omni.flux.validator.factory import CheckBase as _CheckBase
 from omni.flux.validator.factory import ContextBase as _ContextBase
+from omni.flux.validator.factory import ResultorBase as _ResultorBase
 from omni.flux.validator.factory import SelectorBase as _SelectorBase
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.flux.validator.factory import get_instance as _get_factory_instance
@@ -31,6 +32,7 @@ from pydantic import Field
 class FakeContext(_ContextBase):
     class Data(_ContextBase.Data):
         fake_data: str | None = None
+        build_mass_footer_ui: bool = False
 
     name = "FakeContext"
     display_name = "Fake Context"
@@ -144,6 +146,12 @@ class FakeContext(_ContextBase):
             Anything from the implementation
         """
         ui.Label("Fake context mass UI")
+
+    async def mass_build_footer_ui(self, schema_data: Data) -> bool:
+        if not schema_data.build_mass_footer_ui:
+            return False
+        ui.Label("Fake context mass footer UI")
+        return True
 
     @omni.usd.handle_exception
     async def _build_ui(self, schema_data: Any) -> Any:
@@ -375,9 +383,34 @@ class FakeCheck2(FakeCheck):
     data_type = Data
 
 
+class FakeResultor(_ResultorBase):
+    class Data(_ResultorBase.Data):
+        pass
+
+    name = "FakeResultor"
+    tooltip = "Fake resultor plugin"
+    data_type = Data
+
+    @omni.usd.handle_exception
+    async def _result(self, schema_data: Data, schema: Any) -> tuple[bool, str]:
+        return True, "Ok"
+
+    @omni.usd.handle_exception
+    async def _mass_build_ui(self, schema_data: Data) -> Any:
+        ui.Label("Fake resultor mass UI")
+
+    @omni.usd.handle_exception
+    async def _build_ui(self, schema_data: Data) -> Any:
+        ui.Label("Fake resultor label", alignment=ui.Alignment.CENTER)
+
+    @omni.usd.handle_exception
+    async def _on_crash(self, schema_data: Any, data: Any) -> None:
+        pass
+
+
 def register_fake_plugins():
-    _get_factory_instance().register_plugins([FakeContext, FakeSelector, FakeCheck, FakeCheck2])
+    _get_factory_instance().register_plugins([FakeContext, FakeSelector, FakeCheck, FakeCheck2, FakeResultor])
 
 
 def unregister_fake_plugins():
-    _get_factory_instance().unregister_plugins([FakeContext, FakeSelector, FakeCheck, FakeCheck2])
+    _get_factory_instance().unregister_plugins([FakeContext, FakeSelector, FakeCheck, FakeCheck2, FakeResultor])
