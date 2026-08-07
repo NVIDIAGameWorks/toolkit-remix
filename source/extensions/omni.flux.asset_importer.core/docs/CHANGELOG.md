@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.9]
+### Changed
+- Removed the obsolete case-sensitive restriction for USD asset extensions.
+
 ## [2.0.8]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

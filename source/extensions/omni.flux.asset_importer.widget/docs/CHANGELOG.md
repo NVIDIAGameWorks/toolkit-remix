@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.10]
+### Fixed
+- Accepted uppercase USD extensions in file selection and drag-and-drop.
+
 ## [2.6.9]
 ### Added
 - Provided a shared Normal Map Convention selector for material and model ingestion, with optional preservation of

@@ -201,6 +201,76 @@ class TestFileImportListWidget(omni.kit.test.AsyncTestCase):
             Path(file_items[-1].widget.text).resolve().as_posix(),
         )
 
+    async def test_add_uppercase_usd_file_with_picker_should_add_item(self):
+        """Add an uppercase USD file through the file picker."""
+        # Setup the test
+        model = FileImportListModel()
+        delegate = FileImportListDelegate()
+
+        base_path = Path(self.temp_dir.name)
+        items = [base_path / "0.usda", base_path / "1.usda", base_path / "2.usda"]
+        for item in items:
+            item.touch()
+
+        urls = [OmniUrl(item) for item in items]
+
+        new_item = base_path / "3.USDA"
+        new_item.touch()
+
+        model.refresh(urls)
+
+        window = await self.__setup_widget(model=model, delegate=delegate)  # Keep in memory during test
+
+        # Start the test
+        file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
+        add_item = ui_test.find(f"{window.title}//Frame/**/Button[*].identifier=='add_file'")
+
+        # Make sure we have the required items
+        self.assertEqual(len(urls), len(file_items))
+        self.assertIsNotNone(add_item)
+
+        await add_item.click()
+        await ui_test.human_delay()
+
+        # File Picker
+        window_name = "Select a file to import"
+        import_button = ui_test.find(f"{window_name}//Frame/**/Button[*].text=='Import'")
+        dir_path_field = ui_test.find(f"{window_name}//Frame/**/StringField[*].identifier=='filepicker_directory_path'")
+        file_name_field = ui_test.find(f"{window_name}//Frame/**/StringField[*].style_type_name_override=='Field'")
+
+        self.assertIsNotNone(import_button)
+        self.assertIsNotNone(dir_path_field)
+        self.assertIsNotNone(file_name_field)
+
+        # It takes a while for the tree to update
+        await ui_test.human_delay(50)
+        await dir_path_field.input(str(new_item.parent.resolve()), end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay(50)
+
+        await file_name_field.input(str(new_item.name), end_key=KeyboardInput.DOWN)
+        await ui_test.human_delay()
+
+        # Make sure we are selecting the right file
+        self.assertEqual(
+            str(new_item.parent.resolve()),
+            dir_path_field.model._field.model.get_value_as_string(),
+        )
+        self.assertEqual(str(new_item.name), file_name_field.model.get_value_as_string())
+
+        await import_button.click()
+
+        await ui_test.human_delay()
+
+        file_items = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
+
+        # A new file path should be added
+        self.assertEqual(len(urls) + 1, len(file_items))
+        # Normalize paths so short (8.3) and long forms compare equal on Windows
+        self.assertEqual(
+            new_item.resolve().as_posix(),
+            Path(file_items[-1].widget.text).resolve().as_posix(),
+        )
+
     async def test_remove_should_validate_selection_and_remove_items_if_valid(self):
         # Setup the test
         model = FileImportListModel()
@@ -447,7 +517,7 @@ class TestFileImportListWidget(omni.kit.test.AsyncTestCase):
         delegate = FileImportListDelegate()
 
         base_path = Path(self.temp_dir.name)
-        good_items = [base_path / "0.usda", base_path / "1.usda"]
+        good_items = [base_path / "0.usda", base_path / "1.usda", base_path / "2.USDA"]
         for item in good_items:
             item.touch()
 

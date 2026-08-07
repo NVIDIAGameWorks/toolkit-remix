@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.11]
+### Fixed
+- Accepted uppercase USD extensions during model ingestion drag-and-drop.
+
 ## [3.1.10]
 ### Fixed
 - Preserved importer-authored normal map conventions by default, applied overrides only when explicitly selected,
