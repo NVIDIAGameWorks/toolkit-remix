@@ -44,13 +44,13 @@ class MCPPrompts:
             Please perform the following steps in order:
 
             1. To get the available ingested models, call the
-               `get_available_ingested_assets` tool with the
+               `remix_get_available_ingested_assets` tool with the
                argument:
                - asset_type: "models"
 
-            2. To get the current selection, call the `get_assets` tool with these arguments:
+            2. To get the current selection, call the `remix_get_prim_paths` tool with these arguments:
                - selection: true
-               - asset_types: ["models"]
+               - prim_types: ["models"]
 
             3. Use the list of assets returned in step 1 to find the full absolute path that matches
                or contains "{ingested_asset}".
@@ -58,7 +58,7 @@ class MCPPrompts:
                - If no exact match is found, look for assets that contain the provided input as a substring
                  in their path.
 
-            4. Call the `replace_asset_file_path` tool with these arguments:
-               - asset_path: Use the first asset path from the list returned by step 2
+            4. Call the `remix_replace_prim_reference_file_path` tool with these arguments:
+               - prim_path: Use the first asset path from the list returned by step 2
                - asset_file_path: Use the full absolute path you found in step 3
             """

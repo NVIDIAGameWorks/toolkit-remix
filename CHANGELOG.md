@@ -101,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4570: Model and Material Output Directories persist within the current project and reset when another project opens.
 - Fixed Kit 110 documentation and Windows publishing workflows, and removed unused Linux packaging and release artifacts.
 - REMIX-5837: Forced NVTT texture conversion subprocesses to GPU 0 to prevent multi-GPU crashes.
+- Fixed incorrect tool names in the `replace_model_asset` MCP prompt (`get_assets` → `remix_get_prim_paths`, `replace_asset_file_path` → `remix_replace_prim_reference_file_path`, missing `remix_` prefix on `get_available_ingested_assets`).
 
 ## [1.5.2-0]
 
