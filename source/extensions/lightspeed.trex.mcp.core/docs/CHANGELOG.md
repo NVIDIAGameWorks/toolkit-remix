@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.5]
+### Fixed
+- Corrected stale tool names and argument names in the `replace_model_asset` prompt.
+
 ## [1.2.4]
 ### Fixed
 - Prevented MCP server port bind failures from aborting Toolkit launch.
