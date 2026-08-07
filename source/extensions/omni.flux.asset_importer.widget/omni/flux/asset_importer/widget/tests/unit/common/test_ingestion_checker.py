@@ -45,6 +45,20 @@ class TestIngestionCheckerUnit(omni.kit.test.AsyncTestCase):
         # Assert that the function passes
         self.assertTrue(validate_file_selection(items))
 
+    async def test_validate_file_selection_uppercase_usd_pass(self):
+        """Accept supported uppercase USD file extensions."""
+        # Arrange
+        base_path = Path(self.temp_dir.name)
+        items = [base_path / "0.USD", base_path / "1.USDA", base_path / "2.USDC"]
+        for item in items:
+            item.touch()
+
+        # Act
+        is_valid = validate_file_selection(items)
+
+        # Assert
+        self.assertTrue(is_valid)
+
     async def test_validate_texture_selection_pass(self):
         # Setup the test
         base_path = Path(self.temp_dir.name)

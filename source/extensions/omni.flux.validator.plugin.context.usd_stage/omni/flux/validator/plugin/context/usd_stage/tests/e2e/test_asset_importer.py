@@ -234,6 +234,24 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
         for input_file in input_files[1:]:
             self.assertTrue((output_path / input_file.name).with_suffix(".usd").exists())
 
+    async def test_drop_uppercase_usd_file_should_add_input(self):
+        """Accept an uppercase USD extension through the USD-stage importer's drop surface."""
+        # Arrange
+        input_files, _output_path, schema_data = await self.__setup_schema_data()
+        window, asset_importer = await self.__setup_widget(schema_data)
+        uppercase_input = input_files[0].with_name("UPPERCASE.USDA")
+        shutil.copy(input_files[0], uppercase_input)
+        event = Mock(payload={"paths": [str(uppercase_input)]})
+
+        # Act
+        asset_importer.handle_drop(event)
+        await ui_test.human_delay()
+
+        # Assert
+        input_file_labels = ui_test.find_all(f"{window.title}//Frame/**/Label[*].identifier=='file_path'")
+        self.assertEqual(len(input_files) + 1, len(input_file_labels))
+        self.assertIn(uppercase_input.resolve(), [Path(label.widget.text).resolve() for label in input_file_labels])
+
     async def test_edit_normal_map_convention_should_update_schema(self):
         # Arrange
         input_files, _output_path, schema_data = await self.__setup_schema_data()

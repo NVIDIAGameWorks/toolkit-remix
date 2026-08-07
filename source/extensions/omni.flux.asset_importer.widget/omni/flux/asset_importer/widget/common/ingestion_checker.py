@@ -20,9 +20,6 @@ import functools
 
 import omni.kit
 import omni.ui as ui
-from omni.flux.asset_importer.core.data_models import (
-    CASE_SENSITIVE_ASSET_EXTENSIONS as _CASE_SENSITIVE_ASSET_EXTENSIONS,
-)
 from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS as _SUPPORTED_ASSET_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
@@ -59,9 +56,8 @@ class IngestionValidationFailureDialog:
     def _copy_paths(self):
         omni.kit.clipboard.copy(self._content)
 
-    def show_error_dialog(
-        self, bad_exts, bad_dirs, supported_extensions, callback=None, case_sensitive_supported_extensions=None
-    ):
+    def show_error_dialog(self, bad_exts, bad_dirs, supported_extensions, callback=None):
+        """Show the invalid ingestion selection dialog."""
         msg_lines = []
         content_lines = []
         self._callback = callback
@@ -73,9 +69,6 @@ class IngestionValidationFailureDialog:
             msg_lines.append("The following file types are supported:")
             msg_lines.append(", ".join(supported_extensions))
             content_lines.extend([str(bad) for bad in bad_exts])
-        if case_sensitive_supported_extensions:
-            msg_lines.append("The following file types are case sensitive:")
-            msg_lines.append(", ".join(case_sensitive_supported_extensions))
 
         self._content = "\r\n".join(content_lines)
         # Calculate the expected visual height to display the file list
@@ -150,29 +143,18 @@ class IngestionValidationFailureDialog:
                 ui.Spacer(height=0, width=0)
 
 
-def _validate_selection(
-    filenames, supported_extensions=None, return_values=False, case_sensitive_supported_extensions=None
-):
+def _validate_selection(filenames, supported_extensions=None, return_values=False):
+    """Return whether selected paths have supported extensions and are files."""
     file_paths = [_OmniUrl(filename) for filename in filenames]
     bad_exts = [pth for pth in file_paths if pth.suffix and pth.suffix.lower() not in supported_extensions]
-    if case_sensitive_supported_extensions:
-        bad_exts.extend(
-            [
-                filename
-                for filename in file_paths
-                if filename.suffix.lower() in case_sensitive_supported_extensions
-                and filename.suffix not in case_sensitive_supported_extensions
-            ]
-        )
     bad_dirs = [pth for pth in file_paths if pth.is_directory]
     if return_values:
         return (bad_exts, bad_dirs)
     return not any([bad_exts, bad_dirs])
 
 
-def _validation_failed_callback(
-    filenames, supported_extensions=None, callback=None, case_sensitive_supported_extensions=None
-):
+def _validation_failed_callback(filenames, supported_extensions=None, callback=None):
+    """Show an error dialog for invalid selected paths."""
     if len(filenames) == 0:
         PromptManager.post_simple_prompt(
             "Nothing selected",
@@ -182,32 +164,21 @@ def _validation_failed_callback(
         )
         return
     # Get the failures
-    bad_exts, bad_dirs = _validate_selection(
-        filenames,
-        supported_extensions,
-        return_values=True,
-        case_sensitive_supported_extensions=case_sensitive_supported_extensions,
-    )
+    bad_exts, bad_dirs = _validate_selection(filenames, supported_extensions, return_values=True)
     handler = IngestionValidationFailureDialog()
     handler.show_error_dialog(
         bad_exts,
         bad_dirs,
         supported_extensions,
         callback=callback,
-        case_sensitive_supported_extensions=case_sensitive_supported_extensions,
     )
 
 
-validate_file_selection = functools.partial(
-    _validate_selection,
-    supported_extensions=_SUPPORTED_ASSET_EXTENSIONS,
-    case_sensitive_supported_extensions=_CASE_SENSITIVE_ASSET_EXTENSIONS,
-)
+validate_file_selection = functools.partial(_validate_selection, supported_extensions=_SUPPORTED_ASSET_EXTENSIONS)
 validate_texture_selection = functools.partial(_validate_selection, supported_extensions=_SUPPORTED_TEXTURE_EXTENSIONS)
 file_validation_failed_callback = functools.partial(
     _validation_failed_callback,
     supported_extensions=_SUPPORTED_ASSET_EXTENSIONS,
-    case_sensitive_supported_extensions=_CASE_SENSITIVE_ASSET_EXTENSIONS,
 )
 texture_validation_failed_callback = functools.partial(
     _validation_failed_callback, supported_extensions=_SUPPORTED_TEXTURE_EXTENSIONS
