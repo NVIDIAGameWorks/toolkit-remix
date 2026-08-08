@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from .e2e.test_current_stage import TestCurrentStageContextPluginConcurrency
+from .e2e.test_current_stage import TestCurrentStageContextPluginE2E
 from .unit.test_current_stage import TestCurrentStageContextPlugin
 
-__all__ = ["TestCurrentStageContextPlugin", "TestCurrentStageContextPluginConcurrency"]
+__all__ = ["TestCurrentStageContextPlugin", "TestCurrentStageContextPluginE2E"]

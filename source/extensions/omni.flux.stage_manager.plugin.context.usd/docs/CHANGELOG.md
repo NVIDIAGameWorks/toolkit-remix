@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.1]
+### Changed
+- Updated worker traversal coverage to validate stable USD reads before and after Xform authoring without requiring unsupported concurrent access.
+
 ## [2.5.0]
 ### Added
 - Added optional cancellation to `CurrentStageContextPlugin.get_items()` so superseded stage traversals can stop cooperatively.
