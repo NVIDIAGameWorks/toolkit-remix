@@ -105,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5837: Forced NVTT texture conversion subprocesses to GPU 0 to prevent multi-GPU crashes.
 - Fixed incorrect tool names in the `replace_model_asset` MCP prompt (`get_assets` → `remix_get_prim_paths`, `replace_asset_file_path` → `remix_replace_prim_reference_file_path`, missing `remix_` prefix on `get_available_ingested_assets`).
 - REMIX-3869: Fixed model ingestion to accept uppercase USD file extensions after the Kit SDK 110 upgrade.
+- Fixed file pickers opening with pathlib paths by passing strings to Kit dialogs.
 
 ## [1.5.2-0]
 

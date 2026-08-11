@@ -166,7 +166,7 @@ def open_file_picker(
     callback: Callable[[str | list[str]], None],
     callback_cancel: Callable[[str | list[str]], None],
     apply_button_label: str = "Select",
-    current_file: str | None = None,
+    current_file: str | _Path | None = None,
     fallback=False,
     file_extension_options: list[tuple[str, str]] | None = None,
     select_directory: bool = False,
@@ -185,8 +185,8 @@ def open_file_picker(
         callback_cancel: function to execute when the user clicks on the cancel button. If allow_multi_selection is
             True, the input arg is a list of paths
         apply_button_label: The string to display in the "apply" button
-        current_file: current file to select when the window is opened. If unset, the file browser will open at the last
-                      known directory
+        current_file: string or pathlib.Path to select when the window is opened. If unset, the file browser will open
+                      at the last known directory
         fallback: if True and if the file picker has a current folder, a default folder will be shown when the window
                   is opened
         file_extension_options: A list of filename extension options. Each list element is an (extension name,
@@ -204,6 +204,7 @@ def open_file_picker(
         allow_multi_selection: Allow multi file selection in picker
     """
     global _file_picker_dialog
+    current_file = str(current_file) if current_file is not None else None
     if _file_picker_dialog is not None:
         destroy_file_picker()
 

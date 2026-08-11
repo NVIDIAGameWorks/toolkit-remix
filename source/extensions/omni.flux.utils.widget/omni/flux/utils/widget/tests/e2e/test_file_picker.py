@@ -15,11 +15,14 @@
 * limitations under the License.
 """
 
+from pathlib import Path
+
 import omni.kit
 import omni.kit.test
 import omni.ui as ui
 import omni.usd
 from carb.input import KeyboardInput
+from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.widget.file_pickers.file_picker import destroy_file_picker as _destroy_file_picker
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker as _open_file_picker
 from omni.kit import ui_test
@@ -112,3 +115,35 @@ class TestFilePicker(omni.kit.test.AsyncTestCase):
         self.assertEqual(len(searched_items), 3)
 
         await self.__destroy_setup(_window)
+
+    async def test_select_with_path_current_file_returns_selected_real_file(self):
+        """Select a real fixture file when the current file is a Path."""
+        test_name = "test_select_with_path_current_file_returns_selected_real_file"
+        current_file = Path(get_test_data_path(__name__, "usd/test_file_picker_assets/cube_0.usda"))
+        selected_paths = []
+
+        try:
+            _open_file_picker(
+                test_name,
+                selected_paths.append,
+                lambda *_: None,
+                current_file=current_file,
+            )
+            await ui_test.human_delay(human_delay_speed=10)
+
+            select_button = ui_test.find(f"{test_name}//Frame/**/Button[*].text=='Select'")
+            file_name_field = ui_test.find(f"{test_name}//Frame/**/StringField[*].style_type_name_override=='Field'")
+            self.assertIsNotNone(select_button)
+            self.assertIsNotNone(file_name_field)
+            self.assertEqual(file_name_field.model.get_value_as_string(), current_file.name)
+
+            await select_button.click()
+            await ui_test.human_delay(human_delay_speed=10)
+
+            self.assertEqual(len(selected_paths), 1)
+            selected_file = OmniUrl(selected_paths[0])
+            self.assertTrue(selected_file.exists)
+            self.assertEqual(selected_file.name, current_file.name)
+        finally:
+            _destroy_file_picker()
+            await ui_test.human_delay()
