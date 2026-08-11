@@ -21,7 +21,6 @@ from collections.abc import Callable
 
 from lightspeed.event.shutdown_base import EventOnShutdownBase as _EventOnShutdownBase
 from lightspeed.event.shutdown_base import InterrupterBase as _InterrupterBase
-from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from omni.flux.telemetry.core import get_telemetry_instance as _get_telemetry_instance
 
 
@@ -45,14 +44,18 @@ class AppShutdownInterrupter(_InterrupterBase):
 class EventAppShutdownCore(_EventOnShutdownBase):
     def __init__(self):
         super().__init__()
+        self._executed = False
         self.interrupter = AppShutdownInterrupter()
         self.register_interrupter(self.interrupter)
 
         # Need to call this here to send the metric
         self.interrupter.set_callback(self.shutdown_callback)
-        _get_event_manager_instance().register_event(self)
 
     def shutdown_callback(self):
+        if self._executed:
+            return
+        self._executed = True
+
         telemetry = _get_telemetry_instance()
 
         current_time = time.time()
@@ -62,13 +65,6 @@ class EventAppShutdownCore(_EventOnShutdownBase):
         with telemetry.sentry_sdk.start_transaction(op="session", name="Session Duration") as transaction:
             transaction.start_timestamp = datetime.fromtimestamp(app_shutdown_time, tz=UTC)
             transaction.finish(end_timestamp=datetime.fromtimestamp(current_time, tz=UTC))
-
-        client = telemetry.sentry_sdk.Hub.current.client
-        if client is not None:
-            client.close(timeout=2.0)
-
-        # Only need to fire once
-        _get_event_manager_instance().unregister_event(self)
 
     @property
     def name(self) -> str:

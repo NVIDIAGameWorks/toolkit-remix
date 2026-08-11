@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.3]
+### Fixed
+- The App Startup metric is now marked as executed before any collection work, so a repeated App Ready dispatch
+  cannot record it twice.
+
 ## [1.0.2]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

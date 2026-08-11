@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.5]
+### Fixed
+- Retained the telemetry core handle through extension shutdown so stale callbacks can safely reach the
+  process-global Sentry SDK; a later startup still replaces it with a fresh core.
+
 ## [1.1.4]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

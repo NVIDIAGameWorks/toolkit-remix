@@ -67,6 +67,7 @@ class EventAppStartCore(ILSSEvent):
         # Make sure to only execute once (in case of hot reload)
         if self._executed:
             return
+        self._executed = True
 
         telemetry = get_telemetry_instance()
 
@@ -99,8 +100,6 @@ class EventAppStartCore(ILSSEvent):
 
             transaction.start_timestamp = datetime.fromtimestamp(app_start_time, tz=UTC)
             transaction.finish(end_timestamp=datetime.fromtimestamp(current_time, tz=UTC))
-
-        self._executed = True
 
     def destroy(self):
         reset_default_attrs(self)
