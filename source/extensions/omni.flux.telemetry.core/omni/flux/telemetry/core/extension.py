@@ -39,9 +39,7 @@ class TelemetryCoreExtension(omni.ext.IExt):
         _instance = _TelemetryCore()
 
     def on_shutdown(self):
-        global _instance
         carb.log_info("[omni.flux.telemetry.core] Shutdown")
 
         if _instance:
             _instance.destroy()
-        _instance = None
