@@ -44,7 +44,7 @@ class StageManagerListenerPlugin(_StageManagerPluginBase, Generic[T], abc.ABC):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self._on_event_occurred = _Event()
+        self._on_event_occurred = _Event(copy=True)
 
     @abc.abstractmethod
     def setup(self):

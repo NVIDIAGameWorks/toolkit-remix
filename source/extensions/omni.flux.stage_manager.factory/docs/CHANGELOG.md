@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.0.1]
+### Fixed
+- Allow Stage Manager listener callbacks to unsubscribe safely while an event is being dispatched.
+
 ## [5.0.0]
 ### Added
 - Added duplicate-aware path/hash indexes and `clear_items()` support for immediate, state-preserving tab refreshes.

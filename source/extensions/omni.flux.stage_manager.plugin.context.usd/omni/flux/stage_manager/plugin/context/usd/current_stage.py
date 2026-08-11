@@ -108,11 +108,12 @@ class CurrentStageContextPlugin(_StageManagerUSDContextPlugin):
 
     def _on_stage_event_occurred(self, event_type: omni.usd.StageEventType):
         """
-        An event callback ake sure to update the cached stage when the stage changes
+        Update the cached stage when the stage changes.
 
         Args:
             event_type: The stage event type
         """
-        if event_type in {omni.usd.StageEventType.OPENED, omni.usd.StageEventType.CLOSED}:
-            # Make sure to update the cached stage
+        if event_type == omni.usd.StageEventType.CLOSED and omni.usd.get_context(self.context_name) is None:
+            self.cleanup()
+        elif event_type in {omni.usd.StageEventType.OPENED, omni.usd.StageEventType.CLOSED}:
             self.update_stage()
