@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.2]
+### Fixed
+- Detach current-stage listeners when their USD context is destroyed without breaking ordinary stage close and reopen.
+
 ## [2.5.1]
 ### Changed
 - Updated worker traversal coverage to validate stable USD reads before and after Xform authoring without requiring unsupported concurrent access.

@@ -21,6 +21,7 @@ import omni.kit.test
 import omni.usd
 from omni.flux.stage_manager.plugin.context.usd import CurrentStageContextPlugin
 from omni.flux.stage_manager.plugin.listener.usd.stage_listener import StageManagerUSDStageListenerPlugin
+from omni.kit import ui_test
 from pxr import Gf, UsdGeom
 
 __all__ = ["TestCurrentStageContextPluginE2E"]
@@ -58,3 +59,37 @@ class TestCurrentStageContextPluginE2E(omni.kit.test.AsyncTestCase):
             items_by_path = {str(item.data.GetPath()): item for item in items}
             self.assertEqual(expected_paths, set(items_by_path))
             self.assertIs(items_by_path["/World/Moving"].parent, items_by_path["/World"])
+
+    async def test_closing_stage_keeps_plugin_bound_for_next_stage(self):
+        await self._usd_context.close_stage_async()
+
+        self.assertEqual([], self._plugin.get_items())
+
+        await self._usd_context.new_stage_async()
+        UsdGeom.Xform.Define(self._usd_context.get_stage(), "/World")
+
+        self.assertEqual(["/World"], [str(item.data.GetPath()) for item in self._plugin.get_items()])
+
+    async def test_destroying_context_detaches_plugin_without_rebinding(self):
+        context_name = f"test_current_stage_destroy_{id(self)}"
+        usd_context = omni.usd.create_context(context_name)
+        await usd_context.new_stage_async()
+        plugin = CurrentStageContextPlugin(
+            context_name=context_name,
+            listeners=[StageManagerUSDStageListenerPlugin()],
+        )
+        plugin.setup()
+
+        try:
+            omni.usd.destroy_context(context_name)
+            await ui_test.human_delay()
+
+            self.assertIsNone(omni.usd.get_context(context_name))
+            self.assertIsNone(plugin._stage)
+            self.assertFalse(plugin._listener_event_occurred_subs)
+            with self.assertRaises(ValueError):
+                plugin.get_items()
+        finally:
+            plugin.cleanup()
+            if omni.usd.get_context(context_name):
+                omni.usd.destroy_context(context_name)
