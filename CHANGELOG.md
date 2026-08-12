@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-650ed92-main`
 - Updated Stage Manager worker traversal coverage to validate stable USD reads before and after Xform authoring without requiring unsupported concurrent access.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-a6d9c33-main`
+- Added configurable Sentry filtering for external exception modules, unowned origins, and unattributed events.
 
 ### Removed
 

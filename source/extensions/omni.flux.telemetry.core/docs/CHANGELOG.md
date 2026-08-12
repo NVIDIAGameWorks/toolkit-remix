@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.7]
+### Changed
+- Added app-configurable Sentry filtering for external exception modules, unowned origins, and unattributed events.
+
 ## [1.1.6]
 ### Fixed
 - Stopped reporting expected HTTP 422 validation responses as Sentry errors.

@@ -20,6 +20,12 @@ registryEnabled = true
 # port is already occupied. This prevents startup from aborting with SystemExit during launch.
 port = 0
 
+[exts."omni.flux.telemetry.core".sentry_event_filter]
+enabled = true
+owned_module_prefixes = ["omni.flux", "lightspeed"]
+external_exception_module_prefixes = ["pxr"]
+drop_unattributed_events = true
+
 # Fonts
 [app.font]
 file = "${lightspeed.trex.app.resources}/data/fonts/NVIDIASans_A_Rg.ttf"
