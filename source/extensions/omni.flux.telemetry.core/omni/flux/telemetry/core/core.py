@@ -34,10 +34,13 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
+from .event_filter import should_filter_event
+
 
 class TelemetryCore:
     TELEMETRY_SETTINGS = "/exts/omni.flux.telemetry.core"
     SENTRY_SETTINGS = "/exts/omni.flux.telemetry.core/sentry"
+    SENTRY_EVENT_FILTER_SETTINGS = "/exts/omni.flux.telemetry.core/sentry_event_filter"
 
     def __init__(self):
         self._default_attr = {
@@ -50,6 +53,9 @@ class TelemetryCore:
             "_set_default_tags": None,
             "_ignore_span_op_prefixes": None,
             "_ignore_span_name_prefixes": None,
+            "_sentry_owned_module_prefixes": None,
+            "_sentry_external_exception_module_prefixes": None,
+            "_sentry_drop_unattributed_events": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
@@ -121,6 +127,19 @@ class TelemetryCore:
 
         # Set up traces sampler to modify the default rate
         settings["traces_sampler"] = partial(self._traces_sampler, default_rate=settings.get("traces_sample_rate", 1.0))
+
+        event_filter_settings_path = self.SENTRY_EVENT_FILTER_SETTINGS
+        self._sentry_owned_module_prefixes = (
+            self._settings.get(f"{event_filter_settings_path}/owned_module_prefixes")
+            if self._settings.get(f"{event_filter_settings_path}/enabled")
+            else []
+        )
+        self._sentry_external_exception_module_prefixes = self._settings.get(
+            f"{event_filter_settings_path}/external_exception_module_prefixes"
+        )
+        self._sentry_drop_unattributed_events = self._settings.get(
+            f"{event_filter_settings_path}/drop_unattributed_events"
+        )
 
         # Set up error event processing for PII removal if enabled
         settings["before_send"] = partial(self._before_send, app_root_path=settings.get("project_root", ""))
@@ -198,7 +217,7 @@ class TelemetryCore:
         return default_rate
 
     def _before_send(self, event: dict, hint: dict, app_root_path: str) -> dict | None:
-        """Tries our best to remove PII data from sentry events.
+        """Filter unwanted events and remove PII from events that will be sent.
 
         We replace userId by the sessionId (unique integer per whole session) and replace any paths we find in the
             message or stack trace with their last part of the path, e.g: /home/foo/bar.py becomes bar.py
@@ -209,10 +228,18 @@ class TelemetryCore:
             app_root_path (str or None): the root path of the app. Everything before this is considered PII
 
         Returns:
-            dict: The filtered event.
+            The processed event, or ``None`` when the event should not be sent.
         """
         # Filter out RemixMetrics info-level events
         if event.get("level") == "info" and event.get("message") == "RemixMetrics":
+            return None
+
+        if should_filter_event(
+            event,
+            self._sentry_owned_module_prefixes,
+            self._sentry_external_exception_module_prefixes,
+            self._sentry_drop_unattributed_events,
+        ):
             return None
 
         if not self._remove_pii:
