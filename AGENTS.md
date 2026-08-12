@@ -1,8 +1,9 @@
 # AGENTS.md
 
-OpenAI/Codex/Antigravity entry. Canonical context: `.agents/instructions.md`.
+Pi/OMP/OpenAI/Codex/Antigravity entry. Canonical context: `.agents/instructions.md`.
 
-Read it first. It points to always-on rules + on-demand refs.
+Read it first. It points to always-on rules + on-demand refs. If the active agent does not natively expand standalone
+`@path` references, it must use its read tool to load every referenced file and apply this rule recursively.
 
 Commands in `.agents/commands/`:
 

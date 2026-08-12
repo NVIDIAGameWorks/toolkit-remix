@@ -90,6 +90,14 @@ deps/kit-sdk.packman.xml.user*
 _consensus_*.json
 .tokf/cache/
 
+# Pi / OMP local settings, package, and runtime state
+/.pi/settings.json
+/.pi/npm/
+/.pi/git/
+/.omp/settings.json
+/.omp/npm/
+/.omp/git/
+
 # NICC CLI version tracking (per-user, not committed)
 .nicc_resource_versions.json
 
@@ -112,8 +120,6 @@ output.txt
 
 # PACKAGE-LICENSES/
 PACKAGE-DEPS.yaml
-
-
 
 # kit logs
 source/logs/
@@ -151,7 +157,6 @@ nrc_session_log.txt
 # Do not ignore fixture usda files.
 !**/fixtures/**/*.usda
 
-
 # Docs Temporary Config File
 conf.py
 
@@ -165,3 +170,6 @@ pyrightconfig.json
 .superpowers/**
 docs/superpowers/**
 docs/plans/**
+
+# Ignore Pi dependencies
+.pi/npm/

@@ -1,8 +1,8 @@
 # AI-Assisted Development
 
 This project ships first-class support for AI coding agents. A shared instruction set in `.agents/` drives every
-supported tool — Claude Code, Cursor, GitHub Copilot, Windsurf, Cline, Gemini CLI, Google Antigravity, and OpenAI
-Codex — so all agents follow the same rules, patterns, and commands regardless of which editor you use.
+supported tool — Pi, Claude Code, Cursor, GitHub Copilot, Windsurf, Cline, Gemini CLI, Google Antigravity, and
+OpenAI Codex — so all agents follow the same rules, patterns, and commands regardless of which editor you use.
 
 ---
 
@@ -11,8 +11,8 @@ Codex — so all agents follow the same rules, patterns, and commands regardless
 ### Context Management
 
 AI agent sessions degrade when the context window fills up — the model loses track of earlier details and responses
-become less accurate. Most agents support some form of context compaction (Claude Code uses `/compact`, Cursor uses
-`/summarize`). The principle is the same regardless of tool: **compact early, compact often.**
+become less accurate. Most agents support some form of context compaction (Pi and Claude Code use `/compact`, Cursor uses `/summarize`).
+The principle is the same regardless of tool: **compact early, compact often.**
 
 This project's Claude Code config demonstrates this with two safety nets, but the reasoning applies to any agent:
 
@@ -80,6 +80,8 @@ This syntax is not available in Cursor or other agents at the moment.
 
 | Agent                  | Entry point                       | Import mechanism                                       |
 |------------------------|-----------------------------------|--------------------------------------------------------|
+| **Pi**                 | `AGENTS.md`, `.pi/`               | Reads canonical refs recursively; thin project adapters |
+| **OMP** (oh-my-pi)     | `AGENTS.md`, `.omp/`              | Same wrappers as Pi; OMP discovers `.omp/`, never `.pi/` |
 | **Claude Code**        | `CLAUDE.md`                       | `@.agents/instructions.md`                             |
 | **Cursor**             | `.cursor/rules/*.mdc`             | Thin wrappers with `@.agents/...` imports              |
 | **GitHub Copilot**     | `.github/copilot-instructions.md` | Critical rules inline + pointers to `.agents/`         |
@@ -97,8 +99,8 @@ limited to permission/trust boundaries (which live in each agent's own config) a
 
 ## Primary Agent Surfaces
 
-The Toolkit team primarily uses **Codex**, **Claude Code**, and **Cursor**. The exact maintenance protocol lives in
-`.agents/rules/agent-config.md`; this page is the human overview.
+The Toolkit team primarily uses **Pi**, **OMP**, **Codex**, **Claude Code**, and **Cursor**. The exact maintenance protocol
+lives in `.agents/rules/agent-config.md`; this page is the human overview.
 
 | Surface                         | Purpose                                                                                  |
 |---------------------------------|------------------------------------------------------------------------------------------|
@@ -110,16 +112,18 @@ The Toolkit team primarily uses **Codex**, **Claude Code**, and **Cursor**. The 
 | `.agents/subagents/`            | Canonical specialist role instructions                                                   |
 | `.agents/hooks/`                | Shared hook targets                                                                      |
 | `.agents/scripts/`              | Portable helper launchers used by hooks or commands                                      |
-| `AGENTS.md`                     | Codex, Antigravity, and other OpenAI-compatible entry point                               |
+| `AGENTS.md`                     | Pi, Codex, Antigravity, and other compatible agents                                       |
 | `CLAUDE.md`                     | Claude Code entry point                                                                  |
 | `.cursor/rules/`                | Cursor project rule wrappers                                                             |
 | `.codex/`                       | Codex project config, hook config, and subagent wrappers                                  |
+| `.pi/`                          | Pi specialist wrappers                                                                   |
+| `.omp/`                         | OMP mirror of the Pi specialist wrappers                                                  |
 | `.claude/`                      | Claude Code project settings, skills, and subagent wrappers                              |
 | `.cursor/hooks.json`            | Cursor hook config that invokes the shared `.agents/` hook targets                       |
 | `.mcp.json` and mirrored config | Shared MCP server configuration                                                          |
 
 Agent-specific files should stay thin. Put human-readable setup and rationale in `docs_dev/`; put agent behavior in
-`.agents/`; put only the wrapper syntax required by each tool under `.codex/`, `.claude/`, or `.cursor/`.
+`.agents/`; put only the wrapper syntax required by each tool under `.pi/`, `.omp/`, `.codex/`, `.claude/`, or `.cursor/`.
 
 ### Commands and Skills
 
@@ -127,9 +131,10 @@ Full procedures live in `.agents/commands/`. These files are the source of truth
 extensions, running Kit tests, committing, preparing MRs, adding pip dependencies, removing extensions, and bumping
 extension changelogs.
 
-Shared skill wrappers in `.agents/skills/` expose those procedures to tools that support Agent Skills. Claude Code has
-matching `.claude/skills/` wrappers because Claude discovers project skills there. The wrappers should stay as aliases
-to the canonical `.agents/` files; do not copy the procedure text into tool-specific folders.
+Shared skill wrappers in `.agents/skills/` expose those procedures to tools that support Agent Skills. Pi and OMP
+discover these shared skills directly. Claude Code has matching `.claude/skills/` wrappers because Claude discovers project
+skills there. The wrappers should stay as aliases to the canonical `.agents/` files; do not copy the procedure text
+into tool-specific folders.
 
 Describe the operation naturally ("create an extension", "prepare an MR", "run this extension's tests") or use the
 slash/skill command if your tool exposes one. If behavior needs to change, edit the `.agents/commands/` procedure or
@@ -141,17 +146,16 @@ not listed in the public command tables or shared skill discovery unless a tool 
 ### Specialist Roles
 
 Specialist role instructions live in `.agents/subagents/`. Use them when a task matches the domain: documentation,
-unit tests, E2E tests, USD, omni.ui, or review. Claude Code and Codex have tool-specific subagent wrappers that point
-back to the same canonical role files. Cursor does not get duplicate role files unless a verified Cursor requirement is
-documented in `.agents/rules/agent-config.md`.
+unit tests, E2E tests, USD, omni.ui, or review. Pi, Claude Code, and Codex have tool-specific subagent wrappers that
+point back to the same canonical role files. Cursor does not get duplicate role files unless a verified Cursor
+requirement is documented in `.agents/rules/agent-config.md`.
 
 ### Shared Hooks
 
 Hooks run through one shared entrypoint: `.agents/scripts/run_packman_python.cmd`. The file is a polyglot shim: POSIX
 shells run its first line and exec `tools/packman/python.sh`; Windows `cmd.exe` treats that line as a label and runs
 `tools\packman\python.bat`. Codex, Claude Code, and Cursor all call the same shim; their config differs only in path
-syntax and arg-list syntax. Keep hook args as argv tokens; do not combine the script path and flags into one argument.
-Do not wrap hooks in Git aliases or call system Python.
+syntax and arg-list syntax. Keep hook args as argv tokens; do not wrap hooks in Git aliases or call system Python.
 
 The shared hook targets are:
 
@@ -163,8 +167,10 @@ The shared hook targets are:
 
 Tool-specific hook configuration stays in `.claude/settings.json`, `.codex/hooks.json`, and `.cursor/hooks.json`.
 Those files should invoke shared `.agents/scripts/` launchers and `.agents/hooks/` targets instead of cloning logic.
-Claude-specific permission prompts remain in `.claude/settings.json`; trust and approval policy is agent-specific and
-does not belong in `.agents/`.
+Claude-specific permission prompts remain in `.claude/settings.json`; trust and approval policy is agent-specific
+and does not belong in `.agents/`.
+
+Pi and OMP settings, packages, and built-in hooks stay user-local. The project ships no Pi/OMP settings or hook adapter.
 
 For workspace setup, recommended extensions, tasks, and debug config, see [VSCode / Cursor Setup](ide-vscode.md).
 
@@ -224,4 +230,5 @@ synced to:
 | `.vscode/mcp.json`   | GitHub Copilot |
 | `.windsurf/mcp.json` | Windsurf       |
 
-When adding or removing an MCP server, edit `.mcp.json` first, then sync to the tool-specific files.
+When adding or removing an MCP server, edit `.mcp.json` first, then sync to the tool-specific files. Stock Pi does not
+consume `.mcp.json`; use the documented repository fallbacks until an audited Pi MCP adapter is configured.
