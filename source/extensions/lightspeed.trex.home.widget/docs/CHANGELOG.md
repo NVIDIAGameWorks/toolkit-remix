@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.10]
+### Fixed
+- Canceled pending docking and recent-project refresh tasks before Home workspace teardown.
+
 ## [1.8.9]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

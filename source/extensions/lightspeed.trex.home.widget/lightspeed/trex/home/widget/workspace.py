@@ -28,6 +28,11 @@ from .home_widget import HomePageWidget as _HomePageWidget
 class HomePageWindow(_WorkspaceWindowBase):
     """Home Page window manager"""
 
+    def __init__(self, *args, **kwargs):
+        """Initialize the window and its deferred docking task."""
+        super().__init__(*args, **kwargs)
+        self._refresh_docking_task = None
+
     @property
     def title(self) -> str:
         return _WindowNames.HOME_PAGE
@@ -51,10 +56,19 @@ class HomePageWindow(_WorkspaceWindowBase):
         super()._update_ui()
 
         # TODO: There is a bug where windows won't spawn docked on first call.
-        asyncio.ensure_future(self._refresh_docking())
+        if self._refresh_docking_task:
+            self._refresh_docking_task.cancel()
+        self._refresh_docking_task = asyncio.ensure_future(self._refresh_docking())
 
     async def _refresh_docking(self):
         if not self._window.docked:
             await omni.kit.app.get_app().next_update_async()
             dock_space = ui.Workspace.get_window("DockSpace")
             self._window.dock_in(dock_space, ui.DockPosition.SAME)
+
+    def cleanup(self):
+        """Cancel deferred docking before the window is destroyed."""
+        if self._refresh_docking_task:
+            self._refresh_docking_task.cancel()
+        self._refresh_docking_task = None
+        super().cleanup()

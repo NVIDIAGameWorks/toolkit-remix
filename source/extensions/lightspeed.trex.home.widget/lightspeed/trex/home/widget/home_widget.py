@@ -84,6 +84,7 @@ class HomePageWidget(_WorkspaceWidget):
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
+        self._refresh_recent_items_task = None
 
         self._context_name = context_name
 
@@ -153,7 +154,7 @@ class HomePageWidget(_WorkspaceWidget):
         has_open_project = stage and not bool(stage.GetRootLayer().anonymous)
         self.set_resume_enabled(has_open_project)
 
-        asyncio.ensure_future(self._refresh_recent_items_deferred())
+        self._schedule_recent_items_refresh()
 
     def show(self, visible: bool):
         super().show(visible)
@@ -462,6 +463,12 @@ class HomePageWidget(_WorkspaceWidget):
 
         self._set_recent_items(items)
 
+    def _schedule_recent_items_refresh(self):
+        """Replace any pending recent-project refresh with a new task."""
+        if self._refresh_recent_items_task:
+            self._refresh_recent_items_task.cancel()
+        self._refresh_recent_items_task = asyncio.ensure_future(self._refresh_recent_items_deferred())
+
     def _set_recent_items(self, items: list[tuple[str, str, dict]]):
         """
         Set the list of recent projects in the recent projects tree
@@ -480,7 +487,7 @@ class HomePageWidget(_WorkspaceWidget):
             return
         for path in paths:
             self._recent_saved_file.remove_path_from_recent_file(path)
-        asyncio.ensure_future(self._refresh_recent_items_deferred())
+        self._schedule_recent_items_refresh()
 
     def _load_work_file(self, path: str):
         """Triggers the "Load Project" event and loads the workspace window layout if there were no interruptions."""
@@ -562,4 +569,7 @@ class HomePageWidget(_WorkspaceWidget):
         wizard.show_project_wizard(reset_page=True)
 
     def destroy(self):
+        if self._refresh_recent_items_task:
+            self._refresh_recent_items_task.cancel()
+        self._refresh_recent_items_task = None
         reset_default_attrs(self)

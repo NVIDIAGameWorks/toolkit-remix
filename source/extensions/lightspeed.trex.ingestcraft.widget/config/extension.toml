@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "2.1.6"
+version = "2.1.7"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Window for the IngestCraft"
 description = "Window for NVIDIA RTX Remix IngestCraft App"

@@ -34,6 +34,7 @@ class IngestCraftWindow(_WorkspaceWindowBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._refresh_docking_task = None
         self.__register_sidebar_items()
 
     @property
@@ -56,12 +57,21 @@ class IngestCraftWindow(_WorkspaceWindowBase):
         self._window.dock_tab_bar_enabled = False
 
         # TODO: There is a bug where windows won't spawn docked on first call.
-        asyncio.ensure_future(self._refresh_docking())
+        if self._refresh_docking_task:
+            self._refresh_docking_task.cancel()
+        self._refresh_docking_task = asyncio.ensure_future(self._refresh_docking())
 
     async def _refresh_docking(self):
         await omni.kit.app.get_app().next_update_async()
         dock_space = ui.Workspace.get_window("DockSpace")
         self._window.dock_in(dock_space, ui.DockPosition.SAME)
+
+    def cleanup(self):
+        """Cancel deferred docking before the window is destroyed."""
+        if self._refresh_docking_task:
+            self._refresh_docking_task.cancel()
+        self._refresh_docking_task = None
+        super().cleanup()
 
     def __register_sidebar_items(self):
         self.__sub_sidebar_items = sidebar.register_items(
