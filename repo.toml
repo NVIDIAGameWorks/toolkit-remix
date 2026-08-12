@@ -703,6 +703,8 @@ sphinx_exclude_patterns = [
     # AI agent configuration — not documentation
     ####################################################################################################################
     ".agents",
+    ".pi",
+    ".omp",
     ".claude",
     ".clinerules",
     ".cursor",

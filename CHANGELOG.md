@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added profile and profile_startup shell launchers for regular and dev Toolkit apps, and kept profiler menu entries visible when enabled.
 - REMIX-2607: Added aligned Normal Map Convention options for model and material ingestion, including optional model
   overrides that preserve importer-authored conventions by default
+- Added native Pi and OMP specialist wrappers while leaving settings, packages, and hooks user-local.
 
 ### Changed
 

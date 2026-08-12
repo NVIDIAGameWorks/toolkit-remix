@@ -20,6 +20,8 @@
 | --- | --- | --- |
 | Claude | `CLAUDE.md`, `.claude/skills/`, `.claude/settings.json`, `.claude/agents/` | Thin refs to `.agents/`; permissions in settings |
 | Codex | `AGENTS.md`, `.codex/config.toml`, `.codex/hooks.json`, `.codex/agents/` | Shared project config only; subagents point to `.agents/subagents/` |
+| Pi | `AGENTS.md`, `.pi/agents/` | Thin specialist wrappers only; settings, packages, and hooks stay user-local |
+| OMP | `AGENTS.md`, `.omp/agents/` | Same thin specialist wrappers as Pi; OMP auto-discovers `.omp/` only, so both dirs must stay in sync |
 | Cursor | `.cursor/rules/*.mdc`, `.cursor/hooks.json` | Rule wrappers only; no shared-skill duplicates unless verified |
 | Copilot | `.github/copilot-instructions.md` | Minimal inline critical rules + `.agents/` pointer |
 | Gemini/Antigravity | `GEMINI.md`, `AGENTS.md` | `.agents/` pointer + public command/subagent index |
@@ -35,9 +37,10 @@ Python globs: `code-style`, `code-comments`, `license`, `engineering-standards`,
 
 ### Skills
 
-On-demand rules/commands -> `.agents/skills/*/SKILL.md`. Codex/Cursor use shared skills. Claude needs matching
-`.claude/skills/*/SKILL.md` wrappers. Skill body = direct `@.agents/...` ref, not prose path instruction. Keep auto
-model invocation on unless safety reason documented.
+On-demand rules/commands -> `.agents/skills/*/SKILL.md`. Pi/Codex/Cursor use shared skills. Claude needs matching
+`.claude/skills/*/SKILL.md` wrappers. Skill body = direct `@.agents/...` ref, not prose path instruction. `AGENTS.md`
+requires clients without native `@` expansion to read those references recursively. Keep auto model invocation on
+unless safety reason documented.
 
 No `.cursor/skills/` duplicate for shared skills unless current Cursor build proves needed. If needed, add thin wrapper
 and document reason here. Cursor skill discovery version-sensitive.
@@ -47,7 +50,7 @@ and document reason here. Cursor skill discovery version-sensitive.
 - Add/rename/remove shared rule, command, context, skill, subagent, hook, or MCP -> update matching Tool Surfaces row and
   every direct ref.
 - No duplication. If wrapper cannot import, keep inline minimum and point to `.agents/`.
-- `.agents/` agent-agnostic. No Codex/Claude/Cursor/private state paths. Hook targets may take `--agent` only for
+- `.agents/` agent-agnostic. No Pi/Codex/Claude/Cursor/private state paths. Hook targets may take `--agent` only for
   output contract formatting.
 - Local/private checks -> ignored local config, not shared hooks.
 - Hook targets live in `.agents/hooks/`; helpers live in `.agents/scripts/`.
@@ -59,9 +62,8 @@ and document reason here. Cursor skill discovery version-sensitive.
 - Keep hook arguments as real argv tokens. Do not combine the script path and flags into one `args` item; use
   `--agent=<agent>` when one token is clearer.
 - Stop hook runner: `.agents/hooks/run_stop_checks.py --agent=<codex|claude|cursor> <check>...`.
-  Check scripts return `0`
-  allow, `2` block + stderr. Runner remaps by agent: `claude` keeps exit `2` + stderr; `codex` exits `0` + JSON
-  `decision:block`/`reason`; `cursor` exits `0` + JSON `followup_message`.
+  Check scripts return `0` allow, `2` block + stderr. Runner remaps by agent: `claude` keeps exit `2` + stderr;
+  `codex` exits `0` + JSON `decision:block`/`reason`; `cursor` exits `0` + JSON `followup_message`.
 - Memory watch only via ignored `.agents/memory-promotion.local.json` or env vars; no private state hardcode.
 - New rule -> `.agents/rules/`, Cursor wrapper if always/glob, shared + Claude skill if on-demand, wire
   `.agents/instructions.md`.
@@ -70,10 +72,15 @@ and document reason here. Cursor skill discovery version-sensitive.
   vendor/process guidance instead of restating it.
 - Internal command -> `.agents/commands/internal/` + internal README. Do not list in `AGENTS.md` or shared tables unless
   intentionally public.
-- New subagent -> `.agents/subagents/`, `.claude/agents/<name>.md`, `.codex/agents/<name>.toml`, `AGENTS.md`,
-  `GEMINI.md`. No `.cursor/agents/` unless verified need documented.
+- New subagent -> `.agents/subagents/`, `.claude/agents/<name>.md`, `.codex/agents/<name>.toml`,
+  `.pi/agents/<name>.md`, `.omp/agents/<name>.md`, `AGENTS.md`, `GEMINI.md`. Pi/OMP wrappers explicitly read the
+  canonical role and recursively resolve its `@` refs. No `.cursor/agents/` unless verified need documented.
 - `.codex/config.toml` tracked only for shared project settings: MCP + `[features] hooks = true`. Local trust,
   personal skill toggles, trusted projects -> user config or ignored `*.local.toml`.
+- Project `.pi/settings.json` and `.omp/settings.json` stay ignored. Users own packages, credentials, trust, model
+  defaults, UI preferences, and built-in hook configuration locally. The repo ships no Pi/OMP hook adapter.
+- `.omp/` mirrors the Pi wrapper set for OMP, which reads `.omp/` and ignores `.pi/`: `.omp/agents/<name>.md` are
+  byte-identical copies of the Pi wrappers. Add or rename a Pi wrapper -> make the same change under `.omp/`.
 - Permissions/trust boundaries are agent-specific, not `.agents/`; Claude permissions in `.claude/settings.json`.
 - Plans/specs -> `docs/plans/` (gitignored). Not `docs/superpowers/`. If using new plan dir, ignore it first or Sphinx
   fails on unlinked docs.
