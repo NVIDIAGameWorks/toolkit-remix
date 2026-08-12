@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.6]
+### Fixed
+- Stopped reporting expected HTTP 422 validation responses as Sentry errors.
+
 ## [1.1.5]
 ### Fixed
 - Retained the telemetry core handle through extension shutdown so stale callbacks can safely reach the

@@ -15,11 +15,12 @@
 * limitations under the License.
 """
 
-from .e2e.test_home_widget import TestHomeWidgetInvalidDepsFlow
+from .e2e.test_home_widget import TestHomeWidgetInvalidDepsFlow, TestHomeWorkspaceLifecycle
 from .unit.test_home_widget import TestLoadWorkFile, TestRefreshRecentItemsDeferred
 
 __all__ = [
     "TestHomeWidgetInvalidDepsFlow",
+    "TestHomeWorkspaceLifecycle",
     "TestLoadWorkFile",
     "TestRefreshRecentItemsDeferred",
 ]

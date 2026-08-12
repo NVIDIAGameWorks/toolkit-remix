@@ -108,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed file pickers opening with pathlib paths by passing strings to Kit dialogs.
 - Fixed Stage Manager current-context teardown so destroyed USD contexts detach cleanly while ordinary stage close and reopen remains subscribed.
 - Fixed app-start and app-shutdown callbacks accessing a cleared telemetry handle after extension teardown.
+- Fixed workspace teardown races and stopped reporting expected HTTP 422 validation responses as Sentry errors.
 
 ## [1.5.2-0]
 

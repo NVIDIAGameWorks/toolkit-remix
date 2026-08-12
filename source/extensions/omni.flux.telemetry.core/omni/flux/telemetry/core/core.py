@@ -111,11 +111,11 @@ class TelemetryCore:
             LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
             StarletteIntegration(
                 transaction_style="url",
-                failed_request_status_codes={422, *range(500, 600)},
+                failed_request_status_codes={*range(500, 600)},
             ),
             FastApiIntegration(
                 transaction_style="url",
-                failed_request_status_codes={422, *range(500, 600)},
+                failed_request_status_codes={*range(500, 600)},
             ),
         ]
 

@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import asyncio
 import os
 import shutil
 import tempfile
@@ -34,6 +35,8 @@ from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows
 from omni.kit.widget.prompt import PromptManager
+
+from ...workspace import HomePageWindow
 
 _INVALID_DEPS_DIALOG_TITLE = "Invalid Project Dependencies"
 _OPEN_PROJECT_PICKER_TITLE = "Open an RTX Remix project"
@@ -250,3 +253,26 @@ class TestHomeWidgetInvalidDepsFlow(AsyncTestCase):
             if window.title in {_INVALID_DEPS_DIALOG_TITLE, _OPEN_PROJECT_PICKER_TITLE, _PROJECT_WIZARD_TITLE}:
                 window.visible = False
         await ui_test.human_delay(human_delay_speed=10)
+
+
+class TestHomeWorkspaceLifecycle(AsyncTestCase):
+    """Exercise Home workspace window lifecycle behavior."""
+
+    async def test_cleanup_while_deferred_home_tasks_are_pending_cancels_tasks(self):
+        """Cancel deferred UI work when the Home workspace is destroyed."""
+        # Arrange
+        await arrange_windows()
+        workspace = HomePageWindow(usd_context_name="")
+        workspace.create_window()
+        workspace.get_window().visible = True
+        content = workspace._content
+        pending_tasks = (workspace._refresh_docking_task, content._refresh_recent_items_task)
+
+        # Act
+        workspace.cleanup()
+        results = await asyncio.gather(*pending_tasks, return_exceptions=True)
+
+        # Assert
+        self.assertIsNone(workspace._refresh_docking_task)
+        self.assertIsNone(content._refresh_recent_items_task)
+        self.assertTrue(all(isinstance(result, asyncio.CancelledError) for result in results))
