@@ -17,8 +17,8 @@
 
 import abc
 import copy
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 import carb
 import omni.client
@@ -235,6 +235,17 @@ class UsdAttributeBase(_Serializable, abc.ABC):
             display_name = f"{display_name} {self._tooltip_channel_name}"
         return f"{display_name}: {value_tooltip}"
 
+    def get_default_reset_value(self) -> Any | None:
+        """Get the default value that reset will restore."""
+        for attribute in self.attributes or []:
+            if not attribute and not self._is_virtual:
+                continue
+            default_value = self._get_default_value(attribute)
+            if default_value is None:
+                continue
+            return default_value
+        return None
+
     @staticmethod
     def _get_type_name(metadata):
         return _get_type_name(metadata)
@@ -258,8 +269,12 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         value = self.get_value()
         if value is None:
             return ""
-        # isinstance check for metadata that may have different value than type
-        if self._value_type_name == Sdf.ValueTypeNames.Asset or isinstance(value, Sdf.AssetPath):
+        # Asset-typed fields may cache either an Sdf.AssetPath or its path string.
+        if self._value_type_name == Sdf.ValueTypeNames.Asset:
+            if isinstance(value, Sdf.AssetPath):
+                return str(value.path)
+            return str(value)
+        if isinstance(value, Sdf.AssetPath):
             # get path string to remove @...@ for display
             return str(value.path)
         return str(value)
@@ -606,6 +621,18 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         if self._default_value is not None:
             return _safe_deepcopy(self._default_value)
         return _safe_deepcopy(_get_default_attribute_value(attr))
+
+    def get_default_reset_value(self) -> Any | None:
+        """Get the channel default value that reset will restore."""
+        default_value = super().get_default_reset_value()
+        if default_value is None:
+            return None
+        if not self._is_multichannel:
+            return default_value
+        try:
+            return default_value[self._channel_index]
+        except (IndexError, TypeError):
+            return default_value
 
     @property
     def is_default(self):

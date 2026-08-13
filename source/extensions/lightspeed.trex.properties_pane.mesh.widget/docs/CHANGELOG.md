@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.2]
+### Added
+- Added E2E coverage for Object Properties reset indicator tooltips that show default USD values.
+
 ## [1.5.1]
 ### Fixed
 - Added regression coverage for preserving mesh selection after assigning a Remix category.

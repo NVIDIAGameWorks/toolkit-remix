@@ -36,6 +36,7 @@ from omni.kit.usd.layers import LayerUtils as _LayerUtils
 from pxr import Sdf, Usd
 
 from .field_builders import ALL_FIELD_BUILDERS
+from .items import _BaseUSDAttributeItem
 from .items import USDAttributeItemStub as _USDAttributeItemStub
 from .items import USDLogicalGroupOutletItem as _USDLogicalGroupOutletItem
 from .logical_row import LogicalRowState as _LogicalRowState
@@ -69,6 +70,10 @@ class USDDelegate(_Delegate):
 
     _MORE_ICON_SIZE = ui.Pixel(16)
     _MORE_ICON_SPACING = ui.Pixel(8)
+    _DEFAULT_INDICATOR_DISABLED_TOOLTIP = "When highlighted, the displayed value is not the default USD value."
+    _DEFAULT_INDICATOR_ACTIVE_TOOLTIP = (
+        "The displayed value is not the default USD value.\n\nClick to reset the attribute to the default USD value"
+    )
 
     def __init__(
         self,
@@ -204,6 +209,7 @@ class USDDelegate(_Delegate):
                 row.default_indicator_widget.style_type_name_override = (
                     "OverrideIndicator" if not is_default else "OverrideIndicatorForceDisabled"
                 )
+                row.default_indicator_widget.tooltip = self._get_default_indicator_tooltip(item, is_default)
 
             if row.more_widget is not None:
                 row.more_widget.name = "More" if has_override else "MoreDisabled"
@@ -316,14 +322,7 @@ class USDDelegate(_Delegate):
                                         style_type_name_override=(
                                             "OverrideIndicatorForceDisabled" if is_default else "OverrideIndicator"
                                         ),
-                                        tooltip=(
-                                            "When highlighted, the displayed value is not the default USD value."
-                                            if is_default
-                                            else (
-                                                "The displayed value is not the default USD value.\n\n"
-                                                "Click to reset the attribute to the default USD value."
-                                            )
-                                        ),
+                                        tooltip=self._get_default_indicator_tooltip(item, is_default),
                                         width=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE / 2),
                                         mouse_released_fn=lambda x, y, b, m: self._on_reset_item(b, item),
                                     )
@@ -403,6 +402,17 @@ class USDDelegate(_Delegate):
                     ui.Spacer()
                     with ui.Frame(mouse_released_fn=lambda x, y, b, m: self._item_expanded(b, item, not expanded)):
                         super()._build_branch(model, item, column_id, level, expanded)
+
+    def _get_default_indicator_tooltip(self, item: _Item, is_default: bool) -> str:
+        """Build the reset/default indicator tooltip for a row."""
+        if is_default:
+            return self._DEFAULT_INDICATOR_DISABLED_TOOLTIP
+        default_value = item.get_default_reset_display_value() if isinstance(item, _BaseUSDAttributeItem) else None
+        if default_value is None:
+            return f"{self._DEFAULT_INDICATOR_ACTIVE_TOOLTIP}."
+        value, is_multiline = default_value
+        separator = ":\n" if is_multiline else ": "
+        return f"{self._DEFAULT_INDICATOR_ACTIVE_TOOLTIP}{separator}{value}"
 
     def _delete_overrides(self, item: _Item, layer: Sdf.Layer | None = None) -> None:
         """

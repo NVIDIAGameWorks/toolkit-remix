@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2607: Added aligned Normal Map Convention options for model and material ingestion, including optional model
   overrides that preserve importer-authored conventions by default
 - Added native Pi and OMP specialist wrappers while leaving settings, packages, and hooks user-local.
+- REMIX-5152: Added default USD values to USD reset indicator tooltips.
 
 ### Changed
 

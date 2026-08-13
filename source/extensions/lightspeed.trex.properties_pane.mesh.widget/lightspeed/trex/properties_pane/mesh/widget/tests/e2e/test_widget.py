@@ -37,6 +37,11 @@ from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage
+from pxr import Gf
+
+_DEFAULT_INDICATOR_ACTIVE_TOOLTIP = (
+    "The displayed value is not the default USD value.\n\nClick to reset the attribute to the default USD value"
+)
 
 
 class ModifierKeyDownScope:
@@ -186,6 +191,41 @@ class TestSelectionTreeWidget(AsyncTestCase):
         frame_mesh_prim = ui_test.find(f"{window_title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
         self.assertTrue(frame_mesh_prim.widget.visible)
 
+    @staticmethod
+    def __visible(selector: str):
+        return [
+            widget
+            for widget in ui_test.find_all(selector)
+            if widget.widget.visible and widget.widget.computed_width > 0 and widget.widget.computed_height > 0
+        ]
+
+    def __find_row_reset_indicator(
+        self, window_title: str, row_widget: ui_test.WidgetRef, style_type_name: str = "OverrideIndicator"
+    ) -> ui_test.WidgetRef:
+        indicators = [
+            indicator
+            for indicator in self.__visible(
+                f"{window_title}//Frame/**/Circle[*].style_type_name_override=='{style_type_name}'"
+            )
+            if abs(indicator.center.y - row_widget.center.y) <= 8 and indicator.center.x < row_widget.center.x
+        ]
+        self.assertGreater(len(indicators), 0, "Expected row reset indicator to be visible.")
+        return min(indicators, key=lambda indicator: row_widget.center.x - indicator.center.x)
+
+    async def __wait_for_visible_widget_by_identifier(self, window_title: str, identifier: str) -> ui_test.WidgetRef:
+        """Wait for a visible widget with the given identifier."""
+        for _ in range(60):
+            widgets = [
+                widget
+                for widget in self.__visible(f"{window_title}//Frame/**/*")
+                if widget.widget.identifier == identifier
+            ]
+            if widgets:
+                return widgets[0]
+            await ui_test.wait_n_updates(1)
+        self.fail(f"Expected visible widget with identifier {identifier!r}.")
+        return None
+
     async def __setup_nested_referenced_light_widget(self):
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
         layer_manager = _LayerManagerCore()
@@ -330,6 +370,33 @@ class TestSelectionTreeWidget(AsyncTestCase):
             _mesh_property_wid,
             "/RootNode/lights/light_9907D0B07D040077/DiskLight.inputs:intensity",
             read_only=False,
+        )
+
+        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+
+    async def test_object_properties_default_reset_tooltip_includes_default_value(self):
+        """Object Properties should show the reset target in the real reset indicator tooltip."""
+        # setup
+        _window, _selection_wid, _mesh_property_wid = await self.__setup_nested_referenced_light_widget()
+        usd_context = omni.usd.get_context()
+        selected_path = self.__nested_referenced_light_path()
+        stage = usd_context.get_stage()
+        translate_attr = stage.GetPrimAtPath(selected_path).GetAttribute("xformOp:translate")
+        translate_attr.Set(Gf.Vec3d(9.0, 8.0, 7.0))
+        translate_attr.SetCustomDataByKey("default", Gf.Vec3d(1.25, 2.5, 3.75))
+
+        # select
+        usd_context.get_selection().set_selected_prim_paths([selected_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+
+        translate_identifier = ",".join([f"{selected_path}.xformOp:translate"] * 3)
+        translate_widget = await self.__wait_for_visible_widget_by_identifier(_window.title, translate_identifier)
+
+        # assert
+        indicator = self.__find_row_reset_indicator(_window.title, translate_widget)
+        self.assertEqual(
+            indicator.widget.tooltip,
+            f"{_DEFAULT_INDICATOR_ACTIVE_TOOLTIP}:\nPosition: (1.25, 2.5, 3.75)",
         )
 
         await self.__destroy(_window, _selection_wid, _mesh_property_wid)

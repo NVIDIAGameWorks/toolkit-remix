@@ -86,6 +86,21 @@ class TestUSDAttributeValueTooltips(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(tooltip, "Visible in Primary Ray: True")
 
+    async def test_asset_tooltip_includes_path_string(self):
+        # Arrange
+        item = self._create_item(
+            "diffuseTexture",
+            Sdf.ValueTypeNames.Asset,
+            Sdf.AssetPath("textures/diffuse.dds"),
+            display_name="Diffuse Texture",
+        )
+
+        # Act
+        tooltip = item.value_models[0].get_tool_tip()
+
+        # Assert
+        self.assertEqual(tooltip, "Diffuse Texture: textures/diffuse.dds")
+
     async def test_vector2_tooltip_includes_xy_channel_names(self):
         # Arrange
         item = self._create_item(
