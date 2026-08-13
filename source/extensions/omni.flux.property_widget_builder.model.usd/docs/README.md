@@ -16,6 +16,7 @@ USD property rows can represent one authored USD attribute or a logical group of
 - Normal scalar rows use their own value models and USD attributes.
 - Grouped rows, such as particle gradients, use suffix-based logical group definitions so `:times` and `:values` are handled as one row.
 - Logical group outlets, such as particle curves, keep their display model inert but report the backing curve primvars through `get_owned_attributes()`.
+- Active reset indicator tooltips show the default USD value when the row can resolve the value that reset will restore.
 
 ## Usage
 

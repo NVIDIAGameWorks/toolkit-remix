@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from typing import Any
+
 import omni.kit.commands
 from pxr import Sdf, Usd
 
@@ -24,6 +26,19 @@ from .base_list_model_value import UsdListModelBaseValueModel as _UsdListModelBa
 
 class UsdListModelAttrMetadataValueModel(_UsdListModelBaseValueModel):
     """Represent metadata of an attribute"""
+
+    def get_default_reset_value(self) -> Any | None:
+        """Get the metadata default value that reset will restore."""
+        for attribute in self.attributes:
+            default_value = _get_default_attribute_value(attribute)
+            if default_value is None:
+                continue
+            if attribute.GetMetadata("colorSpace") is not None:
+                return "auto"
+            if isinstance(default_value, int) and 0 <= default_value < len(self._list_options):
+                return self._list_options[default_value]
+            return default_value
+        return None
 
     @property
     def is_default(self):

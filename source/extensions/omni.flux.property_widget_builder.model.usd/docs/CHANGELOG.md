@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.36.4]
+### Added
+- Added default USD values to active reset indicator tooltips when the reset target can be resolved.
+
 ## [2.36.3]
 ### Added
 - Added regression coverage for vertical modification popup menu placement.

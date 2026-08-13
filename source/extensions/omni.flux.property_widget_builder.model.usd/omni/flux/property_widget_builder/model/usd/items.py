@@ -40,6 +40,7 @@ from pxr import Sdf, Usd, UsdGeom
 from .item_model.attr_list_model_value import UsdListModelAttrValueModel as _UsdListModelAttrValueModel
 from .item_model.attr_list_model_value import VirtualUsdListModelAttrValueModel as _VirtualUsdListModelAttrValueModel
 from .item_model.attr_name import UsdAttributeNameModel as _UsdAttributeNameModel
+from .item_model.attr_value import UsdAttributeBase as _UsdAttributeBase
 from .item_model.attr_value import UsdAttributeValueModel as _UsdAttributeValueModel
 from .item_model.attr_value import VirtualUsdAttributeValueModel as _VirtualUsdAttributeValueModel
 from .item_model.metadata_list_model_value import UsdListModelAttrMetadataValueModel as _UsdAttributeMetadataValueModel
@@ -196,6 +197,7 @@ class _BaseUSDAttributeItem(_LogicalRowApiMixin, _Item):
     """
 
     _include_self_value_models_when_unowned = True
+    _CHANNEL_LABEL_SUFFIXES = (" X", " Y", " Z", " W")
 
     def __init__(
         self,
@@ -419,6 +421,98 @@ class _BaseUSDAttributeItem(_LogicalRowApiMixin, _Item):
             ),
             is_default=all(value_model.is_default for value_model in value_models),
         )
+
+    def get_default_reset_display_value(self) -> tuple[str, bool] | None:
+        """Return the row's reset default value formatted for display."""
+        value_models = self.get_owned_value_models()
+        compact_value = self._get_compact_default_reset_display_value(value_models)
+        if compact_value is not None:
+            return compact_value, True
+
+        values: list[tuple[str | None, str]] = []
+        for value_model in value_models:
+            if not isinstance(value_model, _UsdAttributeBase):
+                return None
+            default_value = value_model.get_default_reset_value()
+            if default_value is None:
+                return None
+            values.append((self._get_value_model_label(value_model), self._format_default_reset_value(default_value)))
+
+        if not values:
+            return None
+        if len(values) == 1:
+            return values[0][1], False
+
+        lines = [f"{label}: {value}" if label else value for label, value in values]
+        return "\n".join(lines), True
+
+    def _get_compact_default_reset_display_value(self, value_models: list[Any]) -> str | None:
+        """Format sibling vector/channel defaults as one row value."""
+        if self.logical_group_items or self.logical_group_definition is not None:
+            return None
+        if len(value_models) <= 1:
+            return None
+        if not all(isinstance(value_model, _UsdAttributeBase) for value_model in value_models):
+            return None
+
+        group_keys = set()
+        default_values = []
+        item_label = self._get_item_channel_base_label()
+        label = item_label
+        for value_model in value_models:
+            value_label = self._get_value_model_label(value_model)
+            base_label = self._get_base_channel_label(value_label)
+            if base_label is None:
+                return None
+            group_keys.add((tuple(value_model.attribute_paths), item_label or base_label))
+            default_value = value_model.get_default_reset_value()
+            if default_value is None:
+                return None
+            default_values.append(self._format_default_reset_value(default_value))
+            if label is None:
+                label = base_label
+
+        if len(group_keys) != 1:
+            return None
+
+        default_value = f"({', '.join(default_values)})"
+        return f"{label}: {default_value}" if label else default_value
+
+    def _get_item_channel_base_label(self) -> str | None:
+        """Return the row label without channel suffixes when a row exposes them."""
+        for name_model in self.name_models:
+            label = self._get_base_channel_label(name_model.get_value_as_string())
+            if label is not None:
+                return label
+        return None
+
+    @classmethod
+    def _get_base_channel_label(cls, label: str | None) -> str | None:
+        """Return a channel label without the channel suffix."""
+        if label is None:
+            return None
+        for suffix in cls._CHANNEL_LABEL_SUFFIXES:
+            if label.endswith(suffix):
+                return label[: -len(suffix)].rstrip()
+        return None
+
+    @staticmethod
+    def _get_value_model_label(value_model: _UsdAttributeBase) -> str | None:
+        """Return the value label from the value model tooltip prefix."""
+        tooltip = value_model.get_tool_tip()
+        if ": " not in tooltip:
+            return None
+        label, _ = tooltip.split(": ", 1)
+        return label or None
+
+    @staticmethod
+    def _format_default_reset_value(value: Any) -> str:
+        """Format a default value for reset/default indicator display."""
+        if isinstance(value, Sdf.AssetPath):
+            value = value.path
+        if value == "":
+            return "(empty)"
+        return str(value)
 
     def reset_row_value(self) -> None:
         """Reset this property row to its default value."""

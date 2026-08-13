@@ -31,6 +31,10 @@ WINDOW_HEIGHT = 1000
 WINDOW_WIDTH = 1436
 
 _CONTEXT_NAME = ""
+_DEFAULT_INDICATOR_DISABLED_TOOLTIP = "When highlighted, the displayed value is not the default USD value."
+_DEFAULT_INDICATOR_ACTIVE_TOOLTIP = (
+    "The displayed value is not the default USD value.\n\nClick to reset the attribute to the default USD value"
+)
 
 
 class TestUSDPropertiesWidget(AsyncTestCase):
@@ -43,11 +47,16 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         # Note: this func seems to be context independent (same val for both contexts)
         await wait_stage_loading()
 
-    async def __setup_widget(self, width=WINDOW_WIDTH, height=WINDOW_HEIGHT) -> (ui.Window, "_PropertyWidget"):
+    async def __setup_widget(
+        self,
+        width=WINDOW_WIDTH,
+        height=WINDOW_HEIGHT,
+        lookup_table: dict[str, dict[str, str]] | None = None,
+    ) -> (ui.Window, "_PropertyWidget"):
         window = ui.Window("TestPropertyWidget", width=width, height=height)
         with window.frame:
             with omni.ui.HStack():
-                widget1 = _PropertyWidget(_CONTEXT_NAME)
+                widget1 = _PropertyWidget(_CONTEXT_NAME, lookup_table=lookup_table)
 
         await ui_test.human_delay(human_delay_speed=1)
 
@@ -97,6 +106,30 @@ class TestUSDPropertiesWidget(AsyncTestCase):
             if widget.widget.visible and widget.widget.computed_width > 0 and widget.widget.computed_height > 0
         ]
 
+    def __find_row_reset_indicator(
+        self, window_title: str, row_widget: ui_test.WidgetRef, style_type_name: str = "OverrideIndicator"
+    ) -> ui_test.WidgetRef:
+        indicators = [
+            indicator
+            for indicator in self.__visible(
+                f"{window_title}//Frame/**/Circle[*].style_type_name_override=='{style_type_name}'"
+            )
+            if abs(indicator.center.y - row_widget.center.y) <= 8 and indicator.center.x < row_widget.center.x
+        ]
+        self.assertGreater(len(indicators), 0, "Expected row reset indicator to be visible.")
+        return min(indicators, key=lambda indicator: row_widget.center.x - indicator.center.x)
+
+    def __find_asset_path_field(self, window_title: str, attribute_path: str) -> ui_test.WidgetRef:
+        fields = [
+            field
+            for field in ui_test.find_all(
+                f"{window_title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
+            )
+            if any(str(path) == attribute_path for path in getattr(field.widget.model, "attribute_paths", []))
+        ]
+        self.assertEqual(len(fields), 1)
+        return fields[0]
+
     async def __replace_focused_float_value(self, value: str, end_key: carb.input.KeyboardInput) -> None:
         for _ in range(8):
             await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.BACKSPACE)
@@ -115,16 +148,99 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         await self.__replace_focused_float_value(value, end_key)
 
     async def __reset_row_value(self, window_title: str, row_widget: ui_test.WidgetRef) -> None:
-        indicators = [
-            indicator
-            for indicator in self.__visible(
-                f"{window_title}//Frame/**/Circle[*].style_type_name_override=='OverrideIndicator'"
-            )
-            if abs(indicator.center.y - row_widget.center.y) <= 8 and indicator.center.x < row_widget.center.x
-        ]
-        self.assertGreater(len(indicators), 0, "Expected row reset indicator to be visible.")
-        await min(indicators, key=lambda indicator: row_widget.center.x - indicator.center.x).click()
+        await self.__find_row_reset_indicator(window_title, row_widget).click()
         await ui_test.human_delay()
+
+    async def test_default_reset_tooltip_includes_scalar_default_and_updates_after_reset(self):
+        """Reset indicator tooltip should show a scalar default value and refresh after reset."""
+        # Arrange
+        stage = omni.usd.get_context(_CONTEXT_NAME).get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        attr = prim.CreateAttribute("testDefaultTooltipScalar", Sdf.ValueTypeNames.Float)
+        attr.Set(4.5)
+        attr.SetCustomDataByKey("default", 1.25)
+
+        _window, _widget = await self.__setup_widget()
+        _widget.refresh(["/Xform/Cube"])
+        await omni.kit.ui_test.wait_n_updates(15)
+
+        field = ui_test.find(
+            f"{_window.title}//Frame/**/FloatBoundedDrag[*].identifier=='/Xform/Cube.testDefaultTooltipScalar'"
+        )
+        self.assertIsNotNone(field)
+
+        # Act
+        indicator = self.__find_row_reset_indicator(_window.title, field)
+
+        # Assert
+        self.assertEqual(indicator.widget.tooltip, f"{_DEFAULT_INDICATOR_ACTIVE_TOOLTIP}: 1.25")
+
+        # Act
+        await self.__reset_row_value(_window.title, field)
+
+        # Assert
+        self.assertAlmostEqual(attr.Get(), 1.25, places=5)
+        field = ui_test.find(
+            f"{_window.title}//Frame/**/FloatBoundedDrag[*].identifier=='/Xform/Cube.testDefaultTooltipScalar'"
+        )
+        self.assertIsNotNone(field)
+        indicator = self.__find_row_reset_indicator(
+            _window.title, field, style_type_name="OverrideIndicatorForceDisabled"
+        )
+        self.assertEqual(indicator.widget.tooltip, _DEFAULT_INDICATOR_DISABLED_TOOLTIP)
+
+        await self.__destroy(_window, _widget)
+
+    async def test_default_reset_tooltip_compacts_vector_default_value(self):
+        """Reset indicator tooltip should group channel defaults into one vector value."""
+        # Arrange
+        stage = omni.usd.get_context(_CONTEXT_NAME).get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        translate_attr = prim.GetAttribute("xformOp:translate")
+        translate_attr.Set(Gf.Vec3d(9.0, 8.0, 7.0))
+        translate_attr.SetCustomDataByKey("default", Gf.Vec3d(1.25, 2.5, 3.75))
+
+        _window, _widget = await self.__setup_widget(
+            lookup_table={"xformOp:translate": {"name": "Translate"}},
+        )
+        _widget.refresh(["/Xform/Cube"])
+        await omni.kit.ui_test.wait_n_updates(15)
+
+        widgets = self.__find_translate_widgets(_window.title)
+
+        # Act
+        indicator = self.__find_row_reset_indicator(_window.title, widgets[0])
+
+        # Assert
+        self.assertEqual(
+            indicator.widget.tooltip,
+            f"{_DEFAULT_INDICATOR_ACTIVE_TOOLTIP}:\nTranslate: (1.25, 2.5, 3.75)",
+        )
+
+        await self.__destroy(_window, _widget)
+
+    async def test_default_reset_tooltip_labels_empty_asset_path_default(self):
+        """Reset indicator tooltip should show empty asset-path defaults as readable text."""
+        # Arrange
+        stage = omni.usd.get_context(_CONTEXT_NAME).get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        attr = prim.CreateAttribute("testDefaultTooltipAsset", Sdf.ValueTypeNames.Asset)
+        attr.Set(Sdf.AssetPath("textures/diffuse.png"))
+        attr.SetCustomDataByKey("default", Sdf.AssetPath(""))
+
+        _window, _widget = await self.__setup_widget()
+        _widget.refresh(["/Xform/Cube"])
+        await omni.kit.ui_test.wait_n_updates(15)
+
+        field = self.__find_asset_path_field(_window.title, "/Xform/Cube.testDefaultTooltipAsset")
+
+        # Act
+        indicator = self.__find_row_reset_indicator(_window.title, field)
+
+        # Assert
+        self.assertEqual(indicator.widget.tooltip, f"{_DEFAULT_INDICATOR_ACTIVE_TOOLTIP}: (empty)")
+
+        await self.__destroy(_window, _widget)
 
     async def test_setting_a_value_by_script_update_ui(self):
         """
