@@ -43,6 +43,8 @@ from lightspeed.trex.utils.widget import open_asset_file_picker as _open_asset_f
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.flux.properties_pane.transformation.usd.widget import TransformPropertyWidget as _TransformPropertyWidget
 from omni.flux.property_widget_builder.model.usd import BuildLayerTransferMenu as _BuildLayerTransferMenu
+from omni.flux.property_widget_builder.model.usd import PropertyGroupExpansionMixin as _PropertyGroupExpansionMixin
+from omni.flux.property_widget_builder.model.usd import PropertyGroupExpansionWidget as _PropertyGroupExpansionWidget
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -55,7 +57,7 @@ if typing.TYPE_CHECKING:
     )
 
 
-class SetupUI:
+class SetupUI(_PropertyGroupExpansionMixin):
     def __init__(
         self,
         context_name: str,
@@ -969,6 +971,9 @@ class SetupUI:
     def show(self, value):
         self._transformation_widget.show(value)
         self._property_widget.show(value)
+
+    def _iter_property_group_widgets(self) -> tuple[_PropertyGroupExpansionWidget | None, ...]:
+        return (self._transformation_widget, self._property_widget)
 
     def destroy(self):
         _reset_default_attrs(self)

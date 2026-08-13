@@ -15,6 +15,10 @@ particle_properties_widget.refresh(particle_system_paths)
 
 # Show/hide the widget
 particle_properties_widget.show(True)
+
+# Bulk-toggle grouped property rows
+particle_properties_widget.expand_all_groups()
+particle_properties_widget.collapse_all_groups()
 ```
 
 ## Features

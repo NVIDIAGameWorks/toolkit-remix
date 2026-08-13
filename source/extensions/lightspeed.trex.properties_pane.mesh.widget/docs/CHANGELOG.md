@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.3]
+### Added
+- Added public expand and collapse all group forwarding for object property pane headers.
+### Fixed
+- Guarded expand and collapse all group forwarding when child property widgets are not initialized.
+
 ## [1.5.2]
 ### Added
 - Added E2E coverage for Object Properties reset indicator tooltips that show default USD values.

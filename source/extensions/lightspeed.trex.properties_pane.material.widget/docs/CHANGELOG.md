@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.2]
+### Added
+- Added expand-all and collapse-all forwarding for TREX material property groups.
+### Fixed
+- Guarded expand and collapse all group forwarding when the material property widget is not initialized.
+
 ## [2.3.1]
 ### Added
 - Added narrow-panel E2E coverage for material property fields shown after hidden construction.

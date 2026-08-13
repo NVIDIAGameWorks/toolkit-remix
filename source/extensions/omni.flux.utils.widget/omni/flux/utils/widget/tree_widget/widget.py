@@ -109,16 +109,20 @@ class TreeWidget(ui.TreeView):
         Args:
             items: The list of items selected
         """
+        if self._delegate is None:
+            return
+
+        selection_list = list(self.selection)
         if self._select_all_children:
-            selection = set(self.selection)
+            selection = set(selection_list)
             for item in items:
                 selection.update(self._model.iter_items_children([item]))
 
             selection_list = list(selection)
             self.selection = selection_list
-            self._delegate.selection = selection_list
 
-        self.__on_selection_changed(self.selection)
+        self._delegate.selection = selection_list
+        self.__on_selection_changed(selection_list)
 
     def subscribe_selection_changed(self, callback: Callable[[list[_TreeItemBase]], None]) -> _EventSubscription:
         return _EventSubscription(self.__on_selection_changed, callback)

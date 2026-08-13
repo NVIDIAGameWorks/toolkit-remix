@@ -11,4 +11,6 @@ from omni.flux.properties_pane.transformation.usd.widget import TransformPropert
 
 transformation_create_ui = _TransformPropertyWidget(self._context)  # hold the widget in a variable or it will crash
 transformation_create_ui.refresh(usd_paths)
+transformation_create_ui.expand_all_groups()
+transformation_create_ui.collapse_all_groups()
 ```

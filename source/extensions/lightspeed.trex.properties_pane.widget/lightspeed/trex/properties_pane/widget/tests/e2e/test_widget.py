@@ -30,8 +30,12 @@ from lightspeed.trex.properties_pane.particle.widget.particle_lookup_table impor
 )
 from lightspeed.trex.properties_pane.widget import AssetReplacementsPane as _AssetReplacementsPane
 from lightspeed.trex.properties_pane.widget import setup_ui
+from omni.flux.property_widget_builder.model.usd import USDAttributeItem
+from omni.flux.property_widget_builder.model.usd import USDAttrListItem
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.flux.layer_tree.usd.widget import LayerTransferTarget as _LayerTransferTarget
+from omni.flux.property_widget_builder.widget import ItemGroup
+from omni.flux.property_widget_builder.widget import PropertyWidget
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage
@@ -244,6 +248,12 @@ class TestAssetReplacementsWidget(AsyncTestCase):
             if label:
                 label.widget.scroll_here_y(alignment)
                 await ui_test.human_delay(human_delay_speed=8)
+                frame_top = scroll_frame.widget.screen_position_y
+                frame_bottom = frame_top + scroll_frame.widget.computed_height
+                if not frame_top <= label.center.y <= frame_bottom:
+                    target_y = frame_top + scroll_frame.widget.computed_height * alignment
+                    scroll_frame.widget.scroll_y += label.center.y - target_y
+                    await ui_test.human_delay(human_delay_speed=8)
                 return label
             scroll_frame.widget.scroll_y += 80
             await ui_test.human_delay(human_delay_speed=4)
@@ -339,6 +349,64 @@ class TestAssetReplacementsWidget(AsyncTestCase):
             "Transfer Definition to Layer" if "definition" in menu_label else "Transfer Modification to Layer",
             target_layer,
         )
+
+    @classmethod
+    def __property_widgets(cls, widget):
+        if widget is None:
+            return []
+
+        if isinstance(widget, PropertyWidget):
+            return [widget]
+
+        property_widgets = []
+        for property_group_widget in widget._iter_property_group_widgets():
+            property_widgets.extend(cls.__property_widgets(property_group_widget))
+        return property_widgets
+
+    @classmethod
+    def __property_item_groups(cls, widget):
+        item_groups = []
+        for property_widget in cls.__property_widgets(widget):
+            item_groups.extend(
+                (property_widget, item)
+                for item in property_widget._model.get_all_items()
+                if isinstance(item, ItemGroup) and property_widget._model.get_item_children(item)
+            )
+        return item_groups
+
+    def __assert_property_groups_expanded(self, widget, expanded):
+        item_groups = self.__property_item_groups(widget)
+        self.assertGreater(len(item_groups), 0)
+        for property_widget, item in item_groups:
+            item_name = item.name_models[0].get_value_as_string() if item.name_models else repr(item)
+            self.assertEqual(property_widget.tree_view.is_expanded(item), expanded, item_name)
+
+    async def __wait_for_property_item_groups(self, widget):
+        for _ in range(10):
+            item_groups = self.__property_item_groups(widget)
+            if item_groups:
+                return item_groups
+            await ui_test.human_delay(human_delay_speed=8)
+        self.fail("Expected real property groups to be created")
+        raise AssertionError("unreachable")
+
+    async def __select_header_menu_item(self, window_title, header_text, identifier, menu_label):
+        await self.__scroll_to_label(window_title, header_text, alignment=0.5)
+        actions = self.__visible(f"{window_title}//Frame/**/Image[*].identifier=='{identifier}'")
+        self.assertGreater(len(actions), 0)
+        self.assertEqual(actions[0].widget.name, "More")
+
+        await actions[0].click()
+        await ui_test.human_delay(human_delay_speed=8)
+
+        context_menu = await ui_test.menu.get_context_menu()
+        self.assertTrue(menu_label in context_menu.get("_"))
+        await ui_test.menu.select_context_menu(
+            menu_label,
+            offset=ui_test.Vec2(10, 10),
+            human_delay_speed=8,
+        )
+        await ui_test.human_delay(human_delay_speed=8)
 
     async def test_transfer_full_property_pane_workflow_uses_project_fixture_cases(self):
         object_selection_path = "/RootNode/instances/inst_FEE1DEADF00D0001_0/reference_override/Cube_01"
@@ -647,6 +715,112 @@ class TestAssetReplacementsWidget(AsyncTestCase):
             self.assertEqual(more_images[0].widget.name, "MoreDisabled")
         finally:
             self.__destroy_transfer_windows()
+            await self.__destroy(_window, _wid)
+
+    async def test_property_section_header_menus_show_expand_and_collapse_all_actions(self):
+        _window, _wid = await self.__setup_widget("test_property_section_header_menus")
+
+        async def assert_header_menu(header_text: str, identifier: str):
+            await self.__scroll_to_label(_window.title, header_text, alignment=0.5)
+            actions = self.__visible(f"{_window.title}//Frame/**/Image[*].identifier=='{identifier}'")
+            self.assertGreater(len(actions), 0)
+            self.assertEqual(actions[0].widget.name, "More")
+
+            await actions[0].click()
+            await ui_test.human_delay(human_delay_speed=8)
+
+            context_menu = await ui_test.menu.get_context_menu()
+            self.assertTrue("Expand All" in context_menu.get("_"))
+            self.assertTrue("Collapse All" in context_menu.get("_"))
+            await ui_test.emulate_mouse_move_and_click(actions[0].position - ui_test.Vec2(10, 0))
+            await ui_test.human_delay(human_delay_speed=4)
+
+        try:
+            await assert_header_menu("OBJECT PROPERTIES", "object_properties_group_menu")
+            await assert_header_menu("MATERIAL PROPERTIES", "material_properties_group_menu")
+            await assert_header_menu("PARTICLE PROPERTIES", "particle_properties_transfer_overrides")
+            await assert_header_menu("LOGIC PROPERTIES", "logic_properties_group_menu")
+        finally:
+            await self.__destroy(_window, _wid)
+
+    async def test_property_section_header_menus_expand_and_collapse_real_property_sections(self):
+        object_selection_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"
+        material_selection_path = "/RootNode/meshes/transfer_workflow_material_mesh/mesh"
+        logic_node_path = "/RootNode/meshes/mesh_FEE1DEADF00D0001/mesh/TransferWorkflowLogicGraph/MeshProximity"
+
+        _window, _wid = await self.__setup_widget("test_property_section_header_group_expansion")
+
+        async def assert_header_menu_updates_property_groups(
+            selection_paths,
+            header_text,
+            identifier,
+            property_group_widget,
+        ):
+            await self.__set_selection(selection_paths)
+            await self.__wait_for_property_item_groups(property_group_widget)
+
+            await self.__select_header_menu_item(
+                _window.title,
+                header_text,
+                identifier,
+                "Expand All",
+            )
+            self.__assert_property_groups_expanded(property_group_widget, True)
+
+            await self.__select_header_menu_item(
+                _window.title,
+                header_text,
+                identifier,
+                "Collapse All",
+            )
+            self.__assert_property_groups_expanded(property_group_widget, False)
+
+            await self.__select_header_menu_item(
+                _window.title,
+                header_text,
+                identifier,
+                "Expand All",
+            )
+            self.__assert_property_groups_expanded(property_group_widget, True)
+
+        try:
+            await self.__set_selection([object_selection_path])
+            self.assertEqual(self.__property_item_groups(_wid._mesh_properties_widget), [])
+            await self.__select_header_menu_item(
+                _window.title,
+                "OBJECT PROPERTIES",
+                "object_properties_group_menu",
+                "Expand All",
+            )
+            await self.__select_header_menu_item(
+                _window.title,
+                "OBJECT PROPERTIES",
+                "object_properties_group_menu",
+                "Collapse All",
+            )
+            frame_mesh_prim = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_mesh_prim'")
+            self.assertIsNotNone(frame_mesh_prim)
+            self.assertTrue(frame_mesh_prim.widget.visible)
+
+            await assert_header_menu_updates_property_groups(
+                [material_selection_path],
+                "MATERIAL PROPERTIES",
+                "material_properties_group_menu",
+                _wid._material_properties_widget,
+            )
+            await assert_header_menu_updates_property_groups(
+                [self.PARTICLE_MESH_PATH],
+                "PARTICLE PROPERTIES",
+                "particle_properties_transfer_overrides",
+                _wid._particle_properties_widget,
+            )
+            await assert_header_menu_updates_property_groups(
+                [logic_node_path],
+                "LOGIC PROPERTIES",
+                "logic_properties_group_menu",
+                _wid._logic_properties_widget,
+            )
+        finally:
             await self.__destroy(_window, _wid)
 
     @staticmethod
@@ -1018,7 +1192,8 @@ class TestAssetReplacementsWidget(AsyncTestCase):
             (
                 item
                 for item in all_items
-                if getattr(item, "attribute_paths", None)
+                if isinstance(item, (USDAttributeItem, USDAttrListItem))
+                and item.attribute_paths
                 and any(str(path).endswith("primvars:particle:gravityForce") for path in item.attribute_paths)
             ),
             None,

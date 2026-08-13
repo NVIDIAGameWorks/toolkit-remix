@@ -45,8 +45,10 @@ from omni.flux.asset_importer.core import parse_texture_paths as _parse_texture_
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP as _TEXTURE_TYPE_INPUT_MAP
 from omni.flux.properties_pane.materials.usd.widget import MaterialPropertyWidget as _MaterialPropertyWidget
-from omni.flux.property_widget_builder.model.usd import FileTexturePicker as _FileTexturePicker
 from omni.flux.property_widget_builder.model.usd import BuildLayerTransferMenu as _BuildLayerTransferMenu
+from omni.flux.property_widget_builder.model.usd import FileTexturePicker as _FileTexturePicker
+from omni.flux.property_widget_builder.model.usd import PropertyGroupExpansionMixin as _PropertyGroupExpansionMixin
+from omni.flux.property_widget_builder.model.usd import PropertyGroupExpansionWidget as _PropertyGroupExpansionWidget
 from omni.flux.property_widget_builder.model.usd import USDBuilderList as _USDBuilderList
 from omni.flux.property_widget_builder.model.usd import mapping as _mapping
 from omni.flux.property_widget_builder.model.usd import utils as usd_properties_utils
@@ -66,7 +68,7 @@ class TextureDialog(ui.Window):
         self.visible = False
 
 
-class SetupUI:
+class SetupUI(_PropertyGroupExpansionMixin):
     MATERIAL_LABEL_NAME_SIZE = 32
     _WIDGET_PADDING = 16
     MAT_PROP_FRAME = "material_property_frame"
@@ -824,6 +826,9 @@ class SetupUI:
 
     def show(self, value: bool):
         self._material_properties_widget.show(value)  # to disable the listener
+
+    def _iter_property_group_widgets(self) -> tuple[_PropertyGroupExpansionWidget | None, ...]:
+        return (self._material_properties_widget,)
 
     def subscribe_on_material_changed(self, function):
         """

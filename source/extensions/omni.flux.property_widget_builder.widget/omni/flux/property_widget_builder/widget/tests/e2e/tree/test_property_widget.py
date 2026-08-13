@@ -10,7 +10,7 @@ import omni.ui as ui
 from omni.flux.property_widget_builder.delegates import FloatDragFieldGroup
 from omni.flux.property_widget_builder.widget import FieldBuilderList, Item, ItemGroup
 
-from ...ui_components import AsyncTestPropertyWidget, TestItem
+from ...ui_components import AsyncTestPropertyWidget, TestDelegate, TestItem
 
 
 class TestPropertyWidget(omni.kit.test.AsyncTestCase):
@@ -29,6 +29,105 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
             panel_right + 1,
             message,
         )
+
+    async def test_group_row_content_toggles_expansion(self):
+        async with AsyncTestPropertyWidget() as helper:
+            group = ItemGroup("Parent")
+            TestItem([("Child", 42)]).parent = group
+
+            await helper.set_items([group])
+
+            self.assertFalse(helper.property_widget.tree_view.is_expanded(group))
+
+            await helper.click_item(group)
+
+            self.assertTrue(helper.property_widget.tree_view.is_expanded(group))
+            self.assert_items_equal(helper.get_selected_items(), [])
+
+            await helper.click_item(group)
+
+            self.assertFalse(helper.property_widget.tree_view.is_expanded(group))
+            self.assert_items_equal(helper.get_selected_items(), [])
+
+    async def test_item_group_selection_does_not_include_children(self):
+        async with AsyncTestPropertyWidget() as helper:
+            group = ItemGroup("Parent")
+            child = TestItem([("Child", 42)])
+            child.parent = group
+
+            await helper.set_items([group])
+
+            helper.property_widget.tree_view.selection = [group]
+            helper.property_widget.tree_view.on_selection_changed([group])
+
+            self.assert_items_equal(helper.get_selected_items(), [group])
+
+    async def test_expand_all_groups_sets_item_groups_expanded(self):
+        async with AsyncTestPropertyWidget() as helper:
+            parent_group = ItemGroup("Parent")
+            child_group = ItemGroup("Child")
+            child_group.parent = parent_group
+            TestItem([("Leaf", 42)]).parent = child_group
+
+            await helper.set_items([parent_group])
+
+            helper.property_widget.expand_all_groups()
+
+            self.assertTrue(helper.property_widget.tree_view.is_expanded(parent_group))
+            self.assertTrue(helper.property_widget.tree_view.is_expanded(child_group))
+
+    async def test_collapse_all_groups_sets_item_groups_collapsed(self):
+        async with AsyncTestPropertyWidget() as helper:
+            parent_group = ItemGroup("Parent", expanded=True)
+            child_group = ItemGroup("Child", expanded=True)
+            child_group.parent = parent_group
+            TestItem([("Leaf", 42)]).parent = child_group
+
+            await helper.set_items([parent_group])
+
+            helper.property_widget.collapse_all_groups()
+
+            self.assertFalse(helper.property_widget.tree_view.is_expanded(parent_group))
+            self.assertFalse(helper.property_widget.tree_view.is_expanded(child_group))
+
+    async def test_destroy_clears_delegate_expansion_callback(self):
+        delegate = TestDelegate()
+        helper = AsyncTestPropertyWidget(delegate=delegate)
+
+        await helper.build()
+        try:
+            self.assertIsNotNone(delegate._apply_item_expanded_fn)
+        finally:
+            await helper.destroy()
+
+        self.assertIsNone(delegate._apply_item_expanded_fn)
+
+    async def test_expand_and_collapse_all_groups_ignore_destroyed_tree_view(self):
+        helper = AsyncTestPropertyWidget()
+        await helper.build()
+        try:
+            group = ItemGroup("Parent")
+            TestItem([("Child", 42)]).parent = group
+            await helper.set_items([group])
+            widget = helper.property_widget
+        finally:
+            await helper.destroy()
+
+        widget.expand_all_groups()
+        widget.collapse_all_groups()
+
+    async def test_apply_item_expanded_ignores_destroyed_tree_view(self):
+        helper = AsyncTestPropertyWidget()
+        await helper.build()
+        try:
+            group = ItemGroup("Parent")
+            TestItem([("Child", 42)]).parent = group
+            await helper.set_items([group])
+            widget = helper.property_widget
+        finally:
+            await helper.destroy()
+
+        widget._apply_item_expanded(group, True)
 
     async def test_tree_selection(self):
         async with AsyncTestPropertyWidget() as helper:
@@ -79,10 +178,10 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
             await omni.kit.ui_test.wait_n_updates(1)
             self.assert_items_equal(helper.get_selected_items(), [group_a.children[1]])
 
-            # Click an unselected parent
+            # Click an unselected parent group header
             await helper.click_item(group_a)
             await omni.kit.ui_test.wait_n_updates(1)
-            self.assert_items_equal(helper.get_selected_items(), [group_a] + group_a.children)
+            self.assert_items_equal(helper.get_selected_items(), [group_a.children[1]])
 
     async def test_widget_update(self):
         async with AsyncTestPropertyWidget() as helper:

@@ -37,7 +37,7 @@ from omni.flux.property_widget_builder.delegates.default import DefaultField
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 
 from . import clipboard
-from .model import HEADER_DICT, Item, Model
+from .model import HEADER_DICT, Item, ItemGroup, Model
 
 if TYPE_CHECKING:
     from .item_model import ItemModelBase
@@ -128,6 +128,7 @@ class Delegate(_TreeDelegateBase):
         self._claim_hidden_companion_items: set[Item] = set()
         self._subscriptions: list[carb.Subscription] = []
         self._field_cleanup_callbacks: list[Callable[[], None]] = []
+        self._apply_item_expanded_fn: Callable[[Item, bool], None] | None = None
 
         # This is populated during a right click event within `_show_menu`. We store this Menu instance to avoid it
         # being garbage collected while it's displayed.
@@ -146,6 +147,7 @@ class Delegate(_TreeDelegateBase):
                 "_claim_hidden_companion_items": None,
                 "_subscriptions": None,
                 "_field_cleanup_callbacks": None,
+                "_apply_item_expanded_fn": None,
                 "_context_menu": None,
             }
         )
@@ -166,6 +168,17 @@ class Delegate(_TreeDelegateBase):
         self._subscriptions.clear()
         self._selection.clear()
         self._context_menu = None
+
+    def set_apply_item_expanded_fn(self, callback: Callable[[Item, bool], None] | None) -> None:
+        self._apply_item_expanded_fn = callback
+
+    def _apply_item_expanded(self, button: int, item: Item, expanded: bool) -> None:
+        if button != 0:
+            return
+        if self._apply_item_expanded_fn is not None:
+            self._apply_item_expanded_fn(item, expanded)
+            return
+        self._item_expanded(button, item, expanded)
 
     def value_model_updated(self, item):
         """
@@ -254,6 +267,21 @@ class Delegate(_TreeDelegateBase):
         if isinstance(build_func, AbstractDragFieldGroup):
             return build_func(item, register_cleanup=self._field_cleanup_callbacks.append)
         return build_func(item)
+
+    def build_widget(self, model: Model, item: Item, column_id: int, level: int, expanded: bool) -> None:
+        if item is None:
+            return
+
+        if isinstance(item, ItemGroup):
+            with ui.Frame(
+                mouse_pressed_fn=lambda _x, _y, b, _m: self._item_clicked(b, b == 1, model, item),
+                mouse_released_fn=lambda _x, _y, b, _m: self._apply_item_expanded(b, item, not expanded),
+                opaque_for_mouse_events=True,
+            ):
+                self._build_widget(model, item, column_id, level, expanded)
+            return
+
+        super().build_widget(model, item, column_id, level, expanded)
 
     @abc.abstractmethod
     def _build_item_widgets(

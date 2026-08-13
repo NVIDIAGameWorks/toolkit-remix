@@ -21,6 +21,7 @@ import omni.kit.undo
 import omni.ui as ui
 import omni.usd
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
+from omni.flux.property_widget_builder.widget import ItemGroup as _ItemGroup
 from omni.flux.properties_pane.properties.usd.widget import PropertyWidget as _PropertyWidget
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
@@ -79,6 +80,21 @@ class TestUSDPropertiesWidget(AsyncTestCase):
                 if str(path) == attribute_path:
                     return item
         return None
+
+    @staticmethod
+    def __property_item_groups(widget):
+        return [
+            item
+            for item in widget.property_model.get_all_items()
+            if isinstance(item, _ItemGroup) and widget.property_model.get_item_children(item)
+        ]
+
+    def __assert_property_groups_expanded(self, widget, expanded):
+        item_groups = self.__property_item_groups(widget)
+        self.assertGreater(len(item_groups), 0)
+        for item_group in item_groups:
+            item_name = item_group.name_models[0].get_value_as_string() if item_group.name_models else repr(item_group)
+            self.assertEqual(widget._property_widget.tree_view.is_expanded(item_group), expanded, item_name)
 
     @staticmethod
     async def __type_text(text: str) -> None:
@@ -241,6 +257,28 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         self.assertEqual(indicator.widget.tooltip, f"{_DEFAULT_INDICATOR_ACTIVE_TOOLTIP}: (empty)")
 
         await self.__destroy(_window, _widget)
+
+    async def test_expand_and_collapse_all_groups_updates_real_property_groups(self):
+        lookup_table = {
+            "xformOp:translate": {"name": "Translate", "group": "Transform"},
+            "xformOp:rotateXYZ": {"name": "Rotate", "group": "Transform"},
+            "xformOp:scale": {"name": "Scale", "group": "Transform"},
+        }
+        _window, _widget = await self.__setup_widget(lookup_table=lookup_table)
+
+        try:
+            _widget.refresh(["/Xform/Cube"])
+            await ui_test.human_delay()
+
+            self.assertGreater(len(self.__property_item_groups(_widget)), 0)
+
+            _widget.expand_all_groups()
+            self.__assert_property_groups_expanded(_widget, True)
+
+            _widget.collapse_all_groups()
+            self.__assert_property_groups_expanded(_widget, False)
+        finally:
+            await self.__destroy(_window, _widget)
 
     async def test_setting_a_value_by_script_update_ui(self):
         """

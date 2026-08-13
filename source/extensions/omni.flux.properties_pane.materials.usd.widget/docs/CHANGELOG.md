@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.2]
+### Added
+- Added expand-all and collapse-all forwarding for material USD property groups.
+
 ## [1.12.1]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

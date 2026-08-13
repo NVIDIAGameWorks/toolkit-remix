@@ -28,6 +28,7 @@ import omni.usd
 from lightspeed.common.constants import PARTICLE_PRIMVAR_PREFIX, PARTICLE_SCHEMA_NAME
 from lightspeed.trex.schemas.utils import get_schema_prim as _get_schema_prim
 from omni.flux.property_widget_builder.model.usd import BuildLayerTransferMenu as _BuildLayerTransferMenu
+from omni.flux.property_widget_builder.model.usd import PropertyGroupExpansionMixin as _PropertyGroupExpansionMixin
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.property_widget_builder.model.usd import USDAttrListItem as _USDAttrListItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
@@ -194,7 +195,7 @@ def _add_edit_group_outlets(
         outlet.parent = group_items[outlet_group]
 
 
-class ParticleSystemPropertyWidget:
+class ParticleSystemPropertyWidget(_PropertyGroupExpansionMixin):
     """
     Properties panel for RemixParticleSystem prim types.
     Shows and allows editing of particle system attributes.

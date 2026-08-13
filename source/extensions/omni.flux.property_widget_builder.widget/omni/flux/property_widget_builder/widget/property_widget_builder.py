@@ -82,6 +82,7 @@ class PropertyWidget:
         self._on_item_changed_sub = self._model.subscribe_item_changed_fn(self._on_item_changed)
 
         self._build_ui()
+        self._delegate.set_apply_item_expanded_fn(self._apply_item_expanded)
 
         if self._model.get_all_items():
             self._update_expansion_state_deferred()
@@ -107,6 +108,7 @@ class PropertyWidget:
                 column_widths=self._get_column_widths(),
                 min_column_widths=self._get_min_column_widths(),
                 columns_resizable=self._columns_resizable,
+                select_all_children=False,
                 name="PropertyWidget",
             )
 
@@ -193,6 +195,26 @@ class PropertyWidget:
             return
         self._expansion_state[item.name_models[0].get_value_as_string()] = value
 
+    def _apply_item_expanded(self, item: ItemGroup, value: bool) -> None:
+        if self._tree_view is None:
+            return
+        if self._tree_view.is_expanded(item) != value:
+            self._tree_view.set_expanded(item, value, False)
+        self._on_item_expanded(item, value)
+
+    def set_all_item_groups_expanded(self, value: bool) -> None:
+        if self._model is None or self._tree_view is None:
+            return
+        for item in self._model.get_all_items():
+            if isinstance(item, ItemGroup):
+                self._apply_item_expanded(item, value)
+
+    def expand_all_groups(self) -> None:
+        self.set_all_item_groups_expanded(True)
+
+    def collapse_all_groups(self) -> None:
+        self.set_all_item_groups_expanded(False)
+
     def _on_item_changed(self, model, item):
         if item is None:
             self._delegate.resolve_claims(model)
@@ -208,4 +230,6 @@ class PropertyWidget:
     def destroy(self):
         if self._update_task:
             self._update_task.cancel()
+        if self._delegate is not None:
+            self._delegate.set_apply_item_expanded_fn(None)
         _reset_default_attrs(self)

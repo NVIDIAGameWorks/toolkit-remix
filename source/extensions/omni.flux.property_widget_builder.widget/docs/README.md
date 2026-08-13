@@ -47,6 +47,12 @@ Each of those properties have to return a list of "item model class".
 
 This is a regular `ui.AbstractItemModel` that the `ui.TreeView` uses. It will hold all the items "item class".
 
+### Item group expansion
+
+`PropertyWidget.expand_all_groups()` and `PropertyWidget.collapse_all_groups()` expand or collapse every visible
+`ItemGroup` in the current model. These helpers update the widget's expansion state, so the requested state is preserved
+across deferred refreshes.
+
 ### Delegate class
 
 This is a regular `ui.AbstractItemDelegate`. The delegate will show each value of each item into 2 columns:

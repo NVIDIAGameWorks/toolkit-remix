@@ -23,6 +23,7 @@ import omni.usd
 from omni.flux.material_api import ShaderInfoAPI, UsdShadePropertyPlaceholder
 from omni.flux.property_widget_builder.model.usd import DisableAllListenersBlock as _USDDisableAllListenersBlock
 from omni.flux.property_widget_builder.model.usd import BuildLayerTransferMenu as _BuildLayerTransferMenu
+from omni.flux.property_widget_builder.model.usd import PropertyGroupExpansionMixin as _PropertyGroupExpansionMixin
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDMetadataListItem as _USDMetadataListItem
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
@@ -53,7 +54,7 @@ SHADER_ATTR_IGNORE_LIST = [
 ]
 
 
-class MaterialPropertyWidget:
+class MaterialPropertyWidget(_PropertyGroupExpansionMixin):
     def __init__(
         self,
         context_name: str,

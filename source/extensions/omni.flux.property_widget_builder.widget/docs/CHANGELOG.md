@@ -2,6 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.6]
+### Added
+- Added shared expand-all and collapse-all helpers for property widget `ItemGroup` rows.
+
+### Changed
+- Made `ItemGroup` row content toggle expansion in the property widget tree without selecting the group children.
+
+### Fixed
+- Cleared the property widget's delegate expansion callback during destroy to avoid retaining destroyed widgets.
+- Guarded bulk group expansion calls after the property widget has been destroyed.
+
 ## [2.12.5]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

@@ -480,7 +480,7 @@ class TestTreeWidget(AsyncTestCase):
 
         # Delegate selection should be synced (after on_selection_changed fires)
         # Note: With select_all_children=False, selection stays the same
-        self.assertEqual([root1, root2], list(widget.selection))
+        self.assertEqual([root1, root2], list(delegate.selection))
 
         # Cleanup
         widget.destroy()
@@ -488,7 +488,8 @@ class TestTreeWidget(AsyncTestCase):
 
     async def test_destroy_cleanup(self):
         """Test that destroy properly cleans up resources."""
-        model, delegate, _ = self._create_test_tree()
+        model, delegate, items = self._create_test_tree()
+        root1 = items[0]
 
         await arrange_windows(topleft_window="Stage")
         window = ui.Window("TestDestroyCleanup", height=400, width=400)
@@ -500,6 +501,9 @@ class TestTreeWidget(AsyncTestCase):
 
         # Destroy the widget
         widget.destroy()
+
+        # Late callbacks from the underlying TreeView should be ignored after destroy.
+        widget.on_selection_changed([root1])
 
         # Check that attributes are reset
         self.assertIsNone(widget._model)  # pylint: disable=protected-access
