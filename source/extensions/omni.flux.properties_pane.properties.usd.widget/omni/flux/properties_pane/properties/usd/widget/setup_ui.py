@@ -27,6 +27,7 @@ from omni.flux.property_widget_builder.model.usd import USDAttributeDef as _USDA
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem as _USDAttributeItem
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
+from omni.flux.property_widget_builder.model.usd import PropertyGroupExpansionMixin as _PropertyGroupExpansionMixin
 from omni.flux.property_widget_builder.model.usd import USDPropertyWidget as _PropertyWidget
 from omni.flux.property_widget_builder.model.usd import VirtualUSDAttributeItem as _VirtualUSDAttributeItem
 from omni.flux.property_widget_builder.model.usd import get_usd_listener_instance as _get_usd_listener_instance
@@ -39,7 +40,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from pxr import Sdf, Usd
 
 
-class PropertyWidget:
+class PropertyWidget(_PropertyGroupExpansionMixin):
     def __init__(
         self,
         context_name: str,

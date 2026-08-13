@@ -3,6 +3,10 @@
 Provides the RTX Remix asset-replacement Properties pane and composes its selection, layer, object, material,
 particle, light, and logic panels.
 
+The Object, Material, Particle, and Logic Properties section header `More` menus expose `Expand All` and `Collapse All`
+actions for their property groups. The Particle Properties menu also keeps the particle system definition transfer action
+when a transfer target is available.
+
 ## Responsibilities
 
 - Select and display the property panels relevant to the current USD selection.

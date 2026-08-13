@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.14.3]
+### Added
+- Added public expand and collapse all group forwarding for embedding property panes.
+### Fixed
+- Guarded expand and collapse all group forwarding when the property widget is not initialized.
+
 ## [2.14.2]
 ### Added
 - Added E2E coverage for reset indicator tooltips that show default USD values.

@@ -24,6 +24,8 @@ __all__ = [
     "ConditionalVisibilityOrchestrator",
     "DisableAllListenersBlock",
     "FileTexturePicker",
+    "PropertyGroupExpansionMixin",
+    "PropertyGroupExpansionWidget",
     "USDAttrListItem",
     "USDAttributeDef",
     "USDAttributeItem",
@@ -69,6 +71,7 @@ from .items import (
 )
 from .listener import DisableAllListenersBlock
 from .model import USDModel
+from .property_group_expansion import PropertyGroupExpansionMixin, PropertyGroupExpansionWidget
 from .setup_ui import USDPropertyWidget
 
 

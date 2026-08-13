@@ -28,6 +28,7 @@ from omni.flux.property_widget_builder.model.usd import USDAttributeXformItem as
 from omni.flux.property_widget_builder.model.usd import USDAttributeXformItemStub as _USDAttributeXformItemStub
 from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
 from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
+from omni.flux.property_widget_builder.model.usd import PropertyGroupExpansionMixin as _PropertyGroupExpansionMixin
 from omni.flux.property_widget_builder.model.usd import USDPropertyWidget as _PropertyWidget
 from omni.flux.property_widget_builder.model.usd import get_usd_listener_instance as _get_usd_listener_instance
 from omni.flux.property_widget_builder.model.usd.utils import filter_virtual_attributes as _filter_virtual_attributes
@@ -44,7 +45,7 @@ from .mapping import OPS_ATTR_TYPE_TABLE as _OPS_ATTR_TYPE_TABLE
 from .mapping import OPS_UI_ATTR_OP_ORDER_TABLE as _OPS_UI_ATTR_OP_ORDER_TABLE
 
 
-class TransformPropertyWidget:
+class TransformPropertyWidget(_PropertyGroupExpansionMixin):
     """
     Show a panel that shows transform attributes of a prim.
     If the prim doesn't have any transform (xform) attribute, the panel will find and show the closest parent that has

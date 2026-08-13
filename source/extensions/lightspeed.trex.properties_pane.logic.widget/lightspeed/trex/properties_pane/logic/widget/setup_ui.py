@@ -42,6 +42,7 @@ from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker
 from omni.flux.property_widget_builder.model.usd import (
     BuildLayerTransferMenu,
+    PropertyGroupExpansionMixin,
     USDAttributeItem,
     USDAttrListItem,
 )
@@ -126,7 +127,7 @@ def _build_prim_row_with_icon(
         ui.Spacer(width=ui.Pixel(_SPACING_MD))
 
 
-class LogicPropertyWidget:
+class LogicPropertyWidget(PropertyGroupExpansionMixin):
     """
     Properties panel for Remix Logic graph management and graph node prim types.
     """

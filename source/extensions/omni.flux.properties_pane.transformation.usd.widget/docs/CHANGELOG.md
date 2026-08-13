@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.10.2]
+### Added
+- Added public expand and collapse all group forwarding for embedding property panes.
+### Fixed
+- Guarded expand and collapse all group forwarding when the property widget is not initialized.
+
 ## [2.10.1]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

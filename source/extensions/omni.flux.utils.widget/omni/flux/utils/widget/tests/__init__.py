@@ -17,6 +17,7 @@
 
 from .e2e.test_color_gradient_widget import TestColorGradientWidget
 from .e2e.test_file_picker import TestFilePicker
+from .e2e.test_collapsable_frame import TestPropertyCollapsableFrame
 from .e2e.test_hover_helper import TestHoverHelper
 from .e2e.test_scrolling_tree_widget import TestScrollingTreeWidgetLifecycle
 from .unit.test_gradient import TestGradientUtils
@@ -41,6 +42,7 @@ __all__ = [
     "TestGradientUtils",
     "TestHoverHelper",
     "TestInMemoryGroupedKeysModel",
+    "TestPropertyCollapsableFrame",
     "TestScrollingTreeWidget",
     "TestScrollingTreeWidgetLifecycle",
     "TestSearch",

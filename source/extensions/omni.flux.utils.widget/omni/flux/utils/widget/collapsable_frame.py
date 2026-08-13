@@ -49,6 +49,8 @@ class PropertyCollapsableFrameAction:
 class PropertyCollapsableFrame:
     _ACTION_ICON_SIZE = ui.Pixel(16)
     _ACTION_TOP_SPACER_HEIGHT = ui.Pixel(4)
+    _EXPANDER_ICON_SIZE = ui.Pixel(8)
+    _PIN_ICON_SIZE = ui.Pixel(16)
     _SPACER_MD = ui.Pixel(8)
 
     def __init__(
@@ -135,7 +137,9 @@ class PropertyCollapsableFrame:
     def pinned(self):
         return self.__pinned
 
-    def _click_pin(self):
+    def _click_pin(self, button: int) -> None:
+        if button != 0:
+            return
         self.__pinned = not self.__pinned
         self.__lock_icon.name = "Pin" if self.__pinned else "PinOff"
 
@@ -146,6 +150,11 @@ class PropertyCollapsableFrame:
         if self.__unpinned_fn is not None and not self.__pinned:
             self.__unpinned_fn()
         self.__frame.rebuild()
+
+    def _click_header(self, button: int) -> None:
+        if button != 0 or not self.__enabled:
+            return
+        self.__frame.collapsed = not self.__frame.collapsed
 
     @staticmethod
     def _click_action(action: PropertyCollapsableFrameAction, button: int):
@@ -183,6 +192,15 @@ class PropertyCollapsableFrame:
                 ui.Spacer()
             ui.Spacer(height=self._SPACER_MD)
 
+    def _build_header_hit_area(self, width: ui.Length | int, identifier: str) -> ui.Frame:
+        return ui.Frame(
+            width=width,
+            height=0,
+            mouse_released_fn=lambda _x, _y, b, _m: self._click_header(b),
+            opaque_for_mouse_events=True,
+            identifier=identifier,
+        )
+
     def _build_frame_header(self, collapsed, text, info_text: str = ""):
         """Custom header for CollapsibleFrame"""
         if collapsed:
@@ -192,41 +210,65 @@ class PropertyCollapsableFrame:
 
         with ui.VStack(height=0):
             with ui.HStack(height=0):
-                with ui.VStack(height=0, width=0):
-                    ui.Spacer(height=4)
-                    ui.Label(text, name="PropertiesPaneSectionTitle")
-                    ui.Spacer(height=ui.Pixel(8), width=0)
+                with self._build_header_hit_area(0, "PropertyCollapsableFrameTitleHitArea"):
+                    with ui.VStack(height=0, width=0):
+                        ui.Spacer(height=4)
+                        # Label glyphs are their own mouse target; keep this handler for text clicks.
+                        ui.Label(
+                            text,
+                            name="PropertiesPaneSectionTitle",
+                            mouse_released_fn=lambda _x, _y, b, _m: self._click_header(b),
+                            opaque_for_mouse_events=True,
+                        )
+                        ui.Spacer(height=ui.Pixel(8), width=0)
                 if self.__show_info_icon:
                     ui.Spacer(width=ui.Pixel(8))
                     with ui.VStack(height=0, width=0):
                         ui.Spacer(height=2)
                         self._info_image = _InfoIconWidget(info_text)
-                ui.Spacer()
+                with self._build_header_hit_area(ui.Fraction(1), "PropertyCollapsableFrameHeaderHitArea"):
+                    ui.Spacer()
                 for action in self.__actions:
                     self._build_action(action)
                     ui.Spacer(width=self._SPACER_MD)
                 if self.__pinnable:
-                    with ui.VStack(width=ui.Pixel(8), content_clipping=True):
-                        ui.Spacer()
-                        self.__lock_icon = ui.Image(
-                            name="Pin" if self.__pinned else "PinOff",
-                            width=ui.Pixel(14),
-                            height=ui.Pixel(14),
-                            tooltip="Click to pin these properties",
-                            mouse_pressed_fn=lambda *_: self._click_pin(),
-                            identifier="property_frame_pin_icon",
-                        )
-                        ui.Spacer()
-                    ui.Spacer(width=8)
-                with ui.VStack(width=ui.Pixel(8)):
-                    ui.Spacer()
-                    ui.Image(
-                        style_type_name_override=name_override_triangle,
-                        width=ui.Pixel(8),
-                        height=ui.Pixel(8),
-                        identifier="PropertyCollapsableFrameArrow",
-                    )
-                    ui.Spacer()
+                    with ui.VStack(width=self._ACTION_ICON_SIZE, content_clipping=True):
+                        ui.Spacer(height=self._ACTION_TOP_SPACER_HEIGHT)
+                        with ui.VStack(
+                            width=self._ACTION_ICON_SIZE,
+                            height=self._ACTION_ICON_SIZE,
+                            content_clipping=True,
+                        ):
+                            ui.Spacer()
+                            self.__lock_icon = ui.Image(
+                                name="Pin" if self.__pinned else "PinOff",
+                                width=self._PIN_ICON_SIZE,
+                                height=self._PIN_ICON_SIZE,
+                                tooltip="Click to pin these properties",
+                                mouse_released_fn=lambda _x, _y, b, _m: self._click_pin(b),
+                                identifier="property_frame_pin_icon",
+                            )
+                            self.__lock_icon.opaque_for_mouse_events = True
+                            ui.Spacer()
+                        ui.Spacer(height=self._SPACER_MD)
+                    ui.Spacer(width=self._SPACER_MD)
+                with self._build_header_hit_area(self._ACTION_ICON_SIZE, "PropertyCollapsableFrameArrowHitArea"):
+                    with ui.VStack(width=self._ACTION_ICON_SIZE, content_clipping=True):
+                        ui.Spacer(height=self._ACTION_TOP_SPACER_HEIGHT)
+                        with ui.VStack(
+                            width=self._ACTION_ICON_SIZE,
+                            height=self._ACTION_ICON_SIZE,
+                            content_clipping=True,
+                        ):
+                            ui.Spacer()
+                            ui.Image(
+                                style_type_name_override=name_override_triangle,
+                                width=self._EXPANDER_ICON_SIZE,
+                                height=self._EXPANDER_ICON_SIZE,
+                                identifier="PropertyCollapsableFrameArrow",
+                            )
+                            ui.Spacer()
+                        ui.Spacer(height=self._SPACER_MD)
             ui.Line(name="PropertiesPaneSectionTitle", style_type_name_override="FieldWarning" if self.__pinned else "")
             if self.__pinnable and self.__pinned and self.__pinned_text_fn is not None:
                 with ui.VStack():

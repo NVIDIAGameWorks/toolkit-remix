@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.3]
+### Added
+- Added Material Properties header menu actions to expand or collapse all material property groups.
+- Extended property section header menus with expand and collapse all actions for object, particle, and logic property groups.
+
 ## [1.17.2]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

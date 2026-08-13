@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.30.3]
+### Changed
+- Expanded `PropertyCollapsableFrame` header hit targets so section titles, header empty space, and arrows toggle collapse while pin and action icons stay independent.
+- Aligned `PropertyCollapsableFrame` expander, pin, and action icon slots.
+### Fixed
+- Synced `TreeWidget` delegate selection when child auto-selection is disabled.
+
 ## [1.30.2]
 ### Fixed
 - Converted pathlib current-file paths to strings before opening Kit's file picker.

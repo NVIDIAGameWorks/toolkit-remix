@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.3]
+### Added
+- Added public expand and collapse all group forwarding for logic property pane headers.
+### Fixed
+- Guarded expand and collapse all group forwarding when the property widget is not initialized.
+
 ## [1.5.2]
 ### Fixed
 - Vertically aligned the Existing Graphs action icons in the logic properties pane.

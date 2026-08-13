@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.17.2"
+version = "1.17.3"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Properties Pane Asset Replacements widget for the StageCraft"
 description = "Asset Replacements Properties Pane widget for NVIDIA RTX Remix StageCraft App"

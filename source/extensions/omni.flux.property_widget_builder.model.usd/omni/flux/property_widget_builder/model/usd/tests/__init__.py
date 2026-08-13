@@ -32,6 +32,7 @@ from .unit.test_gradient_direct_writes import TestGradientDirectWrites
 from .unit.test_listener import TestUSDListener
 from .unit.test_logical_groups import TestLogicalGroups
 from .unit.test_multichannel_paste import TestMultichannelPaste
+from .unit.test_property_group_expansion import TestPropertyGroupExpansionMixin
 from .unit.test_relationship_item import TestUSDRelationshipItem
 from .unit.test_relationship_utils import TestRelationshipUtils
 from .unit.test_relationship_value_model import TestUsdRelationshipValueModel
@@ -64,6 +65,7 @@ __all__ = [
     "TestGradientEditorUndo",
     "TestLogicalGroups",
     "TestMultichannelPaste",
+    "TestPropertyGroupExpansionMixin",
     "TestRelationshipUtils",
     "TestSetDataPrimvarsCommand",
     "TestUSDAttributeItemBounds",

@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.5.2"
+version = "1.5.3"
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Remix Logic Properties Widget"
 description = "Properties panel for RemixLogic prim types"

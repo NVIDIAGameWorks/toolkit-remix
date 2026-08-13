@@ -21,9 +21,10 @@ __all__ = ["AssetReplacementsPane", "CollapsiblePanels"]
 
 import functools
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import omni.client
 import omni.usd
@@ -73,6 +74,31 @@ from omni.flux.utils.widget.collapsable_frame import (
 )
 from pxr import Sdf, Tf, Usd, UsdGeom
 
+if TYPE_CHECKING:
+    from omni.flux.property_widget_builder.model.usd import (
+        PropertyGroupExpansionWidget as _PropertyGroupExpansionWidget,
+    )
+
+
+_MORE_ACTION_TOOLTIP = "Show more actions..."
+
+
+class _PropertyGroupMenuTarget(Enum):
+    OBJECT = 0
+    MATERIAL = 1
+    PARTICLE = 2
+    LOGIC = 3
+
+
+@dataclass(frozen=True)
+class _PropertyGroupMenuConfig:
+    title: str
+    target: _PropertyGroupMenuTarget
+    action_identifier: str
+    expand_identifier: str
+    collapse_identifier: str
+    include_particle_transfer_menu: bool = False
+
 
 class CollapsiblePanels(Enum):
     BOOKMARKS = 0
@@ -83,6 +109,37 @@ class CollapsiblePanels(Enum):
     SELECTION = 5
     PARTICLE_PROPERTIES = 6
     LOGIC_PROPERTIES = 7
+
+
+_OBJECT_PROPERTIES_MENU_CONFIG = _PropertyGroupMenuConfig(
+    title="Object Properties Menu",
+    target=_PropertyGroupMenuTarget.OBJECT,
+    action_identifier="object_properties_group_menu",
+    expand_identifier="object_properties_expand_all",
+    collapse_identifier="object_properties_collapse_all",
+)
+_MATERIAL_PROPERTIES_MENU_CONFIG = _PropertyGroupMenuConfig(
+    title="Material Properties Menu",
+    target=_PropertyGroupMenuTarget.MATERIAL,
+    action_identifier="material_properties_group_menu",
+    expand_identifier="material_properties_expand_all",
+    collapse_identifier="material_properties_collapse_all",
+)
+_PARTICLE_PROPERTIES_MENU_CONFIG = _PropertyGroupMenuConfig(
+    title="Particle Properties Menu",
+    target=_PropertyGroupMenuTarget.PARTICLE,
+    action_identifier="particle_properties_transfer_overrides",
+    expand_identifier="particle_properties_expand_all",
+    collapse_identifier="particle_properties_collapse_all",
+    include_particle_transfer_menu=True,
+)
+_LOGIC_PROPERTIES_MENU_CONFIG = _PropertyGroupMenuConfig(
+    title="Logic Properties Menu",
+    target=_PropertyGroupMenuTarget.LOGIC,
+    action_identifier="logic_properties_group_menu",
+    expand_identifier="logic_properties_expand_all",
+    collapse_identifier="logic_properties_collapse_all",
+)
 
 
 class AssetReplacementsPane(_WorkspaceWidget):
@@ -211,23 +268,65 @@ class AssetReplacementsPane(_WorkspaceWidget):
         transfer_stack = _get_transferable_prim_specs(prim, valid_layer_identifiers)
         self._show_transfer_window(transfer_stack, transfer_kind="prim", display_name=prim.GetName())
 
-    def _show_particle_system_transfer_menu(self) -> None:
-        transfer_stack, _ = self._get_particle_system_transfer_data()
+    def _build_particle_system_transfer_menu_item(self) -> None:
+        transfer_stack = self._get_transferable_particle_system_specs()
         if not transfer_stack:
+            return
+        ui.Separator()
+        ui.MenuItem(
+            "Transfer definition to...",
+            triggered_fn=functools.partial(
+                self._show_transfer_window,
+                transfer_stack,
+                transfer_kind="prim",
+                display_name="Particle System",
+            ),
+        )
+
+    def _build_property_group_menu_action(
+        self, config: _PropertyGroupMenuConfig
+    ) -> list[_PropertyCollapsableFrameAction]:
+        return [
+            _PropertyCollapsableFrameAction(
+                name="More",
+                disabled_name="MoreDisabled",
+                clicked_fn=functools.partial(self._show_property_group_menu, config),
+                tooltip=_MORE_ACTION_TOOLTIP,
+                identifier=config.action_identifier,
+            )
+        ]
+
+    def _get_property_group_menu_widget(self, target: _PropertyGroupMenuTarget) -> _PropertyGroupExpansionWidget | None:
+        if target is _PropertyGroupMenuTarget.OBJECT:
+            return self._mesh_properties_widget
+        if target is _PropertyGroupMenuTarget.MATERIAL:
+            return self._material_properties_widget
+        if target is _PropertyGroupMenuTarget.PARTICLE:
+            return self._particle_properties_widget
+        if target is _PropertyGroupMenuTarget.LOGIC:
+            return self._logic_properties_widget
+        return None
+
+    def _show_property_group_menu(self, config: _PropertyGroupMenuConfig) -> None:
+        property_widget = self._get_property_group_menu_widget(config.target)
+        if property_widget is None:
             return
         if self._context_menu is not None:
             self._context_menu.destroy()
-        self._context_menu = ui.Menu("Transfer Menu")
+        self._context_menu = ui.Menu(config.title)
         with self._context_menu:
             ui.MenuItem(
-                "Transfer definition to...",
-                triggered_fn=functools.partial(
-                    self._show_transfer_window,
-                    transfer_stack,
-                    transfer_kind="prim",
-                    display_name="Particle System",
-                ),
+                "Expand All",
+                identifier=config.expand_identifier,
+                triggered_fn=property_widget.expand_all_groups,
             )
+            ui.MenuItem(
+                "Collapse All",
+                identifier=config.collapse_identifier,
+                triggered_fn=property_widget.collapse_all_groups,
+            )
+            if config.include_particle_transfer_menu:
+                self._build_particle_system_transfer_menu_item()
         self._context_menu.show()
 
     def _get_particle_system_transfer_data(self) -> tuple[tuple[Sdf.PrimSpec, ...], set[str]]:
@@ -243,11 +342,15 @@ class AssetReplacementsPane(_WorkspaceWidget):
                 prim_specs.setdefault((prim_spec.layer.identifier, prim_spec.path), prim_spec)
         return tuple(prim_specs.values()), valid_layer_identifiers
 
-    def _can_transfer_particle_system_definition(self) -> bool:
+    def _get_transferable_particle_system_specs(self) -> tuple[Sdf.PrimSpec, ...]:
         transfer_stack, valid_layer_identifiers = self._get_particle_system_transfer_data()
-        return bool(transfer_stack) and self._layer_manager.can_transfer_from_layers(
+        if not transfer_stack:
+            return ()
+        if not self._layer_manager.can_transfer_from_layers(
             (spec.layer.identifier for spec in transfer_stack), valid_layer_identifiers
-        )
+        ):
+            return ()
+        return transfer_stack
 
     def _show_reference_transfer_window(self, item) -> None:
         valid_layer_identifiers = {layer.identifier for layer in self._layer_manager.get_valid_transfer_target_layers()}
@@ -418,6 +521,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 pinnable=True,
                                 pinned_text_fn=self._get_default_selection_pin_name,
                                 unpinned_fn=self._refresh_mesh_properties_widget,
+                                actions=self._build_property_group_menu_action(_OBJECT_PROPERTIES_MENU_CONFIG),
                             )
                             self._collapsible_frame_states[CollapsiblePanels.MESH_PROPERTIES] = True
                             with self._mesh_properties_collapsable_frame:
@@ -449,16 +553,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 pinnable=True,
                                 pinned_text_fn=self._get_material_selection_pin_name,
                                 unpinned_fn=self._refresh_material_properties_widget,
-                                actions=[
-                                    _PropertyCollapsableFrameAction(
-                                        name="More",
-                                        disabled_name="MoreDisabled",
-                                        clicked_fn=lambda: None,
-                                        tooltip="Use a modified material property row's action menu to transfer property modifications.",
-                                        enabled_fn=lambda: False,
-                                        identifier="material_properties_transfer_overrides",
-                                    )
-                                ],
+                                actions=self._build_property_group_menu_action(_MATERIAL_PROPERTIES_MENU_CONFIG),
                             )
                             self._collapsible_frame_states[CollapsiblePanels.MATERIAL_PROPERTIES] = True
                             with self._material_properties_collapsable_frame:
@@ -492,21 +587,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 pinnable=True,
                                 pinned_text_fn=self._get_particle_selection_pin_name,
                                 unpinned_fn=self._refresh_particle_properties_widget,
-                                actions=[
-                                    _PropertyCollapsableFrameAction(
-                                        name="More",
-                                        disabled_name="MoreDisabled",
-                                        clicked_fn=self._show_particle_system_transfer_menu,
-                                        tooltip=lambda: (
-                                            "Transfer this particle system definition to another layer."
-                                            if self._can_transfer_particle_system_definition()
-                                            else "Select an existing particle system, or use a modified particle "
-                                            "property row to transfer property modifications."
-                                        ),
-                                        enabled_fn=self._can_transfer_particle_system_definition,
-                                        identifier="particle_properties_transfer_overrides",
-                                    )
-                                ],
+                                actions=self._build_property_group_menu_action(_PARTICLE_PROPERTIES_MENU_CONFIG),
                             )
                             self._collapsible_frame_states[CollapsiblePanels.PARTICLE_PROPERTIES] = True
                             with self._particle_properties_collapsable_frame:
@@ -542,6 +623,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
                                 pinnable=True,
                                 pinned_text_fn=self._get_logic_selection_pin_name,
                                 unpinned_fn=self._refresh_logic_properties_widget,
+                                actions=self._build_property_group_menu_action(_LOGIC_PROPERTIES_MENU_CONFIG),
                             )
                             self._collapsible_frame_states[CollapsiblePanels.LOGIC_PROPERTIES] = True
                             with self._logic_properties_collapsable_frame:
