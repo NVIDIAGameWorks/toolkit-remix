@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.2]
+### Fixed
+- Fitted the ComfyUI Setup window to the height that its panel needs, and filled a taller window with the panel,
+  which keeps the Connect button at its bottom.
+
 ## [2.1.1]
 ### Added
 - Added persistent ComfyUI connection banners with compact, right-aligned actions inline to the right of flexible

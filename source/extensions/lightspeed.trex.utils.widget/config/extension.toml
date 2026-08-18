@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.8.0"
+version = "1.8.1"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix widget utils"
 description = "Utils helper for Lightspeed widgets"
@@ -14,6 +14,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 
 [dependencies]
 "lightspeed.common" = {}
+"lightspeed.events_manager" = {}
 "lightspeed.trex.asset_replacements.core.shared" = {}
 "lightspeed.trex.utils.common" = {}
 "omni.client" = {}
