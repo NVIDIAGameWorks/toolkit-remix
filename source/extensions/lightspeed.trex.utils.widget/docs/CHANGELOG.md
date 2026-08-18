@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.1]
+### Added
+- Added the `subscribe_layout_loaded` event, which a layout load calls after it restores the dock settings, and a
+  default window size that a workspace window class declares for the case where no dock gives it one.
+
 ## [1.8.0]
 ### Changed
 - Made quick-layout loading cancellation-safe with validated paths, owned tasks, and restored dock settings after partial mutation.

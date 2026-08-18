@@ -70,7 +70,14 @@ class WorkspaceWidget(abc.ABC):
 
 
 class WorkspaceWindowBase(abc.ABC):
-    """Base class with common functionalities for all workspace windows."""
+    """Base class with common functionalities for all workspace windows.
+
+    A subclass that needs one size while its window floats sets `_DEFAULT_WIDTH` and `_DEFAULT_HEIGHT`. A dock
+    gives the window the size of its column instead, so a window that a layout always docks needs neither.
+    """
+
+    _DEFAULT_WIDTH: int | None = None
+    _DEFAULT_HEIGHT: int | None = None
 
     def __init__(
         self,
@@ -128,12 +135,17 @@ class WorkspaceWindowBase(abc.ABC):
         return ui.Window(self.title, visible=False, flags=self.flags)
 
     def create_window(self, width: int | None = None, height: int | None = None):
-        """Creates the ui.Window instance and sets up the "Window" menu item."""
+        """Creates the ui.Window instance and sets up the "Window" menu item.
+
+        A caller that passes no size gets the default size of the class, when the class declares one.
+        """
         if self._window:
             return
 
         self._window = self._create_window()
 
+        width = self._DEFAULT_WIDTH if width is None else width
+        height = self._DEFAULT_HEIGHT if height is None else height
         if width is not None:
             self._window.width = width
         if height is not None:

@@ -16,6 +16,7 @@
 """
 
 from .e2e.test_setup import TestComfySetupAdvancedWidgetE2E
+from .e2e.test_workspace import TestComfySetupWorkspaceE2E
 from .e2e.test_typed_product_workflow import TestTypedComfyUIProductWorkflowE2E
 from .e2e.test_workflow_widget import TestWorkflowSetupWidgetE2E
 from .unit.test_display_adapter import TestComfyUIDisplayAdapter
@@ -25,6 +26,7 @@ from .unit.test_workflow_widget import TestWorkflowSetupWidgetUnit
 
 __all__ = (
     "TestComfySetupAdvancedWidgetE2E",
+    "TestComfySetupWorkspaceE2E",
     "TestComfyUIDisplayAdapter",
     "TestComfyUIWidgetExtension",
     "TestTypedComfyUIProductWorkflowE2E",

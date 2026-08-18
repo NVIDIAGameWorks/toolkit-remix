@@ -204,3 +204,74 @@ class TestQuickLayout(AsyncTestCase):
         # Assert
         self.assertIsInstance(error_context.exception, asyncio.CancelledError)
         log_error.assert_called_once_with("Deferred layout update failed during cancellation: post-load update failed")
+
+    async def test_load_layout_calls_the_layout_loaded_event_after_a_successful_load(self):
+        """A successful layout load calls the layout-loaded event once."""
+        # Arrange
+        layout_data = {"title": "Test Window", "visible": True}
+        window = MagicMock(visible=True)
+        app = MagicMock()
+        app.next_update_async = AsyncMock()
+        callback = MagicMock()
+        _subscription = quicklayout.subscribe_layout_loaded(callback)
+        with (
+            patch("builtins.open", mock_open()),
+            patch.object(quicklayout.json, "load", return_value=layout_data),
+            patch.object(quicklayout.ui.Workspace, "get_window", return_value=window),
+            patch.object(quicklayout.omni.kit.app, "get_app", return_value=app),
+            patch.object(quicklayout.QuickLayout, "load_file"),
+        ):
+            # Act
+            await quicklayout._load_layout_async("layout.json")
+
+        # Assert
+        callback.assert_called_once_with()
+
+    async def test_load_layout_does_not_call_the_event_when_the_load_fails(self):
+        """A layout load that raises from QuickLayout.load_file calls no event."""
+        # Arrange
+        layout_data = {"title": "Test Window", "visible": True}
+        window = MagicMock(visible=True)
+        app = MagicMock()
+        callback = MagicMock()
+        _subscription = quicklayout.subscribe_layout_loaded(callback)
+        with (
+            patch("builtins.open", mock_open()),
+            patch.object(quicklayout.json, "load", return_value=layout_data),
+            patch.object(quicklayout.ui.Workspace, "get_window", return_value=window),
+            patch.object(quicklayout.omni.kit.app, "get_app", return_value=app),
+            patch.object(quicklayout.QuickLayout, "load_file", side_effect=RuntimeError("load failed")),
+        ):
+            # Act
+            with self.assertRaises(RuntimeError):
+                await quicklayout._load_layout_async("layout.json")
+
+        # Assert
+        callback.assert_not_called()
+
+    async def test_load_layout_calls_the_event_when_cancelled_after_the_layout_loaded(self):
+        """A load that the caller cancels after QuickLayout.load_file still calls the event.
+
+        The layout already replaced the geometry of every window, so a window that owns a default size must
+        still learn about the load.
+        """
+        # Arrange
+        layout_data = {"title": "Test Window", "visible": True}
+        window = MagicMock(visible=True)
+        app = MagicMock()
+        app.next_update_async = AsyncMock(side_effect=asyncio.CancelledError)
+        callback = MagicMock()
+        _subscription = quicklayout.subscribe_layout_loaded(callback)
+        with (
+            patch("builtins.open", mock_open()),
+            patch.object(quicklayout.json, "load", return_value=layout_data),
+            patch.object(quicklayout.ui.Workspace, "get_window", return_value=window),
+            patch.object(quicklayout.omni.kit.app, "get_app", return_value=app),
+            patch.object(quicklayout.QuickLayout, "load_file"),
+        ):
+            # Act
+            with self.assertRaises(asyncio.CancelledError):
+                await quicklayout._load_layout_async("layout.json")
+
+        # Assert
+        callback.assert_called_once_with()

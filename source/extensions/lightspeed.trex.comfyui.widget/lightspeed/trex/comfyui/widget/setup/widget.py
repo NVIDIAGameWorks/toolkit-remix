@@ -90,6 +90,8 @@ class ComfySetupAdvancedWidget(WorkspaceWidget):
         self._standard_port_image = None
         self._status_frame = None
         self._connect_button = None
+        self._panel = None
+        self._slack_spacer = None
         self._connection_error_dialog = None
         self._connection_error_field = None
         self._event_sub = None
@@ -102,9 +104,26 @@ class ComfySetupAdvancedWidget(WorkspaceWidget):
 
         self._event_sub = subscribe_comfyui_event(context_name, self._on_core_event)
 
+    @property
+    def needed_height(self) -> float:
+        """Return the height that shows every row of the panel.
+
+        The panel fills its window and keeps the Connect button at the bottom, so the space that the rows do
+        not use collects in one spacer. The height of the panel without that space is the height that its
+        window must give it.
+
+        Returns:
+            Height that the rows need, or zero before the panel is built.
+        """
+        if self._panel is None:
+            return 0.0
+        slack = self._slack_spacer.computed_height if self._slack_spacer else 0.0
+        return self._panel.computed_content_height - slack
+
     def _build_ui(self):
         """Build the setup mode tabs and external-server controls."""
-        with ui.ZStack():
+        self._panel = ui.ZStack()
+        with self._panel:
             ui.Rectangle(name="TabBackground")
             with ui.VStack():
                 with ui.HStack(height=0):
@@ -185,6 +204,9 @@ class ComfySetupAdvancedWidget(WorkspaceWidget):
                                     mouse_released_fn=self._on_set_standard_port,
                                 )
                                 ui.Spacer()
+                # The panel fills its window, so the space that the rows do not need collects above the
+                # button, and the button stays at the bottom.
+                self._slack_spacer = ui.Spacer()
                 button_text = self._BUTTON_TEXT_MAP.get(state, "Connect")
                 self._connect_button = ui.Button(
                     button_text,

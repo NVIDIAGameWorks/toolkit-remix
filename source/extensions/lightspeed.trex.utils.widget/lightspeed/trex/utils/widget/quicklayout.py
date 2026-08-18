@@ -15,17 +15,43 @@
 * limitations under the License.
 """
 
-__all__ = ["load_layout"]
+__all__ = ["LAYOUT_LOADED_EVENT_NAME", "load_layout", "subscribe_layout_loaded"]
 
 import asyncio
 import json
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import carb
 import omni.kit.app
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from omni import ui
+from omni.flux.utils.common import EventSubscription
 from omni.kit.quicklayout import QuickLayout
+
+LAYOUT_LOADED_EVENT_NAME = "lightspeed.trex.utils.widget.layout_loaded"
+
+
+def subscribe_layout_loaded(callback: Callable[[], None]) -> EventSubscription:
+    """Subscribe to layout loads, and register the event when the first subscriber arrives.
+
+    A layout load replaces window geometry. A window that owns a default size can restore that size when
+    this event arrives. Every load that reaches `QuickLayout.load_file` calls the event, and a load that the
+    caller cancels after that call calls it too, because the layout already replaced the geometry.
+
+    The event manager rejects a subscription to an event that no caller registered, and this extension holds
+    widgets only, so it has no startup hook that could register the event. This function owns that step, so
+    that no subscriber has to know about it. A second registration of the same name does nothing.
+
+    Args:
+        callback: Observer that runs after a layout load.
+
+    Returns:
+        Subscription whose lifetime controls callback registration.
+    """
+    event_manager = _get_event_manager_instance()
+    event_manager.register_global_custom_event(LAYOUT_LOADED_EVENT_NAME)
+    return event_manager.subscribe_global_custom_event(LAYOUT_LOADED_EVENT_NAME, callback)
 
 
 def load_layout(layout_file: str | None) -> asyncio.Task | None:
@@ -83,6 +109,9 @@ async def _load_layout_async(layout_file: str):
     finally:
         if layout_loaded:
             _reapply_tab_bar_settings(layout_data)
+            event_manager = _get_event_manager_instance()
+            event_manager.register_global_custom_event(LAYOUT_LOADED_EVENT_NAME)
+            event_manager.call_global_custom_event(LAYOUT_LOADED_EVENT_NAME)
         else:
             for window_title, was_visible in initialization_window_states:
                 ui.Workspace.show_window(window_title, was_visible)
