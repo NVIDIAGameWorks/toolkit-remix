@@ -1,7 +1,7 @@
 [package]
 kit_sdk_version = "110.*"
 # Semantic Versionning is used: https://semver.org/
-version = "2.6.5"
+version = "2.6.6"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Shona Gillard <sgillard@nvidia.com>", "Scott Fitzpatrick <scfitzpatric@nvidia.com"]
@@ -31,8 +31,9 @@ preview_image = "data/images/preview.png"
 icon = "data/images/icon.png"
 
 [dependencies]
-"lightspeed.trex.ai_tools.widget" = {}
+"lightspeed.trex.comfyui.core" = {}
 "lightspeed.trex.utils.common" = {}
+"omni.flux.pip_archive" = {}  # Required for Pydantic
 "omni.flux.stage_manager.factory" = {}
 "omni.flux.stage_manager.plugin.interaction.usd" = {}
 
@@ -41,9 +42,15 @@ name = "lightspeed.trex.stage_manager.plugin.interaction.usd"
 
 [[test]]
 dependencies = [
-    "omni.flux.tests.dependencies",
+    "lightspeed.trex.tests.dependencies",
 ]
 
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
 ]

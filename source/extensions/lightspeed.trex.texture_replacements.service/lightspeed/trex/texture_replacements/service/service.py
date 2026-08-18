@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+__all__ = ["TextureReplacementsService"]
+
 from lightspeed.trex.texture_replacements.core.shared import TextureReplacementsCore
 from lightspeed.trex.texture_replacements.core.shared.data_models import (
     GetTexturesQueryModel,
@@ -104,7 +106,10 @@ class TextureReplacementsService(ServiceBase):
         async def override_textures(
             body: ServiceBase.inject_hidden_fields(ReplaceTexturesRequestModel, context_name=context_name),
         ) -> str:
-            return self.__texture_core.replace_texture_with_data_models(body) or "OK"
+            try:
+                return self.__texture_core.replace_texture_with_data_models(body) or "OK"
+            except ValueError as error:
+                ServiceBase.raise_error(422, error)
 
         @self.router.get(
             path="/types",

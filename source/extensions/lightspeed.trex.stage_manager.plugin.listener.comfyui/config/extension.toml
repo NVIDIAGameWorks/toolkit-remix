@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.0.1"
+version = "2.0.0"
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "Remix Stage Manager ComfyUI Listener Plugin"
 description = "ComfyUI state change listener plugin for the Remix stage manager"
@@ -12,9 +12,10 @@ category = "internal"
 preview_image = "data/images/preview.png"
 
 [dependencies]
-"lightspeed.trex.ai_tools.widget" = {}
+"lightspeed.trex.comfyui.core" = {}
 "omni.flux.pip_archive" = {}  # For pydantic
 "omni.flux.stage_manager.factory" = {}
+"omni.flux.stage_manager.plugin.listener.usd" = {}
 "omni.flux.utils.common" = {}
 
 [[python.module]]
@@ -27,4 +28,10 @@ dependencies = [
 
 stdoutFailPatterns.exclude = [
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
 ]

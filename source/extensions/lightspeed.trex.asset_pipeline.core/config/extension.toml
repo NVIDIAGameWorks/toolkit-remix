@@ -1,0 +1,39 @@
+[package]
+version = "1.1.1"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "RTX Remix Asset Pipeline Steps"
+description = "Concrete pipeline steps for RTX Remix asset processing (normal conversion, DDS, metadata)"
+readme = "docs/README.md"
+changelog = "docs/CHANGELOG.md"
+category = "internal"
+keywords = ["pipeline", "asset", "remix", "step"]
+icon = "data/icon.png"
+preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
+
+[dependencies]
+"lightspeed.common" = {}
+"omni.client" = {}
+"omni.usd" = {}
+"omni.flux.asset_importer.core" = {}
+"omni.flux.asset_pipeline.core" = {}
+"omni.flux.job_queue.core" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.material_converter" = {}
+"omni.flux.utils.octahedral_converter" = {}
+
+[[python.module]]
+name = "lightspeed.trex.asset_pipeline.core"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/renderer/mdl/searchPaths/templates=${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
+]
+
+stdoutFailPatterns.exclude = [
+   "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

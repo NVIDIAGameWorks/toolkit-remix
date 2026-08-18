@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0]
+### Changed
+- Replaced the prototype ComfyUI window name with shared AI Tools workspace names and standardized quick-layout access on `TEXTURECRAFT`.
+- Centralized height texture DDS export settings in shared texture info.
+- Added validation for unsupported DDS compression formats before building NVTT arguments.
+
 ## [1.14.8]
 ### Changed
 - Updated Remix particle schema constants to use `ParticleSystemAPI`.

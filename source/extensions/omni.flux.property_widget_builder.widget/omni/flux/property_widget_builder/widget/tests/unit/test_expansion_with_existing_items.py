@@ -185,3 +185,24 @@ class TestItemGroupExpansion(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertTrue(hidden_child.hidden)
         self.assertEqual(self.model.get_item_children(group), [])
+
+    async def test_default_min_column_widths_preserved(self):
+        """PropertyWidget preserves its default minimum column widths."""
+        # Act
+        with self.window.frame:
+            self.widget = PropertyWidget(model=self.model)
+
+        # Assert
+        self.assertEqual([width.value for width in self.widget._tree_min_column_widths], [100, 100])
+
+    async def test_min_column_widths_can_be_overridden(self):
+        """PropertyWidget exposes minimum column widths for consumers that need tighter layouts."""
+        # Arrange
+        min_column_widths = [ui.Pixel(80), ui.Pixel(120)]
+
+        # Act
+        with self.window.frame:
+            self.widget = PropertyWidget(model=self.model, tree_min_column_widths=min_column_widths)
+
+        # Assert
+        self.assertIs(self.widget._tree_min_column_widths, min_column_widths)

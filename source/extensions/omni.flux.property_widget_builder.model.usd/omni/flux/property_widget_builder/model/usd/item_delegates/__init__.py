@@ -22,6 +22,6 @@ __all__ = (
     "USDIntDragField",
 )
 
-from .combobox_delegate import ComboboxField
+from omni.flux.property_widget_builder.delegates import ComboboxField
 from .drag import USDFloatDragField, USDIntDragField
 from .file_texture_picker import FileTexturePicker

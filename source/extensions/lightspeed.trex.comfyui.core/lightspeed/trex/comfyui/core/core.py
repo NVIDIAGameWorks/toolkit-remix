@@ -15,1108 +15,1460 @@
 * limitations under the License.
 """
 
-__all__ = ["ComfyUICore"]
+__all__ = [
+    "ComfyUICore",
+    "ComfyUIRetargetState",
+    "ComfyUISubmission",
+    "ComfyUISubmissionResult",
+]
 
 import asyncio
-import concurrent.futures
-import json
-import shutil
-import stat
-import subprocess
-import time
-import webbrowser
-from contextlib import suppress
+import dataclasses
+import math
+import pathlib
+import uuid
+from collections.abc import Callable, Iterable, Iterator
 from copy import deepcopy
-from functools import partial
-from pathlib import Path
-from collections.abc import Callable
+from typing import Any
 
 import carb
-import omni.usd
-import requests
-import toml
-from huggingface_hub import hf_hub_download
-from lightspeed.trex.asset_replacements.core.shared import Setup as AssetReplacementCore
-from lightspeed.trex.asset_replacements.core.shared.data_models import AssetReplacementsValidators
-from lightspeed.trex.utils.common.prim_utils import get_extended_selection, is_a_prototype, is_shader_prototype
-from omni.flux.asset_importer.core.data_models import TextureTypes
-from omni.flux.utils.common import Event, EventSubscription, async_wrap
-from omni.flux.utils.common.git import (
-    GitError,
-    clone_repository,
-    get_remote_ahead_behind,
-    initialize_submodules,
-    open_repository,
-    pull_repository,
-)
-from omni.services.transport.server.base import utils
+from lightspeed.common.constants import REMIX_INGESTED_ASSETS_FOLDER
+from lightspeed.trex.asset_pipeline.core.job import TextureProcessingJob
+from lightspeed.trex.asset_pipeline.core.worker import run_in_worker_thread
+from omni.flux.job_queue.core import get_job_queue
+from omni.flux.job_queue.core.enums import JobState
+from omni.flux.job_queue.core.errors import QueueSubmissionError
+from omni.flux.job_queue.core.job import ApplyBinding, JobGraph
+from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP
+from omni.flux.utils.common.omni_url import OmniUrl
+from omni.flux.utils.common.materials import get_materials_from_prim_paths
+from omni.flux.utils.common.progress import INDETERMINATE_PROGRESS_TOTAL, run_worker_with_latest_progress
+from omni.usd import get_context
+from pxr import Sdf, Tf, Usd, UsdGeom, UsdShade
 
-from .enums import ComfyUIQueueType, ComfyUIState
+from lightspeed.trex.texture_replacements.core.shared import TextureReplacementsCore
+
+from .api import ComfyUIAPI
+from .connection import get_connected_endpoint, set_connected_endpoint
+from .enums import (
+    ComfyUIEventType,
+    ComfyUIOperation,
+    ComfyUIRetargetResult,
+    ComfyUIState,
+    RemixType,
+    WorkflowCategory,
+    WorkflowSourceType,
+)
+from .events import publish_comfyui_event
+from .apply_handler import ComfyUIJobApplyHandler
+from .job import ComfyUIJob
+from .maps import OUTPUT_TEXTURE_TYPE_MAP
+from .models import ComfyUIApplyTarget, ComfyUIWorkflowRequest, Workflow
+from .prompt import set_prompt_value
+from .resolvers import ResolverConfigurationError, ResolverValueError, StageExpandingResolver
+from .settings import ComfyUISettings
+from .url import Endpoint, build_url, canonical_endpoint
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class ComfyUISubmission:
+    """Carry the exact graphs prepared for one user submission.
+
+    Attributes:
+        graphs: Independently submitted material graphs in deterministic order.
+        skipped_count: Graphs whose generation job was prepared as skipped.
+    """
+
+    graphs: tuple[JobGraph, ...]
+    skipped_count: int
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class ComfyUISubmissionResult:
+    """Report the exact outcome of one prepared submission.
+
+    Attributes:
+        submitted_count: Graphs durably accepted by the queue.
+        failed_count: Graphs that were rejected or not attempted after cancellation or shutdown.
+    """
+
+    submitted_count: int
+    failed_count: int
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class ComfyUIRetargetState:
+    """Describe the state needed to render Retarget.
+
+    Attributes:
+        is_queued: Whether the generation job can still be edited.
+        saved_endpoint: Endpoint persisted with the generation job, if valid.
+        connected_endpoint: Endpoint currently connected for this USD context, if any.
+    """
+
+    is_queued: bool
+    saved_endpoint: Endpoint | None
+    connected_endpoint: Endpoint | None
+
+    @property
+    def can_retarget(self) -> bool:
+        """Return whether the job can move to the current connection."""
+        return self.is_queued and self.connected_endpoint is not None and self.saved_endpoint != self.connected_endpoint
+
+
+def _normalize_json_value(value: Any) -> Any:
+    """Return a JSON-compatible copy of a resolved workflow value.
+
+    Args:
+        value: Resolved workflow value to normalize.
+
+    Returns:
+        Equivalent value composed only of JSON-compatible types.
+
+    Raises:
+        TypeError: If a dictionary key is not a string or a value type is unsupported.
+        ValueError: If a floating-point value is not finite.
+    """
+    if isinstance(value, pathlib.Path):
+        return value.as_posix()
+    if isinstance(value, dict):
+        if not all(isinstance(key, str) for key in value):
+            raise TypeError("Workflow input dictionaries must use string keys")
+        return {key: _normalize_json_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_normalize_json_value(item) for item in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("Workflow input numbers must be finite")
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    raise TypeError(f"Workflow input value is not JSON serializable: {type(value).__name__}")
+
+
+def _get_processed_texture_output_url(stage: Usd.Stage, job_id: uuid.UUID) -> str | None:
+    """Build the durable destination for one material's processed textures.
+
+    Args:
+        stage: Live stage whose root determines project-owned versus queue-owned publication.
+        job_id: Stable generation job identifier.
+
+    Returns:
+        URI-safe project destination, or ``None`` when the anonymous stage requires queue-owned output.
+    """
+    root_layer = stage.GetRootLayer()
+    if root_layer.anonymous:
+        return None
+    project_path = str(root_layer.identifier)
+    project_directory = OmniUrl(OmniUrl(project_path).parent_url)
+    return str(project_directory / REMIX_INGESTED_ASSETS_FOLDER / "comfyui" / str(job_id))
+
+
+def _get_workflow_status_message(error: BaseException) -> str:
+    """Return user-facing guidance for a failed workflow load.
+
+    Args:
+        error: Workflow failure retained in the log for technical diagnosis.
+
+    Returns:
+        Plain-language recovery guidance that does not expose exception details.
+    """
+    if isinstance(error, asyncio.CancelledError):
+        return "Workflow loading was canceled. Select the workflow to try again."
+    if isinstance(error, (TypeError, ValueError, KeyError)):
+        return (
+            "ComfyUI returned workflow information that RTX Remix could not read. "
+            "Update the RTX Remix ComfyUI nodes and try again."
+        )
+    return "The workflow could not be loaded. Select it again or reconnect to ComfyUI."
+
+
+def _get_texture_label(texture_type: str) -> str:
+    """Return a plain-language texture type label.
+
+    Args:
+        texture_type: Workflow texture type identifier.
+
+    Returns:
+        Lowercase label without identifier separators or a redundant texture suffix.
+    """
+    return texture_type.removesuffix("_texture").replace("_", " ").strip().lower() or "texture"
 
 
 class ComfyUICore:
-    """
-    Core class to control a ComfyUI instance.
+    """Control ComfyUI workflow discovery and job preparation for one USD context.
 
-    **IMPORTANT:** The core must be initialized before it can be used.
-
-    - Initializing the core will also ensure a virtual environment is available.
-    - The core can automatically install the dependencies for the ComfyUI Installation and all custom nodes on
-      initialization.
+    Connects to a running external ComfyUI server.
     """
 
-    _GIT_URL_SETTING = "/exts/lightspeed.trex.comfyui.core/git/repository"
-    _GIT_BRANCH_SETTING = "/exts/lightspeed.trex.comfyui.core/git/branch"
+    def __init__(
+        self,
+        context_name: str,
+        *,
+        settings_changed_callback: Callable[[str, object], None] | None = None,
+    ):
+        """Initialize the ComfyUI runtime for one USD context.
 
-    _TORCH_INDEX_SETTING = "/exts/lightspeed.trex.comfyui.core/pip/torch_index"
+        Args:
+            context_name: USD context this runtime operates on.
+            settings_changed_callback: Optional process-wide settings change observer.
 
-    _MODELS_FILE_SETTING = "/exts/lightspeed.trex.comfyui.core/models/requirements_file"
-    _MODELS_CACHE_SETTING = "/exts/lightspeed.trex.comfyui.core/models/cache_dir"
-
-    _WORKFLOWS_SETTINGS = "/exts/lightspeed.trex.comfyui.core/workflows"
-
-    INSTANCE_ADDRESS_SETTING = "/exts/lightspeed.trex.comfyui.core/instance/address"
-    INSTANCE_PORT_SETTING = "/exts/lightspeed.trex.comfyui.core/instance/port"
-    INSTANCE_START_TIMEOUT_SETTING = "/exts/lightspeed.trex.comfyui.core/instance/start_timeout_s"
-    INSTANCE_POLL_INTERVAL_SETTING = "/exts/lightspeed.trex.comfyui.core/instance/poll_interval_s"
-
-    _INSTALL_DIRECTORY_SETTING = "/persistent/exts/lightspeed.trex.comfyui.core/install_directory"
-
-    _VENV_DIRECTORY = ".venv"
-
-    def __init__(self, context_name: str = ""):
-        tokens = carb.tokens.get_tokens_interface()
-
+        Raises:
+            ValueError: If ``context_name`` is None.
+        """
+        if context_name is None:
+            raise ValueError("context_name must be provided explicitly")
         self._context_name = context_name
-        self._context = omni.usd.get_context(self._context_name)
-        self._asset_replacement_core = AssetReplacementCore(self._context_name)
-
-        self._platform = tokens.resolve("${platform}")
-        self._exe_ext = tokens.resolve("${exe_ext}")
-
-        self._settings = carb.settings.get_settings()
-
-        self._state = ComfyUIState.NOT_FOUND
-        self._textures_selection = []
-        self._meshes_selection = []
-        self._workflows_cache = {}
-        self._update_available = False
-
-        self._run_process = None
-        self._repo = None
-        self._venv_python = None
-
-        self._stage_event_sub = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self._on_stage_event, name="StageChanged"
+        self._settings = ComfyUISettings(
+            settings_changed_callback=settings_changed_callback or self.handle_settings_changed,
         )
 
-        self.__comfyui_state_changed_event = Event()
-        self.__texture_selection_changed_event = Event()
-        self.__mesh_selection_changed_event = Event()
+        self._workflow: Workflow | None = None
+        self._available_workflows: list[tuple[WorkflowCategory, WorkflowSourceType, str]] = []
+        self._status_message = ""
+        self._last_connection_error = ""
+        self._client_id = str(uuid.uuid4())
+        self._connect_generation = 0
+        self._workflow_discovery_generation = 0
+        self._workflow_load_generation = 0
+        self._workflow_base_url: str | None = None
+        self._connected_base_url: str | None = None
+        self._active_operation: ComfyUIOperation | None = None
+        self._destroyed = False
 
-    def __del__(self):
-        # Stop the running ComfyUI process if active
-        self._stop()
+        self._state = ComfyUIState.READY
+        self._objects_changed_subscription = Tf.Notice.Register(
+            Usd.Notice.ObjectsChanged,
+            self._on_objects_changed,
+            None,
+        )
 
-        # Close the repository to release any file handles
-        if self._repo is not None:
-            self._repo.free()
+    @property
+    def context_name(self) -> str:
+        """Return the USD context name this instance operates on.
+
+        Returns:
+            USD context name supplied during initialization.
+        """
+        return self._context_name
+
+    def _on_objects_changed(self, notice, stage) -> None:
+        """Publish this core's context when authored visibility changes.
+
+        Args:
+            notice: USD ObjectsChanged-compatible notice.
+            stage: Stage that emitted the notice.
+        """
+        if stage != get_context(self._context_name).get_stage():
+            return
+        paths = (*notice.GetChangedInfoOnlyPaths(), *notice.GetResyncedPaths())
+        if any(path.IsPropertyPath() and path.name == UsdGeom.Tokens.visibility for path in paths):
+            publish_comfyui_event(self._context_name, ComfyUIEventType.STAGE_VISIBILITY_CHANGED)
 
     @property
     def state(self) -> ComfyUIState:
-        """
-        Get the current state of the ComfyUI Installation.
+        """Return the current lifecycle state of the ComfyUI connection.
+
+        Returns:
+            Current connection lifecycle state.
         """
         return self._state
 
     @property
-    def installation_directory(self) -> str | None:
-        """
-        Get the directory where the ComfyUI Installation is located.
-        """
-        return self._repo.workdir if self._repo else None
-
-    @property
-    def update_available(self) -> bool | None:
-        """
-        Get whether the ComfyUI Installation has an update available.
-
-        The method will return None if the update check failed.
-        """
-        return self._update_available
-
-    @property
-    def textures_selection(self) -> list[str]:
-        """
-        Get the textures selection.
-        """
-        return self._textures_selection
-
-    @property
-    def meshes_selection(self) -> list[str]:
-        """
-        Get the meshes selection.
-        """
-        return self._meshes_selection
-
-    @omni.usd.handle_exception
-    async def initialize(self, repository_directory: str | Path | None = None, open_or_install: bool = True):
-        """
-        Initialize the ComfyUI Installation in a non-blocking thread.
-
-        Args:
-            repository_directory: The directory where ComfyUI should be installed if it doesn't exist.
-                                  Leave None to find the previously set repository directory in the settings.
-            open_or_install: If True, will attempt to open the repository.
-                             If False, will clone the repository if it doesn't exist locally and install all
-                             dependencies and download the models.
-        """
-        origin_url = self._settings.get_as_string(self._GIT_URL_SETTING)
-        branch = self._settings.get_as_string(self._GIT_BRANCH_SETTING)
-        torch_index = self._settings.get_as_string(self._TORCH_INDEX_SETTING)
-        models_file = self._settings.get_as_string(self._MODELS_FILE_SETTING)
-        models_cache = self._settings.get_as_string(self._MODELS_CACHE_SETTING)
-
-        install_directory = repository_directory or self._settings.get_as_string(self._INSTALL_DIRECTORY_SETTING)
-        if not install_directory:
-            carb.log_info(
-                "No repository directory found and no repository directory was provided. Aborting initialization."
-            )
-            return
-
-        if not Path(install_directory).exists():
-            carb.log_info(
-                f"Repository directory {install_directory} does not exist. Cleaning the repository directory."
-            )
-            self._settings.set(self._INSTALL_DIRECTORY_SETTING, "")
-            return
-
-        if open_or_install:
-            initialization_method = partial(self._open_repository, str(install_directory))
-        else:
-            initialization_method = partial(
-                self._clone_repository,
-                str(install_directory),
-                origin_url,
-                branch,
-                torch_index,
-                models_file,
-                models_cache,
-            )
-
-        try:
-            loop = asyncio.get_event_loop()
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                await loop.run_in_executor(pool, initialization_method)
-        except Exception as e:  # noqa: BLE001
-            self._repo = None
-            carb.log_error(e)
-
-        if self._repo is None:
-            carb.log_error("Failed to initialize the ComfyUI Installation. Cleaning the installation directory.")
-            self._settings.set(self._INSTALL_DIRECTORY_SETTING, "")
-            self._update_state(ComfyUIState.NOT_FOUND)
-            return
-
-        self._settings.set(self._INSTALL_DIRECTORY_SETTING, str(self._repo.workdir))
-        self._update_state(ComfyUIState.READY)
-
-    @omni.usd.handle_exception
-    async def cleanup(self):
-        """
-        Cleanup the ComfyUI Installation in a non-blocking thread.
-        """
-        if self._repo is None:
-            carb.log_warn("No ComfyUI Installation found. Aborting cleanup.")
-            return
-
-        self._update_state(ComfyUIState.UNINSTALLING)
-
-        repository_path = self._repo.workdir
-
-        self._repo.free()
-
-        self._venv_python = None
-        self._repo = None
-
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                success = await asyncio.get_event_loop().run_in_executor(pool, partial(self._cleanup, repository_path))
-        except Exception:  # noqa: BLE001
-            success = False
-
-        if not success:
-            carb.log_error(f"Failed to cleanup the ComfyUI Installation: {repository_path}")
-            self._update_state(ComfyUIState.ERROR)
-            return
-
-        self._settings.set(self._INSTALL_DIRECTORY_SETTING, "")
-
-        self._update_state(ComfyUIState.NOT_FOUND)
-
-    @omni.usd.handle_exception
-    async def update(self, force: bool = False) -> bool | None:
-        """
-        Update the ComfyUI Installation in a non-blocking thread.
-
-        Args:
-            force: Whether to force the update even if local changes are detected.
+    def workflow(self) -> Workflow | None:
+        """Return the currently selected workflow.
 
         Returns:
-            True if the update was successful, False if the update was aborted, or None if the update was not attempted.
+            Selected workflow, or None when no workflow is active.
         """
+        return self._workflow
 
-        if self._repo is None:
-            carb.log_warn("No ComfyUI Installation found. Aborting update.")
-            return None
+    @property
+    def status_message(self) -> str:
+        """Return the human-readable message describing the current state.
 
-        if not self._update_available:
-            carb.log_warn("No update available for ComfyUI. Aborting update.")
-            return None
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            # The update will return True if the update was successful, False otherwise
-            success = await asyncio.get_event_loop().run_in_executor(pool, partial(self._update, force=force))
-            if success:
-                # Install dependencies and download the models
-                await self.initialize(repository_directory=self._repo.workdir, open_or_install=False)
-            self._update_available = not success
-            self._update_state(ComfyUIState.READY)
-
-        return success
-
-    @omni.usd.handle_exception
-    async def refresh(self):
+        Returns:
+            Status detail associated with the latest state transition.
         """
-        Refresh the ComfyUI Installation.
+        return self._status_message
+
+    @property
+    def last_connection_error(self) -> str:
+        """Return technical details from the current failed connection attempt.
+
+        Returns:
+            Exact connection exception, or an empty string outside the current error state.
         """
-        if self._repo is not None:
-            self._repo.free()
-            self._repo = None
+        return self._last_connection_error
 
-        await self.initialize()
+    @property
+    def settings(self) -> ComfyUISettings:
+        """Return the connection and server settings facade.
 
-        if self._run_process is not None:
-            self._update_state(ComfyUIState.RUNNING)
-
-    @omni.usd.handle_exception
-    async def run(self, headless: bool = True):
+        Returns:
+            Settings facade owned by this runtime.
         """
-        Run an instance of ComfyUI in a non-blocking thread.
+        return self._settings
+
+    @property
+    def is_ready(self) -> bool:
+        """Check whether the current endpoint is connected with a workflow selected.
+
+        Returns:
+            True if jobs can be prepared against the current endpoint.
+        """
+        return self._workflow is not None and self._is_current_runtime_endpoint()
+
+    @property
+    def is_connected(self) -> bool:
+        """Check whether RUNNING state belongs to the configured endpoint.
+
+        Returns:
+            True if the active connection matches current settings.
+        """
+        return self._state == ComfyUIState.RUNNING and self._connected_base_url == self.base_url
+
+    @property
+    def available_workflows(self) -> list[tuple[WorkflowCategory, WorkflowSourceType, str]]:
+        """Return a snapshot of the last successfully fetched workflow catalog.
+
+        Returns:
+            ``(category, source_type, name)`` tuples safe for caller mutation.
+        """
+        return list(self._available_workflows)
+
+    @property
+    def base_url(self) -> str:
+        """Return the server URL derived from current connection settings.
+
+        Returns:
+            Normalized ComfyUI server base URL.
+        """
+        return build_url(self._settings.protocol.scheme, self._settings.host, self._settings.port)
+
+    @property
+    def api(self) -> ComfyUIAPI:
+        """Create an API client for current connection settings.
+
+        Returns:
+            New client bound to the configured endpoint.
+        """
+        return ComfyUIAPI(self._settings.protocol.scheme, self._settings.host, self._settings.port)
+
+    def set_workflow(self, value: Workflow | None) -> None:
+        """Commit a workflow, invalidating any older in-flight load.
 
         Args:
-            headless: Whether to run the instance in headless mode.
-        """
-        if self._repo is None:
-            raise FileNotFoundError("ComfyUI Installation not found")
-
-        port = self._settings.get_as_int(self.INSTANCE_PORT_SETTING)
-        address = self._settings.get_as_string(self.INSTANCE_ADDRESS_SETTING)
-        timeout_s = self._settings.get_as_float(self.INSTANCE_START_TIMEOUT_SETTING)
-        poll_interval_s = self._settings.get_as_float(self.INSTANCE_POLL_INTERVAL_SETTING)
-
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                await asyncio.get_event_loop().run_in_executor(
-                    pool,
-                    partial(
-                        self._run,
-                        headless=headless,
-                        address=address,
-                        port=port,
-                        timeout_s=timeout_s,
-                        poll_interval_s=poll_interval_s,
-                    ),
-                )
-        except Exception:
-            carb.log_error("An error occurred while running ComfyUI")
-            self._update_state(ComfyUIState.ERROR)
-            raise
-
-    @omni.usd.handle_exception
-    async def stop(self, timeout: float | None = 10.0):
-        """
-        Stop the running ComfyUI process if active in a non-blocking thread.
-
-        Args:
-            timeout: Seconds to wait for graceful termination before killing the process
-        """
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                await asyncio.get_event_loop().run_in_executor(pool, partial(self._stop, timeout=timeout))
-        except Exception:
-            carb.log_error("An error occurred while stopping ComfyUI")
-            self._update_state(ComfyUIState.ERROR)
-            raise
-
-    @omni.usd.handle_exception
-    async def restart(self, headless: bool = True, timeout: float | None = 10.0):
-        """
-        Restart the running ComfyUI process if active.
-
-        Args:
-            headless: Whether to run the instance in headless mode.
-            timeout: Seconds to wait for graceful termination before killing the process
-        """
-        try:
-            await self.stop(timeout=timeout)
-            await self.run(headless=headless)
-        except Exception:
-            carb.log_error("An error occurred while restarting ComfyUI")
-            self._update_state(ComfyUIState.ERROR)
-            raise
-
-    @omni.usd.handle_exception
-    async def add_to_queue(self, queue_type: ComfyUIQueueType):
-        """
-        Add the selected textures or meshes to the ComfyUI processing queue.
-
-        Args:
-            queue_type: The queue type to add the selected textures or meshes to.
+            value: Workflow to select, or None to clear the selection.
 
         Raises:
-            requests.exceptions.HTTPError: If the request fails.
+            RuntimeError: If extension shutdown invalidated this runtime.
         """
-        if self._repo is None:
-            carb.log_error("No ComfyUI Installation found. Cannot add to queue.")
-            self._update_state(ComfyUIState.ERROR)
+        self._ensure_active()
+        self._workflow_load_generation += 1
+        self._publish_workflow(value)
+
+    def _publish_workflow(self, value: Workflow | None) -> None:
+        """Commit a workflow without invalidating the load that owns it.
+
+        Args:
+            value: Workflow to publish, or None to clear the selection.
+
+        Raises:
+            RuntimeError: If a subscriber invalidates this runtime during publication.
+        """
+        self._workflow = value
+        self._workflow_base_url = None
+        publish_comfyui_event(self._context_name, ComfyUIEventType.WORKFLOW_CHANGED, {"workflow": value})
+        self._ensure_active()
+
+    async def fetch_available_workflows(self) -> list[tuple[WorkflowCategory, WorkflowSourceType, str]]:
+        """Fetch available workflows from the ComfyUI server.
+
+        Calls the /rtx-remix/v1/workflows endpoint via api.get_workflow_list().
+        Returns API and full workflow categories from RTX Remix and user sources.
+        Current results update the internal cache and emit WORKFLOWS_LOADED.
+        Results made stale by newer discovery, shutdown, or endpoint changes are
+        rejected. A callback that changes the endpoint after publication causes
+        the previous cache to be restored.
+
+        Returns:
+            Current workflow catalog after stale-result handling.
+
+        Raises:
+            RuntimeError: If the runtime is destroyed or the server response is invalid.
+        """
+        self._ensure_active()
+        self._workflow_discovery_generation += 1
+        generation = self._workflow_discovery_generation
+        api = self.api
+        previous_workflows = self.available_workflows
+        try:
+            workflows = await self._request_available_workflows(api)
+        except RuntimeError:
+            if (
+                not self._destroyed
+                and generation == self._workflow_discovery_generation
+                and api.base_url != self.base_url
+            ):
+                self._set_state(ComfyUIState.READY)
+            raise
+        self._ensure_active()
+        if self._stop_stale_discovery(generation, api, previous_workflows):
+            self._ensure_active()
+            return self.available_workflows
+        self._restore_available_workflows(workflows, notify=True)
+        published = self.available_workflows
+        self._ensure_active()
+        if self._stop_stale_discovery(generation, api, previous_workflows, published=True):
+            self._ensure_active()
+            return self.available_workflows
+        return published
+
+    async def _request_available_workflows(
+        self, api: ComfyUIAPI
+    ) -> list[tuple[WorkflowCategory, WorkflowSourceType, str]]:
+        """Request workflows through a client captured by the caller.
+
+        Args:
+            api: Client bound to the endpoint that owns the discovery request.
+
+        Returns:
+            Workflow tuples returned by the server.
+
+        Raises:
+            RuntimeError: If the request or response is invalid.
+        """
+        try:
+            return await api.get_workflow_list()
+        except RuntimeError as error:
+            carb.log_warn(f"Failed to fetch workflows: {error}")
+            raise
+
+    def _restore_available_workflows(
+        self,
+        workflows: list[tuple[WorkflowCategory, WorkflowSourceType, str]],
+        *,
+        notify: bool,
+    ) -> None:
+        """Restore a workflow-list snapshot and optionally notify subscribers.
+
+        Args:
+            workflows: Workflow catalog snapshot to restore.
+            notify: Whether to emit a workflows-loaded event.
+        """
+        self._available_workflows = list(workflows)
+        if notify:
+            publish_comfyui_event(
+                self._context_name,
+                ComfyUIEventType.WORKFLOWS_LOADED,
+                {
+                    "workflows": self.available_workflows,
+                },
+            )
+
+    async def load_workflow(self, source_type: WorkflowSourceType, name: str) -> None:
+        """Fetch a workflow's data from the server and set it as the active workflow.
+
+        A load only commits while it remains the newest request for the captured
+        endpoint. Endpoint changes restore READY without committing stale data;
+        current request and parse failures are rolled back and propagated.
+
+        Args:
+            source_type: Where the workflow originates.
+            name: The workflow name.
+
+        Raises:
+            asyncio.CancelledError: If the workflow-loading task is cancelled.
+            RuntimeError: The core is destroyed or workflow loading fails.
+            TypeError: Returned workflow or preset values have invalid types.
+            ValueError: Returned workflow data is invalid.
+            KeyError: Required workflow data is missing.
+        """
+        self._ensure_active()
+        self._workflow_load_generation += 1
+        generation = self._workflow_load_generation
+        self._publish_workflow(None)
+        self._ensure_active()
+        if generation != self._workflow_load_generation:
             return
+        api = self.api
+        try:
+            api_workflow, full_workflow = await api.get_workflow_data(source_type, name)
+            workflow = Workflow.from_litegraph_dict(
+                api_workflow,
+                full_workflow=full_workflow,
+                name=name,
+                context_name=self._context_name,
+            )
+            workflow.source_type = source_type
+            workflow.category = WorkflowCategory.API
+        except asyncio.CancelledError as error:
+            self._handle_workflow_load_failure(error, generation, api, workflow_published=False)
+            raise
+        except (RuntimeError, TypeError, ValueError, KeyError) as error:
+            self._handle_workflow_load_failure(error, generation, api, workflow_published=False)
+            raise
 
-        address = self._settings.get_as_string(self.INSTANCE_ADDRESS_SETTING)
-        port = self._settings.get_as_int(self.INSTANCE_PORT_SETTING)
-
-        if not address or not port:
-            carb.log_error("No address or port found. Cannot add to queue.")
-            self._update_state(ComfyUIState.ERROR)
+        self._ensure_active()
+        if generation != self._workflow_load_generation:
             return
-
-        match queue_type:
-            case ComfyUIQueueType.TEXTURE:
-                selection = self._textures_selection
-            case ComfyUIQueueType.MESH:
-                selection = self._meshes_selection
-
-        if not selection:
-            carb.log_warn(f"No {queue_type.value} selection found. Cannot add to queue.")
+        if api.base_url != self.base_url:
+            self._set_state(ComfyUIState.READY)
+            self._ensure_active()
             return
+        self._status_message = ""
+        try:
+            self._publish_workflow(workflow)
+            self._ensure_active()
+            if generation != self._workflow_load_generation:
+                return
+            if self._workflow is not workflow:
+                return
+            if api.base_url != self.base_url:
+                self._publish_workflow(None)
+                self._ensure_active()
+                self._set_state(ComfyUIState.READY)
+                self._ensure_active()
+                return
+            self._workflow_base_url = api.base_url
+        except (RuntimeError, asyncio.CancelledError) as error:
+            self._handle_workflow_load_failure(error, generation, api, workflow_published=True)
+            raise
 
-        for input_path in selection:
+    def _handle_workflow_load_failure(
+        self,
+        failure: BaseException,
+        generation: int,
+        api: ComfyUIAPI,
+        *,
+        workflow_published: bool,
+    ) -> None:
+        """Roll back a failed current workflow load.
+
+        Args:
+            failure: Exception that interrupted workflow loading.
+            generation: Generation owned by the failed load.
+            api: Client bound to the endpoint used by the failed load.
+            workflow_published: Whether the failed load published its workflow.
+        """
+        if self._destroyed or generation != self._workflow_load_generation:
+            return
+        endpoint_changed = api.base_url != self.base_url
+        if workflow_published or not endpoint_changed:
+            self._publish_workflow(None)
+        if self._destroyed or generation != self._workflow_load_generation:
+            return
+        endpoint_changed = api.base_url != self.base_url
+        if endpoint_changed:
+            self._set_state(ComfyUIState.READY)
+        else:
+            self._set_state(self._state, _get_workflow_status_message(failure))
+
+    async def shutdown(self) -> None:
+        """Disconnect from the external ComfyUI server."""
+        if self._destroyed:
+            return
+        self._connect_generation += 1
+        self._workflow_discovery_generation += 1
+        self._workflow_load_generation += 1
+        self.set_workflow(None)
+        if self._destroyed:
+            return
+        self._set_state(ComfyUIState.READY)
+
+    async def prepare_jobs(
+        self,
+        prim_paths: list[str] | None = None,
+        progress: Callable[[int, int, Any], Any] | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
+    ) -> list[JobGraph]:
+        """Build one material graph for review against the current ComfyUI endpoint.
+
+        Listing and graph preparation run on a worker thread so the UI stays responsive; ``progress``
+        reports listing progress on the main thread and ``is_cancelled`` lets the caller abort it.
+
+        Args:
+            prim_paths: Explicit selection snapshot, or the current USD selection when omitted.
+            progress: Optional callback receiving current count, total count, and a status message.
+            is_cancelled: Optional callback returning whether the caller requested cancellation.
+
+        Returns:
+            One two-stage graph per unique selected material, or an empty list when cancelled.
+
+        Raises:
+            RuntimeError: Preparation overlaps another operation or the current endpoint is unavailable.
+        """
+        self._ensure_active()
+        self._begin_operation(ComfyUIOperation.JOB_PREPARATION)
+        try:
+            needs_connect = not self._is_current_runtime_endpoint()
+            if needs_connect:
+                await self.connect()
+                if self._state != ComfyUIState.RUNNING or self._connected_base_url != self.base_url:
+                    raise RuntimeError("Could not connect to the current ComfyUI endpoint")
+
+            graphs = await self._create_job_graphs(prim_paths=prim_paths, progress=progress, is_cancelled=is_cancelled)
+            self._ensure_active()
+            if not self._is_current_runtime_endpoint():
+                raise RuntimeError("Cannot prepare jobs without a current ComfyUI endpoint")
+            return graphs
+        finally:
+            self._finish_operation()
+
+    async def prepare_submission(
+        self,
+        prim_paths: list[str] | None = None,
+        progress: Callable[[int, int, Any], Any] | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
+    ) -> ComfyUISubmission:
+        """Prepare exact material graphs and the state needed for UI confirmation.
+
+        Args:
+            prim_paths: Explicit selection snapshot, or the current USD selection when omitted.
+            progress: Optional callback receiving current count, total count, and a status message.
+            is_cancelled: Optional callback returning whether the caller requested cancellation.
+
+        Returns:
+            Prepared submission returned to the requesting UI for confirmation. Empty when cancelled.
+        """
+        graphs = tuple(await self.prepare_jobs(prim_paths=prim_paths, progress=progress, is_cancelled=is_cancelled))
+        skipped_count = sum(graph.jobs[0].skip_reason is not None for graph in graphs)
+        return ComfyUISubmission(graphs, skipped_count)
+
+    async def submit_prepared_submission(
+        self,
+        submission: ComfyUISubmission,
+    ) -> ComfyUISubmissionResult:
+        """Add every prepared material graph to the queue in one transaction.
+
+        The whole batch is persisted in a single off-thread transaction that emits one structural
+        change, so a subscribed job queue widget rebuilds once for the batch instead of once per
+        graph. Submission is all-or-nothing: if the transaction fails, no graphs are added.
+
+        Args:
+            submission: Exact core-prepared submission accepted by the user.
+
+        Returns:
+            Exact successful and failed graph counts.
+
+        Raises:
+            RuntimeError: If extension shutdown invalidated this runtime.
+        """
+        self._ensure_active()
+        self._begin_operation(ComfyUIOperation.QUEUE_SUBMISSION)
+        try:
+            graphs = submission.graphs
             try:
-                response = await async_wrap(
-                    partial(
-                        requests.post,
-                        f"http://{address}:{port}/prompt",
-                        json={"prompt": self._get_prompt(queue_type, input_path)},
-                    )
-                )()
-                response.raise_for_status()
-                carb.log_info(f'Added "{input_path}" to the {queue_type.value} queue')
-            except Exception as e:
-                carb.log_error(f"An error occurred while adding the selection to the {queue_type.value} queue: {e}")
-                self._update_state(ComfyUIState.ERROR)
-                raise
+                await run_in_worker_thread(get_job_queue().submit_graphs, graphs)
+            except (QueueSubmissionError, RuntimeError) as error:
+                carb.log_warn(f"Failed to add ComfyUI material jobs to the queue: {error}")
+                return ComfyUISubmissionResult(submitted_count=0, failed_count=len(graphs))
+            return ComfyUISubmissionResult(submitted_count=len(graphs), failed_count=0)
+        finally:
+            self._finish_operation()
 
-    def open_ui(self):
-        """
-        Open the ComfyUI UI in the default browser.
-        """
-        if self._repo is None:
-            carb.log_error("No ComfyUI Installation found. Cannot open UI.")
-            self._update_state(ComfyUIState.ERROR)
-            return
-
-        address = self._settings.get_as_string(self.INSTANCE_ADDRESS_SETTING)
-        port = self._settings.get_as_int(self.INSTANCE_PORT_SETTING)
-
-        if not address or not port:
-            carb.log_error("No address or port found. Cannot open UI.")
-            self._update_state(ComfyUIState.ERROR)
-            return
-
-        url = f"http://{address}:{port}"
-        webbrowser.open(url)
-
-    def get_comfyui_directory(self, dirname: str, filename: str) -> str | None:
-        """
-        Get the ComfyUI directory from a given directory.
-
-        This method also looks at immediate children directories.
+    def get_workflow_request(self, job: ComfyUIJob) -> ComfyUIWorkflowRequest:
+        """Resolve the exact typed workflow request persisted for a queue job.
 
         Args:
-            dirname: The directory name
-            filename: The selected filename (ignored)
+            job: Queued ComfyUI job whose durable input should be resolved.
 
         Returns:
-            The ComfyUI directory, or None if it is not a ComfyUI directory.
-        """
-        repository_name = self._settings.get_as_string(self._GIT_URL_SETTING).split("/")[-1][:-4]
-        directory = Path(dirname)
-
-        # Check if the directory is a repository or contains the repository
-        if directory.name == repository_name and (directory / ".git").exists():
-            repository = directory
-        else:
-            repository = directory / repository_name
-            if not repository.exists() or not (repository / ".git").exists():
-                return None
-
-        project_file = repository / "pyproject.toml"
-        if not project_file.exists():
-            return None
-
-        # Read the repository's pyproject.toml file to check if it is a ComfyUI repository
-        with open(project_file, encoding="utf-8") as f:
-            project_config = toml.load(f)
-
-        return str(repository) if (project_config.get("project", {}).get("name") == "ComfyUI") else None
-
-    def subscribe_comfyui_state_changed(self, callback: Callable[[ComfyUIState], None]) -> EventSubscription:
-        """
-        Subscribe to ComfyUI instance state changes.
-
-        Args:
-            callback: The callback to call when the ComfyUI instance state changes.
-
-        Returns:
-            An object that will automatically unsubscribe when destroyed.
-        """
-        return EventSubscription(self.__comfyui_state_changed_event, callback)
-
-    def subscribe_texture_selection_changed(self, callback: Callable[[list[str]], None]) -> EventSubscription:
-        """
-        Subscribe to texture selection changes.
-
-        Args:
-            callback: The callback to call when the texture selection changes.
-
-        Returns:
-            An object that will automatically unsubscribe when destroyed.
-        """
-        return EventSubscription(self.__texture_selection_changed_event, callback)
-
-    def subscribe_mesh_selection_changed(self, callback: Callable[[list[str]], None]) -> EventSubscription:
-        """
-        Subscribe to mesh selection changes.
-
-        Args:
-            callback: The callback to call when the mesh selection changes.
-
-        Returns:
-            An object that will automatically unsubscribe when destroyed.
-        """
-        return EventSubscription(self.__mesh_selection_changed_event, callback)
-
-    def _update_state(self, value: ComfyUIState):
-        """
-        Update the current state of the ComfyUI Installation.
-
-        This method will trigger the `subscribe_state_changed` callback.
-
-        Args:
-            value: The new state of the ComfyUI Installation.
-        """
-        self._state = value
-        self.__comfyui_state_changed_event(value)
-
-    def _open_repository(self, repository_directory: str | Path):
-        """
-        Initialize the ComfyUI Installation.
-
-        Args:
-            repository_directory: The directory where the ComfyUI Installation is located.
-        """
-        # Try to find an existing ComfyUI Installation
-        comfyui_directory = self.get_comfyui_directory(str(repository_directory), "")
-
-        # If no existing ComfyUI Installation is found and no origin URL is provided, return None
-        if comfyui_directory is None:
-            carb.log_error("No existing ComfyUI Installation found")
-            self._update_state(ComfyUIState.ERROR)
-            return
-
-        # Open existing ComfyUI Installation
-        self._update_state(ComfyUIState.FOUND)
-        self._repo = open_repository(repo_root=str(comfyui_directory), validation_callback=self._validate_repo)
-        if self._repo is None:
-            return
-
-        # Setup virtual environment for the new ComfyUI Installation
-        self._venv_python = self._setup_venv()
-        if self._venv_python is None:
-            return
-
-        # Check if the ComfyUI Installation has an update available
-        try:
-            _, behind = get_remote_ahead_behind(self._repo)
-        except (ValueError, GitError) as e:
-            carb.log_error(f"Error checking for update: {e}")
-            self._update_available = None
-        else:
-            self._update_available = behind > 0
-
-    def _clone_repository(
-        self,
-        install_directory: str | Path,
-        origin_url: str,
-        branch: str,
-        torch_index: str,
-        models_file: str,
-        models_cache: str,
-    ):
-        """
-        Initialize the ComfyUI Installation.
-
-        Args:
-            install_directory: The directory where the ComfyUI Installation is located or should be cloned.
-            origin_url: The URL of the ComfyUI repository that should be cloned.
-            branch: The branch of the ComfyUI repository that should be cloned.
-            torch_index: The PIP index to use for the PyTorch installation.
-            models_file: The requirements file to use to get the requested models.
-            models_cache: The directory to use for the models cache.
-        """
-        self._update_state(ComfyUIState.NOT_FOUND)
-
-        # Try to find an existing ComfyUI Installation
-        comfyui_directory = self.get_comfyui_directory(str(install_directory), "")
-
-        # If no existing ComfyUI Installation is found and no origin URL is provided, return None
-        if not comfyui_directory and not origin_url:
-            carb.log_error("No existing ComfyUI Installation found and no origin URL was provided")
-            self._update_state(ComfyUIState.ERROR)
-            return
-
-        if not comfyui_directory:
-            # Clone new ComfyUI Installation
-            self._update_state(ComfyUIState.DOWNLOADING)
-            self._repo = clone_repository(
-                origin_url,
-                str(install_directory),
-                branch=branch,
-                depth=1,
-                recurse_submodules=True,
-                validation_callback=self._validate_repo,
-            )
-        else:
-            self._open_repository(install_directory)
-
-            if self._repo is None:
-                return
-
-            initialize_submodules(self._repo)
-
-        if self._repo is None:
-            return
-
-        # Setup virtual environment for the new ComfyUI Installation
-        self._venv_python = self._setup_venv()
-        if self._venv_python is None:
-            return
-
-        # Install dependencies for the new ComfyUI Installation
-        self._install_dependencies(torch_index=torch_index)
-
-        # Download the models requested by the ComfyUI Installation
-        self._download_models(models_file=models_file, models_cache=models_cache)
-
-    def _download_models(self, models_file: str | None = None, models_cache: str | None = None):
-        """
-        Download the models for the ComfyUI Installation.
-
-        Args:
-            models_file: The requirements file to use to get the requested models.
-            models_cache: The directory to use for the models cache.
-        """
-        if not models_file or not models_cache:
-            carb.log_warn("No models requirements file or models cache directory provided. Skipping model download.")
-            return
-
-        if self._repo is None:
-            carb.log_error("No ComfyUI Installation found. Cannot download models.")
-            self._update_state(ComfyUIState.ERROR)
-            return
-
-        base_path = Path(self._repo.workdir)
-        cache_path = base_path / models_cache
-
-        # Ready the remix-models.toml file in the repository
-        remix_models_file = base_path / models_file
-        if not remix_models_file.exists():
-            carb.log_error('No "remix-models.toml" file found. Cannot download models.')
-            self._update_state(ComfyUIState.ERROR)
-            return
-
-        # Read the remix-models.toml file
-        with open(remix_models_file, encoding="utf-8") as f:
-            remix_models = toml.load(f)
-
-        self._update_state(ComfyUIState.MODELS)
-
-        # Download the huggingface models
-        for model in remix_models.get("huggingface", []):
-            if "repo_id" not in model or "filename" not in model or "revision" not in model or "local_dir" not in model:
-                carb.log_error(
-                    f"Invalid HuggingFace model entry: {model}. "
-                    "Every model entry must have the following keys: repo_id, filename, revision, local_dir"
-                )
-                self._update_state(ComfyUIState.ERROR)
-                return
-
-            model_path = base_path / model["local_dir"] / Path(model["filename"]).name
-            if model_path.exists():
-                carb.log_warn(f'Model "{model_path}" already exists. Skipping download.')
-                continue
-
-            cache_file = cache_path / model["filename"]
-            if not cache_file.exists():
-                hf_hub_download(
-                    repo_id=model["repo_id"],
-                    filename=model["filename"],
-                    revision=model["revision"],
-                    local_dir=str(cache_path),
-                )
-
-            # Move the model to the correct location
-            cache_file.rename(model_path)
-
-    def _setup_venv(self) -> str | None:
-        """
-        Setup the installation's virtual environment.
-
-        Returns:
-            The path to the virtual environment python executable, or None if setup fails.
-        """
-        if self._repo is None:
-            carb.log_error("No ComfyUI Installation found. Cannot setup virtual environment.")
-            self._update_state(ComfyUIState.ERROR)
-            return None
-
-        self._update_state(ComfyUIState.VENV)
-
-        venv_dir = Path(self._repo.workdir) / self._VENV_DIRECTORY
-        executable_path = (
-            venv_dir / ("Scripts" if self._platform == "windows-x86_64" else "bin") / f"python{self._exe_ext}"
-        )
-
-        if executable_path.exists():
-            return str(executable_path)
-
-        venv_cmd = [
-            carb.tokens.get_tokens_interface().resolve("${python}"),
-            "-s",
-            "-m",
-            "venv",
-            str(venv_dir),
-        ]
-
-        return_code = self._execute_cmd(venv_cmd, self._repo.workdir).wait()
-        if return_code != 0:
-            self._update_state(ComfyUIState.ERROR)
-            carb.log_error(f"Virtual environment creation failed with code {return_code}")
-            return None
-
-        return str(executable_path)
-
-    def _install_dependencies(self, torch_index: str | None = None):
-        """
-        Install the ComfyUI Installation Dependencies.
-
-        Args:
-            torch_index: The index to use for the torch installation.
-        """
-        if self._repo is None:
-            carb.log_error("No ComfyUI Installation found. Cannot install dependencies.")
-            self._update_state(ComfyUIState.ERROR)
-            return
-
-        if self._venv_python is None:
-            carb.log_error("No virtual environment python found. Cannot install dependencies.")
-            self._update_state(ComfyUIState.ERROR)
-            return
-
-        self._update_state(ComfyUIState.DEPENDENCIES)
-
-        requirements_file = Path(self._repo.workdir) / "requirements.txt"
-
-        # Look for custom node requirements.txt files
-        custom_requirements = [
-            p.as_posix() for p in Path(self._repo.workdir).glob("custom_nodes/*/requirements.txt") if p.is_file()
-        ]
-
-        # Install pip dependencies for ComfyUI and all custom nodes
-        pip_cmd = [
-            self._venv_python,
-            "-s",
-            "-m",
-            "pip",
-            "install",
-            "--upgrade",
-            "torch",
-            "torchvision",
-            "torchaudio",
-        ]
-
-        # Add the torch index if provided
-        if torch_index:
-            pip_cmd.extend(["--extra-index-url", torch_index])
-
-        # Add all requirements files to the pip command
-        all_requirements = [requirements_file] + custom_requirements
-        for req in all_requirements:
-            pip_cmd.extend(["-r", str(req)])
-
-        return_code = self._execute_cmd(pip_cmd, self._repo.workdir).wait()
-        if return_code != 0:
-            self._update_state(ComfyUIState.ERROR)
-            carb.log_error(f"Dependencies installation failed with code {return_code}")
-
-    def _cleanup(self, repository_directory: str, attempts: int = 5, delay_s: float = 0.25) -> bool:
-        """
-        Try to delete the repository directory; on PermissionError, fix permissions and retry recursively.
-
-        Args:
-            repository_directory: Directory of the repository to cleanup
-            attempts: Number of attempts before giving up
-            delay_s: Sleep between attempts (seconds)
-
-        Returns:
-            True on success, False otherwise.
-        """
-
-        if attempts <= 0:
-            return False
-
-        path = Path(repository_directory)
-        try:
-            shutil.rmtree(path)
-            return True
-        except FileNotFoundError:
-            return True
-        except PermissionError as e:
-            carb.log_warn(f"Permission error cleaning up repository directory: {e}")
-
-            # Repository directory was already cleaned up
-            if not path.exists():
-                return True
-
-            # Fix permissions and retry
-            for child in path.rglob("*"):
-                with suppress(Exception):
-                    child.chmod(stat.S_IWRITE)
-        except Exception as e:  # noqa: BLE001
-            carb.log_error(f"Exception cleaning up repository directory: {e}")
-            if attempts > 1:
-                carb.log_error(f"Trying again in {delay_s} seconds ({attempts - 1} attempts left)")
-
-        time.sleep(max(0.0, delay_s))
-        return self._cleanup(repository_directory, attempts - 1, delay_s)
-
-    def _update(self, force: bool = False) -> bool:
-        """
-        Update the ComfyUI Installation.
-
-        Args:
-            force: Whether to hard reset the repository to the remote or attempt to pull and preserve local changes.
+            Persisted workflow request used by execution and queue editing.
 
         Raises:
-            ValueError: If the pull failed.
+            RuntimeError: If the job or its request is unavailable or malformed.
+            ValueError: If the job belongs to another core context.
+        """
+        self._ensure_active()
+        self._ensure_job_context(job)
+        try:
+            request = get_job_queue().resolve_job_inputs(job.job_id)[ComfyUIJob.WORKFLOW_REQUEST]
+        except (KeyError, TypeError, ValueError) as error:
+            raise RuntimeError("The workflow saved with this job is unavailable") from error
+        if type(request) is not ComfyUIWorkflowRequest:
+            raise RuntimeError("The workflow saved with this job is unavailable")
+        return request
+
+    def get_retarget_state(self, job: ComfyUIJob) -> ComfyUIRetargetState:
+        """Return queue and endpoint state needed to render Retarget.
+
+        Args:
+            job: Queued ComfyUI job whose target should be described.
 
         Returns:
-            True if the update was successful, False otherwise.
-        """
-        if self._repo is None:
-            carb.log_error("No ComfyUI Installation found. Cannot update.")
-            return False
-
-        self._update_state(ComfyUIState.UPDATING)
-
-        return pull_repository(self._repo, force=force)
-
-    def _run(
-        self,
-        headless: bool = True,
-        address: str = "127.0.0.1",
-        port: int = 7860,
-        timeout_s: float = 120.0,
-        poll_interval_s: float = 0.5,
-    ):
-        """
-        Run an instance of ComfyUI.
-
-        Args:
-            headless: Whether to run the instance in headless mode.
-            address: The address to start the ComfyUI instance at.
-            port: The port to start the ComfyUI instance on.
-            timeout_s: The timeout in seconds to wait for ComfyUI to become ready.
-            poll_interval_s: The interval in seconds to poll for ComfyUI to become ready.
-        """
-        if self._run_process is not None:
-            self._update_state(ComfyUIState.RUNNING)
-            carb.log_warn("ComfyUI is already running")
-            return
-
-        self._update_state(ComfyUIState.STARTING)
-
-        validated_port = utils.validate_port(port)
-        if validated_port != port:
-            carb.log_warn(f"Port {port} is taken, using {validated_port} instead")
-            self._settings.set(self.INSTANCE_PORT_SETTING, validated_port)
-
-        script_path = Path(self._repo.workdir) / "main.py"
-
-        run_cmd = [
-            self._venv_python,
-            "-s",
-            str(script_path),
-            "--windows-standalone-build",
-            "--listen",
-            str(address),
-            "--port",
-            str(validated_port),
-        ]
-        if headless:
-            run_cmd.append("--disable-auto-launch")
-
-        try:
-            self._run_process = subprocess.Popen(run_cmd, cwd=self._repo.workdir)
-        except Exception as e:  # noqa: BLE001
-            self._update_state(ComfyUIState.ERROR)
-            carb.log_error(f"Failed to start ComfyUI: {e}")
-            return
-
-        try:
-            ready = self._wait_for_server(address, validated_port, timeout_s, poll_interval_s)
-        except (RuntimeError, TimeoutError) as e:
-            self._stop()
-            self._update_state(ComfyUIState.ERROR)
-            carb.log_error(f"The ComfyUI process failed to startup: {e}")
-            return
-
-        # The startup process was cancelled, early return
-        if not ready:
-            return
-
-        self._update_state(ComfyUIState.RUNNING)
-
-        self._run_process.wait()
-        self._run_process = None
-
-        self._update_state(ComfyUIState.READY)
-
-    def _stop(self, timeout: float | None = 10.0):
-        """
-        Stop the running ComfyUI process if active.
-
-        Args:
-            timeout: Seconds to wait for graceful termination before killing the process
-        """
-        self._update_state(ComfyUIState.STOPPING)
-
-        process = self._run_process
-        if process is None:
-            self._update_state(ComfyUIState.READY)
-            return
-
-        try:
-            if process is not None and process.poll() is None:
-                process.terminate()
-                try:
-                    if process is not None:
-                        process.wait(timeout=timeout)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-            process = None
-            self._update_state(ComfyUIState.READY)
-        except Exception as e:  # noqa: BLE001
-            self._update_state(ComfyUIState.ERROR)
-            carb.log_error(e)
-
-        self._run_process = None
-
-    def _get_prompt(self, queue_type: ComfyUIQueueType, input_path: str) -> dict:
-        """
-        Get the ComfyUI prompt for the given queue type.
-
-        Args:
-            queue_type: The queue type to get the prompt for.
-            input_path: The path to the input file to use in the workflow.
+            Current immutable retarget state.
 
         Raises:
-            ValueError: If the workflow settings are invalid.
-
-        Returns:
-            The ComfyUI prompt for the given queue type.
+            RuntimeError: If extension shutdown invalidated this runtime.
+            ValueError: If the job belongs to another core context.
         """
-        if self._repo is None:
-            raise ValueError("No ComfyUI Installation found")
-
-        root_dir = Path(self._repo.workdir)
-        workflow = self._settings.get(self._WORKFLOWS_SETTINGS).get(queue_type.value, {})
-
-        workflow_file_path = workflow.get("file_path", "")
-        workflow_input = workflow.get("input", "")
-
-        if not workflow_file_path:
-            raise ValueError(f"No workflow file path found for queue type: {queue_type}")
-
-        if not workflow_input:
-            raise ValueError(f"No workflow input found for queue type: {queue_type}")
-
-        workflow_path = root_dir / workflow_file_path
-        if not workflow_path.exists():
-            raise ValueError(f"The workflow file {workflow_file_path} does not exist")
-
-        if workflow_path.as_posix() not in self._workflows_cache:
-            with open(workflow_path, encoding="utf-8") as workflow_file:
-                self._workflows_cache[workflow_path.as_posix()] = json.load(workflow_file)
-
-        parts = workflow_input.split(".")
-        if len(parts) != 2:
-            raise ValueError(f"Input name {workflow_input} is not supported")
-
-        workflow_value = deepcopy(self._workflows_cache[workflow_path.as_posix()])
-        if parts[0] in workflow_value:
-            workflow_value[parts[0]]["inputs"][parts[1]] = input_path
-
-        return workflow_value
-
-    def _on_stage_event(self, event: carb.events.IEvent):
-        """
-        Callback for stage events.
-        """
-        if event.type != int(omni.usd.StageEventType.SELECTION_CHANGED):
-            return
-
-        self._update_selections()
-
-    def _update_selections(self):
-        """
-        Get the textures selection.
-        """
-        meshes_selection = []
-        textures_selection = []
-
-        for prim_path in get_extended_selection(self._context_name):
-            prim = self._context.get_stage().GetPrimAtPath(prim_path)
-
-            if not prim:
-                continue
-
-            # If a mesh or instance is selected, add the meshe references to the selection
-            if is_a_prototype(prim):
-                _, references = AssetReplacementsValidators.get_prim_references(prim_path, self._context_name)
-                for ref, layer in references:
-                    meshes_selection.append(str(Path(layer.identifier).parent / ref.assetPath))
-
-            # If a material or shader is selected, add the diffuse texture of the material to the selection
-            elif is_shader_prototype(prim):
-                textures = self._asset_replacement_core.get_textures_from_material_path(
-                    prim_path, {TextureTypes.DIFFUSE}
-                )
-                textures_selection.extend([texture_path for _, texture_path in textures])
-
-        # If the meshes selection has changed, update the meshes selection and trigger the event
-        if meshes_selection != self._meshes_selection:
-            self._meshes_selection = meshes_selection
-            self.__mesh_selection_changed_event(meshes_selection)
-
-        # If the textures selection has changed, update the textures selection and trigger the event
-        if textures_selection != self._textures_selection:
-            self._textures_selection = textures_selection
-            self.__texture_selection_changed_event(textures_selection)
-
-    def _validate_repo(self, repo_root: str) -> bool:
-        """
-        Validate the repository is a ComfyUI Installation.
-
-        Args:
-            repo_root: The root directory of the repository to validate
-
-        Returns:
-            True if the repository is a ComfyUI Installation, False otherwise.
-        """
-        if not repo_root:
-            return False
-
-        project_file = Path(repo_root) / "pyproject.toml"
-        if not project_file.exists():
-            return False
-        with open(project_file, encoding="utf-8") as f:
-            project_config = toml.load(f)
-
-        return project_config.get("project", {}).get("name") == "ComfyUI"
-
-    def _execute_cmd(self, cmd: list[str], cwd: str | Path, stream_output: bool = True) -> subprocess.Popen:
-        """
-        Run a command while streaming output line-by-line to stdout.
-
-        Args:
-            cmd: Command list to execute
-            cwd: Working directory for the process
-            stream_output: Whether to print the output of the command to stdout
-
-        Returns:
-            The subprocess.Popen object
-        """
-        proc = subprocess.Popen(
-            cmd,
-            cwd=cwd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
+        self._ensure_active()
+        self._ensure_job_context(job)
+        try:
+            saved_endpoint = canonical_endpoint(job.scheme, job.host, job.port)
+        except ValueError:
+            saved_endpoint = None
+        return ComfyUIRetargetState(
+            is_queued=get_job_queue().get_job_snapshot(job.job_id).state is JobState.QUEUED,
+            saved_endpoint=saved_endpoint,
+            connected_endpoint=get_connected_endpoint(self._context_name),
         )
 
+    def retarget_job(self, job: ComfyUIJob, endpoint: Endpoint) -> ComfyUIRetargetResult:
+        """Atomically persist an endpoint change while a job remains queued.
+
+        Args:
+            job: Queued job whose endpoint should be replaced.
+            endpoint: Connected endpoint that must still be active when mutation occurs.
+
+        Returns:
+            Exact reason the update succeeded or was rejected.
+
+        Raises:
+            RuntimeError: If extension shutdown invalidated this runtime.
+            ValueError: If the job belongs to another core context or the endpoint is invalid.
+        """
+        self._ensure_active()
+        self._ensure_job_context(job)
+        expected_endpoint = canonical_endpoint(*endpoint)
+        if get_connected_endpoint(self._context_name) != expected_endpoint:
+            return ComfyUIRetargetResult.CONNECTION_CHANGED
+        updated_job = deepcopy(job)
+        updated_job.scheme, updated_job.host, updated_job.port = expected_endpoint
+        if get_job_queue().try_update_queued_job(updated_job):
+            return ComfyUIRetargetResult.UPDATED
+        return ComfyUIRetargetResult.JOB_STARTED
+
+    def _ensure_job_context(self, job: ComfyUIJob) -> None:
+        """Reject queue operations routed through the wrong context core.
+
+        Args:
+            job: ComfyUI job whose saved context should match this core.
+
+        Raises:
+            ValueError: If the job belongs to another USD context.
+        """
+        if job.context_name != self._context_name:
+            raise ValueError("ComfyUI job belongs to another USD context")
+
+    async def connect(self) -> None:
+        """Connect to the currently configured external ComfyUI server.
+
+        Only the newest connection attempt may publish discovery or RUNNING.
+        Endpoint changes and callback invalidation roll back to READY; current
+        request and callback failures are propagated.
+
+        Raises:
+            asyncio.CancelledError: If the connection task is cancelled.
+            RuntimeError: The core is destroyed or connection setup fails.
+        """
+        self._ensure_active()
+        self._connect_generation += 1
+        self._workflow_discovery_generation += 1
+        self._workflow_load_generation += 1
+        generation = self._connect_generation
+        discovery_generation = self._workflow_discovery_generation
+        api: ComfyUIAPI | None = None
+        previous_workflows: list[tuple[WorkflowCategory, WorkflowSourceType, str]] | None = None
         try:
-            if proc.stdout is not None and stream_output:
-                for line in proc.stdout:
-                    print(line.rstrip())
-        except Exception:
-            proc.kill()
+            self._set_state(ComfyUIState.STARTING, "Connecting to the configured ComfyUI server.")
+            self._ensure_active()
+            api = self.api
+            if self._workflow_base_url is not None and self._workflow_base_url != api.base_url:
+                self.set_workflow(None)
+                self._ensure_active()
+                if self._stop_stale_connection(generation, discovery_generation, api):
+                    self._ensure_active()
+                    return
+            await api.ping()
+            self._ensure_active()
+            if self._stop_stale_connection(generation, discovery_generation, api):
+                self._ensure_active()
+                return
+            workflows = await self._request_available_workflows(api)
+            self._ensure_active()
+            if self._stop_stale_connection(generation, discovery_generation, api):
+                self._ensure_active()
+                return
+            previous_workflows = self.available_workflows
+            self._restore_available_workflows(workflows, notify=True)
+            self._ensure_active()
+            if self._stop_stale_connection(
+                generation,
+                discovery_generation,
+                api,
+                previous_workflows,
+                published=True,
+            ):
+                self._ensure_active()
+                return
+            self._connected_base_url = api.base_url
+            self._set_state(ComfyUIState.RUNNING)
+            self._ensure_active()
+            if self._stop_stale_connection(
+                generation,
+                discovery_generation,
+                api,
+                previous_workflows,
+                published=True,
+            ):
+                self._ensure_active()
+                return
+        except asyncio.CancelledError:
+            if not self._destroyed and generation == self._connect_generation:
+                if previous_workflows is not None:
+                    self._restore_available_workflows(previous_workflows, notify=True)
+                if not self._destroyed and generation == self._connect_generation:
+                    self._set_state(ComfyUIState.READY)
+            raise
+        except RuntimeError as error:
+            if not self._destroyed and generation == self._connect_generation:
+                if previous_workflows is not None:
+                    self._restore_available_workflows(previous_workflows, notify=True)
+                if not self._destroyed and generation == self._connect_generation:
+                    endpoint_changed = api is not None and api.base_url != self.base_url
+                    discovery_changed = discovery_generation != self._workflow_discovery_generation
+                    if endpoint_changed or discovery_changed:
+                        self._set_state(ComfyUIState.READY)
+                    else:
+                        self._last_connection_error = str(error)
+                        self._set_state(
+                            ComfyUIState.ERROR,
+                            "Could not connect to ComfyUI. "
+                            "Check the server address and that ComfyUI is running, then try again.",
+                        )
             raise
 
-        return proc
+    def _is_current_runtime_endpoint(self) -> bool:
+        """Check whether connection and workflow provenance match current settings.
 
-    def _wait_for_server(
+        Returns:
+            True if runtime state belongs to the configured endpoint.
+        """
+        if not self.is_connected:
+            return False
+        current_base_url = self.base_url
+        return self._workflow_base_url is None or self._workflow_base_url == current_base_url
+
+    def _is_current_discovery(self, generation: int, api: ComfyUIAPI) -> bool:
+        """Check whether workflow discovery still owns cache publication.
+
+        Args:
+            generation: Generation captured by the discovery request.
+            api: Client bound to the discovery endpoint.
+
+        Returns:
+            True if no newer discovery or endpoint change superseded the request.
+        """
+        return generation == self._workflow_discovery_generation and api.base_url == self.base_url
+
+    def _stop_stale_discovery(
         self,
-        address: str,
-        port: int,
-        timeout_s: float,
-        poll_interval_s: float,
+        generation: int,
+        api: ComfyUIAPI,
+        previous_workflows: list[tuple[WorkflowCategory, WorkflowSourceType, str]],
+        *,
+        published: bool = False,
     ) -> bool:
-        """
-        Wait for the ComfyUI process to become ready.
+        """Reject stale workflow discovery and restore subscriber-visible cache state.
 
         Args:
-            address: The address to start the ComfyUI instance at.
-            port: The port to start the ComfyUI instance on.
-            timeout_s: The timeout in seconds to wait for ComfyUI to become ready.
-            poll_interval_s: The interval in seconds to poll for ComfyUI to become ready.
-
-        Raises:
-            RuntimeError: If the ComfyUI process exits with a non-zero code
-            TimeoutError: If the ComfyUI startup process timed out
+            generation: Generation captured by the discovery request.
+            api: Client bound to the discovery endpoint.
+            previous_workflows: Catalog visible before discovery began.
+            published: Whether the stale catalog was already published.
 
         Returns:
-            True if the ComfyUI process is ready, False otherwise.
+            True if the discovery request is stale and must stop.
         """
-        start_time = time.monotonic()
+        if self._is_current_discovery(generation, api):
+            return False
+        if generation == self._workflow_discovery_generation:
+            self._restore_available_workflows(previous_workflows, notify=published)
+            if not self._destroyed and generation == self._workflow_discovery_generation:
+                self._set_state(ComfyUIState.READY)
+        return True
 
-        while time.monotonic() - start_time < timeout_s:
-            if not self._run_process:
-                return False
+    def _stop_stale_connection(
+        self,
+        generation: int,
+        discovery_generation: int,
+        api: ComfyUIAPI,
+        previous_workflows: list[tuple[WorkflowCategory, WorkflowSourceType, str]] | None = None,
+        *,
+        published: bool = False,
+    ) -> bool:
+        """Restore disconnected state when callbacks or newer work invalidate a connection.
 
-            return_code = self._run_process.poll() if self._run_process is not None else None
-            if return_code is not None and return_code != 0:
-                self._run_process = None
-                raise RuntimeError(f"ComfyUI exited early with code {return_code}")
+        Args:
+            generation: Generation captured by the connection attempt.
+            discovery_generation: Discovery generation owned by the connection attempt.
+            api: Client bound to the connection endpoint.
+            previous_workflows: Catalog visible before connection discovery began.
+            published: Whether the connection's catalog was already published.
 
-            try:
-                response = requests.get(f"http://{address}:{port}/system_stats", timeout=1.0)
-                if response.status_code == 200:
-                    return True
-            except requests.RequestException:
-                pass
+        Returns:
+            True if the connection attempt is stale and must stop.
+        """
+        if generation == self._connect_generation and self._is_current_discovery(discovery_generation, api):
+            return False
+        if generation == self._connect_generation:
+            if previous_workflows is not None:
+                self._restore_available_workflows(previous_workflows, notify=published)
+            if not self._destroyed and generation == self._connect_generation:
+                self._set_state(ComfyUIState.READY)
+        return True
 
-            time.sleep(poll_interval_s)
+    def destroy(self) -> None:
+        """Invalidate this core so stale references cannot resume work after extension shutdown."""
+        if self._destroyed:
+            return
+        self._destroyed = True
+        self._objects_changed_subscription.Revoke()
+        self._objects_changed_subscription = None
+        self._connect_generation += 1
+        self._workflow_discovery_generation += 1
+        self._workflow_load_generation += 1
+        self._workflow = None
+        self._workflow_base_url = None
+        self._connected_base_url = None
+        self._available_workflows.clear()
+        self._set_state(ComfyUIState.READY)
+        self._settings.destroy()
 
-        raise TimeoutError("ComfyUI startup process timed out")
+    def get_submission_block_reason(self) -> str | None:
+        """Return why the current stage cannot create a new material graph.
+
+        Existing queued work is intentionally independent of this check. A live stage is needed only while resolving
+        selected materials and capturing the exact root and edit-layer identities that Apply will later validate.
+
+        Returns:
+            User-facing guidance, or ``None`` when a live stage is available.
+        """
+        try:
+            self._get_submission_target()
+        except RuntimeError as error:
+            return str(error)
+        return None
+
+    def _get_submission_target(self) -> tuple[Usd.Stage, str, str]:
+        """Resolve the live stage identity required to prepare new material graphs.
+
+        Returns:
+            Live stage, root-layer identifier, and current edit-layer identifier.
+
+        Raises:
+            RuntimeError: If no stage is open.
+        """
+        stage = get_context(self._context_name).get_stage()
+        if stage is None:
+            raise RuntimeError(
+                "Open a project to select materials for new ComfyUI jobs. Existing queued jobs can continue."
+            )
+        root_layer = stage.GetRootLayer()
+        edit_layer = stage.GetEditTarget().GetLayer()
+        return stage, str(root_layer.identifier), str(edit_layer.identifier)
+
+    async def _create_job_graphs(
+        self,
+        prim_paths: list[str] | None = None,
+        progress: Callable[[int, int, Any], Any] | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
+    ) -> list[JobGraph]:
+        """Create one generation and processing graph per selected material.
+
+        The stage listing and per-material graph preparation run on a worker thread (they are USD
+        reads that mutate nothing) so the UI keeps painting. ``progress`` is invoked on the main
+        thread with the latest listing progress and ``is_cancelled`` aborts the listing early.
+
+        Args:
+            prim_paths: Explicit selection snapshot, or the current USD selection when omitted.
+            progress: Optional callback receiving current count, total count, and a status message.
+            is_cancelled: Optional callback returning whether the caller requested cancellation.
+
+        Returns:
+            Material graphs containing generation and texture-processing children, or an empty list
+            when the caller cancelled the listing.
+
+        Raises:
+            RuntimeError: If workflow, stage, saved layers, or eligible materials are unavailable.
+        """
+        if self._workflow is None:
+            raise RuntimeError("No ComfyUI workflow is selected")
+
+        workflow = deepcopy(self._workflow)
+        stage, project_path, edit_target_layer = self._get_submission_target()
+        context = get_context(self._context_name)
+        selected_paths = (
+            list(prim_paths) if prim_paths is not None else list(context.get_selection().get_selected_prim_paths())
+        )
+        stage_resolvers = self._get_stage_expanding_resolvers(workflow)
+        endpoint = canonical_endpoint(self._settings.protocol.scheme, self._settings.host, self._settings.port)
+        client_id = self._client_id
+
+        def build_graphs(report: Callable[[int, int | None, Any | None], None]) -> list[JobGraph]:
+            paths = selected_paths
+            if stage_resolvers:
+                report(0, INDETERMINATE_PROGRESS_TOTAL, "Listing stage textures...")
+                paths = self._stage_expansion_prim_paths(
+                    stage,
+                    stage_resolvers,
+                    report=report,
+                    is_cancelled=is_cancelled,
+                )
+                if is_cancelled is not None and is_cancelled():
+                    return []
+            candidates = self._get_material_candidates(paths)
+            return self._create_job_graphs_for_candidates(
+                candidates,
+                workflow,
+                project_path,
+                edit_target_layer,
+                endpoint,
+                client_id,
+                stage=stage,
+                report=report,
+                is_cancelled=is_cancelled,
+            )
+
+        graphs = await run_worker_with_latest_progress(
+            build_graphs,
+            progress_callback=progress,
+            is_cancelled=is_cancelled,
+            finish_worker_on_cancel=True,
+        )
+
+        if is_cancelled is not None and is_cancelled():
+            return []
+        if get_context(self._context_name).get_stage() is not stage:
+            raise RuntimeError("The project changed while ComfyUI jobs were being prepared. Try again.")
+        if not graphs:
+            raise RuntimeError("The selection does not contain any materials that can create ComfyUI jobs")
+
+        return graphs
+
+    @staticmethod
+    def _get_stage_expanding_resolvers(workflow: Workflow) -> tuple[StageExpandingResolver, ...]:
+        """Return the workflow resolvers that expand across the whole stage.
+
+        Args:
+            workflow: Detached workflow snapshot inspected by the worker.
+
+        Returns:
+            Stage-expanding resolvers in workflow-input order.
+        """
+        return tuple(
+            workflow_input.value
+            for workflow_input in workflow.inputs
+            if isinstance(workflow_input.value, StageExpandingResolver)
+        )
+
+    @staticmethod
+    def _stage_expansion_prim_paths(
+        stage: Usd.Stage,
+        resolvers: tuple[StageExpandingResolver, ...],
+        *,
+        report: Callable[[int, int | None, Any | None], None] | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
+    ) -> Iterator[str]:
+        """Stream the de-duplicated seed prim paths from every stage-expanding getter.
+
+        Args:
+            stage: Live stage traversed to seed one candidate per matching prim.
+            resolvers: Stage-expanding resolvers from the immutable workflow snapshot.
+            report: Optional worker-thread callback receiving current count, total count, and status.
+            is_cancelled: Optional thread-safe callback returning whether the caller requested cancellation.
+
+        Yields:
+            De-duplicated prim paths each stage-expanding getter expands the submission across.
+        """
+        paths: set[str] = set()
+        for resolver in resolvers:
+            for prim_path in resolver.iter_stage_prim_paths(stage):
+                if is_cancelled is not None and is_cancelled():
+                    return
+                if prim_path in paths:
+                    continue
+                paths.add(prim_path)
+                if report is not None:
+                    report(
+                        len(paths),
+                        INDETERMINATE_PROGRESS_TOTAL,
+                        f"Found {len(paths)} stage texture candidate(s)...",
+                    )
+                yield prim_path
+
+    def _get_material_candidates(
+        self,
+        prim_paths: Iterable[str],
+    ) -> list[tuple[UsdShade.Material, list[str]]]:
+        """Return unique selected materials and every mesh path that owns each material.
+
+        Args:
+            prim_paths: Selected prim paths to inspect for bound materials.
+
+        Returns:
+            Unique materials paired with their selected owning mesh paths.
+        """
+        paths = list(dict.fromkeys(prim_paths))
+        material_by_path: dict[str, UsdShade.Material] = {}
+        for material in get_materials_from_prim_paths(paths, self._context_name):
+            if not material:
+                continue
+            material_prim = material.GetPrim()
+            if not material_prim.IsValid():
+                continue
+            material_by_path.setdefault(str(material_prim.GetPath()), material)
+
+        owners_by_material = self._get_material_owner_paths(paths, set(material_by_path))
+        return [
+            (material, owners_by_material.get(material_path, []))
+            for material_path, material in material_by_path.items()
+        ]
+
+    def _get_material_owner_paths(
+        self,
+        prim_paths: list[str],
+        material_paths: set[str],
+    ) -> dict[str, list[str]]:
+        """Map candidate materials to the selected mesh paths that use them.
+
+        Args:
+            prim_paths: Selected prim roots to traverse.
+            material_paths: Candidate material paths to include.
+
+        Returns:
+            Candidate material paths mapped to unique owning mesh paths.
+        """
+        stage = get_context(self._context_name).get_stage()
+        if stage is None:
+            return {}
+
+        owners: dict[str, dict[str, None]] = {material_path: {} for material_path in material_paths}
+        predicate = Usd.TraverseInstanceProxies(Usd.PrimAllPrimsPredicate)
+        for prim_path in dict.fromkeys(prim_paths):
+            prim = stage.GetPrimAtPath(prim_path)
+            if not prim.IsValid():
+                continue
+            for candidate in Usd.PrimRange(prim, predicate):
+                if not (candidate.IsA(UsdGeom.Mesh) or candidate.IsA(UsdGeom.Subset)):
+                    continue
+                material, _ = UsdShade.MaterialBindingAPI(candidate).ComputeBoundMaterial()
+                if not material:
+                    continue
+                material_path = str(material.GetPrim().GetPath())
+                if material_path not in owners:
+                    continue
+                owner = candidate.GetParent() if candidate.IsA(UsdGeom.Subset) else candidate
+                owner_path = str(owner.GetPath())
+                owners[material_path].setdefault(owner_path, None)
+        return {material_path: list(owner_paths) for material_path, owner_paths in owners.items()}
+
+    @staticmethod
+    def _get_surface_shader_paths(material: UsdShade.Material) -> list[str]:
+        """Return unique shader prim paths connected to a material's surface outputs.
+
+        Args:
+            material: Material whose surface connections are inspected.
+
+        Returns:
+            Connected shader prim paths in surface-output order.
+        """
+        outputs = list(material.GetSurfaceOutputs())
+        if not outputs:
+            output = material.GetSurfaceOutput()
+            if output:
+                outputs = [output]
+
+        shader_paths = []
+        for output in outputs:
+            for source_info in output.GetConnectedSources()[0]:
+                source_prim = source_info.source.GetPrim()
+                if source_prim.IsValid() and UsdShade.Shader(source_prim):
+                    shader_path = str(source_prim.GetPath())
+                    if shader_path not in shader_paths:
+                        shader_paths.append(shader_path)
+        return shader_paths
+
+    def _capture_texture_targets(self, material: UsdShade.Material, workflow: Workflow) -> dict[str, str]:
+        """Capture exactly one valid shader input for every declared workflow output.
+
+        Args:
+            material: Material whose shader inputs receive generated textures.
+            workflow: Detached workflow snapshot whose outputs are captured.
+
+        Returns:
+            Workflow texture types mapped to target shader input paths.
+
+        Raises:
+            ValueError: If outputs are missing, unsupported, duplicated, or do not resolve uniquely.
+        """
+        if not workflow.output_specs:
+            raise ValueError("The active workflow does not produce textures.")
+
+        shader_paths = self._get_surface_shader_paths(material)
+        replacements_core = TextureReplacementsCore(self._context_name)
+        targets: dict[str, str] = {}
+        for output in workflow.output_specs:
+            texture_label = _get_texture_label(output.texture_type)
+            if output.texture_type in targets:
+                raise ValueError(f"The active workflow produces more than one {texture_label} texture.")
+            texture_type = OUTPUT_TEXTURE_TYPE_MAP.get(output.texture_type)
+            if texture_type is None:
+                raise ValueError(f"The active workflow uses an unsupported texture type: {texture_label}.")
+            input_name = TEXTURE_TYPE_INPUT_MAP.get(texture_type)
+            if input_name is None:
+                raise ValueError(f"The active workflow uses an unsupported texture type: {texture_label}.")
+            candidates = [str(Sdf.Path(shader_path).AppendProperty(input_name)) for shader_path in shader_paths]
+            valid_targets = replacements_core.get_valid_texture_inputs(candidates)
+            if len(valid_targets) != 1:
+                count = len(valid_targets)
+                if count == 0:
+                    raise ValueError(f"This material does not have a replaceable {texture_label} texture.")
+                raise ValueError(
+                    f"This material has more than one {texture_label} texture, "
+                    "so RTX Remix cannot choose which one to replace."
+                )
+            target = valid_targets[0]
+            if target in targets.values():
+                raise ValueError("Two workflow outputs would replace the same material texture.")
+            targets[output.texture_type] = target
+        return targets
+
+    def _create_job_graphs_for_candidates(
+        self,
+        candidates: Iterable[tuple[UsdShade.Material, list[str]]],
+        workflow: Workflow,
+        project_path: str,
+        edit_target_layer: str,
+        endpoint: Endpoint,
+        client_id: str,
+        *,
+        stage: Usd.Stage | None = None,
+        report: Callable[[int, int | None, Any | None], None] | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
+    ) -> list[JobGraph]:
+        """Create one independently resolved two-job graph per material.
+
+        Args:
+            candidates: Unique materials and their owning mesh paths.
+            workflow: Detached workflow snapshot resolved into every graph.
+            project_path: Live root-layer identifier captured before material resolution.
+            edit_target_layer: Live edit-layer identifier captured before material resolution.
+            endpoint: ComfyUI endpoint captured before worker execution.
+            client_id: ComfyUI client identifier captured before worker execution.
+            stage: Live stage used to choose project-owned or queue-owned texture publication.
+            report: Optional worker-thread callback receiving current count, total count, and status.
+            is_cancelled: Optional callback returning whether the caller requested cancellation.
+
+        Returns:
+            One executable or skipped generation-processing graph per material.
+
+        """
+        target_stage = stage or get_context(self._context_name).get_stage()
+        if target_stage is None:
+            raise RuntimeError("The stage used to prepare this ComfyUI submission is no longer open")
+        candidates = list(candidates)
+        total = len(candidates)
+        graphs: list[JobGraph] = []
+        for index, (material, owner_paths) in enumerate(candidates):
+            if is_cancelled is not None and is_cancelled():
+                break
+            if report is not None:
+                report(index, total, f"Preparing job {index + 1} of {total}...")
+            material_prim = material.GetPrim()
+            material_path = str(material_prim.GetPath())
+            resolved: dict[str, Any] = {}
+            skip_reason = None
+            exclude_candidate = False
+            for workflow_input in workflow.inputs:
+                resolver = workflow_input.value
+                try:
+                    value = resolver(material_prim)
+                except ResolverConfigurationError:
+                    raise
+                except ResolverValueError as error:
+                    if isinstance(resolver, StageExpandingResolver):
+                        exclude_candidate = True
+                    else:
+                        skip_reason = str(error)
+                    break
+                except (TypeError, ValueError):
+                    if isinstance(resolver, StageExpandingResolver):
+                        exclude_candidate = True
+                    else:
+                        skip_reason = (
+                            f"{workflow_input.label} could not be prepared for this material. "
+                            "Choose a different getter and try again."
+                        )
+                    break
+                if isinstance(resolver, StageExpandingResolver) and not resolver.accepts_resolved_value(value):
+                    exclude_candidate = True
+                    break
+                try:
+                    resolved[workflow_input.port_id] = _normalize_json_value(value)
+                except (TypeError, ValueError):
+                    skip_reason = (
+                        f"{workflow_input.label} has a value that this workflow cannot use. "
+                        "Choose a different value and try again."
+                    )
+                    break
+
+            if exclude_candidate:
+                continue
+
+            prompt = deepcopy(workflow.api)
+            for port_id, value in resolved.items():
+                set_prompt_value(prompt, port_id, value)
+
+            texture_targets = {}
+            if skip_reason is None:
+                try:
+                    texture_targets = self._capture_texture_targets(material, workflow)
+                except ValueError as error:
+                    skip_reason = str(error)
+
+            input_mappings = {}
+            if skip_reason is None:
+                input_mappings = {
+                    workflow_input.port_id: str(resolved[workflow_input.port_id])
+                    for workflow_input in workflow.inputs
+                    if workflow_input.port_id in resolved
+                    and resolved[workflow_input.port_id]
+                    and workflow_input.remix_type == RemixType.TEXTURE_FILE_PATH
+                }
+            generation_job = ComfyUIJob(
+                name="ComfyUI generation",
+                context_name=self._context_name,
+                prim_paths=list(dict.fromkeys(owner_paths)),
+                material_path=material_path,
+                scheme=endpoint[0],
+                host=endpoint[1],
+                port=endpoint[2],
+                skip_reason=skip_reason,
+            )
+            request = ComfyUIWorkflowRequest(
+                prompt=prompt,
+                input_bindings=tuple(input_mappings.items()),
+                client_id=client_id,
+                timeout=300.0,
+                output_url=_get_processed_texture_output_url(target_stage, generation_job.job_id),
+                workflow=deepcopy(workflow),
+            )
+            target = ComfyUIApplyTarget(
+                context_name=self._context_name,
+                project_path=project_path,
+                edit_target_layer=edit_target_layer,
+                material_path=material_path,
+                texture_targets=tuple(texture_targets.items()),
+            )
+            processing_job = TextureProcessingJob(
+                name="Texture optimization",
+                apply_binding=ApplyBinding(
+                    output_port=TextureProcessingJob.PROCESSED_TEXTURES,
+                    handler_type=ComfyUIJobApplyHandler,
+                    target=target,
+                ),
+            )
+            graph = JobGraph(name=f"{workflow.name} - {workflow.active_preset or 'Custom Settings'}")
+            graph.add_job(generation_job)
+            graph.add_job(processing_job)
+            graph.bind(generation_job, ComfyUIJob.WORKFLOW_REQUEST, request)
+            graph.connect(
+                generation_job.output(ComfyUIJob.GENERATED_TEXTURES),
+                processing_job.input(TextureProcessingJob.SOURCE_TEXTURES),
+            )
+            graphs.append(graph)
+        if report is not None:
+            report(total, total, None)
+        return graphs
+
+    def _set_state(
+        self,
+        state: ComfyUIState,
+        status_message: str = "",
+    ) -> None:
+        """Transition to a new state and emit a STATE_CHANGED event.
+
+        Args:
+            state: Target lifecycle state.
+            status_message: Optional human-readable reason for the transition.
+        """
+        self._state = state
+        self._status_message = status_message
+        if state is not ComfyUIState.ERROR:
+            self._last_connection_error = ""
+        if state is ComfyUIState.RUNNING:
+            set_connected_endpoint(
+                self._context_name,
+                canonical_endpoint(self._settings.protocol.scheme, self._settings.host, self._settings.port),
+            )
+        else:
+            self._connected_base_url = None
+            set_connected_endpoint(self._context_name, None)
+        publish_comfyui_event(
+            self._context_name,
+            ComfyUIEventType.STATE_CHANGED,
+            {"state": state, "status_message": status_message},
+        )
+
+    def handle_settings_changed(self, key: str, value: object) -> None:
+        """Invalidate endpoint-owned state and notify this context of a setting change.
+
+        Args:
+            key: Short settings key name that changed.
+            value: New value for the setting.
+
+        Raises:
+            RuntimeError: If extension shutdown invalidated this runtime.
+        """
+        self._ensure_active()
+        self._connect_generation += 1
+        self._workflow_discovery_generation += 1
+        self._workflow_load_generation += 1
+        self._connected_base_url = None
+        self._workflow_base_url = None
+        self._available_workflows.clear()
+        self._workflow = None
+        self._set_state(ComfyUIState.READY)
+        publish_comfyui_event(
+            self._context_name,
+            ComfyUIEventType.WORKFLOWS_LOADED,
+            {"workflows": []},
+        )
+        publish_comfyui_event(
+            self._context_name,
+            ComfyUIEventType.WORKFLOW_CHANGED,
+            {"workflow": None},
+        )
+        publish_comfyui_event(
+            self._context_name,
+            ComfyUIEventType.SETTINGS_CHANGED,
+            {"key": key, "value": value},
+        )
+
+    def _begin_operation(self, operation: ComfyUIOperation) -> None:
+        """Claim exclusive preparation/submission ownership for this core.
+
+        Args:
+            operation: User-facing operation name used in an overlap error.
+
+        Raises:
+            RuntimeError: If another preparation or submission owns the core.
+        """
+        if self._active_operation is not None:
+            raise RuntimeError(f"ComfyUI {self._active_operation.value} is already in progress")
+        self._active_operation = operation
+
+    def _finish_operation(self) -> None:
+        """Release preparation/submission ownership for this core."""
+        self._active_operation = None
+
+    def _ensure_active(self) -> None:
+        """Raise when an extension shutdown invalidated this core instance.
+
+        Raises:
+            RuntimeError: If this runtime has been destroyed.
+        """
+        if self._destroyed:
+            raise RuntimeError("ComfyUI core instance has been destroyed")

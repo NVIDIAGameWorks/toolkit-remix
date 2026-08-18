@@ -15,309 +15,316 @@
 * limitations under the License.
 """
 
+from __future__ import annotations
+
 import base64
-import dataclasses
+import binascii
+import contextlib
 import enum
-import functools
 import json
+import math
 import pathlib
-import pickle
 import uuid
-from typing import Any, Generic, TypeVar
-from collections.abc import Callable
+from collections.abc import Iterator
+from typing import Any
 
-import omni.flux.job_queue.core.job
-import omni.flux.job_queue.core.utils
+from . import persistence
+from .constants import COLLECTION_TYPE_NAMES, COLLECTION_TYPES
 
-T = TypeVar("T")
+__all__ = ("deserialize", "serialize")
 
 
 def serialize(obj: Any) -> str:
-    """
-    Serialize a Python object to a JSON string using custom serializers.
+    """Serialize one supported queue value to JSON.
 
     Args:
-        obj (Any): The Python object to serialize.
+        obj: Registered or built-in queue value to encode.
 
     Returns:
-        str: The JSON string representation of the object.
+        JSON representation containing only explicitly supported data.
+
+    Raises:
+        TypeError: If the value or any nested value is unsupported or invalid.
     """
     try:
-        return json.dumps(obj, cls=Encoder, ensure_ascii=False)
-    except (TypeError, ValueError) as e:
-        raise TypeError(f"Object of type {type(obj).__name__} is not serializable: {e}") from e
+        return json.dumps(_encode(obj, set()), ensure_ascii=False, allow_nan=False)
+    except (TypeError, ValueError) as error:
+        raise TypeError(f"Object of type {type(obj).__name__} is not serializable: {error}") from error
 
 
 def deserialize(data: str) -> Any:
-    """
-    Deserialize a JSON string to a Python object using custom deserializers.
-    Raises ValueError for corrupt or invalid data.
+    """Deserialize one queue JSON value.
 
     Args:
-        data (str): The JSON string to deserialize.
+        data: JSON representation produced by :func:`serialize`.
 
     Returns:
-        Any: The deserialized Python object.
+        Decoded registered or built-in queue value.
+
+    Raises:
+        ValueError: If the input is not a string or contains malformed or unsupported data.
     """
     if not isinstance(data, str):
         raise ValueError("Input to deserialize must be a string.")
     try:
-        return json.loads(data, object_hook=Serializer.deserialize)
-    except Exception as e:
-        raise ValueError(f"Failed to deserialize data: {e}") from e
+        return _decode(
+            json.loads(
+                data,
+                parse_constant=_reject_json_constant,
+                object_pairs_hook=_decode_json_object,
+            )
+        )
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        raise ValueError(f"Failed to deserialize data: {error}") from error
 
 
-class Encoder(json.JSONEncoder):
-    """
-    Custom JSON encoder that uses the Serializer class for custom types.
-    """
-
-    def encode(self, o: Any) -> str:
-        """
-        Encode an object using custom serializers.
-        """
-        try:
-            return json.dumps(Serializer.serialize(o))
-        except TypeError:
-            return super().encode(o)
-
-
-@dataclasses.dataclass
-class TypeSerializer(Generic[T]):
-    """
-    Represents a serializer/deserializer for a specific type.
+def _encode(obj: Any, active_containers: set[int]) -> Any:
+    """Convert one supported value into JSON-native data.
 
     Args:
-        name (str): Name of the type.
-        claim (Callable[[Any], bool]): Function to determine if this serializer should handle the object.
-        serializer (Callable[[T], Any]): Function to serialize the object.
-        deserializer (Callable[[Any], T]): Function to deserialize the object.
-        priority (int, optional): Priority for serializer selection (higher is preferred, default is 0).
+        obj: Registered or built-in value to encode recursively.
+        active_containers: Identities currently being traversed for cycle detection.
+
+    Returns:
+        JSON-native scalar, list, or tagged dictionary.
+
+    Raises:
+        TypeError: If the value is unsupported, unregistered, or structurally invalid.
     """
+    if type(obj) is float:
+        if not math.isfinite(obj):
+            raise TypeError("Non-finite floats are not supported")
+        return obj
+    if obj is None or type(obj) in (str, int, bool):
+        return obj
+    if type(obj) is dict:
+        if not all(type(key) is str for key in obj):
+            raise TypeError("Dictionary keys must be strings")
+        with _track_container(obj, active_containers):
+            return {
+                "__type__": "dict",
+                "value": [[key, _encode(value, active_containers)] for key, value in obj.items()],
+            }
+    if type(obj) is list:
+        with _track_container(obj, active_containers):
+            return [_encode(value, active_containers) for value in obj]
+    if isinstance(obj, enum.Enum):
+        return {"__type__": "enum", "class": _get_type_id(type(obj)), "member": obj.name}
+    if isinstance(obj, type):
+        return {"__type__": "type", "value": _get_type_id(obj)}
+    if isinstance(obj, pathlib.Path):
+        return {"__type__": "path", "value": obj.as_posix()}
+    if isinstance(obj, uuid.UUID):
+        return {"__type__": "uuid", "value": str(obj)}
+    if isinstance(obj, bytes):
+        return {"__type__": "bytes", "value": base64.b64encode(obj).decode("ascii")}
+    codec = persistence.get_registry().get_codec_for_type(type(obj))
+    if codec is not None and codec.encoder is not None:
+        with _track_container(obj, active_containers):
+            return {
+                "__type__": "custom",
+                "class": codec.name,
+                "value": _encode(codec.encoder(obj), active_containers),
+            }
+    if type(obj) in COLLECTION_TYPE_NAMES:
+        with _track_container(obj, active_containers):
+            return {
+                "__type__": COLLECTION_TYPE_NAMES[type(obj)],
+                "value": [_encode(value, active_containers) for value in obj],
+            }
+    raise TypeError(f"No serializer for type: {type(obj)}")
 
-    name: str
-    claim: Callable[[Any], bool]
-    serializer: Callable[[T], Any]
-    deserializer: Callable[[Any], T]
-    priority: int = 0
 
+@contextlib.contextmanager
+def _track_container(value: Any, active_containers: set[int]) -> Iterator[None]:
+    """Track one active object identity while recursively serializing it.
 
-class Serializer:
+    Args:
+        value: Object whose recursive encoding is starting.
+        active_containers: Identities already being traversed.
+
+    Yields:
+        Control while the value is marked active.
+
+    Raises:
+        TypeError: If this object is already an ancestor in the active traversal.
     """
-    Registry and logic for custom (de)serializers.
+    identity = id(value)
+    if identity in active_containers:
+        raise TypeError("Cyclic values are not supported")
+    active_containers.add(identity)
+    try:
+        yield
+    finally:
+        active_containers.remove(identity)
+
+
+def _reject_json_constant(value: str) -> None:
+    """Reject non-standard JSON numeric constants.
+
+    Args:
+        value: Non-standard constant emitted by the JSON parser.
+
+    Raises:
+        ValueError: Always, because persisted queue data must be standard JSON.
     """
+    raise ValueError(f"Non-standard JSON number is not supported: {value}")
 
-    _serializers: dict[str, TypeSerializer] = {}
-    _serializer_list: list[TypeSerializer] = []
 
-    @classmethod
-    def register(cls, type_serializer: TypeSerializer) -> TypeSerializer:
-        """
-        Register a new TypeSerializer.
-        """
-        if type_serializer.name in cls._serializers:
-            raise ValueError(f"Serializer with name {type_serializer.name} already registered.")
-        cls._serializers[type_serializer.name] = type_serializer
-        cls._serializer_list.append(type_serializer)
-        return type_serializer
+def _decode_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Build one JSON object while rejecting duplicate member names.
 
-    @classmethod
-    def serialize(cls, obj: Any) -> Any:
-        """
-        Serialize an object using the highest-priority matching TypeSerializer.
+    Args:
+        pairs: Ordered member pairs emitted by the JSON parser.
 
-        JSON-native types (dict, list, str, int, float, bool, None) with exact type matches
-        are handled directly. Subclasses of these types go through the serializer registry
-        so they can be properly round-tripped.
-        """
-        # Exact type matches for JSON-native container types - recursively serialize contents
-        if type(obj) is dict:
-            return {k: cls.serialize(v) for k, v in obj.items()}
-        if type(obj) is list:
-            return [cls.serialize(item) for item in obj]
+    Returns:
+        Parsed object with unique member names.
 
-        # Exact type matches for JSON-native scalar types - return as-is
-        if type(obj) in (str, int, float, bool) or obj is None:
-            return obj
+    Raises:
+        ValueError: If a member name occurs more than once.
+    """
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"JSON object contains duplicate member: {key}")
+        result[key] = value
+    return result
 
-        # Try custom serializers (sorted by priority, highest first)
-        for _, serializer in sorted(
-            enumerate(cls._serializer_list),
-            key=lambda x: (x[1].priority, x[0]),
-            reverse=True,
-        ):
-            if serializer.claim(obj):
-                return {
-                    "__type__": serializer.name,
-                    "__data__": serializer.serializer(obj),
-                }
 
-        raise TypeError(f"No serializer for type: {type(obj)}")
+def _decode(data: Any) -> Any:
+    """Restore one recursively encoded queue value.
 
-    @classmethod
-    def deserialize(cls, data: Any) -> Any:
-        """
-        Deserialize an object using the appropriate TypeSerializer.
-        """
-        if isinstance(data, dict) and "__type__" in data and "__data__" in data:
-            name = data["__type__"]
-            serializer = cls._serializers.get(name)
-            if serializer:
-                return serializer.deserializer(data["__data__"])
+    Args:
+        data: JSON-native scalar, list, or tagged dictionary to decode.
+
+    Returns:
+        Restored registered or built-in queue value.
+
+    Raises:
+        KeyError: If a tagged enum names an unknown member.
+        TypeError: If a tagged value has an invalid field type or registered class.
+        ValueError: If a tagged value is malformed or uses an unknown tag.
+    """
+    if type(data) is float and not math.isfinite(data):
+        raise ValueError("Non-finite floats are not supported")
+    if type(data) is list:
+        return [_decode(value) for value in data]
+    if type(data) is not dict:
         return data
+    value_type = data.get("__type__")
+    if value_type == "dict":
+        _require_fields(data, "dict", "value")
+        values = data["value"]
+        if type(values) is not list:
+            raise TypeError("Serialized dict value must be a list")
+        result = {}
+        for item in values:
+            if type(item) is not list or len(item) != 2:
+                raise ValueError("Serialized dict entries must be key-value pairs")
+            key, value = item
+            if type(key) is not str:
+                raise TypeError("Dictionary keys must be strings")
+            if key in result:
+                raise ValueError(f"Serialized dictionary contains duplicate key: {key}")
+            result[key] = _decode(value)
+        return result
+    if value_type is None:
+        raise ValueError("Serialized dictionaries must have an explicit type")
+    if value_type == "enum":
+        _require_fields(data, "enum", "class", "member")
+        if type(data["class"]) is not str or type(data["member"]) is not str:
+            raise TypeError("Serialized enum class and member must be strings")
+        enum_type = _get_registered_type(data["class"])
+        if not issubclass(enum_type, enum.Enum):
+            raise TypeError(f"Registered type is not an enum: {data['class']}")
+        return enum_type[data["member"]]
+    if value_type == "type":
+        _require_fields(data, "type", "value")
+        if type(data["value"]) is not str:
+            raise TypeError("Serialized type value must be a string")
+        return _get_registered_type(data["value"])
+    if value_type == "path":
+        _require_fields(data, "path", "value")
+        if type(data["value"]) is not str:
+            raise TypeError("Serialized path value must be a string")
+        return pathlib.Path(data["value"])
+    if value_type == "uuid":
+        _require_fields(data, "uuid", "value")
+        if type(data["value"]) is not str:
+            raise TypeError("Serialized uuid value must be a string")
+        return uuid.UUID(data["value"])
+    if value_type == "bytes":
+        _require_fields(data, "bytes", "value")
+        if type(data["value"]) is not str:
+            raise TypeError("Serialized bytes value must be a string")
+        try:
+            return base64.b64decode(data["value"].encode("ascii"), validate=True)
+        except (binascii.Error, UnicodeEncodeError) as error:
+            raise ValueError("Serialized bytes value must be valid Base64") from error
+    if value_type == "custom":
+        _require_fields(data, "custom", "class", "value")
+        if type(data["class"]) is not str:
+            raise TypeError("Serialized custom class must be a string")
+        codec = persistence.get_registry().get_codec(data["class"])
+        if codec is None or codec.decoder is None:
+            raise TypeError(f"Persisted custom type '{data['class']}' is not registered")
+        return codec.decoder(_decode(data["value"]))
+    if value_type in COLLECTION_TYPES:
+        _require_fields(data, value_type, "value")
+        if type(data["value"]) is not list:
+            raise TypeError(f"Serialized {value_type} value must be a list")
+        values = (_decode(value) for value in data["value"])
+        return COLLECTION_TYPES[value_type](values)
+    raise ValueError(f"Unknown serialized type: {value_type}")
 
 
-# This is the fallback serializer that uses pickle for anything else. Note the priority of -1000 to make it the last
-# resort. JSON-native types (exact type matches for dict, list, str, int, float, bool, None) are handled before
-# the serializer loop runs, so this will only catch subclasses and other custom types.
-Serializer.register(
-    TypeSerializer(
-        name="pickle",
-        claim=lambda obj: True,
-        serializer=lambda obj: base64.b64encode(pickle.dumps(obj)).decode("ascii"),
-        deserializer=lambda data: pickle.loads(base64.b64decode(data.encode("ascii"))),
-        priority=-1000,
-    )
-)
+def _require_fields(data: dict[str, Any], value_type: str, *field_names: str) -> None:
+    """Require one tagged payload to contain exactly its canonical fields.
+
+    Args:
+        data: Tagged payload whose keys should be validated.
+        value_type: Display name used in validation errors.
+        *field_names: Canonical fields required in addition to the type tag.
+
+    Raises:
+        ValueError: If the payload contains missing or unexpected fields.
+    """
+    expected_fields = {"__type__", *field_names}
+    if set(data) != expected_fields:
+        raise ValueError(f"Serialized {value_type} must contain exactly: {', '.join(sorted(expected_fields))}")
 
 
-Serializer.register(
-    TypeSerializer(
-        name="pathlib",
-        claim=lambda obj: isinstance(obj, pathlib.Path),
-        serializer=lambda x: x.as_posix(),
-        deserializer=pathlib.Path,
-    )
-)
+def _get_type_id(value_type: type) -> str:
+    """Return the stable identifier for one explicitly registered type.
+
+    Args:
+        value_type: Type whose persistence identifier should be resolved.
+
+    Returns:
+        Stable persistence identifier registered for the type.
+
+    Raises:
+        TypeError: If the type is not registered for queue persistence.
+    """
+    type_id = persistence.get_registry().get_name(value_type)
+    if type_id is None:
+        raise TypeError(f"{value_type.__name__} is not registered for queue persistence")
+    return type_id
 
 
-Serializer.register(
-    TypeSerializer(
-        name="uuid",
-        claim=lambda obj: isinstance(obj, uuid.UUID),
-        serializer=str,
-        deserializer=uuid.UUID,
-    )
-)
+def _get_registered_type(type_id: str) -> type:
+    """Return one explicitly registered type without importing executable code.
 
-Serializer.register(
-    TypeSerializer(
-        name="bytes",
-        claim=lambda obj: isinstance(obj, bytes),
-        serializer=lambda obj: base64.b64encode(obj).decode("ascii"),
-        deserializer=lambda data: base64.b64decode(data.encode("ascii")),
-    )
-)
+    Args:
+        type_id: Stable persistence identifier to resolve.
 
-Serializer.register(
-    TypeSerializer(
-        name="tuple",
-        claim=lambda obj: isinstance(obj, tuple),
-        serializer=lambda obj: [Serializer.serialize(item) for item in obj],
-        deserializer=lambda data: tuple(Serializer.deserialize(item) for item in data),
-    )
-)
+    Returns:
+        Type registered for the identifier.
 
-Serializer.register(
-    TypeSerializer(
-        name="list",
-        claim=lambda obj: isinstance(obj, list),
-        serializer=lambda obj: [Serializer.serialize(item) for item in obj],
-        deserializer=lambda data: [Serializer.deserialize(item) for item in data],
-    )
-)
-
-Serializer.register(
-    TypeSerializer(
-        name="set",
-        claim=lambda obj: isinstance(obj, set),
-        serializer=lambda obj: [Serializer.serialize(item) for item in obj],
-        deserializer=lambda data: {Serializer.deserialize(item) for item in data},
-    )
-)
-
-Serializer.register(
-    TypeSerializer(
-        name="frozenset",
-        claim=lambda obj: isinstance(obj, frozenset),
-        serializer=lambda obj: [Serializer.serialize(item) for item in obj],
-        deserializer=lambda data: frozenset(Serializer.deserialize(item) for item in data),
-    )
-)
-
-Serializer.register(
-    TypeSerializer(
-        name="enum",
-        claim=lambda obj: isinstance(obj, enum.Enum),
-        serializer=omni.flux.job_queue.core.utils.get_dotted_import_path,
-        deserializer=omni.flux.job_queue.core.utils.import_type_from_path,
-        priority=10,
-    )
-)
-
-
-Serializer.register(
-    TypeSerializer(
-        name="type",
-        claim=lambda obj: isinstance(obj, type),
-        serializer=omni.flux.job_queue.core.utils.get_dotted_import_path,
-        deserializer=omni.flux.job_queue.core.utils.import_type_from_path,
-        priority=10,
-    )
-)
-
-
-Serializer.register(
-    TypeSerializer(
-        name="partial",
-        claim=lambda obj: isinstance(obj, functools.partial),
-        serializer=lambda obj: {
-            "func": Serializer.serialize(obj.func),
-            "args": Serializer.serialize(obj.args),
-            "keywords": Serializer.serialize(obj.keywords),
-        },
-        deserializer=lambda data: functools.partial(
-            Serializer.deserialize(data["func"]),
-            *Serializer.deserialize(data["args"]),
-            **Serializer.deserialize(data["keywords"]),
-        ),
-        priority=10,
-    )
-)
-
-
-Serializer.register(
-    TypeSerializer(
-        name="callable",
-        claim=callable,
-        serializer=omni.flux.job_queue.core.utils.get_dotted_import_path,
-        deserializer=omni.flux.job_queue.core.utils.import_type_from_path,
-        priority=5,  # Lower than type, partial, dataclass so they get checked first
-    )
-)
-
-
-def _serialize_dataclass(obj) -> dict:
-    return {
-        "__import_path__": omni.flux.job_queue.core.utils.get_dotted_import_path(obj),
-        "__fields__": {
-            x.name: Serializer.serialize(getattr(obj, x.name)) for x in dataclasses.fields(obj.__class__) if x.init
-        },
-    }
-
-
-def _deserialize_dataclass(data: dict):
-    cls = omni.flux.job_queue.core.utils.import_type_from_path(data["__import_path__"])
-    kwargs = {k: Serializer.deserialize(v) for k, v in data["__fields__"].items()}
-    return cls(**kwargs)
-
-
-Serializer.register(
-    TypeSerializer(
-        name="dataclass",
-        claim=dataclasses.is_dataclass,
-        serializer=_serialize_dataclass,
-        deserializer=_deserialize_dataclass,
-        priority=10,
-    )
-)
+    Raises:
+        TypeError: If the identifier is not registered for queue persistence.
+    """
+    value_type = persistence.get_registry().get_type(type_id)
+    if value_type is None:
+        raise TypeError(f"Persisted type '{type_id}' is not registered")
+    return value_type

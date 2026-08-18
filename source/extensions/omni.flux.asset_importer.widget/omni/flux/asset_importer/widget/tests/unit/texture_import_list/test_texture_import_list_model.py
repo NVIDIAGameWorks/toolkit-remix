@@ -65,13 +65,10 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
 
         self.assertEqual(1, mock.call_count)
 
-    async def test_listener_called_multiple_time(self):
-        # wait for the listener to be empty
-        await _get_file_listener_instance().deferred_destroy()
-
+    async def test_listener_tracks_refresh_remove_and_add_changes(self):
         # Arrange
+        await _get_file_listener_instance().deferred_destroy()
         model = TextureImportListModel()
-
         items = [
             (OmniUrl("Test/0.png"), TextureTypes.DIFFUSE),
             (OmniUrl("Test/1.png"), TextureTypes.OTHER),
@@ -105,32 +102,10 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
             ]
 
             # Act
-            model.refresh(items)
+            call_counts = await self._run_listener_change_scenario(model, items, changed_mock)
 
-            await asyncio.sleep(_FileListener.WAIT_TIME + 0.01)
-            self.assertEqual(changed_mock.call_count, 0)
-
-            await asyncio.sleep(_FileListener.WAIT_TIME + 0.01)
-            self.assertEqual(changed_mock.call_count, 3)
-
-            await asyncio.sleep(_FileListener.WAIT_TIME + 0.01)
-            self.assertEqual(changed_mock.call_count, 6)
-
-            # Act
-            items = model.get_item_children(None)
-            model.remove_items([items[1]])
-
-            await asyncio.sleep(_FileListener.WAIT_TIME + 0.01)
-            self.assertEqual(changed_mock.call_count, 8)
-
-            # Act
-            model.add_items([str(items[1].path)])
-
-            await asyncio.sleep(_FileListener.WAIT_TIME + 0.01)
-            self.assertEqual(changed_mock.call_count, 11)
-
-            items = model.get_item_children(None)
-            model.remove_items(items)
+        # Assert
+        self.assertEqual(call_counts, (0, 3, 6, 8, 11))
 
     async def test_refresh_texture_types_should_set_all_children_texture_types(self):
         for is_none in [True, False]:
@@ -171,6 +146,22 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
                     {c.path.path: c.texture_type for c in model._children},
                     expected_types,
                 )
+
+    async def test_child_texture_type_change_notifies_model_subscribers(self):
+        """A child type edit reaches consumers through the model-level event."""
+        # Arrange
+        model = TextureImportListModel()
+        model.refresh([(Path("Test/albedo.png"), TextureTypes.DIFFUSE)])
+        callback = Mock()
+        subscription = model.subscribe_texture_type_changed(callback)
+        item = model.get_item_children(None)[0]
+
+        # Act
+        item.texture_type = TextureTypes.METALLIC
+
+        # Assert
+        self.assertIsNotNone(subscription)
+        callback.assert_called_once_with()
 
     async def test_add_item_should_determine_texture_type_append_subscribe_and_call_item_changed(self):
         # Arrange
@@ -259,10 +250,28 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
         self.assertEqual(1, mock.call_count)
 
     async def test_get_item_children_no_parent_should_return_children(self):
-        await self.__run_get_item_children(False)
+        # Arrange
+        model = TextureImportListModel()
+        items = {TextureImportItem(Path("Test")): (), Mock(): (), Mock(): ()}
+        model._children = items
+
+        # Act
+        children = model.get_item_children(None)
+
+        # Assert
+        self.assertEqual(list(items), children)
 
     async def test_get_item_children_with_parent_should_return_empty_array(self):
-        await self.__run_get_item_children(True)
+        # Arrange
+        model = TextureImportListModel()
+        items = {TextureImportItem(Path("Test")): (), Mock(): (), Mock(): ()}
+        model._children = items
+
+        # Act
+        children = model.get_item_children(next(iter(items)))
+
+        # Assert
+        self.assertEqual([], children)
 
     async def test_get_item_value_model_should_return_item_value_model(self):
         # Arrange
@@ -285,18 +294,24 @@ class TestTextureImportListModel(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(1, val)
 
-    async def __run_get_item_children(self, use_parent: bool):
-        # Arrange
-        model = TextureImportListModel()
+    @staticmethod
+    async def _run_listener_change_scenario(model, source_items, changed_mock) -> tuple[int, ...]:
+        """Exercise listener changes across refresh, removal, and re-addition."""
+        model.refresh(source_items)
+        call_counts = []
+        for _ in range(3):
+            await asyncio.sleep(_FileListener.WAIT_TIME + 0.01)
+            call_counts.append(changed_mock.call_count)
 
-        items = {TextureImportItem(Path("Test")): (), Mock(): (), Mock(): ()}
-        model._children = items
+        current_items = model.get_item_children(None)
+        removed_item = current_items[1]
+        model.remove_items([removed_item])
+        await asyncio.sleep(_FileListener.WAIT_TIME + 0.01)
+        call_counts.append(changed_mock.call_count)
 
-        # Act
-        val = model.get_item_children(list(items.keys())[0] if use_parent else None)
+        model.add_items([str(removed_item.path)])
+        await asyncio.sleep(_FileListener.WAIT_TIME + 0.01)
+        call_counts.append(changed_mock.call_count)
 
-        # Assert
-        self.assertEqual(0 if use_parent else len(items), len(val))
-
-        for i, item in enumerate(val):
-            self.assertEqual(list(items.keys())[i], item)
+        model.remove_items(model.get_item_children(None))
+        return tuple(call_counts)

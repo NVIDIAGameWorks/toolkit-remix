@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.0]
+### Changed
+- Added context-bound ComfyUI preparation, skipped-input confirmation, and cancellable progress before one atomic queue submission while preserving multi-selection across action clicks.
+- Updated AI Tools job submission to consume the explicit-context ComfyUI core singleton directly.
+
+### Removed
+- Removed the AI job action that depended on the deleted job-generator contract.
+
 ## [2.7.5]
 ### Fixed
 - Skip unnecessary AI Tools validation, duplicate prim name field construction, and repeated replacement-layer scans during Stage Manager row builds.

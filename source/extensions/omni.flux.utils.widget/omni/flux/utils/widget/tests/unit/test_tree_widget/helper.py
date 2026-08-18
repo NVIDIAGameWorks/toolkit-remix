@@ -94,9 +94,9 @@ class MockTreeWidget(TreeWidget):
 
     @property
     def default_attr(self) -> dict[str, None]:
+        # Mirror the production defaults so the tests exercise the real teardown. The model and the delegate belong to
+        # the caller, so they must not appear here.
         return {
-            "_model": None,
-            "_delegate": None,
             "_select_all_children": None,
             "_validate_action_selection": None,
             "_sub_selection_changed": None,

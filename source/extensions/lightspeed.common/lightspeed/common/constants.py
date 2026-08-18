@@ -35,6 +35,7 @@ MATERIAL_INPUTS_REFLECTIONROUGHNESS_TEXTURE = "inputs:reflectionroughness_textur
 MATERIAL_INPUTS_EMISSIVE_MASK_TEXTURE = "inputs:emissive_mask_texture"
 MATERIAL_INPUTS_METALLIC_TEXTURE = "inputs:metallic_texture"
 MATERIAL_INPUTS_TRANSMITTANCE_TEXTURE = "inputs:transmittance_texture"
+MATERIAL_INPUTS_HEIGHT_TEXTURE = "inputs:height_texture"
 
 PRESERVE_ORIGINAL_ATTRIBUTE = "preserveOriginalDrawCall"
 
@@ -180,6 +181,7 @@ TEXTURE_INFO = {
     MATERIAL_INPUTS_EMISSIVE_MASK_TEXTURE: TextureInfo(CompressionFormat.BC7, True),
     MATERIAL_INPUTS_METALLIC_TEXTURE: TextureInfo(CompressionFormat.BC4, False),
     MATERIAL_INPUTS_TRANSMITTANCE_TEXTURE: TextureInfo(CompressionFormat.BC7, True),
+    MATERIAL_INPUTS_HEIGHT_TEXTURE: TextureInfo(CompressionFormat.BC4, False, ["--mip-filter", "max"]),
 }
 
 AUTOUPSCALE_LAYER_FILENAME = "autoupscale.usda"
@@ -662,7 +664,7 @@ UNTITLED_PROJECT_NAME = "Untitled Project"
 
 
 class WindowNames(StrEnum):
-    """LightSpeed Studio window names for ui.Workspace integration"""
+    """Names registered with ``ui.Workspace`` for RTX Remix windows."""
 
     VIEWPORT = "Viewport"
     STAGE_MANAGER = "Stage Manager"
@@ -674,8 +676,10 @@ class WindowNames(StrEnum):
     PROJECT_SETUP = "Project Setup"
     CAPTURES = "Captures"
     REMIX_LOGIC_GRAPH = "Logic Graph"
-    COMFYUI = "ComfyUI"
-    AI_TOOLS = "AI Tools (Experimental)"
+    COMFYUI_SETUP = "ComfyUI Setup"
+    COMFYUI_WORKFLOW = "ComfyUI Workflow"
+    JOB_QUEUE = "Job Queue"
+    JOB_DETAILS = "Job Details"
 
 
 class Layouts(Enum):
@@ -685,9 +689,11 @@ class Layouts(Enum):
 
 
 class LayoutFiles(StrEnum):
+    """Resource keys for built-in RTX Remix quick-layout files."""
+
     HOME_PAGE = "home_page_default_layout"
     WORKSPACE_PAGE = "stagecraft_default_layout"
     INGESTCRAFT = "ingestcraft_default_layout"
-    AI_TOOLS = "texturecraft_default_layout"
+    TEXTURECRAFT = "texturecraft_default_layout"
     PACKAGING = "packaging_default_layout"
     LOGIC_GRAPH = "logic_default_layout"

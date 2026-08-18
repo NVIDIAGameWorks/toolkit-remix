@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,30 +15,13 @@
 * limitations under the License.
 """
 
-import dataclasses
-import os
-import tempfile
+__all__ = (
+    "COLLECTION_TYPES",
+    "COLLECTION_TYPE_NAMES",
+    "QUEUE_SCHEMA_VERSION",
+)
 
+QUEUE_SCHEMA_VERSION = 10
 
-@dataclasses.dataclass
-class JobQueueConfig:
-    """
-    Configuration for the job queue system.
-
-    Attributes:
-        db_path: Path to the SQLite database file. Defaults to a temp directory,
-                 can be overridden via FLUX_JOB_QUEUE_DEFAULT_FILEPATH environment variable.
-    """
-
-    # NOTE: This path can be configured by higher level extensions using settings, but here we're avoiding that to
-    # avoid the need to pull in extra extension(s) as dependencies.
-    db_path: str = dataclasses.field(
-        default_factory=lambda: os.environ.get(
-            "FLUX_JOB_QUEUE_DEFAULT_FILEPATH",
-            os.path.join(tempfile.gettempdir(), "job_queue.db"),
-        )
-    )
-
-
-# Singleton instance used by default when no explicit path is provided
-job_queue_config = JobQueueConfig()
+COLLECTION_TYPES: dict[str, type] = {"tuple": tuple, "set": set, "frozenset": frozenset}
+COLLECTION_TYPE_NAMES: dict[type, str] = {collection_type: name for name, collection_type in COLLECTION_TYPES.items()}

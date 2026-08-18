@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Changed
+- Kept reusable folder scanning and one-pass file-selection classification in core while moving scanner UI ownership to the widget extension.
+
 ## [2.0.9]
 ### Changed
 - Removed the obsolete case-sensitive restriction for USD asset extensions.

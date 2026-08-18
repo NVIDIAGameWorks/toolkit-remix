@@ -153,13 +153,43 @@
   },
   {
     "dock_id": 0,
-    "height": 400.0,
+    "height": 600.0,
     "position_x": 0,
     "position_y": 0,
     "selected_in_dock": false,
-    "title": "AI Tools (Experimental)",
+    "title": "ComfyUI Setup",
     "visible": false,
-    "width": 1800.0
+    "width": 400.0
+  },
+  {
+    "dock_id": 0,
+    "height": 600.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "ComfyUI Workflow",
+    "visible": false,
+    "width": 400.0
+  },
+  {
+    "dock_id": 0,
+    "height": 600.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "Job Queue",
+    "visible": false,
+    "width": 400.0
+  },
+  {
+    "dock_id": 0,
+    "height": 600.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "Job Details",
+    "visible": false,
+    "width": 400.0
   },
   {
     "dock_id": 0,

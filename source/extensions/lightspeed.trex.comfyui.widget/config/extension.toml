@@ -1,23 +1,32 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.2.5"
-authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+version = "2.1.1"
+authors = ["Sam Bourne <sbourne@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix ComfyUI Widget"
 description = "ComfyUI Widget for NVIDIA RTX Remix"
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
-keywords = ["comfyui", "widget"]
+keywords = ["ai", "comfyui", "widget"]
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
 
 [dependencies]
+"lightspeed.common" = {}
 "lightspeed.trex.comfyui.core" = {}
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.utils.widget" = {}
+"lightspeed.trex.viewports.shared.widget" = { optional = true }
+"omni.flux.job_queue.core" = {}
+"omni.flux.job_queue.widget" = {}
+"omni.flux.property_widget_builder.model.native" = {}
+"omni.flux.property_widget_builder.widget" = {}
 "omni.flux.utils.common" = {}
+"omni.flux.utils.dialog" = {}
 "omni.flux.utils.widget" = {}
 "omni.ui" = {}
+"omni.usd" = {}
 
 [[python.module]]
 name = "lightspeed.trex.comfyui.widget"
@@ -25,10 +34,14 @@ name = "lightspeed.trex.comfyui.widget"
 [[test]]
 dependencies = [
     "lightspeed.trex.tests.dependencies",
-    "omni.kit.test_suite.helpers",
 ]
 
 stdoutFailPatterns.exclude = [
-    # Generic Error
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
 ]

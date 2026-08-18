@@ -17,11 +17,8 @@
 
 __all__ = ["TextureReplacementsCore"]
 
-from contextlib import nullcontext
 from pathlib import Path
 
-import omni.usd
-from lightspeed.common import constants
 from lightspeed.trex.utils.common.asset_utils import TEXTURE_TYPE_INPUT_MAP as _TEXTURE_TYPE_INPUT_MAP
 from lightspeed.trex.utils.common.asset_utils import get_ingested_texture_type as _get_ingested_texture_type
 from lightspeed.trex.utils.common.asset_utils import get_texture_type_input_name as _get_texture_type_input_name
@@ -37,7 +34,9 @@ from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTy
 from omni.flux.material_api import ShaderInfoAPI as _ShaderInfoAPI
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl
-from omni.kit import commands, undo
+from omni.client.utils import make_relative_url_if_possible as _make_relative_url_if_possible
+from omni.kit import commands
+from omni.usd import get_context
 from pxr import Sdf, UsdShade
 
 from .data_models import (
@@ -48,10 +47,20 @@ from .data_models import (
     TextureReplacementsValidators,
     TexturesResponseModel,
 )
+from .data_models.models import TextureReplacement
+from .data_models.validators import InvalidTextureInputError
+from .commands import REPLACE_TEXTURES_COMMAND
 
 
 class TextureReplacementsCore:
+    """Query and author texture replacements in one USD context."""
+
     def __init__(self, context_name: str = ""):
+        """Initialize texture replacement operations for one USD context.
+
+        Args:
+            context_name: Name of the USD context, or an empty string for the default context.
+        """
         self._default_attr = {
             "_context_name": None,
             "_context": None,
@@ -60,7 +69,7 @@ class TextureReplacementsCore:
             setattr(self, attr, value)
 
         self._context_name = context_name
-        self._context = omni.usd.get_context(context_name)
+        self._context = get_context(context_name)
 
     # DATA MODEL FUNCTIONS
 
@@ -76,8 +85,20 @@ class TextureReplacementsCore:
             )
         )
 
-    def replace_texture_with_data_models(self, body: ReplaceTexturesRequestModel):
-        self.replace_textures(body.textures)
+    def replace_texture_with_data_models(self, body: ReplaceTexturesRequestModel) -> None:
+        """Apply replacements from a validated service request.
+
+        Args:
+            body: Request containing the texture property and asset path pairs to apply.
+
+        Raises:
+            ValueError: If any texture property or asset path fails validation.
+        """
+        self.replace_textures(
+            body.textures,
+            force=body.force,
+            expected_current_textures=body.expected_current_textures,
+        )
 
     def get_texture_material_with_data_models(self, params: TextureMaterialPathParamModel) -> PrimPathsResponseModel:
         material_prim_path = self.get_texture_material(params.texture_prim_path)
@@ -181,76 +202,144 @@ class TextureReplacementsCore:
         self,
         textures: list[tuple[str, str | Path | None]],
         force: bool = False,
-        use_undo_group: bool = True,
         target_layer: Sdf.Layer | None = None,
-    ):
-        """
-        Replace a list of textures
+        expected_current_textures: list[tuple[str, str | Path | None]] | None = None,
+    ) -> None:
+        """Validate and author a batch of texture replacements.
+
+        The complete batch is validated and its input types are resolved before any authoring command executes.
 
         Args:
-            textures: A list of tuples in the format (texture property, asset path) where the texture property should be
-                      a shader input and the asset path should be the absolute path to the texture asset
-            force: Whether to force replace the texture or validate it was ingested correctly
-            use_undo_group: Whether to use an undo group for the texture replacements
-            target_layer: Layer to author edits on; defaults to the stage's current edit target layer
+            textures: Shader input property paths paired with replacement asset paths, or None to remove a property.
+            force: Whether to bypass source availability and ingestion checks after confirming current authored values.
+            target_layer: Layer to author edits on, or None to use the current edit target layer.
+            expected_current_textures: Exact target-layer values that authorize a forced replacement.
+
+        Raises:
+            ValueError: If the batch, force confirmation, property, or asset path is invalid.
         """
-        with undo.group() if use_undo_group else nullcontext():
-            for texture_attr_path, texture_asset_path in textures:
-                if texture_asset_path is None:
-                    removal = True
-                else:
-                    removal = False
-                try:
-                    TextureReplacementsValidators.is_valid_texture_prim(
-                        (texture_attr_path, texture_asset_path), self._context_name
-                    )
-                    TextureReplacementsValidators.is_valid_texture_asset((texture_attr_path, texture_asset_path), force)
-                except ValueError:
-                    if not removal:
-                        continue
+        texture_paths = [texture_path for texture_path, _ in textures]
+        if len(texture_paths) != len(set(texture_paths)):
+            raise ValueError("Texture replacement target paths must be unique")
+        if force and expected_current_textures is None:
+            raise ValueError("Forced texture replacement requires expected current values")
+        if not force and expected_current_textures is not None:
+            raise ValueError("Expected current values are only valid for forced texture replacement")
 
-                attr_type = None
-                attr_path = Sdf.Path(texture_attr_path)
-                stage = self._context.get_stage()
-                edit_layer = target_layer or stage.GetEditTarget().GetLayer()
-                prim = stage.GetPrimAtPath(attr_path.GetPrimPath())
-                for input_property in _ShaderInfoAPI(prim).get_input_properties():
-                    if attr_path.name == input_property.GetName():
-                        attr_type = Sdf.ValueTypeNames.Find(input_property.GetTypeName())
-                        break
+        expected_paths = (
+            [texture_path for texture_path, _ in expected_current_textures]
+            if expected_current_textures is not None
+            else []
+        )
+        if len(expected_paths) != len(set(expected_paths)):
+            raise ValueError("Expected texture target paths must be unique")
+        if expected_current_textures is not None and set(expected_paths) != set(texture_paths):
+            raise ValueError("Expected texture target paths must match the replacement batch")
 
+        if not textures:
+            return
+
+        stage = self._context.get_stage()
+        if stage is None:
+            raise RuntimeError(f"No USD stage is open for context '{self._context_name}'")
+        texture_input_types = TextureReplacementsValidators.get_texture_input_types(
+            texture_paths,
+            self._context_name,
+            stage=stage,
+        )
+        for texture_batch, allow_unavailable in (
+            (textures, force),
+            (expected_current_textures or [], True),
+        ):
+            for texture in texture_batch:
+                TextureReplacementsValidators.is_valid_texture_asset(texture, allow_unavailable)
+
+        edit_layer = target_layer or stage.GetEditTarget().GetLayer()
+        prepared_batches = []
+        for texture_batch, normalize_paths in (
+            (textures, True),
+            (expected_current_textures or [], False),
+        ):
+            replacements = []
+            for texture_attr_path, texture_asset_path in texture_batch:
                 if texture_asset_path:
-                    commands.execute(
-                        "ChangeProperty",
-                        prop_path=texture_attr_path,
-                        value=Sdf.AssetPath(
-                            omni.usd.make_path_relative_to_current_edit_target(str(texture_asset_path), stage=stage)
-                        ),
-                        prev=None,
-                        type_to_create_if_not_exist=attr_type,
-                        usd_context_name=self._context_name,
-                        target_layer=edit_layer,
-                    )
-                else:
-                    parent_prims = []
-                    parent = prim
-                    while parent.IsValid() and str(parent.GetPath()) != constants.ROOTNODE:
-                        parent_prims.append(parent)
-                        parent = parent.GetParent()
-
-                    commands.execute(
-                        "RemoveProperty",
-                        prop_path=texture_attr_path,
-                        usd_context_name=self._context_name,
-                    )
-                    for parent_prim in parent_prims:
-                        commands.execute(
-                            "RemoveOverride",
-                            prim_path=parent_prim.GetPath(),
-                            layer=edit_layer,
-                            context_name=self._context_name,
-                            check_up_to_prim=constants.ROOTNODE,
+                    attr_type = texture_input_types[texture_attr_path]
+                    relative_texture_path = str(texture_asset_path)
+                    if normalize_paths and not edit_layer.anonymous:
+                        relative_texture_path = (
+                            _make_relative_url_if_possible(edit_layer.realPath, relative_texture_path)
+                            or relative_texture_path
                         )
+                    replacements.append(
+                        TextureReplacement(Sdf.Path(texture_attr_path), relative_texture_path, attr_type)
+                    )
+                    continue
+                replacements.append(TextureReplacement(Sdf.Path(texture_attr_path), None, None))
+            prepared_batches.append(replacements)
+        replacements, expected_replacements = prepared_batches
+
+        def verify_expected_replacements() -> None:
+            for expected in expected_replacements:
+                property_path = expected.property_path
+                attribute_spec = edit_layer.GetAttributeAtPath(property_path)
+                expected_value = expected.value
+                if expected_value is not None and expected.value_type == Sdf.ValueTypeNames.Asset:
+                    actual_value = attribute_spec.default if attribute_spec is not None else None
+                    actual_url = actual_value.path if isinstance(actual_value, Sdf.AssetPath) else None
+                    if edit_layer.anonymous:
+                        expected_url = expected_value
+                    else:
+                        expected_url = Sdf.ComputeAssetPathRelativeToLayer(edit_layer, expected_value)
+                        actual_url = (
+                            Sdf.ComputeAssetPathRelativeToLayer(edit_layer, actual_url)
+                            if actual_url is not None
+                            else None
+                        )
+                    matches = actual_url == expected_url
+                    if matches:
+                        expected.value = actual_value.path
+                    if not matches:
+                        raise ValueError(f"Texture target differs from its expected current value: {property_path}")
+                    continue
+                if expected_value is None:
+                    matches = attribute_spec is None
+                else:
+                    matches = attribute_spec is not None and attribute_spec.default == expected_value
+                if not matches:
+                    raise ValueError(f"Texture target differs from its expected current value: {property_path}")
+
+        verify_expected_replacements()
+
+        success, _ = commands.execute(
+            REPLACE_TEXTURES_COMMAND,
+            replacements=replacements,
+            target_layer_identifier=edit_layer.identifier,
+            expected_replacements=expected_replacements if force else None,
+        )
+        if not success:
+            verify_expected_replacements()
+            raise RuntimeError("The texture replacement batch failed")
+
+    def get_valid_texture_inputs(self, texture_input_paths: list[str]) -> list[str]:
+        """Filter texture input paths through the canonical shader-input validator.
+
+        Args:
+            texture_input_paths: Candidate shader input property paths.
+
+        Returns:
+            Accepted paths in their original order.
+        """
+        valid_inputs = []
+        for texture_input_path in texture_input_paths:
+            try:
+                TextureReplacementsValidators.is_valid_texture_prim(
+                    (texture_input_path, None),
+                    self._context_name,
+                )
+            except InvalidTextureInputError:
+                continue
+            valid_inputs.append(texture_input_path)
+        return valid_inputs
 
     def get_texture_material(self, texture_prim_path: str) -> str | None:
         """

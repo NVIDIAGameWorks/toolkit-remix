@@ -17,23 +17,22 @@
 
 __all__ = ["StageManagerComfyListenerPluginsExtension"]
 
-import omni.ext
 from omni.flux.stage_manager.factory import get_instance
+from omni.ext import IExt
 
 from .comfy_listener import StageManagerComfyListenerPlugin
 
 
-class StageManagerComfyListenerPluginsExtension(omni.ext.IExt):
+class StageManagerComfyListenerPluginsExtension(IExt):
     """Extension that registers ComfyUI listener plugins with the Stage Manager factory."""
 
     _PLUGINS = [StageManagerComfyListenerPlugin]
 
     def on_startup(self, ext_id):
-        """
-        Register listener plugins on extension startup.
+        """Register listener plugins when the extension starts.
 
         Args:
-            ext_id: The extension identifier
+            ext_id: Identifier assigned to this extension; unused.
         """
         get_instance().register_plugins(self._PLUGINS)
 

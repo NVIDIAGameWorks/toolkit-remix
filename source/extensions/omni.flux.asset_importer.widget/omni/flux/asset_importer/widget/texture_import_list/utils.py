@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import omni.kit.commands
 import omni.usd
 from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP as _TEXTURE_TYPE_INPUT_MAP
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes

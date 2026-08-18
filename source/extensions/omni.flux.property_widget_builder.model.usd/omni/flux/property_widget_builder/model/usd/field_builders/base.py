@@ -22,18 +22,18 @@ __all__ = (
     "USDBuilderList",
 )
 
-from typing import TYPE_CHECKING
 from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING
 
 import carb
 import omni.ui as ui
+from omni.flux.property_widget_builder.delegates import ComboboxField
 from omni.flux.property_widget_builder.delegates.default import DefaultField
 from omni.flux.property_widget_builder.delegates.float_value.color import ColorField
 from omni.flux.property_widget_builder.delegates.string_value.default_label import DefaultLabelField
 from omni.flux.property_widget_builder.widget import FieldBuilder, FieldBuilderList, claim_each
 
 from .. import mapping
-from ..item_delegates.combobox_delegate import ComboboxField
 from ..item_delegates.drag import USDFloatDragField, USDIntDragField
 from ..item_delegates.file_texture_picker import FileTexturePicker
 from ..items import USDAttributeItem as _USDAttributeItem
@@ -237,5 +237,5 @@ def _time_code_builder(item):
     lambda item: isinstance(item, (_USDMetadataListItem, _USDAttrListItem, _VirtualUSDAttrListItem))
 )
 def _build_combo(item):
-    builder = ComboboxField()
+    builder = ComboboxField(identifier=_generate_identifier(item))
     return builder(item)

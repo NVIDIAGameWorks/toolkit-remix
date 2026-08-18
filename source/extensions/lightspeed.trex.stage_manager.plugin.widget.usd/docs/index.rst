@@ -19,4 +19,4 @@ lightspeed.trex.stage_manager.plugin.widget.usd
 .. automodule:: lightspeed.trex.stage_manager.plugin.widget.usd.info_remap_skeleton
 .. automodule:: lightspeed.trex.stage_manager.plugin.widget.usd.state_hidden_category
 .. automodule:: lightspeed.trex.stage_manager.plugin.widget.usd.state_is_capture
-.. automodule:: lightspeed.trex.stage_manager.plugin.widget.usd.submit_ai_job
+.. automodule:: lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job

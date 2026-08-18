@@ -80,14 +80,14 @@ ui.Spacer(width=12)
 
 ```python
 # Correct — constant IS a ui.Pixel, used directly
-_HEADER_PADDING = ui.Pixel(12)
-_ICON_SIZE = ui.Pixel(16)
-ui.Spacer(width=_HEADER_PADDING)
-ui.Image("", width=_ICON_SIZE, height=_ICON_SIZE)
+_PADDING_LG = ui.Pixel(12)
+_ICON_SIZE_SM = ui.Pixel(16)
+ui.Spacer(width=_PADDING_LG)
+ui.Image("", width=_ICON_SIZE_SM, height=_ICON_SIZE_SM)
 
 # Wrong — raw int constant wrapped at usage site
-_HEADER_PADDING = 12
-ui.Spacer(width=ui.Pixel(_HEADER_PADDING))
+_PADDING_LG = 12
+ui.Spacer(width=ui.Pixel(_PADDING_LG))
 
 # Wrong — magic numbers inline
 ui.Spacer(width=ui.Pixel(12))
@@ -114,13 +114,15 @@ with ui.HStack(spacing=ui.Pixel(16)):
 ### Layout constants — define at class or module level
 
 All `ui.Pixel` sizes, spacing values, and dimension constants must be defined at the **class level** (or module
-level for delegates), never inline. Use descriptive names.
+level for delegates), never inline. Use generic scale names for reusable spacing and icon sizes, and semantic names
+only for component-specific dimensions such as column widths or dialog sizes.
 
 ```python
 # Good — class-level constants
 class MyWidget:
-    _SPACING_SMALL = ui.Pixel(4)
-    _SPACING_MEDIUM = ui.Pixel(16)
+    _PADDING_SM = ui.Pixel(4)
+    _PADDING_MD = ui.Pixel(8)
+    _ICON_SIZE_SM = ui.Pixel(16)
     _INPUT_NAME_WIDTH = ui.Pixel(90)
     _ROW_HEIGHT = ui.Pixel(26)
     _HOST_WIDTH = ui.Fraction(1)
@@ -131,8 +133,8 @@ ui.Label(width=90)
 ui.Spacer(height=8)
 ```
 
-Follow the pattern from `ComfySetupAdvancedWidget` (`_SPACING_SM`, `_PROTOCOL_WIDTH`, `_ICON_SIZE`) and
-`JobQueueDetailsPanel` (`_HEADER_PADDING`, `_HEADER_HEIGHT`, `_CELL_PADDING`).
+Follow the pattern from `ComfySetupAdvancedWidget` (`_SPACING_SM`, `_PROTOCOL_WIDTH`, `_ICON_SIZE`): keep widget
+layout constants on the widget class and delegate-only layout constants next to that delegate.
 
 ### Layout spacing — no inline style dicts
 

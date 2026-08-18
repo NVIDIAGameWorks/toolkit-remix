@@ -1,0 +1,40 @@
+[package]
+version = "1.1.0"
+authors = ["Sam Bourne <sbourne@nvidia.com>"]
+title = "NVIDIA RTX Remix Job Queue Widget"
+description = "Job Queue workspace windows for NVIDIA RTX Remix"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["job", "queue", "widget"]
+icon = "data/icon.png"
+category = "other"
+preview_image = "data/preview.png"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.asset_pipeline.core" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.utils.widget" = {}
+"omni.client" = {}
+"omni.flux.job_queue.core" = {}
+"omni.flux.job_queue.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "lightspeed.trex.job_queue.widget"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+   "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

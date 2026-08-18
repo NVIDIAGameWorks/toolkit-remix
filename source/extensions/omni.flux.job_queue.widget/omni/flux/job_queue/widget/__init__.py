@@ -15,18 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = [
-    "ApplyHandler",
-    "ApplyHandlerRegistry",
-    "ApplyState",
-    "CallbackApplied",
-    "CallbackExecutor",
-    "QueueItem",
-    "QueueItemDelegate",
-    "QueueModel",
-    "QueueView",
-    "QueueWidget",
-]
+__all__ = ("FluxJobQueueWidgetExtension", "QueueWidget", "get_display_adapter_registry")
 
-from .apply_handler import ApplyHandler, ApplyHandlerRegistry, CallbackApplied
-from .ui import ApplyState, CallbackExecutor, QueueItem, QueueItemDelegate, QueueModel, QueueView, QueueWidget
+from .extension import FluxJobQueueWidgetExtension, get_display_adapter_registry
+from .widget import QueueWidget

@@ -49,10 +49,6 @@ packages = [
     "toml==0.10.2",                 # OSRB filed under: https://nvbugs/4575571
     "pillow==11.0.0",               # OSRB filed under: https://nvbugs/5254655
     "requests==2.31.0",             # OSRB filed under: https://nvbugs/4549153
-
-    # remix dependencies
-    "hf_xet==1.1.10",               # OSRB filed under: https://nvbugs/5571291
-    "huggingface-hub==0.35.3",      # OSRB filed under: https://nvbugs/5571291
 ]
 
 target = "../_build/target-deps/flux_pip_prebundle"

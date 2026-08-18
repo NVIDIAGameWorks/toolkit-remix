@@ -56,6 +56,7 @@ class ScrollingTreeWidget:
             when the selection changes (default: False)
         validate_action_selection: Whether to validate and update selection
             to include the right-clicked item
+        horizontal_scrollbar_policy: Visibility policy for the horizontal scrollbar.
         **kwargs: Additional arguments passed to the underlying ui.TreeView
     """
 
@@ -70,6 +71,7 @@ class ScrollingTreeWidget:
         frame_selection: bool = False,
         validate_action_selection: bool = True,
         expansion_caching: bool = False,
+        horizontal_scrollbar_policy: ui.ScrollBarPolicy = ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED,
         **kwargs,
     ):
         self._alternating_row_widget: AlternatingRowWidget | None = None
@@ -99,6 +101,7 @@ class ScrollingTreeWidget:
 
         self._validate_action_selection = validate_action_selection
         self._expansion_caching = expansion_caching
+        self._horizontal_scrollbar_policy = horizontal_scrollbar_policy
 
         if self._expansion_caching:
             # NOTE: Disable the C++ TreeView's built-in expand-on-branch-click so that
@@ -244,25 +247,32 @@ class ScrollingTreeWidget:
                 self._alternating_row_widget = AlternatingRowWidget(self._header_height, self._row_height)
                 scroll_change_fn = self._alternating_row_widget.sync_scrolling_frame
 
-            self._tree_scroll_frame = ui.ScrollingFrame(
-                name="TreePanelBackground", scroll_y_changed_fn=scroll_change_fn
-            )
-
-            with self._tree_scroll_frame:
-                self._tree_frame = ui.ZStack(
-                    content_clipping=True,  # Add on top of the background
-                    computed_content_size_changed_fn=self._on_content_size_changed,
+            with ui.HStack(content_clipping=self._alternating_rows):
+                self._tree_scroll_frame = ui.ScrollingFrame(
+                    name="TreePanelBackground",
+                    scroll_y_changed_fn=scroll_change_fn,
+                    horizontal_scrollbar_policy=self._horizontal_scrollbar_policy,
                 )
-                with self._tree_frame:
-                    self._tree_widget = TreeWidget(
-                        self._model,
-                        delegate=self._delegate,
-                        select_all_children=self._select_all_children,
-                        validate_action_selection=self._validate_action_selection,
-                        **self._extra_tree_view_args,
+
+                with self._tree_scroll_frame:
+                    self._tree_frame = ui.ZStack(
+                        content_clipping=True,
+                        computed_content_size_changed_fn=self._on_content_size_changed,
                     )
+                    with self._tree_frame:
+                        self._tree_widget = TreeWidget(
+                            self._model,
+                            delegate=self._delegate,
+                            select_all_children=self._select_all_children,
+                            validate_action_selection=self._validate_action_selection,
+                            **self._extra_tree_view_args,
+                        )
 
     def _on_content_size_changed(self):
+        # Destroying the tree widget changes its computed size, so this callback can fire during teardown. Scheduling
+        # more work then would resume against released widgets.
+        if self._destroyed:
+            return
         if self._update_content_size_task:
             self._update_content_size_task.cancel()
         self._update_content_size_task = ensure_future(self._update_content_size_deferred())
@@ -604,6 +614,9 @@ class ScrollingTreeWidget:
         """
         Update the scroll position when the content size changes to force the ScrollFrame to resize.
         """
+        if self._destroyed:
+            return
+
         # Sync the alternating row widget frame height with the tree frame
         if self._alternating_rows and self._alternating_row_widget:
             self._alternating_row_widget.sync_frame_height(self._tree_frame.computed_height)
@@ -617,19 +630,27 @@ class ScrollingTreeWidget:
             # Wait for the updated widget to be drawn
 
             await omni.kit.app.get_app().next_update_async()
+            if self._destroyed:
+                return
             # Scroll to the bottom of the tree or the previous scroll position if still valid
             self._tree_scroll_frame.scroll_y = min(previous_scroll_y, self._tree_scroll_frame.scroll_y_max)
         # Cache the current frame height for the next update
         self._previous_frame_height = self._tree_widget.computed_height
 
-    def _on_model_item_changed(self, _model: TreeModelBase, _item: TreeItemBase) -> None:
+    def _on_model_item_changed(self, _model: TreeModelBase, item: TreeItemBase | None) -> None:
         """
         Callback triggered when the model's items change.
 
-        Automatically refreshes the alternating row widget to stay in sync
-        with the model's item count. No-op if alternating_rows is disabled.
+        Refreshes alternating backgrounds only for structural invalidations. Updating one retained item cannot change
+        the visible row count, so rebuilding every decorative row would cause unnecessary flicker.
+
+        Args:
+            _model: Model that emitted the invalidation.
+            item: Changed retained item, or None when tree structure changed.
         """
         if self._destroyed:
+            return
+        if item is not None:
             return
 
         if self._suppress_model_change_sync:
@@ -638,7 +659,7 @@ class ScrollingTreeWidget:
         if self._model_change_sync_task and not self._model_change_sync_task.done():
             self._model_change_sync_task.cancel()
 
-        self._model_change_sync_task = ensure_future(self._sync_ui_after_model_change(restore_expansion=_item is None))
+        self._model_change_sync_task = ensure_future(self._sync_ui_after_model_change(restore_expansion=item is None))
 
     def subscribe_selection_changed(self, callback: Callable[[list[TreeItemBase]], None]):
         """
@@ -716,7 +737,7 @@ class ScrollingTreeWidget:
         """
         return self._tree_widget.on_selection_changed(*args, **kwargs)
 
-    def destroy(self):
+    def destroy(self) -> None:
         """Destroy all subwidgets and release resources."""
         self._destroyed = True
         if self._expansion_resolve_cancel_event:
@@ -732,11 +753,21 @@ class ScrollingTreeWidget:
             self._model_change_sync_task.cancel()
             self._model_change_sync_task = None
 
-        # Release the subscription - this automatically unsubscribes from the event stream
         self._app_window_size_changed_sub = None
         self._item_changed_sub = None
         self._item_expanded_sub = None
+        if self._tree_widget is not None:
+            self._tree_widget.destroy()
+            self._tree_widget = None
+        if self._alternating_row_widget is not None:
+            self._alternating_row_widget.destroy()
+            self._alternating_row_widget = None
+        self._model = None
+        self._delegate = None
+        self._root_frame = None
+        self._tree_frame = None
+        self._tree_scroll_frame = None
 
     def __del__(self):
-        """Destroy all subwidgets and release resources."""
+        """Release resources when explicit destruction was omitted."""
         self.destroy()

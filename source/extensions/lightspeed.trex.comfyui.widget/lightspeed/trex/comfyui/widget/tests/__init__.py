@@ -15,6 +15,20 @@
 * limitations under the License.
 """
 
-from .unit.test_subscription_lifecycle import TestComfyUIWidgetSubscriptionLifecycle
+from .e2e.test_setup import TestComfySetupAdvancedWidgetE2E
+from .e2e.test_typed_product_workflow import TestTypedComfyUIProductWorkflowE2E
+from .e2e.test_workflow_widget import TestWorkflowSetupWidgetE2E
+from .unit.test_display_adapter import TestComfyUIDisplayAdapter
+from .unit.test_extension import TestComfyUIWidgetExtension
+from .unit.test_workflow_model import TestWorkflowModel
+from .unit.test_workflow_widget import TestWorkflowSetupWidgetUnit
 
-__all__ = ["TestComfyUIWidgetSubscriptionLifecycle"]
+__all__ = (
+    "TestComfySetupAdvancedWidgetE2E",
+    "TestComfyUIDisplayAdapter",
+    "TestComfyUIWidgetExtension",
+    "TestTypedComfyUIProductWorkflowE2E",
+    "TestWorkflowModel",
+    "TestWorkflowSetupWidgetE2E",
+    "TestWorkflowSetupWidgetUnit",
+)

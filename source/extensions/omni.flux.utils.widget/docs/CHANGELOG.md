@@ -2,6 +2,18 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.30.4]
+### Added
+- Added per-tree horizontal scrollbar visibility control.
+- Added a sectioned combo box helper and collapsible frame header action hook for upcoming UI panels.
+
+### Fixed
+- Kept alternating-row backgrounds stable when a retained tree item updates without changing visible row membership.
+- Kept interactive scrolling trees and their native drag indicators above decorative alternating-row backgrounds.
+- Added explicit scrolling-tree teardown for tasks, subscriptions, and owned widgets.
+- Stopped a destroyed scrolling tree from scheduling further content-size updates.
+- Stopped `TreeWidget` teardown from destroying the model and the delegate that its caller owns.
+
 ## [1.30.3]
 ### Changed
 - Expanded `PropertyCollapsableFrame` header hit targets so section titles, header empty space, and arrows toggle collapse while pin and action icons stay independent.

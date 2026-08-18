@@ -43,7 +43,9 @@ class PropertyWidget:
         model: Model | None = None,
         delegate: Delegate | None = None,
         tree_column_widths: list[ui.Length] | None = None,
+        tree_min_column_widths: list[ui.Length] | None = None,
         columns_resizable: bool = False,
+        select_all_children: bool = False,
     ):
         """
         Property widget displaying attribute names and values in a tree structure
@@ -52,13 +54,17 @@ class PropertyWidget:
             model: model to use for the treeview
             delegate: delegate to use for the treeview
             tree_column_widths: optional column widths to use for the treeview
+            tree_min_column_widths: optional minimum column widths to use for the treeview
             columns_resizable: whether the treeview columns can be resized
+            select_all_children: whether selecting a parent also selects all its children
         """
         self._default_attr = {
             "_model": None,
             "_delegate": None,
             "_tree_column_widths": None,
+            "_tree_min_column_widths": None,
             "_columns_resizable": None,
+            "_select_all_children": None,
             "_update_task": None,
             "_expansion_state": None,
             "_on_item_expanded_sub": None,
@@ -73,7 +79,11 @@ class PropertyWidget:
         self._model = Model() if model is None else model
         self._delegate = Delegate() if delegate is None else delegate
         self._tree_column_widths = tree_column_widths
+        self._tree_min_column_widths = (
+            [ui.Pixel(100), ui.Pixel(100)] if tree_min_column_widths is None else tree_min_column_widths
+        )
         self._columns_resizable = columns_resizable
+        self._select_all_children = select_all_children
 
         self._update_task = None
         self._expansion_state = {}
@@ -108,7 +118,7 @@ class PropertyWidget:
                 column_widths=self._get_column_widths(),
                 min_column_widths=self._get_min_column_widths(),
                 columns_resizable=self._columns_resizable,
-                select_all_children=False,
+                select_all_children=self._select_all_children,
                 name="PropertyWidget",
             )
 
@@ -144,7 +154,7 @@ class PropertyWidget:
 
     def _get_min_column_widths(self) -> list[ui.Length]:
         if not self._uses_responsive_pixel_columns():
-            return [ui.Pixel(_DEFAULT_MIN_COLUMN_WIDTH), ui.Pixel(_DEFAULT_MIN_COLUMN_WIDTH)]
+            return self._tree_min_column_widths
         return [
             ui.Pixel(min(_RESPONSIVE_NAME_COLUMN_MIN_WIDTH, self._tree_column_widths[0].value)),
             ui.Pixel(_RESPONSIVE_VALUE_COLUMN_MIN_WIDTH),

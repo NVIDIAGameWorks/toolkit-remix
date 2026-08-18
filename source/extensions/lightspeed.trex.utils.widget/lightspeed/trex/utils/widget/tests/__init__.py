@@ -16,5 +16,6 @@
 """
 
 from .e2e.test_invalid_deps_dialog import TestInvalidDepsDialog
+from .unit.test_quicklayout import TestQuickLayout
 
-__all__ = ["TestInvalidDepsDialog"]
+__all__ = ["TestInvalidDepsDialog", "TestQuickLayout"]

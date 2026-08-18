@@ -17,6 +17,8 @@
 
 from .color_gradient import GRADIENT_PRESETS
 from .color_gradient import ColorGradientWidget
+from .combo_box import SectionedComboBox
+from .combo_box import SectionedComboItem
 from .drag_field import FloatBoundedDrag
 from .drag_field import IntBoundedDrag
 from .grouped_keys_model import GroupedKeysModel
@@ -33,4 +35,6 @@ __all__ = [
     "InMemoryGroupedKeysModel",
     "IntBoundedDrag",
     "SearchExtension",
+    "SectionedComboBox",
+    "SectionedComboItem",
 ]

@@ -1,6 +1,20 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.0]
+### Added
+- Added shared ComfyUI connection-banner styles for disconnected, connecting, connected, and error states.
+- Added the MDI target retarget action style using the established neutral action palette.
+- Added consistent hierarchical job-queue, details, log-viewer, Apply-mode, and action styles.
+- Added shared styles for job queue controls and final-stack ComfyUI workflows.
+- Added `StringField::LazyValue` for shared lazy-value field styling.
+
+### Changed
+- Used the standard application label style for Job Details metadata.
+
+### Fixed
+- Strengthened enabled, hovered, and active Apply/Decline colors while keeping unavailable actions in the shared faded-white disabled palette.
+
 ## [1.24.1]
 ### Changed
 - Added a shared viewport background style for Kit 110 HdRemix fallback rendering.

@@ -20,10 +20,12 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import omni.kit.commands
 import omni.kit.test
 from lightspeed.common import constants
+from lightspeed.trex.comfyui.core.core import ComfyUISubmission, ComfyUISubmissionResult
 from lightspeed.trex.stage_manager.plugin.tree.usd.category_groups import CategoryGroupsItem as _CategoryGroupsItem
 from lightspeed.trex.stage_manager.plugin.tree.usd.category_groups import CategoryGroupsModel as _CategoryGroupsModel
 from lightspeed.trex.stage_manager.plugin.widget.usd.action_logic_graph import (
@@ -40,6 +42,9 @@ from lightspeed.trex.stage_manager.plugin.widget.usd.state_hidden_category impor
 )
 from lightspeed.trex.stage_manager.plugin.widget.usd.state_is_capture import (
     IsCaptureStateWidgetPlugin as _IsCaptureStateWidgetPlugin,
+)
+from lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job import (
+    SubmitComfyUIJobActionWidgetPlugin as _SubmitComfyUIJobActionWidgetPlugin,
 )
 from omni import ui, usd
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
@@ -58,36 +63,46 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
 
     # Before running each test
     async def setUp(self):
-        await usd.get_context().new_stage_async()
-        self.stage = usd.get_context().get_stage()
+        self.context = usd.get_context("")
+        await self.context.new_stage_async()
+        self.stage = self.context.get_stage()
         self.temp_dir = tempfile.TemporaryDirectory()
         self.project_path, self.remix_dir = await self.__setup_directories()
 
     # After running each test
     async def tearDown(self):
-        if usd.get_context().get_stage():
-            await usd.get_context().close_stage_async()
+        if self.context.get_stage():
+            await self.context.close_stage_async()
 
         await self.__cleanup_directories()
         self.temp_dir.cleanup()
 
         self.stage = None
+        self.context = None
         self.temp_dir = None
 
     async def __setup_widget(self, widget_plugin_type: type[_StageManagerStateWidgetPlugin]):
-        await arrange_windows(topleft_window="Stage")
+        await arrange_windows()
 
-        window = ui.Window("TestWidgetPluginsWindow", width=200, height=100)
+        window = ui.Window(
+            f"TestWidgetPluginsWindow_{self._testMethodName}",
+            width=200,
+            height=100,
+            position_x=500,
+            position_y=100,
+            flags=ui.WINDOW_FLAGS_MODAL | ui.WINDOW_FLAGS_NO_DOCKING,
+        )
         with window.frame:
             widget = widget_plugin_type()
+        window.focus()
+        await ui_test.human_delay()
 
         return window, widget
 
-    async def __destroy(self, window, widget):
-        # await wait_stage_loading()  # NOTE: This causes the window to not fully destroy
-
-        widget = None  # noqa: F841
+    async def __destroy(self, window):
+        window.visible = False
         window.destroy()
+        await ui_test.human_delay()
 
     async def __setup_directories(self):
         project_dir = Path(self.temp_dir.name) / "projects" / "MyProject"
@@ -159,6 +174,97 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         shutil.rmtree(self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem, ignore_errors=True)
         shutil.rmtree(self.project_path.parent / constants.REMIX_DEPENDENCIES_FOLDER, ignore_errors=True)
 
+    async def test_comfyui_action_icon_shows_setup_state_and_opens_ai_tools(self):
+        """A real click on the disconnected action opens AI Tools for setup."""
+        # Render the Stage Manager action for a real prim while ComfyUI is unavailable.
+        window, widget = await self.__setup_widget(widget_plugin_type=_SubmitComfyUIJobActionWidgetPlugin)
+        model = _StageManagerTreeModel()
+        item = _StageManagerTreeItem(
+            display_name="Material", tooltip="Material", data=self.stage.DefinePrim("/Material")
+        )
+        core = MagicMock(is_ready=False)
+        try:
+            with (
+                patch(
+                    "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
+                    return_value=core,
+                ),
+                patch.object(widget, "_open_ai_tools_layout") as open_layout,
+            ):
+                with window.frame:
+                    widget.build_icon_ui(model, item, 0, False)
+                window.focus()
+                await ui_test.human_delay(2)
+
+                action = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='submit_comfyui_job_widget_image'")
+                self.assertIsNotNone(action)
+                self.assertEqual(action.widget.name, "AIToolsDisabled")
+                self.assertEqual(
+                    action.widget.tooltip,
+                    "ComfyUI is not connected, or no workflow is selected. Select to open AI Tools.",
+                )
+
+                # Click the visible disabled-state action and follow its recovery path.
+                await action.click()
+                await ui_test.human_delay()
+
+                open_layout.assert_called_once_with()
+        finally:
+            await self.__destroy(window)
+
+    async def test_comfyui_action_icon_preserves_multi_selection_for_active_workflow(self):
+        """A real click on the ready action submits every selected Stage Manager prim."""
+        # Render the ready Stage Manager action for two selected live-stage prims.
+        window, widget = await self.__setup_widget(widget_plugin_type=_SubmitComfyUIJobActionWidgetPlugin)
+        model = _StageManagerTreeModel()
+        first_prim = self.stage.DefinePrim("/FirstMaterial")
+        second_prim = self.stage.DefinePrim("/SecondMaterial")
+        item = _StageManagerTreeItem(display_name="First Material", tooltip="First Material", data=first_prim)
+        second_item = _StageManagerTreeItem(
+            display_name="Second Material",
+            tooltip="Second Material",
+            data=second_prim,
+        )
+        model.selection = [item, second_item]
+        core = MagicMock(is_ready=True)
+        core.workflow.name = "Upscale"
+        submission = ComfyUISubmission((), 0)
+        core.prepare_submission = AsyncMock(return_value=submission)
+        core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(0, 0))
+        usd.get_context().get_selection().set_selected_prim_paths(
+            [str(first_prim.GetPath()), str(second_prim.GetPath())],
+            True,
+        )
+        try:
+            with patch(
+                "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
+                return_value=core,
+            ):
+                with window.frame:
+                    widget.build_icon_ui(model, item, 0, False)
+                window.focus()
+                await ui_test.human_delay(2)
+
+                action = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='submit_comfyui_job_widget_image'")
+                self.assertIsNotNone(action)
+                self.assertEqual(action.widget.name, "AITools")
+                self.assertEqual(
+                    action.widget.tooltip,
+                    "Run 'Upscale' for this selection using the current AI Tools settings.",
+                )
+
+                # Click the visible action and let the production widget prepare and submit the selection.
+                await action.click()
+                await ui_test.human_delay(5)
+
+                core.prepare_submission.assert_awaited_once_with(
+                    prim_paths=["/FirstMaterial", "/SecondMaterial"], progress=ANY, is_cancelled=ANY
+                )
+                core.submit_prepared_submission.assert_awaited_once_with(submission)
+        finally:
+            _SubmitComfyUIJobActionWidgetPlugin.cancel_pending_submissions()
+            await self.__destroy(window)
+
     async def test_prim_is_from_capture_or_mod(self):
         # Set up the test
         await self.__create_project(create_symlinks=False)
@@ -207,7 +313,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         self.assertEqual(capture_state_widget_image.widget.name, "Collection")
         self.assertEqual(capture_state_widget_image.widget.tooltip, "The prim originates from a mod layer.")
 
-        await self.__destroy(_window, _widget)
+        await self.__destroy(_window)
 
     async def test_prim_can_be_framed_in_viewport(self):
         # Set up the test
@@ -423,7 +529,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
             TestStageManagerPluginWidget.FOCUS_IN_VIEWPORT_TOOLTIP_DISABLED,
         )
 
-        await self.__destroy(_window, _widget)
+        await self.__destroy(_window)
 
     async def test_prim_category_visible(self):
         # Set up the test
@@ -462,7 +568,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
             "The prim's visibility is not affected by the assigned categories",
         )
 
-        await self.__destroy(_window, _widget)
+        await self.__destroy(_window)
 
     async def test_prim_category_hidden(self):
         # Set up the test
@@ -501,4 +607,4 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
             "The prim is not visible because the following category is not rendered in the viewport: \n- Hidden",
         )
 
-        await self.__destroy(_window, _widget)
+        await self.__destroy(_window)

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.4]
+### Changed
+- Passed the explicit USD stage resolver to the shared relative-path file picker.
+
 ## [1.5.3]
 ### Added
 - Added public expand and collapse all group forwarding for logic property pane headers.

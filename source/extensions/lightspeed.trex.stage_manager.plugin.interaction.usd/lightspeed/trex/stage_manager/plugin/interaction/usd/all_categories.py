@@ -68,10 +68,15 @@ class RemixAllCategoriesInteractionPlugin(RemixStageManagerUSDInteractionPlugin)
             "ParticleSystemsActionWidgetPlugin",
             "PrimRenameNameActionWidgetPlugin",
             "PrimTreeWidgetPlugin",
-            "SubmitAIJobActionWidgetPlugin",
+            "SubmitComfyUIJobActionWidgetPlugin",
         ],
         exclude=True,
     )
 
     def _get_selection(self):
+        """Return Remix-related prim paths for the current USD selection.
+
+        Returns:
+            Selected prim paths expanded to related meshes, materials, shaders, lights, and children.
+        """
         return _get_extended_selection(self._context_name)

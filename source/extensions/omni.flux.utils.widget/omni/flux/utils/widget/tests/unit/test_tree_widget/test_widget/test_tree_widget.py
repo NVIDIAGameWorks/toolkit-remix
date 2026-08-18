@@ -83,6 +83,38 @@ class TestTreeWidget(AsyncTestCase):
         widget.destroy()
         window.destroy()
 
+    async def test_destroy_releases_borrowed_model_and_delegate_without_destroying_them(self):
+        """The caller owns the model and the delegate, so teardown clears the references but keeps the objects."""
+        model, delegate, items = self._create_test_tree()
+
+        await arrange_windows(topleft_window="Stage")
+        window = ui.Window("TestTreeWidgetBorrowedTeardown", height=400, width=400)
+
+        with window.frame:
+            widget = MockTreeWidget(model, delegate)
+
+        widget.destroy()
+
+        # The references are cleared, which is what keeps a late native callback silent.
+        self.assertIsNone(widget._model)  # pylint: disable=protected-access
+        self.assertIsNone(widget._delegate)  # pylint: disable=protected-access
+
+        # The caller's objects survive, so the caller can still destroy them itself.
+        self.assertEqual(model.get_item_children(None), items)
+        self.assertIsNotNone(delegate.default_attr)
+
+        # A selection callback arriving after teardown must do nothing instead of touching released objects.
+        received = []
+        subscription = widget.subscribe_selection_changed(received.append)
+        widget.on_selection_changed(items)
+        self.assertEqual(received, [])
+
+        # Cleanup
+        del subscription
+        window.destroy()
+        delegate.destroy()
+        model.destroy()
+
     async def test_widget_creation_with_select_all_children_disabled(self):
         """Test that TreeWidget can be created with select_all_children=False."""
         model, delegate, _ = self._create_test_tree()

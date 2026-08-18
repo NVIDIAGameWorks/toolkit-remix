@@ -20,6 +20,7 @@ __all__ = ("FilePicker",)
 import functools
 import typing
 
+import carb
 import omni.client
 import omni.ui as ui
 import omni.usd
@@ -30,6 +31,9 @@ from ..base import AbstractField
 
 if typing.TYPE_CHECKING:
     from omni.flux.property_widget_builder.widget import ItemModelBase
+    from pxr import Usd
+
+_PICKER_ICON_SIZE = ui.Pixel(20)
 
 
 class FilePicker(AbstractField):
@@ -38,6 +42,10 @@ class FilePicker(AbstractField):
         file_extension_options: list[tuple[str, str]] | None = None,
         style_name: str = "PropertiesWidgetField",
         use_relative_paths: bool = False,
+        identifier: str | None = None,
+        picker_identifier: str | None = None,
+        *,
+        stage_resolver: typing.Callable[["ItemModelBase"], "Usd.Stage | None"] | None = None,
     ):
         """
         A delegate that will show a stringField with a file picker
@@ -49,11 +57,21 @@ class FilePicker(AbstractField):
                 Examples: ``("*.usdc", "Binary format")`` or ``(".usd*", "USD format")``
                     or ``("*.png, *.jpg, *.exr", "Image format")``
             use_relative_paths: If True, convert selected file paths to be relative to the current USD edit target.
-                  Requires the value_model to have a `stage` attribute.
+            identifier: Stable identifier assigned to the editable path field.
+            picker_identifier: Stable identifier assigned to the file-picker button.
+            stage_resolver: Keyword-only callback that explicitly resolves the USD stage for relative-path value
+                models. Required when ``use_relative_paths`` is True.
+
+        Raises:
+            ValueError: If relative paths are requested without a stage resolver.
         """
-        super().__init__(style_name=style_name)
+        super().__init__(style_name=style_name, identifier=identifier)
+        if use_relative_paths and stage_resolver is None:
+            raise ValueError("Relative file paths require a stage resolver")
         self._file_extension_options = file_extension_options
         self._use_relative_paths = use_relative_paths
+        self._stage_resolver = stage_resolver
+        self._picker_identifier = picker_identifier
         self._sub_field_begin_edit = []
         self._sub_field_end_edit = []
         self._sub_field_changed = []
@@ -75,6 +93,7 @@ class FilePicker(AbstractField):
                         model=item.value_models[i],
                         read_only=item.value_models[i].read_only,
                         style_type_name_override=style_name,
+                        identifier=self.identifier or "",
                     )
                     self.set_dynamic_tooltip_fn(widget, item.value_models[i])
 
@@ -96,12 +115,14 @@ class FilePicker(AbstractField):
                     widgets.append(widget)
                     ui.Spacer(height=ui.Pixel(2))
                 ui.Spacer(width=ui.Pixel(8))
-                with ui.VStack(width=ui.Pixel(20)):
+                with ui.VStack(width=_PICKER_ICON_SIZE):
                     ui.Spacer()
                     ui.Image(
                         "",
                         name="OpenFolder",
-                        height=ui.Pixel(20),
+                        identifier=self._picker_identifier or "",
+                        width=_PICKER_ICON_SIZE,
+                        height=_PICKER_ICON_SIZE,
                         mouse_pressed_fn=functools.partial(self._on_open_file_pressed, widget, item.value_models[i], i),
                     )
                     ui.Spacer()
@@ -165,8 +186,14 @@ class FilePicker(AbstractField):
         )
 
     def _set_field(self, widget: ui.AbstractField, value_model: "ItemModelBase", element_current_idx: int, path: str):
-        if self._use_relative_paths and hasattr(value_model, "stage") and value_model.stage:
+        stage = (
+            self._stage_resolver(value_model) if self._use_relative_paths and self._stage_resolver is not None else None
+        )
+        if self._use_relative_paths and stage is None:
+            carb.log_error("Cannot store a relative file path because no USD stage is available")
+            return
+        if stage is not None:
             path = omni.client.normalize_url(
-                omni.usd.make_path_relative_to_current_edit_target(path, stage=value_model.stage)
+                omni.usd.make_path_relative_to_current_edit_target(path, stage=stage)
             ).replace("\\", "/")
         widget.model.set_value(path)

@@ -14,3 +14,12 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
+from . import handlers
+from .extension import FluxJobQueueCoreExtension, get_job_queue
+
+__all__ = (
+    "FluxJobQueueCoreExtension",
+    "get_job_queue",
+    "handlers",
+)

@@ -15,27 +15,116 @@
 * limitations under the License.
 """
 
-__all__ = ["ComfyUIQueueType", "ComfyUIState"]
+__all__ = [
+    "ComfyUIEventType",
+    "ComfyUIOperation",
+    "ComfyUIProtocol",
+    "ComfyUIRetargetResult",
+    "ComfyUIState",
+    "IntroducingLayer",
+    "RemixType",
+    "WorkflowCategory",
+    "WorkflowSourceType",
+]
 
-from enum import Enum
-
-
-class ComfyUIState(Enum):
-    NOT_FOUND = "No ComfyUI installation found. Install ComfyUI to get started."
-    FOUND = "Starting the initialization process..."
-    DOWNLOADING = "Downloading the latest version of ComfyUI..."
-    VENV = "Creating a virtual environment..."
-    DEPENDENCIES = "Installing dependencies... (This may take a while)"
-    MODELS = "Downloading models... (This may take a while)"
-    READY = "ComfyUI is ready to start"
-    STARTING = "Starting ComfyUI..."
-    RUNNING = "ComfyUI is running"
-    STOPPING = "Stopping ComfyUI..."
-    UPDATING = "Updating ComfyUI to the latest version..."
-    UNINSTALLING = "Deleting the ComfyUI installation..."
-    ERROR = "An error occurred. See logs for details. Refresh the installation state to try again."
+from enum import Enum, StrEnum
 
 
-class ComfyUIQueueType(Enum):
-    TEXTURE = "texture"
-    MESH = "mesh"
+class ComfyUIEventType(Enum):
+    """Identify state, workflow, and settings notifications from the event stream."""
+
+    STATE_CHANGED = "state_changed"
+    WORKFLOW_CHANGED = "workflow_changed"
+    WORKFLOWS_LOADED = "workflows_loaded"
+    SETTINGS_CHANGED = "settings_changed"
+    STAGE_VISIBILITY_CHANGED = "stage_visibility_changed"
+
+
+class ComfyUIOperation(StrEnum):
+    """Identify mutually exclusive ComfyUI preparation and submission work."""
+
+    JOB_PREPARATION = "job preparation"
+    QUEUE_SUBMISSION = "queue submission"
+
+
+class ComfyUIRetargetResult(Enum):
+    """Identify the result of one atomic queued-job retarget request."""
+
+    UPDATED = "updated"
+    CONNECTION_CHANGED = "connection_changed"
+    JOB_STARTED = "job_started"
+
+
+class ComfyUIState(StrEnum):
+    """Identify connection lifecycle states published by the ComfyUI runtime."""
+
+    STARTING = "starting"
+    RUNNING = "running"
+    READY = "ready"
+    ERROR = "error"
+
+
+class ComfyUIProtocol(Enum):
+    """Define supported protocols and their standard ports.
+
+    Each value is a tuple of (scheme, standard_port).
+    """
+
+    HTTP = ("http", 80)
+    HTTPS = ("https", 443)
+
+    def __init__(self, scheme: str, standard_port: int):
+        """Initialize a protocol with its URL scheme and standard port.
+
+        Args:
+            scheme: URL scheme represented by this protocol.
+            standard_port: Conventional TCP port for the protocol.
+        """
+        self._scheme = scheme
+        self._standard_port = standard_port
+
+    @property
+    def scheme(self) -> str:
+        """Return the URL scheme component.
+
+        Returns:
+            Lowercase ``http`` or ``https`` scheme.
+        """
+        return self._scheme
+
+    @property
+    def standard_port(self) -> int:
+        """Return the standard port number for this protocol.
+
+        Returns:
+            Conventional TCP port for the protocol.
+        """
+        return self._standard_port
+
+
+class IntroducingLayer(Enum):
+    """Identify which Remix layer introduced a texture selected for processing."""
+
+    CAPTURE = "Capture"
+    MOD = "Mod"
+    ANY = "Any"
+
+
+class RemixType(StrEnum):
+    """Canonical Remix port tags emitted by the ComfyUI node pack."""
+
+    TEXTURE_FILE_PATH = "texture_file_path"
+
+
+class WorkflowCategory(Enum):
+    """Distinguish executable prompt data from full workflow graph data."""
+
+    API = "api"
+    FULL = "full"
+
+
+class WorkflowSourceType(Enum):
+    """Identify whether a workflow comes from RTX Remix or user storage."""
+
+    RTX_REMIX = "rtx-remix"
+    USER = "user"

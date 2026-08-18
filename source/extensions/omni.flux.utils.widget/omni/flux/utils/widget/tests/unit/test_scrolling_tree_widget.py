@@ -18,6 +18,7 @@
 __all__ = ["TestScrollingTreeWidget"]
 import gc
 import threading
+from unittest.mock import MagicMock, patch
 
 import omni.usd
 from omni import ui
@@ -107,6 +108,38 @@ class TestScrollingTreeWidget(AsyncTestCase):
 
         # Cleanup
         del widget
+        window.destroy()
+
+    async def test_destroy_releases_tasks_subscriptions_and_owned_widgets(self):
+        """Explicit destruction releases resources without waiting for garbage collection."""
+        # Arrange
+        model, delegate, _ = self._create_test_tree()
+        await arrange_windows(topleft_window="Stage")
+        window = ui.Window("TestScrollingTreeWidgetDestroy", height=400, width=400)
+        with window.frame:
+            widget = ScrollingTreeWidget(model, delegate, alternating_rows=True)
+        tasks = [MagicMock(), MagicMock(), MagicMock()]
+        widget._update_content_size_task, widget._selection_update_task, widget._model_change_sync_task = tasks
+        tree_widget = widget._tree_widget
+        alternating_rows = widget._alternating_row_widget
+
+        # Act
+        with (
+            patch.object(tree_widget, "destroy", wraps=tree_widget.destroy) as tree_destroy,
+            patch.object(alternating_rows, "destroy", wraps=alternating_rows.destroy) as rows_destroy,
+        ):
+            widget.destroy()
+
+        # Assert
+        for task in tasks:
+            task.cancel.assert_called_once_with()
+        tree_destroy.assert_called_once_with()
+        rows_destroy.assert_called_once_with()
+        self.assertIsNone(widget._app_window_size_changed_sub)
+        self.assertIsNone(widget._item_changed_sub)
+        self.assertIsNone(widget._item_expanded_sub)
+        self.assertIsNone(widget._tree_widget)
+        self.assertIsNone(widget._alternating_row_widget)
         window.destroy()
 
     async def test_iter_visible_items_top_level_only(self):

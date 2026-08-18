@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   overrides that preserve importer-authored conventions by default
 - Added native Pi and OMP specialist wrappers while leaving settings, packages, and hooks user-local.
 - REMIX-5152: Added default USD values to USD reset indicator tooltips.
+- REMIX-4286: Reworked ComfyUI into typed job graphs on a shared job queue, added asset-processing pipeline extensions
+  with Job Queue and Job Details workspaces and a persistent connection banner, and removed the legacy AI Tools
+  workspace.
 
 ### Changed
 

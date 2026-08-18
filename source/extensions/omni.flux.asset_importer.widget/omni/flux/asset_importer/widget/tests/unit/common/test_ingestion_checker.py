@@ -15,7 +15,6 @@
 * limitations under the License.
 """
 
-import random
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -35,15 +34,18 @@ class TestIngestionCheckerUnit(omni.kit.test.AsyncTestCase):
         self.temp_dir.cleanup()
 
     async def test_validate_file_selection_pass(self):
-        # Setup the test
+        # Arrange
         base_path = Path(self.temp_dir.name)
-        ext = random.choice(SUPPORTED_ASSET_EXTENSIONS)
+        ext = sorted(SUPPORTED_ASSET_EXTENSIONS)[0]
         items = [base_path / f"0.{ext}", base_path / f"1.{ext}", base_path / f"2.{ext}"]
         for item in items:
             item.touch()
 
-        # Assert that the function passes
-        self.assertTrue(validate_file_selection(items))
+        # Act
+        is_valid = validate_file_selection(items)
+
+        # Assert
+        self.assertTrue(is_valid)
 
     async def test_validate_file_selection_uppercase_usd_pass(self):
         """Accept supported uppercase USD file extensions."""
@@ -60,21 +62,23 @@ class TestIngestionCheckerUnit(omni.kit.test.AsyncTestCase):
         self.assertTrue(is_valid)
 
     async def test_validate_texture_selection_pass(self):
-        # Setup the test
+        # Arrange
         base_path = Path(self.temp_dir.name)
-        ext = random.choice(SUPPORTED_TEXTURE_EXTENSIONS)
+        ext = sorted(SUPPORTED_TEXTURE_EXTENSIONS)[0]
         items = [base_path / f"0.{ext}", base_path / f"1.{ext}", base_path / f"2.{ext}"]
         for item in items:
             item.touch()
 
-        # Assert that the function passes
-        self.assertTrue(validate_texture_selection(items))
+        # Act
+        is_valid = validate_texture_selection(items)
+
+        # Assert
+        self.assertTrue(is_valid)
 
     async def test_validate_file_selection_fail_bad_ext(self):
-        # Setup the test
+        # Arrange
         base_path = Path(self.temp_dir.name)
-        ext = random.choice(SUPPORTED_ASSET_EXTENSIONS)
-        # Make one of the extensions invalid
+        ext = sorted(SUPPORTED_ASSET_EXTENSIONS)[0]
         items = [
             base_path / f"0.{ext}",
             base_path / f"1.{ext}",
@@ -83,14 +87,16 @@ class TestIngestionCheckerUnit(omni.kit.test.AsyncTestCase):
         for item in items:
             item.touch()
 
-        # Assert that the function fails
-        self.assertFalse(validate_file_selection(items))
+        # Act
+        is_valid = validate_file_selection(items)
+
+        # Assert
+        self.assertFalse(is_valid)
 
     async def test_validate_texture_selection_fail_bad_ext(self):
-        # Setup the test
+        # Arrange
         base_path = Path(self.temp_dir.name)
-        ext = random.choice(SUPPORTED_TEXTURE_EXTENSIONS)
-        # Make one of the extensions invalid
+        ext = sorted(SUPPORTED_TEXTURE_EXTENSIONS)[0]
         items = [
             base_path / "0.INVALID",
             base_path / f"1.{ext}",
@@ -99,31 +105,60 @@ class TestIngestionCheckerUnit(omni.kit.test.AsyncTestCase):
         for item in items:
             item.touch()
 
-        # Assert that the function fails
-        self.assertFalse(validate_texture_selection(items))
+        # Act
+        is_valid = validate_texture_selection(items)
+
+        # Assert
+        self.assertFalse(is_valid)
+
+    async def test_validate_file_selection_with_extensionless_file_returns_false(self):
+        # Arrange
+        item = Path(self.temp_dir.name) / "extensionless"
+        item.touch()
+
+        # Act
+        is_valid = validate_file_selection([item])
+
+        # Assert
+        self.assertFalse(is_valid)
+
+    async def test_validate_texture_selection_with_extensionless_file_returns_false(self):
+        # Arrange
+        item = Path(self.temp_dir.name) / "extensionless"
+        item.touch()
+
+        # Act
+        is_valid = validate_texture_selection([item])
+
+        # Assert
+        self.assertFalse(is_valid)
 
     async def test_validate_file_selection_fail_bad_dir(self):
-        # Setup the test
+        # Arrange
         base_path = Path(self.temp_dir.name)
-        # Create subdirectories
         sub1 = base_path / "first"
         sub2 = base_path / "second"
         sub1.mkdir(parents=True)
         sub2.mkdir(parents=True)
         items = [sub1, sub2]
 
-        # Assert that the function fails
-        self.assertFalse(validate_file_selection(items))
+        # Act
+        is_valid = validate_file_selection(items)
+
+        # Assert
+        self.assertFalse(is_valid)
 
     async def test_validate_texture_selection_fail_bad_dir(self):
-        # Setup the test
+        # Arrange
         base_path = Path(self.temp_dir.name)
-        # Create subdirectories
         sub1 = base_path / "first"
         sub2 = base_path / "second"
         sub1.mkdir(parents=True)
         sub2.mkdir(parents=True)
         items = [sub1, sub2]
 
-        # Assert that the function fails
-        self.assertFalse(validate_texture_selection(items))
+        # Act
+        is_valid = validate_texture_selection(items)
+
+        # Assert
+        self.assertFalse(is_valid)
