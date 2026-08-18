@@ -22,10 +22,20 @@ import omni.kit
 import omni.ui as ui
 from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS as _SUPPORTED_ASSET_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
-from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
+from omni.flux.asset_importer.core.selection_validation import classify_asset_selection as _classify_asset_selection
+from omni.flux.asset_importer.core.selection_validation import classify_texture_selection as _classify_texture_selection
 from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
 
 DIALOG_TITLE = "Invalid Selection"
+
+__all__ = [
+    "DIALOG_TITLE",
+    "IngestionValidationFailureDialog",
+    "file_validation_failed_callback",
+    "texture_validation_failed_callback",
+    "validate_file_selection",
+    "validate_texture_selection",
+]
 
 
 class IngestionValidationFailureDialog:
@@ -143,18 +153,37 @@ class IngestionValidationFailureDialog:
                 ui.Spacer(height=0, width=0)
 
 
-def _validate_selection(filenames, supported_extensions=None, return_values=False):
-    """Return whether selected paths have supported extensions and are files."""
-    file_paths = [_OmniUrl(filename) for filename in filenames]
-    bad_exts = [pth for pth in file_paths if pth.suffix and pth.suffix.lower() not in supported_extensions]
-    bad_dirs = [pth for pth in file_paths if pth.is_directory]
-    if return_values:
-        return (bad_exts, bad_dirs)
-    return not any([bad_exts, bad_dirs])
+def validate_file_selection(filenames) -> bool:
+    """Return whether every selected asset path is valid.
+
+    Args:
+        filenames: Candidate asset paths.
+
+    Returns:
+        True when every path is an ingestible asset file.
+    """
+    return _classify_asset_selection(filenames).is_valid
 
 
-def _validation_failed_callback(filenames, supported_extensions=None, callback=None):
-    """Show an error dialog for invalid selected paths."""
+def validate_texture_selection(filenames) -> bool:
+    """Return whether every selected texture path is valid.
+
+    Args:
+        filenames: Candidate texture paths.
+
+    Returns:
+        True when every path is an ingestible texture file.
+    """
+    return _classify_texture_selection(filenames).is_valid
+
+
+def _validation_failed_callback(
+    filenames,
+    classifier,
+    supported_extensions,
+    callback=None,
+    validation=None,
+):
     if len(filenames) == 0:
         PromptManager.post_simple_prompt(
             "Nothing selected",
@@ -164,22 +193,23 @@ def _validation_failed_callback(filenames, supported_extensions=None, callback=N
         )
         return
     # Get the failures
-    bad_exts, bad_dirs = _validate_selection(filenames, supported_extensions, return_values=True)
+    validation = validation or classifier(filenames)
     handler = IngestionValidationFailureDialog()
     handler.show_error_dialog(
-        bad_exts,
-        bad_dirs,
+        validation.unsupported_paths,
+        validation.directory_paths,
         supported_extensions,
         callback=callback,
     )
 
 
-validate_file_selection = functools.partial(_validate_selection, supported_extensions=_SUPPORTED_ASSET_EXTENSIONS)
-validate_texture_selection = functools.partial(_validate_selection, supported_extensions=_SUPPORTED_TEXTURE_EXTENSIONS)
 file_validation_failed_callback = functools.partial(
     _validation_failed_callback,
+    classifier=_classify_asset_selection,
     supported_extensions=_SUPPORTED_ASSET_EXTENSIONS,
 )
 texture_validation_failed_callback = functools.partial(
-    _validation_failed_callback, supported_extensions=_SUPPORTED_TEXTURE_EXTENSIONS
+    _validation_failed_callback,
+    classifier=_classify_texture_selection,
+    supported_extensions=_SUPPORTED_TEXTURE_EXTENSIONS,
 )

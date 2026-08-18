@@ -1,0 +1,42 @@
+[package]
+version = "1.0.0"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix AI Tools Bundle"
+description = "Bundle extension that loads all AI Tools widgets for NVIDIA RTX Remix"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["ai", "widget", "bundle"]
+icon = "data/icon.png"
+category = "internal"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
+
+[dependencies]
+"lightspeed.trex.comfyui.core" = {}
+"lightspeed.common" = {}
+"lightspeed.trex.comfyui.widget" = {}
+"lightspeed.trex.job_queue.widget" = {}
+"lightspeed.trex.sidebar" = {}
+"lightspeed.trex.utils.widget" = {}
+"omni.flux.utils.widget" = {}
+
+[[python.module]]
+name = "lightspeed.trex.ai_tools.bundle"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.viewports.shared.widget",
+    "lightspeed.trex.tests.dependencies",
+]
+stdoutFailPatterns.exclude = [
+    "*No UsdRender.Product was found at*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

@@ -17,7 +17,7 @@
 
 __all__ = ["RemixStageManagerUSDInteractionPlugin"]
 
-from lightspeed.trex.ai_tools.widget import ComfyEventType
+from lightspeed.trex.comfyui.core.enums import ComfyUIEventType
 from omni.flux.stage_manager.plugin.interaction.usd.base import StageManagerUSDInteractionPlugin
 
 
@@ -26,25 +26,22 @@ class RemixStageManagerUSDInteractionPlugin(StageManagerUSDInteractionPlugin):
     Base class for all Remix USD interaction plugins.
 
     Extends the Flux StageManagerUSDInteractionPlugin to subscribe to ComfyUI events,
-    enabling interaction plugins to react to ComfyUI connection and workflow state changes.
+    enabling interaction plugins to react to ComfyUI state, workflow, and endpoint-setting changes.
     All Remix interaction plugins should inherit from this class.
     """
 
     def _setup_listeners(self):
-        """Set up event listeners including ComfyUI event subscription."""
+        """Subscribe the interaction to base and ComfyUI events."""
         super()._setup_listeners()
         # Subscribe to ComfyUI events so interactions can react to connection/workflow changes
         self._listener_event_occurred_subs.extend(
-            self._context.subscribe_listener_event_occurred(ComfyEventType, self._on_comfy_event_occurred)
+            self._context.subscribe_listener_event_occurred(ComfyUIEventType, self._on_comfy_event_occurred)
         )
 
     def _on_comfy_event_occurred(self, _):
-        """
-        Handle ComfyUI events by queuing a UI update.
-
-        Avoid updating the context items since ComfyUI events are not related to USD changes.
+        """Queue a UI refresh without rebuilding the USD context items.
 
         Args:
-            _: The event data (unused)
+            _: ComfyUI event data supplied by the listener; unused.
         """
         self._queue_update(update_context_items=False)

@@ -15,7 +15,15 @@
 * limitations under the License.
 """
 
-from .unit.test_core import TestTextureReplacementsCore
-from .unit.test_validators import TestTextureReplacementsValidators
+from .e2e.test_core import TestTextureReplacementTransactionsE2E, TestTextureReplacementsCoreE2E
+from .e2e.test_validators import TestTextureReplacementsValidatorsE2E
+from .unit.test_core import TestTextureReplacementValidation
+from .unit.test_validators import TestTextureReplacementAssetValidation
 
-__all__ = ["TestTextureReplacementsCore", "TestTextureReplacementsValidators"]
+__all__ = [
+    "TestTextureReplacementAssetValidation",
+    "TestTextureReplacementTransactionsE2E",
+    "TestTextureReplacementValidation",
+    "TestTextureReplacementsCoreE2E",
+    "TestTextureReplacementsValidatorsE2E",
+]

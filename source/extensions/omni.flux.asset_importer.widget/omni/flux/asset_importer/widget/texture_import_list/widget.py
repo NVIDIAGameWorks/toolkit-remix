@@ -15,23 +15,24 @@
 * limitations under the License.
 """
 
+__all__ = ["TextureImportListWidget"]
+
 import asyncio
-from pathlib import Path
 from typing import Any
 from collections.abc import Callable
 
 import carb
 from omni import kit, ui, usd
-from omni.flux.asset_importer.core import destroy_scanner_dialog as _destroy_scanner_dialog
-from omni.flux.asset_importer.core import scan_folder as _scan_folder
-from omni.flux.asset_importer.core import setup_scanner_dialog as _setup_scanner_dialog
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
+from omni.flux.asset_importer.core.selection_validation import classify_texture_selection as _classify_texture_selection
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.flux.utils.common.path_utils import get_invalid_extensions as _get_invalid_extensions
 from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_picker
 
 from ..common.ingestion_checker import texture_validation_failed_callback as _texture_validation_failed_callback
 from ..common.ingestion_checker import validate_texture_selection as _validate_texture_selection
+from ..scan_folder.dialog import destroy_scanner_dialog as _destroy_scanner_dialog
+from ..scan_folder.dialog import scan_folder as _scan_folder
+from ..scan_folder.dialog import setup_scanner_dialog as _setup_scanner_dialog
 from .delegate import TextureImportListDelegate
 from .items import TextureImportItem as _TextureImportItem
 from .model import TextureImportListModel
@@ -92,10 +93,10 @@ class TextureImportListWidget:
         _setup_scanner_dialog(callback={"texture_import": [self._model.add_items]})
 
     def on_drag_drop_external(self, event: carb.events.IEvent) -> None:
-        """
-        Entry point for external file drops (e.g. from a drop-aware tab page).
-        Called by context plugins (e.g. TextureImporter.handle_drop) when the
-        OS drop is routed to this widget's tab. Expects event.payload with "paths".
+        """Validate and enqueue an operating-system texture drop routed to this widget.
+
+        Args:
+            event: Drop event whose payload contains the candidate texture paths.
         """
         if self.__root_frame is None or not self.__root_frame.visible:
             return
@@ -111,15 +112,15 @@ class TextureImportListWidget:
             paths = event.payload.get("paths", ())
             if not paths:
                 return
-            if not _validate_texture_selection(paths):
+            validation = _classify_texture_selection(paths)
+            if not validation.is_valid:
 
                 def reset_drop():
                     self._allow_drop = True
 
                 self._allow_drop = False
-                _texture_validation_failed_callback(paths, callback=reset_drop)
-                bad_exts = _get_invalid_extensions(file_paths=paths, valid_extensions=_SUPPORTED_TEXTURE_EXTENSIONS)
-                paths = [path for path in paths if (pth := Path(path)).suffix not in bad_exts and not pth.is_dir()]
+                _texture_validation_failed_callback(paths, callback=reset_drop, validation=validation)
+                paths = list(validation.valid_paths)
             if self.__drop_filter_fn:
                 paths = self.__drop_filter_fn(paths)
             if not paths:

@@ -16,6 +16,7 @@
 """
 
 __all__ = (
+    "ComboboxField",
     "CreatorField",
     "DefaultField",
 )
@@ -55,6 +56,35 @@ class DefaultField(AbstractField):
                     self.set_dynamic_tooltip_fn(widget, item.value_models[i])
                     widgets.append(widget)
                     ui.Spacer(height=ui.Pixel(2))
+        return widgets
+
+
+class ComboboxField(AbstractField):
+    """Build a ComboBox for an item backed by an AbstractItemModel."""
+
+    def build_ui(self, item) -> list[ui.Widget]:
+        """Build the choice field for an item.
+
+        Args:
+            item: Property item whose first value model supplies the choices.
+
+        Returns:
+            A single-element list containing the built ComboBox widget.
+        """
+        with ui.HStack(height=ui.Pixel(24)):
+            ui.Spacer(width=ui.Pixel(8))
+            with ui.VStack():
+                ui.Spacer(height=ui.Pixel(2))
+                widgets = [
+                    ui.ComboBox(
+                        item.value_models[0],
+                        enabled=not item.value_models[0].read_only,
+                        style_type_name_override=self.style_name,
+                        identifier=self.identifier or "",
+                    )
+                ]
+                self.set_dynamic_tooltip_fn(widgets[0], item.value_models[0])
+                ui.Spacer(height=ui.Pixel(2))
         return widgets
 
 

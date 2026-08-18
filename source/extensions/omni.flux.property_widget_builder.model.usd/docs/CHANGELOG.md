@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.36.6]
+### Changed
+- Reused the shared ComboBox field for USD choice properties.
+
 ## [2.36.5]
 ### Added
 - Added a shared property group expansion mixin for USD property pane wrappers.

@@ -15,9 +15,11 @@
 * limitations under the License.
 """
 
+__all__ = ["LightspeedStageManagerUSDWidgetPluginsExtension"]
+
 import carb
-import omni.ext
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
+from omni.ext import IExt
 
 from .action_assign_category import AssignCategoryActionWidgetPlugin as _AssignCategoryActionWidgetPlugin
 from .action_delete_restore import DeleteRestoreActionWidgetPlugin as _DeleteRestoreActionWidgetPlugin
@@ -30,10 +32,12 @@ from .focus_in_viewport import FocusInViewportActionWidgetPlugin as _FocusInView
 from .info_remap_skeleton import RemapSkeletonInfoWidgetPlugin as _RemapSkeletonInfoWidgetPlugin
 from .state_hidden_category import IsCategoryHiddenStateWidgetPlugin as _IsCategoryHiddenStateWidgetPlugin
 from .state_is_capture import IsCaptureStateWidgetPlugin as _IsCaptureStateWidgetPlugin
-from .submit_ai_job import SubmitAIJobActionWidgetPlugin as _SubmitAIJobActionWidgetPlugin
+from .submit_comfyui_job import SubmitComfyUIJobActionWidgetPlugin as _SubmitComfyUIJobActionWidgetPlugin
 
 
-class LightspeedStageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
+class LightspeedStageManagerUSDWidgetPluginsExtension(IExt):
+    """Register and own the USD Stage Manager widget plugin set."""
+
     _PLUGINS = [
         _AssignCategoryActionWidgetPlugin,
         _DeleteRestoreActionWidgetPlugin,
@@ -46,15 +50,22 @@ class LightspeedStageManagerUSDWidgetPluginsExtension(omni.ext.IExt):
         _PrimRenameNameActionWidgetPlugin,
         _RemapSkeletonActionWidgetPlugin,
         _RemapSkeletonInfoWidgetPlugin,
-        _SubmitAIJobActionWidgetPlugin,
+        _SubmitComfyUIJobActionWidgetPlugin,
     ]
 
     def on_startup(self, _):
+        """Register all USD Stage Manager widget plugins.
+
+        Args:
+            _: Extension identifier supplied by Kit; unused.
+        """
         carb.log_info("[lightspeed.trex.stage_manager.plugin.widget.usd] Startup")
 
         _get_factory_instance().register_plugins(self._PLUGINS)
 
     def on_shutdown(self):
+        """Cancel owned ComfyUI tasks and unregister all widget plugins."""
         carb.log_info("[lightspeed.trex.stage_manager.plugin.widget.usd] Shutdown")
 
+        _SubmitComfyUIJobActionWidgetPlugin.cancel_pending_submissions()
         _get_factory_instance().unregister_plugins(self._PLUGINS)

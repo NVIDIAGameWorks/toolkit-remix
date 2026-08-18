@@ -21,7 +21,7 @@ import asyncio
 import re
 from collections.abc import Callable
 from functools import partial
-from typing import Any
+from typing import Any, cast
 
 import omni.graph.core as og
 import omni.graph.tools.ogn as ogn
@@ -39,21 +39,20 @@ from lightspeed.trex.logic.core.graphs import LogicGraphCore
 from lightspeed.trex.properties_pane.logic.widget.bounds_adapter import OgnBoundsAdapter
 from lightspeed.trex.properties_pane.logic.widget.utils import get_ogn_ui_metadata
 from omni.flux.info_icon.widget import InfoIconWidget
-from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker
+from omni.flux.property_widget_builder.delegates import FilePicker
 from omni.flux.property_widget_builder.model.usd import (
     BuildLayerTransferMenu,
     PropertyGroupExpansionMixin,
     USDAttributeItem,
     USDAttrListItem,
-)
-from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
-from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
-from omni.flux.property_widget_builder.model.usd import (
     USDPropertyWidget,
     USDRelationshipItem,
     get_usd_listener_instance,
 )
+from omni.flux.property_widget_builder.model.usd import USDDelegate as _USDPropertyDelegate
+from omni.flux.property_widget_builder.model.usd import USDModel as _USDPropertyModel
 from omni.flux.property_widget_builder.model.usd.field_builders.ogn import is_ogn_node_attr
+from omni.flux.property_widget_builder.model.usd.item_model.attr_value import UsdAttributeBase
 from omni.flux.property_widget_builder.model.usd.utils import is_property_relationship
 from omni.flux.property_widget_builder.widget import FieldBuilder, ItemGroup, claim_each
 from omni.flux.utils.common import Event, EventSubscription
@@ -79,7 +78,10 @@ def _is_const_asset_path_value(item) -> bool:
 # Field builder for ConstAssetPath.value - uses FilePicker instead of string field
 CONST_ASSET_PATH_FIELD_BUILDER = FieldBuilder(
     claim_func=claim_each(_is_const_asset_path_value),
-    build_func=FilePicker(use_relative_paths=True).build_ui,
+    build_func=FilePicker(
+        use_relative_paths=True,
+        stage_resolver=lambda model: cast(UsdAttributeBase, model).stage,
+    ).build_ui,
 )
 
 _SPACING_SM = 4

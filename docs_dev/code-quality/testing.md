@@ -314,15 +314,17 @@ from omni.flux.utils.tests.context_managers import open_test_project
 
 
 async def test_ingestion_workflow(self):
-    async with open_test_project("usd/my_project/project.usda", __name__) as project_path:
+    async with open_test_project("usd/my_project/project.usda") as project_path:
         # project_path is an OmniUrl to the opened project in a temp directory
-        # stage is already open — drive the UI workflow from here
+        # stage is already open - drive the UI workflow from here
         ...
     # stage is closed and temp directory is cleaned up automatically
 ```
 
-The `ext_name` parameter (typically `__name__`) is used to resolve the test data path relative to the extension's
-`data/tests/` directory. Pass `context_name` when testing non-default USD contexts.
+By default, `open_test_project()` resolves test data from the resource extension configured by the
+`/exts/omni.flux.utils.widget/default_resources_ext` setting, matching `get_test_data()`. Pass `ext_name` only when the
+project lives in a specific extension's `data/tests/` directory. Pass `context_name` when testing non-default USD
+contexts.
 
 **`get_test_data_path`** (`omni.kit.test_suite.helpers`) — resolves a path relative to the extension's own `data/tests/`
 directory. Use this when test data lives alongside the extension:
@@ -344,6 +346,11 @@ shared_asset_path = get_test_data("usd/shared_project/project.usda")
 
 The resources extension is configured via the `/exts/omni.flux.utils.widget/default_resources_ext` Carbonite setting.
 Tests that use `get_test_data` must declare the resources extension in their `[[test]]` dependencies or args.
+
+Shared test assets belong in the centralized resources extension, not in runtime extension test packages and not in
+test-dependency Python fixture modules. Use `open_test_project()` for shared Remix project trees so the test works on a
+temporary copy and opens it through the standard helper. Use `get_test_data()` only for immutable single-file assets or
+expected outputs from `lightspeed.trex.app.resources/data/tests`.
 
 For widget-specific setup/teardown, use `@asynccontextmanager` or an async class with `__aenter__`/`__aexit__` to
 encapsulate window creation and cleanup. Search existing e2e tests in the codebase for patterns.

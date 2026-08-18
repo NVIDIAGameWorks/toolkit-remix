@@ -51,6 +51,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
     async def tearDown(self):
         self._test_widget = None
         if self._test_window is not None:
+            self._test_window.visible = False
             self._test_window.destroy()
             self._test_window = None
 
@@ -73,7 +74,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         await usd.get_context().open_stage_async(temp_project.path)
 
     async def _setup_widget(self, widget_plugin_type: type[DeleteRestoreActionWidgetPlugin]):
-        window = ui.Window("TestWidgetPluginsWindow", width=200, height=100)
+        window = ui.Window(f"TestWidgetPluginsWindow_{self._testMethodName}", width=200, height=100)
         with window.frame:
             widget = widget_plugin_type()
 
@@ -122,34 +123,30 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
     async def test_delete_capture_action_type(self):
         """Capture prim without replacement-layer overrides is classified as DELETECAPTURE."""
-        # Arrange
+        # Load an untouched capture prim into the real action plug-in.
         prim = self.stage.GetPrimAtPath("/RootNode/meshes/mesh_0AB745B8BEE1F16B")
         self.assertTrue(prim.IsValid())
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
 
-        # Act
         action_type = widget._get_prim_action_type(prim)
 
-        # Assert
         self.assertEqual(action_type, widget.ActionType.DELETECAPTURE)
 
     async def test_restore_disabled_action_type_for_protected_path(self):
         """Protected paths are classified as RESTOREDISABLED."""
-        # Arrange
+        # Ask the real action plug-in to classify a protected hierarchy prim.
         prim = self.stage.GetPrimAtPath("/RootNode/meshes")
         self.assertTrue(prim.IsValid())
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
 
-        # Act
         action_type = widget._get_prim_action_type(prim)
 
-        # Assert
         self.assertEqual(action_type, widget.ActionType.RESTOREDISABLED)
 
     async def test_restore_disabled_action_type_for_composition_only_prim(self):
         """Non-capture prims with no spec in edit target or replacement layers
         are classified as RESTOREDISABLED."""
-        # Arrange
+        # Author the prim only in composition so there is no editable opinion to restore.
         composition_layer = Sdf.Layer.CreateAnonymous()
         self.stage.GetRootLayer().subLayerPaths.append(composition_layer.identifier)
         test_prim_path = "/RootNode/meshes/test_composition_only_prim"
@@ -160,15 +157,13 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertTrue(prim.IsValid())
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
 
-        # Act
         action_type = widget._get_prim_action_type(prim)
 
-        # Assert
         self.assertEqual(action_type, widget.ActionType.RESTOREDISABLED)
 
     async def test_restore_action_type_for_capture_prim_with_replacement_ref_edits(self):
         """Capture prim whose capture refs were deleted is classified as RESTORE."""
-        # Arrange — delete the capture reference via the widget callback so that
+        # Delete the capture reference via the widget callback so that
         # SetExplicitReferencesCommand properly authors an explicit empty ref list
         # on the replacement layer through Kit's command pipeline.
         test_prim_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B"
@@ -183,15 +178,13 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         widget._delete_capture_prim_cb()
         self.assertEqual(len(usd.get_composed_references_from_prim(prim, False)), 0)  # Guard: refs removed by callback
 
-        # Act
         action_type = widget._get_prim_action_type(prim)
 
-        # Assert
         self.assertEqual(action_type, widget.ActionType.RESTORE)
 
     async def test_delete_action_type_for_instance_path(self):
         """Instance paths resolve to their prototype and are classified as DELETE."""
-        # Arrange
+        # Create a graph on a prototype and select its composed instance path.
         mesh_path = Sdf.Path("/RootNode/meshes/mesh_CED45075A077A49A")
         graph_path = mesh_path.AppendChild("RemixLogicGraph")
         instance_graph_path = "/RootNode/instances/inst_CED45075A077A49A_0/RemixLogicGraph"
@@ -201,10 +194,8 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertTrue(instance_prim.IsValid())
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
 
-        # Act
         action_type = widget._get_prim_action_type(instance_prim)
 
-        # Assert
         self.assertEqual(action_type, widget.ActionType.DELETE)
 
     # ------------------------------------------------------------------
@@ -213,17 +204,15 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
     async def test_delete_capture_widget_renders_trash_can(self):
         """DELETECAPTURE prim renders an enabled TrashCan icon."""
-        # Arrange
+        # Build the action cell for a real untouched capture prim.
         prim = self.stage.GetPrimAtPath("/RootNode/meshes/mesh_0AB745B8BEE1F16B")
         self.assertTrue(prim.IsValid())
         window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
         item = StageManagerTreeItem(display_name=prim.GetName(), tooltip="foobar", data=prim)
 
-        # Act
         with window.frame:
             widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
 
-        # Assert
         id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._delete_capture_identifier}'")
         self.assertIsNotNone(id_check)
         self.assertTrue(id_check.widget.enabled)
@@ -232,17 +221,16 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
     async def test_restore_disabled_widget_renders_disabled_restore(self):
         """RESTOREDISABLED prim renders a disabled Restore icon."""
-        # Arrange
+        # Build the action cell for a protected prim that cannot be restored.
         prim = self.stage.GetPrimAtPath("/RootNode/meshes")
         self.assertTrue(prim.IsValid())
         window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
         item = StageManagerTreeItem(display_name=prim.GetName(), tooltip="foobar", data=prim)
 
-        # Act
+        # Render through the plug-in and inspect the actual icon exposed to users.
         with window.frame:
             widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
 
-        # Assert
         id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._restore_disabled_identifier}'")
         self.assertIsNotNone(id_check)
         self.assertFalse(id_check.widget.enabled)
@@ -251,7 +239,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
     async def test_restore_widget_renders_restore_icon(self):
         """Capture prim whose capture refs were deleted renders a Restore icon."""
-        # Arrange — delete capture ref via the widget so the command pipeline
+        # Delete the capture reference via the widget so the command pipeline
         # authors a proper explicit empty ref list on the replacement layer.
         test_prim_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B"
         prim = self.stage.GetPrimAtPath(test_prim_path)
@@ -263,11 +251,10 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertEqual(len(usd.get_composed_references_from_prim(prim, False)), 0)  # Guard: refs removed by callback
         item = StageManagerTreeItem(display_name=prim.GetName(), tooltip="foobar", data=prim)
 
-        # Act
+        # Rebuild the action cell after deletion so it switches from delete to restore.
         with window.frame:
             widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
 
-        # Assert
         id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._restore_identifier}'")
         self.assertIsNotNone(id_check)
         self.assertEqual(id_check.widget.name, "Restore")
@@ -275,7 +262,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
     async def test_delete_widget_renders_trash_can(self):
         """Non-capture prim with spec renders an enabled TrashCan icon."""
-        # Arrange
+        # Create an editable graph prim and build its real action cell.
         test_prim = Sdf.Path("/RootNode/meshes/mesh_CED45075A077A49A")
         graph_path = test_prim.AppendChild("RemixLogicGraph")
         success = await self._create_graph_at_prim(graph_path)
@@ -285,11 +272,9 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
         item = StageManagerTreeItem(display_name=graph_prim.GetName(), tooltip="foobar", data=graph_prim)
 
-        # Act
         with window.frame:
             widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
 
-        # Assert
         id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._delete_identifier}'")
         self.assertIsNotNone(id_check)
         self.assertEqual(id_check.widget.name, "TrashCan")
@@ -302,7 +287,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
     async def test_delete_via_instance_path(self):
         """Selecting an instance path deletes the prototype prim."""
-        # Arrange
+        # Create a prototype child and select the corresponding instance proxy.
         mesh_path = Sdf.Path("/RootNode/meshes/mesh_CED45075A077A49A")
         graph_path = mesh_path.AppendChild("RemixLogicGraph")
         instance_graph_path = "/RootNode/instances/inst_CED45075A077A49A_0/RemixLogicGraph"
@@ -313,10 +298,9 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
         usd.get_context().get_selection().set_selected_prim_paths([instance_graph_path], False)
 
-        # Act
+        # Delete through the widget callback used by the Stage Manager action.
         widget._delete_prim_cb()
 
-        # Assert
         self.assertFalse(self.stage.GetPrimAtPath(graph_path).IsValid())
         self.assertFalse(self.stage.GetPrimAtPath(instance_graph_path).IsValid())
 
@@ -325,6 +309,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         replacement layer (composition-only) are classified as RESTOREDISABLED."""
         stage = self.stage
 
+        # Author a composed prim without any editable local or replacement-layer spec.
         composition_layer = Sdf.Layer.CreateAnonymous()
         stage.GetRootLayer().subLayerPaths.append(composition_layer.identifier)
 
@@ -348,6 +333,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
         item = StageManagerTreeItem(display_name=prim.GetName(), tooltip="foobar", data=prim)
 
+        # Render its action cell and verify the user sees a disabled restore action.
         with window.frame:
             widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
 
@@ -358,12 +344,9 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertEqual(id_check.widget.name, "Restore")
         self.assertEqual(id_check.widget.tooltip, "The prim cannot be restored")
 
-        widget = None
-        window.destroy()
-
     async def test_delete_prim_in_both_local_and_ancestral(self):
         """Prim with specs in both edit target and replacement sublayer is fully deleted."""
-        # Arrange
+        # Author the same prim in the edit target and an ancestral replacement sublayer.
         replacement_layer = self._find_replacement_layer()
         self.assertIsNotNone(replacement_layer)
         sublayer = Sdf.Layer.CreateAnonymous()
@@ -381,17 +364,16 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
         usd.get_context().get_selection().set_selected_prim_paths([test_prim_path], False)
 
-        # Act
+        # Deleting through the widget removes every editable opinion, not only the strongest.
         widget._delete_prim_cb()
 
-        # Assert
         self.assertIsNone(edit_target_layer.GetPrimAtPath(test_prim_path))
         self.assertIsNone(sublayer.GetPrimAtPath(test_prim_path))
         self.assertFalse(self.stage.GetPrimAtPath(test_prim_path).IsValid())
 
     async def test_delete_ancestral_prim(self):
         """Prim with no spec in edit target is deleted from replacement sublayer."""
-        # Arrange
+        # Author the selected prim only in an ancestral replacement sublayer.
         replacement_layer = self._find_replacement_layer()
         self.assertIsNotNone(replacement_layer)
         sublayer = Sdf.Layer.CreateAnonymous()
@@ -407,16 +389,15 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
         usd.get_context().get_selection().set_selected_prim_paths([test_prim_path], False)
 
-        # Act
+        # The widget follows composition ownership and removes the ancestral spec.
         widget._delete_prim_cb()
 
-        # Assert
         self.assertIsNone(sublayer.GetPrimAtPath(test_prim_path))
         self.assertFalse(self.stage.GetPrimAtPath(test_prim_path).IsValid())
 
     async def test_delete_capture_prim_removes_reference(self):
         """Deleting a capture prim removes its reference."""
-        # Arrange
+        # Select a capture-backed prim with a composed reference.
         test_prim_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B"
         prim = self.stage.GetPrimAtPath(test_prim_path)
         self.assertTrue(prim.IsValid())
@@ -424,15 +405,14 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
         usd.get_context().get_selection().set_selected_prim_paths([test_prim_path], False)
 
-        # Act
+        # Delete through the capture-specific callback and inspect live composition.
         widget._delete_capture_prim_cb()
 
-        # Assert
         self.assertEqual(len(usd.get_composed_references_from_prim(prim, False)), 0)
 
     async def test_delete_capture_light_removes_reference_and_sets_intensity_to_zero(self):
         """Deleting a capture light removes its reference and authors a zero intensity override."""
-        # Arrange
+        # Select a referenced light while the replacement layer is the edit target.
         test_prim_path = "/RootNode/lights/light_9907D0B07D040077"
         prim = self.stage.GetPrimAtPath(test_prim_path)
         self.assertTrue(prim.IsValid())
@@ -445,17 +425,16 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
         usd.get_context().get_selection().set_selected_prim_paths([test_prim_path], False)
 
-        # Act
+        # Deleting the capture light removes composition and makes it visibly inactive.
         widget._delete_capture_prim_cb()
 
-        # Assert
         self.assertEqual(len(usd.get_composed_references_from_prim(prim, False)), 0)
         self.assertEqual(intensity_attr.Get(), 0.0)
         self.assertIsNotNone(replacement_layer.GetPropertyAtPath(f"{test_prim_path}.inputs:intensity"))
 
     async def test_delete_capture_light_undo_restores_user_intensity(self):
         """Undoing a capture light delete restores the pre-delete user intensity value."""
-        # Arrange
+        # Author a user intensity before deleting the referenced light.
         test_prim_path = "/RootNode/lights/light_9907D0B07D040077"
         prim = self.stage.GetPrimAtPath(test_prim_path)
         self.assertTrue(prim.IsValid())
@@ -477,16 +456,15 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         widget._delete_capture_prim_cb()
         self.assertEqual(intensity_attr.Get(), 0.0)
 
-        # Act
+        # Undo the single user action and verify both reference and authored intensity return.
         omni.kit.undo.undo()
 
-        # Assert
         self.assertTrue(len(usd.get_composed_references_from_prim(prim, False)) > 0)
         self.assertEqual(intensity_attr.Get(), user_intensity)
 
     async def test_restore_capture_light_removes_intensity_override(self):
         """Restoring a deleted capture light returns intensity to the original capture value."""
-        # Arrange
+        # Give the capture light a user override, then delete it through the widget.
         test_prim_path = "/RootNode/lights/light_9907D0B07D040077"
         prim = self.stage.GetPrimAtPath(test_prim_path)
         self.assertTrue(prim.IsValid())
@@ -509,17 +487,16 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertEqual(intensity_attr.Get(), 0.0)
         self.assertIsNotNone(replacement_layer.GetPropertyAtPath(f"{test_prim_path}.inputs:intensity"))
 
-        # Act
+        # Restore capture composition and remove the deletion-only intensity opinion.
         widget._delete_ref_overrides()
 
-        # Assert
         self.assertTrue(len(usd.get_composed_references_from_prim(prim, False)) > 0)
         self.assertEqual(intensity_attr.Get(), capture_intensity)
         self.assertIsNone(replacement_layer.GetPropertyAtPath(f"{test_prim_path}.inputs:intensity"))
 
     async def test_delete_capture_mixed_mesh_and_light_only_sets_light_intensity(self):
         """Deleting mixed capture prims sets intensity only on selected capture lights."""
-        # Arrange
+        # Select a capture mesh and light together to exercise the shared bulk callback.
         mesh_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B"
         light_path = "/RootNode/lights/light_9907D0B07D040077"
         mesh = self.stage.GetPrimAtPath(mesh_path)
@@ -533,10 +510,9 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
         usd.get_context().get_selection().set_selected_prim_paths([mesh_path, light_path], False)
 
-        # Act
+        # Both references disappear, but only the light receives an intensity opinion.
         widget._delete_capture_prim_cb()
 
-        # Assert
         self.assertEqual(len(usd.get_composed_references_from_prim(mesh, False)), 0)
         self.assertEqual(len(usd.get_composed_references_from_prim(light, False)), 0)
         self.assertEqual(intensity_attr.Get(), 0.0)
@@ -545,7 +521,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
     async def test_delete_ref_overrides_clears_replacement_references(self):
         """_delete_ref_overrides clears reference list edits but preserves attribute opinions."""
-        # Arrange — delete the capture ref via the widget to author a proper
+        # Delete the capture reference via the widget to author a proper
         # explicit empty ref list, then add a test attribute that should survive.
         test_prim_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B"
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
@@ -560,21 +536,18 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         attr_spec = Sdf.AttributeSpec(prim_spec, "testPreservedAttr", Sdf.ValueTypeNames.Bool)
         attr_spec.default = True
 
-        # Act
+        # Restoring references must leave unrelated attributes authored on the same prim spec.
         widget._delete_ref_overrides()
 
-        # Assert
         prim_spec = replacement_layer.GetPrimAtPath(test_prim_path)
         self.assertFalse(prim_spec.hasReferences)
         self.assertIsNotNone(prim_spec.attributes.get("testPreservedAttr"))
 
     async def test_show_restore_context_menu_creates_menu(self):
         """_show_restore_context_menu creates a context menu."""
-        # Arrange
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
 
-        # Act
+        # Open the same restore menu requested by a user-facing context-menu gesture.
         widget._show_restore_context_menu()
 
-        # Assert
         self.assertIsNotNone(widget._restore_context_menu)

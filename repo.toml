@@ -621,7 +621,6 @@ autodoc.mock_imports = [
     "fast_version",
     "fastapi",
     "fastmcp",
-    "huggingface_hub",
     "pydantic",
     "pygit2",
     "pyperclip",

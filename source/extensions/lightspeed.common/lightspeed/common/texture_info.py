@@ -34,11 +34,17 @@ class TextureInfo:
         than supporting different import/export formats for the time being.
     """
 
-    def __init__(self, compression_format, gamma_encoded):
+    def __init__(
+        self,
+        compression_format: CompressionFormat,
+        gamma_encoded: bool,
+        extra_args: list[str] | None = None,
+    ):
         self.compression_format = compression_format
         self.gamma_encoded = gamma_encoded
+        self.extra_args: list[str] = extra_args or []
 
-    def to_nvtt_flag_array(self):
+    def to_nvtt_flag_array(self) -> list[str]:
         compression_format_string = None
 
         # Note: All valid compression formats handled here, no else case for a fallback as
@@ -49,9 +55,11 @@ class TextureInfo:
             compression_format_string = "bc5"
         elif self.compression_format == CompressionFormat.BC7:
             compression_format_string = "bc7"
+        else:
+            raise ValueError(f"Unsupported compression format: {self.compression_format}")
 
         # Note: Textures encoded in gamma space should use gamma correct mip interpolation, otherwise they should not
         # for highest quality results.
         mip_gamma_correction_string = "--mip-gamma-correct" if self.gamma_encoded else "--no-mip-gamma-correct"
 
-        return ["--format", compression_format_string, mip_gamma_correction_string]
+        return ["--format", compression_format_string, mip_gamma_correction_string] + self.extra_args

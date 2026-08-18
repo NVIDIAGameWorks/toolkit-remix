@@ -18,23 +18,15 @@
 import contextlib
 import os
 import tempfile
-import time
 
 
 @contextlib.asynccontextmanager
 async def temp_db_path():
-    temp_dir = tempfile.TemporaryDirectory(prefix="omni-flux-job_queue")
-    temp_path = os.path.join(temp_dir.name, "db.sqlite")
-    try:
+    """Yield an isolated SQLite path and remove its directory after the test.
+
+    Yields:
+        Reserved path for an isolated SQLite database in a temporary directory.
+    """
+    with tempfile.TemporaryDirectory(prefix="omni-flux-job_queue") as temp_dir:
+        temp_path = os.path.join(temp_dir, "db.sqlite")
         yield temp_path
-    finally:
-        tries = 0
-        while tries < 3:
-            tries += 1
-            try:
-                temp_dir.cleanup()
-                break
-            except PermissionError:
-                time.sleep(0.1 * tries)
-        else:
-            raise RuntimeError(f"Failed to clean up temporary directory: {temp_dir.name}")

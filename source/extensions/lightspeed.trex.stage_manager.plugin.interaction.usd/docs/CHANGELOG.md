@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.6]
+### Changed
+- Updated interaction exclusions and refresh subscriptions for `SubmitComfyUIJobActionWidgetPlugin`.
+- Updated ComfyUI event imports to consume the ComfyUI event module directly.
+
 ## [2.6.5]
 ### Added
 - Added regression coverage for registered Remix interactions and inherited shared refresh routing.

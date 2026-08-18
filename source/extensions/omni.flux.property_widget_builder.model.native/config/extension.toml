@@ -1,0 +1,23 @@
+[package]
+version = "2.0.0"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Property Widget Builder - Native Type Model"
+description = "Delegate and field builders for property widgets displaying native Python-typed data"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["property", "widget", "native", "delegate"]
+icon = "data/images/icon.png"
+category = "internal"
+preview_image = "data/images/preview.png"
+
+[dependencies]
+"omni.flux.property_widget_builder.delegates" = {}
+"omni.flux.property_widget_builder.widget" = {}
+
+[[python.module]]
+name = "omni.flux.property_widget_builder.model.native"
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+]

@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.30.2]
+### Added
+- Added ComfyUI protocol, disconnected-state, and retarget icons and reorganized the TextureCraft layout used by AI Tools around Setup, Workflow, Job Queue, a full-height Job Details column, and Stage Manager submission.
+
+### Changed
+- Added shared job-queue icons and removed default Stage Manager references to the retired AI job action.
+
 ## [1.30.1]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

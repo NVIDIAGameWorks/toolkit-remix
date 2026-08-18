@@ -15,14 +15,36 @@
 * limitations under the License.
 """
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from omni.flux.asset_importer.core.data_models import TextureTypeNames
 from omni.flux.service.shared import BaseServiceModel
 from pydantic import Field, model_validator
 from pydantic_core.core_schema import ValidationInfo
+from pxr import Sdf
 
 from .validators import TextureReplacementsValidators
+
+__all__ = [
+    "GetTexturesQueryModel",
+    "PrimPathsResponseModel",
+    "ReplaceTexturesRequestModel",
+    "TextureMaterialPathParamModel",
+    "TextureReplacement",
+    "TextureTypesResponseModel",
+    "TexturesResponseModel",
+]
+
+
+@dataclass(slots=True)
+class TextureReplacement:
+    """Describe one strongly typed USD texture-property mutation."""
+
+    property_path: Sdf.Path
+    value: str | None
+    value_type: Sdf.ValueTypeName | None
+
 
 # PATH PARAM MODELS
 
@@ -116,16 +138,51 @@ class ReplaceTexturesRequestModel(BaseServiceModel):
     """
 
     force: bool = Field(
-        default=False, description="Whether to replace a non-ingested asset or fail the validation instead"
+        default=False,
+        description="Whether to bypass source checks after confirming the exact current target-layer values",
     )
     textures: list[tuple[str, Path]] = Field(
         description="A list of prim paths (shader input paths) and their corresponding texture paths"
+    )
+    expected_current_textures: list[tuple[str, str | None]] | None = Field(
+        default=None,
+        description="Exact current target-layer values required when force is true",
     )
 
     @model_validator(mode="after")
     @classmethod
     def root_validators(cls, instance_model):
-        for texture_entry in instance_model.textures:
-            TextureReplacementsValidators.is_valid_texture_prim(texture_entry, instance_model.context_name)
-            TextureReplacementsValidators.is_valid_texture_asset(texture_entry, instance_model.force)
+        """Validate one texture replacement request as an atomic batch.
+
+        Args:
+            instance_model: Parsed request whose target paths and values are validated.
+
+        Returns:
+            The unchanged request after every target and asset passes validation.
+
+        Raises:
+            ValueError: If force confirmation, target uniqueness, target sets, USD inputs, or assets are invalid.
+            RuntimeError: If the current stage or shader registry cannot be read.
+        """
+        if instance_model.force and instance_model.expected_current_textures is None:
+            raise ValueError("Forced texture replacement requires expected current values")
+        if not instance_model.force and instance_model.expected_current_textures is not None:
+            raise ValueError("Expected current values are only valid for forced texture replacement")
+
+        texture_paths = [path for path, _ in instance_model.textures]
+        expected_paths = [path for path, _ in instance_model.expected_current_textures or []]
+        if len(texture_paths) != len(set(texture_paths)):
+            raise ValueError("Texture replacement target paths must be unique")
+        if len(expected_paths) != len(set(expected_paths)):
+            raise ValueError("Expected texture target paths must be unique")
+        if instance_model.expected_current_textures is not None and set(expected_paths) != set(texture_paths):
+            raise ValueError("Expected texture target paths must match the replacement batch")
+
+        TextureReplacementsValidators.get_texture_input_types(texture_paths, instance_model.context_name)
+        for texture_batch, force in (
+            (instance_model.textures, instance_model.force),
+            (instance_model.expected_current_textures or [], True),
+        ):
+            for texture_entry in texture_batch:
+                TextureReplacementsValidators.is_valid_texture_asset(texture_entry, force)
         return instance_model

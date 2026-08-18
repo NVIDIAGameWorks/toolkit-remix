@@ -15,7 +15,6 @@
 * limitations under the License.
 """
 
-__all__ = ["ComfyUIWidget", "TrexComfyUIWindowExtension"]
+__all__ = ["ComfyUIWidgetExtension"]
 
-from .extension import TrexComfyUIWindowExtension
-from .widget import ComfyUIWidget
+from .extension import ComfyUIWidgetExtension

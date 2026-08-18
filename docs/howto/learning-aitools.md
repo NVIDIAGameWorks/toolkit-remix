@@ -1,27 +1,27 @@
 # Using AI Tools
 
-The AI Tools in the RTX Remix Toolkit use [ComfyUI](https://github.com/comfyanonymous/ComfyUI), an open-source
-node-based workflow engine, to run AI-powered workflows on your scene assets. ComfyUI handles the actual inference,
-while the Toolkit provides a streamlined interface for submitting jobs, configuring parameters, and applying results to
-your USD stage.
+The RTX Remix Toolkit AI Tools integrate [ComfyUI](https://github.com/comfyanonymous/ComfyUI), an open-source,
+node-based workflow engine. ComfyUI runs the AI workflows. The Toolkit lets you configure and submit those workflows,
+monitor their progress, and apply their results to your USD stage.
 
-By connecting to a ComfyUI instance, you gain access to the broader ComfyUI ecosystem (custom models, node packs, and
-community workflows) while keeping the submission experience simple. Workflows can perform any task that ComfyUI
-supports: PBR texture generation, upscaling, style transfer, mesh processing, and more. The Toolkit is workflow-agnostic
-and exposes whatever inputs and outputs the workflow author has tagged for RTX Remix.
+You can use compatible ComfyUI workflows for tasks such as PBR texture generation, upscaling, style transfer, and mesh
+processing. The fields shown in the Toolkit come from the inputs and outputs that the workflow author tagged for RTX
+Remix.
 
-**Who benefits:** Modders, small teams, and anyone doing rapid prototyping. For example, AI-generated PBR maps can let
-non-artists produce usable textures, freeing experienced artists to focus on hero assets.
+AI Tools is useful for modders, small teams, and rapid prototyping. For example, AI-generated PBR maps can help
+non-artists create usable textures while experienced artists focus on hero assets.
 
 ## Getting Started
 
 ### Prerequisites
 
-- **GPU:** NVIDIA GPU with at least 8 GB VRAM (12 GB+ recommended)
-- **[ComfyUI](#installing-comfyui):** A working ComfyUI installation
-- **[ComfyUI Manager](#installing-comfyui-manager):** For installing nodes and models
-- **[RTX Remix Node Pack](#installing-the-rtx-remix-node-pack):** Required for workflows that expose inputs/outputs to the Toolkit
-- **[Template Workflow Preparation](#preparing-template-workflows):** Install missing custom nodes for the bundled template workflows
+- **GPU:** An NVIDIA GPU with at least 8 GB of VRAM (12 GB or more recommended).
+- **[ComfyUI](#installing-comfyui):** A working ComfyUI installation.
+- **[ComfyUI Manager](#installing-comfyui-manager):** Used to install nodes and models.
+- **[RTX Remix Node Pack](#installing-the-rtx-remix-node-pack):** Required for workflows that expose inputs and
+  outputs to the Toolkit.
+- **[Template workflow preparation](#preparing-template-workflows):** Missing custom nodes must be installed before
+  you use a bundled template workflow.
 
 ### Installing ComfyUI
 
@@ -48,8 +48,8 @@ ComfyUI can be installed in several ways:
 
 ### Installing ComfyUI Manager
 
-[ComfyUI Manager](https://github.com/Comfy-Org/ComfyUI-Manager) simplifies installing custom nodes and models. It is
-required for easily installing the RTX Remix Node Pack and any models your workflows depend on.
+[ComfyUI Manager](https://github.com/Comfy-Org/ComfyUI-Manager) provides the easiest way to install custom nodes and
+models, including the RTX Remix Node Pack and any dependencies required by your workflows.
 
 ComfyUI Manager comes **pre-installed with the Desktop App**. For Portable or Manual installations, install it
 manually:
@@ -87,9 +87,8 @@ that are not installed by default. Before using a template for the first time, i
 2. Click **Templates** in the left sidebar.
 3. Scroll down to the **EXTENSIONS** section in the left panel and select **ComfyUI RTX Remix**.
 4. Click on the template workflow you want to use. The workflow loads onto the canvas.
-5. A **"This workflow has missing nodes"** dialog appears listing the custom nodes required by the template that
-   aren't yet installed. This is expected on first load. Click **Skip for Now** to dismiss the dialog — you'll
-   install the missing nodes via the Manager in the next step.
+5. If the **This workflow has missing nodes** dialog appears, click **Skip for Now**. You will install the listed
+   nodes through ComfyUI Manager in the next step.
 6. Open **ComfyUI Manager** (the **Manager** button in the top-right area of the menu bar).
 7. Click **Install Missing Custom Nodes**.
 8. Select all listed nodes and click **Install**.
@@ -114,33 +113,41 @@ cleanly in future sessions.
 ComfyUI must be running and accessible over HTTP for the Toolkit to connect. How you start it depends on your
 installation method:
 
-- **Desktop App:** Launch the application. ComfyUI starts automatically and is accessible at
-  `http://127.0.0.1:8000` by default. The port can be changed in the
-  [Server Config](https://docs.comfy.org/interface/settings/server-config) settings menu within the Desktop App.
+- **Desktop App:** Launch the application. ComfyUI starts automatically. Use the local URL shown by the Desktop App;
+  the app can manage the port for the selected installation.
 - **Portable:** Run `run_nvidia_gpu.bat` from the ComfyUI directory. The server starts on port `8188` by default.
 - **Manual:** Run `python main.py` from the ComfyUI directory. The server starts on port `8188` by default. Use
   `--port` to specify a different port.
 
 ```{important}
-The Desktop App uses port **8000** by default, while Portable and Manual installations use port **8188**. Make sure
-the port in the Toolkit's ComfyUI URL field matches your ComfyUI instance.
+ComfyUI's default port is **8188**, but the Desktop App or custom launch settings may use another port. Paste the
+complete URL for the running ComfyUI instance into the Toolkit's **Host** field; the Toolkit automatically fills the
+**Protocol**, **Host**, and **Port** settings.
 ```
 
 ````{tip}
 Several template workflows download large AI models from [HuggingFace](https://huggingface.co/) on first run.
-Anonymous downloads are heavily rate-limited and can be very slow — set an `HF_TOKEN` environment variable to
-dramatically improve download speeds.
+Anonymous downloads are rate-limited and can be slow. Set an `HF_TOKEN` environment variable to improve download
+speeds.
 
 1. Generate a free read-only token from [your HuggingFace settings](https://huggingface.co/settings/tokens).
 2. Export it **before launching ComfyUI**:
 
-   ```bash
-   export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx     # macOS / Linux
-   set HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx        # Windows (cmd)
-   $env:HF_TOKEN = "hf_xxxxxxxxxxxxxxxxxxxx"   # Windows (PowerShell)
+   ```bat
+   REM Set the environment variable in the Windows console
+   set HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
    ```
 
-3. Start ComfyUI from the same shell.
+   or
+
+   ```powershell
+   # Set the environment variable in PowerShell
+   $env:HF_TOKEN = "hf_xxxxxxxxxxxxxxxxxxxx"
+   ```
+
+   Use the first command on macOS or Linux, the second in Windows Command Prompt, or the third in Windows PowerShell.
+
+3. Start ComfyUI from that shell.
 
 For the Desktop App (or if you prefer per-workflow control), you can instead paste a token into the `hf_token` field
 on each `RTX Remix Download Model` node — but the environment variable approach covers every node at once.
@@ -152,38 +159,61 @@ on each `RTX Remix Download Model` node — but the environment variable approac
 
    ![RTX Remix Toolkit showing the AI Tools layout button in the left sidebar](../data/images/remix-aitexturetools-overview.png)
 
-2. In the **ComfyUI URL** field, enter the address of your ComfyUI instance:
-   - Desktop App: `http://127.0.0.1:8000`
-   - Portable / Manual: `http://127.0.0.1:8188`
+2. In the **External** tab, paste the complete URL into the **Host** field. The Toolkit automatically sets the
+   **Protocol**, **Host**, and **Port** fields:
+   - If ComfyUI is using its default port: `http://127.0.0.1:8188`
+   - If the Desktop App shows another local URL, paste that URL instead.
 3. Click **Connect**.
-4. The status indicator updates to **Connected** when the connection is established. Available workflows populate the
-   workflow dropdown automatically.
+4. The persistent connection banner updates to **Connected** when the Toolkit verifies the connection. Available
+   workflows populate the workflow dropdown automatically.
 
 ![AI Tools panel showing connection, workflow and preset selectors, field configuration, and the job queue](../data/images/remix-aitexturetools-panel.png)
 
 ```{note}
-The ComfyUI URL is persisted across sessions. You only need to set it once unless you change your ComfyUI setup.
+The parsed Protocol, Host, and Port settings are persisted across sessions. You only need to paste the URL again when
+your ComfyUI setup changes.
 ```
+
+The connection banner explains the current connection state:
+
+| Banner | Meaning and available action |
+|--------|------------------------------|
+| **Disconnected** | Paste the complete URL into **Host**, then select **Connect**. |
+| **Connecting** | The Toolkit is checking the configured server. The connection settings are unavailable while it checks. |
+| **Connected** | The banner displays the exact verified ComfyUI URL. Select **Open Browser** to open that verified endpoint. |
+| **Connection Failed** | Paste a corrected complete URL into **Host** if needed, then select **Retry**. **Show Logs** is available for this state only. |
+
+Each banner action is compact and right-aligned inline to the right of the flexible wrapped status text. **Open
+Browser** is available only while the connection is verified. **Show Logs** opens an in-app modal with the exact
+endpoint and Toolkit-captured connection error in a selectable, copyable, read-only multiline field. It does not show
+the external ComfyUI server's console or process logs.
 
 ## Basic Usage: Running Your First Workflow
 
+### How a Job Is Processed
+
+Each row in the job queue represents a **job graph**: a group of stages that run in a specific order. A standard
+ComfyUI job has two stages:
+
+1. **ComfyUI generation:** Sends the values resolved from your scene and workflow fields to ComfyUI.
+2. **Texture optimization:** Converts the generated textures into optimized textures that RTX Remix can use.
+
+Click the expansion arrow at the start of a job row to view its stages. A stage may also provide a quick action, such
+as **Show Generated Output Folder** for the texture optimization stage.
+
 ### Selecting a Workflow
 
-The workflow dropdown lists all RTX Remix-compatible workflows available on the connected ComfyUI instance. Each entry
-is displayed in the format:
-
-> **(source_type) workflow_name**
-
-The `source_type` indicates the origin of the workflow, for example whether it is a template bundled with the node pack
-or a workflow you exported yourself. Select a workflow to load its configurable fields into the panel below.
+The **Workflow** dropdown lists all RTX Remix-compatible workflows available on the connected ComfyUI instance.
+Workflows are grouped by source: those bundled with the node pack and those you exported. Select a workflow to load
+its configurable fields.
 
 ### Using Presets
 
-When a workflow defines presets, a **preset dropdown** appears above the field editors. Presets provide curated
-combinations of field values tuned for specific use cases. For example, a workflow might include presets for different
-material types.
+When a workflow defines presets, the **Preset** dropdown becomes available. A preset provides a combination of field
+values for a specific use case, such as a material type.
 
-- Selecting a different preset resets all fields to their defaults, then applies the preset's overrides.
+Selecting a preset resets every field to its default value before applying the preset's values. If you then change a
+field manually, the preset is no longer selected, but your field values remain.
 
 ```{tip}
 Presets are defined by workflow authors in ComfyUI. The presets available depend entirely on the workflow you select.
@@ -194,30 +224,27 @@ RTX Remix Node Pack documentation for details on creating and managing presets.
 
 ### Configuring Field Values
 
-Below the preset selector, each exposed workflow parameter appears as an editable field. Field types include text
-inputs, numeric sliders, checkboxes, dropdowns, and file paths, matching the parameter type defined in the workflow.
+Under the preset selector, each exposed workflow parameter appears as an editable field. Depending on the parameter
+type, the field may be a text box, numeric control, checkbox, dropdown, or file path.
 
 Fields that have been modified from their default value display a **blue indicator dot**. Click the dot to reset the
 field to its default value.
 
 ### Sending Scene Data to ComfyUI
 
-Some workflow fields can be configured to automatically pull data from your Remix scene instead of using a static value
-you type in. For example, instead of manually entering a texture path, you can bind a field so it automatically reads
-the diffuse texture path from whatever prim you submit.
+Some workflow inputs can read data from your Remix scene instead of using a fixed value:
 
-To set up a dynamic input:
+1. In **Workflow Inputs**, find the input that you want to configure.
+2. Open the dropdown beside the input and choose how it gets its value. For example, choose **Selected Texture** to
+   read a texture from each selected prim, or **Constant** to use the same value for every submission.
+3. Select the input row, then configure its options in **Input Properties**. A texture input, for example, lets you
+   choose the texture type.
 
-1. Click the **More** button (three-dot icon) on a compatible field.
-2. The menu shows available data sources that match the field's type.
-3. Select an option (e.g., **"Selected Texture Path (Diffuse)"**) to bind the field.
-4. When you submit a job, the bound value is resolved individually for each selected prim.
-
-To switch back to a static value, click the **More** button and choose **"Custom..."**.
+The available choices depend on the input type. Values are resolved when you submit the job.
 
 ```{note}
-Dynamic inputs are what make batch processing powerful. By binding the input field to scene data, you can submit
-dozens of prims in one action, and each job automatically picks up the correct data from its prim.
+Scene-based inputs make batch processing possible. You can submit many prims at once, and each job resolves the
+appropriate value from its prim.
 ```
 
 ### Submitting a Job
@@ -225,10 +252,10 @@ dozens of prims in one action, and each job automatically picks up the correct d
 1. Select one or more prims in the viewport or Stage Manager.
 2. Configure the workflow fields.
 3. Click **Submit Job**.
-4. If this is your first job, click the **Play** button (triangle icon) in the job queue toolbar to start the job
+4. If the scheduler is stopped, click the **Play** (▶️) button in the job queue toolbar to start the job
    scheduler. Jobs will not be sent to ComfyUI until the scheduler is running.
 
-Once a job completes, it appears in the job queue with an **Apply** button.
+When processing finishes, the job row provides **Apply** (✔️) and **Decline** (✖️) actions.
 
 ```{note}
 The scheduler only needs to be started once per session. It continues processing queued jobs until you stop it with
@@ -237,21 +264,21 @@ the **Stop** button.
 
 ### Applying Results
 
-Each completed job shows an **Apply** button in its queue row. Clicking it applies the job's outputs to the USD
-stage. For example, generated textures are ingested and assigned to the appropriate shader attributes on the submitted
-prims.
+Each completed job shows **Apply** (✔️) and **Decline** (✖️) in its queue row. **Apply** assigns the optimized output
+textures to the appropriate shader attributes on the submitted prims. **Decline** keeps the processed files but marks
+the result as not applied.
 
 The button reflects the current state:
 
 | State | Meaning |
 |-------|---------|
-| **Apply** | Ready to apply results |
-| **Running...** | Application in progress |
-| **Applied** | Results have already been applied in this context |
+| Buttons are unavailable | The action cannot be used. Hover over a button to see why. |
+| Neither button is active | The job is ready to be applied or declined. |
+| **Apply** is active | The result is applied. Click it again to revert the USD override without deleting the processed files. You can apply the result again later. |
+| **Decline** is active | The result is declined and will not be applied automatically. You can still apply it later. |
 
-To apply results automatically as jobs complete, enable the **Auto Apply** checkbox in the job queue toolbar. When
-enabled, each finished job is applied immediately without manual intervention. You can also select multiple jobs and
-click **Apply Selected** to apply them in bulk.
+To apply results as soon as processing finishes, select **Auto** in the job queue toolbar. In **Manual** mode, review
+each result and click **Apply** yourself.
 
 ```{tip}
 **Auto Apply** is useful for large batch runs where you want results to land on the stage as soon as they're ready.
@@ -260,11 +287,12 @@ For more deliberate workflows, leave it off and apply jobs individually after re
 
 ### Job Details
 
-Click a job row to expand the **Job Details** panel at the bottom of the queue. This shows:
+Select a job row to open its information in the **Job Details** panel. The panel includes:
 
-- **Open Job Folder** button to browse the output files on disk
-- The job ID and total processing duration
-- An execution log with timestamps for each stage (start, pre-execute, execute, post-execute, results)
+- **Open Job Input Folder** and **Open Job Generated Output Folder** actions.
+- The job ID and total processing time.
+- An execution log with timestamps for each stage.
+- The job graph and its data flow.
 
 ## Processing at Scale
 
@@ -281,13 +309,13 @@ significantly reduces processing time for scenes with shared assets.
 
 ### Job Persistence
 
-The job queue is stored in a SQLite database and survives application restarts. If you close the Toolkit mid-processing,
-your queued jobs are preserved and continue when you reconnect.
+The job queue is stored in a SQLite database and survives application restarts. If you close the Toolkit while work is
+queued, the jobs remain available. Reconnect to ComfyUI and start the scheduler to continue processing them.
 
 ### Stage Manager Integration
 
 You can submit jobs directly from the Stage Manager without switching to the AI Tools panel. Each prim row in the
-Stage Manager has an **AI Tools** icon in the **Actions** column. Click it to submit the selected prim(s) using the
+Stage Manager has an **AI Tools** icon in the **Actions** column. Click it to submit the selected prims using the
 currently configured workflow and field values.
 
 ![Stage Manager showing the AI Tools submit icon with tooltip](../data/images/remix-aitexturetools-stagemanager.png)
@@ -324,9 +352,9 @@ for step-by-step instructions on tagging, exporting, and testing workflows.
 
 ### Single Machine
 
-The simplest setup: ComfyUI and the RTX Remix Toolkit run on the same machine. Use the default URL
-(`http://127.0.0.1:8000` for the Desktop App, or `http://127.0.0.1:8188` for Portable/Manual). This is ideal for
-individual modders and small projects.
+The simplest setup: ComfyUI and the RTX Remix Toolkit run on the same machine. In the **External** tab, paste the local
+URL used by the running ComfyUI instance into **Host** (for the standard default, `http://127.0.0.1:8188`). The Toolkit
+fills the separate connection fields automatically. This is ideal for individual modders and small projects.
 
 ```{note}
 ComfyUI and the Toolkit share GPU resources on a single machine. If you experience slow inference or VRAM pressure,
@@ -343,7 +371,8 @@ Run ComfyUI on a separate machine (e.g., a dedicated GPU server) to free the loc
    python main.py --listen
    ```
 
-2. In the Toolkit, enter the remote machine's IP and port (e.g., `http://192.168.1.100:8188`).
+2. In the Toolkit's **External** tab, paste the complete remote URL into **Host** (for example,
+   `http://192.168.1.100:8188`). The Toolkit fills the separate connection fields automatically.
 3. Click **Connect**.
 
 ```{tip}
@@ -355,14 +384,14 @@ If you have multiple GPUs, you can run separate ComfyUI instances on different G
 
 | Symptom | Solution |
 |---------|----------|
+| **Connection Failed** banner | Paste the correct complete URL into **Host** to repopulate the connection fields, then ensure ComfyUI is running and select **Retry**. Select **Show Logs** to view the exact endpoint and captured connection error. |
 | No workflows appear after connecting | Ensure the RTX Remix Node Pack is installed and ComfyUI has been restarted after installation. |
-| "No texture path found" on submit | The selected prim has no texture assigned. Required when dynamic inputs reference prim textures. |
+| "No texture path found" on submit | The selected prim has no texture assigned, but a scene-based workflow input requires one. Assign the required texture or change the input configuration. |
 | Results not appearing on prim | Verify the prim hierarchy includes a shader that the Toolkit can locate. |
 
-For general ComfyUI issues (model loading, out of memory, node errors), check the ComfyUI console output and refer to
-the [ComfyUI documentation](https://docs.comfy.org/).
-
-***
+For general ComfyUI issues (model loading, out of memory, node errors), check the external ComfyUI console or process
+logs and refer to the [ComfyUI documentation](https://docs.comfy.org/). Those logs are separate from the connection
+failure details shown by **Show Logs**.
 
 ```{seealso}
 [ComfyUI RTX Remix Node Pack](https://github.com/NVIDIAGameWorks/ComfyUI-RTX-Remix): source and documentation for

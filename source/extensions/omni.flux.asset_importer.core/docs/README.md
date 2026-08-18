@@ -2,6 +2,11 @@
 
 Wrapper around omni.kit.asset_converter that allows for batch conversion of files from a dictionary or json file.
 
+The core also owns reusable directory scanning and selection classification. `ScannerCore` discovers supported files,
+while `classify_asset_selection()` and `classify_texture_selection()` partition one selection into valid files,
+unsupported files, and directories without any UI dependency. Dialogs and list widgets live in
+`omni.flux.asset_importer.widget`.
+
 See `source\extensions\omni.flux.asset_importer.core\data\tests\test_config.json` for an example json config.
 
 json options:

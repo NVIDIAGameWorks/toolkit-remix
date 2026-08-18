@@ -17,14 +17,17 @@
 
 __all__ = ("OGN_FIELD_BUILDERS", "is_ogn_node_attr")
 
+from typing import cast
+
 import omni.graph.core as og
 from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker
 from omni.flux.property_widget_builder.widget import Item
 from omni.flux.stage_prim_picker.widget import StagePrimPickerField
 
-from ..mapping import FLOAT_TYPES, INT_TYPES
 from ..item_delegates.drag import USDFloatDragField, USDIntDragField
+from ..item_model.attr_value import UsdAttributeBase
 from ..items import USDAttributeItem, USDRelationshipItem
+from ..mapping import FLOAT_TYPES, INT_TYPES
 from ..utils import get_type_name as _get_type_name
 from .base import USDBuilderList
 
@@ -86,7 +89,11 @@ OGN_FIELD_BUILDERS = USDBuilderList()
 
 OGN_FIELD_BUILDERS.append_builder_by_attr_name(
     "inputs:configPath",
-    FilePicker(file_extension_options=[("*.conf", "Remix Config Files")], use_relative_paths=True),
+    FilePicker(
+        file_extension_options=[("*.conf", "Remix Config Files")],
+        use_relative_paths=True,
+        stage_resolver=lambda model: cast(UsdAttributeBase, model).stage,
+    ),
 )
 
 

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.7]
+### Changed
+- Exposed PropertyWidget tree column sizing options while preserving default minimum column widths
+
 ## [2.12.6]
 ### Added
 - Added shared expand-all and collapse-all helpers for property widget `ItemGroup` rows.

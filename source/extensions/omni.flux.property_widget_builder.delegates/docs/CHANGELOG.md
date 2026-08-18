@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0]
+### Changed
+- Added shared ComboBox and stable native property identifiers, and required relative file pickers to receive an explicit stage resolver.
+
 ## [1.16.4]
 ### Added
 - Added `IntSliderField` for integer slider widgets with configurable min, max, and step (default step: 1 for range <=100, else max(1, int(range * 0.01)))

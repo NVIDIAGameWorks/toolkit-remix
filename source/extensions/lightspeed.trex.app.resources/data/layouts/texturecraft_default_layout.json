@@ -5,7 +5,7 @@
         "children": [
           {
             "dock_id": 1,
-            "height": 874.4000244140625,
+            "height": 1166.4000244140625,
             "position_x": 0.0,
             "position_y": 24.80000114440918,
             "selected_in_dock": false,
@@ -24,70 +24,118 @@
               {
                 "children": [
                   {
-                    "dock_id": 3,
+                    "dock_id": 5,
                     "dock_tab_bar_enabled": true,
                     "dock_tab_bar_visible": true,
-                    "height": 463.20001220703125,
+                    "height": 284.8000183105469,
                     "position_x": 59.20000076293945,
                     "position_y": 24.80000114440918,
                     "selected_in_dock": true,
-                    "title": "Editor",
+                    "title": "ComfyUI Setup",
                     "visible": true,
-                    "width": 548.0
+                    "width": 505.6000061035156
                   }
                 ],
-                "dock_id": 3,
+                "dock_id": 5,
+                "position": "TOP"
+              },
+              {
+                "children": [
+                  {
+                    "dock_id": 6,
+                    "dock_tab_bar_enabled": true,
+                    "dock_tab_bar_visible": true,
+                    "height": 878.4000244140625,
+                    "position_x": 59.20000076293945,
+                    "position_y": 312.8000183105469,
+                    "selected_in_dock": true,
+                    "title": "ComfyUI Workflow",
+                    "visible": true,
+                    "width": 505.6000061035156
+                  }
+                ],
+                "dock_id": 6,
+                "position": "BOTTOM"
+              }
+            ],
+            "dock_id": 3,
+            "position": "LEFT"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "dock_id": 11,
+                        "dock_tab_bar_enabled": true,
+                        "dock_tab_bar_visible": true,
+                        "height": 584.0,
+                        "position_x": 568.0,
+                        "position_y": 24.80000114440918,
+                        "selected_in_dock": true,
+                        "title": "Viewport",
+                        "visible": true,
+                        "width": 902.4000244140625
+                      }
+                    ],
+                    "dock_id": 11,
+                    "position": "TOP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "dock_id": 12,
+                        "dock_tab_bar_enabled": true,
+                        "dock_tab_bar_visible": true,
+                        "height": 579.2000122070312,
+                        "position_x": 568.0,
+                        "position_y": 612.0,
+                        "selected_in_dock": true,
+                        "title": "Job Queue",
+                        "visible": true,
+                        "width": 902.4000244140625
+                      },
+                      {
+                        "dock_id": 12,
+                        "height": 579.2000122070312,
+                        "position_x": 683.2000122070312,
+                        "position_y": 612.0,
+                        "selected_in_dock": false,
+                        "title": "Stage Manager",
+                        "visible": true,
+                        "width": 902.4000244140625
+                      }
+                    ],
+                    "dock_id": 12,
+                    "position": "BOTTOM"
+                  }
+                ],
+                "dock_id": 9,
                 "position": "LEFT"
               },
               {
                 "children": [
                   {
-                    "dock_id": 4,
+                    "dock_id": 10,
                     "dock_tab_bar_enabled": true,
                     "dock_tab_bar_visible": true,
-                    "height": 463.20001220703125,
-                    "position_x": 610.4000244140625,
+                    "height": 1166.4000244140625,
+                    "position_x": 1473.5999755859375,
                     "position_y": 24.80000114440918,
                     "selected_in_dock": true,
-                    "title": "Viewport",
+                    "title": "Job Details",
                     "visible": true,
-                    "width": 1189.5999755859375
+                    "width": 490.3999938964844
                   }
                 ],
-                "dock_id": 4,
+                "dock_id": 10,
                 "position": "RIGHT"
               }
             ],
-            "dock_id": 5,
-            "position": "TOP"
-          },
-          {
-            "children": [
-              {
-                "dock_id": 6,
-                "dock_tab_bar_enabled": true,
-                "dock_tab_bar_visible": true,
-                "height": 408.0,
-                "position_x": 59.20000076293945,
-                "position_y": 491.20001220703125,
-                "selected_in_dock": true,
-                "title": "AI Tools (Experimental)",
-                "visible": true,
-                "width": 1740.800048828125
-              },
-              {
-                "dock_id": 6,
-                "height": 408.0,
-                "position_x": 613.6000366210938,
-                "position_y": 516.7999877929688,
-                "selected_in_dock": false,
-                "title": "Stage Manager",
-                "visible": true,
-                "width": 1740.800048828125
-              }
-            ],
-            "dock_id": 6,
-            "position": "BOTTOM"
+            "dock_id": 4,
+            "position": "RIGHT"
           }
         ],
         "dock_id": 2,
@@ -98,53 +146,53 @@
   },
   {
     "dock_id": 0,
-    "height": 488.8000183105469,
-    "position_x": 613.6000366210938,
-    "position_y": 24.80000114440918,
-    "selected_in_dock": false,
-    "title": "Logic Graph",
-    "visible": false,
-    "width": 1186.4000244140625
-  },
-  {
-    "dock_id": 0,
-    "height": 874.4000244140625,
-    "position_x": 59.20000076293945,
-    "position_y": 24.80000114440918,
-    "selected_in_dock": false,
-    "title": "Project Setup",
-    "visible": false,
-    "width": 551.2000122070312
-  },
-  {
-    "dock_id": 0,
-    "height": 874.4000244140625,
+    "height": 1166.4000244140625,
     "position_x": 59.20000076293945,
     "position_y": 24.80000114440918,
     "selected_in_dock": false,
     "title": "Captures",
     "visible": false,
-    "width": 551.2000122070312
+    "width": 594.4000244140625
   },
   {
     "dock_id": 0,
-    "height": 874.4000244140625,
+    "height": 1166.4000244140625,
     "position_x": 59.20000076293945,
     "position_y": 24.80000114440918,
     "selected_in_dock": false,
-    "title": "Ingestion",
+    "title": "Editor",
     "visible": false,
-    "width": 1740.800048828125
+    "width": 603.2000122070312
   },
   {
     "dock_id": 0,
-    "height": 896.7999877929688,
+    "height": 652.0,
+    "position_x": 656.7999877929688,
+    "position_y": 24.80000114440918,
+    "selected_in_dock": false,
+    "title": "Logic Graph",
+    "visible": false,
+    "width": 1307.2000732421875
+  },
+  {
+    "dock_id": 0,
+    "height": 1166.4000244140625,
+    "position_x": 59.20000076293945,
+    "position_y": 24.80000114440918,
+    "selected_in_dock": false,
+    "title": "Project Setup",
+    "visible": false,
+    "width": 594.4000244140625
+  },
+  {
+    "dock_id": 0,
+    "height": 1188.800048828125,
     "position_x": 59.20000076293945,
     "position_y": 3.200000047683716,
     "selected_in_dock": false,
     "title": "Home Page",
     "visible": false,
-    "width": 1740.800048828125
+    "width": 1904.800048828125
   },
   {
     "dock_id": 0,
@@ -212,7 +260,7 @@
     "position_x": 3.4028234663852886e+38,
     "position_y": 3.4028234663852886e+38,
     "selected_in_dock": false,
-    "title": "AI Tools (Legacy)",
+    "title": "Ingestion",
     "visible": false,
     "width": 400.0
   },
@@ -238,22 +286,12 @@
   },
   {
     "dock_id": 0,
-    "height": 114.0,
-    "position_x": 3.4028234663852886e+38,
-    "position_y": 3.4028234663852886e+38,
+    "height": 198.40000915527344,
+    "position_x": 781.6000366210938,
+    "position_y": 496.8000183105469,
     "selected_in_dock": false,
-    "title": "omni.ui.scene 2851164840608",
+    "title": "##restore",
     "visible": false,
-    "width": 210.8000030517578
-  },
-  {
-    "dock_id": 0,
-    "height": 575.0,
-    "position_x": 3.4028234663852886e+38,
-    "position_y": 3.4028234663852886e+38,
-    "selected_in_dock": false,
-    "title": "Scan Directory for Input Files",
-    "visible": false,
-    "width": 550.0
+    "width": 400.0
   }
 ]

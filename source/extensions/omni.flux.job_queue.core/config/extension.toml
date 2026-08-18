@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.0.1"
+version = "4.1.0"
 authors = ["Sam Bourne <sbourne@nvidia.com>"]
 description = "Job queue, executor, and scheduler library that uses SQLite for persistence"
 title = "Flux Job Queue"
@@ -13,6 +13,15 @@ icon = "data/icon.png"
 
 [[python.module]]
 name = "omni.flux.job_queue.core"
+
+[dependencies]
+"omni.flux.factory.base" = {}
+"omni.flux.utils.common" = {}
+
+[settings.persistent]
+exts."omni.flux.job_queue.core".timestamp_mode = "relative"
+exts."omni.flux.job_queue.core".auto_apply = true
+exts."omni.flux.job_queue.core".scheduler_enabled = true
 
 [[test]]
 dependencies = [

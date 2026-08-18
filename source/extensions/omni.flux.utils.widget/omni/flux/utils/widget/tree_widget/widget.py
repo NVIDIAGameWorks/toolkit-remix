@@ -77,9 +77,9 @@ class TreeWidget(ui.TreeView):
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
+        # The model and the delegate belong to the caller that passes them in, so `destroy()` releases the references
+        # without calling `destroy()` on them. Destroying them here leaves the native tree with released objects.
         return {
-            "_model": None,
-            "_delegate": None,
             "_select_all_children": None,
             "_sub_selection_changed": None,
             "_validate_action_selection": None,
@@ -168,6 +168,10 @@ class TreeWidget(ui.TreeView):
         return count
 
     def destroy(self):
+        # Release the borrowed model and delegate without destroying them. `on_selection_changed` returns early while
+        # `_delegate` is None, which is how a late native selection callback stays silent after teardown.
+        self._model = None
+        self._delegate = None
         _reset_default_attrs(self)
 
 

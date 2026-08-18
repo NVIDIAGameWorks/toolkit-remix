@@ -15,21 +15,55 @@
 * limitations under the License.
 """
 
-from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
+from omni.kit import ui_test
+from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardInput
+
+from omni.flux.asset_importer.widget.scan_folder.dialog import destroy_scanner_dialog
 
 
-def _normalize_path(value) -> str:
-    return _OmniUrl(value).path.casefold()
+async def replace_field_text(field, value: str, end_key: KeyboardInput | None = None) -> None:
+    """Replace a visible text field through keyboard input.
+
+    Args:
+        field: UI-test reference to the visible field.
+        value: Complete replacement value.
+        end_key: Optional key sent after the replacement text.
+    """
+    await field.click()
+    await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
+    if end_key is None:
+        await field.input(value)
+    else:
+        await field.input(value, end_key=end_key)
+    await ui_test.human_delay()
 
 
-def ensure_scan_dialog_input_folder(input_folder_field, base_path) -> None:
-    """If the directory picker did not set a local path (e.g. field is omniverse://), set the field to base_path."""
-    val = input_folder_field.model.get_value_as_string() or ""
-    if not val:
-        input_folder_field.model.set_value(str(base_path))
-        return
+async def destroy_scan_dialog_owner(owner, window) -> None:
+    """Destroy the widget that owns the process-global scan dialog and flush UI teardown."""
+    try:
+        if owner:
+            owner.destroy()
+    finally:
+        try:
+            destroy_scanner_dialog()
+        finally:
+            try:
+                if window:
+                    window.destroy()
+            finally:
+                await ui_test.human_delay()
 
-    normalized_val = _normalize_path(val)
-    normalized_base_path = _normalize_path(base_path)
-    if val.strip().casefold().startswith(("omniverse:", "omni:")) or normalized_base_path not in normalized_val:
-        input_folder_field.model.set_value(str(base_path))
+
+async def ensure_scan_dialog_input_folder(input_folder_field, base_path) -> None:
+    """Populate the scan dialog's editable directory field through visible UI input.
+
+    Args:
+        input_folder_field: Scan dialog field populated by the directory picker.
+        base_path: Directory the test requested from the picker.
+    """
+    expected_path = str(base_path)
+    expected_path_normalized = expected_path.replace("\\", "/").rstrip("/").lower()
+    await replace_field_text(input_folder_field, expected_path, KeyboardInput.ENTER)
+    selected_path = input_folder_field.model.get_value_as_string().replace("\\", "/").rstrip("/").lower()
+    if selected_path != expected_path_normalized:
+        raise AssertionError(f"Scan dialog contains {selected_path!r}; expected {expected_path_normalized!r}")

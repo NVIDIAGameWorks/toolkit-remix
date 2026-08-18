@@ -16,117 +16,100 @@
 """
 
 import tempfile
-from contextlib import nullcontext
 from unittest.mock import patch
 
-import omni.usd
+from lightspeed.trex.texture_replacements.core.shared.data_models import validators
 from lightspeed.trex.texture_replacements.core.shared.data_models import TextureReplacementsValidators
 from omni.kit.test import AsyncTestCase
-from pxr import Sdf, UsdShade
 
 
-class TestTextureReplacementsValidators(AsyncTestCase):
-    # Before running each test
-    async def setUp(self):
-        self.context = omni.usd.get_context()
-        await self.context.new_stage_async()
+class TestTextureReplacementAssetValidation(AsyncTestCase):
+    """Test filesystem-only texture replacement validation."""
 
-    # After running each test
-    async def tearDown(self):
-        if self.context.can_close_stage():
-            await self.context.close_stage_async()
-        self.context = None
-
-    async def test_is_valid_texture_prim_returns_expected_value_or_raises(self):
+    async def test_is_valid_texture_asset_accepts_existing_source_when_forced(self):
+        """Forced validation accepts an existing texture without requiring ingestion."""
         # Arrange
-        invalid_prim_path = "/test/prim/not/a/shader/prim"
-        invalid_prop_name = "test"
+        with tempfile.NamedTemporaryFile(suffix=".png") as texture_file:
+            input_value = (None, texture_file.name)
 
-        valid_prim_path = "/test/prim/value/Shader"
-        valid_prop_name = "diffuse_texture"
+            # Act
+            with patch.object(validators, "is_asset_ingested") as is_asset_ingested:
+                result = TextureReplacementsValidators.is_valid_texture_asset(input_value, force=True)
 
-        test_cases = {
-            f"{valid_prim_path}.inputs:{valid_prop_name}": (True, None),
-            f"{invalid_prim_path}.{invalid_prop_name}": (
-                False,
-                "The property path does not point to a valid USD shader property",
-            ),
-            f"{valid_prim_path}.{invalid_prop_name}": (
-                False,
-                "The property path does not point to a valid USD shader input",
-            ),
-            valid_prim_path: (False, "The property path does not point to a valid USD shader input"),
-            invalid_prim_path: (False, "The property path does not point to a valid USD shader property"),
-            "This.Is/Not A Prim": (False, "The string is not a valid path"),
-            "/test/non/existent/prim": (False, "The prim path does not exist in the current stage"),
-        }
+        # Assert
+        self.assertEqual(result, input_value)
+        is_asset_ingested.assert_not_called()
 
-        for prim_path, expected_value in test_cases.items():
-            success, message = expected_value
-
-            with self.subTest(title=f"prim_path_{prim_path}_success_{success}"):
-                stage = self.context.get_stage()
-
-                prim = stage.DefinePrim(invalid_prim_path, "Scope")
-                prim.CreateAttribute(invalid_prop_name, Sdf.ValueTypeNames.Float).Set(100.0)
-
-                shader = UsdShade.Shader.Define(stage, valid_prim_path)
-                shader.CreateInput(valid_prop_name, Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath("C:/Test/texture.png"))
-                shader.GetPrim().CreateAttribute(invalid_prop_name, Sdf.ValueTypeNames.Float).Set(100.0)
-
-                input_val = (prim_path, None)
-
-                # Act
-                with nullcontext() if success else self.assertRaises(ValueError) as cm:
-                    value = TextureReplacementsValidators.is_valid_texture_prim(input_val, "")
-
-                # Assert
-                if success:
-                    self.assertEqual(value, input_val)
-                else:
-                    self.assertEqual(str(cm.exception), f"{message}: {prim_path}")
-
-    async def test_is_valid_texture_asset_returns_expected_value_or_raises(self):
+    async def test_is_valid_texture_asset_rejects_uningested_source_by_default(self):
+        """Default validation requires existing textures to have completed ingestion."""
         # Arrange
-        with tempfile.NamedTemporaryFile(suffix=".png") as valid_prim_path:
-            valid_prim_path_name = valid_prim_path.name
+        with tempfile.NamedTemporaryFile(suffix=".png") as texture_file:
+            input_value = (None, texture_file.name)
 
-            test_cases = {
-                (valid_prim_path_name, True): (True, None),
-                (valid_prim_path_name, False): (
-                    False,
-                    "The asset was not ingested. Ingest the asset before replacing the texture",
-                ),
-                ("Z:/Test/invalid_type.docx", True): (
-                    False,
-                    "The asset path points to an unsupported texture file type",
-                ),
-                ("Z:/Test/invalid_type.docx", False): (
-                    False,
-                    "The asset path points to an unsupported texture file type",
-                ),
-                ("Z:/Test/non_existent.png", True): (False, "The asset path does not point to an existing file"),
-                ("Z:/Test/non_existent.png", False): (False, "The asset path does not point to an existing file"),
-            }
+            # Act
+            with (
+                patch.object(validators, "is_asset_ingested", return_value=False),
+                self.assertRaises(ValueError) as error_context,
+            ):
+                TextureReplacementsValidators.is_valid_texture_asset(input_value, force=False)
 
-            for input_value, expected_value in test_cases.items():
-                prim_path, force = input_value
-                success, message = expected_value
+        # Assert
+        self.assertEqual(
+            str(error_context.exception),
+            f"The asset was not ingested. Ingest the asset before replacing the texture: {texture_file.name}",
+        )
 
-                with self.subTest(title=f"prim_path_{prim_path}_force_{force}_success_{success}"):
-                    input_val = (None, prim_path)
+    async def test_is_valid_texture_asset_accepts_ingested_source_by_default(self):
+        """Default validation returns an existing ingested source unchanged."""
+        # Arrange
+        with tempfile.NamedTemporaryFile(suffix=".png") as texture_file:
+            input_value = (None, texture_file.name)
 
-                    with patch(
-                        "lightspeed.trex.texture_replacements.core.shared.data_models.validators.is_asset_ingested"
-                    ) as was_ingested_mock:
-                        was_ingested_mock.return_value = False
+            # Act
+            with patch.object(validators, "is_asset_ingested", return_value=True) as is_asset_ingested:
+                result = TextureReplacementsValidators.is_valid_texture_asset(input_value, force=False)
 
-                        # Act
-                        with nullcontext() if success else self.assertRaises(ValueError) as cm:
-                            value = TextureReplacementsValidators.is_valid_texture_asset(input_val, force)
+        # Assert
+        self.assertEqual(result, input_value)
+        is_asset_ingested.assert_called_once()
 
-                    # Assert
-                    if success:
-                        self.assertEqual(value, input_val)
-                    else:
-                        self.assertEqual(str(cm.exception), f"{message}: {prim_path}")
+    async def test_is_valid_texture_asset_rejects_unsupported_type_even_when_forced(self):
+        """Force never bypasses supported texture-type validation."""
+        # Arrange
+        asset_path = "Z:/Test/invalid_type.docx"
+
+        # Act
+        with self.assertRaises(ValueError) as error_context:
+            TextureReplacementsValidators.is_valid_texture_asset((None, asset_path), force=True)
+
+        # Assert
+        self.assertEqual(
+            str(error_context.exception),
+            f"The asset path points to an unsupported texture file type: {asset_path}",
+        )
+
+    async def test_is_valid_texture_asset_accepts_missing_authored_path_when_forced(self):
+        """Force permits restoration of a supported path whose source is no longer available."""
+        # Arrange
+        input_value = (None, "Z:/Test/non_existent.png")
+
+        # Act
+        result = TextureReplacementsValidators.is_valid_texture_asset(input_value, force=True)
+
+        # Assert
+        self.assertEqual(result, input_value)
+
+    async def test_is_valid_texture_asset_rejects_missing_source_by_default(self):
+        """Default validation rejects unavailable source textures."""
+        # Arrange
+        asset_path = "Z:/Test/non_existent.png"
+
+        # Act
+        with self.assertRaises(ValueError) as error_context:
+            TextureReplacementsValidators.is_valid_texture_asset((None, asset_path), force=False)
+
+        # Assert
+        self.assertEqual(
+            str(error_context.exception),
+            f"The asset path does not point to an existing file: {asset_path}",
+        )

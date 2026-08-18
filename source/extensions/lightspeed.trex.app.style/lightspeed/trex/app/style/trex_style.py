@@ -16,26 +16,29 @@
 """
 
 import asyncio
-
 import carb
-import omni.kit.imgui
 import omni.ui as ui
 from omni.flux.utils.widget.resources import get_fonts as _get_fonts
 from omni.flux.utils.widget.resources import get_icons as _get_icons
 from omni.flux.utils.widget.resources import get_image as _get_image
+from omni.kit.app import get_app
+from omni.kit.imgui import StyleColor, acquire_imgui
 from omni.kit.window.popup_dialog import message_dialog
 from omni.ui import color as cl
 from omni.ui import constant as fl
+from omni.usd import handle_exception
+
+__all__ = ("override_dialog_get_style", "style", "update_viewport_menu_style")
 
 
 # override global imgui style
-@omni.usd.handle_exception
+@handle_exception
 async def __override_imgui_style():
     """Wait 3 frames or it will crash"""
     for _ in range(3):
-        await omni.kit.app.get_app().next_update_async()
-    imgui = omni.kit.imgui.acquire_imgui()
-    imgui.push_style_color(omni.kit.imgui.StyleColor.WindowShadow, carb.Float4(0.0, 0.0, 0.0, 1.0))
+        await get_app().next_update_async()
+    imgui = acquire_imgui()
+    imgui.push_style_color(StyleColor.WindowShadow, carb.Float4(0.0, 0.0, 0.0, 1.0))
 
 
 asyncio.ensure_future(__override_imgui_style())
@@ -64,12 +67,14 @@ _GREY_70 = 0xFF464646
 
 _GREEN_05 = 0x0D00FF00
 _GREEN_20 = 0x3300FF00
+_GREEN_40 = 0x6600FF00
 _GREEN_60 = 0x9900FF00
 _GREEN_80 = 0xCC00FF00
 _GREEN_100 = 0xFF00FF00
 
 _RED_05 = 0x0D0000FF
 _RED_20 = 0x330000FF
+_RED_40 = 0x660000FF
 _RED_60 = 0x990000FF
 _RED_80 = 0xCC0000FF
 _RED_100 = 0xFF0000FF
@@ -92,6 +97,15 @@ _PALE_ORANGE_40 = 0x4D4682B4
 _PALE_ORANGE_60 = 0x994682B4
 _ORANGE = 0xFF00AEFF
 _GOLD = 0xFF00D7FF
+
+_JQ_STATUS_QUEUED = 0x66888888
+_JQ_STATUS_WAITING = 0x6600AACC
+_JQ_STATUS_PROCESSING = 0x66CC7700
+_JQ_STATUS_READY_TO_APPLY = 0x66AAAA00
+_JQ_STATUS_APPLYING = 0x4060AA30
+_JQ_STATUS_APPLIED = 0x6660AA30
+_JQ_STATUS_FAILED = 0x663030AA
+
 
 _DEFAULT_FIELD_READ_VALUE = {
     "background_color": _DARK_00,
@@ -424,6 +438,7 @@ current_dict.update(
         "Image::SkeletonRoot": {"image_url": _get_icons("skel_root"), "color": _WHITE_60},
         "Image::LockDisabled": {"image_url": _get_icons("lock"), "color": _WHITE_30},
         "Image::Light": {"image_url": _get_icons("light"), "color": _WHITE_60},
+        "Image::LinkOff": {"image_url": _get_icons("link-off"), "color": _WHITE_30},
         "Image::Lock": {"image_url": _get_icons("lock"), "color": _WHITE_60},
         "Image::Lock:hovered": {"image_url": _get_icons("lock"), "color": _WHITE_100},
         "Image::UnlockDisabled": {"image_url": _get_icons("unlock"), "color": _WHITE_30},
@@ -447,8 +462,12 @@ current_dict.update(
             "image_url": _get_image("45deg-256x256-1px-2px-sp-black"),
             "color": _WHITE_30,
         },
+        "Image::CopyToClipboard": {"image_url": _get_icons("copy"), "color": _WHITE_40},
+        "Image::CopyToClipboard:hovered": {"image_url": _get_icons("copy"), "color": _WHITE_100},
+        "Image::CopyToClipboard:disabled": {"image_url": _get_icons("copy"), "color": _WHITE_20},
         "Image::OpenFolder": {"image_url": _get_icons("folder_open"), "color": _WHITE_60},
         "Image::OpenFolder:hovered": {"image_url": _get_icons("folder_open"), "color": _WHITE_100},
+        "Image::OpenFolder:disabled": {"image_url": _get_icons("folder_open"), "color": _WHITE_20},
         "Image::Pin": {"image_url": _get_icons("pin"), "color": _ORANGE},
         "Image::PinOff": {"image_url": _get_icons("pin-outline"), "color": _WHITE_60},
         "Image::Import": {"image_url": _get_icons("import"), "color": _WHITE_60},
@@ -488,6 +507,96 @@ current_dict.update(
         "Image::AITools:hovered": {"image_url": _get_icons("ai-tools-icon"), "color": _WHITE_80},
         "Image::AITools:selected": {"image_url": _get_icons("ai-tools-icon"), "color": _WHITE_100},
         "Image::AIToolsDisabled": {"image_url": _get_icons("ai-tools-icon"), "color": _WHITE_30},
+        "Rectangle::StatusQueued": {"background_color": _JQ_STATUS_QUEUED, "border_radius": 4},
+        "Rectangle::StatusWaiting": {"background_color": _JQ_STATUS_WAITING, "border_radius": 4},
+        "Rectangle::StatusProcessing": {"background_color": _JQ_STATUS_PROCESSING, "border_radius": 4},
+        "Rectangle::StatusReadyToApply": {"background_color": _JQ_STATUS_READY_TO_APPLY, "border_radius": 4},
+        "Rectangle::StatusApplying": {"background_color": _JQ_STATUS_APPLYING, "border_radius": 4},
+        "Rectangle::StatusApplied": {"background_color": _JQ_STATUS_APPLIED, "border_radius": 4},
+        "Rectangle::StatusFailed": {"background_color": _JQ_STATUS_FAILED, "border_radius": 4},
+        "Rectangle::ComfyUIStatusDisconnected": {"background_color": _JQ_STATUS_QUEUED, "border_radius": 4},
+        "Rectangle::ComfyUIStatusConnecting": {"background_color": _JQ_STATUS_WAITING, "border_radius": 4},
+        "Rectangle::ComfyUIStatusConnected": {"background_color": _JQ_STATUS_APPLIED, "border_radius": 4},
+        "Rectangle::ComfyUIStatusError": {"background_color": _JQ_STATUS_FAILED, "border_radius": 4},
+        "Label::ComfyUIStatusDetail": {"color": _WHITE_100},
+        "Label::ComfyUIStatusTitle": {"color": _WHITE_100, "font": ui.url.nvidia_bd, "font_size": 16},
+        "Label::StatusLabel": {"color": _WHITE_100},
+        "Label::ColumnHeader": {"color": _WHITE_80},
+        "Label::CellLabel": {"color": _WHITE_80},
+        "Label::CellLabelDisabled": {"color": _WHITE_30},
+        "Label::PriorityLabel": {"color": _WHITE_60},
+        "Image::DragHandle": {"image_url": _get_icons("drag_handle"), "color": _WHITE_40},
+        "Image::DragHandle:hovered": {"image_url": _get_icons("drag_handle"), "color": _WHITE_80},
+        "Image::FocusInViewport": {"image_url": _get_icons("frame"), "color": _WHITE_60},
+        "Image::FocusInViewport:hovered": {"image_url": _get_icons("frame"), "color": _WHITE_80},
+        "Image::FocusInViewport:disabled": {"image_url": _get_icons("frame"), "color": _WHITE_30},
+        "Image::ApplyJob": {"image_url": _get_icons("check-bold"), "color": _GREEN_40},
+        "Image::ApplyJob:hovered": {"image_url": _get_icons("check-bold"), "color": _GREEN_80},
+        "Image::ApplyJob:disabled": {"image_url": _get_icons("check-bold"), "color": _WHITE_30},
+        "Image::ApplyJobUnknown": {"image_url": _get_icons("check-bold"), "color": _WHITE_30},
+        "Image::ApplyJobUnknown:disabled": {"image_url": _get_icons("check-bold"), "color": _WHITE_30},
+        "Image::ApplyJobActive": {"image_url": _get_icons("check-bold"), "color": _GREEN_100},
+        "Image::ApplyJobActive:hovered": {"image_url": _get_icons("check-bold"), "color": _GREEN_100},
+        "Image::ApplyJobActive:disabled": {"image_url": _get_icons("check-bold"), "color": _GREEN_100},
+        "Image::DeclineJob": {"image_url": _get_icons("close"), "color": _RED_40},
+        "Image::DeclineJob:hovered": {"image_url": _get_icons("close"), "color": _RED_80},
+        "Image::DeclineJob:disabled": {"image_url": _get_icons("close"), "color": _WHITE_30},
+        "Image::DeclineJobUnknown": {"image_url": _get_icons("close"), "color": _WHITE_30},
+        "Image::DeclineJobUnknown:disabled": {"image_url": _get_icons("close"), "color": _WHITE_30},
+        "Image::DeclineJobActive": {"image_url": _get_icons("close"), "color": _RED_100},
+        "Image::DeclineJobActive:hovered": {"image_url": _get_icons("close"), "color": _RED_100},
+        "Image::DeclineJobActive:disabled": {"image_url": _get_icons("close"), "color": _RED_100},
+        "Image::EditJob": {"image_url": _get_icons("text-box-edit-outline"), "color": _WHITE_60},
+        "Image::EditJob:hovered": {"image_url": _get_icons("text-box-edit-outline"), "color": _WHITE_80},
+        "Image::EditJob:disabled": {"image_url": _get_icons("text-box-edit-outline"), "color": _WHITE_30},
+        "Image::RetargetComfyUI": {"image_url": _get_icons("target"), "color": _WHITE_60},
+        "Image::RetargetComfyUI:hovered": {"image_url": _get_icons("target"), "color": _WHITE_80},
+        "Image::RetargetComfyUI:disabled": {"image_url": _get_icons("target"), "color": _WHITE_30},
+        "Image::HamburgerMenu": {"image_url": _get_icons("menu-burger"), "color": _WHITE_60},
+        "Image::HamburgerMenu:hovered": {"image_url": _get_icons("menu-burger"), "color": _WHITE_100},
+        "Rectangle::QueueToolbarBackground": {"background_color": _GREY_32},
+        "Rectangle::QueueToolbarBackgroundStopped": {"background_color": 0x30000044},
+        "Label::QueueRunnerState": {"color": _WHITE_30, "font": ui.url.nvidia_md, "font_size": 16},
+        "Label::QueueRunnerStateStopped": {"color": _RED_80, "font": ui.url.nvidia_md, "font_size": 16},
+        "Label::QueueApplyModeBadge": {"color": _WHITE_100, "font_size": 10, "font": ui.url.nvidia_md},
+        "Rectangle::QueueAutoApplyBadge": {"background_color": _GREEN_40, "border_radius": 3},
+        "Rectangle::QueueManualApplyBadge": {"background_color": _GREY_70, "border_radius": 3},
+        "Label::QueueFooterLabel": {"color": _WHITE_40},
+        "Circle::QueueFooterDot": {"background_color": _WHITE_30, "border_radius": 2},
+        "Image::QueueEmpty": {"image_url": _get_icons("text-box-edit-outline"), "color": _WHITE_20},
+        "Label::QueueEmptyLabel": {"color": _WHITE_50},
+        "Label::QueueEmptySubLabel": {"color": _WHITE_30},
+        "Rectangle::QueueDetailBackground": {"background_color": _GREY_50},
+        "Rectangle::QueueDetailHeaderBackground": {"background_color": _GREY_42},
+        "Rectangle::QueueDetailSectionBackground": {"background_color": _GREY_42},
+        "Label::QueueDetailTitle": {"color": _WHITE_70, "font": ui.url.nvidia_bd, "font_size": 16},
+        "Label::QueueDetailMeta": {"color": _WHITE_40},
+        "Label::QueueDetailSummary": {"color": _WHITE_70, "font": ui.url.nvidia_md},
+        "Image::QueueDetailEmpty": {"image_url": _get_icons("text-box-edit-outline"), "color": _WHITE_20},
+        "Label::QueueDetailEmptyLabel": {"color": _WHITE_50},
+        "Label::QueueDetailEmptySubLabel": {"color": _WHITE_30},
+        "Label::QueueDetailSectionTitle": {"color": _WHITE_70, "font": ui.url.nvidia_bd},
+        "Line::QueueDetailSectionDivider": {"color": _WHITE_10, "border_width": 1},
+        "Label::QueueDetailKey": {"color": _WHITE_40},
+        "Label::QueueDetailValue": {"color": _WHITE_70},
+        "Label::QueueDetailMessage": {"color": _WHITE_40},
+        "Label::QueueDetailTopologyJob": {"color": _WHITE_70},
+        "Label::QueueDetailTechnical": {"color": _WHITE_40},
+        "Rectangle::QueueLogBackground": {"background_color": _GREY_32},
+        "ScrollingFrame::QueueLogViewer": {"background_color": 0x0, "secondary_color": _WHITE_10},
+        "Label::QueueLogTimestamp": {"color": _WHITE_40},
+        "Label::QueueLogStdout": {"color": _WHITE_80},
+        "Label::QueueLogWarning": {"color": _ORANGE},
+        "Label::QueueLogError": {"color": _RED_60},
+        "Label::WorkflowInputName": {"color": _WHITE_60, "font_size": 18, "font": ui.url.nvidia_rg},
+        "Label::Breadcrumb": {"color": _WHITE_40, "font_size": 12},
+        "Window::SectionedComboPopup": {"background_color": _GREY_60, "border_color": 0x0, "border_radius": 0},
+        "Rectangle::SectionedComboItem": {"background_color": _GREY_60},
+        "Rectangle::SectionedComboItem:hovered": {"background_color": _GREY_55},
+        "Rectangle::SectionedComboItem:selected": {"background_color": _GREY_50},
+        "Label::SectionedComboItemLabel": {"color": _WHITE_80, "font_size": 14},
+        "Rectangle::SectionedComboSectionHeader": {"background_color": _GREY_60},
+        "Label::SectionedComboHeader": {"color": _WHITE_30, "font_size": 14},
         "Image::NvidiaShort": {"image_url": _get_image("NVIDIA-logo-green-white"), "color": _WHITE_100},
         "Image::Preview": {"image_url": _get_icons("magnify-expand"), "color": _WHITE_60},
         "Image::Preview:hovered": {"image_url": _get_icons("magnify-expand"), "color": _WHITE_80},
@@ -603,6 +712,9 @@ current_dict.update(
         "Image::Restart": {"image_url": _get_icons("restart"), "color": _WHITE_60},
         "Image::Restart:hovered": {"image_url": _get_icons("restart"), "color": _WHITE_80},
         "Image::Restart:disabled": {"image_url": _get_icons("restart"), "color": _WHITE_30},
+        "Image::Web": {"image_url": _get_icons("web"), "color": _WHITE_60},
+        "Image::Web:hovered": {"image_url": _get_icons("web"), "color": _WHITE_80},
+        "Image::Web:disabled": {"image_url": _get_icons("web"), "color": _WHITE_30},
         "ImageWithProvider::HeaderNvidiaTitle": {
             "color": _WHITE_60,
             "font_size": 32,
@@ -759,6 +871,9 @@ current_dict.update(
         },
         "Label::ProgressLabel": {"color": _WHITE_100},
         "Label::PropertiesWidgetLabel": {"color": _WHITE_70, "font_size": 18, "font": ui.url.nvidia_md},
+        "Label::PropertiesWidgetLabelDisabled": {"color": _WHITE_50, "font_size": 18, "font": ui.url.nvidia_md},
+        "Label::PropertiesWidgetLabelWarning": {"color": _RED_80, "font_size": 18, "font": ui.url.nvidia_md},
+        "Label::PropertiesWidgetLabelSuccess": {"color": _GREEN_80, "font_size": 18, "font": ui.url.nvidia_md},
         "Label::PropertiesWidgetValue": {"color": _WHITE_60, "font_size": 18, "font": ui.url.nvidia_rg},
         "Label::ExperimentalFeatureLabel": {"color": _WHITE_50, "font_size": 18, "font": ui.url.nvidia_md},
         "Label::USDPropertiesWidgetValueOverlay": {"color": _WHITE_20},
@@ -818,6 +933,7 @@ current_dict.update(
         "Line::PropertiesPaneSectionTitle": {"color": _WHITE_20, "border_width": 1},
         "Line::WelcomePadTop": {"color": _WHITE_20, "border_width": 1},
         "Line::TreeSpacer": {"color": _BLUE_SELECTED, "border_width": 2},
+        "StringField::LazyValue": {"color": _BLUE_ACTION},
         "StringField::PropertiesPaneSelectionTreeFieldItem": {"color": _WHITE_80, "font_size": 14},
         # Stage Manager Tree Item Styles
         "StringField::StageManagerTreeItemNoNickname": {

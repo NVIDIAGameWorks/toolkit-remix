@@ -1,49 +1,35 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.1.3"
-authors = ["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
+version = "3.0.3"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix ComfyUI Core"
-description = "ComfyUI Core for NVIDIA RTX Remix"
+description = "ComfyUI Core implementation for NVIDIA RTX Remix AI Tools"
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
-keywords = ["comfyui", "core"]
+keywords = ["comfyui", "core", "ai"]
 icon = "data/icon.png"
-category = "other"
+category = "internal"
 preview_image = "data/preview.png"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
 
 [dependencies]
-"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.common" = {}
+"lightspeed.events_manager" = {}
+"lightspeed.trex.asset_pipeline.core" = {}
+"lightspeed.trex.texture_replacements.core.shared" = {}
 "lightspeed.trex.utils.common" = {}
+"omni.client" = {}
 "omni.flux.asset_importer.core" = {}
-"omni.flux.pip_archive" = {}  # For huggingface-hub & toml
+"omni.flux.factory.base" = {}
+"omni.flux.job_queue.core" = {}
+"omni.flux.pip_archive" = {}
 "omni.flux.utils.common" = {}
-"omni.services.transport.server.base" = {}
 "omni.usd" = {}
 
-[settings.exts."lightspeed.trex.comfyui.core".git]
-repository = "https://github.com/NVIDIAGameWorks/ComfyUI.git" # The repository to clone
-branch = "master" # The branch to clone
-
-[settings.exts."lightspeed.trex.comfyui.core".pip]
-torch_index = "https://download.pytorch.org/whl/cu129" # The PyTorch index to use for pip install
-
-[settings.exts."lightspeed.trex.comfyui.core".models]
-requirements_file = "remix_models.toml" # The file to use for the models requirements
-cache_dir = "temp" # The directory to use for the models cache
-
-[settings.exts."lightspeed.trex.comfyui.core".workflows.texture]
-file_path = "user/default/api_workflows/texture.json" # The workflow file to use for the textures
-input = "2.image"
-
-[settings.exts."lightspeed.trex.comfyui.core".workflows.mesh]
-file_path = "user/default/api_workflows/mesh.json" # The workflow file to use for the meshes
-input = "0.input_a"
-
-[settings.exts."lightspeed.trex.comfyui.core".instance]
-address = "127.0.0.1" # The address to use for the instance
-port = 7860 # The port to use for the instance
-start_timeout_s = 120.0 # The timeout to use for the instance start
-poll_interval_s = 0.5 # The interval to use for the instance poll during startup
+[settings.persistent.exts."lightspeed.trex.comfyui.core"]
+protocol = "http"
+host = "127.0.0.1"
+port = 8188
 
 [[python.module]]
 name = "lightspeed.trex.comfyui.core"
@@ -54,6 +40,11 @@ dependencies = [
 ]
 
 stdoutFailPatterns.exclude = [
-    # Generic Error
     "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
 ]

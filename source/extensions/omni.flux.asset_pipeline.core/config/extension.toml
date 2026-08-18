@@ -1,0 +1,25 @@
+[package]
+version = "2.0.0"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "Flux Asset Pipeline Core"
+description = "Generic pipeline framework — PipelineStep ABC, PipelineContext, PipelineItem"
+readme = "docs/README.md"
+changelog = "docs/CHANGELOG.md"
+category = "internal"
+keywords = ["pipeline", "asset", "step"]
+icon = "data/icon.png"
+preview_image = "data/preview.png"
+
+[dependencies]
+
+[[python.module]]
+name = "omni.flux.asset_pipeline.core"
+
+[[test]]
+dependencies = [
+    "omni.flux.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+   "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]

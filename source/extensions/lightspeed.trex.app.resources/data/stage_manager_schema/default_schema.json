@@ -131,7 +131,7 @@
                             "name": "ParticleSystemsActionWidgetPlugin"
                         },
                         {
-                            "name": "SubmitAIJobActionWidgetPlugin"
+                            "name": "SubmitComfyUIJobActionWidgetPlugin"
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
@@ -267,7 +267,7 @@
                             "name": "ParticleSystemsActionWidgetPlugin"
                         },
                         {
-                            "name": "SubmitAIJobActionWidgetPlugin"
+                            "name": "SubmitComfyUIJobActionWidgetPlugin"
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
@@ -397,7 +397,7 @@
                             "name": "ParticleSystemsActionWidgetPlugin"
                         },
                         {
-                            "name": "SubmitAIJobActionWidgetPlugin"
+                            "name": "SubmitComfyUIJobActionWidgetPlugin"
                         },
                         {
                             "name": "NicknameToggleActionWidgetPlugin"
@@ -805,7 +805,7 @@
                             "name": "ParticleSystemsActionWidgetPlugin"
                         },
                         {
-                            "name": "SubmitAIJobActionWidgetPlugin"
+                            "name": "SubmitComfyUIJobActionWidgetPlugin"
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
@@ -933,7 +933,7 @@
                             "name": "ParticleSystemsActionWidgetPlugin"
                         },
                         {
-                            "name": "SubmitAIJobActionWidgetPlugin"
+                            "name": "SubmitComfyUIJobActionWidgetPlugin"
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"

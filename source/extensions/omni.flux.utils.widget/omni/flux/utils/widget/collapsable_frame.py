@@ -63,6 +63,7 @@ class PropertyCollapsableFrame:
         unpinned_fn: Callable[[], None] | None = None,
         enabled: bool = True,
         actions: list[PropertyCollapsableFrameAction] | None = None,
+        header_actions_fn: Callable[[], None] | None = None,
     ):
         """
         Collapsable frame with expandable widget on the right and an info icon
@@ -76,6 +77,8 @@ class PropertyCollapsableFrame:
             unpinned_fn: function to call after unpinning
             enabled: root widget enabled or not
             actions: right-aligned actions to show before pinning and expanding
+            header_actions_fn: optional callback to build extra widgets in the
+                header row, placed between the title area and the collapse arrow
         """
         self.__title = title
         self.__enabled = enabled
@@ -89,6 +92,7 @@ class PropertyCollapsableFrame:
         self.__actions = actions or []
         self.__pinned_text = ""
         self.__lock_icon = None
+        self.__header_actions_fn = header_actions_fn
         self.__frame = ui.CollapsableFrame(
             title=self.__title,
             collapsed=collapsed,
@@ -228,6 +232,8 @@ class PropertyCollapsableFrame:
                         self._info_image = _InfoIconWidget(info_text)
                 with self._build_header_hit_area(ui.Fraction(1), "PropertyCollapsableFrameHeaderHitArea"):
                     ui.Spacer()
+                if self.__header_actions_fn is not None:
+                    self.__header_actions_fn()
                 for action in self.__actions:
                     self._build_action(action)
                     ui.Spacer(width=self._SPACER_MD)
@@ -285,6 +291,7 @@ class PropertyCollapsableFrame:
         self._info_image = None
         self.__cm = None
         self.__actions.clear()
+        self.__header_actions_fn = None
 
 
 class PropertyCollapsableFrameWithInfoPopup(PropertyCollapsableFrame):

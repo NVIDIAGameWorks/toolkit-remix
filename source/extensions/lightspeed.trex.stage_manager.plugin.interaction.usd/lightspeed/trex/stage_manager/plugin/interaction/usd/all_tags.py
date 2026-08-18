@@ -53,7 +53,7 @@ class RemixAllTagsInteractionPlugin(AllTagsInteractionPlugin, RemixStageManagerU
             "NicknameToggleActionWidgetPlugin",
             "ParticleSystemsActionWidgetPlugin",
             "PrimRenameNameActionWidgetPlugin",
-            "SubmitAIJobActionWidgetPlugin",
+            "SubmitComfyUIJobActionWidgetPlugin",
         ],
         exclude=True,
     )

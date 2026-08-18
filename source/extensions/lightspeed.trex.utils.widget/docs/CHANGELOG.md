@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0]
+### Changed
+- Made quick-layout loading cancellation-safe with validated paths, owned tasks, and restored dock settings after partial mutation.
+
 ## [1.7.4]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

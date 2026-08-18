@@ -8,3 +8,4 @@ omni.flux.property_widget_builder.delegates
    CHANGELOG
 
 .. automodule:: omni.flux.property_widget_builder.delegates
+   :no-index:
