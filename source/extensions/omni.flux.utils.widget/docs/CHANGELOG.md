@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.30.5]
+### Added
+- Added an optional tooltip to each sectioned combo box item, which the whole option row shows on hover.
+
+### Changed
+- Changed the section header of the sectioned combo box into a divider row: the name in small faded text, then a
+  thin line beside it. Every section carries the divider, the first one included.
+
 ## [1.30.4]
 ### Added
 - Added per-tree horizontal scrollbar visibility control.

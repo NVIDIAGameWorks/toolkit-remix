@@ -18,8 +18,21 @@
 import pathlib
 from unittest.mock import MagicMock, patch
 
-from lightspeed.trex.comfyui.core.enums import RemixType, WorkflowCategory, WorkflowSourceType
-from lightspeed.trex.comfyui.core.models import ComfyUIWorkflowRequest, Workflow, WorkflowInput, WorkflowOutput
+from lightspeed.trex.comfyui.core.enums import (
+    WORKFLOW_TYPES_BY_CATEGORY,
+    RemixType,
+    WorkflowCategory,
+    WorkflowSourceType,
+    WorkflowType,
+)
+from lightspeed.trex.comfyui.core.models import (
+    ComfyUIWorkflowRequest,
+    Workflow,
+    WorkflowInput,
+    WorkflowOutput,
+    WorkflowTypeCategory,
+    WorkflowTypeOption,
+)
 from lightspeed.trex.comfyui.core.preset import Preset
 from lightspeed.trex.comfyui.core.resolvers import (
     ConstantResolver,
@@ -525,6 +538,128 @@ class TestWorkflow(AsyncTestCase):
         self.assertIs(workflow.source_type, WorkflowSourceType.RTX_REMIX)
         self.assertIs(workflow.category, WorkflowCategory.API)
 
+    async def test_workflow_display_name_falls_back_to_name(self) -> None:
+        """A workflow without display metadata shows its file name."""
+        # Arrange
+        name = "PBRify"
+
+        # Act
+        workflow = Workflow(name=name)
+
+        # Assert
+        self.assertEqual(workflow.display_name, "PBRify")
+
+    async def test_from_catalog_entry_parses_complete_entry(self) -> None:
+        """A complete catalog entry keeps its typed identity and display metadata."""
+        # Arrange
+        payload = {
+            "name": "material",
+            "path": "material.json",
+            "size": 1024,
+            "modified": 123.4,
+            "displayName": "Material Generation",
+            "description": "Generates a PBR material.",
+            "workflowType": "Material Generation",
+        }
+
+        # Act
+        workflow = Workflow.from_catalog_entry(WorkflowCategory.API, WorkflowSourceType.RTX_REMIX, payload)
+
+        # Assert
+        self.assertEqual(workflow.name, "material")
+        self.assertIs(workflow.category, WorkflowCategory.API)
+        self.assertIs(workflow.source_type, WorkflowSourceType.RTX_REMIX)
+        self.assertEqual(workflow.display_name, "Material Generation")
+        self.assertEqual(workflow.description, "Generates a PBR material.")
+        self.assertIs(workflow.workflow_type, WorkflowType.MATERIAL_GENERATION)
+        self.assertEqual(workflow.api, {})
+
+    async def test_from_catalog_entry_resolves_metadata_fallbacks(self) -> None:
+        """Missing catalog metadata falls back to the name, an empty description, and no type."""
+        for title, payload, display_name, description, workflow_type in (
+            ("missing_display_name", {"name": "material"}, "material", "", None),
+            ("blank_display_name", {"name": "material", "displayName": "  "}, "material", "", None),
+            ("non_string_description", {"name": "material", "description": 5}, "material", "", None),
+            ("missing_description", {"name": "material"}, "material", "", None),
+            ("blank_workflow_type", {"name": "material", "workflowType": ""}, "material", "", None),
+            ("missing_workflow_type", {"name": "material"}, "material", "", None),
+            ("null_workflow_type", {"name": "material", "workflowType": None}, "material", "", None),
+            (
+                "known_workflow_type",
+                {"name": "material", "workflowType": "Texture Upscaling"},
+                "material",
+                "",
+                WorkflowType.TEXTURE_UPSCALING,
+            ),
+        ):
+            with self.subTest(title=title):
+                # Arrange
+                entry = payload
+
+                # Act
+                workflow = Workflow.from_catalog_entry(WorkflowCategory.API, WorkflowSourceType.USER, entry)
+
+                # Assert
+                self.assertEqual(workflow.display_name, display_name)
+                self.assertEqual(workflow.description, description)
+                self.assertEqual(workflow.workflow_type, workflow_type)
+
+    async def test_from_catalog_entry_leaves_missing_type_silent(self) -> None:
+        """A missing or null catalog workflow type resolves to no type without a warning."""
+        for title, payload in (
+            ("missing_workflow_type", {"name": "material"}),
+            ("null_workflow_type", {"name": "material", "workflowType": None}),
+        ):
+            with self.subTest(title=title):
+                # Arrange
+                entry = payload
+
+                # Act
+                with patch("lightspeed.trex.comfyui.core.models.carb.log_warn") as log_warn:
+                    workflow = Workflow.from_catalog_entry(WorkflowCategory.API, WorkflowSourceType.USER, entry)
+
+                # Assert
+                self.assertIsNone(workflow.workflow_type)
+                log_warn.assert_not_called()
+
+    async def test_from_catalog_entry_warns_on_unknown_workflow_type(self) -> None:
+        """An unknown catalog workflow type, including a retired snake_case value, logs a warning and leaves no type."""
+        for title, raw_type in (
+            ("old_snake_case_spelling", "material_generation"),
+            ("unpublished_type", "Voice Cloning"),
+        ):
+            with self.subTest(title=title):
+                # Arrange
+                payload = {"name": "material", "workflowType": raw_type}
+
+                # Act
+                with patch("lightspeed.trex.comfyui.core.models.carb.log_warn") as log_warn:
+                    workflow = Workflow.from_catalog_entry(WorkflowCategory.API, WorkflowSourceType.USER, payload)
+
+                # Assert
+                self.assertIsNone(workflow.workflow_type)
+                log_warn.assert_called_once()
+                self.assertIn("material", log_warn.call_args.args[0])
+                self.assertIn(raw_type, log_warn.call_args.args[0])
+
+    async def test_from_catalog_entry_requires_nonblank_name(self) -> None:
+        """A catalog entry without a non-blank string name is rejected."""
+        for title, payload, error, message in (
+            ("missing_name", {}, TypeError, "name must be a str"),
+            ("non_string_name", {"name": 5}, TypeError, "name must be a str"),
+            ("blank_name", {"name": "  "}, ValueError, "name must not be blank"),
+        ):
+            with self.subTest(title=title):
+                # Arrange
+                entry = payload
+
+                # Act
+                with self.assertRaises(error) as error_context:
+                    Workflow.from_catalog_entry(WorkflowCategory.API, WorkflowSourceType.USER, entry)
+
+                # Assert
+                self.assertIn(message, str(error_context.exception))
+
     async def test_get_output_spec_returns_exact_node(self) -> None:
         """History parsing resolves outputs only by their declared node identifier."""
         # Arrange
@@ -538,3 +673,123 @@ class TestWorkflow(AsyncTestCase):
         # Assert
         self.assertIs(result, expected)
         self.assertIsNone(missing)
+
+
+class TestWorkflowTypesByCategory(AsyncTestCase):
+    """Test the picker grouping the node pack publishes for every workflow type."""
+
+    async def test_lists_every_workflow_type_exactly_once(self) -> None:
+        """Every WorkflowType member appears in exactly one category, in node pack order."""
+        # Arrange
+        expected = list(WorkflowType)
+
+        # Act
+        listed = [workflow_type for types in WORKFLOW_TYPES_BY_CATEGORY.values() for workflow_type in types]
+
+        # Assert
+        self.assertEqual(listed, expected)
+
+
+class TestWorkflowTypeCategory(AsyncTestCase):
+    """Test parsing of the workflows/types endpoint payload into ordered categories."""
+
+    async def test_list_from_payload_parses_ordered_categories_with_descriptions(self) -> None:
+        """Categories and their type options keep server order and carry server descriptions."""
+        # Arrange
+        payload = [
+            {
+                "name": "Generation",
+                "types": [
+                    {"value": "Asset Generation", "description": "Server description of the asset type."},
+                    {"value": "Material Generation", "description": "Server description of the material type."},
+                ],
+            },
+            {"name": "Other", "types": [{"value": "Other", "description": "Anything else."}]},
+        ]
+
+        # Act
+        categories = WorkflowTypeCategory.list_from_payload(payload)
+
+        # Assert
+        self.assertEqual(
+            categories,
+            [
+                WorkflowTypeCategory(
+                    name="Generation",
+                    types=(
+                        WorkflowTypeOption(WorkflowType.ASSET_GENERATION, "Server description of the asset type."),
+                        WorkflowTypeOption(
+                            WorkflowType.MATERIAL_GENERATION, "Server description of the material type."
+                        ),
+                    ),
+                ),
+                WorkflowTypeCategory(name="Other", types=(WorkflowTypeOption(WorkflowType.OTHER, "Anything else."),)),
+            ],
+        )
+
+    async def test_list_from_payload_skips_unknown_type_value_and_logs(self) -> None:
+        """A type value the enum does not hold is skipped and logged, other types stay."""
+        # Arrange
+        payload = [
+            {
+                "name": "Generation",
+                "types": [
+                    {"value": "Asset Generation", "description": "Server description of the asset type."},
+                    {"value": "Future Type", "description": "Not supported yet."},
+                ],
+            }
+        ]
+
+        # Act
+        with patch("lightspeed.trex.comfyui.core.models.carb.log_warn") as log_warn:
+            categories = WorkflowTypeCategory.list_from_payload(payload)
+
+        # Assert
+        self.assertEqual(
+            categories,
+            [
+                WorkflowTypeCategory(
+                    name="Generation",
+                    types=(WorkflowTypeOption(WorkflowType.ASSET_GENERATION, "Server description of the asset type."),),
+                )
+            ],
+        )
+        log_warn.assert_called_once()
+        self.assertIn("Future Type", log_warn.call_args.args[0])
+
+    async def test_list_from_payload_skips_blank_non_string_or_malformed_entries(self) -> None:
+        """A blank value, a non-string value, or a non-dict entry is skipped instead of raising."""
+        # Arrange
+        payload = [{"name": "Other", "types": [{"value": ""}, {"value": 7}, {}, "not-a-dict", None]}]
+
+        # Act
+        with patch("lightspeed.trex.comfyui.core.models.carb.log_warn"):
+            categories = WorkflowTypeCategory.list_from_payload(payload)
+
+        # Assert
+        self.assertEqual(categories, [WorkflowTypeCategory(name="Other", types=())])
+
+    async def test_list_from_payload_returns_empty_list_for_non_list_payload(self) -> None:
+        """A payload that is not a list of categories yields no category, not an error."""
+        # Arrange
+        cases = (None, {"categories": []}, "Generation")
+
+        for payload in cases:
+            with self.subTest(payload=payload):
+                # Act
+                categories = WorkflowTypeCategory.list_from_payload(payload)
+
+                # Assert
+                self.assertEqual(categories, [])
+
+    async def test_list_from_payload_missing_description_reads_as_blank(self) -> None:
+        """A type entry without a description reads as an empty string, not None."""
+        # Arrange
+        payload = [{"name": "Other", "types": [{"value": "Other"}]}]
+
+        # Act
+        categories = WorkflowTypeCategory.list_from_payload(payload)
+
+        # Assert
+        expected = [WorkflowTypeCategory(name="Other", types=(WorkflowTypeOption(WorkflowType.OTHER, ""),))]
+        self.assertEqual(categories, expected)

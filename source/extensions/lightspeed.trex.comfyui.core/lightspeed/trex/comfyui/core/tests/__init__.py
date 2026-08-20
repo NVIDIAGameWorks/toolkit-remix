@@ -23,7 +23,14 @@ from .unit.test_connection import TestConnection
 from .unit.test_core import TestComfyUICore
 from .unit.test_events import TestComfyUIEvents
 from .unit.test_job import TestComfyUIJob
-from .unit.test_models import TestComfyUIWorkflowRequest, TestWorkflow, TestWorkflowInput, TestWorkflowOutput
+from .unit.test_models import (
+    TestComfyUIWorkflowRequest,
+    TestWorkflow,
+    TestWorkflowInput,
+    TestWorkflowOutput,
+    TestWorkflowTypeCategory,
+    TestWorkflowTypesByCategory,
+)
 from .unit.test_preset import TestPreset
 from .unit.test_resolvers import TestValueResolver
 from .unit.test_settings import TestComfyUISettings
@@ -48,4 +55,6 @@ __all__ = (
     "TestWorkflow",
     "TestWorkflowInput",
     "TestWorkflowOutput",
+    "TestWorkflowTypeCategory",
+    "TestWorkflowTypesByCategory",
 )

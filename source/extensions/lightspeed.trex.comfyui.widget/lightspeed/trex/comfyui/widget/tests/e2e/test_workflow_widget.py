@@ -17,17 +17,20 @@
 
 import pathlib
 from copy import deepcopy
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from carb.input import MouseEventType
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
+from lightspeed.trex.comfyui.core.api import ComfyUIAPI
+from lightspeed.trex.comfyui.core.core import ComfyUICore
 from lightspeed.trex.comfyui.core.enums import (
     ComfyUIEventType,
     ComfyUIState,
     RemixType,
     WorkflowCategory,
     WorkflowSourceType,
+    WorkflowType,
 )
 from lightspeed.trex.comfyui.core.events import ComfyUIEventPayload
 from lightspeed.trex.comfyui.core.models import Workflow, WorkflowInput
@@ -123,6 +126,118 @@ def _make_texture_workflow() -> Workflow:
     return workflow
 
 
+def _make_catalog_workflow(
+    name: str,
+    source_type: WorkflowSourceType,
+    *,
+    category: WorkflowCategory = WorkflowCategory.API,
+    display_name: str = "",
+    description: str = "",
+    workflow_type: WorkflowType | None = None,
+) -> Workflow:
+    """Create one server catalog entry for workflow picker tests.
+
+    Args:
+        name: File stem identifying the workflow on the server.
+        source_type: Registry source containing the workflow.
+        category: Workflow category, API unless overridden.
+        display_name: User-facing name, falling back to the file stem when blank.
+        description: User-facing workflow summary shown as the picker tooltip.
+        workflow_type: Node pack workflow type, or None when the server omits it.
+
+    Returns:
+        The catalog workflow without loaded graph data.
+    """
+    return Workflow(
+        name=name,
+        source_type=source_type,
+        category=category,
+        display_name=display_name,
+        description=description,
+        workflow_type=workflow_type,
+    )
+
+
+def _make_described_catalog() -> dict:
+    """Create a catalog payload with one Material Generation workflow and one Texture Upscaling workflow.
+
+    Returns:
+        Payload of the workflow catalog endpoint.
+    """
+    return {
+        "workflows": {
+            "api": {
+                "rtx-remix": [
+                    {
+                        "name": "matgen_v1",
+                        "displayName": "Material Maker",
+                        "description": "Generate a material",
+                        "workflowType": "Material Generation",
+                    },
+                    {
+                        "name": "upscale_v1",
+                        "displayName": "Texture Upscale",
+                        "description": "Upscale a texture",
+                        "workflowType": "Texture Upscaling",
+                    },
+                ],
+                "user": [],
+            },
+            "full": {"rtx-remix": [], "user": []},
+        }
+    }
+
+
+def _make_described_types() -> dict:
+    """Create a types payload that publishes one described type under each category of the two catalog workflows.
+
+    Returns:
+        Payload of the workflow types endpoint.
+    """
+    return {
+        "success": True,
+        "categories": [
+            {
+                "name": "Generation",
+                "types": [{"value": "Material Generation", "description": "Server description of the material type."}],
+            },
+            {
+                "name": "Upscaling",
+                "types": [{"value": "Texture Upscaling", "description": "Server description of the texture type."}],
+            },
+        ],
+    }
+
+
+def _route_payloads(workflow_catalog: dict, workflow_types: dict | None = None):
+    """Build a request answer that serves the types endpoint and the workflow catalog endpoint.
+
+    Args:
+        workflow_catalog: Payload of the workflow catalog endpoint.
+        workflow_types: Payload of the workflow types endpoint, or None for a server that publishes none.
+
+    Returns:
+        Function that answers one request of the stubbed HTTP boundary.
+    """
+
+    def send_request(_method: str, endpoint: str, **_kwargs) -> dict:
+        """Answer the types endpoint with the type payload, and every other endpoint with the catalog.
+
+        Args:
+            _method: HTTP method of the request.
+            endpoint: Endpoint path of the request.
+            **_kwargs: Remaining request arguments.
+
+        Returns:
+            Payload of the requested endpoint.
+        """
+        if endpoint.endswith("/types"):
+            return workflow_types or {}
+        return workflow_catalog
+
+    return send_request
+
+
 def _make_core(workflow=None):
     """Create a mocked running ComfyUI core for widget tests.
 
@@ -139,9 +254,10 @@ def _make_core(workflow=None):
     core.is_connected = True
     core.is_ready = workflow is not None
     core.get_submission_block_reason.return_value = None
+    core.load_workflow = AsyncMock()
     core.available_workflows = [
-        (WorkflowCategory.API, WorkflowSourceType.RTX_REMIX, "Material Workflow"),
-        (WorkflowCategory.FULL, WorkflowSourceType.USER, "UI Only"),
+        _make_catalog_workflow("Material Workflow", WorkflowSourceType.RTX_REMIX),
+        _make_catalog_workflow("UI Only", WorkflowSourceType.USER, category=WorkflowCategory.FULL),
     ]
     return core
 
@@ -162,6 +278,21 @@ async def _wait_for_widget(selector: str, max_attempts: int = 20):
             return matches[0]
         await ui_test.human_delay()
     return None
+
+
+async def _select_type(type_picker, label: str) -> None:
+    """Select one entry of the workflow type picker through its popup.
+
+    Args:
+        type_picker: Reference to the type picker of the widget.
+        label: Label of the entry to click.
+    """
+    await type_picker.click()
+    await ui_test.human_delay()
+    entries = ui_test.find_all("SectionedComboPopup//Frame/**/Label[*].name=='SectionedComboItemLabel'")
+    entry = next(candidate for candidate in entries if candidate.widget.text == label)
+    await entry.click()
+    await ui_test.human_delay()
 
 
 class TestWorkflowSetupWidgetE2E(AsyncTestCase):
@@ -235,6 +366,50 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
             with self._window.frame:
                 self._real_widget = WorkflowSetupWidget(context_name="texturecraft")
         await ui_test.human_delay()
+        return core
+
+    async def _build_connected_widget(self, workflow_catalog: dict, workflow_types: dict | None = None) -> ComfyUICore:
+        """Build the real workflow widget on the real core, with only the HTTP boundary stubbed.
+
+        Args:
+            workflow_catalog: Payload that every workflow catalog request returns.
+            workflow_types: Payload that the workflow types request returns. An empty payload leaves the core
+                on the mirrored vocabulary, which carries no description.
+
+        Returns:
+            The real core that backs the rendered widget.
+        """
+
+        if self._real_widget is not None:
+            self._real_widget.destroy()
+            self._real_widget = None
+            await ui_test.human_delay()
+
+        core = ComfyUICore("texturecraft")
+        self.addCleanup(core.destroy)
+        with (
+            patch(
+                "lightspeed.trex.comfyui.widget.workflow.widget.get_comfyui_core_instance",
+                return_value=core,
+            ),
+            patch.object(ComfyUIAPI, "ping", new=AsyncMock(return_value={})),
+            patch.object(
+                ComfyUIAPI,
+                "_send_request",
+                new=AsyncMock(side_effect=_route_payloads(workflow_catalog, workflow_types)),
+            ),
+            patch.object(ComfyUIAPI, "get_workflow_data", new=AsyncMock(return_value=({}, {"extra": {}}))),
+        ):
+            with self._window.frame:
+                self._real_widget = WorkflowSetupWidget(context_name="texturecraft")
+            await core.connect()
+            self.assertIsNotNone(self._event_callback)
+            self._event_callback(ComfyUIEventPayload("texturecraft", ComfyUIEventType.WORKFLOWS_LOADED))
+            self._event_callback(ComfyUIEventPayload("texturecraft", ComfyUIEventType.STATE_CHANGED))
+            await ui_test.human_delay()
+            if self._real_widget._workflow_load_task is not None:
+                await self._real_widget._workflow_load_task
+                await ui_test.human_delay()
         return core
 
     async def _click_input(self, label: str) -> None:
@@ -482,6 +657,280 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
                 f"{self._window.title}//Frame/**/Label[*].text=='Select a workflow above to configure its inputs'"
             )
         )
+
+    async def test_workflow_metadata_filters_and_labels_real_window(self):
+        """The real core and window show typed filters, display names, source sections, and descriptions."""
+        catalog = {
+            "workflows": {
+                "api": {
+                    "rtx-remix": [
+                        {
+                            "name": "upscale_v1",
+                            "displayName": "Texture Upscale",
+                            "description": "Upscale a texture",
+                            "workflowType": "Texture Upscaling",
+                        }
+                    ],
+                    "user": [
+                        {
+                            "name": "matgen_v2",
+                            "displayName": "Material Maker",
+                            "description": "Generate a material",
+                            "workflowType": "Material Generation",
+                        },
+                        {"name": "legacy_flow"},
+                    ],
+                },
+                "full": {"rtx-remix": [], "user": []},
+            }
+        }
+        core = await self._build_connected_widget(catalog)
+        type_picker = ui_test.find(
+            f"{self._window.title}//Frame/**/SectionedComboBox[*].identifier=='ComfyWorkflowTypePicker'"
+        )
+        picker = ui_test.find(f"{self._window.title}//Frame/**/SectionedComboBox[*].identifier=='ComfyWorkflowPicker'")
+        self.assertIsNotNone(type_picker)
+        self.assertIsNotNone(picker)
+
+        self.assertEqual(type_picker.widget.selected_index, 0)
+        self.assertEqual(picker.widget.tooltip, "Upscale a texture")
+
+        await picker.click()
+        await ui_test.human_delay()
+        popup_labels = [
+            label.widget.text
+            for label in ui_test.find_all("SectionedComboPopup//Frame/**/Label[*].name=='SectionedComboItemLabel'")
+        ]
+        popup_sections = [
+            label.widget.text
+            for label in ui_test.find_all("SectionedComboPopup//Frame/**/Label[*].name=='SectionedComboHeader'")
+        ]
+        self.assertEqual(popup_labels, ["Texture Upscale", "Material Maker", "legacy_flow"])
+        self.assertEqual(popup_sections, ["BUILT-IN", "USER"])
+
+        # Select the type the way a user does: open the popup, then click the entry.
+        await _select_type(type_picker, "Texture Upscaling")
+        await picker.click()
+        await ui_test.human_delay()
+        filtered_labels = [
+            label.widget.text
+            for label in ui_test.find_all("SectionedComboPopup//Frame/**/Label[*].name=='SectionedComboItemLabel'")
+        ]
+        self.assertEqual(filtered_labels, ["Texture Upscale"])
+        self.assertEqual(picker.widget.tooltip, "Upscale a texture")
+        self.assertEqual(core.available_workflows[0].workflow_type, WorkflowType.TEXTURE_UPSCALING)
+
+    async def test_workflow_type_picker_groups_types_by_category(self):
+        """The type popup shows each category as a header above its types, in the mirrored map's order.
+
+        `All` comes first with no header. The categories then follow the declared order of
+        `WORKFLOW_TYPES_BY_CATEGORY` (Generation before Miscellaneous), not alphabetical order, which would
+        put Asset Tagging before Material Generation.
+        """
+        catalog = {
+            "workflows": {
+                "api": {
+                    "rtx-remix": [
+                        {
+                            "name": "matgen_v1",
+                            "displayName": "Material Maker",
+                            "description": "Generate a material",
+                            "workflowType": "Material Generation",
+                        },
+                        {
+                            "name": "tag_v1",
+                            "displayName": "Tag Assets",
+                            "description": "Tag an asset",
+                            "workflowType": "Asset Tagging",
+                        },
+                    ],
+                    "user": [],
+                },
+                "full": {"rtx-remix": [], "user": []},
+            }
+        }
+        await self._build_connected_widget(catalog)
+        type_picker = ui_test.find(
+            f"{self._window.title}//Frame/**/SectionedComboBox[*].identifier=='ComfyWorkflowTypePicker'"
+        )
+        self.assertIsNotNone(type_picker)
+
+        await type_picker.click()
+        await ui_test.human_delay()
+        popup_labels = [
+            label.widget.text
+            for label in ui_test.find_all("SectionedComboPopup//Frame/**/Label[*].name=='SectionedComboItemLabel'")
+        ]
+        popup_sections = [
+            label.widget.text
+            for label in ui_test.find_all("SectionedComboPopup//Frame/**/Label[*].name=='SectionedComboHeader'")
+        ]
+        divider_lines = ui_test.find_all("SectionedComboPopup//Frame/**/Line[*].name=='SectionedComboHeader'")
+        header_backgrounds = ui_test.find_all(
+            "SectionedComboPopup//Frame/**/Rectangle[*].name=='SectionedComboSectionHeader'"
+        )
+        self.assertEqual(popup_labels, ["All", "Material Generation", "Asset Tagging"])
+        self.assertEqual(popup_sections, ["GENERATION", "MISCELLANEOUS"])
+        # Every category carries its own line and its own background, the first one included.
+        self.assertEqual(len(header_backgrounds), len(popup_sections))
+        self.assertEqual(len(divider_lines), len(popup_sections))
+
+    async def test_type_popup_rows_show_the_descriptions_of_the_server(self):
+        """Every type row of the popup shows the description that the types endpoint published."""
+        await self._build_connected_widget(_make_described_catalog(), _make_described_types())
+        type_picker = ui_test.find(
+            f"{self._window.title}//Frame/**/SectionedComboBox[*].identifier=='ComfyWorkflowTypePicker'"
+        )
+        self.assertIsNotNone(type_picker)
+
+        await type_picker.click()
+        await ui_test.human_delay()
+        row_tooltips = [
+            row.widget.tooltip
+            for row in ui_test.find_all("SectionedComboPopup//Frame/**/ZStack[*].name=='SectionedComboItemRow'")
+        ]
+        # The All row describes no type, so it carries no text. Every type row carries the text of the server.
+        self.assertEqual(
+            row_tooltips,
+            ["", "Server description of the material type.", "Server description of the texture type."],
+        )
+
+    async def test_picking_a_type_shows_its_description_on_the_type_field(self):
+        """The type field shows the description of the picked type, and the filter text again under All."""
+        await self._build_connected_widget(_make_described_catalog(), _make_described_types())
+        type_picker = ui_test.find(
+            f"{self._window.title}//Frame/**/SectionedComboBox[*].identifier=='ComfyWorkflowTypePicker'"
+        )
+        self.assertIsNotNone(type_picker)
+        self.assertEqual(type_picker.widget.tooltip, "Filter workflows by type")
+
+        # Pick a type the way a user does, then return to All through the same popup.
+        await _select_type(type_picker, "Texture Upscaling")
+        picked_tooltip = type_picker.widget.tooltip
+        await _select_type(type_picker, "All")
+        self.assertEqual(picked_tooltip, "Server description of the texture type.")
+        self.assertEqual(type_picker.widget.tooltip, "Filter workflows by type")
+
+    async def test_a_type_that_leaves_the_catalog_clears_its_description_from_the_field(self):
+        """A discovery that drops the picked type returns the field to the filter text, with no stale description."""
+        core = await self._build_connected_widget(_make_described_catalog(), _make_described_types())
+        type_picker = ui_test.find(
+            f"{self._window.title}//Frame/**/SectionedComboBox[*].identifier=='ComfyWorkflowTypePicker'"
+        )
+        await _select_type(type_picker, "Texture Upscaling")
+        self.assertEqual(type_picker.widget.tooltip, "Server description of the texture type.")
+
+        # The server drops that type from its catalog, so the next discovery rebuilds the picker under All.
+        material_only = deepcopy(_make_described_catalog())
+        material_only["workflows"]["api"]["rtx-remix"] = material_only["workflows"]["api"]["rtx-remix"][:1]
+        with patch.object(
+            ComfyUIAPI,
+            "_send_request",
+            new=AsyncMock(side_effect=_route_payloads(material_only, _make_described_types())),
+        ):
+            await core.fetch_available_workflows()
+        self._event_callback(ComfyUIEventPayload("texturecraft", ComfyUIEventType.WORKFLOWS_LOADED))
+        await ui_test.human_delay()
+        type_picker = ui_test.find(
+            f"{self._window.title}//Frame/**/SectionedComboBox[*].identifier=='ComfyWorkflowTypePicker'"
+        )
+        self.assertEqual(type_picker.widget.tooltip, "Filter workflows by type")
+
+    async def test_unknown_workflow_type_from_node_pack_still_appears_under_all(self):
+        """A workflow type the Toolkit does not recognize still shows the workflow, only under All.
+
+        The node pack owns the type vocabulary, but an old snake_case value, or any type the
+        Toolkit has never seen, must not hide the workflow and must not create a spurious type entry.
+        """
+        catalog = {
+            "workflows": {
+                "api": {
+                    "rtx-remix": [
+                        {
+                            "name": "holo_v1",
+                            "displayName": "Holo Workflow",
+                            "description": "Upscale holographically",
+                            "workflowType": "material_generation",
+                        }
+                    ],
+                    "user": [{"name": "legacy_flow"}],
+                },
+                "full": {"rtx-remix": [], "user": []},
+            }
+        }
+        core = await self._build_connected_widget(catalog)
+        type_picker = ui_test.find(
+            f"{self._window.title}//Frame/**/SectionedComboBox[*].identifier=='ComfyWorkflowTypePicker'"
+        )
+        picker = ui_test.find(f"{self._window.title}//Frame/**/SectionedComboBox[*].identifier=='ComfyWorkflowPicker'")
+        self.assertIsNotNone(type_picker)
+        self.assertIsNotNone(picker)
+
+        self.assertEqual(type_picker.widget.selected_item.label, "All")
+        self.assertIsNone(core.available_workflows[0].workflow_type)
+
+        await picker.click()
+        await ui_test.human_delay()
+        popup_labels = [
+            label.widget.text
+            for label in ui_test.find_all("SectionedComboPopup//Frame/**/Label[*].name=='SectionedComboItemLabel'")
+        ]
+        self.assertIn("Holo Workflow", popup_labels)
+
+    async def test_filtering_to_another_type_keeps_the_loaded_workflow(self):
+        """A type filter changes the visible list only. The workflow that the user loaded stays loaded."""
+        catalog = {
+            "workflows": {
+                "api": {
+                    "rtx-remix": [
+                        {
+                            "name": "upscale_v1",
+                            "displayName": "Texture Upscale",
+                            "description": "Upscale a texture",
+                            "workflowType": "Texture Upscaling",
+                        }
+                    ],
+                    "user": [
+                        {
+                            "name": "matgen_v2",
+                            "displayName": "Material Maker",
+                            "description": "Generate a material",
+                            "workflowType": "Material Generation",
+                        }
+                    ],
+                },
+                "full": {"rtx-remix": [], "user": []},
+            }
+        }
+        core = await self._build_connected_widget(catalog)
+        type_picker = ui_test.find(
+            f"{self._window.title}//Frame/**/SectionedComboBox[*].identifier=='ComfyWorkflowTypePicker'"
+        )
+        picker = ui_test.find(f"{self._window.title}//Frame/**/SectionedComboBox[*].identifier=='ComfyWorkflowPicker'")
+
+        # The connected widget loads the first workflow of the catalog, which the user then keeps.
+        loaded_workflow = core.workflow
+        self.assertIsNotNone(loaded_workflow)
+        self.assertEqual(loaded_workflow.workflow_type, WorkflowType.TEXTURE_UPSCALING)
+
+        # The user filters to the other type, which hides the loaded workflow. Patch the workflow-load
+        # request for the duration of the filter change only: a regression that starts a real load
+        # would still leave the transient UI state looking correct, so only the mock catches it.
+        with patch.object(ComfyUIAPI, "get_workflow_data", new=AsyncMock()) as mock_get_workflow_data:
+            await _select_type(type_picker, "Material Generation")
+            await ui_test.human_delay(10)
+            mock_get_workflow_data.assert_not_awaited()
+
+        # The filter loaded nothing: the workflow of the user stays, and the picker asks for a choice.
+        self.assertIs(core.workflow, loaded_workflow)
+        await picker.click()
+        await ui_test.human_delay()
+        popup_labels = [
+            label.widget.text
+            for label in ui_test.find_all("SectionedComboPopup//Frame/**/Label[*].name=='SectionedComboItemLabel'")
+        ]
+        self.assertEqual(popup_labels, ["Select a workflow", "Material Maker"])
+        self.assertIn(loaded_workflow.display_name, picker.widget.tooltip)
 
     async def test_editing_rendered_parameter_clears_active_preset(self):
         """Editing a rendered input leaves the preset picker in its custom-value state."""

@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.4]
+### Added
+- Returned typed `Workflow` entries from discovery, with the display name, description, and server-defined type of each
+  catalog workflow preserved on a loaded workflow.
+- Added the workflow type category map (`Generation`, `Upscaling`, `Miscellaneous`, `Other`) that mirrors the node
+  pack vocabulary.
+- Parsed the `workflows/types` endpoint into ordered categories, each type carrying the description the server
+  publishes.
+
 ## [3.0.3]
 ### Added
 - Published stage visibility changes from each ComfyUI core's injected USD context for presentation consumers.

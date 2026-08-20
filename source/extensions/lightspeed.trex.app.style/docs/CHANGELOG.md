@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.1]
+### Changed
+- Changed the sectioned combo box section style: the name is smaller and faded, and a faded thin line runs beside it.
+
 ## [1.27.0]
 ### Added
 - Added shared ComfyUI connection-banner styles for disconnected, connecting, connected, and error states.

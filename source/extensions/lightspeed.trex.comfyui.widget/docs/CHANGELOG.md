@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.3]
+### Added
+- Added a Workflow Type filter above the Workflow picker, which groups the types of the server under a category
+  divider, and gave each picker entry the display name and the description tooltip of the server.
+- Added the type descriptions of the server to the Workflow Type picker, on each option row and on the field.
+
 ## [2.1.2]
 ### Fixed
 - Fitted the ComfyUI Setup window to the height that its panel needs, and filled a taller window with the panel,

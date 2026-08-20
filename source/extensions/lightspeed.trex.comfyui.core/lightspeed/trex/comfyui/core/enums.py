@@ -16,6 +16,7 @@
 """
 
 __all__ = [
+    "WORKFLOW_TYPES_BY_CATEGORY",
     "ComfyUIEventType",
     "ComfyUIOperation",
     "ComfyUIProtocol",
@@ -25,6 +26,7 @@ __all__ = [
     "RemixType",
     "WorkflowCategory",
     "WorkflowSourceType",
+    "WorkflowType",
 ]
 
 from enum import Enum, StrEnum
@@ -128,3 +130,27 @@ class WorkflowSourceType(Enum):
 
     RTX_REMIX = "rtx-remix"
     USER = "user"
+
+
+class WorkflowType(Enum):
+    """Workflow types that the RTX Remix ComfyUI node pack publishes."""
+
+    ASSET_GENERATION = "Asset Generation"
+    MATERIAL_GENERATION = "Material Generation"
+    ASSET_UPSCALING = "Asset Upscaling"
+    MESH_UPSCALING = "Mesh Upscaling"
+    TEXTURE_UPSCALING = "Texture Upscaling"
+    ASSET_TAGGING = "Asset Tagging"
+    OTHER = "Other"
+
+
+# Display order of the picker, and the category of every type. Mirrors the node pack vocabulary.
+# The picker uses this map as a fallback only, for a server that does not publish the
+# workflows/types endpoint. A published category carries a description for each type; this
+# fallback map does not, because the description text lives only on the server.
+WORKFLOW_TYPES_BY_CATEGORY: dict[str, tuple[WorkflowType, ...]] = {
+    "Generation": (WorkflowType.ASSET_GENERATION, WorkflowType.MATERIAL_GENERATION),
+    "Upscaling": (WorkflowType.ASSET_UPSCALING, WorkflowType.MESH_UPSCALING, WorkflowType.TEXTURE_UPSCALING),
+    "Miscellaneous": (WorkflowType.ASSET_TAGGING,),
+    "Other": (WorkflowType.OTHER,),
+}
