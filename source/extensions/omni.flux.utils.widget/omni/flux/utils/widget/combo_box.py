@@ -35,12 +35,14 @@ class SectionedComboItem:
         section: Section/group name. Items with the same section are grouped
             under a shared header in the dropdown.
         data: Arbitrary payload returned to the selection callback.
+        tooltip: Hover text of the option row in the dropdown.
     """
 
-    def __init__(self, label: str, section: str = "", data: Any = None):
+    def __init__(self, label: str, section: str = "", data: Any = None, tooltip: str = ""):
         self.label = label
         self.section = section
         self.data = data
+        self.tooltip = tooltip
 
 
 class _DisplayModel(ui.AbstractItemModel):
@@ -77,7 +79,8 @@ class SectionedComboBox(ui.ComboBox):
     """A ComboBox that displays items in a sectioned popup.
 
     Uses ``ui.ComboBox`` for the trigger. Clicking opens a popup window positioned
-    directly below the trigger, matching its width, with items grouped by section.
+    directly below the trigger, matching its width, with items grouped by section. Every
+    section starts with a divider row: its name in small faded text, then a thin line.
 
     Args:
         items: The list of items to display.
@@ -193,28 +196,36 @@ class SectionedComboBox(ui.ComboBox):
 
         with self._popup_window.frame:
             with ui.VStack(spacing=0):
-                show_sections = self._has_multiple_sections()
                 current_section = None
                 for index, item in enumerate(self._items):
-                    if show_sections and item.section and item.section != current_section:
+                    if item.section and item.section != current_section:
                         self._build_section_header(item.section)
                         current_section = item.section
                     self._build_item_row(index, item)
 
     def _build_section_header(self, title: str) -> None:
-        """Build a non-interactive section header label, vertically centered."""
+        """Build the divider of one section: the name in small faded text, then a thin line beside it.
+
+        Args:
+            title: Section name to show.
+        """
         with ui.ZStack(height=self._SECTION_HEADER_HEIGHT):
             ui.Rectangle(name="SectionedComboSectionHeader")
             with ui.HStack():
                 ui.Spacer(width=self._ITEM_PADDING)
-                ui.Label(title, name="SectionedComboHeader", alignment=ui.Alignment.LEFT_CENTER)
+                ui.Label(title.upper(), name="SectionedComboHeader", width=0, alignment=ui.Alignment.LEFT_CENTER)
+                ui.Spacer(width=self._ITEM_PADDING)
+                ui.Line(name="SectionedComboHeader", alignment=ui.Alignment.CENTER)
+                ui.Spacer(width=self._ITEM_PADDING)
 
     def _build_item_row(self, index: int, item: SectionedComboItem) -> None:
         """Build a selectable item row."""
         is_selected = index == self._selected_index
 
         with ui.ZStack(
+            name="SectionedComboItemRow",
             height=self._ITEM_HEIGHT,
+            tooltip=item.tooltip,
             mouse_pressed_fn=lambda x, y, button, modifier, idx=index: self._on_item_clicked(idx, button),
         ):
             ui.Rectangle(
@@ -226,18 +237,16 @@ class SectionedComboBox(ui.ComboBox):
                 ui.Label(item.label, name="SectionedComboItemLabel")
                 ui.Spacer(width=self._ITEM_PADDING)
 
-    def _has_multiple_sections(self) -> bool:
-        """Return True if items span more than one unique section."""
-        sections = {item.section for item in self._items if item.section}
-        return len(sections) > 1
-
     def _calculate_popup_height(self) -> float:
-        """Calculate the popup height based on items and section headers."""
+        """Calculate the popup height based on items and section dividers.
+
+        Returns:
+            Height of every item row, plus the divider that every section carries.
+        """
         height = 0.0
-        show_sections = self._has_multiple_sections()
         current_section = None
         for item in self._items:
-            if show_sections and item.section and item.section != current_section:
+            if item.section and item.section != current_section:
                 height += self._SECTION_HEADER_HEIGHT.value
                 current_section = item.section
             height += self._ITEM_HEIGHT.value

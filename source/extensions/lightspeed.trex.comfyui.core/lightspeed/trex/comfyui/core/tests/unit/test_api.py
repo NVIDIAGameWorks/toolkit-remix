@@ -21,7 +21,8 @@ import threading
 from unittest.mock import AsyncMock, MagicMock, call, mock_open, patch
 
 from lightspeed.trex.comfyui.core.api import ComfyUIAPI, ComfyUIImageResult, _convert_dds_to_png
-from lightspeed.trex.comfyui.core.enums import WorkflowCategory, WorkflowSourceType
+from lightspeed.trex.comfyui.core.enums import WorkflowCategory, WorkflowSourceType, WorkflowType
+from lightspeed.trex.comfyui.core.models import Workflow, WorkflowTypeCategory, WorkflowTypeOption
 from omni import client
 from omni.kit.test import AsyncTestCase
 
@@ -379,10 +380,101 @@ class TestComfyUIAPI(AsyncTestCase):
         self.assertEqual(
             result,
             [
-                (WorkflowCategory.API, WorkflowSourceType.RTX_REMIX, "material"),
-                (WorkflowCategory.FULL, WorkflowSourceType.USER, "custom"),
+                Workflow(category=WorkflowCategory.API, source_type=WorkflowSourceType.RTX_REMIX, name="material"),
+                Workflow(category=WorkflowCategory.FULL, source_type=WorkflowSourceType.USER, name="custom"),
             ],
         )
+
+    async def test_get_workflow_list_parses_entry_metadata(self):
+        """Workflow listing resolves display metadata from complete catalog entries."""
+        # Arrange
+        api = ComfyUIAPI("http", "127.0.0.1", 8188)
+        api._send_request = AsyncMock(
+            return_value={
+                "workflows": {
+                    "api": {
+                        "rtx-remix": [
+                            {
+                                "name": "material",
+                                "path": "material.json",
+                                "size": 1024,
+                                "modified": 123.4,
+                                "displayName": "Material Generation",
+                                "description": "Generates a PBR material.",
+                                "workflowType": "Material Generation",
+                            }
+                        ]
+                    }
+                }
+            }
+        )
+
+        # Act
+        result = await api.get_workflow_list()
+
+        # Assert
+        self.assertEqual(len(result), 1)
+        workflow = result[0]
+        self.assertEqual(workflow.name, "material")
+        self.assertIs(workflow.category, WorkflowCategory.API)
+        self.assertIs(workflow.source_type, WorkflowSourceType.RTX_REMIX)
+        self.assertEqual(workflow.display_name, "Material Generation")
+        self.assertEqual(workflow.description, "Generates a PBR material.")
+        self.assertIs(workflow.workflow_type, WorkflowType.MATERIAL_GENERATION)
+        self.assertEqual(workflow.api, {})
+
+    async def test_get_workflow_types_parses_categories_with_descriptions(self):
+        """Type listing parses the documented categories payload into ordered options."""
+        # Arrange
+        api = ComfyUIAPI("http", "127.0.0.1", 8188)
+        api._send_request = AsyncMock(
+            return_value={
+                "success": True,
+                "categories": [
+                    {
+                        "name": "Generation",
+                        "types": [
+                            {"value": "Asset Generation", "description": "Server description of the asset type."},
+                            {"value": "Material Generation", "description": "Server description of the material type."},
+                        ],
+                    },
+                    {"name": "Other", "types": [{"value": "Other", "description": "Anything else."}]},
+                ],
+            }
+        )
+
+        # Act
+        result = await api.get_workflow_types()
+
+        # Assert
+        self.assertEqual(
+            result,
+            [
+                WorkflowTypeCategory(
+                    name="Generation",
+                    types=(
+                        WorkflowTypeOption(WorkflowType.ASSET_GENERATION, "Server description of the asset type."),
+                        WorkflowTypeOption(
+                            WorkflowType.MATERIAL_GENERATION, "Server description of the material type."
+                        ),
+                    ),
+                ),
+                WorkflowTypeCategory(name="Other", types=(WorkflowTypeOption(WorkflowType.OTHER, "Anything else."),)),
+            ],
+        )
+        api._send_request.assert_awaited_once_with("GET", "/rtx-remix/v1/workflows/types")
+
+    async def test_get_workflow_types_returns_empty_list_for_non_dict_response(self):
+        """A non-object response yields no category instead of raising."""
+        # Arrange
+        api = ComfyUIAPI("http", "127.0.0.1", 8188)
+        api._send_request = AsyncMock(return_value=["not", "a", "dict"])
+
+        # Act
+        result = await api.get_workflow_types()
+
+        # Assert
+        self.assertEqual(result, [])
 
     async def test_get_workflow_data_fetches_api_and_full_snapshot(self):
         """Default workflow fetch returns API prompt and full graph from one snapshot request path."""

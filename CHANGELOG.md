@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4286: Reworked ComfyUI into typed job graphs on a shared job queue, added asset-processing pipeline extensions
   with Job Queue and Job Details workspaces and a persistent connection banner, and removed the legacy AI Tools
   workspace.
+- REMIX-5815: Added ComfyUI workflow metadata and grouped type filtering, plus agent code-style rules from its review
 
 ### Changed
 

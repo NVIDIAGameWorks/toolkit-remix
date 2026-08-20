@@ -51,19 +51,18 @@ from lightspeed.trex.texture_replacements.core.shared import TextureReplacements
 from .api import ComfyUIAPI
 from .connection import get_connected_endpoint, set_connected_endpoint
 from .enums import (
+    WORKFLOW_TYPES_BY_CATEGORY,
     ComfyUIEventType,
     ComfyUIOperation,
     ComfyUIRetargetResult,
     ComfyUIState,
     RemixType,
-    WorkflowCategory,
-    WorkflowSourceType,
 )
 from .events import publish_comfyui_event
 from .apply_handler import ComfyUIJobApplyHandler
 from .job import ComfyUIJob
 from .maps import OUTPUT_TEXTURE_TYPE_MAP
-from .models import ComfyUIApplyTarget, ComfyUIWorkflowRequest, Workflow
+from .models import ComfyUIApplyTarget, ComfyUIWorkflowRequest, Workflow, WorkflowTypeCategory, WorkflowTypeOption
 from .prompt import set_prompt_value
 from .resolvers import ResolverConfigurationError, ResolverValueError, StageExpandingResolver
 from .settings import ComfyUISettings
@@ -222,7 +221,8 @@ class ComfyUICore:
         )
 
         self._workflow: Workflow | None = None
-        self._available_workflows: list[tuple[WorkflowCategory, WorkflowSourceType, str]] = []
+        self._available_workflows: list[Workflow] = []
+        self._workflow_type_categories: list[WorkflowTypeCategory] = []
         self._status_message = ""
         self._last_connection_error = ""
         self._client_id = str(uuid.uuid4())
@@ -327,13 +327,35 @@ class ComfyUICore:
         return self._state == ComfyUIState.RUNNING and self._connected_base_url == self.base_url
 
     @property
-    def available_workflows(self) -> list[tuple[WorkflowCategory, WorkflowSourceType, str]]:
+    def available_workflows(self) -> list[Workflow]:
         """Return a snapshot of the last successfully fetched workflow catalog.
 
         Returns:
-            ``(category, source_type, name)`` tuples safe for caller mutation.
+            Catalog workflows in a list safe for caller mutation.
         """
         return list(self._available_workflows)
+
+    @property
+    def workflow_type_categories(self) -> list[WorkflowTypeCategory]:
+        """Return the workflow type vocabulary published by the connected server.
+
+        The picker groups workflows by these categories. A server running an older node pack
+        does not publish ``workflows/types``; this property then falls back to the local
+        mirror of the vocabulary, with no description for any type, so the picker still works.
+
+        Returns:
+            Published categories in server order, or the ``WORKFLOW_TYPES_BY_CATEGORY`` mirror
+            converted to the same type when the server has not published any.
+        """
+        if self._workflow_type_categories:
+            return list(self._workflow_type_categories)
+        return [
+            WorkflowTypeCategory(
+                name=category_name,
+                types=tuple(WorkflowTypeOption(workflow_type) for workflow_type in workflow_types),
+            )
+            for category_name, workflow_types in WORKFLOW_TYPES_BY_CATEGORY.items()
+        ]
 
     @property
     def base_url(self) -> str:
@@ -380,15 +402,16 @@ class ComfyUICore:
         publish_comfyui_event(self._context_name, ComfyUIEventType.WORKFLOW_CHANGED, {"workflow": value})
         self._ensure_active()
 
-    async def fetch_available_workflows(self) -> list[tuple[WorkflowCategory, WorkflowSourceType, str]]:
-        """Fetch available workflows from the ComfyUI server.
+    async def fetch_available_workflows(self) -> list[Workflow]:
+        """Fetch available workflows and workflow types from the ComfyUI server.
 
-        Calls the /rtx-remix/v1/workflows endpoint via api.get_workflow_list().
-        Returns API and full workflow categories from RTX Remix and user sources.
-        Current results update the internal cache and emit WORKFLOWS_LOADED.
-        Results made stale by newer discovery, shutdown, or endpoint changes are
-        rejected. A callback that changes the endpoint after publication causes
-        the previous cache to be restored.
+        Calls the /rtx-remix/v1/workflows endpoint via api.get_workflow_list(), then the
+        /rtx-remix/v1/workflows/types endpoint via api.get_workflow_types(). Returns API and
+        full workflow categories from RTX Remix and user sources. The catalog and the type
+        vocabulary commit as one snapshot and emit WORKFLOWS_LOADED once, after both requests
+        complete. Results made stale by newer discovery, shutdown, or endpoint changes are
+        rejected. A callback that changes the endpoint after publication causes the previous
+        cache to be restored.
 
         Returns:
             Current workflow catalog after stale-result handling.
@@ -401,6 +424,7 @@ class ComfyUICore:
         generation = self._workflow_discovery_generation
         api = self.api
         previous_workflows = self.available_workflows
+        previous_type_categories = list(self._workflow_type_categories)
         try:
             workflows = await self._request_available_workflows(api)
         except RuntimeError:
@@ -412,27 +436,27 @@ class ComfyUICore:
                 self._set_state(ComfyUIState.READY)
             raise
         self._ensure_active()
-        if self._stop_stale_discovery(generation, api, previous_workflows):
+        type_categories = await self._request_workflow_types(api)
+        self._ensure_active()
+        if self._stop_stale_discovery(generation, api, previous_workflows, previous_type_categories):
             self._ensure_active()
             return self.available_workflows
-        self._restore_available_workflows(workflows, notify=True)
+        self._restore_available_workflows(workflows, type_categories, notify=True)
         published = self.available_workflows
         self._ensure_active()
-        if self._stop_stale_discovery(generation, api, previous_workflows, published=True):
+        if self._stop_stale_discovery(generation, api, previous_workflows, previous_type_categories, published=True):
             self._ensure_active()
             return self.available_workflows
         return published
 
-    async def _request_available_workflows(
-        self, api: ComfyUIAPI
-    ) -> list[tuple[WorkflowCategory, WorkflowSourceType, str]]:
+    async def _request_available_workflows(self, api: ComfyUIAPI) -> list[Workflow]:
         """Request workflows through a client captured by the caller.
 
         Args:
             api: Client bound to the endpoint that owns the discovery request.
 
         Returns:
-            Workflow tuples returned by the server.
+            Catalog workflows returned by the server.
 
         Raises:
             RuntimeError: If the request or response is invalid.
@@ -443,19 +467,46 @@ class ComfyUICore:
             carb.log_warn(f"Failed to fetch workflows: {error}")
             raise
 
+    async def _request_workflow_types(self, api: ComfyUIAPI) -> list[WorkflowTypeCategory]:
+        """Request the workflow type vocabulary through a client captured by the caller.
+
+        A server running an older node pack does not publish this endpoint; this method treats
+        the resulting ``RuntimeError`` as "no vocabulary published" so a missing endpoint never
+        blocks discovery from committing the fetched catalog.
+
+        Args:
+            api: Client bound to the endpoint that owns the discovery request.
+
+        Returns:
+            Type categories returned by the server, or an empty list when the server does not
+            publish the endpoint.
+        """
+        try:
+            return await api.get_workflow_types()
+        except RuntimeError as error:
+            carb.log_warn(f"Failed to fetch workflow types: {error}")
+            return []
+
     def _restore_available_workflows(
         self,
-        workflows: list[tuple[WorkflowCategory, WorkflowSourceType, str]],
+        workflows: list[Workflow],
+        type_categories: list[WorkflowTypeCategory],
         *,
         notify: bool,
     ) -> None:
-        """Restore a workflow-list snapshot and optionally notify subscribers.
+        """Restore a workflow-list and type-vocabulary snapshot, optionally notifying subscribers.
+
+        The catalog and the vocabulary commit as one discovery snapshot so a subscriber that
+        reads ``workflow_type_categories`` while handling ``WORKFLOWS_LOADED`` always sees the
+        categories that belong to this catalog, never a stale or empty value.
 
         Args:
             workflows: Workflow catalog snapshot to restore.
+            type_categories: Workflow type vocabulary snapshot to restore.
             notify: Whether to emit a workflows-loaded event.
         """
         self._available_workflows = list(workflows)
+        self._workflow_type_categories = list(type_categories)
         if notify:
             publish_comfyui_event(
                 self._context_name,
@@ -465,16 +516,16 @@ class ComfyUICore:
                 },
             )
 
-    async def load_workflow(self, source_type: WorkflowSourceType, name: str) -> None:
-        """Fetch a workflow's data from the server and set it as the active workflow.
+    async def load_workflow(self, workflow: Workflow) -> None:
+        """Fetch a catalog workflow's data from the server and set it as the active workflow.
 
         A load only commits while it remains the newest request for the captured
         endpoint. Endpoint changes restore READY without committing stale data;
         current request and parse failures are rolled back and propagated.
 
         Args:
-            source_type: Where the workflow originates.
-            name: The workflow name.
+            workflow: Catalog workflow to load. Its category, source, and display metadata are
+                preserved on the loaded graph.
 
         Raises:
             asyncio.CancelledError: If the workflow-loading task is cancelled.
@@ -492,15 +543,18 @@ class ComfyUICore:
             return
         api = self.api
         try:
-            api_workflow, full_workflow = await api.get_workflow_data(source_type, name)
-            workflow = Workflow.from_litegraph_dict(
+            api_workflow, full_workflow = await api.get_workflow_data(workflow.source_type, workflow.name)
+            loaded_workflow = Workflow.from_litegraph_dict(
                 api_workflow,
                 full_workflow=full_workflow,
-                name=name,
+                name=workflow.name,
                 context_name=self._context_name,
             )
-            workflow.source_type = source_type
-            workflow.category = WorkflowCategory.API
+            loaded_workflow.source_type = workflow.source_type
+            loaded_workflow.category = workflow.category
+            loaded_workflow.display_name = workflow.display_name
+            loaded_workflow.description = workflow.description
+            loaded_workflow.workflow_type = workflow.workflow_type
         except asyncio.CancelledError as error:
             self._handle_workflow_load_failure(error, generation, api, workflow_published=False)
             raise
@@ -517,11 +571,11 @@ class ComfyUICore:
             return
         self._status_message = ""
         try:
-            self._publish_workflow(workflow)
+            self._publish_workflow(loaded_workflow)
             self._ensure_active()
             if generation != self._workflow_load_generation:
                 return
-            if self._workflow is not workflow:
+            if self._workflow is not loaded_workflow:
                 return
             if api.base_url != self.base_url:
                 self._publish_workflow(None)
@@ -769,7 +823,8 @@ class ComfyUICore:
         generation = self._connect_generation
         discovery_generation = self._workflow_discovery_generation
         api: ComfyUIAPI | None = None
-        previous_workflows: list[tuple[WorkflowCategory, WorkflowSourceType, str]] | None = None
+        previous_workflows: list[Workflow] | None = None
+        previous_type_categories: list[WorkflowTypeCategory] = []
         try:
             self._set_state(ComfyUIState.STARTING, "Connecting to the configured ComfyUI server.")
             self._ensure_active()
@@ -787,17 +842,21 @@ class ComfyUICore:
                 return
             workflows = await self._request_available_workflows(api)
             self._ensure_active()
+            type_categories = await self._request_workflow_types(api)
+            self._ensure_active()
             if self._stop_stale_connection(generation, discovery_generation, api):
                 self._ensure_active()
                 return
             previous_workflows = self.available_workflows
-            self._restore_available_workflows(workflows, notify=True)
+            previous_type_categories = list(self._workflow_type_categories)
+            self._restore_available_workflows(workflows, type_categories, notify=True)
             self._ensure_active()
             if self._stop_stale_connection(
                 generation,
                 discovery_generation,
                 api,
                 previous_workflows,
+                previous_type_categories,
                 published=True,
             ):
                 self._ensure_active()
@@ -810,6 +869,7 @@ class ComfyUICore:
                 discovery_generation,
                 api,
                 previous_workflows,
+                previous_type_categories,
                 published=True,
             ):
                 self._ensure_active()
@@ -817,14 +877,14 @@ class ComfyUICore:
         except asyncio.CancelledError:
             if not self._destroyed and generation == self._connect_generation:
                 if previous_workflows is not None:
-                    self._restore_available_workflows(previous_workflows, notify=True)
+                    self._restore_available_workflows(previous_workflows, previous_type_categories, notify=True)
                 if not self._destroyed and generation == self._connect_generation:
                     self._set_state(ComfyUIState.READY)
             raise
         except RuntimeError as error:
             if not self._destroyed and generation == self._connect_generation:
                 if previous_workflows is not None:
-                    self._restore_available_workflows(previous_workflows, notify=True)
+                    self._restore_available_workflows(previous_workflows, previous_type_categories, notify=True)
                 if not self._destroyed and generation == self._connect_generation:
                     endpoint_changed = api is not None and api.base_url != self.base_url
                     discovery_changed = discovery_generation != self._workflow_discovery_generation
@@ -866,7 +926,8 @@ class ComfyUICore:
         self,
         generation: int,
         api: ComfyUIAPI,
-        previous_workflows: list[tuple[WorkflowCategory, WorkflowSourceType, str]],
+        previous_workflows: list[Workflow],
+        previous_type_categories: list[WorkflowTypeCategory],
         *,
         published: bool = False,
     ) -> bool:
@@ -876,6 +937,7 @@ class ComfyUICore:
             generation: Generation captured by the discovery request.
             api: Client bound to the discovery endpoint.
             previous_workflows: Catalog visible before discovery began.
+            previous_type_categories: Type vocabulary visible before discovery began.
             published: Whether the stale catalog was already published.
 
         Returns:
@@ -884,7 +946,7 @@ class ComfyUICore:
         if self._is_current_discovery(generation, api):
             return False
         if generation == self._workflow_discovery_generation:
-            self._restore_available_workflows(previous_workflows, notify=published)
+            self._restore_available_workflows(previous_workflows, previous_type_categories, notify=published)
             if not self._destroyed and generation == self._workflow_discovery_generation:
                 self._set_state(ComfyUIState.READY)
         return True
@@ -894,7 +956,8 @@ class ComfyUICore:
         generation: int,
         discovery_generation: int,
         api: ComfyUIAPI,
-        previous_workflows: list[tuple[WorkflowCategory, WorkflowSourceType, str]] | None = None,
+        previous_workflows: list[Workflow] | None = None,
+        previous_type_categories: list[WorkflowTypeCategory] | None = None,
         *,
         published: bool = False,
     ) -> bool:
@@ -905,6 +968,7 @@ class ComfyUICore:
             discovery_generation: Discovery generation owned by the connection attempt.
             api: Client bound to the connection endpoint.
             previous_workflows: Catalog visible before connection discovery began.
+            previous_type_categories: Type vocabulary visible before connection discovery began.
             published: Whether the connection's catalog was already published.
 
         Returns:
@@ -914,7 +978,7 @@ class ComfyUICore:
             return False
         if generation == self._connect_generation:
             if previous_workflows is not None:
-                self._restore_available_workflows(previous_workflows, notify=published)
+                self._restore_available_workflows(previous_workflows, previous_type_categories or [], notify=published)
             if not self._destroyed and generation == self._connect_generation:
                 self._set_state(ComfyUIState.READY)
         return True
@@ -933,6 +997,7 @@ class ComfyUICore:
         self._workflow_base_url = None
         self._connected_base_url = None
         self._available_workflows.clear()
+        self._workflow_type_categories.clear()
         self._set_state(ComfyUIState.READY)
         self._settings.destroy()
 
@@ -1429,6 +1494,7 @@ class ComfyUICore:
         self._connected_base_url = None
         self._workflow_base_url = None
         self._available_workflows.clear()
+        self._workflow_type_categories.clear()
         self._workflow = None
         self._set_state(ComfyUIState.READY)
         publish_comfyui_event(

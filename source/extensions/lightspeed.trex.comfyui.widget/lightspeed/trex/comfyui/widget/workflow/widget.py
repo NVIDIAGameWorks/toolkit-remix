@@ -23,9 +23,15 @@ import threading
 
 import carb
 from lightspeed.trex.comfyui.core.core import ComfyUISubmission
-from lightspeed.trex.comfyui.core.enums import ComfyUIEventType, ComfyUIState, WorkflowCategory, WorkflowSourceType
+from lightspeed.trex.comfyui.core.enums import (
+    ComfyUIEventType,
+    ComfyUIState,
+    WorkflowCategory,
+    WorkflowType,
+)
 from lightspeed.trex.comfyui.core.events import subscribe_comfyui_event
 from lightspeed.trex.comfyui.core.extension import get_comfyui_core_instance
+from lightspeed.trex.comfyui.core.models import Workflow
 from lightspeed.trex.comfyui.core.resolvers import ConstantResolver, ResolverConfigurationError
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget.workspace import WorkspaceWidget
@@ -76,8 +82,11 @@ class WorkflowSetupWidget(WorkspaceWidget):
     _EMPTY_SELECTION_TEXT = "Select an input above to view its properties"
     _NO_PROPERTIES_TEXT = "No properties to configure"
     _NO_WORKFLOWS_TEXT = "No workflows available"
+    _ALL_WORKFLOW_TYPES_TEXT = "All"
+    _SELECT_WORKFLOW_TEXT = "Select a workflow"
     _NO_WORKFLOW_PRESET_TEXT = "Select a workflow first"
     _NO_PRESETS_TEXT = "No presets available for this workflow"
+    _TYPE_FILTER_TOOLTIP = "Filter workflows by type"
 
     def __init__(self, context_name: str):
         """Initialize workflow controls for a USD context.
@@ -111,7 +120,9 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._property_subscriptions: list = []
 
         self._workflow_dropdown: SectionedComboBox | None = None
-        self._workflow_list: list[tuple[WorkflowCategory, WorkflowSourceType, str]] = []
+        self._workflow_list: list[Workflow] = []
+        self._workflow_type_combo: SectionedComboBox | None = None
+        self._selected_workflow_type: WorkflowType | None = None
         self._preset_combo: ui.ComboBox | None = None
         self._preset_names: list[str | None] = []
 
@@ -128,7 +139,7 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._workflow_load_task: asyncio.Task | None = None
         self._submit_task: asyncio.Task | None = None
         self._splitter_layout_task: asyncio.Task | None = None
-        self._selected_workflow_identity: tuple[WorkflowCategory, WorkflowSourceType, str] | None = None
+        self._selected_workflow_identity: Workflow | None = None
         self._workflow_load_failed = False
         self._submission_confirmation_open = False
 
@@ -420,6 +431,20 @@ class WorkflowSetupWidget(WorkspaceWidget):
             header_actions_fn=self._build_refresh_icon,
         ):
             with ui.VStack(spacing=self._FORM_SPACING):
+                with ui.HStack(spacing=self._FORM_SPACING, height=0):
+                    ui.Label(
+                        "Workflow Type",
+                        width=ui.Percent(self._NAME_COLUMN_PERCENT),
+                        word_wrap=False,
+                        tooltip=self._TYPE_FILTER_TOOLTIP,
+                    )
+                    self._workflow_type_combo = SectionedComboBox(
+                        on_selection_changed_fn=self._on_workflow_type_changed,
+                        identifier="ComfyWorkflowTypePicker",
+                        tooltip=self._TYPE_FILTER_TOOLTIP,
+                        width=ui.Fraction(1),
+                    )
+
                 with ui.HStack(spacing=self._FORM_SPACING, height=0):
                     ui.Label(
                         "Workflow",
@@ -774,11 +799,27 @@ class WorkflowSetupWidget(WorkspaceWidget):
 
         Args:
             index: The selected item index.
-            item: The selected SectionedComboItem (data holds the workflow tuple).
+            item: The selected SectionedComboItem (data holds the catalog workflow).
         """
         if item.data is not None:
             self._workflow_load_failed = False
+            if self._workflow_dropdown is not None:
+                self._workflow_dropdown.tooltip = item.data.description
             self._schedule_workflow_load(item.data)
+
+    def _on_workflow_type_changed(self, index: int, item: SectionedComboItem):
+        """Filter the workflow picker by the selected workflow type.
+
+        Args:
+            index: The selected item index.
+            item: The selected SectionedComboItem (data holds the workflow type, or None for All).
+        """
+        if item.data == self._selected_workflow_type:
+            return
+        self._selected_workflow_type = item.data
+        if self._workflow_type_combo is not None:
+            self._workflow_type_combo.tooltip = item.tooltip or self._TYPE_FILTER_TOOLTIP
+        self._update_workflow_combo()
 
     def _on_preset_changed(self, model, item):
         """Apply the selected preset and rebuild inputs.
@@ -987,36 +1028,37 @@ class WorkflowSetupWidget(WorkspaceWidget):
                 disable_cancel_button=True,
             )
 
-    def _schedule_workflow_load(self, identity: tuple[WorkflowCategory, WorkflowSourceType, str]) -> None:
+    def _schedule_workflow_load(self, workflow: Workflow) -> None:
         """Cancel any stale load and schedule the latest workflow selection.
 
         Args:
-            identity: Workflow category, source type, and name selected by the user.
+            workflow: Catalog workflow selected by the user.
         """
         if self._workflow_load_task and not self._workflow_load_task.done():
             self._workflow_load_task.cancel()
-        self._selected_workflow_identity = identity
-        _, source_type, name = identity
-        self._workflow_load_task = asyncio.ensure_future(self._load_workflow(source_type, name))
+        self._selected_workflow_identity = workflow
+        self._workflow_load_task = asyncio.ensure_future(self._load_workflow(workflow))
         self._workflow_load_task.set_name("ComfyUIWorkflowLoad")
 
-    async def _load_workflow(self, source_type: WorkflowSourceType, name: str) -> None:
-        """Load one workflow and expose retry state after expected failures.
+    async def _load_workflow(self, workflow: Workflow) -> None:
+        """Load one catalog workflow and expose retry state after expected failures.
 
         Args:
-            source_type: Registry source containing the selected workflow.
-            name: Name of the workflow to load from that source.
+            workflow: Catalog workflow to load from its registry source.
         """
         task = asyncio.current_task()
         try:
-            await self._core.load_workflow(source_type, name)
+            await self._core.load_workflow(workflow)
         except (KeyError, OSError, RuntimeError, TypeError, ValueError) as error:
             if self._workflow_load_task is task:
                 carb.log_error(f"Failed to load ComfyUI workflow: {error}")
                 self._selected_workflow_identity = None
                 self._workflow_load_failed = True
                 if self._workflow_dropdown is not None:
-                    retry_items = [SectionedComboItem(label="Select a workflow"), *self._get_workflow_combo_items()]
+                    retry_items = [
+                        SectionedComboItem(label=self._SELECT_WORKFLOW_TEXT),
+                        *self._get_workflow_combo_items(),
+                    ]
                     self._workflow_dropdown.set_items(retry_items, 0)
         finally:
             if self._workflow_load_task is task:
@@ -1092,37 +1134,51 @@ class WorkflowSetupWidget(WorkspaceWidget):
             return
 
         self._workflow_list = [
-            (cat, src, name) for cat, src, name in self._core.available_workflows if cat == WorkflowCategory.API
+            workflow for workflow in self._core.available_workflows if workflow.category == WorkflowCategory.API
         ]
+        self._update_workflow_type_combo()
+        filtered_workflows = self._get_filtered_workflows()
         current_workflow = self._core.workflow
 
         if current_workflow is not None:
-            current_identity = (
-                current_workflow.category,
-                current_workflow.source_type,
-                current_workflow.name,
+            selected_workflow = next(
+                (workflow for workflow in filtered_workflows if self._is_same_workflow(workflow, current_workflow)),
+                None,
             )
-            if current_identity in self._workflow_list:
-                selected_index = self._workflow_list.index(current_identity)
-                items = self._get_workflow_combo_items()
-                self._selected_workflow_identity = current_identity
-            else:
-                selected_index = 0
+            if selected_workflow is not None:
+                self._selected_workflow_identity = selected_workflow
+                self._workflow_dropdown.set_items(
+                    self._get_workflow_combo_items(), filtered_workflows.index(selected_workflow)
+                )
+                self._workflow_dropdown.enabled = bool(self._workflow_list)
+                self._workflow_dropdown.tooltip = selected_workflow.description
+                return
+            if not any(self._is_same_workflow(workflow, current_workflow) for workflow in self._workflow_list):
+                self._selected_workflow_identity = None
                 items = [
                     SectionedComboItem(
-                        label=current_workflow.name or "Saved Job",
+                        label=current_workflow.display_name or "Saved Job",
                         section="Saved Job",
                     ),
                     *self._get_workflow_combo_items(),
                 ]
-                self._selected_workflow_identity = None
-
-            self._workflow_dropdown.set_items(items, selected_index)
+                self._workflow_dropdown.set_items(items, 0)
+                self._workflow_dropdown.enabled = bool(self._workflow_list)
+                self._workflow_dropdown.tooltip = (
+                    "Select another ComfyUI workflow to replace the workflow saved with this job."
+                    if self._workflow_list
+                    else "The workflow saved with this job is not available from the connected ComfyUI server."
+                )
+                return
+            # The type filter hides the loaded workflow. Offer the filtered catalog with nothing selected, and
+            # load nothing: the user filtered the list, so the loaded workflow stays.
+            self._selected_workflow_identity = None
+            self._workflow_dropdown.set_items(
+                [SectionedComboItem(label=self._SELECT_WORKFLOW_TEXT), *self._get_workflow_combo_items()], 0
+            )
             self._workflow_dropdown.enabled = bool(self._workflow_list)
             self._workflow_dropdown.tooltip = (
-                "Select another ComfyUI workflow to replace the workflow saved with this job."
-                if self._workflow_list
-                else "The workflow saved with this job is not available from the connected ComfyUI server."
+                f"{current_workflow.display_name} stays loaded. Select a workflow of this type to replace it."
             )
             return
 
@@ -1138,42 +1194,109 @@ class WorkflowSetupWidget(WorkspaceWidget):
         if self._workflow_load_failed:
             self._selected_workflow_identity = None
             self._workflow_dropdown.set_items(
-                [SectionedComboItem(label="Select a workflow"), *self._get_workflow_combo_items()],
+                [SectionedComboItem(label=self._SELECT_WORKFLOW_TEXT), *self._get_workflow_combo_items()],
                 0,
             )
             self._workflow_dropdown.enabled = True
             self._workflow_dropdown.tooltip = "Select a workflow to retry loading"
             return
 
-        items = self._get_workflow_combo_items()
-        if self._selected_workflow_identity in self._workflow_list:
-            selected_index = self._workflow_list.index(self._selected_workflow_identity)
-        else:
-            selected_index = 0
-            self._selected_workflow_identity = self._workflow_list[0]
+        selected_workflow = next(
+            (
+                workflow
+                for workflow in filtered_workflows
+                if self._selected_workflow_identity is not None
+                and self._is_same_workflow(workflow, self._selected_workflow_identity)
+            ),
+            None,
+        )
+        if selected_workflow is None:
+            selected_workflow = filtered_workflows[0]
+        self._selected_workflow_identity = selected_workflow
+        selected_index = filtered_workflows.index(selected_workflow)
 
-        self._workflow_dropdown.set_items(items, selected_index)
+        self._workflow_dropdown.set_items(self._get_workflow_combo_items(), selected_index)
         self._workflow_dropdown.enabled = True
-        self._workflow_dropdown.tooltip = "Select the ComfyUI workflow to run"
+        self._workflow_dropdown.tooltip = selected_workflow.description
 
         if self._core.state != ComfyUIState.RUNNING:
             return
         if not self._workflow_load_task or self._workflow_load_task.done():
-            self._schedule_workflow_load(self._workflow_list[selected_index])
+            self._schedule_workflow_load(selected_workflow)
 
-    def _get_workflow_combo_items(self) -> list[SectionedComboItem]:
-        """Return display items for the currently available API workflows.
+    def _update_workflow_type_combo(self):
+        """Rebuild the workflow type options from the vocabulary of the server and keep a valid selection.
+
+        Every option carries the description that the server publishes as its hover text. The field shows the
+        description of the selected type, or the filter text while `All` is selected.
+        """
+        if self._workflow_type_combo is None:
+            return
+
+        available_types = {workflow.workflow_type for workflow in self._workflow_list if workflow.workflow_type}
+        if self._selected_workflow_type not in available_types:
+            self._selected_workflow_type = None
+
+        items = [SectionedComboItem(label=self._ALL_WORKFLOW_TYPES_TEXT, data=None)]
+        selected_index = 0
+        for category in self._core.workflow_type_categories:
+            for option in category.types:
+                if option.workflow_type not in available_types:
+                    continue
+                if option.workflow_type == self._selected_workflow_type:
+                    selected_index = len(items)
+                items.append(
+                    SectionedComboItem(
+                        label=option.workflow_type.value,
+                        section=category.name,
+                        data=option.workflow_type,
+                        tooltip=option.description,
+                    )
+                )
+
+        self._workflow_type_combo.set_items(items, selected_index)
+        self._workflow_type_combo.tooltip = items[selected_index].tooltip or self._TYPE_FILTER_TOOLTIP
+
+    def _get_filtered_workflows(self) -> list[Workflow]:
+        """Return the catalog workflows visible under the selected workflow type.
 
         Returns:
-            Sectioned ComboBox items carrying each workflow's registry identity.
+            Every API catalog workflow, or only the ones matching the selected workflow type.
+        """
+        if self._selected_workflow_type is None:
+            return self._workflow_list
+        return [workflow for workflow in self._workflow_list if workflow.workflow_type == self._selected_workflow_type]
+
+    @staticmethod
+    def _is_same_workflow(first: Workflow, second: Workflow) -> bool:
+        """Return whether two workflows share one catalog identity.
+
+        Args:
+            first: Workflow to compare.
+            second: Workflow to compare against.
+
+        Returns:
+            True when category, source type, and name all match.
+        """
+        return (
+            first.category == second.category and first.source_type == second.source_type and first.name == second.name
+        )
+
+    def _get_workflow_combo_items(self) -> list[SectionedComboItem]:
+        """Return display items for the catalog workflows visible under the selected type.
+
+        Returns:
+            Sectioned ComboBox items carrying each visible catalog workflow.
         """
         return [
             SectionedComboItem(
-                label=name,
-                section=WORKFLOW_SOURCE_LABELS.get(source_type, source_type.value.replace("-", " ").title()),
-                data=(category, source_type, name),
+                label=workflow.display_name,
+                section=WORKFLOW_SOURCE_LABELS.get(
+                    workflow.source_type, workflow.source_type.value.replace("-", " ").title()
+                ),
+                data=workflow,
             )
-            for category, source_type, name in self._workflow_list
+            for workflow in self._get_filtered_workflows()
         ]
 
     def _update_preset_combo(self):
@@ -1346,6 +1469,8 @@ class WorkflowSetupWidget(WorkspaceWidget):
             self._workflow_dropdown.destroy()
             self._workflow_dropdown = None
         self._preset_combo = None
+        self._workflow_type_combo = None
+        self._selected_workflow_type = None
         if self._panels_frame is not None:
             self._panels_frame.set_computed_content_size_changed_fn(None)
             self._panels_frame = None

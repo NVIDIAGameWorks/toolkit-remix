@@ -112,8 +112,8 @@ def _make_core(workflow=None):
     core.is_ready = workflow is not None
     core.get_submission_block_reason.return_value = None
     core.available_workflows = [
-        (WorkflowCategory.API, WorkflowSourceType.RTX_REMIX, "Material Workflow"),
-        (WorkflowCategory.FULL, WorkflowSourceType.USER, "UI Only"),
+        Workflow(name="Material Workflow", source_type=WorkflowSourceType.RTX_REMIX, category=WorkflowCategory.API),
+        Workflow(name="UI Only", source_type=WorkflowSourceType.USER, category=WorkflowCategory.FULL),
     ]
     return core
 
@@ -216,7 +216,9 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         # Arrange
         saved_workflow = _make_workflow("Removed Workflow")
         core = _make_core()
-        core.available_workflows = [(WorkflowCategory.API, WorkflowSourceType.USER, "Available Workflow")]
+        core.available_workflows = [
+            Workflow(name="Available Workflow", source_type=WorkflowSourceType.USER, category=WorkflowCategory.API)
+        ]
         job = ComfyUIJob(context_name="texturecraft")
         request = ComfyUIWorkflowRequest(
             prompt={},
@@ -360,7 +362,8 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         widget = _make_bare_widget(core)
         owner_coroutine = MagicMock()
         scheduled_task = MagicMock()
-        item = MagicMock(data=(WorkflowCategory.API, WorkflowSourceType.USER, "Custom"))
+        custom_workflow = Workflow(name="Custom", source_type=WorkflowSourceType.USER, category=WorkflowCategory.API)
+        item = MagicMock(data=custom_workflow)
 
         # Act
         with (
@@ -373,14 +376,11 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
             widget._on_workflow_dropdown_changed(2, item)
 
         # Assert
-        load_workflow.assert_called_once_with(WorkflowSourceType.USER, "Custom")
+        load_workflow.assert_called_once_with(custom_workflow)
         ensure_future.assert_called_once_with(owner_coroutine)
         scheduled_task.set_name.assert_called_once_with("ComfyUIWorkflowLoad")
         self.assertIs(widget._workflow_load_task, scheduled_task)
-        self.assertEqual(
-            widget._selected_workflow_identity,
-            (WorkflowCategory.API, WorkflowSourceType.USER, "Custom"),
-        )
+        self.assertIs(widget._selected_workflow_identity, custom_workflow)
 
     async def test_workflow_dropdown_cancels_in_flight_load_for_latest_selection(self):
         """Selecting a new workflow cancels the older UI load task."""
@@ -391,7 +391,8 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         previous_task.done.return_value = False
         replacement_task = MagicMock()
         widget._workflow_load_task = previous_task
-        item = MagicMock(data=(WorkflowCategory.API, WorkflowSourceType.USER, "Latest"))
+        latest_workflow = Workflow(name="Latest", source_type=WorkflowSourceType.USER, category=WorkflowCategory.API)
+        item = MagicMock(data=latest_workflow)
 
         # Act
         with (
@@ -406,10 +407,7 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         # Assert
         previous_task.cancel.assert_called_once_with()
         self.assertIs(widget._workflow_load_task, replacement_task)
-        self.assertEqual(
-            widget._selected_workflow_identity,
-            (WorkflowCategory.API, WorkflowSourceType.USER, "Latest"),
-        )
+        self.assertIs(widget._selected_workflow_identity, latest_workflow)
 
     async def test_failed_workflow_load_clears_selected_identity(self):
         """A failed active workflow load clears its pending identity."""
@@ -418,11 +416,12 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         core.load_workflow = AsyncMock(side_effect=TypeError("invalid workflow value"))
         widget = _make_bare_widget(core)
         widget._workflow_load_task = asyncio.current_task()
-        widget._selected_workflow_identity = (WorkflowCategory.API, WorkflowSourceType.USER, "Failed")
+        failed_workflow = Workflow(name="Failed", source_type=WorkflowSourceType.USER, category=WorkflowCategory.API)
+        widget._selected_workflow_identity = failed_workflow
 
         # Act
         with patch("lightspeed.trex.comfyui.widget.workflow.widget.carb.log_error"):
-            await widget._load_workflow(WorkflowSourceType.USER, "Failed")
+            await widget._load_workflow(failed_workflow)
 
         # Assert
         self.assertIsNone(widget._workflow_load_task)
@@ -431,7 +430,7 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
     async def test_failed_workflow_load_resets_dropdown_for_explicit_retry(self):
         """A failed workflow remains selectable again without an automatic retry loop."""
         # Arrange
-        identity = (WorkflowCategory.API, WorkflowSourceType.USER, "Failed")
+        identity = Workflow(name="Failed", source_type=WorkflowSourceType.USER, category=WorkflowCategory.API)
         widget = _make_bare_widget()
         widget._workflow_list = [identity]
         widget._workflow_dropdown = MagicMock()
@@ -441,18 +440,18 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
 
         # Act
         with patch("lightspeed.trex.comfyui.widget.workflow.widget.carb.log_error"):
-            await widget._load_workflow(WorkflowSourceType.USER, "Failed")
+            await widget._load_workflow(identity)
 
         # Assert
         items = widget._workflow_dropdown.set_items.call_args.args[0]
         self.assertIsNone(items[0].data)
-        self.assertEqual(items[1].data, identity)
-        widget._core.load_workflow.assert_awaited_once_with(WorkflowSourceType.USER, "Failed")
+        self.assertIs(items[1].data, identity)
+        widget._core.load_workflow.assert_awaited_once_with(identity)
 
     async def test_failed_workflow_load_is_not_retried_by_later_events(self):
         """A failed automatic load waits for an explicit dropdown selection."""
         # Arrange
-        identity = (WorkflowCategory.API, WorkflowSourceType.USER, "Failed")
+        identity = Workflow(name="Failed", source_type=WorkflowSourceType.USER, category=WorkflowCategory.API)
         core = _make_core()
         core.available_workflows = [identity]
         widget = _make_bare_widget(core)
@@ -461,7 +460,7 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         widget._workflow_load_task = asyncio.current_task()
         widget._selected_workflow_identity = identity
         with patch("lightspeed.trex.comfyui.widget.workflow.widget.carb.log_error"):
-            await widget._load_workflow(WorkflowSourceType.USER, "Failed")
+            await widget._load_workflow(identity)
         core.load_workflow.reset_mock()
         widget._schedule_workflow_load = MagicMock()
 
@@ -501,15 +500,14 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         # Assert
         items, selected_index = widget._workflow_dropdown.set_items.call_args.args
 
-        self.assertEqual(
-            widget._workflow_list, [(WorkflowCategory.API, WorkflowSourceType.RTX_REMIX, "Material Workflow")]
-        )
+        self.assertEqual(len(widget._workflow_list), 1)
+        self.assertEqual(widget._workflow_list[0].name, "Material Workflow")
+        self.assertEqual(widget._workflow_list[0].source_type, WorkflowSourceType.RTX_REMIX)
+        self.assertEqual(widget._workflow_list[0].category, WorkflowCategory.API)
         self.assertEqual(selected_index, 0)
         self.assertEqual(items[0].label, "Material Workflow")
         self.assertEqual(items[0].section, "Built-in")
-        widget._schedule_workflow_load.assert_called_once_with(
-            (WorkflowCategory.API, WorkflowSourceType.RTX_REMIX, "Material Workflow")
-        )
+        widget._schedule_workflow_load.assert_called_once_with(widget._workflow_list[0])
 
     async def test_update_workflow_combo_uses_full_identity_for_duplicate_names(self):
         """Duplicate workflow names restore selection by category and source type."""
@@ -518,12 +516,12 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         core.state = ComfyUIState.STARTING
         core.is_connected = False
         core.available_workflows = [
-            (WorkflowCategory.API, WorkflowSourceType.RTX_REMIX, "Shared"),
-            (WorkflowCategory.API, WorkflowSourceType.USER, "Shared"),
+            Workflow(name="Shared", source_type=WorkflowSourceType.RTX_REMIX, category=WorkflowCategory.API),
+            Workflow(name="Shared", source_type=WorkflowSourceType.USER, category=WorkflowCategory.API),
         ]
         widget = _make_bare_widget(core)
         widget._workflow_dropdown = MagicMock()
-        widget._selected_workflow_identity = (WorkflowCategory.API, WorkflowSourceType.USER, "Shared")
+        widget._selected_workflow_identity = core.available_workflows[1]
 
         # Act
         widget._update_workflow_combo()
@@ -556,8 +554,8 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         workflow.source_type = WorkflowSourceType.USER
         core = _make_core(workflow)
         core.available_workflows = [
-            (WorkflowCategory.API, WorkflowSourceType.RTX_REMIX, "Shared"),
-            (WorkflowCategory.API, WorkflowSourceType.USER, "Shared"),
+            Workflow(name="Shared", source_type=WorkflowSourceType.RTX_REMIX, category=WorkflowCategory.API),
+            Workflow(name="Shared", source_type=WorkflowSourceType.USER, category=WorkflowCategory.API),
         ]
         widget = _make_bare_widget(core)
         widget._workflow_dropdown = MagicMock()
@@ -1146,7 +1144,9 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         """Entering RUNNING retries a deferred autoload from the cached workflow list."""
         # Arrange
         core = _make_core()
-        core.available_workflows = [(WorkflowCategory.API, WorkflowSourceType.RTX_REMIX, "Material Workflow")]
+        core.available_workflows = [
+            Workflow(name="Material Workflow", source_type=WorkflowSourceType.RTX_REMIX, category=WorkflowCategory.API)
+        ]
         widget = _make_bare_widget(core)
         widget._workflow_dropdown = MagicMock()
         widget._schedule_workflow_load = MagicMock()
@@ -1156,9 +1156,7 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         widget._on_core_event(event)
 
         # Assert
-        widget._schedule_workflow_load.assert_called_once_with(
-            (WorkflowCategory.API, WorkflowSourceType.RTX_REMIX, "Material Workflow")
-        )
+        widget._schedule_workflow_load.assert_called_once_with(core.available_workflows[0])
 
     async def test_disconnected_state_event_cancels_active_workflow_actions(self):
         """Leaving RUNNING cancels refresh, load, and submit work tied to the connection."""

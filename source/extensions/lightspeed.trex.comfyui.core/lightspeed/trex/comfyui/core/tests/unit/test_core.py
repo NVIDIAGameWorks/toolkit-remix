@@ -34,6 +34,7 @@ from lightspeed.trex.comfyui.core.core import (
     ComfyUISubmission,
 )
 from lightspeed.trex.comfyui.core.enums import (
+    WORKFLOW_TYPES_BY_CATEGORY,
     ComfyUIEventType,
     ComfyUIOperation,
     ComfyUIState,
@@ -41,10 +42,18 @@ from lightspeed.trex.comfyui.core.enums import (
     RemixType,
     WorkflowCategory,
     WorkflowSourceType,
+    WorkflowType,
 )
 from lightspeed.trex.comfyui.core.events import publish_comfyui_event, subscribe_comfyui_event
 from lightspeed.trex.comfyui.core.job import ComfyUIJob
-from lightspeed.trex.comfyui.core.models import ComfyUIWorkflowRequest, Workflow, WorkflowInput, WorkflowOutput
+from lightspeed.trex.comfyui.core.models import (
+    ComfyUIWorkflowRequest,
+    Workflow,
+    WorkflowInput,
+    WorkflowOutput,
+    WorkflowTypeCategory,
+    WorkflowTypeOption,
+)
 from lightspeed.trex.comfyui.core.resolvers import (
     AllStageTexturesResolver,
     ConstantResolver,
@@ -891,9 +900,10 @@ class TestComfyUICore(AsyncTestCase):
         """A successful refresh caches and publishes the typed workflow catalog."""
         # Arrange
         core = ComfyUICore("texturecraft")
-        expected = [(WorkflowCategory.API, WorkflowSourceType.USER, "Material")]
+        expected = [Workflow(category=WorkflowCategory.API, source_type=WorkflowSourceType.USER, name="Material")]
         api = mock.MagicMock(base_url=core.base_url)
         api.get_workflow_list = mock.AsyncMock(return_value=expected)
+        api.get_workflow_types = mock.AsyncMock(return_value=[])
         observed = []
         subscription = subscribe_comfyui_event(
             "texturecraft",
@@ -914,6 +924,96 @@ class TestComfyUICore(AsyncTestCase):
         self.assertEqual(observed, [expected])
         self.assertIsNotNone(subscription)
 
+    async def test_workflow_type_categories_falls_back_to_mirror_when_unpublished(self) -> None:
+        """A fresh core with no discovery falls back to the local vocabulary mirror."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+
+        # Act
+        categories = core.workflow_type_categories
+
+        # Assert
+        expected = [
+            WorkflowTypeCategory(
+                name=category_name,
+                types=tuple(WorkflowTypeOption(workflow_type) for workflow_type in workflow_types),
+            )
+            for category_name, workflow_types in WORKFLOW_TYPES_BY_CATEGORY.items()
+        ]
+        self.assertEqual(categories, expected)
+
+    async def test_workflow_type_categories_returns_published_categories_after_fetch(self) -> None:
+        """The property returns the server vocabulary once discovery has published it."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        expected = [WorkflowTypeCategory(name="Other", types=(WorkflowTypeOption(WorkflowType.OTHER, "Misc."),))]
+        api = mock.MagicMock(base_url=core.base_url)
+        api.get_workflow_list = mock.AsyncMock(return_value=[])
+        api.get_workflow_types = mock.AsyncMock(return_value=expected)
+
+        # Act
+        with mock.patch.object(ComfyUICore, "api", new_callable=mock.PropertyMock, return_value=api):
+            await core.fetch_available_workflows()
+
+        # Assert
+        self.assertEqual(core.workflow_type_categories, expected)
+
+    async def test_fetch_available_workflows_tolerates_type_request_failure(self) -> None:
+        """A server without the types endpoint still connects and keeps its workflow catalog."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        expected = [Workflow(category=WorkflowCategory.API, source_type=WorkflowSourceType.USER, name="Material")]
+        api = mock.MagicMock(base_url=core.base_url)
+        api.get_workflow_list = mock.AsyncMock(return_value=expected)
+        api.get_workflow_types = mock.AsyncMock(side_effect=RuntimeError("workflows/types not found"))
+
+        # Act
+        with mock.patch.object(ComfyUICore, "api", new_callable=mock.PropertyMock, return_value=api):
+            result = await core.fetch_available_workflows()
+
+        # Assert
+        mirror = [
+            WorkflowTypeCategory(
+                name=category_name,
+                types=tuple(WorkflowTypeOption(workflow_type) for workflow_type in workflow_types),
+            )
+            for category_name, workflow_types in WORKFLOW_TYPES_BY_CATEGORY.items()
+        ]
+        self.assertEqual(result, expected)
+        self.assertEqual(core.available_workflows, expected)
+        self.assertEqual(core.workflow_type_categories, mirror)
+
+    async def test_fetch_available_workflows_publishes_after_categories_are_stored(self) -> None:
+        """A subscriber handling WORKFLOWS_LOADED sees the server categories, not the mirror."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        expected_workflows = [
+            Workflow(category=WorkflowCategory.API, source_type=WorkflowSourceType.USER, name="Material")
+        ]
+        expected_categories = [
+            WorkflowTypeCategory(name="Other", types=(WorkflowTypeOption(WorkflowType.OTHER, "Misc."),))
+        ]
+        api = mock.MagicMock(base_url=core.base_url)
+        api.get_workflow_list = mock.AsyncMock(return_value=expected_workflows)
+        api.get_workflow_types = mock.AsyncMock(return_value=expected_categories)
+        observed = []
+        subscription = subscribe_comfyui_event(
+            "texturecraft",
+            lambda event: (
+                observed.append(core.workflow_type_categories)
+                if event.event_type == ComfyUIEventType.WORKFLOWS_LOADED
+                else None
+            ),
+        )
+
+        # Act
+        with mock.patch.object(ComfyUICore, "api", new_callable=mock.PropertyMock, return_value=api):
+            await core.fetch_available_workflows()
+
+        # Assert
+        self.assertEqual(observed, [expected_categories])
+        self.assertIsNotNone(subscription)
+
     async def test_load_workflow_uses_canonical_api_full_pair(self) -> None:
         """Workflow loading requires both canonical server representations."""
         # Arrange
@@ -923,11 +1023,40 @@ class TestComfyUICore(AsyncTestCase):
 
         # Act
         with mock.patch.object(ComfyUICore, "api", new_callable=mock.PropertyMock, return_value=api):
-            await core.load_workflow(WorkflowSourceType.USER, "Material")
+            await core.load_workflow(
+                Workflow(category=WorkflowCategory.API, source_type=WorkflowSourceType.USER, name="Material")
+            )
 
         # Assert
         api.get_workflow_data.assert_awaited_once_with(WorkflowSourceType.USER, "Material")
         self.assertEqual(core.workflow.name, "Material")
+        self.assertIs(core.workflow.source_type, WorkflowSourceType.USER)
+        self.assertIs(core.workflow.category, WorkflowCategory.API)
+
+    async def test_load_workflow_preserves_catalog_metadata(self) -> None:
+        """A loaded workflow keeps the catalog entry's display metadata."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        api = mock.MagicMock(base_url=core.base_url)
+        api.get_workflow_data = mock.AsyncMock(return_value=get_test_workflow_pair())
+        catalog_workflow = Workflow(
+            category=WorkflowCategory.API,
+            source_type=WorkflowSourceType.USER,
+            name="material",
+            display_name="Material Generation",
+            description="Generates a PBR material.",
+            workflow_type=WorkflowType.MATERIAL_GENERATION,
+        )
+
+        # Act
+        with mock.patch.object(ComfyUICore, "api", new_callable=mock.PropertyMock, return_value=api):
+            await core.load_workflow(catalog_workflow)
+
+        # Assert
+        self.assertIsNot(core.workflow, catalog_workflow)
+        self.assertEqual(core.workflow.display_name, "Material Generation")
+        self.assertEqual(core.workflow.description, "Generates a PBR material.")
+        self.assertIs(core.workflow.workflow_type, WorkflowType.MATERIAL_GENERATION)
         self.assertIs(core.workflow.source_type, WorkflowSourceType.USER)
         self.assertIs(core.workflow.category, WorkflowCategory.API)
 
@@ -943,7 +1072,9 @@ class TestComfyUICore(AsyncTestCase):
             mock.patch.object(ComfyUICore, "api", new_callable=mock.PropertyMock, return_value=api),
             self.assertRaises(ValueError) as error_context,
         ):
-            await core.load_workflow(WorkflowSourceType.USER, "Material")
+            await core.load_workflow(
+                Workflow(category=WorkflowCategory.API, source_type=WorkflowSourceType.USER, name="Material")
+            )
 
         # Assert
         self.assertEqual(str(error_context.exception), "invalid node 143 metadata")
@@ -968,7 +1099,9 @@ class TestComfyUICore(AsyncTestCase):
             mock.patch.object(ComfyUICore, "api", new_callable=mock.PropertyMock, return_value=api),
             self.assertRaises(TypeError) as error_context,
         ):
-            await core.load_workflow(WorkflowSourceType.USER, "Material")
+            await core.load_workflow(
+                Workflow(category=WorkflowCategory.API, source_type=WorkflowSourceType.USER, name="Material")
+            )
 
         # Assert
         self.assertEqual(str(error_context.exception), "Workflow value must be float")
@@ -1005,7 +1138,11 @@ class TestComfyUICore(AsyncTestCase):
         restored = Workflow(name="Restored")
 
         with mock.patch.object(ComfyUICore, "api", new_callable=mock.PropertyMock, return_value=api):
-            load_task = asyncio.create_task(core.load_workflow(WorkflowSourceType.USER, "Material"))
+            load_task = asyncio.create_task(
+                core.load_workflow(
+                    Workflow(category=WorkflowCategory.API, source_type=WorkflowSourceType.USER, name="Material")
+                )
+            )
             await request_started.wait()
 
             # Act
@@ -1030,7 +1167,11 @@ class TestComfyUICore(AsyncTestCase):
 
         api.get_workflow_data = mock.AsyncMock(side_effect=get_workflow_data)
         with mock.patch.object(ComfyUICore, "api", new_callable=mock.PropertyMock, return_value=api):
-            load_task = asyncio.create_task(core.load_workflow(WorkflowSourceType.USER, "Material"))
+            load_task = asyncio.create_task(
+                core.load_workflow(
+                    Workflow(category=WorkflowCategory.API, source_type=WorkflowSourceType.USER, name="Material")
+                )
+            )
             await request_started.wait()
 
             # Act
@@ -1047,10 +1188,11 @@ class TestComfyUICore(AsyncTestCase):
         """A successful connection publishes RUNNING only for its verified endpoint."""
         # Arrange
         core = ComfyUICore("texturecraft")
-        expected = [(WorkflowCategory.API, WorkflowSourceType.RTX_REMIX, "PBRify")]
+        expected = [Workflow(category=WorkflowCategory.API, source_type=WorkflowSourceType.RTX_REMIX, name="PBRify")]
         api = mock.MagicMock(base_url=core.base_url)
         api.ping = mock.AsyncMock(return_value={})
         api.get_workflow_list = mock.AsyncMock(return_value=expected)
+        api.get_workflow_types = mock.AsyncMock(return_value=[])
 
         # Act
         with mock.patch.object(ComfyUICore, "api", new_callable=mock.PropertyMock, return_value=api):
@@ -1092,6 +1234,7 @@ class TestComfyUICore(AsyncTestCase):
         api = mock.MagicMock(base_url=core.base_url)
         api.ping = mock.AsyncMock(side_effect=RuntimeError("connection refused"))
         api.get_workflow_list = mock.AsyncMock(return_value=[])
+        api.get_workflow_types = mock.AsyncMock(return_value=[])
 
         with mock.patch.object(ComfyUICore, "api", new_callable=mock.PropertyMock, return_value=api):
             with self.assertRaises(RuntimeError):
@@ -1361,7 +1504,9 @@ class TestComfyUICore(AsyncTestCase):
         core._connected_base_url = core.base_url
         core._workflow_base_url = core.base_url
         core._workflow = Workflow(name="Material")
-        core._available_workflows = [(WorkflowCategory.API, WorkflowSourceType.USER, "Material")]
+        core._available_workflows = [
+            Workflow(category=WorkflowCategory.API, source_type=WorkflowSourceType.USER, name="Material")
+        ]
         generations = (
             core._connect_generation,
             core._workflow_discovery_generation,

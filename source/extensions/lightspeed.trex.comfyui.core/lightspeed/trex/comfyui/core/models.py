@@ -24,6 +24,8 @@ __all__ = [
     "Workflow",
     "WorkflowInput",
     "WorkflowOutput",
+    "WorkflowTypeCategory",
+    "WorkflowTypeOption",
 ]
 
 import dataclasses
@@ -34,7 +36,7 @@ from typing import Any, Generic, TypeVar
 import carb
 from pxr import Sdf
 
-from .enums import RemixType, WorkflowCategory, WorkflowSourceType
+from .enums import RemixType, WorkflowCategory, WorkflowSourceType, WorkflowType
 from .maps import OUTPUT_TEXTURE_TYPE_MAP, TYPE_MAP
 from .preset import Preset
 from .resolvers import (
@@ -398,6 +400,62 @@ class Workflow:
     active_preset: str | None = None
     group_order: list[str] = dataclasses.field(default_factory=list)
     workflow_defaults: dict[str, ValueResolver] = dataclasses.field(default_factory=dict)
+    # Catalog display metadata stays last: persisted Workflow payloads decode positionally.
+    display_name: str = ""
+    description: str = ""
+    workflow_type: WorkflowType | None = None
+
+    def __post_init__(self) -> None:
+        """Fall back to the workflow name when no display name is set."""
+        if not self.display_name:
+            self.display_name = self.name
+
+    @classmethod
+    def from_catalog_entry(
+        cls,
+        category: WorkflowCategory,
+        source_type: WorkflowSourceType,
+        payload: dict[str, Any],
+    ) -> "Workflow":
+        """Create a catalog workflow from one entry of the node pack workflow list.
+
+        Missing display metadata falls back to the workflow name for the display name and an
+        empty description. The node pack owns the workflow type vocabulary; its value is its own
+        label. An unknown or missing value reads as no type, so the workflow stays visible.
+
+        Args:
+            category: Workflow representation the entry belongs to.
+            source_type: Where the workflow originates.
+            payload: Raw catalog entry with a ``name`` and optional metadata.
+
+        Returns:
+            Catalog Workflow with resolved display metadata.
+
+        Raises:
+            TypeError: If the entry name is not a string.
+            ValueError: If the entry name is blank.
+        """
+        name = payload.get("name")
+        _validate_nonblank_string("name", name)
+        raw_display_name = payload.get("displayName")
+        display_name = raw_display_name if isinstance(raw_display_name, str) and raw_display_name.strip() else ""
+        raw_description = payload.get("description")
+        description = raw_description if isinstance(raw_description, str) else ""
+        raw_type = payload.get("workflowType")
+        workflow_type = None
+        if isinstance(raw_type, str) and raw_type.strip():
+            try:
+                workflow_type = WorkflowType(raw_type)
+            except ValueError:
+                carb.log_warn(f"Workflow '{name}' has an unknown workflow type: {raw_type}")
+        return cls(
+            name=name,
+            source_type=source_type,
+            category=category,
+            display_name=display_name,
+            description=description,
+            workflow_type=workflow_type,
+        )
 
     def apply_preset(self, preset: Preset) -> None:
         """Build and commit one complete preset update.
@@ -583,6 +641,82 @@ class Workflow:
             workflow.apply_preset(workflow.presets[active])
 
         return workflow
+
+
+def _parse_workflow_type_options(raw: Any) -> list["WorkflowTypeOption"]:
+    """Parse the ``types`` list of one category from the ``workflows/types`` endpoint.
+
+    The node pack owns the workflow type vocabulary. A value that this build cannot map to a
+    ``WorkflowType`` member, a blank value, or a malformed entry is skipped and logged: adding
+    it as a filter would match no workflow, and the workflows that carry it stay visible
+    under "All".
+
+    Args:
+        raw: Decoded ``types`` value for one category.
+
+    Returns:
+        Parsed type options in the order the server published them.
+    """
+    if not isinstance(raw, list):
+        return []
+    options: list[WorkflowTypeOption] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            carb.log_warn(f"Skipping malformed workflow type entry published by the server: {entry!r}")
+            continue
+        value = entry.get("value")
+        if not isinstance(value, str) or not value:
+            carb.log_warn(f"Skipping unusable workflow type value published by the server: {value!r}")
+            continue
+        try:
+            workflow_type = WorkflowType(value)
+        except ValueError:
+            carb.log_warn(f"Skipping unknown workflow type published by the server: {value!r}")
+            continue
+        description = entry.get("description")
+        if not isinstance(description, str):
+            description = ""
+        options.append(WorkflowTypeOption(workflow_type=workflow_type, description=description))
+    return options
+
+
+@dataclasses.dataclass
+class WorkflowTypeOption:
+    """One workflow type of the vocabulary of the server, with the description that the server publishes."""
+
+    workflow_type: WorkflowType
+    description: str = ""
+
+
+@dataclasses.dataclass
+class WorkflowTypeCategory:
+    """One category of workflow types, in the display order of the server."""
+
+    name: str
+    types: tuple[WorkflowTypeOption, ...] = ()
+
+    @classmethod
+    def list_from_payload(cls, payload: Any) -> list["WorkflowTypeCategory"]:
+        """Parse the ``categories`` list of the ``workflows/types`` endpoint.
+
+        Args:
+            payload: Decoded ``categories`` value from the endpoint response.
+
+        Returns:
+            Parsed categories in the order the server published them, or an empty list when
+            the payload is not a list of category dictionaries.
+        """
+        if not isinstance(payload, list):
+            return []
+        categories: list[WorkflowTypeCategory] = []
+        for entry in payload:
+            if not isinstance(entry, dict):
+                continue
+            name = entry.get("name")
+            if not isinstance(name, str) or not name:
+                continue
+            categories.append(cls(name=name, types=tuple(_parse_workflow_type_options(entry.get("types")))))
+        return categories
 
 
 @dataclasses.dataclass(frozen=True, slots=True)

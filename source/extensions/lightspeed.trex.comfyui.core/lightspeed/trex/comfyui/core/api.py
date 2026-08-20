@@ -33,6 +33,7 @@ from PIL import Image
 from requests import RequestException, Response, request
 
 from .enums import WorkflowCategory, WorkflowSourceType
+from .models import Workflow, WorkflowTypeCategory
 from .url import build_url, is_valid_local_leaf
 
 
@@ -174,11 +175,11 @@ class ComfyUIAPI:
             raise RuntimeError("Invalid ComfyUI system_stats response")
         return result
 
-    async def get_workflow_list(self) -> list[tuple[WorkflowCategory, WorkflowSourceType, str]]:
+    async def get_workflow_list(self) -> list[Workflow]:
         """Fetch available workflows from the rtx-remix endpoint.
 
         Returns:
-            List of ``(category, source_type, name)`` tuples.
+            Catalog workflows with resolved display metadata.
 
         Raises:
             RuntimeError: If the request fails or the workflow catalog is malformed.
@@ -186,7 +187,7 @@ class ComfyUIAPI:
         result = await self._send_request("GET", "/rtx-remix/v1/workflows")
         if not isinstance(result, dict):
             raise RuntimeError("Invalid ComfyUI workflows response")
-        results: list[tuple[WorkflowCategory, WorkflowSourceType, str]] = []
+        results: list[Workflow] = []
         all_workflows = result.get("workflows", {})
         if not isinstance(all_workflows, dict):
             raise RuntimeError("Invalid ComfyUI workflows response")
@@ -206,8 +207,26 @@ class ComfyUIAPI:
                     continue
                 for info in workflow_infos:
                     if isinstance(info, dict) and _is_valid_workflow_name(info.get("name")):
-                        results.append((category, source_type, info["name"]))
+                        results.append(Workflow.from_catalog_entry(category, source_type, info))
         return results
+
+    async def get_workflow_types(self) -> list[WorkflowTypeCategory]:
+        """Fetch the workflow type vocabulary from the rtx-remix endpoint.
+
+        A server running an older node pack does not publish this endpoint. ``_send_request``
+        raises ``RuntimeError`` in that case; the caller decides whether to fall back.
+
+        Returns:
+            Type categories in the order the server published them, or an empty list when the
+            response has no usable ``categories`` value.
+
+        Raises:
+            RuntimeError: If the request fails or the response is not a JSON object.
+        """
+        result = await self._send_request("GET", "/rtx-remix/v1/workflows/types")
+        if not isinstance(result, dict):
+            return []
+        return WorkflowTypeCategory.list_from_payload(result.get("categories"))
 
     async def get_workflow_data(
         self,
