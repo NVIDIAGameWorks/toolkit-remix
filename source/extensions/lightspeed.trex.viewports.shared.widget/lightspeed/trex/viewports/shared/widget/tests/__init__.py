@@ -16,7 +16,7 @@
 """
 
 from .e2e.test_widget import TestSharedViewportWidget
-from .unit.test_delegate import TestViewportEventDelegateMouseWheel
+from .unit.test_delegate import TestViewportEventDelegate
 from .unit.test_layers import TestViewportLayersFactorySkip
 from .unit.test_setup_ui import TestSetupUI, TestSetupUIGameCameraBoundary
 from .unit.test_stats import TestViewportStatisticFading
@@ -25,7 +25,7 @@ __all__ = [
     "TestSetupUI",
     "TestSetupUIGameCameraBoundary",
     "TestSharedViewportWidget",
-    "TestViewportEventDelegateMouseWheel",
+    "TestViewportEventDelegate",
     "TestViewportLayersFactorySkip",
     "TestViewportStatisticFading",
 ]

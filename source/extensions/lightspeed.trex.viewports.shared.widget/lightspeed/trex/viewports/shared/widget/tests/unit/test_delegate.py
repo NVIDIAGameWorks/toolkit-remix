@@ -19,16 +19,19 @@ from unittest.mock import MagicMock, patch
 
 import carb.input
 import omni.kit.test
+from lightspeed.common.constants import GlobalEventNames
 from lightspeed.trex.viewports.shared.widget.events.delegate import ViewportEventDelegate
 
 _ZOOM_OP = "lightspeed.trex.viewports.shared.widget.events.delegate._zoom_operation"
+_EVENT_MANAGER = "lightspeed.trex.viewports.shared.widget.events.delegate._get_event_manager_instance"
 
 
-class TestViewportEventDelegateMouseWheel(omni.kit.test.AsyncTestCase):
+class TestViewportEventDelegate(omni.kit.test.AsyncTestCase):
     async def setUp(self):
         self._scene_view = MagicMock()
         self._viewport_api = MagicMock()
         self._viewport_api.camera_path = "/OmniverseKit_Persp"
+        self._viewport_api.usd_context_name = "test_context"
         self._delegate = ViewportEventDelegate(self._scene_view, self._viewport_api)
 
     async def tearDown(self):
@@ -165,3 +168,54 @@ class TestViewportEventDelegateMouseWheel(omni.kit.test.AsyncTestCase):
             self._delegate.mouse_wheel(0, 1.0, 0)
 
         mock_zoom.assert_called_once_with(0, 1.0, self._viewport_api)
+
+    async def test_delete_released_without_modifiers_emits_delete_request_for_viewport_context(self):
+        # Arrange
+        with patch(_EVENT_MANAGER) as mock_get_event_manager:
+            # Act
+            self._delegate.key_pressed(int(carb.input.KeyboardInput.DEL), 0, False)
+
+        # Assert
+        mock_get_event_manager.return_value.call_global_custom_event.assert_called_once_with(
+            GlobalEventNames.VIEWPORT_DELETE_SELECTION_REQUEST.value,
+            "test_context",
+        )
+
+    async def test_numpad_delete_released_without_modifiers_emits_delete_request_for_viewport_context(self):
+        # Arrange
+        with patch(_EVENT_MANAGER) as mock_get_event_manager:
+            # Act
+            self._delegate.key_pressed(int(carb.input.KeyboardInput.NUMPAD_DEL), 0, False)
+
+        # Assert
+        mock_get_event_manager.return_value.call_global_custom_event.assert_called_once_with(
+            GlobalEventNames.VIEWPORT_DELETE_SELECTION_REQUEST.value,
+            "test_context",
+        )
+
+    async def test_delete_pressed_does_not_emit_delete_request(self):
+        # Arrange
+        with patch(_EVENT_MANAGER) as mock_get_event_manager:
+            # Act
+            self._delegate.key_pressed(int(carb.input.KeyboardInput.DEL), 0, True)
+
+        # Assert
+        mock_get_event_manager.return_value.call_global_custom_event.assert_not_called()
+
+    async def test_delete_released_with_modifiers_does_not_emit_delete_request(self):
+        # Arrange
+        with patch(_EVENT_MANAGER) as mock_get_event_manager:
+            # Act
+            self._delegate.key_pressed(int(carb.input.KeyboardInput.DEL), 1, False)
+
+        # Assert
+        mock_get_event_manager.return_value.call_global_custom_event.assert_not_called()
+
+    async def test_unrelated_key_released_does_not_emit_delete_request(self):
+        # Arrange
+        with patch(_EVENT_MANAGER) as mock_get_event_manager:
+            # Act
+            self._delegate.key_pressed(int(carb.input.KeyboardInput.B), 0, False)
+
+        # Assert
+        mock_get_event_manager.return_value.call_global_custom_event.assert_not_called()

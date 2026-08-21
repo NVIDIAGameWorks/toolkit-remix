@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with Job Queue and Job Details workspaces and a persistent connection banner, and removed the legacy AI Tools
   workspace.
 - REMIX-5815: Added ComfyUI workflow metadata and grouped type filtering, plus agent code-style rules from its review
+- REMIX-2733: Added undoable deletion of eligible viewport assets with the main or numpad Delete key and warnings for ineligible selections.
 
 ### Changed
 

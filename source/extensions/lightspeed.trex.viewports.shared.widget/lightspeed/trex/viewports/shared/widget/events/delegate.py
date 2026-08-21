@@ -23,6 +23,8 @@ import traceback
 
 import carb
 import omni.appwindow
+from lightspeed.common.constants import GlobalEventNames
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.viewports.manipulators.zoom import zoom_operation as _zoom_operation
 
 
@@ -153,6 +155,14 @@ class ViewportEventDelegate:
         return bool(pressed_keys)
 
     def key_pressed(self, key_index: int, modifiers: int, is_down: bool):
+        if key_index in (int(carb.input.KeyboardInput.DEL), int(carb.input.KeyboardInput.NUMPAD_DEL)):
+            if not is_down and not modifiers and self.viewport_api:
+                _get_event_manager_instance().call_global_custom_event(
+                    GlobalEventNames.VIEWPORT_DELETE_SELECTION_REQUEST.value,
+                    self.viewport_api.usd_context_name,
+                )
+            return
+
         # Ignore all key-modifier up/down events, only care about escape or blocking scroll with real-key
         if key_index >= int(carb.input.KeyboardInput.LEFT_SHIFT):
             return

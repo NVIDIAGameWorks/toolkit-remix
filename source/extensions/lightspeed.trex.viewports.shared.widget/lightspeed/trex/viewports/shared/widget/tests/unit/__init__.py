@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from .test_delegate import TestViewportEventDelegateMouseWheel
+from .test_delegate import TestViewportEventDelegate
 from .test_layers import TestViewportLayersFactorySkip
 from .test_setup_ui import TestSetupUI, TestSetupUIGameCameraBoundary
 from .test_stats import TestViewportStatisticFading
@@ -23,7 +23,7 @@ from .test_stats import TestViewportStatisticFading
 __all__ = [
     "TestSetupUI",
     "TestSetupUIGameCameraBoundary",
-    "TestViewportEventDelegateMouseWheel",
+    "TestViewportEventDelegate",
     "TestViewportLayersFactorySkip",
     "TestViewportStatisticFading",
 ]

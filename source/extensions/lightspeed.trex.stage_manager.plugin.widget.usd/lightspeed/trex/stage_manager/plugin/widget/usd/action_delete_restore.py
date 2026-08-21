@@ -17,21 +17,23 @@
 
 __all__ = ["PROTECTED_PATHS", "DeleteRestoreActionWidgetPlugin"]
 
+import contextlib
+from collections.abc import Callable
 from enum import Enum, auto
 from functools import partial
-from collections.abc import Callable
 
 import carb
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
 from lightspeed.layer_manager.core import LayerManagerCore
-from lightspeed.trex.asset_replacements.core.shared import Setup
+from lightspeed.trex.asset_replacements.core.shared import Setup as AssetReplacementsCore
 from lightspeed.trex.utils.common import prim_utils
 from lightspeed.trex.utils.widget.dialogs import confirm_remove_prim_overrides
 from omni import ui
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem, StageManagerTreeModel
 from omni.flux.stage_manager.plugin.widget.usd.base import StageManagerStateWidgetPlugin
+from omni.kit.notification_manager import NotificationStatus, post_notification
 from pxr import Sdf, Usd, UsdLux
 
 PROTECTED_PATHS = {
@@ -58,9 +60,19 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._core = Setup(self._context_name)  # NOTE: this is asset replacement core
+        self._core = AssetReplacementsCore(self._context_name)
         self._layer_manager = LayerManagerCore(self._context_name)
         self._restore_context_menu: ui.Menu | None = None
+
+    def set_context_name(self, name: str) -> None:
+        """Update the context and rebuild dependencies that are bound to it."""
+        if name == self._context_name:
+            return
+        self._core.destroy()
+        self._layer_manager.destroy()
+        super().set_context_name(name)
+        self._core = AssetReplacementsCore(self._context_name)
+        self._layer_manager = LayerManagerCore(self._context_name)
 
     def _get_prim_action_type(self, prim: Usd.Prim) -> ActionType:
         """Classify a prim into an action type that determines its icon and callback.
@@ -136,7 +148,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
             case self.ActionType.DELETE:
                 icon = "TrashCan"
                 tooltip = "Delete the prim"
-                callback = self._delete_prim_cb
+                callback = self.delete_selected_prims
                 enabled = True
                 identifier = "delete_restore_widget_delete"
 
@@ -150,7 +162,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
             case self.ActionType.DELETECAPTURE:
                 icon = "TrashCan"
                 tooltip = "Delete Capture Prim"
-                callback = self._delete_capture_prim_cb
+                callback = self.delete_selected_prims
                 enabled = True
                 identifier = "delete_restore_widget_delete_capture"
 
@@ -270,10 +282,39 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
             usd_context_name=self._context_name,
         )
 
-    def _delete_prim_cb(self) -> None:
-        """Delete all selected prims classified as DELETE from both the edit target and replacement layers."""
-        sel = self._get_selected_by_action(self.ActionType.DELETE)
-        if not sel:
+    def delete_selected_prims(self, notify_ineligible: bool = False) -> None:
+        """Delete every selected and actionable prim action as one undoable operation."""
+        regular_paths = self._get_selected_by_action(self.ActionType.DELETE)
+        capture_paths = self._get_selected_by_action(self.ActionType.DELETECAPTURE)
+
+        if notify_ineligible:
+            context = omni.usd.get_context(self._context_name)
+            stage = context.get_stage()
+            ineligible_count = sum(
+                self._get_prim_action_type(prim) not in (self.ActionType.DELETE, self.ActionType.DELETECAPTURE)
+                for path in context.get_selection().get_selected_prim_paths()
+                if (prim := stage.GetPrimAtPath(path)) and prim.IsValid()
+            )
+            if ineligible_count:
+                if regular_paths or capture_paths:
+                    message = "Some selected assets can't be deleted."
+                elif ineligible_count == 1:
+                    message = "The selected asset can't be deleted."
+                else:
+                    message = "The selected assets can't be deleted."
+                post_notification(message, status=NotificationStatus.WARNING)
+
+        if not regular_paths and not capture_paths:
+            return
+
+        with omni.kit.undo.group():
+            self._delete_prim_cb(paths=regular_paths, use_undo_group=False)
+            self._delete_capture_prim_cb(paths=capture_paths, use_undo_group=False)
+
+    def _delete_prim_cb(self, paths: list[str] | None = None, use_undo_group: bool = True) -> None:
+        """Delete selected regular prims from the edit target and replacement layers."""
+        selected_paths = paths if paths is not None else self._get_selected_by_action(self.ActionType.DELETE)
+        if not selected_paths:
             return
 
         context = omni.usd.get_context(self._context_name)
@@ -291,19 +332,19 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         # layer, while _delete_ancestral_prims removes specs from the
         # replacement layers via RemovePrimSpecCommand — they operate on
         # different layers and do not conflict.
-        for path in sel:
+        for path in selected_paths:
             if edit_target_layer.GetPrimAtPath(path):
                 local_paths.append(path)
             if any(layer.GetPrimAtPath(path) for layer in rep_layers):
                 ancestral_paths.append(path)
 
-        with omni.kit.undo.group():
+        with omni.kit.undo.group() if use_undo_group else contextlib.nullcontext():
             if local_paths:
                 omni.kit.commands.execute("DeletePrimsCommand", paths=local_paths)
             if ancestral_paths:
                 self._delete_ancestral_prims(ancestral_paths, rep_layers)
 
-    def _delete_capture_prim_cb(self) -> None:
+    def _delete_capture_prim_cb(self, paths: list[str] | None = None, use_undo_group: bool = True) -> None:
         """Delete selected capture prims by removing capture reference arcs.
 
         Only references introduced by non-replacement layers (i.e. the capture
@@ -311,15 +352,15 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         lights also author ``inputs:intensity = 0`` so render runtime stops
         evaluating stale light attributes after the reference is cleared.
         """
-        sel = self._get_selected_by_action(self.ActionType.DELETECAPTURE)
-        if not sel:
+        selected_paths = paths if paths is not None else self._get_selected_by_action(self.ActionType.DELETECAPTURE)
+        if not selected_paths:
             return
 
         stage = omni.usd.get_context(self._context_name).get_stage()
         edit_target_layer = stage.GetEditTarget().GetLayer()
         rep_layers = self._layer_manager.get_replacement_layers()
-        with omni.kit.undo.group():
-            for path in sel:
+        with omni.kit.undo.group() if use_undo_group else contextlib.nullcontext():
+            for path in selected_paths:
                 prim = stage.GetPrimAtPath(path)
                 if not prim or not prim.IsValid():
                     continue
@@ -416,6 +457,9 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
                     self._core.remove_prim_reference_overrides(target)
 
     def __del__(self):
+        if self._core is not None:
+            self._core.destroy()
+            self._core = None
         if self._layer_manager is not None:
             self._layer_manager.destroy()
             self._layer_manager = None

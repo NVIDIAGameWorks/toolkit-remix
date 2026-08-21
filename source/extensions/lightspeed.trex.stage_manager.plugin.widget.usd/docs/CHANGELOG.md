@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.1]
+### Added
+- Added undoable focused-viewport deletion for selected prims represented by a trash action, with warnings for assets that cannot be deleted.
+
 ## [3.1.0]
 ### Changed
 - Added context-bound ComfyUI preparation, skipped-input confirmation, and cancellable progress before one atomic queue submission while preserving multi-selection across action clicks.
