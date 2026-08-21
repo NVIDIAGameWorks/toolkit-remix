@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .e2e.test_job_queue_visibility import TestJobQueueVisibilityE2E
 from .e2e.test_setup import TestComfySetupAdvancedWidgetE2E
 from .e2e.test_workspace import TestComfySetupWorkspaceE2E
 from .e2e.test_typed_product_workflow import TestTypedComfyUIProductWorkflowE2E
@@ -29,6 +30,7 @@ __all__ = (
     "TestComfySetupWorkspaceE2E",
     "TestComfyUIDisplayAdapter",
     "TestComfyUIWidgetExtension",
+    "TestJobQueueVisibilityE2E",
     "TestTypedComfyUIProductWorkflowE2E",
     "TestWorkflowModel",
     "TestWorkflowSetupWidgetE2E",

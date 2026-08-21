@@ -1,0 +1,542 @@
+{
+ "/rtx-remix/v1/workflows": {
+  "success": true,
+  "workflows": {
+   "api": {
+    "rtx-remix": [
+     {
+      "description": "Upscales a single color texture and creates a complete PBR material from it, using the PBRify AI model.",
+      "displayName": "PBRify",
+      "modified": 1771556494.8187208,
+      "name": "integration_pbrify",
+      "path": "custom_nodes/comfyui-rtx_remix/api_workflows/integration_pbrify.json",
+      "size": 9926,
+      "workflowType": "Material Generation"
+     }
+    ]
+   },
+   "full": {
+    "rtx-remix": [
+     {
+      "description": "Upscales a single color texture and creates a complete PBR material from it, using the PBRify AI model.",
+      "displayName": "PBRify",
+      "modified": 1787167069.57554,
+      "name": "integration_pbrify",
+      "path": "custom_nodes/comfyui-rtx_remix/workflows/integration_pbrify.json",
+      "size": 53895,
+      "workflowType": "Material Generation"
+     }
+    ]
+   }
+  }
+ },
+ "/rtx-remix/v1/workflows/api/rtx-remix/integration_pbrify": {
+  "data": {
+   "177": {
+    "_meta": {
+     "rtx-remix": {
+      "inputs": {
+       "image": {
+        "additional_data": {
+         "group": "",
+         "tooltip": "Input texture file to be processed by the workflow"
+        },
+        "name": "texture",
+        "order": 0,
+        "remix_type": "texture_file_path",
+        "type": "str"
+       }
+      }
+     },
+     "title": "Load Image"
+    },
+    "class_type": "LoadImage",
+    "inputs": {
+     "image": "example.png"
+    }
+   },
+   "178": {
+    "_meta": {
+     "rtx-remix": {
+      "output": {
+       "additional_data": {
+        "group": "",
+        "texture_type": "height",
+        "tooltip": "Generated height map texture output for RTX Remix"
+       },
+       "name": "height",
+       "order": 0,
+       "remix_type": "texture_file_path",
+       "type": "str"
+      }
+     },
+     "title": "\ud83d\udcbe RTX Remix Save Texture"
+    },
+    "class_type": "RTXRemixSaveTexture",
+    "inputs": {
+     "colorspace": "linear",
+     "file_extension": ".png",
+     "texture_type": "height",
+     "textures": [
+      "44",
+      0
+     ]
+    }
+   },
+   "179": {
+    "_meta": {
+     "rtx-remix": {
+      "output": {
+       "additional_data": {
+        "group": "",
+        "texture_type": "normal_ogl",
+        "tooltip": "Generated normal map texture output for RTX Remix"
+       },
+       "name": "normal_ogl",
+       "order": 1,
+       "remix_type": "texture_file_path",
+       "type": "str"
+      }
+     },
+     "title": "\ud83d\udcbe RTX Remix Save Texture"
+    },
+    "class_type": "RTXRemixSaveTexture",
+    "inputs": {
+     "colorspace": "linear",
+     "file_extension": ".png",
+     "texture_type": "normal_ogl",
+     "textures": [
+      "45",
+      0
+     ]
+    }
+   },
+   "180": {
+    "_meta": {
+     "rtx-remix": {
+      "output": {
+       "additional_data": {
+        "group": "",
+        "texture_type": "roughness",
+        "tooltip": "Generated roughness texture output for RTX Remix"
+       },
+       "name": "roughness",
+       "order": 2,
+       "remix_type": "texture_file_path",
+       "type": "str"
+      }
+     },
+     "title": "\ud83d\udcbe RTX Remix Save Texture"
+    },
+    "class_type": "RTXRemixSaveTexture",
+    "inputs": {
+     "colorspace": "linear",
+     "file_extension": ".png",
+     "texture_type": "roughness",
+     "textures": [
+      "46",
+      0
+     ]
+    }
+   },
+   "181": {
+    "_meta": {
+     "rtx-remix": {
+      "output": {
+       "additional_data": {
+        "group": "",
+        "texture_type": "albedo",
+        "tooltip": "Upscaled albedo texture output for RTX Remix"
+       },
+       "name": "albedo",
+       "order": 3,
+       "remix_type": "texture_file_path",
+       "type": "str"
+      }
+     },
+     "title": "\ud83d\udcbe RTX Remix Save Texture"
+    },
+    "class_type": "RTXRemixSaveTexture",
+    "inputs": {
+     "colorspace": "linear",
+     "file_extension": ".png",
+     "texture_type": "albedo",
+     "textures": [
+      "27",
+      0
+     ]
+    }
+   },
+   "193": {
+    "_meta": {
+     "title": "\ud83e\uddf2 RTX Remix Download Model"
+    },
+    "class_type": "RTXRemixDownloadModel",
+    "inputs": {
+     "archive_model_filename": "",
+     "civitai_api_key": "",
+     "civitai_model_id": "",
+     "custom_filename": "4x-PBRify_UpscalerDAT2_V1.pth",
+     "extract_archive": false,
+     "extracted_model_hash": "",
+     "file_hash": "ff133c35707986e253a9e84aae16ef0295847de41239f1eda53fbbeb0e2243b7",
+     "force_download": false,
+     "hf_filename": "",
+     "hf_repo_id": "",
+     "hf_token": "",
+     "model_source": "custom",
+     "model_type": "upscale_models",
+     "subdirectory": "PBRify",
+     "url": "https://github.com/Kim2091/Kim2091-Models/releases/download/4x-PBRify_UpscalerDAT2_V1/4x-PBRify_UpscalerDAT2_V1.pth"
+    }
+   },
+   "194": {
+    "_meta": {
+     "title": "\ud83e\uddf2 RTX Remix Download Model"
+    },
+    "class_type": "RTXRemixDownloadModel",
+    "inputs": {
+     "archive_model_filename": "",
+     "civitai_api_key": "",
+     "civitai_model_id": "",
+     "custom_filename": "1x-PBRify_Height.pth",
+     "extract_archive": false,
+     "extracted_model_hash": "",
+     "file_hash": "5b973ecb8bae9d96d14d77b8a8f1d88fb6a8580bcc1bb55d2872811acdc4277d",
+     "force_download": false,
+     "hf_filename": "",
+     "hf_repo_id": "",
+     "hf_token": "",
+     "model_source": "custom",
+     "model_type": "upscale_models",
+     "subdirectory": "PBRify",
+     "url": "https://github.com/Kim2091/PBRify_Remix/raw/main/Models/1x-PBRify_Height.pth"
+    }
+   },
+   "195": {
+    "_meta": {
+     "title": "\ud83e\uddf2 RTX Remix Download Model"
+    },
+    "class_type": "RTXRemixDownloadModel",
+    "inputs": {
+     "archive_model_filename": "",
+     "civitai_api_key": "",
+     "civitai_model_id": "",
+     "custom_filename": "1x-PBRify_NormalV3.pth",
+     "extract_archive": false,
+     "extracted_model_hash": "",
+     "file_hash": "b0a18270da765f02eaae3c228203bee0677fc28b2854a562515e4aae9c61223b",
+     "force_download": false,
+     "hf_filename": "",
+     "hf_repo_id": "",
+     "hf_token": "",
+     "model_source": "custom",
+     "model_type": "upscale_models",
+     "subdirectory": "PBRify",
+     "url": "https://github.com/Kim2091/PBRify_Remix/raw/main/Models/1x-PBRify_NormalV3.pth"
+    }
+   },
+   "196": {
+    "_meta": {
+     "title": "\ud83e\uddf2 RTX Remix Download Model"
+    },
+    "class_type": "RTXRemixDownloadModel",
+    "inputs": {
+     "archive_model_filename": "",
+     "civitai_api_key": "",
+     "civitai_model_id": "",
+     "custom_filename": "1x-PBRify_RoughnessV2.pth",
+     "extract_archive": false,
+     "extracted_model_hash": "",
+     "file_hash": "7003c39041af64cdb77d5120bd560a2878538fbb14a07657d8fd12aac5773679",
+     "force_download": false,
+     "hf_filename": "",
+     "hf_repo_id": "",
+     "hf_token": "",
+     "model_source": "custom",
+     "model_type": "upscale_models",
+     "subdirectory": "PBRify",
+     "url": "https://github.com/Kim2091/PBRify_Remix/raw/main/Models/1x-PBRify_RoughnessV2.pth"
+    }
+   },
+   "27": {
+    "_meta": {
+     "title": "Join Image with Alpha"
+    },
+    "class_type": "JoinImageWithAlpha",
+    "inputs": {
+     "alpha": [
+      "34",
+      0
+     ],
+     "image": [
+      "31",
+      0
+     ]
+    }
+   },
+   "28": {
+    "_meta": {
+     "title": "Convert Mask to Image"
+    },
+    "class_type": "MaskToImage",
+    "inputs": {
+     "mask": [
+      "177",
+      1
+     ]
+    }
+   },
+   "29": {
+    "_meta": {
+     "title": "Load Upscale Model"
+    },
+    "class_type": "UpscaleModelLoader",
+    "inputs": {
+     "model_name": [
+      "193",
+      0
+     ]
+    }
+   },
+   "31": {
+    "_meta": {
+     "title": "Upscale Image (using Model)"
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+     "image": [
+      "177",
+      0
+     ],
+     "upscale_model": [
+      "29",
+      0
+     ]
+    }
+   },
+   "33": {
+    "_meta": {
+     "title": "Upscale Image (using Model)"
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+     "image": [
+      "28",
+      0
+     ],
+     "upscale_model": [
+      "29",
+      0
+     ]
+    }
+   },
+   "34": {
+    "_meta": {
+     "title": "Convert Image to Mask"
+    },
+    "class_type": "ImageToMask",
+    "inputs": {
+     "channel": "red",
+     "image": [
+      "33",
+      0
+     ]
+    }
+   },
+   "35": {
+    "_meta": {
+     "title": "Join Image with Alpha"
+    },
+    "class_type": "JoinImageWithAlpha",
+    "inputs": {
+     "alpha": [
+      "177",
+      1
+     ],
+     "image": [
+      "177",
+      0
+     ]
+    }
+   },
+   "37": {
+    "_meta": {
+     "title": "Before Preview"
+    },
+    "class_type": "PreviewImage",
+    "inputs": {
+     "images": [
+      "35",
+      0
+     ]
+    }
+   },
+   "38": {
+    "_meta": {
+     "title": "After Preview"
+    },
+    "class_type": "PreviewImage",
+    "inputs": {
+     "images": [
+      "27",
+      0
+     ]
+    }
+   },
+   "41": {
+    "_meta": {
+     "title": "Load Upscale Model"
+    },
+    "class_type": "UpscaleModelLoader",
+    "inputs": {
+     "model_name": [
+      "194",
+      0
+     ]
+    }
+   },
+   "42": {
+    "_meta": {
+     "title": "Load Upscale Model"
+    },
+    "class_type": "UpscaleModelLoader",
+    "inputs": {
+     "model_name": [
+      "195",
+      0
+     ]
+    }
+   },
+   "43": {
+    "_meta": {
+     "title": "Load Upscale Model"
+    },
+    "class_type": "UpscaleModelLoader",
+    "inputs": {
+     "model_name": [
+      "196",
+      0
+     ]
+    }
+   },
+   "44": {
+    "_meta": {
+     "title": "Upscale Image (using Model)"
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+     "image": [
+      "31",
+      0
+     ],
+     "upscale_model": [
+      "41",
+      0
+     ]
+    }
+   },
+   "45": {
+    "_meta": {
+     "title": "Upscale Image (using Model)"
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+     "image": [
+      "31",
+      0
+     ],
+     "upscale_model": [
+      "42",
+      0
+     ]
+    }
+   },
+   "46": {
+    "_meta": {
+     "title": "Upscale Image (using Model)"
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+     "image": [
+      "31",
+      0
+     ],
+     "upscale_model": [
+      "43",
+      0
+     ]
+    }
+   }
+  },
+  "name": "integration_pbrify",
+  "path": "custom_nodes/comfyui-rtx_remix/api_workflows/integration_pbrify.json",
+  "success": true
+ },
+ "/rtx-remix/v1/workflows/full/rtx-remix/integration_pbrify": {
+  "data": {
+   "extra": {
+    "rtx-remix": {
+     "description": "Upscales a single color texture and creates a complete PBR material from it, using the PBRify AI model.",
+     "displayName": "PBRify",
+     "workflowType": "Material Generation"
+    }
+   }
+  },
+  "success": true
+ },
+ "/rtx-remix/v1/workflows/types": {
+  "categories": [
+   {
+    "name": "Generation",
+    "types": [
+     {
+      "description": "Creates a full asset, including its mesh and textures, from any mix of inputs.",
+      "value": "Asset Generation"
+     },
+     {
+      "description": "Creates a PBR material from any mix of inputs, such as a texture or prompt.",
+      "value": "Material Generation"
+     }
+    ]
+   },
+   {
+    "name": "Upscaling",
+    "types": [
+     {
+      "description": "Increases the detail of a full asset, including its mesh and textures.",
+      "value": "Asset Upscaling"
+     },
+     {
+      "description": "Increases the geometric detail of a mesh.",
+      "value": "Mesh Upscaling"
+     },
+     {
+      "description": "Increases the detail of a texture.",
+      "value": "Texture Upscaling"
+     }
+    ]
+   },
+   {
+    "name": "Miscellaneous",
+    "types": [
+     {
+      "description": "Takes a material, a texture or a full asset and returns tags for it.",
+      "value": "Asset Tagging"
+     }
+    ]
+   },
+   {
+    "name": "Other",
+    "types": [
+     {
+      "description": "Anything that no other type describes.",
+      "value": "Other"
+     }
+    ]
+   }
+  ],
+  "success": true
+ },
+ "/system_stats": {}
+}

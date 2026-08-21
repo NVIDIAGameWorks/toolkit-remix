@@ -635,6 +635,28 @@ class TestQueueWidget(AsyncTestCase):
         await ui_test.input.emulate_mouse_scroll(ui_test.Vec2(0, -1200))
         await ui_test.human_delay()
 
+    async def test_queue_and_details_report_destroyed_state_to_their_workspace_window(self):
+        """An owning workspace window reads `destroyed` to decide whether to rebuild its content."""
+        # Build a second real queue and details pair, then destroy it like a closed workspace window.
+        window = ui.Window(f"QueueWidgetLifecycleE2E_{uuid.uuid4()}", width=400, height=200)
+        with window.frame:
+            with ui.HStack():
+                widget = QueueWidget(self._interface, self._apply_executor, "stagecraft")
+                details = JobDetailsPanel(widget.model)
+        await ui_test.human_delay()
+
+        # A live pair keeps its content, so the window must not replace it.
+        self.assertFalse(widget.destroyed)
+        self.assertFalse(details.destroyed)
+
+        details.destroy()
+        widget.destroy()
+        window.destroy()
+
+        # A destroyed pair reports its state, so the window rebuilds instead of reusing dead content.
+        self.assertTrue(widget.destroyed)
+        self.assertTrue(details.destroyed)
+
     async def test_empty_queue_keeps_tree_mounted_under_submit_overlay(self):
         """The empty queue retains native stripes beneath compact centered guidance."""
         # Open the empty queue and inspect the real tree and guidance overlay together.

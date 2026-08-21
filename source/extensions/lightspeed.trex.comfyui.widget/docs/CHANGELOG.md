@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.4]
+### Added
+- Added an end-to-end test that submits a ComfyUI workflow from the real Workflow window and requires the row of the
+  submitted graph in the Job Queue window, with captured ComfyUI server responses as the only test double.
+
 ## [2.1.3]
 ### Added
 - Added a Workflow Type filter above the Workflow picker, which groups the types of the server under a category

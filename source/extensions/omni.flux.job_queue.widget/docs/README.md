@@ -49,6 +49,9 @@ subscribes to the persistent scheduler-enabled setting for the widget lifetime a
 the scheduler and stops or starts new dispatch work. Active jobs finish before the toolbar changes from **Stopping** to
 **Stopped**, and its tooltip names every graph still finishing.
 
+`QueueWidget` and `JobDetailsPanel` both report `destroyed` after `destroy()`. An owning workspace window reads that
+state to rebuild dead content instead of showing it again, and to skip a second cleanup.
+
 Filters determine which children are visible and which children graph or footer actions capture. Aggregate root status
 still considers every child, and the root tooltip reports exact state counts plus decisive jobs hidden by filters.
 Graph details merge states that share one user-facing label and describe terminal execution counts as finished jobs.
