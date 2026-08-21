@@ -91,6 +91,15 @@ class JobDetailsPanel(ui.Frame):
         with self:
             self._content = ui.Frame(build_fn=self._build_content)
 
+    @property
+    def destroyed(self) -> bool:
+        """Whether the panel released its subscriptions and native content.
+
+        Returns:
+            True after destroy(), which tells an owning workspace window to rebuild its content.
+        """
+        return self._destroyed
+
     def show(self, visible: bool) -> None:
         """Activate subscriptions before synchronizing, or release them while hidden.
 

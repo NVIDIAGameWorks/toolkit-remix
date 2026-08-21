@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "3.2.1"
+version = "3.2.2"
 authors = ["Sam Bourne <sbourne@nvidia.com>"]
 description = "Widget for viewing and manipulating the queue from omni.flux.job_queue.core"
 title = "Flux SQL Queue Widget"

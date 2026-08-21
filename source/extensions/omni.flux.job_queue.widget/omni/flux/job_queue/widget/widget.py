@@ -508,6 +508,15 @@ class QueueWidget:
         if not self._destroyed and self._visible:
             self._main_loop.call_soon_threadsafe(self.model.invalidate_visible_items)
 
+    @property
+    def destroyed(self) -> bool:
+        """Whether the widget released its event ownership and native tree.
+
+        Returns:
+            True after destroy(), which tells an owning workspace window to rebuild its content.
+        """
+        return self._destroyed
+
     def show(self, visible: bool) -> None:
         """Subscribe before synchronization while the owning workspace is visible.
 

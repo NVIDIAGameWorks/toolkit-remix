@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.2]
+### Fixed
+- Fixed the Job Queue and Job Details windows showing no jobs: the queue widget and the job details panel now report their `destroyed` state, which an owning workspace window reads before it shows or cleans up its content.
+
 ## [3.2.1]
 ### Added
 - Added queue-owned subscriptions for product adapter action events and targeted model refreshes.

@@ -120,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed app-start and app-shutdown callbacks accessing a cleared telemetry handle after extension teardown.
 - Fixed workspace teardown races and stopped reporting expected HTTP 422 validation responses as Sentry errors.
 - Fixed the height of the ComfyUI Setup window, which did not fit its panel and left empty space below Connect.
+- REMIX-5967: Fixed the Job Queue window, which showed no jobs after a ComfyUI submission because the workspace window stopped showing and refreshing its content once a layout made the window visible a second time.
 
 ## [1.5.2-0]
 
