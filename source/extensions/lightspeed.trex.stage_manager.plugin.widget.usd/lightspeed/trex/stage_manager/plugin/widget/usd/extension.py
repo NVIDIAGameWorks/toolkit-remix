@@ -18,6 +18,8 @@
 __all__ = ["LightspeedStageManagerUSDWidgetPluginsExtension"]
 
 import carb
+from lightspeed.common.constants import GlobalEventNames
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from omni.flux.stage_manager.factory import get_instance as _get_factory_instance
 from omni.ext import IExt
 
@@ -36,7 +38,7 @@ from .submit_comfyui_job import SubmitComfyUIJobActionWidgetPlugin as _SubmitCom
 
 
 class LightspeedStageManagerUSDWidgetPluginsExtension(IExt):
-    """Register and own the USD Stage Manager widget plugin set."""
+    """Register Remix USD Stage Manager widgets and viewport deletion routing."""
 
     _PLUGINS = [
         _AssignCategoryActionWidgetPlugin,
@@ -53,19 +55,36 @@ class LightspeedStageManagerUSDWidgetPluginsExtension(IExt):
         _SubmitComfyUIJobActionWidgetPlugin,
     ]
 
+    def __init__(self):
+        super().__init__()
+        self._delete_controller = None
+        self._viewport_delete_subscription = None
+
     def on_startup(self, _):
-        """Register all USD Stage Manager widget plugins.
+        """Register widget plugins and subscribe to viewport deletion requests.
 
         Args:
             _: Extension identifier supplied by Kit; unused.
         """
         carb.log_info("[lightspeed.trex.stage_manager.plugin.widget.usd] Startup")
 
+        self._delete_controller = _DeleteRestoreActionWidgetPlugin()
+        self._viewport_delete_subscription = _get_event_manager_instance().subscribe_global_custom_event(
+            GlobalEventNames.VIEWPORT_DELETE_SELECTION_REQUEST.value,
+            self._on_viewport_delete_selection_requested,
+        )
         _get_factory_instance().register_plugins(self._PLUGINS)
 
+    def _on_viewport_delete_selection_requested(self, context_name: str) -> None:
+        """Delete eligible selections in the requesting viewport's USD context."""
+        self._delete_controller.set_context_name(context_name)
+        self._delete_controller.delete_selected_prims(notify_ineligible=True)
+
     def on_shutdown(self):
-        """Cancel owned ComfyUI tasks and unregister all widget plugins."""
+        """Cancel tasks, release viewport deletion resources, and unregister plugins."""
         carb.log_info("[lightspeed.trex.stage_manager.plugin.widget.usd] Shutdown")
 
         _SubmitComfyUIJobActionWidgetPlugin.cancel_pending_submissions()
+        self._viewport_delete_subscription = None
+        self._delete_controller = None
         _get_factory_instance().unregister_plugins(self._PLUGINS)

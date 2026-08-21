@@ -17,12 +17,16 @@
 
 from .e2e.test_action_delete_restore import TestDeleteRestoreActionWidgetPlugin
 from .e2e.test_widget import TestStageManagerPluginWidget
+from .unit.test_action_delete_restore import TestDeleteRestoreActionWidgetPluginUnit
 from .unit.test_focus_in_viewport import TestFocusInViewportActionWidgetPlugin
 from .unit.test_submit_comfyui_job import TestSubmitComfyUIJobActionWidgetPlugin
+from .unit.test_extension import TestLightspeedStageManagerUSDWidgetPluginsExtension
 
 __all__ = [
     "TestDeleteRestoreActionWidgetPlugin",
+    "TestDeleteRestoreActionWidgetPluginUnit",
     "TestFocusInViewportActionWidgetPlugin",
+    "TestLightspeedStageManagerUSDWidgetPluginsExtension",
     "TestStageManagerPluginWidget",
     "TestSubmitComfyUIJobActionWidgetPlugin",
 ]

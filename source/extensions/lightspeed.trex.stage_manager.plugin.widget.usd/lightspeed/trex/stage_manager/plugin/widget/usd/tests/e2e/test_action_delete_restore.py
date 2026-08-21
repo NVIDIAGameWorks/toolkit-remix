@@ -19,10 +19,12 @@ __all__ = ["TestDeleteRestoreActionWidgetPlugin"]
 
 from tempfile import TemporaryDirectory
 
+import carb.input
 import omni.kit.commands
 import omni.kit.undo
 import omni.graph.core as og
 from lightspeed.trex.stage_manager.plugin.widget.usd.action_delete_restore import DeleteRestoreActionWidgetPlugin
+from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
 from omni import client, ui, usd
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem, StageManagerTreeModel
 from omni.flux.utils.common.omni_url import OmniUrl
@@ -44,6 +46,8 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.temp_dir = TemporaryDirectory()
         self._test_window = None
         self._test_widget = None
+        self._viewport_window = None
+        self._viewport_widget = None
 
         await self._open_test_project()
         self.stage = usd.get_context().get_stage()
@@ -54,6 +58,13 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
             self._test_window.visible = False
             self._test_window.destroy()
             self._test_window = None
+
+        if self._viewport_widget is not None:
+            self._viewport_widget.destroy()
+            self._viewport_widget = None
+        if self._viewport_window is not None:
+            self._viewport_window.destroy()
+            self._viewport_window = None
 
         if usd.get_context().get_stage():
             await usd.get_context().close_stage_async()
@@ -81,6 +92,39 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self._test_window = window
         self._test_widget = widget
         return window, widget
+
+    async def _focus_viewport(self) -> None:
+        """Create and focus a viewport bound to the default USD context."""
+        self._viewport_window = ui.Window("DeleteHotkeyViewport", width=600, height=400)
+        with self._viewport_window.frame:
+            self._viewport_widget = _create_viewport_instance("", reuse_existing=False)
+
+        for _ in range(60):
+            viewports = ui_test.find_all(f"{self._viewport_window.title}//Frame/**/.identifier == 'viewport'")
+            if viewports:
+                await viewports[0].click()
+                return
+            await ui_test.wait_n_updates()
+        self.fail("Timed out waiting for the delete hotkey viewport")
+
+    async def _setup_viewport_key_selection(self, key: carb.input.KeyboardInput) -> str:
+        """Create and select an eligible prim, then focus its viewport.
+
+        Args:
+            key: Keyboard input used to make the test prim path unique.
+
+        Returns:
+            Path to the selected prim.
+        """
+        self._set_edit_target_to_replacement()
+        replacement_layer = self._find_replacement_layer()
+        prim_path = f"/RootNode/meshes/test_viewport_key_{int(key)}"
+        prim_spec = Sdf.CreatePrimInLayer(replacement_layer, prim_path)
+        prim_spec.specifier = Sdf.SpecifierDef
+        prim_spec.typeName = "Xform"
+        usd.get_context().get_selection().set_selected_prim_paths([prim_path], False)
+        await self._focus_viewport()
+        return prim_path
 
     async def _create_graph_at_prim(self, graph_path: Sdf.Path) -> bool:
         graph = og.get_global_orchestration_graphs()[0]
@@ -284,6 +328,22 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
     # ------------------------------------------------------------------
     # Callback behavior tests
     # ------------------------------------------------------------------
+
+    async def test_viewport_delete_key_with_selected_prim_deletes_prim(self):
+        """The main Delete key deletes the focused viewport selection."""
+        prim_path = await self._setup_viewport_key_selection(carb.input.KeyboardInput.DEL)
+
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
+
+        self.assertFalse(self.stage.GetPrimAtPath(prim_path).IsValid())
+
+    async def test_viewport_numpad_delete_key_with_selected_prim_deletes_prim(self):
+        """The numpad Delete key deletes the focused viewport selection."""
+        prim_path = await self._setup_viewport_key_selection(carb.input.KeyboardInput.NUMPAD_DEL)
+
+        await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.NUMPAD_DEL)
+
+        self.assertFalse(self.stage.GetPrimAtPath(prim_path).IsValid())
 
     async def test_delete_via_instance_path(self):
         """Selecting an instance path deletes the prototype prim."""
