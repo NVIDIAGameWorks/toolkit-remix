@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.2]
+### Fixed
+- Kept skeleton remap summaries and viewport focus actions working with Stage Manager proxy rows.
+
 ## [3.1.1]
 ### Added
 - Added undoable focused-viewport deletion for selected prims represented by a trash action, with warnings for assets that cannot be deleted.

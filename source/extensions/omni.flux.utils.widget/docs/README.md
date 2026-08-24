@@ -36,3 +36,10 @@ Your resource extension should have this type of architecture:
 
 Directory file pickers return the highlighted directory when the user selects one. If no directory is highlighted,
 they return the directory currently being viewed.
+
+## Tree child state
+
+`TreeItemBase.has_children` reports current structure and controls whether an existing branch is drawn.
+`TreeModelBase.can_item_have_children()` is a capability hook that permits children by default. The
+`TreeItemBase.parent` setter maintains links but does not enforce capability policy. TreeView uses `None` as its root
+sentinel, so branch delegates guard it before reading `has_children`.

@@ -80,17 +80,9 @@ class TreeModelBase(ui.AbstractItemModel, Generic[T]):
         """
         raise NotImplementedError
 
-    def can_item_have_children(self, item: T) -> bool:
-        """
-        Determine whether an item can have children in the tree hierarchy.
-
-        Args:
-            item: The tree item to check.
-
-        Returns:
-            True if the item exists and can have children, False otherwise.
-        """
-        return item and item.can_have_children
+    def can_item_have_children(self, item: T | None) -> bool:
+        """Implement OmniUI's model query for whether an item may have children."""
+        return item is None or item.can_have_children
 
     def get_children_count(self, items: Iterable[T] | None = None, recursive=True) -> int:
         """

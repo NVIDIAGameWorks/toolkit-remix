@@ -20,6 +20,7 @@ from __future__ import annotations
 __all__ = [
     "StageManagerTreeDelegate",
     "StageManagerTreeItem",
+    "StageManagerTreeItemProxy",
     "StageManagerTreeModel",
     "StageManagerTreePlugin",
 ]
@@ -29,7 +30,7 @@ import asyncio
 import threading
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import carb.settings
 import omni.kit.context_menu
@@ -51,6 +52,9 @@ if TYPE_CHECKING:
     from pxr import Usd
 
     from .column_plugin import StageManagerColumnPlugin as _StageManagerColumnPlugin
+
+
+_T = TypeVar("_T")
 
 
 class StageManagerTreeItem(_TreeItemBase):
@@ -98,9 +102,23 @@ class StageManagerTreeItem(_TreeItemBase):
                 "_parent_name": None,
                 "_settings": None,
                 "_nickname_field": None,
+                "_proxy": None,
             }
         )
         return default_attr
+
+    @property
+    def proxy(self) -> StageManagerTreeItemProxy | None:
+        """Return this item's proxy for the active full-refresh generation.
+
+        The proxy may be temporarily absent from the visible filtered hierarchy.
+        """
+        return self._proxy
+
+    @property
+    def is_virtual(self) -> bool:
+        """Whether this item is a virtual grouping node."""
+        return False
 
     @property
     def display_name(self) -> str:
@@ -184,16 +202,6 @@ class StageManagerTreeItem(_TreeItemBase):
         return None
 
     @property
-    def can_have_children(self) -> bool:
-        """
-        Whether the item can have children or not
-
-        Returns:
-            By default, items that have children will return True, and items without children will return False
-        """
-        return bool(self._children)
-
-    @property
     def show_nickname_key(self) -> str:
         """
         Key for the carb.settings key to store the show_nickname override
@@ -235,6 +243,26 @@ class StageManagerTreeItem(_TreeItemBase):
         return hash(self.long_display_path_name)
 
 
+class StageManagerTreeItemProxy(_TreeItemBase):
+    """Represent one canonical item with independent links for the visible hierarchy.
+
+    Filtering may detach the proxy while it retains its canonical item reference.
+    """
+
+    def __init__(self, original_tree_item: StageManagerTreeItem):
+        super().__init__()
+        self._original_tree_item = original_tree_item
+        original_tree_item._proxy = self  # noqa: SLF001 - paired canonical/proxy ownership
+
+    @property
+    def original_tree_item(self) -> StageManagerTreeItem:
+        """Return the canonical item represented by this proxy."""
+        return self._original_tree_item
+
+    def __hash__(self):
+        return hash(self._original_tree_item)
+
+
 @dataclass(frozen=True)
 class TreeRefreshResult:
     """
@@ -245,28 +273,31 @@ class TreeRefreshResult:
     during publication, selection synchronization, and expansion restoration.
 
     Attributes:
-        root_items: Root hierarchy published to the tree model.
-        items_by_path: All data-backed rows for each stable path, including duplicates.
-        item_by_hash: Every row indexed for exact expansion-state restoration.
-        path_by_hash: Stable-path fallback retained after the previous tree is released.
+        canonical_root_items: Complete canonical hierarchy owned by the tree model.
+        root_items: Visible proxy hierarchy published to the TreeView.
+        items_by_path: All visible data-backed rows for each stable path, including duplicates.
+        item_by_hash: Every visible row indexed for exact expansion-state restoration.
+        path_by_hash: Visible stable-path fallback retained after the previous tree is released.
         input_items_count: Context items considered before user filtering.
         output_items_count: Context items retained after user filtering.
     """
 
-    root_items: list[StageManagerTreeItem]
-    items_by_path: dict[str, list[StageManagerTreeItem]]
-    item_by_hash: dict[int, StageManagerTreeItem]
+    canonical_root_items: list[StageManagerTreeItem]
+    root_items: list[StageManagerTreeItemProxy]
+    items_by_path: dict[str, list[StageManagerTreeItemProxy]]
+    item_by_hash: dict[int, StageManagerTreeItemProxy]
     path_by_hash: dict[int, str]
     input_items_count: int
     output_items_count: int
 
 
-class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
+class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
     """
     A TreeView model used to define the structure of the tree
     """
 
     def __init__(self):
+        self._canonical_root_items = []
         self._items = []
 
         super().__init__()
@@ -274,14 +305,15 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         self._context_items: list[_StageManagerItem] = []
         self._user_filter_plugins: list[_StageManagerFilterPlugin] = []
         self._column_count = 0
-        self._selection: list[StageManagerTreeItem] = []
-        self._items_by_path: dict[str, list[StageManagerTreeItem]] = {}
-        self._item_by_hash: dict[int, StageManagerTreeItem] = {}
+        self._selection: list[StageManagerTreeItemProxy] = []
+        self._items_by_path: dict[str, list[StageManagerTreeItemProxy]] = {}
+        self._item_by_hash: dict[int, StageManagerTreeItemProxy] = {}
         self._refresh_cancel_event: threading.Event | None = None
 
     def destroy(self):
         if self._refresh_cancel_event:
             self._refresh_cancel_event.set()
+        self._detach_item_proxies(self._canonical_root_items)
         super().destroy()
 
     @property
@@ -290,6 +322,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         default_attr = super().default_attr
         default_attr.update(
             {
+                "_canonical_root_items": None,
                 "_items": None,
                 "_context_items": None,
                 "_column_count": None,
@@ -302,7 +335,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         return default_attr
 
     @property
-    def items_dict(self) -> dict[int, StageManagerTreeItem]:
+    def items_dict(self) -> dict[int, StageManagerTreeItemProxy]:
         """
         Get a dictionary of item hashes and items
         """
@@ -313,12 +346,12 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         )
 
     @property
-    def selection(self) -> list[StageManagerTreeItem]:
+    def selection(self) -> list[StageManagerTreeItemProxy]:
         """The tree items currently selected in the UI."""
         return list(self._selection)
 
     @selection.setter
-    def selection(self, items: Iterable[StageManagerTreeItem]):
+    def selection(self, items: Iterable[StageManagerTreeItemProxy]):
         """
         Store the currently selected tree items.
 
@@ -329,7 +362,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         self._selection = list(items)
 
-    def get_items_by_path(self, path: str) -> list[StageManagerTreeItem]:
+    def get_items_by_path(self, path: str) -> list[StageManagerTreeItemProxy]:
         """
         Get all tree items for a USD path without walking the tree.
         """
@@ -345,6 +378,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
 
     def clear_items(self):
         """Clear rendered tree state without dropping source context data."""
+        self._detach_item_proxies(self._canonical_root_items)
+        self._canonical_root_items = []
         self._items = []
         self.selection = []
         self._items_by_path = {}
@@ -375,9 +410,18 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             return
         self.publish_refresh_result(result)
 
-    async def refresh_threaded(self) -> TreeRefreshResult | None:
-        """
-        Prepare a complete tree refresh result off the UI thread.
+    async def _run_cancellable_worker(self, worker: Callable[..., _T], *args) -> _T | None:
+        """Run one worker off-thread, superseding any previous tree work.
+
+        Args:
+            worker: Synchronous callable receiving ``*args`` followed by a cancellation event.
+            *args: Arguments forwarded to the worker before the cancellation event.
+
+        Returns:
+            The worker result, or ``None`` when the work was superseded.
+
+        Raises:
+            asyncio.CancelledError: When the calling task is cancelled after signaling the worker.
         """
         previous_cancel_event = self._refresh_cancel_event
         if previous_cancel_event is not None:
@@ -387,16 +431,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         self._refresh_cancel_event = cancel_event
 
         try:
-            context_items = self._context_items
-            user_filter_plugins = [
-                filter_plugin for filter_plugin in self._user_filter_plugins if filter_plugin.filter_active
-            ]
-            result = await asyncio.to_thread(
-                self._prepare_refresh_result,
-                context_items,
-                user_filter_plugins,
-                cancel_event,
-            )
+            result = await asyncio.to_thread(worker, *args, cancel_event)
         except asyncio.CancelledError:
             cancel_event.set()
             raise
@@ -404,9 +439,59 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             if self._refresh_cancel_event is cancel_event:
                 self._refresh_cancel_event = None
 
-        if result is None or cancel_event.is_set():
+        return None if cancel_event.is_set() else result
+
+    async def refresh_threaded(self) -> TreeRefreshResult | None:
+        """
+        Prepare a complete tree refresh result off the UI thread.
+        """
+        context_items = self._context_items
+        user_filter_plugins = [
+            filter_plugin for filter_plugin in self._user_filter_plugins if filter_plugin.filter_active
+        ]
+        return await self._run_cancellable_worker(
+            self._prepare_refresh_result,
+            context_items,
+            user_filter_plugins,
+        )
+
+    async def apply_filters(self) -> tuple[int, int] | None:
+        """Recompute and publish only the visible proxy hierarchy.
+
+        Returns:
+            The input and output context-item counts, or ``None`` when the work
+            was cancelled or targeted an obsolete canonical generation.
+        """
+        canonical_root_items = self._canonical_root_items
+        context_items = self._context_items
+        user_filter_plugins = [
+            filter_plugin for filter_plugin in self._user_filter_plugins if filter_plugin.filter_active
+        ]
+        result = await self._run_cancellable_worker(
+            self._prepare_filter_projection,
+            canonical_root_items,
+            context_items,
+            user_filter_plugins,
+        )
+
+        if result is None or canonical_root_items is not self._canonical_root_items:
             return None
-        return result
+
+        (
+            canonical_items,
+            root_items,
+            visible_children_by_proxy,
+            items_by_path,
+            item_by_hash,
+            input_items_count,
+            output_items_count,
+        ) = result
+        self._set_visible_proxy_children(canonical_items, visible_children_by_proxy)
+        self._items = root_items
+        self._items_by_path = items_by_path
+        self._item_by_hash = item_by_hash
+        self._item_changed(None)
+        return input_items_count, output_items_count
 
     def publish_refresh_result(self, result: TreeRefreshResult):
         """
@@ -416,22 +501,26 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         ``ScrollingTreeWidget.refresh_model()``. Callers should normally use
         one of those complete refresh entry points.
         """
+        self._detach_item_proxies(self._canonical_root_items)
+        self._canonical_root_items = result.canonical_root_items
         self._items = result.root_items
         self.selection = []
         self._items_by_path = result.items_by_path
         self._item_by_hash = result.item_by_hash
         self._item_changed(None)
 
-    def notify_item_changed(self, item: StageManagerTreeItem | None = None):
-        """
-        Notify the TreeView that an item has changed and needs to be rebuilt.
+    def notify_item_changed(self, item: StageManagerTreeItem | StageManagerTreeItemProxy | None = None):
+        """Notify with a proxy, converting canonical items and ignoring obsolete ones.
 
-        Args:
-            item: The item that changed, or None to rebuild all visible widgets
+        Passing ``None`` emits a global change notification.
         """
+        if isinstance(item, StageManagerTreeItem):
+            item = item.proxy
+            if item is None:
+                return
         self._item_changed(item)
 
-    def find_items(self, predicate: Callable[[StageManagerTreeItem], bool]) -> list[StageManagerTreeItem]:
+    def find_items(self, predicate: Callable[[StageManagerTreeItemProxy], bool]) -> list[StageManagerTreeItemProxy]:
         """
         Find all items matching a predicate.
 
@@ -446,8 +535,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
     @usd.handle_exception
     async def find_items_async(
         self,
-        predicate: Callable[[StageManagerTreeItem], bool],
-    ) -> list[StageManagerTreeItem]:
+        predicate: Callable[[StageManagerTreeItemProxy], bool],
+    ) -> list[StageManagerTreeItemProxy]:
         """
         Find all items matching a predicate without blocking the UI.
 
@@ -461,7 +550,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         return await asyncio.to_thread(self.find_items, predicate)
 
-    def get_item_children(self, item: StageManagerTreeItem | None):
+    def get_item_children(self, item: StageManagerTreeItemProxy | None):
         """
         Returns all the children of any given item.
         """
@@ -469,7 +558,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             return self._items
         return item.children or []
 
-    def get_item_value_model_count(self, item: StageManagerTreeItem):
+    def get_item_value_model_count(self, item: StageManagerTreeItemProxy):
         return self.column_count
 
     def add_user_filter_plugins(self, value: list[_StageManagerFilterPlugin]):
@@ -493,10 +582,12 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             for item in items:
                 self.sort_items(item.children)
 
-    def get_context_menu_payload(self, item: StageManagerTreeItem) -> dict[str, Any]:
+    def get_context_menu_payload(self, item: StageManagerTreeItemProxy) -> dict[str, Any]:
+        """Build an action payload that exposes the proxy's canonical item."""
+        original_item = item.original_tree_item
         return {
             "model": self,
-            "right_clicked_item": item,
+            "right_clicked_item": original_item,
         }
 
     def _build_item(self, *args, **kwargs) -> StageManagerTreeItem:
@@ -518,11 +609,11 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         user_filter_plugins: list[_StageManagerFilterPlugin],
         cancel_event: threading.Event,
     ) -> TreeRefreshResult | None:
-        """Filter source items and build tree items and lookups for one refresh.
+        """Build canonical items and the visible proxy projection for one refresh.
 
         Args:
             context_items: Read-only source wrappers in parent-before-child order.
-            user_filter_plugins: Active filters to apply before tree construction.
+            user_filter_plugins: Active filters to apply to the proxy projection.
             cancel_event: Signal set when this refresh has been superseded.
 
         Returns:
@@ -530,6 +621,64 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
         """
         if cancel_event.is_set():
             return None
+
+        canonical_root_items = self._build_items(context_items, cancel_event) or []
+        if cancel_event.is_set():
+            return None
+
+        canonical_items = self._create_item_proxies(canonical_root_items, cancel_event)
+        if canonical_items is None or cancel_event.is_set():
+            return None
+
+        projection = self._prepare_filter_projection(
+            canonical_root_items,
+            context_items,
+            user_filter_plugins,
+            cancel_event,
+            canonical_items,
+        )
+        if projection is None or cancel_event.is_set():
+            return None
+
+        (
+            canonical_items,
+            root_items,
+            visible_children_by_proxy,
+            items_by_path,
+            item_by_hash,
+            input_items_count,
+            output_items_count,
+        ) = projection
+        self._set_visible_proxy_children(canonical_items, visible_children_by_proxy)
+        path_by_hash = {
+            item_hash: item.original_tree_item.path
+            for item_hash, item in item_by_hash.items()
+            if item.original_tree_item.path is not None
+        }
+
+        return TreeRefreshResult(
+            canonical_root_items=canonical_root_items,
+            root_items=root_items,
+            items_by_path=items_by_path,
+            item_by_hash=item_by_hash,
+            path_by_hash=path_by_hash,
+            input_items_count=input_items_count,
+            output_items_count=output_items_count,
+        )
+
+    def _prepare_filter_projection(
+        self,
+        canonical_root_items: list[StageManagerTreeItem],
+        context_items: list[_StageManagerItem],
+        user_filter_plugins: list[_StageManagerFilterPlugin],
+        cancel_event: threading.Event,
+        canonical_items: list[StageManagerTreeItem] | None = None,
+    ) -> tuple | None:
+        """Prepare visible proxy state, reusing a supplied traversal or returning ``None`` when cancelled."""
+        if canonical_items is None:
+            canonical_items = self._collect_canonical_items(canonical_root_items, cancel_event)
+            if canonical_items is None:
+                return None
 
         filtered_items = context_items
         if user_filter_plugins:
@@ -541,38 +690,129 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItem]):
             if filtered_items is None or cancel_event.is_set():
                 return None
 
-        root_items = self._build_items(filtered_items, cancel_event) or []
-        if cancel_event.is_set():
+        visible_paths = {str(item.data.GetPath()) for item in filtered_items} if user_filter_plugins else set()
+        projection = self._project_item_proxies(
+            canonical_items,
+            canonical_root_items,
+            visible_paths,
+            bool(user_filter_plugins),
+            cancel_event,
+        )
+        if projection is None or cancel_event.is_set():
             return None
+        return canonical_items, *projection, len(context_items), len(filtered_items)
 
-        items_by_path: dict[str, list[StageManagerTreeItem]] = {}
-        item_by_hash: dict[int, StageManagerTreeItem] = {}
-        path_by_hash: dict[int, str] = {}
+    @staticmethod
+    def _detach_item_proxies(root_items: list[StageManagerTreeItem] | None) -> None:
+        """Detach canonical items from proxies while preserving each proxy's original-item link."""
+        item_stack = list(root_items or [])
+        while item_stack:
+            item = item_stack.pop()
+            item._proxy = None  # noqa: SLF001 - generation ownership cleanup
+            item_stack.extend(item.children)
 
+    @staticmethod
+    def _collect_canonical_items(
+        root_items: list[StageManagerTreeItem], cancel_event: threading.Event | None = None
+    ) -> list[StageManagerTreeItem] | None:
+        """Return canonical items in traversal order, or ``None`` when cancelled."""
+        canonical_items = []
+        item_stack = list(reversed(root_items))
+        while item_stack:
+            if cancel_event is not None and cancel_event.is_set():
+                return None
+
+            item = item_stack.pop()
+            canonical_items.append(item)
+            item_stack.extend(reversed(item.children))
+        return canonical_items
+
+    @staticmethod
+    def _create_item_proxies(
+        root_items: list[StageManagerTreeItem], cancel_event: threading.Event
+    ) -> list[StageManagerTreeItem] | None:
+        """Create one proxy per canonical item and return traversal order, or ``None`` when cancelled."""
+        canonical_items = []
         item_stack = list(reversed(root_items))
         while item_stack:
             if cancel_event.is_set():
                 return None
 
             item = item_stack.pop()
+            canonical_items.append(item)
+            if item.proxy is None:
+                StageManagerTreeItemProxy(item)
             item_stack.extend(reversed(item.children))
+        return canonical_items
+
+    @staticmethod
+    def _project_item_proxies(
+        canonical_items: list[StageManagerTreeItem],
+        canonical_root_items: list[StageManagerTreeItem],
+        visible_paths: set[str],
+        filters_active: bool,
+        cancel_event: threading.Event,
+    ) -> tuple | None:
+        """Return visible proxy roots, links, and lookups, or ``None`` when cancelled."""
+        matched_branch_proxies = set()
+        if filters_active:
+            for item in canonical_items:
+                if cancel_event.is_set():
+                    return None
+                proxy = item.proxy
+                parent_proxy = item.parent.proxy if item.parent is not None else None
+                if item.path in visible_paths or (item.path is None and parent_proxy in matched_branch_proxies):
+                    matched_branch_proxies.add(proxy)
+
+        visible_proxies = set()
+        visible_children_by_proxy = {}
+        for item in reversed(canonical_items):
+            if cancel_event.is_set():
+                return None
+
+            proxy = item.proxy
+            visible_children = [child.proxy for child in item.children if child.proxy in visible_proxies]
+
+            if filters_active and proxy not in matched_branch_proxies and not visible_children:
+                continue
+
+            visible_proxies.add(proxy)
+            visible_children_by_proxy[proxy] = visible_children
+
+        root_items = [item.proxy for item in canonical_root_items if item.proxy in visible_proxies]
+
+        items_by_path: dict[str, list[StageManagerTreeItemProxy]] = {}
+        item_by_hash: dict[int, StageManagerTreeItemProxy] = {}
+        for canonical_item in canonical_items:
+            if cancel_event.is_set():
+                return None
+
+            item = canonical_item.proxy
+            if item not in visible_proxies:
+                continue
+
             item_hash = hash(item)
             item_by_hash[item_hash] = item
-            path = item.path
+            path = canonical_item.path
             if path is None:
                 continue
 
-            path_by_hash[item_hash] = path
             items_by_path.setdefault(path, []).append(item)
 
-        return TreeRefreshResult(
-            root_items=root_items,
-            items_by_path=items_by_path,
-            item_by_hash=item_by_hash,
-            path_by_hash=path_by_hash,
-            input_items_count=len(context_items),
-            output_items_count=len(filtered_items),
-        )
+        return root_items, visible_children_by_proxy, items_by_path, item_by_hash
+
+    @staticmethod
+    def _set_visible_proxy_children(
+        canonical_items: list[StageManagerTreeItem],
+        visible_children_by_proxy: dict[StageManagerTreeItemProxy, list[StageManagerTreeItemProxy]],
+    ):
+        """Clear existing proxy links and attach the currently visible children."""
+        for item in canonical_items:
+            item.proxy.clear_children()
+
+        for parent_proxy, child_proxies in visible_children_by_proxy.items():
+            for child_proxy in child_proxies:
+                child_proxy.parent = parent_proxy
 
     def _build_items(
         self,
@@ -662,30 +902,40 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
             self._column_header_builders[index] = column.build_header
 
     def call_item_clicked(
-        self, button: int, should_validate: bool, model: StageManagerTreeModel, item: StageManagerTreeItem
+        self,
+        button: int,
+        should_validate: bool,
+        model: StageManagerTreeModel,
+        item: StageManagerTreeItem,
     ):
-        """
-        Trigger the `_item_clicked` event
+        """Forward a widget click from a canonical item to the TreeView.
+
+        The widget emits a canonical item. Its current proxy is forwarded to the TreeView; without a proxy, the item
+        belongs to an obsolete generation and the click is ignored.
 
         Args:
             button: The mouse button that triggered the event
             should_validate: Whether the TreeView selection should be validated or not
             model: The tree model
-            item: The tree item that was clicked
+            item: The canonical tree item emitted by the widget
         """
-        self._item_clicked(button, should_validate, model, item)
+        proxy_item = item.proxy
+        if proxy_item is None:
+            return
+        self._item_clicked(button, should_validate, model, proxy_item)
 
     def _build_widget(
         self,
         model: StageManagerTreeModel,
-        item: StageManagerTreeItem,
+        item: StageManagerTreeItemProxy,
         column_id: int,
         level: int,
         expanded: bool,
     ):
         with ui.Frame(height=self.row_height):
             if column_id in self._column_widget_builders:
-                self._column_widget_builders[column_id](model, item, level, expanded)
+                original_item = item.original_tree_item
+                self._column_widget_builders[column_id](model, original_item, level, expanded)
 
     def _build_branch(self, _model: _TreeModelBase, item: _TreeItemBase, column_id: int, level: int, expanded: bool):
         with ui.Frame(height=self.row_height):
@@ -696,7 +946,7 @@ class StageManagerTreeDelegate(_TreeDelegateBase):
             if column_id in self._column_header_builders:
                 self._column_header_builders[column_id]()
 
-    def _show_context_menu(self, model: StageManagerTreeModel, item: StageManagerTreeItem):
+    def _show_context_menu(self, model: StageManagerTreeModel, item: StageManagerTreeItemProxy):
         super()._show_context_menu(model, item)
 
         context_menu = omni.kit.context_menu.get_instance()
@@ -715,3 +965,7 @@ class StageManagerTreePlugin(_StageManagerPluginBase, abc.ABC):
 
     model: StageManagerTreeModel = Field(description="The tree model", exclude=True)
     delegate: StageManagerTreeDelegate = Field(description="The tree delegate", exclude=True)
+
+    async def apply_filters(self) -> tuple[int, int] | None:
+        """Delegate filter-only publication, returning counts or ``None`` for cancelled or stale work."""
+        return await self.model.apply_filters()

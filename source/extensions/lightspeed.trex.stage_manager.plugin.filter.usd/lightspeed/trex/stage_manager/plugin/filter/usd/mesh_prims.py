@@ -21,10 +21,12 @@ __all__ = ["MeshPrimsFilterPlugin"]
 
 from typing import TYPE_CHECKING
 
-from lightspeed.trex.utils.common.prim_utils import is_empty_mesh_prim
-from lightspeed.trex.utils.common.prim_utils import is_in_light_group
-from lightspeed.trex.utils.common.prim_utils import is_instance
-from lightspeed.trex.utils.common.prim_utils import is_mesh_prototype
+from lightspeed.trex.utils.common.prim_utils import (
+    is_empty_mesh_prim,
+    is_in_light_group,
+    is_instance,
+    is_mesh_prototype,
+)
 from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin
 from pydantic import Field
 
@@ -41,8 +43,24 @@ class MeshPrimsFilterPlugin(ToggleableUSDFilterPlugin):
     )
 
     def _filter_predicate(self, prim: Usd.Prim) -> bool:
-        return (
-            is_mesh_prototype(prim)
-            or is_empty_mesh_prim(prim)
-            or (self.include_instances and is_instance(prim) and not is_in_light_group(prim))
+        """Return whether a prim belongs in the mesh filter.
+
+        Args:
+            prim: Prim to evaluate.
+
+        Returns:
+            Whether the prim is a Mesh, GeomSubset, empty mesh-root container, or eligible included non-light instance.
+        """
+        if not prim:
+            return False
+
+        prim_path = str(prim.GetPath())
+        return bool(
+            is_mesh_prototype(prim, prim_path=prim_path)
+            or is_empty_mesh_prim(prim, prim_path=prim_path)
+            or (
+                self.include_instances
+                and is_instance(prim, prim_path=prim_path)
+                and not is_in_light_group(prim, prim_path=prim_path)
+            )
         )

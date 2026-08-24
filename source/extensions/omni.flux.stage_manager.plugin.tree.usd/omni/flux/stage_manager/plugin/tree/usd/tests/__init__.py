@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .unit.test_context_menu_payload import TestUSDTreeContextMenuPayload
 from .unit.test_grouped_tree_worker_preparation import TestUSDGroupedTreeWorkerPreparation
 
-__all__ = ["TestUSDGroupedTreeWorkerPreparation"]
+__all__ = ["TestUSDGroupedTreeWorkerPreparation", "TestUSDTreeContextMenuPayload"]

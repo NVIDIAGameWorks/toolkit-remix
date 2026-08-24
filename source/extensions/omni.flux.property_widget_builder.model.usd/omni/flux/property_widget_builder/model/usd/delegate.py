@@ -397,7 +397,7 @@ class USDDelegate(_Delegate):
                     style_type_name_override="OverrideBackground",
                 )
             )
-            if model.can_item_have_children(item):
+            if item is not None and item.has_children:
                 with ui.HStack(width=16 * (level + 2), height=self.DEFAULT_IMAGE_ICON_SIZE):
                     ui.Spacer()
                     with ui.Frame(mouse_released_fn=lambda x, y, b, m: self._item_expanded(b, item, not expanded)):

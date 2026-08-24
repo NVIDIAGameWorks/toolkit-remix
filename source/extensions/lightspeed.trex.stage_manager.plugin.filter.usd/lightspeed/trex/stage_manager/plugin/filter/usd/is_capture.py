@@ -17,7 +17,9 @@
 
 __all__ = ["IsCaptureFilterPlugin", "ReferenceType"]
 
+from collections.abc import Callable
 from enum import Enum
+from functools import partial
 from typing import TYPE_CHECKING, ClassVar
 
 from lightspeed.layer_manager.core import LayerManagerCore
@@ -26,7 +28,7 @@ from lightspeed.trex.utils.common import prim_utils
 from omni import ui
 from omni.flux.stage_manager.factory import StageManagerItem
 from omni.flux.stage_manager.plugin.filter.usd.base import StageManagerUSDFilterPlugin
-from pxr import Usd
+from pxr import Sdf, Usd
 from pydantic import Field, PrivateAttr
 
 if TYPE_CHECKING:
@@ -78,6 +80,49 @@ class IsCaptureFilterPlugin(StageManagerUSDFilterPlugin):
         super().__init__(**kwargs)
         self._layer_manager = LayerManagerCore(self._context_name)
 
+    def set_context_name(self, name: str) -> None:
+        """Bind replacement-layer access to a USD context.
+
+        Args:
+            name: USD context name.
+        """
+        if name == self._context_name:
+            return
+        self._layer_manager.destroy()
+        super().set_context_name(name)
+        self._layer_manager = LayerManagerCore(name)
+
+    @staticmethod
+    def _is_deleted_capture_prim(
+        prim: Usd.Prim,
+        capture_layer_cache: dict[str, bool] | None,
+        replacement_layers: set[Sdf.Layer] | Callable[[], set[Sdf.Layer]],
+    ) -> bool:
+        """Return whether a capture-origin prim has had its captured reference removed.
+
+        Args:
+            prim: Prim to classify.
+            capture_layer_cache: Optional caller-owned read-through cache keyed by each layer's exact ``realPath``.
+                Cache misses are added in place; ``None`` uses uncached traversal.
+            replacement_layers: Replacement layers or a callback that returns them.
+
+        Returns:
+            Whether the prim is a deleted capture prim.
+        """
+        if not _AssetReplacementCore.prim_is_from_a_capture_reference(prim, capture_layer_cache):
+            return False
+
+        if prim_utils.is_ghost_prim(prim):
+            return True
+
+        _, references = prim_utils.find_prim_with_references(prim)
+        if references:
+            return False
+
+        if callable(replacement_layers):
+            replacement_layers = replacement_layers()
+        return prim_utils.has_replacement_ref_edits(prim, replacement_layers)
+
     def _refresh_filter_active(self) -> None:
         self.filter_active = self.reference_type != ReferenceType.ALL
 
@@ -88,39 +133,56 @@ class IsCaptureFilterPlugin(StageManagerUSDFilterPlugin):
         if self._ref_type_combobox is not None:
             self._ref_type_combobox = None
 
-    def filter_predicate(self, item: StageManagerItem) -> bool:
+    def filter_predicate(
+        self,
+        item: StageManagerItem,
+        capture_layer_cache: dict[str, bool] | None = None,
+        replacement_layers: set[Sdf.Layer] | None = None,
+    ) -> bool:
+        """Return whether an item matches the selected Asset State filter.
+
+        Args:
+            item: Stage Manager item to evaluate.
+            capture_layer_cache: Optional caller-owned capture-layer cache.
+            replacement_layers: Optional refresh-local replacement-layer snapshot.
+
+        Returns:
+            Whether the item matches the selected reference type.
+        """
         match self.reference_type:
             case ReferenceType.ALL:
                 return True
             case ReferenceType.CAPTURED:
-                return _AssetReplacementCore.prim_is_from_a_capture_reference(item.data)
+                return _AssetReplacementCore.prim_is_from_a_capture_reference(item.data, capture_layer_cache)
             case ReferenceType.REPLACED:
-                return not _AssetReplacementCore.prim_is_from_a_capture_reference(item.data)
+                return not _AssetReplacementCore.prim_is_from_a_capture_reference(item.data, capture_layer_cache)
             case ReferenceType.DELETED:
-                return self._is_deleted_prim(item.data)
+                replacement_layers_source: set[Sdf.Layer] | Callable[[], set[Sdf.Layer]]
+                if replacement_layers is None:
+                    replacement_layers_source = self._layer_manager.get_replacement_layers
+                else:
+                    replacement_layers_source = replacement_layers
+                return self._is_deleted_capture_prim(
+                    item.data,
+                    capture_layer_cache,
+                    replacement_layers_source,
+                )
         return False
 
-    def _is_deleted_prim(self, prim: Usd.Prim) -> bool:
-        """Return True when *prim* originated from a capture reference that has been removed.
+    def build_filter_predicate(self) -> Callable[[StageManagerItem], bool]:
+        """Build an Asset State predicate with refresh-local caches and replacement layers.
 
-        Two variants qualify:
-        * **Ghost prim** -- a valid, typeless instance child whose prototype
-          no longer exists.
-        * **Ref-edited prim** -- no deletable capture references remain on the
-          prim or its ancestors, but the replacement layer still contains
-          reference-list edits (e.g. an explicitly emptied list).
+        Returns:
+            Predicate that evaluates a Stage Manager item against the prepared Asset State data.
         """
-        if not _AssetReplacementCore.prim_is_from_a_capture_reference(prim):
-            return False
-
-        if prim_utils.is_ghost_prim(prim):
-            return True
-
-        _, refs = prim_utils.find_prim_with_references(prim)
-        if refs:
-            return False
-
-        return prim_utils.has_replacement_ref_edits(prim, self._layer_manager.get_replacement_layers())
+        replacement_layers = (
+            self._layer_manager.get_replacement_layers() if self.reference_type == ReferenceType.DELETED else None
+        )
+        return partial(
+            self.filter_predicate,
+            capture_layer_cache={},
+            replacement_layers=replacement_layers,
+        )
 
     def build_ui(self):
         with ui.HStack(spacing=ui.Pixel(8), tooltip=self.tooltip):

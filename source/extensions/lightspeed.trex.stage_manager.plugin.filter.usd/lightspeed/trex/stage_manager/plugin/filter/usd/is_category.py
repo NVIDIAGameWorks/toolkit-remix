@@ -51,6 +51,7 @@ class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
     _current_attr: str | None = PrivateAttr(default=None)
 
     def _refresh_filter_active(self) -> None:
+        """Update filter activity and resolve the selected display label to its category attribute."""
         self.filter_active = self.category_type != "All Categories"
         self._current_attr = next(
             (attr for attr, label in self._CATEGORY_DISPLAY_LABELS.items() if label == self.category_type),
@@ -58,9 +59,22 @@ class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
         )
 
     def filter_predicate(self, item: _StageManagerItem) -> bool:
+        """Return whether an item matches the selected Remix Category filter.
+
+        All Categories matches every item; an unresolved category selection matches none.
+
+        Args:
+            item: Stage Manager item to evaluate.
+
+        Returns:
+            Whether the item has the selected category attribute.
+        """
         if self.category_type == "All Categories":
             return True
-        return any(attr.GetName() == self._current_attr and attr.Get() for attr in item.data.GetAttributes())
+        if self._current_attr is None:
+            return False
+        attribute = item.data.GetAttribute(self._current_attr)
+        return bool(attribute.IsValid() and attribute.Get())
 
     def build_ui(self):
         with ui.HStack(spacing=ui.Pixel(8), tooltip=self.tooltip):

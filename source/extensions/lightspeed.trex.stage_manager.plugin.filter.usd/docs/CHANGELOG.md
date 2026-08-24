@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.3]
+### Changed
+- Optimized Asset State, Remix Category, and Mesh filtering.
+
+### Fixed
+- Fixed Deleted Asset State filtering to use the active Stage Manager USD context.
+
 ## [2.6.2]
 ### Changed
 - Declared the direct Pydantic runtime dependency.

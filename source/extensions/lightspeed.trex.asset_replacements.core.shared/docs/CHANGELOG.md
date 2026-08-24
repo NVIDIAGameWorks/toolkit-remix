@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.4.0]
+### Changed
+- Optimized capture-layer checks with caller-scoped layer caching.
+
 ## [3.3.5]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

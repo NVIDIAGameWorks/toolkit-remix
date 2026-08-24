@@ -23,9 +23,10 @@ Tests:
 
 import omni.kit.app
 import omni.kit.test
+import omni.kit.ui_test as ui_test
 from omni import ui
 
-from omni.flux.curve_editor.widget import CurveEditorWidget
+from omni.flux.curve_editor.widget import CurveEditorLayout, CurveEditorWidget
 from omni.flux.curve_editor.widget.payload import curve_to_payload, payload_to_curve
 from omni.flux.utils.widget import InMemoryGroupedKeysModel
 from omni.flux.fcurve.widget import FCurve, FCurveKey, InfinityType, TangentType
@@ -112,6 +113,48 @@ class TestMultiCurveEditing(omni.kit.test.AsyncTestCase):
         if self.widget.fcurve_widget:
             fcurve_curves = self.widget.fcurve_widget.curves
             self.assertEqual(len(fcurve_curves), 3)
+
+    async def test_tree_branch_is_only_rendered_for_populated_group(self):
+        """Render an expansion branch for the populated group only."""
+        curve = FCurve(
+            id="populated_curve",
+            keys=[FCurveKey(time=0.0, value=0.0), FCurveKey(time=1.0, value=1.0)],
+        )
+        _commit_payload(self.model, curve.id, curve)
+        layout: CurveEditorLayout = {
+            "children": {
+                "populated": {
+                    "display_name": "Populated Group",
+                    "curves": [{"id": curve.id, "display_name": "Populated Curve"}],
+                },
+                "empty": {"display_name": "Empty Group"},
+            }
+        }
+        self.window = ui.Window("Curve Tree Branch Test", width=600, height=400)
+
+        with self.window.frame:
+            self.widget = CurveEditorWidget(model=self.model, layout=layout, show_toolbar=False)
+        await ui_test.human_delay()
+
+        labels = [
+            label for label in ui_test.find_all("Curve Tree Branch Test//Frame/**/Label[*]") if label.widget.visible
+        ]
+        self.assertIn("Populated Group", [label.widget.text for label in labels])
+        self.assertIn("Empty Group", [label.widget.text for label in labels])
+        branches = [
+            branch
+            for branch in ui_test.find_all("Curve Tree Branch Test//Frame/**/Image[*].identifier=='property_branch'")
+            if branch.widget.visible
+        ]
+        self.assertEqual(1, len(branches))
+        await branches[0].click()
+        await ui_test.human_delay()
+        curve_labels = [
+            label
+            for label in ui_test.find_all("Curve Tree Branch Test//Frame/**/Label[*]")
+            if label.widget.visible and label.widget.text == "Populated Curve"
+        ]
+        self.assertEqual(1, len(curve_labels))
 
 
 class TestTangentTypes(omni.kit.test.AsyncTestCase):

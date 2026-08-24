@@ -241,16 +241,21 @@ def is_shader_prototype(prim: Usd.Prim) -> bool:
     return bool(prim.IsA(UsdShade.Shader) and not is_instance(prim))
 
 
-def is_mesh_prototype(prim: Usd.Prim) -> bool:
-    """
+def is_mesh_prototype(prim: Usd.Prim, *, prim_path: str | None = None) -> bool:
+    """Return whether a prim is a Mesh or GeomSubset under a mesh path.
+
+    Args:
+        prim: Prim to classify.
+        prim_path: Optional precomputed prim path.
+
     Returns:
-        Whether the prim is under a mesh_HASH path and is a Mesh prim type
+        Whether the prim is under a mesh_HASH path and is a Mesh prim type.
     """
     if not prim:
         return False
+    prim_path = prim_path if prim_path is not None else str(prim.GetPath())
     return bool(
-        re.match(constants.REGEX_IN_MESH_PATH, str(prim.GetPath()))
-        and (prim.IsA(UsdGeom.Subset) or prim.IsA(UsdGeom.Mesh))
+        re.match(constants.REGEX_IN_MESH_PATH, prim_path) and (prim.IsA(UsdGeom.Subset) or prim.IsA(UsdGeom.Mesh))
     )
 
 
@@ -264,14 +269,20 @@ def is_a_prototype(prim: Usd.Prim) -> bool:
     return bool(re.match(constants.REGEX_IN_MESH_CHILDREN_PATH, str(prim.GetPath())))
 
 
-def is_instance(prim: Usd.Prim) -> bool:
-    """
+def is_instance(prim: Usd.Prim, *, prim_path: str | None = None) -> bool:
+    """Return whether a prim is under an instance path.
+
+    Args:
+        prim: Prim to classify.
+        prim_path: Optional precomputed prim path.
+
     Returns:
-        Whether the prim is under an inst_HASH path
+        Whether the prim is under an inst_HASH path.
     """
     if not prim:
         return False
-    return bool(re.match(constants.REGEX_IN_INSTANCE_PATH, str(prim.GetPath())))
+    prim_path = prim_path if prim_path is not None else str(prim.GetPath())
+    return bool(re.match(constants.REGEX_IN_INSTANCE_PATH, prim_path))
 
 
 def is_mesh_asset(prim: Usd.Prim) -> bool:
@@ -284,16 +295,24 @@ def is_mesh_asset(prim: Usd.Prim) -> bool:
     return bool(re.match(constants.REGEX_MESH_PATH, str(prim.GetPath())))
 
 
-def is_empty_mesh_prim(prim: Usd.Prim) -> bool:
+def is_empty_mesh_prim(prim: Usd.Prim, *, prim_path: str | None = None) -> bool:
     """Return whether *prim* is a mesh asset whose capture reference has been removed.
 
     A mesh_HASH prim whose reference is still active will have at least one
     child with a ``Mesh`` or ``GeomSubset`` schema.  When the reference is
     deleted those children disappear, leaving only the ``Xform`` shell.
+
+    Args:
+        prim: Prim to classify.
+        prim_path: Optional precomputed prim path.
+
+    Returns:
+        Whether the prim is an empty mesh-root container.
     """
     if not prim:
         return False
-    if not re.match(constants.REGEX_MESH_PATH, str(prim.GetPath())):
+    prim_path = prim_path if prim_path is not None else str(prim.GetPath())
+    if not re.match(constants.REGEX_MESH_PATH, prim_path):
         return False
     return all(not (child.IsA(UsdGeom.Mesh) or child.IsA(UsdGeom.Subset)) for child in prim.GetChildren())
 
@@ -318,15 +337,21 @@ def is_in_mesh_group(prim: Usd.Prim) -> bool:
     return bool(re.match(f"{constants.REGEX_MESH_PATH_AND_CHILDREN}", str(prim.GetPath())))
 
 
-def is_in_light_group(prim: Usd.Prim) -> bool:
-    """
+def is_in_light_group(prim: Usd.Prim, *, prim_path: str | None = None) -> bool:
+    """Return whether a prim is in a light group.
+
+    Args:
+        prim: Prim to classify.
+        prim_path: Optional precomputed prim path.
+
     Returns:
-        Whether the prim is under a light_HASH path or matches the root light path
+        Whether the prim is under a light_HASH path or matches the root light path.
     """
     if not prim:
         return False
+    prim_path = prim_path if prim_path is not None else str(prim.GetPath())
     # Match if the path matches either the children or root light path regex
-    return bool(re.match(f"{constants.REGEX_LIGHT_PATH_AND_CHILDREN}", str(prim.GetPath())))
+    return bool(re.match(f"{constants.REGEX_LIGHT_PATH_AND_CHILDREN}", prim_path))
 
 
 def get_extended_selection(context_name: str = "") -> list[str]:

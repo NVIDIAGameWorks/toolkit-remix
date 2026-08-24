@@ -124,7 +124,7 @@ class StageManagerUtils:
         for filter_obj in active_filters:
             if cancel_event and cancel_event.is_set():
                 return None
-            filters_by_category[filter_obj.filter_category].append(filter_obj.prepare_filter_predicate())
+            filters_by_category[filter_obj.filter_category].append(filter_obj.build_filter_predicate())
 
         candidates = set(items)
         for category in _FilterCategory:

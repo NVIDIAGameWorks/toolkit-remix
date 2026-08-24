@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.15.7]
+### Changed
+- Updated layer expansion controls to reflect existing child rows.
+
 ## [1.15.6]
 ### Added
 - Added regression coverage for vertical layer popup menu placement.

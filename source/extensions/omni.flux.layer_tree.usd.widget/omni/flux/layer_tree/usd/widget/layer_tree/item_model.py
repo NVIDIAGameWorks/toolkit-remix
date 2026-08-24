@@ -32,7 +32,6 @@ class ItemBase(_TreeItemBase):
         self._title = None
         self._data = None
         self._enabled = True
-        self._can_have_children = True
 
     @property
     @abc.abstractmethod
@@ -43,7 +42,6 @@ class ItemBase(_TreeItemBase):
                 "_title": None,
                 "_data": None,
                 "_enabled": None,
-                "_can_have_children": None,
             }
         )
         return default_attr
@@ -75,15 +73,6 @@ class ItemBase(_TreeItemBase):
     def data(self) -> Any:
         """Any data that the item needs to carry."""
         return self._data
-
-    @property
-    def can_have_children(self) -> bool:
-        """
-        Define if the item can have children or not.
-
-        Use this attribute to determine whether the item should have an expansion arrow or not in the delegate.
-        """
-        return self._can_have_children
 
     def on_mouse_clicked(self) -> None:
         """Should be overridden by the inheriting class."""
@@ -167,7 +156,6 @@ class LayerItem(ItemBase):
         self._title = title
         self.parent = parent
         self._data = data or {"locked": False, "visible": True, "savable": True}
-        self._can_have_children = True
 
         if children is not None:
             self.set_children(children, False)
@@ -180,7 +168,6 @@ class LayerItem(ItemBase):
             {
                 "_title": None,
                 "_data": None,
-                "_can_have_children": None,
             }
         )
         return default_attr

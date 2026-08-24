@@ -120,7 +120,6 @@ class TreeWidget(ui.TreeView):
 
             selection_list = list(selection)
             self.selection = selection_list
-
         self._delegate.selection = selection_list
         self.__on_selection_changed(selection_list)
 
@@ -167,7 +166,13 @@ class TreeWidget(ui.TreeView):
 
         return count
 
+    def release_callbacks(self):
+        """Release widget-owned callbacks without destroying the supplied model or delegate."""
+        self.set_selection_changed_fn(None)
+        self._sub_selection_changed = None
+
     def destroy(self):
+        self.release_callbacks()
         # Release the borrowed model and delegate without destroying them. `on_selection_changed` returns early while
         # `_delegate` is None, which is how a late native selection callback stays silent after teardown.
         self._model = None

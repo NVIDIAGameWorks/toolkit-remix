@@ -64,12 +64,16 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         pass
 
-    def prepare_filter_predicate(self) -> Callable[[_StageManagerItem], bool]:
+    def build_filter_predicate(self) -> Callable[[_StageManagerItem], bool]:
         """
-        Return a refresh-local predicate.
+        Build the predicate used for one filter refresh.
 
-        This method runs in the refresh worker. Implementations may capture
-        read-only state but must not access UI objects or mutate shared state.
+        This method runs in the refresh worker. Most filters should implement only
+        :meth:`filter_predicate`; overrides are reserved for refresh-local caches or
+        other data that should be prepared once before item evaluation.
+
+        Returns:
+            Predicate to evaluate for each Stage Manager item.
         """
         return self.filter_predicate
 

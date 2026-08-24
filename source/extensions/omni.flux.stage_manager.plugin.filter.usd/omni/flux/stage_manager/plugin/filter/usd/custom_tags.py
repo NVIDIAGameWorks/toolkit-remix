@@ -18,6 +18,8 @@
 from __future__ import annotations
 
 import contextlib
+from collections.abc import Sequence
+from functools import partial
 
 from omni import ui
 from omni.flux.custom_tags.core import CustomTagsCore as _CustomTagsCore
@@ -47,11 +49,6 @@ _IDENTIFIER_FALLBACK_ROOT = "root"
 _CACHE_INVALIDATING_FIELDS: frozenset[str] = frozenset({"selected_tags", "include_untagged"})
 
 
-def _get_tag_checkbox_identifier(tag_path_str: str) -> str:
-    safe_tag_path = "".join(c if c.isalnum() else "_" for c in tag_path_str).strip("_")
-    return f"{_TAG_CHECKBOX_IDENTIFIER_PREFIX}{safe_tag_path or _IDENTIFIER_FALLBACK_ROOT}"
-
-
 class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
     display_name: str = Field(default=_DISPLAY_NAME, exclude=True)
     tooltip: str = Field(default=_TOOLTIP_PLUGIN, exclude=True)
@@ -74,6 +71,19 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
     _filter_enabled: bool = PrivateAttr(default=False)
     _model_ready: bool = PrivateAttr(default=False)
 
+    @staticmethod
+    def _get_tag_checkbox_identifier(tag_path_str: str) -> str:
+        """Return a widget-safe identifier for a tag path.
+
+        Args:
+            tag_path_str: Tag path to encode.
+
+        Returns:
+            Stable checkbox identifier for the tag path.
+        """
+        safe_tag_path = "".join(c if c.isalnum() else "_" for c in tag_path_str).strip("_")
+        return f"{_TAG_CHECKBOX_IDENTIFIER_PREFIX}{safe_tag_path or _IDENTIFIER_FALLBACK_ROOT}"
+
     def model_post_init(self, _context: object) -> None:
         self._selected_tag_paths = [Sdf.Path(t) for t in self.selected_tags]
         self._filter_enabled = bool(self.selected_tags) or self.include_untagged
@@ -81,8 +91,8 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
         self._model_ready = True
 
     def set_context_name(self, name: str) -> None:
-        # CustomTagsCore owns no subscriptions. Prepared worker predicates may retain the old core,
-        # so replace this reference without calling destroy() and invalidating its stage.
+        # CustomTagsCore owns no subscriptions. A cancelled worker may still be inside a core call,
+        # so replace this reference without destroying the old core and invalidating its stage.
         self._core = _CustomTagsCore(context_name=name)
         self._all_tag_paths = None
         self._prim_counts = None
@@ -107,42 +117,41 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
         self._filter_enabled = bool(self.selected_tags) or self.include_untagged
         self.enabled = self._filter_enabled
 
-    def filter_predicate(self, item: _StageManagerItem) -> bool:
-        if not self._filter_enabled:
+    def filter_predicate(
+        self,
+        item: _StageManagerItem,
+        all_tag_paths: Sequence[Sdf.Path] | None = None,
+    ) -> bool:
+        """Return whether an item matches direct or prepared Custom Tags state.
+
+        Args:
+            item: Stage Manager item to evaluate.
+            all_tag_paths: Optional precomputed paths used to identify untagged prims.
+
+        Returns:
+            Whether the item matches a selected tag or the untagged option.
+        """
+        if not self._filter_enabled or (not self.selected_tags and not self.include_untagged) or self._core is None:
             return True
-        if not self.selected_tags and not self.include_untagged:
-            return True
-        if self._core is None:
-            return True
+
         prim = item.data
-        selected_paths = self._selected_tag_paths
-        if selected_paths and self._core.prim_has_any_tag(prim, selected_paths):
+        if self._selected_tag_paths and self._core.prim_has_any_tag(prim, self._selected_tag_paths):
             return True
-        return self.include_untagged and not self._core.prim_has_any_tag(
-            prim, self._get_all_tag_paths(refresh_stage=self._all_tag_paths is None)
-        )
+        if not self.include_untagged:
+            return False
+        if all_tag_paths is None:
+            all_tag_paths = self._get_all_tag_paths(refresh_stage=self._all_tag_paths is None)
+        return not self._core.prim_has_any_tag(prim, all_tag_paths)
 
-    def prepare_filter_predicate(self):
-        """Capture refresh-local tag state and retain its query core for the worker."""
-        filter_enabled = self._filter_enabled
-        include_untagged = self.include_untagged
-        selected_tag_paths = tuple(self._selected_tag_paths)
-        core = self._core
-        if not filter_enabled or (not selected_tag_paths and not include_untagged) or core is None:
-            return lambda _item: True
+    def build_filter_predicate(self):
+        """Build a predicate with all tag paths computed once for untagged matching."""
+        if not self._filter_enabled or self._core is None or not self.include_untagged:
+            return self.filter_predicate
 
-        all_tag_paths = (
-            tuple(tag_path for tag_path in (core.get_all_tags() or []) if tag_path and not tag_path.isEmpty)
-            if include_untagged
-            else ()
-        )
-
-        def _predicate(item: _StageManagerItem) -> bool:
-            if selected_tag_paths and core.prim_has_any_tag(item.data, selected_tag_paths):
-                return True
-            return include_untagged and not core.prim_has_any_tag(item.data, all_tag_paths)
-
-        return _predicate
+        all_tag_paths = [
+            tag_path for tag_path in (self._core.get_all_tags() or []) if tag_path and not tag_path.isEmpty
+        ]
+        return partial(self.filter_predicate, all_tag_paths=all_tag_paths)
 
     def _filter_items_changed(self):
         self._all_tag_paths = None
@@ -225,7 +234,7 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
                     prim_count = self._get_prim_count(tag_path)
                     label = f"{tag_name or tag_path_str} ({prim_count})"
                     cb = _build_aligned_checkbox_row(
-                        label, self._LABEL_WIDTH, _get_tag_checkbox_identifier(tag_path_str)
+                        label, self._LABEL_WIDTH, self._get_tag_checkbox_identifier(tag_path_str)
                     )
                     cb.model.set_value(tag_path_str in self.selected_tags)
                     self._tag_subs.append(
@@ -288,8 +297,8 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
     def destroy(self):
         self._tag_subs.clear()
         # _tag_subs are this plugin's only subscriptions; CustomTagsCore owns only stage/context references.
-        # A cancelled to_thread worker may still use a core captured by prepare_filter_predicate(), so drop
-        # this reference without calling destroy(); the worker closure owns the core until completion.
+        # A cancelled to_thread worker may still be inside a core call, so drop this reference without
+        # calling destroy() while that in-flight work finishes.
         self._core = None
         self._all_tag_paths = None
         self._prim_counts = None

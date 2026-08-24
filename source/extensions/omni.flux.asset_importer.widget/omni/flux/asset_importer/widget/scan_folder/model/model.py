@@ -36,6 +36,11 @@ class Item(ui.AbstractItem):
         self.value = True
         self.selected = False
 
+    @property
+    def can_have_children(self) -> bool:
+        """Return whether this flat scan result can contain child rows."""
+        return False
+
     def __repr__(self):
         """Return the quoted file path for debugging.
 

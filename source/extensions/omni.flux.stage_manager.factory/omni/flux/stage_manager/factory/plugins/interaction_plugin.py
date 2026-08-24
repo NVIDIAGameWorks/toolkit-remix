@@ -42,7 +42,7 @@ from .column_plugin import LengthUnit as _LengthUnit
 from .column_plugin import StageManagerColumnPlugin as _StageManagerColumnPlugin
 from .context_plugin import StageManagerContextPlugin as _StageManagerContextPlugin
 from .filter_plugin import StageManagerFilterPlugin as _StageManagerFilterPlugin
-from .tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
+from .tree_plugin import StageManagerTreeItemProxy as _StageManagerTreeItemProxy
 from .tree_plugin import StageManagerTreePlugin as _StageManagerTreePlugin
 
 if TYPE_CHECKING:
@@ -158,6 +158,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     _model_refresh_task: Future | None = PrivateAttr(default=None)
     _update_items_task: Future | None = PrivateAttr(default=None)
     _context_refresh_cancel_event: threading.Event | None = PrivateAttr(default=None)
+    _filter_refresh_pending: bool = PrivateAttr(default=False)
     _refresh_transaction: _RefreshTransaction | None = PrivateAttr(default=None)
 
     _update_queue: Queue = PrivateAttr(default=Queue())
@@ -298,6 +299,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         for f in [*self.filters, *self.additional_filters]:
             f.clear_subscriptions()
         self._finish_refresh_transaction(self._refresh_transaction, "cancelled")
+        self._filter_refresh_pending = False
+        self._show_loading_overlay(False)
         if self._context_refresh_cancel_event:
             self._context_refresh_cancel_event.set()
         self._result_frames.clear()
@@ -362,6 +365,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                             header_visible=True,
                             columns_resizable=False,  # Can't resize the results after resizing a column
                             column_widths=column_widths,
+                            keep_alive=True,
                         )
 
                         self._selection_changed_sub = self._tree_widget.subscribe_selection_changed(
@@ -422,6 +426,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         else:
             self._clear_listeners()
             self._finish_refresh_transaction(self._refresh_transaction, "cancelled")
+            self._filter_refresh_pending = False
+            self._show_loading_overlay(False)
             if self._context_refresh_cancel_event:
                 self._context_refresh_cancel_event.set()
             update_items_task = self._update_items_task
@@ -517,42 +523,54 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         Callback to execute when context items are updated
         """
+        tree_widget = self._tree_widget
+        if tree_widget is None:
+            self._filter_refresh_pending = False
+            self._context_refresh_cancel_event = None
+            self._show_loading_overlay(False)
+            return
+
+        self._filter_refresh_pending = False
+        if self._context_refresh_cancel_event is None:
+            self._context_refresh_cancel_event = threading.Event()
         self._show_loading_overlay(True)
 
         if self._model_refresh_task:
             self._model_refresh_task.cancel()
-        if self._tree_widget:
-            transaction = self._refresh_transaction
-            self._model_refresh_task = ensure_future(
-                self._refresh_tree_model_async(
-                    self._tree_widget,
-                    transaction,
-                )
-            )
-            return
-        self._model_refresh_task = ensure_future(self.tree.model.refresh())
+        transaction = self._refresh_transaction
+        self._model_refresh_task = ensure_future(self._refresh_tree_model_async(tree_widget, transaction))
 
     @omni.usd.handle_exception
     async def _refresh_tree_model_async(
         self, tree_widget: _ScrollingTreeWidget, transaction: _RefreshTransaction | None
     ):
-        """Refresh a visible tree and await interaction-specific post-refresh work."""
+        """Replace the mounted tree generation; a missing transaction disables telemetry updates."""
         try:
-            result = await tree_widget.refresh_model(expand_filtered_roots=self._get_refresh_expand_filtered_roots())
+            async with tree_widget.keep_alive_disabled():
+                result = await tree_widget.refresh_model(
+                    expand_filtered_roots=self._get_refresh_expand_filtered_roots()
+                )
             if result is None:
                 self._finish_refresh_transaction(transaction, "cancelled")
                 return
             if transaction is not None and transaction is self._refresh_transaction:
                 transaction.set_data("input_items_count", result.input_items_count)
                 transaction.set_data("output_items_count", result.output_items_count)
-            await self._wait_for_post_refresh_work()
+            if not await self._complete_tree_refresh(tree_widget, transaction):
+                self._finish_refresh_transaction(transaction, "cancelled")
+                return
         except asyncio.CancelledError:
             self._finish_refresh_transaction(transaction, "cancelled")
             raise
         except Exception:
             self._finish_refresh_transaction(transaction, "internal_error")
             raise
-        self._finish_refresh_transaction(transaction, "ok")
+        else:
+            self._finish_refresh_transaction(transaction, "ok")
+        finally:
+            if self._model_refresh_task is asyncio.current_task():
+                self._context_refresh_cancel_event = None
+                self._show_loading_overlay(False)
 
     async def _wait_for_post_refresh_work(self):
         """Await post-refresh work owned by a specialized interaction."""
@@ -584,11 +602,72 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         self._refresh_transaction.set_tag("refresh.trigger", trigger)
 
     def _on_filter_items_changed(self):
-        """Refresh for a filter change unless pending context work will consume it."""
+        """Apply user filters unless pending context work will consume the latest state."""
+        tree_widget = self._tree_widget
+        if tree_widget is None:
+            return
+
+        self._filter_refresh_pending = True
         if self._context_refresh_cancel_event:
             return
         self._start_refresh_transaction("filter")
-        self._refresh_tree_model()
+        if self._model_refresh_task:
+            self._model_refresh_task.cancel()
+        self._show_loading_overlay(True)
+        transaction = self._refresh_transaction
+        self._model_refresh_task = ensure_future(self._refresh_tree_filters_async(tree_widget, transaction))
+
+    @omni.usd.handle_exception
+    async def _refresh_tree_filters_async(
+        self, tree_widget: _ScrollingTreeWidget, transaction: _RefreshTransaction | None
+    ):
+        """Own standalone filter telemetry and loading state; a missing transaction disables telemetry updates."""
+        try:
+            if not await self._complete_tree_refresh(tree_widget, transaction):
+                self._finish_refresh_transaction(transaction, "cancelled")
+                return
+        except asyncio.CancelledError:
+            self._finish_refresh_transaction(transaction, "cancelled")
+            raise
+        except Exception:
+            self._finish_refresh_transaction(transaction, "internal_error")
+            raise
+        else:
+            self._finish_refresh_transaction(transaction, "ok")
+        finally:
+            if self._model_refresh_task is asyncio.current_task():
+                self._show_loading_overlay(False)
+
+    async def _complete_tree_refresh(
+        self, tree_widget: _ScrollingTreeWidget, transaction: _RefreshTransaction | None
+    ) -> bool:
+        """Coalesce filters and synchronize until stable.
+
+        A missing transaction disables telemetry updates. Return ``False`` when filtering is cancelled or stale.
+        """
+        post_refresh_pending = True
+        while post_refresh_pending or self._filter_refresh_pending:
+            while self._filter_refresh_pending:
+                self._filter_refresh_pending = False
+                result = await self.tree.apply_filters()
+                if result is None:
+                    return False
+
+                input_items_count, output_items_count = result
+                if transaction is not None and transaction is self._refresh_transaction:
+                    transaction.set_data("input_items_count", input_items_count)
+                    transaction.set_data("output_items_count", output_items_count)
+
+                await tree_widget.wait_for_model_change_sync()
+                if self._get_refresh_expand_filtered_roots():
+                    for root_item in self.tree.model.get_item_children(None):
+                        tree_widget.set_expanded(root_item, True, True, False)
+                await tree_widget.frame_items(tree_widget.selection, update_cache=False)
+
+            post_refresh_pending = False
+            await self._wait_for_post_refresh_work()
+
+        return True
 
     def _get_refresh_expand_filtered_roots(self) -> bool:
         """
@@ -604,10 +683,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         for frame in self._result_frames:
             frame.rebuild()
 
-        # Hide the loading overlay
-        self._show_loading_overlay(False)
-
-    def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
+    def _on_selection_changed(self, items: list[_StageManagerTreeItemProxy]):
         """
         A callback executed whenever the tree selection changes.
 
@@ -642,6 +718,12 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             if self._context_refresh_cancel_event:
                 self._context_refresh_cancel_event.set()
             self._context_refresh_cancel_event = threading.Event()
+            model_refresh_task = self._model_refresh_task
+            self._model_refresh_task = None
+            if model_refresh_task:
+                model_refresh_task.cancel()
+            self._filter_refresh_pending = False
+            self._show_loading_overlay(True)
             self._start_refresh_transaction("context")
         self._update_queue.put_nowait(update_context_items)
         if not self._update_items_task or self._update_items_task.done():
@@ -675,6 +757,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         transaction = self._refresh_transaction
         if not self._is_active:
             self._finish_refresh_transaction(transaction, "cancelled")
+            self._context_refresh_cancel_event = None
+            self._show_loading_overlay(False)
             return
 
         cancel_event = self._context_refresh_cancel_event
@@ -682,6 +766,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             cancel_event = threading.Event()
             self._context_refresh_cancel_event = cancel_event
 
+        handed_off = False
         try:
             self._show_loading_overlay(True)
             await omni.kit.app.get_app().next_update_async()
@@ -689,18 +774,24 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 self._finish_refresh_transaction(transaction, "cancelled")
                 return
 
-            context = self._context
             context_filters = [
                 filter_plugin
                 for filter_plugin in (self.context_filters + self.internal_context_filters)
                 if filter_plugin.enabled
             ]
             filtered_items = await self._prepare_context_items(
-                context,
+                self._context,
                 context_filters,
                 self.include_invalid_parents,
                 cancel_event,
             )
+            if filtered_items is None or cancel_event.is_set() or not self._is_active:
+                self._finish_refresh_transaction(transaction, "cancelled")
+                return
+
+            self.tree.model.set_context_items(filtered_items)
+            self._context_items_changed()
+            handed_off = True
         except asyncio.CancelledError:
             cancel_event.set()
             self._finish_refresh_transaction(transaction, "cancelled")
@@ -709,19 +800,9 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             self._finish_refresh_transaction(transaction, "internal_error")
             raise
         finally:
-            if self._context_refresh_cancel_event is cancel_event:
+            if not handed_off and self._context_refresh_cancel_event is cancel_event:
                 self._context_refresh_cancel_event = None
-
-        if filtered_items is None or cancel_event.is_set() or not self._is_active:
-            self._finish_refresh_transaction(transaction, "cancelled")
-            return
-
-        try:
-            self.tree.model.set_context_items(filtered_items)
-            self._context_items_changed()
-        except Exception:
-            self._finish_refresh_transaction(transaction, "internal_error")
-            raise
+                self._show_loading_overlay(False)
 
     @staticmethod
     async def _prepare_context_items(
@@ -746,7 +827,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         if context_items is None or cancel_event.is_set():
             return None
         predicates = await asyncio.to_thread(
-            lambda: [filter_plugin.prepare_filter_predicate() for filter_plugin in context_filters]
+            lambda: [filter_plugin.build_filter_predicate() for filter_plugin in context_filters]
         )
         if cancel_event.is_set():
             return None
@@ -771,6 +852,8 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
 
     def destroy(self):
         self._finish_refresh_transaction(self._refresh_transaction, "cancelled")
+        self._filter_refresh_pending = False
+        self._show_loading_overlay(False)
         if self._context_refresh_cancel_event:
             self._context_refresh_cancel_event.set()
         model_refresh_task = self._model_refresh_task

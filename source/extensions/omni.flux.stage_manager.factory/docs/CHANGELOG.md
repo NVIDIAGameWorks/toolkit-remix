@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [6.0.0]
+### Changed
+- Improved Stage Manager filter responsiveness with stable proxy hierarchies while preserving selection and expansion.
+- Renamed the refresh-local filter predicate builder contract to `build_filter_predicate()`.
+
 ## [5.0.1]
 ### Fixed
 - Allow Stage Manager listener callbacks to unsubscribe safely while an event is being dispatched.

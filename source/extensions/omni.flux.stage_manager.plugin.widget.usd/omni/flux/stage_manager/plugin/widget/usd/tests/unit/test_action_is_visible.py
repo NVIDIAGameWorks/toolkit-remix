@@ -18,6 +18,7 @@
 from unittest.mock import Mock, patch
 
 import omni.kit.test
+from omni.flux.stage_manager.factory import StageManagerTreeItemProxy
 from omni.flux.stage_manager.plugin.widget.usd.action_is_visible import IsVisibleActionWidgetPlugin
 
 __all__ = ["TestIsVisibleActionWidgetPlugin"]
@@ -39,7 +40,7 @@ class TestIsVisibleActionWidgetPlugin(omni.kit.test.AsyncTestCase):
         """Return a mock model whose .selection reflects the given prim paths."""
         model = Mock()
         if selected_paths is not None:
-            model.selection = [self._make_item(p) for p in selected_paths]
+            model.selection = [StageManagerTreeItemProxy(self._make_item(path)) for path in selected_paths]
         else:
             model.selection = []
         return model

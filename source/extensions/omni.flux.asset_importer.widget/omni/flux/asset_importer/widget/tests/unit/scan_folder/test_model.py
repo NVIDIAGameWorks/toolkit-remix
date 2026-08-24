@@ -15,20 +15,21 @@
 * limitations under the License.
 """
 
-from .unit.test_interaction_update_queue import TestStageManagerInteractionUpdateQueue
-from .unit.test_tree_model_threaded_refresh import (
-    TestStageManagerTreeDelegate,
-    TestStageManagerTreeItemProxy,
-    TestStageManagerTreeModelThreadedRefresh,
-)
-from .unit.test_utils_filter_items import TestStageManagerUtilsFilterItems
-from .unit.test_utils_filter_items_by_category import TestStageManagerUtils
+from pathlib import Path
 
-__all__ = [
-    "TestStageManagerInteractionUpdateQueue",
-    "TestStageManagerTreeDelegate",
-    "TestStageManagerTreeItemProxy",
-    "TestStageManagerTreeModelThreadedRefresh",
-    "TestStageManagerUtils",
-    "TestStageManagerUtilsFilterItems",
-]
+import omni.kit.test
+
+from omni.flux.asset_importer.widget.scan_folder.model.model import Item, Model
+
+
+class TestScanFolderModel(omni.kit.test.AsyncTestCase):
+    def test_can_item_have_children_scan_folder_item_returns_false(self):
+        # Arrange
+        model = Model()
+        item = Item(Path("folder"))
+
+        # Act
+        result = model.can_item_have_children(item)
+
+        # Assert
+        self.assertFalse(result)

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.10.1]
+### Changed
+- Optimized Stage Manager Search filtering by avoiding unnecessary nickname and path work.
+
 ## [2.10.0]
 ### Changed
 - Evaluate USD filter predicates directly in the model worker instead of preparing per-item main-thread lookup maps.

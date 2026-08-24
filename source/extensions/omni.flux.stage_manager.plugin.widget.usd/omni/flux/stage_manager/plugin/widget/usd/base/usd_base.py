@@ -45,7 +45,11 @@ class StageManagerUSDWidgetPlugin(_StageManagerWidgetPlugin, abc.ABC):
 
         Selection state is read from ``model.selection`` — no USD API is queried.
         """
-        current = [str(i.data.GetPath()) for i in model.selection if i.data]
+        current = []
+        for selected_item in model.selection:
+            original_item = selected_item.original_tree_item
+            if original_item.data:
+                current.append(str(original_item.data.GetPath()))
         if item.data:
             item_path = str(item.data.GetPath())
             if item_path in current:

@@ -27,8 +27,11 @@ from lightspeed.trex.utils.common.prim_utils import (
     get_transferable_property_specs,
     get_transferable_reference_specs,
     has_replacement_ref_edits,
-    is_ghost_prim,
     is_empty_mesh_prim,
+    is_ghost_prim,
+    is_in_light_group,
+    is_instance,
+    is_mesh_prototype,
 )
 from pxr import Sdf
 
@@ -652,6 +655,29 @@ class TestHasReplacementRefEdits(omni.kit.test.AsyncTestCase):
 
 
 class TestIsEmptyMeshPrim(omni.kit.test.AsyncTestCase):
+    async def test_prim_path_classifiers_with_precomputed_path_return_expected_without_get_path(self):
+        """Use each supplied prim path without reading it again from the prim."""
+        cases = [
+            ("mesh_prototype", is_mesh_prototype, "/Root/mesh_0123456789ABCDEF/Mesh"),
+            ("empty_mesh", is_empty_mesh_prim, "/Root/mesh_0123456789ABCDEF"),
+            ("instance", is_instance, "/Root/inst_0123456789ABCDEF/Descendant"),
+            ("light_group", is_in_light_group, "/Root/light_0123456789ABCDEF/Descendant"),
+        ]
+
+        for title, classifier, prim_path in cases:
+            with self.subTest(title=title):
+                # Arrange
+                prim = Mock()
+                prim.IsA.return_value = True
+                prim.GetChildren.return_value = []
+
+                # Act
+                result = classifier(prim, prim_path=prim_path)
+
+                # Assert
+                self.assertTrue(result)
+                prim.GetPath.assert_not_called()
+
     def _create_prim(self, path: str, children: list[Mock] | None = None):
         prim = Mock()
         prim.GetPath.return_value = Sdf.Path(path)

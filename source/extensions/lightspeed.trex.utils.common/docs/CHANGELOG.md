@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.2]
+### Changed
+- Allowed shared prim classifiers to reuse a caller-precomputed prim path.
+
 ## [2.5.1]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

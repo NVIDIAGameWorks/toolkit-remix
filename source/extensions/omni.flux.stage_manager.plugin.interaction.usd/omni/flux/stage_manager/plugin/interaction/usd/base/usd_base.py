@@ -24,7 +24,7 @@ import omni.kit.app
 import omni.kit.usd.layers as _layers
 import omni.usd
 from omni.flux.stage_manager.factory import StageManagerDataTypes as _StageManagerDataTypes
-from omni.flux.stage_manager.factory import StageManagerTreeItem as _StageManagerTreeItem
+from omni.flux.stage_manager.factory import StageManagerTreeItemProxy as _StageManagerTreeItemProxy
 from omni.flux.stage_manager.factory.plugins import StageManagerInteractionPlugin as _StageManagerInteractionPlugin
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common.prims import get_omni_prims as _get_omni_prims
@@ -185,8 +185,10 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             self._selection_update_lock = False
 
     async def _update_tree_selection_async(self):
-        """
-        Async implementation of tree selection update.
+        """Synchronize USD selection to visible and retained proxies in selection order.
+
+        Insertion-ordered dictionaries provide constant-time membership while
+        preserving path and proxy ordering. Their values are intentionally unused.
         """
 
         while True:
@@ -198,10 +200,12 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             if not self.synchronize_selection or not self._is_active:
                 return
 
-            selection = set(self._get_selection())
-            matching_items = []
-            for path in selection:
-                matching_items.extend(self.tree.model.get_items_by_path(path))
+            selected_paths = dict.fromkeys(self._get_selection())
+            matching_items = {item: None for path in selected_paths for item in self.tree.model.get_items_by_path(path)}
+            for item in self.tree.model.selection:
+                original_item = item.original_tree_item
+                if original_item.path in selected_paths:
+                    matching_items.setdefault(item, None)
 
             task_cancelled = (
                 self._tree_selection_task is None or self._tree_selection_task.cancelled() or not self._is_active
@@ -209,29 +213,39 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             if task_cancelled:
                 return
 
-            await self._set_tree_widget_selection_async(matching_items)
+            await self._set_tree_widget_selection_async(list(matching_items))
             if not self._tree_selection_update_pending:
                 return
 
-    async def _set_tree_widget_selection_async(self, items: list[_StageManagerTreeItem]):
+    async def _set_tree_widget_selection_async(self, items: list[_StageManagerTreeItemProxy]):
+        """Synchronize proxy selection with TreeView and the model without feeding it back to USD.
+
+        Reframe only when TreeView membership changes, and always release the feedback lock.
+        """
         # Lock to prevent _on_selection_changed from writing programmatic tree selection changes back to USD.
-        self._set_programmatic_tree_selection_paths(items)
         self._selection_update_lock = True
         try:
-            await self._tree_widget.set_selection_async(items)
+            if set(items) != set(self._tree_widget.selection):
+                self._set_programmatic_tree_selection_paths(items)
+                await self._tree_widget.set_selection_async(items)
             self.tree.model.selection = items
         finally:
             self._selection_update_lock = False
 
-    def _set_programmatic_tree_selection_paths(self, items: list[_StageManagerTreeItem]):
+    def _set_programmatic_tree_selection_paths(self, items: list[_StageManagerTreeItemProxy]):
         self._programmatic_tree_selection_paths = self._get_tree_item_paths(items)
 
     def _clear_programmatic_tree_selection_paths(self):
         self._programmatic_tree_selection_paths = None
 
     @staticmethod
-    def _get_tree_item_paths(items: list[_StageManagerTreeItem]) -> tuple[str, ...]:
-        return tuple(str(item.path) for item in items if item.data is not None and item.path)
+    def _get_tree_item_paths(items: list[_StageManagerTreeItemProxy]) -> tuple[str, ...]:
+        paths = []
+        for item in items:
+            original_item = item.original_tree_item
+            if original_item.data is not None and original_item.path:
+                paths.append(str(original_item.path))
+        return tuple(paths)
 
     def _get_selection(self) -> list[str]:
         return omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()
@@ -254,7 +268,7 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             return False
         return set(self._get_selection()) == set(previous_selection_prim_paths)
 
-    def _on_selection_changed(self, items: list[_StageManagerTreeItem]):
+    def _on_selection_changed(self, items: list[_StageManagerTreeItemProxy]):
         """Synchronize tree selection back to USD without rewriting order-only changes.
 
         Args:
@@ -433,10 +447,11 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
             prim_paths: Set of Sdf.Path objects for prims whose nicknames changed
         """
 
-        def matches_prim_path(item: _StageManagerTreeItem) -> bool:
-            if not item.data:
+        def matches_prim_path(item: _StageManagerTreeItemProxy) -> bool:
+            original_item = item.original_tree_item
+            if not original_item.data:
                 return False
-            prim = _get_proto_from_prim(item.data)
+            prim = _get_proto_from_prim(original_item.data)
             return prim and (prim.GetPath() in prim_paths)
 
         # Find affected items and reload their nicknames

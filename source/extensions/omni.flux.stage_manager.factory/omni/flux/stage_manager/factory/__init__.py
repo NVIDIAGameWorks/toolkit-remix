@@ -23,6 +23,7 @@ __all__ = [
     "StageManagerPluginBase",
     "StageManagerTreeDelegate",
     "StageManagerTreeItem",
+    "StageManagerTreeItemProxy",
     "StageManagerTreeModel",
     "StageManagerTreePlugin",
     "StageManagerUIPluginBase",
@@ -38,6 +39,7 @@ from .plugins.base import StageManagerPluginBase, StageManagerUIPluginBase
 from .plugins.tree_plugin import (
     StageManagerTreeDelegate,
     StageManagerTreeItem,
+    StageManagerTreeItemProxy,
     StageManagerTreeModel,
     StageManagerTreePlugin,
 )

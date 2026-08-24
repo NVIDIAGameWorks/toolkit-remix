@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Changed
+- Updated context-menu payloads to accept proxy rows while continuing to provide canonical items to USD actions.
+
 ## [2.7.0]
 ### Changed
 - Read USD facts and build Prim, Light, Material, Tag, and Skeleton groups in cancellable model workers.

@@ -22,8 +22,17 @@ from omni.kit.test import AsyncTestCase
 from .helper import MockTreeItem, MockTreeModel
 
 
+class _MockLeafTreeItem(MockTreeItem):
+    """Mock tree item that cannot contain children."""
+
+    @property
+    def can_have_children(self) -> bool:
+        """Whether this item can contain children."""
+        return False
+
+
 class TestTreeWidgetModel(AsyncTestCase):
-    """Tests for the TreeModelBase.get_children_count method."""
+    """Tests for the TreeModelBase class."""
 
     def _create_test_tree(self) -> tuple[MockTreeModel, list[MockTreeItem]]:
         """
@@ -93,3 +102,26 @@ class TestTreeWidgetModel(AsyncTestCase):
 
         count = model.get_children_count(recursive=True)
         self.assertEqual(1, count)
+
+    async def test_can_item_have_children_with_specialized_item_delegates_to_item(self):
+        """Test that the model returns an item's child capability."""
+        # Arrange
+        item = _MockLeafTreeItem("Leaf")
+        model = MockTreeModel(items=[item])
+
+        # Act
+        result = model.can_item_have_children(item)
+
+        # Assert
+        self.assertFalse(result)
+
+    async def test_can_item_have_children_with_none_returns_true(self):
+        """Test that the model permits children at the root."""
+        # Arrange
+        model = MockTreeModel()
+
+        # Act
+        result = model.can_item_have_children(None)
+
+        # Assert
+        self.assertTrue(result)

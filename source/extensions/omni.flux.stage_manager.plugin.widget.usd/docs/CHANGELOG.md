@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.10]
+### Fixed
+- Kept overview counts and multi-selection USD actions working with Stage Manager proxy rows.
+
 ## [2.1.9]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

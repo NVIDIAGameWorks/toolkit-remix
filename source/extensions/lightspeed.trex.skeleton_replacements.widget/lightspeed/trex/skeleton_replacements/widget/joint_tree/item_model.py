@@ -106,10 +106,6 @@ class JointItem(_TreeItemBase):
         return default_attr
 
     @property
-    def can_have_children(self) -> bool:
-        return bool(self.children)
-
-    @property
     def index(self):
         return self._index
 

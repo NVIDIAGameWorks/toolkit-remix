@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.36.7]
+### Changed
+- Updated property expansion controls to reflect existing child rows.
+
 ## [2.36.6]
 ### Changed
 - Reused the shared ComboBox field for USD choice properties.
