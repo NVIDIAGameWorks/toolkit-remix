@@ -59,16 +59,27 @@ def _on_click_open(
     select_directory: bool = False,
     allow_multi_selection: bool = False,
 ):
+    """Validate and submit the current file-picker selection.
+
+    When selecting one directory, a highlighted path replaces ``dirname``; if none is highlighted, the directory
+    currently being viewed is retained.
+
+    Args:
+        dialog: File-picker dialog providing the current selections.
+        filename: Filename entered or selected in the dialog.
+        dirname: Directory currently being viewed by the dialog.
+        callback: Function invoked with the normalized accepted path or paths.
+        validate_selection: Optional function that validates the selected path data.
+        validation_failed_callback: Optional function invoked when validation fails.
+        select_directory: If True, accept directories instead of files.
+        allow_multi_selection: If True, accept multiple paths.
     """
-    The meat of the App is done in this callback when the user clicks 'Accept'. This is
-    a potentially costly operation so we implement it as an async operation.  The inputs
-    are the filename and directory name. Together they form the fullpath to the selected
-    file.
-    """
+    selection_paths = dialog.get_current_selections()
+    if select_directory and not allow_multi_selection and selection_paths:
+        dirname = selection_paths[-1]
+
     if not dirname.endswith("/"):
         dirname = f"{dirname}/"
-
-    selection_paths = dialog.get_current_selections()
 
     def fail_callback():
         if validation_failed_callback is not None:

@@ -16,6 +16,7 @@
 """
 
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import omni.kit
 import omni.kit.test
@@ -147,3 +148,47 @@ class TestFilePicker(omni.kit.test.AsyncTestCase):
         finally:
             _destroy_file_picker()
             await ui_test.human_delay()
+
+    async def test_select_directory_with_highlighted_child_returns_child_directory(self):
+        """Select a highlighted child directory without navigating into it."""
+        test_name = "test_select_directory_with_highlighted_child_returns_child_directory"
+        selected_paths = []
+        validated_paths = []
+
+        def validate_selection(dirname, filename):
+            selected_path = Path(dirname) / filename
+            validated_paths.append(selected_path)
+            return selected_path == child_directory
+
+        with TemporaryDirectory() as temp_dir:
+            child_directory = Path(temp_dir) / "rtx-remix"
+            child_directory.mkdir()
+
+            try:
+                _open_file_picker(
+                    test_name,
+                    selected_paths.append,
+                    lambda *_: None,
+                    current_file=temp_dir,
+                    select_directory=True,
+                    validate_selection=validate_selection,
+                )
+                await ui_test.human_delay(human_delay_speed=10)
+
+                child_labels = ui_test.find_all(f"{test_name}//Frame/**/Label[*].text=='{child_directory.name}'")
+                self.assertTrue(child_labels)
+
+                await child_labels[-1].click()
+                await ui_test.human_delay()
+
+                select_button = ui_test.find(f"{test_name}//Frame/**/Button[*].text=='Select'")
+                self.assertIsNotNone(select_button)
+
+                await select_button.click()
+                await ui_test.human_delay(human_delay_speed=10)
+
+                self.assertEqual(validated_paths, [child_directory])
+                self.assertEqual([Path(path) for path in selected_paths], [child_directory])
+            finally:
+                _destroy_file_picker()
+                await ui_test.human_delay()
