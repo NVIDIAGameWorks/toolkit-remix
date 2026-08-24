@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.30.6]
+### Fixed
+- Select highlighted directories in file pickers without requiring navigation into them.
+
 ## [1.30.5]
 ### Added
 - Added an optional tooltip to each sectioned combo box item, which the whole option row shows on hover.

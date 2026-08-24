@@ -31,3 +31,8 @@ Your resource extension should have this type of architecture:
 `data/images`
 
 `data/images/background_images`
+
+## File Pickers
+
+Directory file pickers return the highlighted directory when the user selects one. If no directory is highlighted,
+they return the directory currently being viewed.
