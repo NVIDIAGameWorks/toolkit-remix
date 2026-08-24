@@ -69,8 +69,12 @@ class RemapSkeletonInfoWidgetPlugin(StageManagerUSDWidgetPlugin):
                 or item.bound_prim.GetAttribute("skel:joints").HasAuthoredValue()
             )
 
-        bound_prims = [i for i in model.iter_items_children() if isinstance(i, SkeletonBoundMeshItem)]
-        manually_remapped_count = len([i for i in bound_prims if is_remapped(i)])
+        bound_prims = [
+            item.original_tree_item
+            for item in model.iter_items_children()
+            if isinstance(item.original_tree_item, SkeletonBoundMeshItem)
+        ]
+        manually_remapped_count = sum(is_remapped(item) for item in bound_prims)
         ui.Label(
             f"{manually_remapped_count}/{len(bound_prims)} "
             f"skeleton{'s' if manually_remapped_count > 1 else ''} remapped"

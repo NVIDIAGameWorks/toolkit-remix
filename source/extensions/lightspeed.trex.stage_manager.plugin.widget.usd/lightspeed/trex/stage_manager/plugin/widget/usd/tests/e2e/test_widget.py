@@ -48,6 +48,7 @@ from lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job import (
 )
 from omni import ui, usd
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
+from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItemProxy as _StageManagerTreeItemProxy
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
@@ -225,7 +226,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
             tooltip="Second Material",
             data=second_prim,
         )
-        model.selection = [item, second_item]
+        model.selection = [_StageManagerTreeItemProxy(item), _StageManagerTreeItemProxy(second_item)]
         core = MagicMock(is_ready=True)
         core.workflow.name = "Upscale"
         submission = ComfyUISubmission((), 0)

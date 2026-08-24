@@ -15,8 +15,6 @@
 * limitations under the License.
 """
 
-import abc
-
 from omni import ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
@@ -34,7 +32,6 @@ class TreeItemBase(ui.AbstractItem):
     while preserving insertion order.
 
     Subclasses should:
-        - Override `can_have_children` to define if the item supports child items.
         - Override `default_attr` to add custom attributes that need cleanup on destroy.
         - Add custom properties like `display_name`, `data`, `tooltip`, etc.
     """
@@ -116,6 +113,16 @@ class TreeItemBase(ui.AbstractItem):
         return list(self._children.keys())
 
     @property
+    def can_have_children(self) -> bool:
+        """Whether this item may have child items."""
+        return True
+
+    @property
+    def has_children(self) -> bool:
+        """Whether this item currently has child items."""
+        return bool(self._children)
+
+    @property
     def default_attr(self) -> dict[str, None]:
         return {
             "_display_name": None,
@@ -133,21 +140,6 @@ class TreeItemBase(ui.AbstractItem):
         """
         for child in self.children:
             child.parent = None
-
-    @property
-    @abc.abstractmethod
-    def can_have_children(self) -> bool:
-        """
-        Whether this item can have child items.
-
-        Subclasses must implement this property to indicate whether the item
-        supports a hierarchical structure. This is used by the TreeWidget to
-        determine whether to show expand/collapse controls.
-
-        Returns:
-            True if the item can contain children, False otherwise.
-        """
-        raise NotImplementedError()
 
     def destroy(self):
         self._children.clear()

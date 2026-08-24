@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added configurable Sentry filtering for external exception modules, unowned origins, and unattributed events.
 - REMIX-5603: Updated property panel collapsible headers and section menus so row and header clicks toggle expansion without selecting child property rows, and Object, Material, Particle, and Logic property sections expose Expand All and Collapse All header menu actions.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-10c8514-main`
+- REMIX-5722: Improved Stage Manager filter responsiveness by reusing stable proxy hierarchies for filter-only updates and reducing repeated predicate work while preserving selection and expansion.
 
 ### Removed
 

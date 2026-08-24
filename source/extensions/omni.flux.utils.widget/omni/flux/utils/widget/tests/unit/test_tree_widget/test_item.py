@@ -34,6 +34,18 @@ class TestTreeItemBase(AsyncTestCase):
         self.assertEqual("Root", item.name)
         self.assertEqual([], item.children)
         self.assertIsNone(item.parent)
+        self.assertFalse(item.has_children)
+
+    async def test_can_have_children_without_children_returns_true(self):
+        """Test that child capability is independent from current children."""
+        # Arrange
+        item = MockTreeItem("Leaf")
+
+        # Act
+        result = item.can_have_children, item.has_children
+
+        # Assert
+        self.assertEqual((True, False), result)
 
     async def test_init_with_children(self):
         """Test that an item can be created with children."""
@@ -44,6 +56,7 @@ class TestTreeItemBase(AsyncTestCase):
         self.assertEqual([child1, child2], parent.children)
         self.assertIs(parent, child1.parent)
         self.assertIs(parent, child2.parent)
+        self.assertTrue(parent.has_children)
 
     async def test_init_sets_parent_on_children(self):
         """Test that initializing with children sets parent references."""
@@ -98,6 +111,7 @@ class TestTreeItemBase(AsyncTestCase):
         parent.clear_children()
 
         self.assertEqual([], parent.children)
+        self.assertFalse(parent.has_children)
 
     async def test_clear_children_clears_parent_references(self):
         """Test that clear_children sets children's parent to None."""
@@ -156,6 +170,8 @@ class TestTreeItemBase(AsyncTestCase):
 
         self.assertNotIn(child, old_parent.children)
         self.assertIn(child, new_parent.children)
+        self.assertFalse(old_parent.has_children)
+        self.assertTrue(new_parent.has_children)
 
     async def test_parent_setter_to_none_removes_from_parent(self):
         """Test that setting parent to None removes item from parent's children."""

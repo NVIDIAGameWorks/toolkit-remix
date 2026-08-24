@@ -102,7 +102,7 @@ class TestStageManagerUSDFilterPluginUnit(omni.kit.test.AsyncTestCase):
         self.assertTrue(active_for_non_default)
         self.assertFalse(plugin.filter_active)
 
-    async def test_prepare_filter_predicate_should_defer_evaluation_until_called(self):
+    async def test_build_filter_predicate_should_defer_evaluation_until_called(self):
         # Arrange
         plugin = _PreparedLookupFilterPlugin()
         kept_item = StageManagerItem("keep")
@@ -110,7 +110,7 @@ class TestStageManagerUSDFilterPluginUnit(omni.kit.test.AsyncTestCase):
         unknown_item = StageManagerItem("unknown")
 
         # Act
-        prepared_predicate = plugin.prepare_filter_predicate()
+        prepared_predicate = plugin.build_filter_predicate()
         calls_after_preparation = plugin._calls
         prepared_results = [prepared_predicate(item) for item in (kept_item, rejected_item, unknown_item)]
 

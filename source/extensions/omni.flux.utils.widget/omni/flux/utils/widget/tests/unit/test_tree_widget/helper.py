@@ -43,10 +43,6 @@ class MockTreeItem(TreeItemBase):
     def name(self) -> str:
         return self._name
 
-    @property
-    def can_have_children(self) -> bool:
-        return len(self.children) > 0
-
     def __repr__(self) -> str:
         return f"MockTreeItem({self._name})"
 

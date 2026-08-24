@@ -21,6 +21,7 @@ from .e2e.texture_import_list.test_texture_import_list_widget import TestTexture
 from .unit.common.test_ingestion_checker import TestIngestionCheckerUnit
 from .unit.file_import_list.test_file_import_list_items import TestFileImportListItems
 from .unit.file_import_list.test_file_import_list_model import TestFileImportListModel
+from .unit.scan_folder.test_model import TestScanFolderModel
 from .unit.texture_import_list.test_texture_import_list_items import TestTextureImportListItems
 from .unit.texture_import_list.test_texture_import_list_model import TestTextureImportListModel
 
@@ -30,6 +31,7 @@ __all__ = [
     "TestFileImportListWidget",
     "TestIngestionCheckerE2E",
     "TestIngestionCheckerUnit",
+    "TestScanFolderModel",
     "TestTextureImportListItems",
     "TestTextureImportListModel",
     "TestTextureImportListWidget",

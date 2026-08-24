@@ -147,7 +147,7 @@ class LayerDelegate(_TreeDelegateBase):
                                 self._build_branch_start_icons(model, item)
                             ui.Spacer(height=0, width=ui.Pixel((level - 1) * 16))
                             with ui.ZStack(width=ui.Pixel(20)):
-                                if item.can_have_children and item.children:
+                                if item.has_children:
                                     # Draw the +/- icon
                                     with ui.HStack(
                                         identifier="expansion_stack",

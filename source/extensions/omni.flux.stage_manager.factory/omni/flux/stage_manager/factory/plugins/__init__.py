@@ -24,6 +24,7 @@ __all__ = [
     "StageManagerInteractionPlugin",
     "StageManagerListenerPlugin",
     "StageManagerMenuMixin",
+    "StageManagerTreeItemProxy",
     "StageManagerTreePlugin",
     "StageManagerWidgetPlugin",
 ]
@@ -34,5 +35,5 @@ from .filter_plugin import StageManagerFilterPlugin
 from .interaction_plugin import StageManagerInteractionPlugin
 from .listener_plugin import StageManagerListenerPlugin
 from .mixins import StageManagerMenuMixin
-from .tree_plugin import StageManagerTreePlugin
+from .tree_plugin import StageManagerTreeItemProxy, StageManagerTreePlugin
 from .widget_plugin import StageManagerWidgetPlugin

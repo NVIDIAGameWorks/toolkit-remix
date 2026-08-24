@@ -109,17 +109,6 @@ class TestJointItemModel(AsyncTestCase):
         # Assert
         self.assertEqual("head", result)
 
-    async def test_joint_item_with_children_should_report_can_have_children(self):
-        # Arrange
-        parent = JointItem("/root", 0, ["/root"], remapped_index=0)
-        child = JointItem("/root/spine", 1, ["/root"], remapped_index=0)
-
-        # Act
-        child.parent = parent
-
-        # Assert
-        self.assertTrue(parent.can_have_children)
-
     async def test_joint_item_remap_model_should_use_requested_default(self):
         # Arrange
         item = JointItem("/root/spine", 1, ["/root", "/root/spine"], remapped_index=1)

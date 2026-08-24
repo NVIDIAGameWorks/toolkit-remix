@@ -63,10 +63,7 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
             await usd_context.close_stage_async()
             await ui_test.human_delay(2)
 
-    async def _select_stage_manager_tab(self, display_name: str, interaction_name: str):
-        core = _get_stage_manager_core_instance()
-        self.assertIsNotNone(core)
-
+    async def _click_stage_manager_tab(self, display_name: str):
         tab_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Label[*].name=='PropertiesWidgetLabel'"
         for _ in range(40):
             tabs = [
@@ -76,10 +73,15 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
                 tab = tabs[0]
                 await ui_test.emulate_mouse_move(tab.position + (tab.size / 2))
                 await ui_test.emulate_mouse_click()
-                break
+                await ui_test.human_delay()
+                return
             await ui_test.human_delay()
-        else:
-            self.fail(f"Stage Manager tab '{display_name}' was not visible")
+        self.fail(f"Stage Manager tab '{display_name}' was not visible")
+
+    async def _select_stage_manager_tab(self, display_name: str, interaction_name: str):
+        await self._click_stage_manager_tab(display_name)
+        core = _get_stage_manager_core_instance()
+        self.assertIsNotNone(core)
 
         for _ in range(80):
             interaction = core.get_active_interaction()
@@ -91,15 +93,66 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
 
     @staticmethod
     def _find_tagged_items(interaction, prim_path: str, tag_name: str):
-        return interaction.tree.model.find_items(
-            lambda item: (
-                item.data
-                and item.data.IsValid()
-                and str(item.data.GetPath()) == prim_path
-                and item.parent
-                and item.parent.display_name == tag_name
+        def matches_tag(item):
+            original_item = item.original_tree_item
+            parent_item = item.parent.original_tree_item if item.parent else None
+            return (
+                original_item.data
+                and original_item.data.IsValid()
+                and str(original_item.data.GetPath()) == prim_path
+                and parent_item
+                and parent_item.display_name == tag_name
             )
+
+        return interaction.tree.model.find_items(matches_tag)
+
+    async def _input_stage_manager_search(self, value: str, target_path: str, expected_visible: bool = True):
+        """Enter a search and wait for its observable result."""
+        search_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/StringField[*].identifier=='search_field'"
+        for _ in range(80):
+            search_fields = [field for field in ui_test.find_all(search_selector) if field.widget.visible]
+            if search_fields:
+                break
+            await ui_test.wait_n_updates(1)
+        else:
+            self.fail("Stage Manager search field was not visible")
+
+        await search_fields[0].input(
+            value,
+            human_delay_speed=0,
+            end_key=KeyboardInput.ENTER,
+            clear_before_input=True,
         )
+        await ui_test.human_delay()
+
+        row_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Label[*].identifier=='nickname_field'"
+        frame_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/ScrollingFrame[*].name=='TreePanelBackground'"
+        overview_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Label[*]"
+        for _ in range(120):
+            if not expected_visible:
+                overview_labels = [label for label in ui_test.find_all(overview_selector) if label.widget.visible]
+                if any(label.widget.text == "0 prim available" for label in overview_labels):
+                    return None
+                await ui_test.human_delay()
+                continue
+
+            rows = [
+                row
+                for row in ui_test.find_all(row_selector)
+                if row.widget.visible and row.widget.tooltip == target_path
+            ]
+            frames = [frame for frame in ui_test.find_all(frame_selector) if frame.widget.visible]
+            for row in rows:
+                row_center = row.position + (row.size / 2)
+                if any(
+                    frame.position.x <= row_center.x <= frame.position.x + frame.size.x
+                    and frame.position.y <= row_center.y <= frame.position.y + frame.size.y
+                    for frame in frames
+                ):
+                    return row
+            await ui_test.human_delay()
+        expected_result = "frame" if expected_visible else "show zero prims"
+        raise AssertionError(f"Stage Manager did not {expected_result} for {target_path}")
 
     async def _wait_for_usd_selection(
         self, expected_paths: list[str], settle_frames: int = 10, timeout_frames: int = 120
@@ -121,11 +174,11 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
     async def _wait_for_stage_manager_model_selection(self, interaction, expected_path: str, timeout_frames: int = 120):
         last_selection = []
         for _ in range(timeout_frames):
-            last_selection = [
-                str(item.data.GetPath())
-                for item in interaction.tree.model.selection
-                if item.data and item.data.IsValid()
-            ]
+            last_selection = []
+            for item in interaction.tree.model.selection:
+                original_item = item.original_tree_item
+                if original_item.data and original_item.data.IsValid():
+                    last_selection.append(str(original_item.data.GetPath()))
             if expected_path in last_selection:
                 return
             await ui_test.wait_n_updates(1)
@@ -136,11 +189,11 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
     ):
         last_selection = []
         for _ in range(timeout_frames):
-            last_selection = [
-                str(item.data.GetPath())
-                for item in interaction.tree.model.selection
-                if item.data and item.data.IsValid()
-            ]
+            last_selection = []
+            for item in interaction.tree.model.selection:
+                original_item = item.original_tree_item
+                if original_item.data and original_item.data.IsValid():
+                    last_selection.append(str(original_item.data.GetPath()))
             if last_selection == expected_paths:
                 return
             await ui_test.wait_n_updates(1)
@@ -235,6 +288,24 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         await self._wait_for_usd_selection([], settle_frames=5)
         await self._wait_for_stage_manager_model_selection_paths(interaction, [])
 
+    async def test_search_filter_frames_selected_mesh(self):
+        target_path = "/RootNode/meshes/mesh_FEE1DEADF00D0001/mesh"
+        await self._click_stage_manager_tab("Meshes")
+
+        row = await self._input_stage_manager_search(target_path, target_path)
+        await row.click()
+        await ui_test.human_delay()
+        await self._wait_for_usd_selection([target_path])
+
+        await self._input_stage_manager_search("definitelynomatchingprimname", target_path, expected_visible=False)
+        await self._wait_for_usd_selection([target_path])
+
+        await self._input_stage_manager_search("mesh", target_path)
+        await self._wait_for_usd_selection([target_path])
+
+        await self._input_stage_manager_search("", target_path)
+        await self._wait_for_usd_selection([target_path])
+
     async def test_material_properties_update_stage_manager_should_not_refresh(self):
         selection_prim_path = (
             "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
@@ -301,10 +372,15 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         self.assertIsNotNone(core)
         interaction = core.get_active_interaction()
         self.assertIsNotNone(interaction)
-        stage_manager_paths_before = {
-            str(item.data.GetPath())
-            for item in interaction.tree.model.find_items(lambda item: item.data and item.data.IsValid())
-        }
+
+        def has_valid_prim(item):
+            original_item = item.original_tree_item
+            return original_item.data and original_item.data.IsValid()
+
+        stage_manager_paths_before = set()
+        for item in interaction.tree.model.find_items(has_valid_prim):
+            original_item = item.original_tree_item
+            stage_manager_paths_before.add(str(original_item.data.GetPath()))
 
         # Click the real checkbox. This authors USD through the Properties UI and should not rebuild Stage Manager.
         visible_checkboxes = [widget for widget in ui_test.find_all(checkbox_selector) if widget.widget.visible]
@@ -326,10 +402,10 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         # The material property changed, but the active selection and Stage Manager item set should remain stable.
         await self._wait_for_usd_selection(selection_before_property_edit, settle_frames=5)
         await ui_test.wait_n_updates(5)
-        stage_manager_paths_after = {
-            str(item.data.GetPath())
-            for item in interaction.tree.model.find_items(lambda item: item.data and item.data.IsValid())
-        }
+        stage_manager_paths_after = set()
+        for item in interaction.tree.model.find_items(has_valid_prim):
+            original_item = item.original_tree_item
+            stage_manager_paths_after.add(str(original_item.data.GetPath()))
         self.assertEqual(stage_manager_paths_before, stage_manager_paths_after)
 
     async def test_custom_tag_assignment_updates_active_stage_manager_tab(self):

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.1]
+### Changed
+- Declared scan-folder items as leaves under the shared tree child-capability contract.
+
 ## [2.7.0]
 ### Changed
 - Moved scanner UI ownership from core to the widget, with explicit exports, actionable invalid-input feedback, safe repeated scans, synchronized result-row scrolling, correct multi-row checkbox state, and single-pass core validation for dropped files.

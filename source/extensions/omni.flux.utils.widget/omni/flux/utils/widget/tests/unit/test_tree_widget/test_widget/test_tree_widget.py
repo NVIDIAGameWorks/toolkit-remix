@@ -512,7 +512,7 @@ class TestTreeWidget(AsyncTestCase):
 
         # Delegate selection should be synced (after on_selection_changed fires)
         # Note: With select_all_children=False, selection stays the same
-        self.assertEqual([root1, root2], list(delegate.selection))
+        self.assertEqual([root1, root2], list(widget.selection))
 
         # Cleanup
         widget.destroy()
@@ -544,6 +544,35 @@ class TestTreeWidget(AsyncTestCase):
         self.assertIsNone(widget._sub_selection_changed)  # pylint: disable=protected-access
 
         # Cleanup
+        window.destroy()
+
+    async def test_release_callbacks_when_delegate_is_reused_only_current_widget_receives_click(self):
+        """Release the old widget's click callback before reusing its model and delegate."""
+        # Arrange
+        model, delegate, items = self._create_test_tree()
+        root = items[0]
+
+        await arrange_windows(topleft_window="Stage")
+        window = ui.Window("TestReleaseCallbacks", height=400, width=400)
+
+        with window.frame:
+            with ui.VStack():
+                old_widget = MockTreeWidget(model, delegate, select_all_children=False)
+                old_widget.release_callbacks()
+                current_widget = MockTreeWidget(model, delegate, select_all_children=False)
+
+        # Act
+        delegate._item_clicked(0, True, model, root)  # pylint: disable=protected-access
+
+        # Assert
+        self.assertEqual([], list(old_widget.selection))
+        self.assertEqual([root], list(current_widget.selection))
+        self.assertIs(model, old_widget._model)  # pylint: disable=protected-access
+        self.assertIs(delegate, old_widget._delegate)  # pylint: disable=protected-access
+
+        # Cleanup
+        old_widget.release_callbacks()
+        current_widget.destroy()
         window.destroy()
 
     async def test_on_item_clicked_validates_selection(self):

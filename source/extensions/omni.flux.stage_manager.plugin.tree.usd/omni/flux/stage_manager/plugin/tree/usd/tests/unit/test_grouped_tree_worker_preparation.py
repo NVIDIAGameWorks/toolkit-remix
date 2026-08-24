@@ -26,7 +26,7 @@ from omni.flux.stage_manager.plugin.tree.usd.light_groups import LightGroupsMode
 from omni.flux.stage_manager.plugin.tree.usd.material_groups import MaterialGroupsModel
 from omni.flux.stage_manager.plugin.tree.usd.prim_groups import PrimGroupsModel
 from omni.flux.stage_manager.plugin.tree.usd.skeleton_groups import SkeletonGroupsModel
-from pxr import Sdf, UsdGeom, UsdShade
+from pxr import Sdf, UsdGeom, UsdShade, Vt
 
 __all__ = ["TestUSDGroupedTreeWorkerPreparation"]
 
@@ -165,10 +165,12 @@ class TestUSDGroupedTreeWorkerPreparation(omni.kit.test.AsyncTestCase):
         skeleton_prim.GetParent.return_value = root_prim
         root_item = StageManagerItem("/World/Root", data=root_prim)
         skeleton_item = StageManagerItem("/World/Root/Skeleton", data=skeleton_prim, parent=root_item)
+        joints_attr = mock.Mock()
+        joints_attr.Get.return_value = Vt.TokenArray(["RootJoint", "RootJoint/ChildJoint"])
 
         class _FakeSkeleton:
             def __init__(self, _prim):
-                self.GetJointsAttr = mock.Mock(return_value=None)
+                self.GetJointsAttr = mock.Mock(return_value=joints_attr)
 
         with mock.patch("omni.flux.stage_manager.plugin.tree.usd.skeleton_groups.UsdSkel.Skeleton", new=_FakeSkeleton):
             # Act
@@ -176,7 +178,16 @@ class TestUSDGroupedTreeWorkerPreparation(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual(["Root"], [item.display_name for item in root_items])
-        self.assertEqual(["Skeleton"], [item.display_name for item in root_items[0].children])
+        skeleton = root_items[0].children[0]
+        root_joint = skeleton.children[0]
+        child_joint = root_joint.children[0]
+        self.assertEqual("Skeleton", skeleton.display_name)
+        self.assertEqual("RootJoint", root_joint.display_name)
+        self.assertEqual("ChildJoint", child_joint.display_name)
+        self.assertIsNone(root_joint.path)
+        self.assertIsNone(child_joint.path)
+        self.assertIs(skeleton, root_joint.parent)
+        self.assertIs(root_joint, child_joint.parent)
         self.assertFalse(hasattr(model, "_unique_item_names"))
         self.assertFalse(hasattr(root_item, "tree_item"))
         self.assertFalse(hasattr(skeleton_item, "tree_item"))

@@ -16,6 +16,7 @@
 """
 
 import re
+from functools import partial
 
 from omni import ui
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
@@ -27,49 +28,6 @@ from .base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
 # Path-like search terms are handled literally against prim paths before regex detection. For non-path terms,
 # backslash remains a regex metacharacter so explicit regex escapes like \d work as expected.
 _REGEX_META_CHARS = frozenset(r"\.^$*+?{}[]|()")
-
-
-def _is_path_search_term(search_term: str) -> bool:
-    """Return whether the term should be matched against full prim paths."""
-    return "/" in search_term
-
-
-def _get_search_state(search_term: str) -> tuple[bool, str, re.Pattern | None, bool]:
-    """Return immutable matching state for a search term."""
-    path_mode = _is_path_search_term(search_term)
-    if path_mode or not any(char in _REGEX_META_CHARS for char in search_term):
-        return path_mode, search_term.casefold(), None, False
-    try:
-        return path_mode, "", re.compile(search_term, re.IGNORECASE), False
-    except re.error:
-        return path_mode, "", None, True
-
-
-def _matches_search_item(
-    item: _StageManagerItem,
-    path_mode: bool,
-    literal_search_term: str,
-    compiled_pattern: re.Pattern | None,
-    invalid_regex: bool,
-) -> bool:
-    """Return whether an item matches immutable search state."""
-    if invalid_regex:
-        return False
-
-    prim_path = item.data.GetPath()
-    if path_mode:
-        strings_to_search = [str(prim_path)]
-    else:
-        strings_to_search = [prim_path.name]
-        nickname_attr = item.data.GetAttribute("nickname")
-        if nickname_attr.IsValid() and nickname_attr.HasValue():
-            strings_to_search.append(str(nickname_attr.Get()))
-
-    if literal_search_term:
-        return any(literal_search_term in value.casefold() for value in strings_to_search)
-    if compiled_pattern is None:
-        return False
-    return any(compiled_pattern.search(value) for value in strings_to_search)
 
 
 class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
@@ -86,49 +44,80 @@ class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
     search_term: str = Field(default="", exclude=False)
 
     _end_edit_sub: _EventSubscription | None = PrivateAttr(default=None)
-    _compiled_pattern: re.Pattern | None = PrivateAttr(default=None)
-    _literal_search_term: str = PrivateAttr(default="")
-    _invalid_regex: bool = PrivateAttr(default=False)
-    _prepared_search_term: str = PrivateAttr(default="")
 
     def model_post_init(self, _context: object) -> None:
-        """Initialize precomputed search state when the term is supplied from schema data."""
+        """Initialize filter activity when the term is supplied from schema data."""
         super().model_post_init(_context)
-        self._prepare_search_term(self.search_term)
+        self.filter_active = bool(self.search_term)
 
-    def filter_predicate(self, item: _StageManagerItem) -> bool:
-        """Return whether the item matches the active search term."""
-        # Re-prepare before the active check if direct predicate callers set search_term without going through _on_edit.
-        if self.search_term != self._prepared_search_term:
-            self._prepare_search_term(self.search_term)
-        # Self-contained: filter_items_by_category pre-checks filter_active, but async filter_items and direct callers do not.
-        if not self.filter_active:
+    def filter_predicate(
+        self,
+        item: _StageManagerItem,
+        search_state: tuple[bool, str, re.Pattern | None, bool] | None = None,
+    ) -> bool:
+        """Return whether the item matches direct or prepared search state.
+
+        Args:
+            item: Stage Manager item to evaluate.
+            search_state: Optional refresh-local literal or compiled-regex state.
+
+        Returns:
+            Whether the item matches the active search term.
+        """
+        if search_state is None:
+            search_state = self._get_search_state(self.search_term)
+
+        path_mode, literal_search_term, compiled_pattern, invalid_regex = search_state
+        if invalid_regex:
+            return False
+        if not literal_search_term and compiled_pattern is None:
             return True
-        return _matches_search_item(
-            item,
-            _is_path_search_term(self.search_term),
-            self._literal_search_term,
-            self._compiled_pattern,
-            self._invalid_regex,
-        )
+        if path_mode:
+            return literal_search_term in str(item.data.GetPath()).casefold()
 
-    def prepare_filter_predicate(self):
-        """Capture immutable search state for worker filtering."""
-        search_term = self.search_term
-        search_state = _get_search_state(search_term)
-        return lambda item: not search_term or _matches_search_item(item, *search_state)
+        name = item.data.GetName()
+        if literal_search_term:
+            if literal_search_term in name.casefold():
+                return True
+        elif compiled_pattern is not None and compiled_pattern.search(name):
+            return True
+
+        nickname_attr = item.data.GetAttribute("nickname")
+        if not nickname_attr.IsValid() or not nickname_attr.HasValue():
+            return False
+
+        nickname = str(nickname_attr.Get())
+        if literal_search_term:
+            return literal_search_term in nickname.casefold()
+        return compiled_pattern is not None and bool(compiled_pattern.search(nickname))
+
+    def build_filter_predicate(self):
+        """Build a search predicate with matching state computed once for the refresh."""
+        return partial(self.filter_predicate, search_state=self._get_search_state(self.search_term))
+
+    @staticmethod
+    def _get_search_state(search_term: str) -> tuple[bool, str, re.Pattern | None, bool]:
+        """Return immutable matching state for a search term.
+
+        Args:
+            search_term: Literal or regular-expression term to prepare.
+
+        Returns:
+            Path mode, literal term, compiled pattern, and invalid-regex state.
+        """
+        path_mode = "/" in search_term
+        if path_mode or not any(char in _REGEX_META_CHARS for char in search_term):
+            return path_mode, search_term.casefold(), None, False
+        try:
+            return path_mode, "", re.compile(search_term, re.IGNORECASE), False
+        except re.error:
+            return path_mode, "", None, True
 
     def _on_edit(self, model):
         """Update the search term from the text field and refresh filtering."""
         self.search_term = model.get_value_as_string()
-        self._prepare_search_term(self.search_term)
+        self.filter_active = bool(self.search_term)
         self._filter_items_changed()
-
-    def _prepare_search_term(self, search_term: str):
-        """Precompute literal or regex matching state for the current search term."""
-        _, self._literal_search_term, self._compiled_pattern, self._invalid_regex = _get_search_state(search_term)
-        self._prepared_search_term = search_term
-        self.filter_active = bool(search_term)
 
     def build_ui(self):
         with ui.HStack(height=ui.Pixel(24)):

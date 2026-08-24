@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.16.8]
+### Fixed
+- Preserved and correctly framed Stage Manager USD selection across user-filter changes, including when selected rows are temporarily hidden.
+
 ## [2.16.7]
 ### Changed
 - Updated USD selection synchronization to select all Stage Manager rows that represent a selected prim path, including duplicate rows under virtual groups.

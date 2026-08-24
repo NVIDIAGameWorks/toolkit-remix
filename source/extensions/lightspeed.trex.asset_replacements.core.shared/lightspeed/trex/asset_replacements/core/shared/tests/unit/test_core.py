@@ -17,17 +17,18 @@
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.asset_replacements.core.shared import setup
 from lightspeed.trex.asset_replacements.core.shared import usd_copier as _usd_copier
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage
-from pxr import Sdf, Usd, UsdGeom
+from pxr import Sdf, Usd, UsdGeom, UsdShade
 
 
 class TestAssetReplacementsCore(AsyncTestCase):
@@ -39,6 +40,127 @@ class TestAssetReplacementsCore(AsyncTestCase):
     # After running each test
     async def tearDown(self):
         self.stage = None
+
+    async def test_prim_is_from_a_capture_reference_with_cache_classifies_each_exact_path_once(self):
+        """Classify and cache each exact prim-stack layer path once."""
+        # Arrange
+        first_path = "C:/captures/first.usd"
+        second_path = "C:/captures/second.usd"
+        prim = MagicMock()
+        prim.GetPrimStack.return_value = [
+            MagicMock(layer=MagicMock(realPath=first_path)),
+            MagicMock(layer=MagicMock(realPath=first_path)),
+            MagicMock(layer=MagicMock(realPath=second_path)),
+        ]
+        capture_layer_cache = {}
+
+        # Act
+        with patch.object(
+            setup,
+            "_is_layer_from_capture",
+            side_effect=[False, True],
+        ) as is_layer_from_capture_mock:
+            result = _AssetReplacementsCore.prim_is_from_a_capture_reference(prim, capture_layer_cache)
+
+        # Assert
+        self.assertTrue(result)
+        self.assertEqual(capture_layer_cache, {first_path: False, second_path: True})
+        self.assertEqual(
+            is_layer_from_capture_mock.call_args_list,
+            [call(first_path), call(second_path)],
+        )
+
+    async def test_prim_is_from_a_capture_reference_without_cache_preserves_traversal_and_first_match(self):
+        """Preserve uncached prim-stack traversal and stop at the first capture match."""
+        # Arrange
+        repeated_path = "C:/captures/repeated.usd"
+        unvisited_path = "C:/captures/unvisited.usd"
+        prim = MagicMock()
+        prim.GetPrimStack.return_value = [
+            MagicMock(layer=MagicMock(realPath=repeated_path)),
+            MagicMock(layer=MagicMock(realPath=repeated_path)),
+            MagicMock(layer=MagicMock(realPath=unvisited_path)),
+        ]
+
+        # Act
+        with patch.object(
+            setup,
+            "_is_layer_from_capture",
+            side_effect=[False, True],
+        ) as is_layer_from_capture_mock:
+            result = _AssetReplacementsCore.prim_is_from_a_capture_reference(prim)
+
+        # Assert
+        self.assertTrue(result)
+        self.assertEqual(
+            is_layer_from_capture_mock.call_args_list,
+            [call(repeated_path), call(repeated_path)],
+        )
+
+    async def test_prim_is_from_a_capture_reference_nested_xform_uses_real_prim_stack_provenance(self):
+        """Classify a nested Xform from its ordered real USD prim stack."""
+        # Arrange
+        with TemporaryDirectory() as temporary_directory:
+            capture_layer = Sdf.Layer.CreateNew(str(Path(temporary_directory) / "capture.usda"))
+            replacement_layer = Sdf.Layer.CreateNew(str(Path(temporary_directory) / "replacement.usda"))
+            stage = Usd.Stage.CreateInMemory()
+            stage.GetRootLayer().subLayerPaths = [replacement_layer.identifier, capture_layer.identifier]
+            with Usd.EditContext(stage, capture_layer):
+                UsdGeom.Xform.Define(stage, "/World/Nested/Captured")
+            replacement_spec = Sdf.CreatePrimInLayer(replacement_layer, "/World/Nested/Captured")
+            replacement_spec.specifier = Sdf.SpecifierOver
+            prim = stage.GetPrimAtPath("/World/Nested/Captured")
+
+            # Act
+            with patch.object(
+                setup,
+                "_is_layer_from_capture",
+                side_effect=lambda layer_path: layer_path == capture_layer.realPath,
+            ) as is_layer_from_capture_mock:
+                result = _AssetReplacementsCore.prim_is_from_a_capture_reference(prim)
+
+            # Assert
+            self.assertTrue(result)
+            self.assertEqual([replacement_layer, capture_layer], [spec.layer for spec in prim.GetPrimStack()])
+            self.assertEqual(
+                [call(replacement_layer.realPath), call(capture_layer.realPath)],
+                is_layer_from_capture_mock.call_args_list,
+            )
+
+    async def test_prim_is_from_a_capture_reference_material_texture_uses_texture_spec_provenance(self):
+        """Classify a material texture from the layer that authors its real shader spec."""
+        # Arrange
+        with TemporaryDirectory() as temporary_directory:
+            capture_layer = Sdf.Layer.CreateNew(str(Path(temporary_directory) / "capture_material.usda"))
+            replacement_layer = Sdf.Layer.CreateNew(str(Path(temporary_directory) / "replacement_material.usda"))
+            stage = Usd.Stage.CreateInMemory()
+            stage.GetRootLayer().subLayerPaths = [replacement_layer.identifier, capture_layer.identifier]
+            with Usd.EditContext(stage, capture_layer):
+                UsdShade.Material.Define(stage, "/World/Looks/Material")
+                texture = UsdShade.Shader.Define(stage, "/World/Looks/Material/Texture")
+                texture.CreateIdAttr("UsdUVTexture")
+                texture.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath("capture_albedo.dds"))
+            replacement_spec = Sdf.CreatePrimInLayer(replacement_layer, "/World/Looks/Material")
+            replacement_spec.specifier = Sdf.SpecifierOver
+            material = UsdShade.Material.Get(stage, "/World/Looks/Material")
+            texture_prim = texture.GetPrim()
+
+            # Act
+            with patch.object(
+                setup,
+                "_is_layer_from_capture",
+                side_effect=lambda layer_path: layer_path == capture_layer.realPath,
+            ) as is_layer_from_capture_mock:
+                result = _AssetReplacementsCore.prim_is_from_a_capture_reference(texture_prim)
+
+            # Assert
+            self.assertTrue(result)
+            self.assertEqual(
+                [replacement_layer, capture_layer],
+                [spec.layer for spec in material.GetPrim().GetPrimStack()],
+            )
+            self.assertEqual([capture_layer], [spec.layer for spec in texture_prim.GetPrimStack()])
+            is_layer_from_capture_mock.assert_called_once_with(capture_layer.realPath)
 
     async def test_filter_transformable(self):
         # setup

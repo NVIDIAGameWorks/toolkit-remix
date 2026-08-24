@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from functools import partial
 from unittest.mock import Mock, patch
 
 from omni import ui
@@ -23,7 +24,6 @@ import omni.kit.test
 from omni.flux.stage_manager.factory.plugins.filter_plugin import FilterCategory
 from omni.flux.stage_manager.plugin.filter.usd.additional_filters import AdditionalFiltersPopupMenuItemDelegate
 from omni.flux.stage_manager.plugin.filter.usd.custom_tags import CustomTagsFilterPlugin
-from omni.flux.stage_manager.plugin.filter.usd.custom_tags import _get_tag_checkbox_identifier
 from pxr import Sdf
 
 __all__ = ["TestCustomTagsFilterPluginUnit"]
@@ -128,17 +128,19 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual("Custom Tags Filter", result)
 
     async def test_tag_checkbox_identifier_should_be_widget_safe(self):
+        """Build a stable widget-safe identifier from a tag path."""
         # Act
-        result = _get_tag_checkbox_identifier(_TAG_CAR)
+        result = CustomTagsFilterPlugin._get_tag_checkbox_identifier(_TAG_CAR)
 
         # Assert
         self.assertEqual("filter_checkbox_custom_tags_World_CustomTags_collection_car", result)
 
     async def test_build_ui_should_build_tag_rows_with_path_based_tags(self):
+        """Build tag rows with identifiers derived from their paths."""
         # Arrange
         plugin = _make_plugin_with_core()
         plugin._core.get_all_tags.return_value = [Sdf.Path(_TAG_CAR)]
-        tag_checkbox_identifier = _get_tag_checkbox_identifier(_TAG_CAR)
+        tag_checkbox_identifier = CustomTagsFilterPlugin._get_tag_checkbox_identifier(_TAG_CAR)
         window = ui.Window("TestCustomTagsFilterPlugin", width=300, height=300)
 
         try:
@@ -161,11 +163,12 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
             window.destroy()
 
     async def test_build_ui_should_align_tag_checkboxes_with_untagged_checkbox(self):
+        """Align tag checkboxes with the untagged checkbox."""
         # Arrange
         plugin = _make_plugin_with_core()
         plugin._core.get_all_tags.return_value = [Sdf.Path(_TAG_CAR), Sdf.Path(_TAG_RED)]
-        tag_checkbox_identifier = _get_tag_checkbox_identifier(_TAG_CAR)
-        red_checkbox_identifier = _get_tag_checkbox_identifier(_TAG_RED)
+        tag_checkbox_identifier = CustomTagsFilterPlugin._get_tag_checkbox_identifier(_TAG_CAR)
+        red_checkbox_identifier = CustomTagsFilterPlugin._get_tag_checkbox_identifier(_TAG_RED)
         window = ui.Window("TestCustomTagsFilterPluginAlignment", width=320, height=300)
 
         try:
@@ -217,11 +220,12 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(238, result)
 
     async def test_build_ui_should_refresh_stale_core_stage_before_querying_tags(self):
+        """Refresh stale tag data before rebuilding tag rows."""
         # Arrange
         plugin = _make_plugin_with_core()
         plugin._all_tag_paths = []
         plugin._core.get_all_tags.return_value = [Sdf.Path(_TAG_CAR)]
-        tag_checkbox_identifier = _get_tag_checkbox_identifier(_TAG_CAR)
+        tag_checkbox_identifier = CustomTagsFilterPlugin._get_tag_checkbox_identifier(_TAG_CAR)
         window = ui.Window("TestCustomTagsFilterPluginRefresh", width=300, height=300)
 
         try:
@@ -240,10 +244,11 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
             window.destroy()
 
     async def test_popup_item_should_render_tag_rows_with_width(self):
+        """Render popup tag rows with usable dimensions."""
         # Arrange
         plugin = _make_plugin_with_core()
         plugin._core.get_all_tags.return_value = [Sdf.Path(_TAG_CAR)]
-        tag_checkbox_identifier = _get_tag_checkbox_identifier(_TAG_CAR)
+        tag_checkbox_identifier = CustomTagsFilterPlugin._get_tag_checkbox_identifier(_TAG_CAR)
         item = AdditionalFiltersPopupMenuItemDelegate(plugin, {})
         window = ui.Window("TestCustomTagsFilterPopupItem", width=320, height=300)
 
@@ -390,7 +395,8 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
         self.assertFalse(result)
         plugin._core.prim_has_any_tag.assert_called_once_with(item.data, [Sdf.Path(_TAG_CAR)])
 
-    async def test_prepared_filter_predicate_should_capture_tag_paths_without_mutating_plugin_caches(self):
+    async def test_build_filter_predicate_with_untagged_reuses_all_tag_paths_without_mutating_plugin_caches(self):
+        """Bind only reusable all-tag paths without mutating UI caches."""
         # Arrange
         plugin = _make_plugin_with_core(selected_tags=[_TAG_CAR], include_untagged=True)
         plugin._all_tag_paths = []
@@ -400,26 +406,29 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
         item = _make_item()
 
         # Act
-        predicate = plugin.prepare_filter_predicate()
+        predicate = plugin.build_filter_predicate()
         result = predicate(item)
 
         # Assert
+        self.assertIsInstance(predicate, partial)
+        self.assertEqual(plugin.filter_predicate, predicate.func)
+        self.assertEqual({"all_tag_paths"}, set(predicate.keywords))
         self.assertTrue(result)
         self.assertEqual([], plugin._all_tag_paths)
         self.assertEqual({_TAG_CAR: 1}, plugin._prim_counts)
         plugin._core.get_all_tags.assert_called_once_with()
-        plugin._core.prim_has_any_tag.assert_any_call(item.data, (Sdf.Path(_TAG_CAR),))
-        plugin._core.prim_has_any_tag.assert_any_call(item.data, (Sdf.Path(_TAG_CAR), Sdf.Path(_TAG_RED)))
+        plugin._core.prim_has_any_tag.assert_any_call(item.data, [Sdf.Path(_TAG_CAR)])
+        plugin._core.prim_has_any_tag.assert_any_call(item.data, [Sdf.Path(_TAG_CAR), Sdf.Path(_TAG_RED)])
 
-    async def test_plugin_teardown_does_not_destroy_core_captured_by_worker_predicate(self):
-        """Cancelling a to_thread task does not join its worker, so the captured core must remain valid."""
+    async def test_plugin_teardown_keeps_replaced_cores_alive_and_obsolete_predicate_safe(self):
+        """Keep in-flight cores alive without preserving obsolete predicate state."""
         # Arrange
         plugin = _make_plugin_with_core(selected_tags=[_TAG_CAR])
         original_core = plugin._core
         original_core.prim_has_any_tag.return_value = True
         replacement_core = Mock()
         item = _make_item()
-        predicate = plugin.prepare_filter_predicate()
+        predicate = plugin.build_filter_predicate()
 
         with patch(
             "omni.flux.stage_manager.plugin.filter.usd.custom_tags._CustomTagsCore",
@@ -438,10 +447,12 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
         result = predicate(item)
 
         # Assert
+        self.assertEqual(plugin.filter_predicate, predicate)
         self.assertTrue(result)
         original_core.destroy.assert_not_called()
         replacement_core.destroy.assert_not_called()
-        original_core.prim_has_any_tag.assert_called_once_with(item.data, (Sdf.Path(_TAG_CAR),))
+        original_core.prim_has_any_tag.assert_not_called()
+        replacement_core.prim_has_any_tag.assert_not_called()
         self.assertEqual(
             state_before_evaluation,
             (plugin._all_tag_paths, plugin._prim_counts, plugin._selected_tag_paths, plugin._checkboxes_frame),

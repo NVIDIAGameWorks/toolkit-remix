@@ -19,10 +19,14 @@ from .unit.test_combobox_filter_tooltips import TestComboboxFilterTooltipsUnit
 from .unit.test_geometry_prims_filter import TestGeometryPrimsFilterUnit
 from .unit.test_is_capture_filter import TestIsCaptureFilterUnit
 from .e2e.test_scene_edit_state_filter import TestSceneEditFilterE2E
+from .unit.test_is_category_filter import TestIsCategoryFilterUnit
+from .unit.test_mesh_prims_filter import TestMeshPrimsFilterUnit
 
 __all__ = [
     "TestComboboxFilterTooltipsUnit",
     "TestGeometryPrimsFilterUnit",
     "TestIsCaptureFilterUnit",
+    "TestIsCategoryFilterUnit",
+    "TestMeshPrimsFilterUnit",
     "TestSceneEditFilterE2E",
 ]

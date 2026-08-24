@@ -123,7 +123,7 @@ class TestModel(omni.kit.test.AsyncTestCase):
         self.assertTrue(layer0_item.can_have_children)
         self.assertTrue(layer0_item.enabled)
         self.assertEqual(root_item, layer0_item.parent)
-        self.assertEqual(0, len(layer0_item.children))
+        self.assertFalse(layer0_item.has_children)
 
         # layer1
         self.assertTrue(layer1_item.can_have_children)

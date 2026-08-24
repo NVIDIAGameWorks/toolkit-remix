@@ -54,8 +54,9 @@ class _TestFilterPlugin(_StageManagerFilterPlugin):
 
 
 def _make_tree_item(path: str):
-    """Return a data-backed tree item test double."""
-    return SimpleNamespace(path=path, data=object())
+    """Return a proxy containing a data-backed canonical tree item."""
+    original_item = SimpleNamespace(path=path, data=object())
+    return mock.Mock(original_tree_item=original_item)
 
 
 class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
@@ -379,6 +380,30 @@ class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
         self.assertEqual([item_a, item_b], plugin._tree_widget.selection)
         self.assertEqual([item_a, item_b], plugin.tree.model.selection)
 
+    async def test_update_tree_selection_preserves_path_order_while_retaining_hidden_selection(self):
+        # Arrange
+        plugin = self._make_plugin()
+        plugin.synchronize_selection = True
+        plugin._is_active = True
+        plugin._tree_selection_task = SimpleNamespace(cancelled=lambda: False)
+        b_visible = _make_tree_item("/World/B")
+        a_visible = _make_tree_item("/World/A")
+        a_hidden = _make_tree_item("/World/A")
+        plugin.tree.model.selection = [a_visible, a_hidden]
+        plugin.tree.model.get_items_by_path.side_effect = lambda path: {
+            "/World/B": [b_visible],
+            "/World/A": [a_visible],
+        }.get(path, [])
+        plugin._tree_widget = SimpleNamespace(selection=[], set_selection_async=mock.AsyncMock())
+
+        with mock.patch.object(plugin, "_get_selection", return_value=["/World/B", "/World/A"]):
+            # Act
+            await plugin._update_tree_selection_async()
+
+        # Assert
+        plugin._tree_widget.set_selection_async.assert_awaited_once_with([b_visible, a_visible, a_hidden])
+        self.assertEqual([b_visible, a_visible, a_hidden], plugin.tree.model.selection)
+
     async def test_update_tree_selection_when_selection_changes_during_framing_applies_latest_selection(self):
         # Arrange
         plugin = self._make_plugin()
@@ -420,19 +445,75 @@ class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
         self.assertEqual([item_b], plugin.tree.model.selection)
         self.assertEqual(2, plugin._tree_widget.call_count)
 
+    async def test_set_tree_widget_selection_skips_unchanged_membership(self):
+        # Arrange
+        plugin = self._make_plugin()
+        item_a = _make_tree_item("/World/A")
+        item_b = _make_tree_item("/World/B")
+        plugin._tree_widget = SimpleNamespace(
+            selection=[item_b, item_a],
+            set_selection_async=mock.AsyncMock(),
+        )
+
+        # Act
+        await plugin._set_tree_widget_selection_async([item_a, item_b])
+
+        # Assert
+        plugin._tree_widget.set_selection_async.assert_not_awaited()
+        self.assertEqual([item_a, item_b], plugin.tree.model.selection)
+        self.assertIsNone(plugin._programmatic_tree_selection_paths)
+
+    async def test_set_tree_widget_selection_frames_changed_membership_once(self):
+        # Arrange
+        plugin = self._make_plugin()
+        item_a = _make_tree_item("/World/A")
+        item_b = _make_tree_item("/World/B")
+        plugin._tree_widget = SimpleNamespace(
+            selection=[item_a],
+            set_selection_async=mock.AsyncMock(),
+        )
+
+        # Act
+        await plugin._set_tree_widget_selection_async([item_a, item_b])
+
+        # Assert
+        plugin._tree_widget.set_selection_async.assert_awaited_once_with([item_a, item_b])
+        self.assertEqual([item_a, item_b], plugin.tree.model.selection)
+        self.assertEqual(("/World/A", "/World/B"), plugin._programmatic_tree_selection_paths)
+
     async def test_tree_item_paths_use_cached_paths_and_exclude_virtual_rows(self):
         # Arrange
-        item = SimpleNamespace(
+        original_item = SimpleNamespace(
             path="/World/Cube",
             data=SimpleNamespace(GetPath=mock.Mock(side_effect=AssertionError("Live USD data must not be read"))),
         )
-        virtual_item = SimpleNamespace(path="/Virtual/Materials", data=None)
+        item = SimpleNamespace(original_tree_item=original_item)
+        virtual_item = SimpleNamespace(original_tree_item=SimpleNamespace(path="/Virtual/Materials", data=None))
 
         # Act
         paths = _StageManagerUSDInteractionPlugin._get_tree_item_paths([virtual_item, item])
 
         # Assert
         self.assertEqual(("/World/Cube",), paths)
+
+    async def test_update_nickname_items_matches_canonical_data_and_notifies_proxy(self):
+        # Arrange
+        plugin = self._make_plugin()
+        prim = mock.Mock()
+        prim.GetPath.return_value = Sdf.Path("/World/Cube")
+        original_item = SimpleNamespace(data=prim)
+        proxy_item = SimpleNamespace(original_tree_item=original_item)
+        plugin.tree.model.find_items.side_effect = lambda predicate: [proxy_item] if predicate(proxy_item) else []
+
+        with mock.patch(
+            "omni.flux.stage_manager.plugin.interaction.usd.base.usd_base._get_proto_from_prim",
+            return_value=prim,
+        ):
+            # Act
+            plugin._update_nickname_items({Sdf.Path("/World/Cube")})
+
+        # Assert
+        plugin.tree.model.notify_item_changed.assert_called_once_with(proxy_item)
 
     async def test_delayed_programmatic_empty_tree_selection_does_not_clear_usd_selection(self):
         # Arrange

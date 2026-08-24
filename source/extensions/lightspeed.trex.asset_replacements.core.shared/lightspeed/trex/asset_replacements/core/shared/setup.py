@@ -419,12 +419,32 @@ class Setup:
         return result
 
     @staticmethod
-    def prim_is_from_a_capture_reference(prim) -> bool:
+    def prim_is_from_a_capture_reference(
+        prim: Usd.Prim,
+        capture_layer_cache: dict[str, bool] | None = None,
+    ) -> bool:
+        """Return whether a prim stack contains a layer from the capture.
+
+        Args:
+            prim: Prim whose stack is inspected.
+            capture_layer_cache: Optional caller-owned read-through cache keyed by each layer's exact ``realPath``.
+                Cache misses are added in place; ``None`` uses uncached traversal.
+
+        Returns:
+            Whether the prim stack contains a capture layer.
+        """
         stacks = prim.GetPrimStack()
         if stacks:
             for stack in stacks:
-                if _is_layer_from_capture(stack.layer.realPath):
-                    # The layer is a capture layer
+                layer_path = stack.layer.realPath
+                if capture_layer_cache is None:
+                    is_capture_layer = _is_layer_from_capture(layer_path)
+                else:
+                    is_capture_layer = capture_layer_cache.get(layer_path)
+                    if is_capture_layer is None:
+                        is_capture_layer = _is_layer_from_capture(layer_path)
+                        capture_layer_cache[layer_path] = is_capture_layer
+                if is_capture_layer:
                     return True
         return False
 

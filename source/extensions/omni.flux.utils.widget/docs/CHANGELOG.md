@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.31.0]
+### Changed
+- Improved scrolling-tree lifecycle, child-state semantics, and selection and expansion synchronization when publishing or replacing item generations.
+
 ## [1.30.6]
 ### Fixed
 - Select highlighted directories in file pickers without requiring navigation into them.

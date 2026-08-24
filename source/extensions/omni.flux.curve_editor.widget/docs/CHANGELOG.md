@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.2]
+### Changed
+- Updated curve expansion controls to reflect existing child rows.
+
 ## [1.2.1]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

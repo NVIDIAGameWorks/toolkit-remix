@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.2]
+### Added
+- Added Stage Manager E2E coverage for keeping a mesh selected while hidden and framing it when search filters restore it.
+
 ## [1.8.1]
 ### Added
 - Added Stage Manager E2E coverage for preserving newly created light selection through mesh tab refreshes.

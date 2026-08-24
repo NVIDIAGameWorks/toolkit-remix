@@ -22,6 +22,7 @@ from omni import usd
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeDelegate as _StageManagerTreeDelegate
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
+from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItemProxy as _StageManagerTreeItemProxy
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 from pydantic import Field, PrivateAttr
 
@@ -49,13 +50,13 @@ class StageManagerUSDTreeModel(_StageManagerTreeModel):
         """Set usd context to initialize plugin before items are rebuilt."""
         self._context_name = name
 
-    def get_context_menu_payload(self, item: StageManagerUSDTreeItem) -> dict[str, Any]:
+    def get_context_menu_payload(self, item: _StageManagerTreeItemProxy) -> dict[str, Any]:
         payload = super().get_context_menu_payload(item)
         payload.update(
             {
                 "context_name": self._context_name,
                 "selected_paths": usd.get_context(self._context_name).get_selection().get_selected_prim_paths(),
-                "item": item,
+                "item": item.original_tree_item,
             }
         )
         return payload

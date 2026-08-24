@@ -54,7 +54,7 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin, _StageManagerMenuMixin)
 
     def build_overview_ui(self, model: _StageManagerTreeModel):
         # Make sure to only count prims, not virtual groups
-        prims_count = len([i for i in model.iter_items_children() if not (hasattr(i, "is_virtual") and i.is_virtual)])
+        prims_count = sum(not item.original_tree_item.is_virtual for item in model.iter_items_children())
 
         ui.Label(f"{prims_count} prim{'s' if prims_count > 1 else ''} available")
 

@@ -16,12 +16,15 @@
 """
 
 import re
+from functools import partial
 from unittest.mock import Mock, patch
 
 import omni.kit.test
 from omni.flux.stage_manager.factory import StageManagerItem
 from omni.flux.stage_manager.plugin.filter.usd.base import StageManagerUSDFilterPlugin
-from omni.flux.stage_manager.plugin.filter.usd.search import SearchFilterPlugin
+
+from ... import search
+from ...search import SearchFilterPlugin
 
 __all__ = ["TestSearchFilterPluginUnit"]
 
@@ -63,6 +66,7 @@ def _make_item(name: str, nickname: str | None = None, path: str | None = None) 
 
     prim = Mock()
     prim.GetPath.return_value = _PrimPath(name, path)
+    prim.GetName.return_value = name
     prim.GetAttribute.side_effect = lambda attr_name: nickname_attr if attr_name == "nickname" else empty_attr
 
     return StageManagerItem(name, data=prim)
@@ -80,6 +84,22 @@ class TestSearchFilterPluginUnit(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertFalse(plugin.filter_active)
+
+    async def test_build_filter_predicate_with_empty_term_returns_true_without_item_access(self):
+        """Keep every item without reading it when the prepared search term is empty."""
+        # Arrange
+        plugin = SearchFilterPlugin()
+        item = _make_item("HeroMesh")
+        predicate = plugin.build_filter_predicate()
+
+        # Act
+        result = predicate(item)
+
+        # Assert
+        self.assertTrue(result)
+        item.data.GetPath.assert_not_called()
+        item.data.GetName.assert_not_called()
+        item.data.GetAttribute.assert_not_called()
 
     async def test_filter_active_search_term_should_return_true(self):
         # Arrange
@@ -99,36 +119,41 @@ class TestSearchFilterPluginUnit(omni.kit.test.AsyncTestCase):
         post_init_mock.assert_called_once()
 
     async def test_filter_predicate_literal_term_should_match_name_without_regex(self):
+        """Match a literal prim name without regex or attribute access."""
         # Arrange
         plugin = SearchFilterPlugin()
-        _set_search_term(plugin, "mesh")
         item = _make_item("HeroMesh")
 
-        with patch("omni.flux.stage_manager.plugin.filter.usd.search.re.search") as search_mock:
-            search_mock.side_effect = AssertionError("literal search should not use regex")
+        with patch.object(search.re, "compile", wraps=re.compile) as compile_mock:
+            _set_search_term(plugin, "mesh")
 
             # Act
             result = plugin.filter_predicate(item)
 
         # Assert
         self.assertTrue(result)
+        self.assertEqual(0, compile_mock.call_count)
+        item.data.GetPath.assert_not_called()
+        item.data.GetAttribute.assert_not_called()
 
     async def test_filter_predicate_literal_term_should_match_nickname_without_regex(self):
+        """Match a literal nickname without compiling a regex."""
         # Arrange
         plugin = SearchFilterPlugin()
-        _set_search_term(plugin, "hero")
         item = _make_item("Mesh_001", nickname="HeroMesh")
 
-        with patch("omni.flux.stage_manager.plugin.filter.usd.search.re.search") as search_mock:
-            search_mock.side_effect = AssertionError("literal search should not use regex")
+        with patch.object(search.re, "compile", wraps=re.compile) as compile_mock:
+            _set_search_term(plugin, "hero")
 
             # Act
             result = plugin.filter_predicate(item)
 
         # Assert
         self.assertTrue(result)
+        self.assertEqual(0, compile_mock.call_count)
 
     async def test_filter_predicate_path_term_should_match_prim_path(self):
+        """Match a full prim path without reading nickname attributes."""
         # Arrange
         plugin = SearchFilterPlugin()
         _set_search_term(plugin, "/RootNode/Props")
@@ -140,6 +165,24 @@ class TestSearchFilterPluginUnit(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertTrue(result)
         self.assertTrue(plugin.filter_active)
+        item.data.GetName.assert_not_called()
+        item.data.GetAttribute.assert_not_called()
+
+    async def test_filter_predicate_nonmatching_path_returns_false_without_name_or_attribute_access(self):
+        """Reject a nonmatching path without reading the prim name or attributes."""
+        # Arrange
+        plugin = SearchFilterPlugin()
+        _set_search_term(plugin, "/RootNode/Props")
+        item = _make_item("HeroMesh", path="/RootNode/Characters/HeroMesh")
+
+        # Act
+        result = plugin.filter_predicate(item)
+
+        # Assert
+        self.assertFalse(result)
+        item.data.GetPath.assert_called_once()
+        item.data.GetName.assert_not_called()
+        item.data.GetAttribute.assert_not_called()
 
     async def test_filter_predicate_relative_path_term_should_match_prim_path(self):
         # Arrange
@@ -154,11 +197,12 @@ class TestSearchFilterPluginUnit(omni.kit.test.AsyncTestCase):
         self.assertTrue(result)
 
     async def test_filter_predicate_path_term_with_regex_meta_should_match_prim_path_without_regex(self):
+        """Treat path terms containing regex metacharacters as literal text."""
         # Arrange
         plugin = SearchFilterPlugin()
         item = _make_item("HeroMesh", path="/RootNode/Props[HeroMesh")
 
-        with patch("omni.flux.stage_manager.plugin.filter.usd.search.re.compile", wraps=re.compile) as compile_mock:
+        with patch.object(search.re, "compile", wraps=re.compile) as compile_mock:
             _set_search_term(plugin, "/RootNode/Props[HeroMesh")
 
             # Act
@@ -169,11 +213,12 @@ class TestSearchFilterPluginUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(0, compile_mock.call_count)
 
     async def test_filter_predicate_backslash_term_should_match_name_as_regex(self):
+        """Compile a backslash search term as a regular expression."""
         # Arrange
         plugin = SearchFilterPlugin()
         item = _make_item("Mesh_001")
 
-        with patch("omni.flux.stage_manager.plugin.filter.usd.search.re.compile", wraps=re.compile) as compile_mock:
+        with patch.object(search.re, "compile", wraps=re.compile) as compile_mock:
             _set_search_term(plugin, r"\d")
 
             # Act
@@ -183,75 +228,96 @@ class TestSearchFilterPluginUnit(omni.kit.test.AsyncTestCase):
         self.assertTrue(result)
         self.assertEqual(1, compile_mock.call_count)
 
-    async def test_filter_predicate_direct_search_term_assignment_should_prepare_search_state(self):
+    async def test_filter_predicate_without_prepared_state_builds_current_search_state(self):
+        """Build matching state when the predicate is called directly."""
         # Arrange
         plugin = SearchFilterPlugin()
-        plugin.search_term = "mesh"
+        _set_search_term(plugin, "mesh")
         item = _make_item("HeroMesh")
 
-        # Act
-        result = plugin.filter_predicate(item)
+        with patch.object(plugin, "_get_search_state", wraps=plugin._get_search_state) as get_search_state_mock:
+            # Act
+            result = plugin.filter_predicate(item)
 
         # Assert
         self.assertTrue(result)
+        get_search_state_mock.assert_called_once_with("mesh")
 
-    async def test_filter_predicate_direct_search_term_assignment_should_update_filter_active(self):
-        # Arrange
-        plugin = SearchFilterPlugin()
-        plugin.search_term = "mesh"
-        item = _make_item("HeroMesh")
-
-        # Assert
-        self.assertFalse(plugin.filter_active)
-
-        # Act
-        result = plugin.filter_predicate(item)
-
-        # Assert
-        self.assertTrue(result)
-        self.assertTrue(plugin.filter_active)
-
-    async def test_on_edit_regex_term_should_compile_once(self):
+    async def test_on_edit_regex_term_should_activate_without_compiling(self):
+        """Activate an edited regex term without preparing worker state."""
         # Arrange
         plugin = SearchFilterPlugin()
 
-        with patch("omni.flux.stage_manager.plugin.filter.usd.search.re.compile", wraps=re.compile) as compile_mock:
+        with patch.object(search.re, "compile", wraps=re.compile) as compile_mock:
             # Act
             _set_search_term(plugin, "Hero.*01")
 
             # Assert
-            self.assertEqual(1, compile_mock.call_count)
-
-        self.assertTrue(plugin.filter_predicate(_make_item("HeroMesh01")))
+            self.assertTrue(plugin.filter_active)
+            compile_mock.assert_not_called()
 
     async def test_filter_predicate_invalid_regex_should_return_false_without_searching_items(self):
+        """Reject an invalid regex before reading item data."""
         # Arrange
         plugin = SearchFilterPlugin()
         _set_search_term(plugin, "[")
         item = _make_item("HeroMesh")
 
-        with patch("omni.flux.stage_manager.plugin.filter.usd.search.re.search") as search_mock:
-            search_mock.side_effect = AssertionError("invalid regex should be rejected on edit")
-
-            # Act
-            result = plugin.filter_predicate(item)
+        # Act
+        result = plugin.filter_predicate(item)
 
         # Assert
         self.assertFalse(result)
+        item.data.GetPath.assert_not_called()
+        item.data.GetName.assert_not_called()
+        item.data.GetAttribute.assert_not_called()
 
-    async def test_prepared_filter_predicate_keeps_search_term_snapshot(self):
+    async def test_filter_predicate_regex_name_miss_matches_only_valued_matching_nickname(self):
+        """Match regex nicknames only when their attributes hold matching values."""
+        test_cases = (
+            ("HeroMesh", "Hero.*", True, True),
+            ("HeroMesh", "Villain.*", True, False),
+            ("HeroMesh", "Hero.*", False, False),
+        )
+
+        for nickname, search_term, has_value, expected_result in test_cases:
+            with self.subTest(search_term=search_term, has_value=has_value):
+                # Arrange
+                plugin = SearchFilterPlugin()
+                item = _make_item("Mesh_001", nickname=nickname)
+                nickname_attr = item.data.GetAttribute("nickname")
+                item.data.GetAttribute.reset_mock()
+                nickname_attr.HasValue.return_value = has_value
+                _set_search_term(plugin, search_term)
+
+                # Act
+                result = plugin.filter_predicate(item)
+
+                # Assert
+                self.assertEqual(expected_result, result)
+                item.data.GetName.assert_called_once()
+                item.data.GetAttribute.assert_called_once_with("nickname")
+                if has_value:
+                    nickname_attr.Get.assert_called_once()
+                else:
+                    nickname_attr.Get.assert_not_called()
+
+    async def test_build_filter_predicate_with_regex_term_compiles_once_for_multiple_items(self):
+        """Compile refresh-local regex state once before evaluating multiple items."""
         # Arrange
         plugin = SearchFilterPlugin()
-        _set_search_term(plugin, "foo")
-        foo_item = _make_item("FooMesh")
-        bar_item = _make_item("BarMesh")
-        predicate = plugin.prepare_filter_predicate()
-        _set_search_term(plugin, "bar")
+        _set_search_term(plugin, "Hero.*")
+        hero_item = _make_item("HeroMesh")
+        villain_item = _make_item("VillainMesh")
 
-        # Act
-        foo_matches = predicate(foo_item)
-        bar_matches = predicate(bar_item)
+        with patch.object(search.re, "compile", wraps=re.compile) as compile_mock:
+            predicate = plugin.build_filter_predicate()
+
+            # Act
+            results = [predicate(hero_item), predicate(villain_item)]
 
         # Assert
-        self.assertTrue(foo_matches)
-        self.assertFalse(bar_matches)
+        self.assertIsInstance(predicate, partial)
+        self.assertEqual(plugin.filter_predicate, predicate.func)
+        self.assertEqual([True, False], results)
+        compile_mock.assert_called_once_with("Hero.*", re.IGNORECASE)

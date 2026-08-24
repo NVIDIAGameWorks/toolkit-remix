@@ -22,6 +22,7 @@ import threading
 from asyncio import Future, ensure_future
 from collections import deque
 from collections.abc import Callable, Iterable
+from contextlib import asynccontextmanager
 
 import omni.kit.app
 import omni.usd
@@ -131,6 +132,7 @@ class ScrollingTreeWidget:
         self._item_paths_by_hash: dict[int, str] = {}
         self._expansion_resolve_cancel_event: threading.Event | None = None
         self._refresh_commit_lock = asyncio.Lock()
+        self._keep_alive_disable_lock = asyncio.Lock()
 
         self._build_ui()
 
@@ -178,13 +180,22 @@ class ScrollingTreeWidget:
             return
 
         if self._frame_selection:
-            await self.expand_to_items(items)
-            if self._destroyed:
-                return
-            await self.scroll_to_items(items)
+            await self.frame_items(items)
             if self._destroyed:
                 return
         self._set_tree_selection_without_notification(items)
+
+    async def frame_items(self, items: list[TreeItemBase], update_cache: bool = True) -> None:
+        """Expand ancestors before scrolling to items.
+
+        Setting ``update_cache`` to ``False`` preserves saved expansion state. Empty input and destroyed widgets are
+        ignored.
+        """
+        if self._destroyed or not items:
+            return
+        await self.expand_to_items(items, update_cache=update_cache)
+        if not self._destroyed:
+            await self.scroll_to_items(items)
 
     def _set_tree_selection_without_notification(self, items: list[TreeItemBase]):
         previous_suppression = self._suppress_selection_changed
@@ -238,6 +249,34 @@ class ScrollingTreeWidget:
     @visible.setter
     def visible(self, value: bool):
         self._root_frame.visible = value
+
+    @asynccontextmanager
+    async def keep_alive_disabled(self):
+        """Disable item retention and restore its prior value after one Kit update.
+
+        Restoration survives exceptions and caller cancellation. No update occurs when the widget is unavailable,
+        destroyed, or already disabled.
+        """
+        async with self._keep_alive_disable_lock:
+            tree_widget = self._tree_widget
+            if self._destroyed or tree_widget is None:
+                yield
+                return
+
+            keep_alive = tree_widget.keep_alive
+            if not keep_alive:
+                yield
+                return
+
+            tree_widget.keep_alive = False
+            try:
+                yield
+            finally:
+                try:
+                    await omni.kit.app.get_app().next_update_async()
+                finally:
+                    if not self._destroyed and self._tree_widget is tree_widget:
+                        tree_widget.keep_alive = keep_alive
 
     def _build_ui(self):
         scroll_change_fn = None
@@ -374,8 +413,7 @@ class ScrollingTreeWidget:
                         self.set_expanded(item, True, False, update_cache=False)
 
                 if self._expansion_caching:
-                    self._item_expansion_states.clear()
-                    self._item_expansion_states.update(expansion_cache_state)
+                    self._item_expansion_states = expansion_cache_state
                 self._item_paths_by_hash = result.path_by_hash
                 return True
             finally:
@@ -487,15 +525,16 @@ class ScrollingTreeWidget:
                 children.reverse()
                 stack.extendleft(children)
 
-    async def expand_to_items(self, items: Iterable[TreeItemBase]):
+    async def expand_to_items(self, items: Iterable[TreeItemBase], update_cache: bool = True):
         """
         Expand all parent items necessary to reveal the specified items.
 
-        Traverses each item's ancestry and expands parents from root downward,
-        ensuring proper render order. Waits two frames for UI updates.
+        Traverses each item's ancestry and expands parents from root downward, ensuring proper render order. When a
+        parent is newly expanded, waits two Kit updates for layout recalculation; otherwise, returns without waiting.
 
         Args:
             items: The items whose parents should be expanded.
+            update_cache: Whether programmatic expansion should become the user's saved expansion state.
         """
         force_layout_recalculation = False
         expanded = set()
@@ -516,7 +555,7 @@ class ScrollingTreeWidget:
 
                 # Only trigger layout recalculation if we're actually expanding something new
                 if not self._tree_widget.is_expanded(ancestor):
-                    self.set_expanded(ancestor, True, False)
+                    self.set_expanded(ancestor, True, False, update_cache=update_cache)
                     force_layout_recalculation = True
 
         if not force_layout_recalculation:
@@ -573,17 +612,30 @@ class ScrollingTreeWidget:
         self._tree_scroll_frame.scroll_y = scroll_y - target_from_top
 
     async def _deferred_expansion_state_restore(self):
-        if not self._item_expansion_states:
-            return
-
+        """Restore cached expansion after one Kit update without changing the saved expansion state."""
         await omni.kit.app.get_app().next_update_async()
 
         for item in self.model.iter_items_children():
-            key = hash(item)
-            expanded = self._item_expansion_states.get(key, None)
-            if expanded is None:
-                continue
-            self.set_expanded(item, expanded, False)
+            item_hash = hash(item)
+            expanded = item_hash in self._item_expansion_states
+            if self._tree_widget.is_expanded(item) != expanded:
+                self.set_expanded(item, expanded, False, update_cache=False)
+
+    async def wait_for_model_change_sync(self):
+        """Wait for pending model-change UI synchronization, if one exists.
+
+        The task is absent before synchronization is scheduled and after teardown. If newer model publication
+        replaces it while waiting, this follows the replacement. Caller cancellation propagates without cancelling
+        widget-owned synchronization.
+        """
+        while model_change_sync_task := self._model_change_sync_task:
+            try:
+                await asyncio.shield(model_change_sync_task)
+            except asyncio.CancelledError:
+                if asyncio.current_task().cancelling() or model_change_sync_task is self._model_change_sync_task:
+                    raise
+            if model_change_sync_task is self._model_change_sync_task:
+                return
 
     async def _sync_ui_after_model_change(self, restore_expansion: bool = True):
         """
@@ -598,16 +650,11 @@ class ScrollingTreeWidget:
         if self._suppress_model_change_sync:
             return
 
-        if self._expansion_caching and restore_expansion:
-            await self._deferred_expansion_state_restore()
-
         if self._alternating_rows and self._alternating_row_widget:
             self._alternating_row_widget.refresh(item_count=self._model.get_children_count())
 
-        if self._frame_selection:
-            await omni.kit.app.get_app().next_update_async()
-            await self.expand_to_items(self._tree_widget.selection)
-            await self.scroll_to_items(self._tree_widget.selection)
+        if self._expansion_caching and restore_expansion:
+            await self._deferred_expansion_state_restore()
 
     @omni.usd.handle_exception
     async def _update_content_size_deferred(self):
@@ -702,10 +749,11 @@ class ScrollingTreeWidget:
             if recursive:
                 items.extend(self._model.iter_items_children([item]))
             for i in items:
+                item_hash = hash(i)
                 if expanded:
-                    self._item_expansion_states[hash(i)] = True
+                    self._item_expansion_states[item_hash] = True
                 else:
-                    self._item_expansion_states.pop(hash(i), None)
+                    self._item_expansion_states.pop(item_hash, None)
 
     def is_expanded(self, *args, **kwargs):
         """
@@ -738,7 +786,7 @@ class ScrollingTreeWidget:
         return self._tree_widget.on_selection_changed(*args, **kwargs)
 
     def destroy(self) -> None:
-        """Destroy all subwidgets and release resources."""
+        """Destroy owned subwidgets and release subscriptions and tasks."""
         self._destroyed = True
         if self._expansion_resolve_cancel_event:
             self._expansion_resolve_cancel_event.set()
@@ -756,17 +804,21 @@ class ScrollingTreeWidget:
         self._app_window_size_changed_sub = None
         self._item_changed_sub = None
         self._item_expanded_sub = None
+
         if self._tree_widget is not None:
             self._tree_widget.destroy()
-            self._tree_widget = None
         if self._alternating_row_widget is not None:
             self._alternating_row_widget.destroy()
-            self._alternating_row_widget = None
-        self._model = None
-        self._delegate = None
-        self._root_frame = None
+        if self._root_frame is not None:
+            self._root_frame.clear()
+
+        self._tree_widget = None
         self._tree_frame = None
         self._tree_scroll_frame = None
+        self._root_frame = None
+        self._alternating_row_widget = None
+        self._model = None
+        self._delegate = None
 
     def __del__(self):
         """Release resources when explicit destruction was omitted."""

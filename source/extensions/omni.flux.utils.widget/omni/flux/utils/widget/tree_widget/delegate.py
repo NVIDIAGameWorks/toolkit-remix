@@ -86,7 +86,7 @@ class TreeDelegateBase(ui.AbstractItemDelegate):
         if column_id == 0:
             with ui.HStack(width=ui.Pixel(16 * (level + 2)), height=self.DEFAULT_IMAGE_ICON_SIZE):
                 ui.Spacer()
-                if model.can_item_have_children(item):
+                if item is not None and item.has_children:
                     with ui.Frame(
                         width=0, mouse_released_fn=lambda x, y, b, m: self._item_expanded(b, item, not expanded)
                     ):
