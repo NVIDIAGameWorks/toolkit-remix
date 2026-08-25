@@ -2,6 +2,11 @@ variables:
   AWS_ACCESS_KEY_ID: $AWS_OMNIVERSEDOCS_ACCESS_KEY_ID
   AWS_SECRET_ACCESS_KEY: $AWS_OMNIVERSEDOCS_SECRET_ACCESS_KEY
   DXVK_REMIX_NVIDIA_MIN_DRIVER: 0
+  # NVCARPS outbound skill validation/signing. `external` is the outbound profile and is
+  # allowlisted per-repo by the NVCARPS team; auto-sign is the outbound default.
+  NVCARPS_CI_TRIGGER_BRANCH: "main"
+  NVCARPS_CI_UPSTREAM_PROFILE: "external"
+  NVCARPS_CI_AUTO_SIGN: "true"
 
 stages:
   - check_mr
@@ -22,8 +27,14 @@ stages:
   - gitlab_release
   - github_release
   - measure_startup_time
+  - nvcarps
+  - nvskills-pipeline
 
 include:
+  # NVCARPS outbound skill validation + signing (see NVCARPS_CI_* variables above).
+  - project: nvcarps/ci-group/nvcarps-ci
+    ref: main
+    file: /.gitlab/nvcarps-upstream-ci.yml
   # Job definitions
   - local: tools/ci/gitlab/checks/check_changelog.yml
   - local: tools/ci/gitlab/checks/check_forbidden_words.yml
