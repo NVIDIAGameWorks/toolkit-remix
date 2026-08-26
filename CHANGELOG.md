@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5603: Updated property panel collapsible headers and section menus so row and header clicks toggle expansion without selecting child property rows, and Object, Material, Particle, and Logic property sections expose Expand All and Collapse All header menu actions.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-10c8514-main`
 - REMIX-5722: Improved Stage Manager filter responsiveness by reusing stable proxy hierarchies for filter-only updates and reducing repeated predicate work while preserving selection and expansion.
+- REMIX-5819: Added Toolkit-owned guidance for incompatible NVIDIA drivers and updated paired RTX Remix dependencies.
 
 ### Removed
 
