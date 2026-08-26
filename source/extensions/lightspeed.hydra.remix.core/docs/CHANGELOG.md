@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.2]
+### Fixed
+- Returned actionable Toolkit guidance when HdRemix reports an incompatible NVIDIA graphics driver.
+
 ## [0.8.1]
 ### Fixed
 - Disabled legacy HdRemix selection highlighting to avoid performance degradation on USD 25+.

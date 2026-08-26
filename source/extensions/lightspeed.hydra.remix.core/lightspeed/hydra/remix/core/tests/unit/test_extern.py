@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+import ctypes
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import omni.kit.test
@@ -83,3 +85,35 @@ class TestExtern(omni.kit.test.AsyncTestCase):
         self.assertIsNone(_extern._instance)
         self.assertIsNone(_extern._support_check_task)
         self.assertIsNone(_extern.RemixExtern._hdremix_dll_handle)
+
+    async def test_check_support_returns_driver_guidance_and_logs_native_message(self):
+        # Arrange
+        native_message = "Native driver failure"
+
+        def is_supported(out_error_message, out_error_code):
+            out_error_message.contents.value = native_message.encode("utf-8")
+            out_error_code.contents.value = 0x88960002
+            return 0
+
+        support_function = MagicMock(side_effect=is_supported)
+        dll = SimpleNamespace(hdremix_issupported_ex=support_function)
+
+        # Act
+        with (
+            patch.object(_extern.RemixExtern, "_RemixExtern__load_hdremix_library", return_value=dll),
+            patch.object(_extern.carb, "log_error") as log_error,
+        ):
+            result = _extern.RemixExtern.check_support()
+
+        # Assert
+        self.assertEqual(
+            (
+                _extern.RemixSupport.NOT_SUPPORTED,
+                "The installed graphics driver is incompatible with this version of the RTX Remix Toolkit.\n\n"
+                "Please update to the latest available driver and relaunch the app.",
+            ),
+            result,
+        )
+        log_error.assert_called_once_with(native_message)
+        self.assertEqual([ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_uint32)], support_function.argtypes)
+        self.assertIs(support_function.restype, ctypes.c_int)

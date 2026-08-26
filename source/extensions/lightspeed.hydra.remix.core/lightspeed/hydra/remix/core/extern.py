@@ -41,12 +41,14 @@ _hdremix_support_level: RemixSupport = RemixSupport.WAITING_FOR_INIT
 _hdremix_error_message: str = "<HdRemixFinalizer.check_support was not called>"
 _last_waiting_message: str | None = None
 _TIMEOUT_ERROR_PREFIX = "Remix initialization timeout"
+_REMIXAPI_ERROR_CODE_HRESULT_DRIVER_VERSION_BELOW_MINIMUM = 0x88960002
 REMIX_HYDRA_ENGINE_NAME = "pxr"
 REMIX_RENDER_MODE = "HdRemixRendererPlugin"
 REMIX_RENDERERS_SETTING = f"{REMIX_RENDER_MODE}:Remix"
 
 
 def is_remix_supported() -> tuple[RemixSupport, str]:
+    """Return the cached Remix support result."""
     return (_hdremix_support_level, _hdremix_error_message)
 
 
@@ -194,7 +196,7 @@ class RemixExtern:
 
     @classmethod
     def check_support(cls) -> tuple[RemixSupport, str]:
-        """Try to load HdRemix and see if it is supported."""
+        """Try to load HdRemix and return its support state and user-facing message."""
         try:
             dll = cls.__load_hdremix_library()
         except FileNotFoundError:
@@ -206,17 +208,18 @@ class RemixExtern:
             carb.log_error(msg)
             return RemixSupport.NOT_SUPPORTED, msg
 
-        if not hasattr(dll, "hdremix_issupported"):
-            msg = "HdRemix.dll doesn't have 'hdremix_issupported' function.\nAssuming that Remix is not supported."
+        if not hasattr(dll, "hdremix_issupported_ex"):
+            msg = "HdRemix.dll doesn't have 'hdremix_issupported_ex' function.\nAssuming that Remix is not supported."
             carb.log_error(msg)
             return RemixSupport.NOT_SUPPORTED, msg
 
-        pfn_issupported = dll.hdremix_issupported
-        pfn_issupported.argtypes = [ctypes.POINTER(ctypes.c_char_p)]
+        pfn_issupported = dll.hdremix_issupported_ex
+        pfn_issupported.argtypes = [ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_uint32)]
         pfn_issupported.restype = ctypes.c_int
 
         out_errormessage_cstr = ctypes.c_char_p(b"")
-        ok = pfn_issupported(ctypes.pointer(out_errormessage_cstr))
+        out_error_code = ctypes.c_uint32()
+        ok = pfn_issupported(ctypes.pointer(out_errormessage_cstr), ctypes.pointer(out_error_code))
 
         if ok != 1:
             # pylint: disable=no-member
@@ -227,6 +230,12 @@ class RemixExtern:
             if ok == -1:
                 return RemixSupport.WAITING_FOR_INIT, msg
             carb.log_error(msg)
+            # Keep native diagnostics in the log, but return actionable guidance for this known failure.
+            if out_error_code.value == _REMIXAPI_ERROR_CODE_HRESULT_DRIVER_VERSION_BELOW_MINIMUM:
+                msg = (
+                    "The installed graphics driver is incompatible with this version of the RTX Remix Toolkit.\n\n"
+                    "Please update to the latest available driver and relaunch the app."
+                )
             return RemixSupport.NOT_SUPPORTED, msg
 
         carb.log_info("HdRemix.dll loaded.")
@@ -427,7 +436,8 @@ def _require_remix_extern() -> RemixExtern:
 
 
 def reset_remix_support_for_retry(reason: str = ""):
-    global _hdremix_support_level, _hdremix_error_message, _last_waiting_message, _support_check_task
+    global _hdremix_support_level, _hdremix_error_message
+    global _last_waiting_message, _support_check_task
 
     suffix = f" ({reason})" if reason else ""
     carb.log_info(f"[lightspeed.hydra.remix.core] Resetting HdRemix support check{suffix}.")
