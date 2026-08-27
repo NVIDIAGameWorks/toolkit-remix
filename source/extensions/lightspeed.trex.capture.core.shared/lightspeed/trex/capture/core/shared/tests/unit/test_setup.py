@@ -19,10 +19,17 @@ from unittest.mock import MagicMock, patch
 
 import omni.kit.test
 import omni.usd
+from lightspeed.common.constants import CAPTURED_REMIX_CONFIG_ATTR as _NAMESPACED_ATTRIBUTE
+from lightspeed.common.constants import CAPTURED_REMIX_CONFIG_LEGACY_ATTR as _LEGACY_ATTRIBUTE
+from lightspeed.common.constants import CAPTURED_REMIX_SETTINGS as _REMIX_SETTINGS
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
 from pxr import Sdf, Usd, UsdGeom
+
+_CONFIG_A = ["rtx.sceneScale = 0.01", "rtx.zUp = True"]
+_CONFIG_B = ["rtx.sceneScale = 1.0", "rtx.zUp = False"]
+_CONFIG_OVERRIDE = ["rtx.sceneScale = 5.0"]
 
 
 class TestSetup(omni.kit.test.AsyncTestCase):
@@ -325,3 +332,125 @@ class TestSetup(omni.kit.test.AsyncTestCase):
                 "MESH0CAA733B0850",
             },
         )
+
+    @staticmethod
+    def __make_core(capture_attribute: str | None = None, capture_config=None, mod_action=None):
+        """Build the capture core over a project stage shaped like a real one.
+
+        The capture is the weakest sublayer, as `import_capture_layer` inserts it, and the mod
+        layer above it stands in for a project-wide override -- `mod_action` receives that
+        layer's attribute so a test can set it or block it. Both layers are kept alive by the
+        stage that sublayers them: an anonymous layer expires with its last strong reference.
+        """
+        capture_stage = Usd.Stage.CreateInMemory()
+        if capture_attribute is not None:
+            prim = capture_stage.DefinePrim(_REMIX_SETTINGS, "RenderSettings")
+            prim.CreateAttribute(capture_attribute, Sdf.ValueTypeNames.StringArray).Set(capture_config)
+        capture_layer = capture_stage.GetRootLayer()
+
+        mod_stage = Usd.Stage.CreateInMemory()
+        if mod_action is not None:
+            prim = mod_stage.OverridePrim(_REMIX_SETTINGS)
+            mod_action(prim.CreateAttribute(_NAMESPACED_ATTRIBUTE, Sdf.ValueTypeNames.StringArray))
+
+        stage = Usd.Stage.CreateInMemory()
+        stage.GetRootLayer().subLayerPaths.insert(0, capture_layer.identifier)
+        stage.GetRootLayer().subLayerPaths.insert(0, mod_stage.GetRootLayer().identifier)
+
+        core = _CaptureCoreSetup("")
+        core._context = MagicMock()
+        core._context.get_stage.return_value = stage
+        return core, stage, capture_layer
+
+    @staticmethod
+    def __get_composed_config(stage: Usd.Stage) -> list[str] | None:
+        """Read what HdRemix would see: the composed namespaced attribute."""
+        prim = stage.GetPrimAtPath(_REMIX_SETTINGS)
+        if not prim.IsValid():
+            return None
+        attribute = prim.GetAttribute(_NAMESPACED_ATTRIBUTE)
+        return list(attribute.Get()) if attribute and attribute.HasAuthoredValue() else None
+
+    @staticmethod
+    def __get_session_fallback(stage: Usd.Stage) -> list[str] | None:
+        spec = stage.GetSessionLayer().GetAttributeAtPath(f"{_REMIX_SETTINGS}.{_NAMESPACED_ATTRIBUTE}")
+        return list(spec.default) if spec is not None else None
+
+    async def test_publish_remix_config_legacy_capture_reaches_namespaced_attribute(self):
+        # Arrange
+        core, stage, _capture_layer = self.__make_core(_LEGACY_ATTRIBUTE, _CONFIG_A)
+
+        # Act
+        core._publish_remix_config()
+
+        # Assert
+        self.assertEqual(self.__get_composed_config(stage), _CONFIG_A)
+
+    async def test_publish_remix_config_namespaced_capture_authors_no_fallback(self):
+        # Arrange
+        core, stage, _capture_layer = self.__make_core(_NAMESPACED_ATTRIBUTE, _CONFIG_A)
+
+        # Act
+        core._publish_remix_config()
+
+        # Assert
+        self.assertIsNone(self.__get_session_fallback(stage))
+
+    async def test_publish_remix_config_project_override_wins_over_legacy_capture(self):
+        # Arrange
+        core, stage, _capture_layer = self.__make_core(
+            _LEGACY_ATTRIBUTE, _CONFIG_A, mod_action=lambda attribute: attribute.Set(_CONFIG_OVERRIDE)
+        )
+
+        # Act
+        core._publish_remix_config()
+
+        # Assert
+        self.assertEqual(self.__get_composed_config(stage), _CONFIG_OVERRIDE)
+
+    async def test_publish_remix_config_blocked_override_stops_the_fallback(self):
+        # Arrange
+        core, stage, _capture_layer = self.__make_core(
+            _LEGACY_ATTRIBUTE, _CONFIG_A, mod_action=lambda attribute: attribute.Block()
+        )
+
+        # Act
+        core._publish_remix_config()
+
+        # Assert
+        self.assertIsNone(self.__get_session_fallback(stage))
+
+    async def test_publish_remix_config_legacy_capture_leaves_capture_layer_untouched(self):
+        # Arrange
+        core, _stage, capture_layer = self.__make_core(_LEGACY_ATTRIBUTE, _CONFIG_A)
+
+        # Act
+        core._publish_remix_config()
+
+        # Assert
+        self.assertIsNone(capture_layer.GetAttributeAtPath(f"{_REMIX_SETTINGS}.{_NAMESPACED_ATTRIBUTE}"))
+
+    async def test_publish_remix_config_capture_swap_replaces_previous_config(self):
+        # Arrange
+        core, stage, capture_layer = self.__make_core(_LEGACY_ATTRIBUTE, _CONFIG_A)
+        core._publish_remix_config()
+        # A capture swap puts a different capture under the same session layer.
+        capture_layer.GetAttributeAtPath(f"{_REMIX_SETTINGS}.{_LEGACY_ATTRIBUTE}").default = _CONFIG_B
+
+        # Act
+        core._publish_remix_config()
+
+        # Assert
+        self.assertEqual(self.__get_composed_config(stage), _CONFIG_B)
+
+    async def test_publish_remix_config_capture_without_config_clears_previous_config(self):
+        # Arrange
+        core, stage, capture_layer = self.__make_core(_LEGACY_ATTRIBUTE, _CONFIG_A)
+        core._publish_remix_config()
+        del capture_layer.GetPrimAtPath(_REMIX_SETTINGS).properties[_LEGACY_ATTRIBUTE]
+
+        # Act
+        core._publish_remix_config()
+
+        # Assert
+        self.assertIsNone(self.__get_composed_config(stage))

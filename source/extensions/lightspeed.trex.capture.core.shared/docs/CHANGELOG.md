@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.2]
+### Fixed
+- Republish a pre-namespace capture's `remix_config` as `remix:remix_config` on the session layer when the capture loads, so HdRemix applies the `rtx.*` options the capture was taken with. Applied as a fallback, so a capture or mod layer that states the namespaced attribute itself still wins
+
 ## [1.4.1]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

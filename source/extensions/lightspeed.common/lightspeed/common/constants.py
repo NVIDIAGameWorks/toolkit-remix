@@ -51,6 +51,13 @@ ROOTNODE_LIGHTS = ROOTNODE + "/lights"
 ROOTNODE_CAMERA = ROOTNODE + "/Camera"  # legacy capture camera location
 CAPTURED_CAMERA = ROOTNODE + "/cameras/Camera"
 
+# Render settings prim a capture stores the rtx.* options it was taken with on.
+CAPTURED_REMIX_SETTINGS = "/remix_settings"
+CAPTURED_REMIX_CONFIG_ATTR = "remix:remix_config"
+# Pre-namespace spelling. Hydra gathers only namespaced attributes off a render settings
+# prim, so this one never reaches HdRemix.
+CAPTURED_REMIX_CONFIG_LEGACY_ATTR = "remix_config"
+
 LIGHT_NAME_PREFIX = "light_"
 LIGHT_PATH = ROOTNODE_LIGHTS + "/" + LIGHT_NAME_PREFIX
 INSTANCE_NAME_PREFIX = "inst_"
