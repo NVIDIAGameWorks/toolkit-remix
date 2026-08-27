@@ -61,6 +61,58 @@ class Setup:
             time_codes = stage_source.GetTimeCodesPerSecond()
             stage_destination.SetTimeCodesPerSecond(time_codes)
 
+    def __capture_layer_loaded(self) -> None:
+        """Reconcile the newly loaded capture, then tell subscribers about it.
+
+        Reconciling first means every subscriber reacts to a stage whose Remix config already
+        reflects the capture that was just loaded.
+        """
+        self._publish_remix_config()
+        _get_event_manager_instance().call_global_custom_event(constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value)
+
+    def _publish_remix_config(self) -> None:
+        """Republish a pre-namespace capture's Remix config under the `remix` namespace.
+
+        Hydra gathers only namespaced attributes off a render settings prim, so the bare
+        `remix_config` that pre-namespace captures use never reaches HdRemix and those captures
+        render with default `rtx.sceneScale` and `rtx.zUp`. This is a fallback rather than an
+        override: it speaks only when no layer states the namespaced attribute itself.
+        """
+        stage = self._context.get_stage()
+        if stage is None:
+            return
+
+        # Drop the previous capture's fallback first. It out-composes every other layer, so
+        # leaving it would both mask the incoming capture and read below as a project override.
+        session_layer = stage.GetSessionLayer()
+        session_prim_spec = session_layer.GetPrimAtPath(constants.CAPTURED_REMIX_SETTINGS)
+        if session_prim_spec is not None and constants.CAPTURED_REMIX_CONFIG_ATTR in session_prim_spec.properties:
+            del session_prim_spec.properties[constants.CAPTURED_REMIX_CONFIG_ATTR]
+
+        prim = stage.GetPrimAtPath(constants.CAPTURED_REMIX_SETTINGS)
+        if not prim.IsValid():
+            return
+
+        # Whatever still states the namespaced attribute is either the capture itself or a
+        # project-wide override in a stronger layer, and both outrank this fallback. The opinion
+        # is read off the property stack rather than through HasAuthoredValue(), which reports a
+        # value block as absent -- a block states "no config here" and has to be honoured too.
+        namespaced_attribute = prim.GetAttribute(constants.CAPTURED_REMIX_CONFIG_ATTR)
+        namespaced_specs = namespaced_attribute.GetPropertyStack(Usd.TimeCode.Default()) if namespaced_attribute else []
+        if any(spec.HasInfo("default") for spec in namespaced_specs):
+            return
+
+        legacy_attribute = prim.GetAttribute(constants.CAPTURED_REMIX_CONFIG_LEGACY_ATTR)
+        if not legacy_attribute or not legacy_attribute.HasAuthoredValue():
+            return
+
+        # The capture layer is locked, and the config belongs to the capture rather than to the
+        # mod, so the fallback goes on the session layer, which is never written to disk.
+        with Usd.EditContext(stage, session_layer):
+            prim.CreateAttribute(constants.CAPTURED_REMIX_CONFIG_ATTR, legacy_attribute.GetTypeName()).Set(
+                legacy_attribute.Get()
+            )
+
     @staticmethod
     def is_path_valid(path: str, error_callback: Callable[[str, str], None] | None = None) -> bool:
         error_title = "Wrong capture directory"
@@ -114,9 +166,7 @@ class Setup:
             layer_path = capture_layer.realPath or capture_layer.identifier
             self.__directory = omni.client.normalize_url(layer_path).rsplit("/", 1)[0]
 
-            _get_event_manager_instance().call_global_custom_event(
-                constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value
-            )
+            self.__capture_layer_loaded()
         else:
             # Capture layer may have already been removed by validate_project.
             # Derive the expected captures directory from the project structure so the capture
@@ -149,7 +199,7 @@ class Setup:
                 do_undo=do_undo,
             )
             self._layer_manager.lock_layers_of_type(LayerType.capture, do_undo=do_undo)
-        _get_event_manager_instance().call_global_custom_event(constants.GlobalEventNames.CAPTURE_LAYER_IMPORTED.value)
+        self.__capture_layer_loaded()
 
     def set_directory(self, path: str):
         self.__directory = path
