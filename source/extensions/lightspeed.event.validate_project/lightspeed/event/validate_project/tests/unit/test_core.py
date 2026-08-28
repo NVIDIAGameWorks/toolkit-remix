@@ -15,8 +15,10 @@
 * limitations under the License.
 """
 
+import asyncio
 import contextlib
 import tempfile
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import omni.kit.app
 import omni.usd
@@ -39,11 +41,78 @@ async def make_temp_directory(context):
 
 
 class TestValidateProjectCore(AsyncTestCase):
+    """Test deferred project validation and existing validation repairs."""
+
     async def setUp(self):
         self._layer_manager = _LayerManagerCore()
 
     async def tearDown(self):
         pass
+
+    async def test_schedule_validation_reuses_pending_task(self):
+        """Keep one pending validation task while more events arrive."""
+        # Arrange
+        core = EventValidateProjectCore.__new__(EventValidateProjectCore)
+        pending_task = MagicMock()
+        core._validation_task = pending_task
+
+        with patch("lightspeed.event.validate_project.core.asyncio.ensure_future") as ensure_future_mock:
+            # Act
+            core._EventValidateProjectCore__schedule_validation()
+
+        # Assert
+        self.assertIs(pending_task, core._validation_task)
+        ensure_future_mock.assert_not_called()
+
+    async def test_scheduled_validation_runs_after_one_update(self):
+        """Run deferred project validation after one application update."""
+        # Arrange
+        core = EventValidateProjectCore.__new__(EventValidateProjectCore)
+        core._validation_task = asyncio.current_task()
+        order = []
+        app = MagicMock()
+        app.next_update_async = AsyncMock(side_effect=lambda: order.append("update"))
+        core._EventValidateProjectCore__validate_project = MagicMock(side_effect=lambda: order.append("validate"))
+
+        with patch("lightspeed.event.validate_project.core.omni.kit.app.get_app", return_value=app):
+            # Act
+            await core._EventValidateProjectCore__validate_project_next_update()
+
+        # Assert
+        self.assertEqual(["update", "validate"], order)
+        self.assertIsNone(core._validation_task)
+
+    async def test_anonymous_startup_stage_is_ignored_silently(self):
+        """Do not validate the anonymous stage used before a project opens."""
+        # Arrange
+        core = EventValidateProjectCore.__new__(EventValidateProjectCore)
+        stage = MagicMock()
+        stage.GetRootLayer.return_value.anonymous = True
+        core._context = MagicMock()
+        core._context.get_stage.return_value = stage
+        core._EventValidateProjectCore__layer_manager = MagicMock()
+
+        # Act
+        core._EventValidateProjectCore__validate_project()
+
+        # Assert
+        core._EventValidateProjectCore__layer_manager.get_layer_of_type.assert_not_called()
+
+    async def test_uninstall_cancels_pending_validation(self):
+        """Cancel pending validation when the event owner uninstalls."""
+        # Arrange
+        core = EventValidateProjectCore.__new__(EventValidateProjectCore)
+        core._stage_event_sub = MagicMock()
+        core._layer_event_sub = MagicMock()
+        validation_task = MagicMock()
+        core._validation_task = validation_task
+
+        # Act
+        core._uninstall()
+
+        # Assert
+        validation_task.cancel.assert_called_once_with()
+        self.assertIsNone(core._validation_task)
 
     async def test_unresolvable_capture_sublayer_does_not_raise(self):
         """Validate that an unresolvable capture sublayer path logs a warning instead of raising."""

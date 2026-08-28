@@ -32,6 +32,10 @@ from pydantic import BaseModel, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
 
+class ProjectFileMetadataError(ValueError):
+    """Raised when an existing project lacks required layer metadata."""
+
+
 class ProjectWizardKeys(Enum):
     EXISTING_PROJECT = "existing_project"
     PROJECT_FILE = "project_file"
@@ -108,7 +112,7 @@ class ProjectWizardSchema(BaseModel):
 
     @classmethod
     def is_project_file_valid(cls, v, values: dict):
-        """Check that the path is a valid project file"""
+        """Return the validated path or raise when it is not a valid project file."""
 
         # Make sure there are no invalid characters in the filename
         if re.search(r'[<>"\\():*?|]', Path(str(v)).name):
@@ -129,7 +133,7 @@ class ProjectWizardSchema(BaseModel):
         if values.get(ProjectWizardKeys.EXISTING_PROJECT.value, False):
             valid = _LayerManagerCore.is_valid_layer_type(str(v), _LayerType.workfile)
             if not valid:
-                raise ValueError(
+                raise ProjectFileMetadataError(
                     f"'{Path(str(v)).name}' is not a valid Remix project file. "
                     "Please select a file that was originally created as a Remix project."
                 )

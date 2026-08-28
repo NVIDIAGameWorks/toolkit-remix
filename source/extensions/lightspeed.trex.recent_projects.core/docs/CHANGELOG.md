@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.6]
+### Changed
+- Cache successful recent project validation results in `recent_saved_file.json` using file fingerprints while retrying invalid entries.
+- Include recent-entry game and capture metadata in schema-2 validation cache inputs.
+- Save recent-project data through a same-directory temporary file and atomic replacement.
+
 ## [1.1.5]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

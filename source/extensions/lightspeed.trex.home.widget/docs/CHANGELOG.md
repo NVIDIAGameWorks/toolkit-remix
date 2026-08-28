@@ -1,6 +1,16 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.11]
+### Changed
+- Refresh recent projects once per visible Home transition, reject stale task results, and report when the current list is applied.
+- Batch recent-project validation cache updates into one guarded write before bounded-concurrent thumbnail metadata reads, yield during large cold validation runs, and skip writes when every entry is unchanged.
+- Delegate full project-open validation, repair, and workspace transitions to StageCraft.
+
+### Fixed
+- Explicitly release the pending Project Wizard completion subscription during Home teardown.
+- Avoid redocking Home when QuickLayout completes docking during Home's deferred update.
+
 ## [1.8.10]
 ### Fixed
 - Canceled pending docking and recent-project refresh tasks before Home workspace teardown.

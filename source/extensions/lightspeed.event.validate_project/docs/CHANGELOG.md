@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.7]
+### Changed
+- Coalesced stage and layer event bursts into one next-update project validation and silently skipped anonymous startup
+  stages.
+
 ## [1.1.6]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

@@ -30,21 +30,18 @@ import omni.kit.app
 from lightspeed.common import constants
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
-from lightspeed.trex.project_wizard.core import ProjectWizardSchema as _ProjectWizardSchema
 from lightspeed.trex.project_wizard.window import WizardTypes as _WizardTypes
 from lightspeed.trex.project_wizard.window import get_instance as _get_wizard_instance
 from lightspeed.trex.recent_projects.core import RecentProjectsCore as _RecentProjectsCore
 from lightspeed.trex.utils.common.dialog_utils import delete_dialogs as _delete_dialogs
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
-from lightspeed.trex.utils.widget import show_invalid_deps_rebuild_dialog as _show_invalid_deps_rebuild_dialog
 from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni import ui
 from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.utils.common import reset_default_attrs
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.common.path_utils import open_file_using_os_default
-from omni.flux.utils.common.symlink import should_confirm_link_path_replacement as _should_confirm_link_path_replacement
 from omni.flux.utils.common.version import get_app_version
 from omni.flux.utils.widget.file_pickers import destroy_file_picker as _destroy_file_picker
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
@@ -54,6 +51,7 @@ from omni.kit.mainwindow import get_main_window
 from .recent_tree import RecentProjectDelegate, RecentProjectModel
 
 _HIDE_MENU = "/exts/lightspeed.trex.app.setup/hide_menu"
+_RECENT_REFRESH_BATCH_SIZE = 8
 
 
 class HomePageWidget(_WorkspaceWidget):
@@ -81,21 +79,18 @@ class HomePageWidget(_WorkspaceWidget):
             "_item_remove_from_recent_sub": None,
             "_item_project_opened_sub": None,
             "_item_show_in_explorer_sub": None,
+            "_refresh_recent_items_task": None,
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
-        self._refresh_recent_items_task = None
+        self._refresh_recent_items_generation = 0
+        self._sub_wizard_completed = None
 
         self._context_name = context_name
 
         self._recent_model = RecentProjectModel()
         self._recent_delegate = RecentProjectDelegate()
         self._recent_saved_file = _RecentProjectsCore()
-
-        self._recent_tree = None
-        self._resume_button = None
-        self._project_count_label = None
-        self._credits_window = None
 
         self._item_remove_from_recent_sub = self._recent_delegate.subscribe_item_remove_from_recent(
             lambda: self._remove_project_from_recent(
@@ -111,7 +106,6 @@ class HomePageWidget(_WorkspaceWidget):
         self.__settings = carb.settings.get_settings()
 
         self._build_ui()
-        self.refresh()
 
     @property
     def _url_labels(self) -> list:
@@ -157,15 +151,19 @@ class HomePageWidget(_WorkspaceWidget):
         self._schedule_recent_items_refresh()
 
     def show(self, visible: bool):
+        was_visible = self._window_visible
         super().show(visible)
         main_menu_bar = get_main_window().get_main_menu_bar()
         hide_menu = self.__settings.get(_HIDE_MENU)
         if not hide_menu:
             main_menu_bar.visible = True
-            return
+        else:
+            main_menu_bar.visible = not visible
 
-        main_menu_bar.visible = not visible
-        self.refresh()
+        if visible and not was_visible:
+            self.refresh()
+        elif not visible:
+            self._cancel_recent_items_refresh()
 
     def _build_ui(self):
         self.root_widget = ui.HStack()
@@ -444,30 +442,103 @@ class HomePageWidget(_WorkspaceWidget):
         omni.kit.clipboard.copy(label)
 
     @omni.usd.handle_exception
-    async def _refresh_recent_items_deferred(self):
-        items = []
-        recent_file_data = self._recent_saved_file.get_recent_file_data()
-        for path in recent_file_data:
-            title = os.path.basename(path)
-            details = {"Path": path}
-            thumbnail = ""
-            try:
-                details.update(self._recent_saved_file.get_path_detail(path, recent_file_data))
-                data = await self._recent_saved_file.find_thumbnail_async(path)
-                if data is not None:
-                    _, thumbnail = data
-            except (OSError, AttributeError) as exc:
-                carb.log_warn(f"[HomePageWidget] Failed to load recent project '{path}': {exc}")
-                details["Invalid"] = [(path, str(exc))]
-            items.append((title, thumbnail, details))
+    async def _refresh_recent_items_deferred(self, refresh_generation: int | None = None):
+        """Refresh recent project items and persist cache mutations in one write."""
+        task = asyncio.current_task()
 
-        self._set_recent_items(items)
+        def is_current_refresh():
+            return refresh_generation is None or (
+                self._window_visible and refresh_generation == self._refresh_recent_items_generation
+            )
+
+        try:
+            recent_file_data = self._recent_saved_file.get_recent_file_data()
+            validation_updates = {}
+            pending_items = []
+            validation_changes_since_yield = 0
+            for path in recent_file_data:
+                validation_before = recent_file_data[path].get("validation")
+                title = os.path.basename(path)
+                details = {"Path": path}
+                should_find_thumbnail = True
+                try:
+                    details.update(self._recent_saved_file.get_path_detail(path, recent_file_data))
+                except (OSError, AttributeError) as exc:
+                    carb.log_warn(f"[HomePageWidget] Failed to load recent project '{path}': {exc}")
+                    details["Invalid"] = [(path, str(exc))]
+                    should_find_thumbnail = False
+                validation_after = recent_file_data[path].get("validation")
+                if validation_after != validation_before:
+                    validation_updates[path] = validation_after
+                    validation_changes_since_yield += 1
+                    if validation_changes_since_yield == _RECENT_REFRESH_BATCH_SIZE:
+                        await omni.kit.app.get_app().next_update_async()
+                        validation_changes_since_yield = 0
+                pending_items.append((title, path, details, should_find_thumbnail))
+
+            if not is_current_refresh():
+                return
+
+            if validation_updates:
+                latest_recent_file_data = self._recent_saved_file.get_recent_file_data()
+                should_save = False
+                for path, validation in validation_updates.items():
+                    if path in latest_recent_file_data:
+                        latest_recent_file_data[path]["validation"] = validation
+                        should_save = True
+                if should_save:
+                    self._recent_saved_file.save_recent_file(latest_recent_file_data)
+
+            if not is_current_refresh():
+                return
+
+            thumbnail_semaphore = asyncio.Semaphore(_RECENT_REFRESH_BATCH_SIZE)
+
+            async def find_thumbnail(path, details, should_find_thumbnail):
+                """Load one thumbnail while bounding concurrent metadata reads."""
+                thumbnail = ""
+                if should_find_thumbnail:
+                    try:
+                        async with thumbnail_semaphore:
+                            data = await self._recent_saved_file.find_thumbnail_async(path)
+                        if data is not None:
+                            _, thumbnail = data
+                    except (OSError, AttributeError) as exc:
+                        carb.log_warn(f"[HomePageWidget] Failed to load recent project '{path}': {exc}")
+                        details["Invalid"] = [(path, str(exc))]
+                return thumbnail
+
+            thumbnails = await asyncio.gather(
+                *(
+                    find_thumbnail(path, details, should_find_thumbnail)
+                    for _, path, details, should_find_thumbnail in pending_items
+                )
+            )
+
+            if not is_current_refresh():
+                return
+
+            items = [
+                (title, thumbnail, details) for (title, _, details, _), thumbnail in zip(pending_items, thumbnails)
+            ]
+            self._set_recent_items(items)
+            carb.log_info("RECENTS_READY")
+        finally:
+            if self._refresh_recent_items_task is task:
+                self._refresh_recent_items_task = None
 
     def _schedule_recent_items_refresh(self):
         """Replace any pending recent-project refresh with a new task."""
+        self._cancel_recent_items_refresh()
+        refresh_generation = self._refresh_recent_items_generation
+        self._refresh_recent_items_task = asyncio.ensure_future(self._refresh_recent_items_deferred(refresh_generation))
+
+    def _cancel_recent_items_refresh(self):
+        """Invalidate and cancel the current recent-project refresh."""
+        self._refresh_recent_items_generation += 1
         if self._refresh_recent_items_task:
             self._refresh_recent_items_task.cancel()
-        self._refresh_recent_items_task = asyncio.ensure_future(self._refresh_recent_items_deferred())
+        self._refresh_recent_items_task = None
 
     def _set_recent_items(self, items: list[tuple[str, str, dict]]):
         """
@@ -490,7 +561,7 @@ class HomePageWidget(_WorkspaceWidget):
         self._schedule_recent_items_refresh()
 
     def _load_work_file(self, path: str):
-        """Triggers the "Load Project" event and loads the workspace window layout if there were no interruptions."""
+        """Request that StageCraft validate and open an existing project."""
         if not self._window_visible:
             return
 
@@ -512,50 +583,8 @@ class HomePageWidget(_WorkspaceWidget):
             )
             return
 
-        # Legacy projects from older toolkit versions lack required metadata (e.g. lightspeed_layer_type),
-        # causing is_project_file_valid to raise ValueError. Redirect those users to the Project Wizard.
-        try:
-            valid = _ProjectWizardSchema.is_project_file_valid(
-                path_obj, {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
-            )
-        except ValueError:
-            self._show_missing_metadata_dialog(path)
-            return
-        if not valid:
-            self._invoke_mod_setup_wizard(_WizardTypes.OPEN, path)
-            return
-
-        deps_directory = path_obj.parent / constants.REMIX_DEPENDENCIES_FOLDER
-        if not _ProjectWizardSchema.is_deps_directory_valid(deps_directory) and _should_confirm_link_path_replacement(
-            deps_directory
-        ):
-            _show_invalid_deps_rebuild_dialog(
-                deps_directory, partial(self._invoke_mod_setup_wizard, _WizardTypes.OPEN, path)
-            )
-            return
-
-        if not _ProjectWizardSchema.are_project_symlinks_valid(path_obj):
-            self._invoke_mod_setup_wizard(_WizardTypes.OPEN, path)
-            return
-
         event_manager = _get_event_manager_instance()
-        approvals: list[bool] = event_manager.call_global_custom_event(
-            constants.GlobalEventNames.LOAD_PROJECT_PATH.value, path
-        )
-        if all(approvals):
-            load_layout(_get_quicklayout_config(constants.LayoutFiles.WORKSPACE_PAGE))
-
-    def _show_missing_metadata_dialog(self, path: str):
-        """Display a dialog informing the user that the project is missing required metadata."""
-        _TrexMessageDialog(
-            message=(
-                "This project was created without the required metadata. Please use the "
-                "Open > Edit workflow in the Project Wizard to repair the project by picking "
-                "MOD layers in the edit workflow and opening the newly edited project."
-            ),
-            title="Missing Project Metadata Detected",
-            disable_cancel_button=True,
-        )
+        event_manager.call_global_custom_event(constants.GlobalEventNames.LOAD_PROJECT_PATH.value, path)
 
     def _invoke_mod_setup_wizard(self, wizard_type: _WizardTypes, project_path: str | None = None):
         def on_load_project(_payload=None):
@@ -569,7 +598,7 @@ class HomePageWidget(_WorkspaceWidget):
         wizard.show_project_wizard(reset_page=True)
 
     def destroy(self):
-        if self._refresh_recent_items_task:
-            self._refresh_recent_items_task.cancel()
-        self._refresh_recent_items_task = None
+        """Release Home subscriptions, models, dialogs, and owned tasks."""
+        self._cancel_recent_items_refresh()
+        self._sub_wizard_completed = None
         reset_default_attrs(self)

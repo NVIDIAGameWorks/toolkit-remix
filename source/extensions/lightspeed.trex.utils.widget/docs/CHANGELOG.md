@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.2]
+### Added
+- Added lazy IngestCraft extension loader used by the StageCraft sidebar.
+
+### Changed
+- Return the scheduled quick-layout task so callers can explicitly own its lifecycle.
+- Enable IngestCraft on demand without importing IngestCraft modules from shared startup code.
+- Wait for the native IngestCraft USD stage-opened event instead of polling settings each frame.
+
 ## [1.8.1]
 ### Added
 - Added the `subscribe_layout_loaded` event, which a layout load calls after it restores the dock settings, and a

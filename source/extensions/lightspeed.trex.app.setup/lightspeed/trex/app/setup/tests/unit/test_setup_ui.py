@@ -32,7 +32,22 @@ from lightspeed.trex.app.setup.setup_ui import MenubarIgnore, MenuLayout, SetupU
 MenuItem = namedtuple("MenuItem", ["name", "sub_menu"])
 
 
+def _make_setup_ui(default_layout: str = "stagecraft", hide_menu: bool = False) -> SetupUI:
+    setup_ui = SetupUI.__new__(SetupUI)
+    settings = MagicMock()
+    settings.get.side_effect = lambda path: default_layout if path == _setup_ui._DEFAULT_LAYOUT else None
+    setup_ui._SetupUI__settings = settings
+    setup_ui._SetupUI__sub_app_ready = MagicMock()
+    setup_ui._SetupUI__app_ready_task = None
+    setup_ui._SetupUI__hide_menu = hide_menu
+    setup_ui._SetupUI__preferences_menu_hook = MagicMock()
+    setup_ui._SetupUI__preferences_menu_hook_registered = False
+    return setup_ui
+
+
 class TestSetupUI(omni.kit.test.AsyncTestCase):
+    """Test application-ready UI setup and lifecycle ownership."""
+
     async def test_init_registers_preferences_menu_hook(self):
         settings = MagicMock()
         settings.get.return_value = False
@@ -74,15 +89,14 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         )
         self.assertEqual(setup_ui._SetupUI__sub_app_ready, "subscription")
 
-    async def test_app_ready_setup_hides_menu_and_closes_splash_after_deferred_updates(self):
-        setup_ui = SetupUI.__new__(SetupUI)
-        setup_ui._SetupUI__sub_app_ready = MagicMock()
-        setup_ui._SetupUI__hide_menu = True
+    async def test_stagecraft_ready_orders_home_splash_update_and_user_ready(self):
+        # Arrange
+        setup_ui = _make_setup_ui(hide_menu=True)
         app = MagicMock()
-        app.next_update_async = AsyncMock()
+        order = []
+        app.next_update_async = AsyncMock(side_effect=lambda: order.append("update"))
         menubar_ignore = MagicMock()
         menubar_ignore.get_menubar_layout.return_value = ["layout"]
-        splash = MagicMock()
         scheduled_coroutines = []
 
         def capture_coroutine(coroutine):
@@ -92,59 +106,98 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         with (
             patch("lightspeed.trex.app.setup.setup_ui.omni.kit.app.get_app", return_value=app),
             patch("lightspeed.trex.app.setup.setup_ui.asyncio.ensure_future", side_effect=capture_coroutine),
+            patch(
+                "lightspeed.trex.app.setup.setup_ui._wait_for_home_interactive",
+                new=AsyncMock(side_effect=lambda: order.append("home")),
+            ),
+            patch("lightspeed.trex.app.setup.setup_ui._publish_user_ready", side_effect=lambda: order.append("ready")),
             patch("lightspeed.trex.app.setup.setup_ui.MenubarIgnore", return_value=menubar_ignore),
             patch("lightspeed.trex.app.setup.setup_ui.omni.kit.menu.utils.add_layout") as add_layout_mock,
-            patch(
-                "lightspeed.trex.app.setup.setup_ui.omni.splash.acquire_splash_screen_interface",
-                return_value=splash,
-            ) as acquire_splash_mock,
+            patch.object(
+                SetupUI, "_SetupUI__close_splash_screen", side_effect=lambda: order.append("splash")
+            ) as close_splash_mock,
             patch("lightspeed.trex.app.setup.setup_ui._apply_windows_dark_titlebar") as apply_titlebar_mock,
         ):
+            # Act
             setup_ui._on_app_ready()
             await scheduled_coroutines[0]
 
+        # Assert
         self.assertIsNone(setup_ui._SetupUI__sub_app_ready)
-        self.assertEqual(app.next_update_async.await_count, 3)
+        self.assertEqual(order, ["home", "splash", "update", "ready"])
+        self.assertEqual(app.next_update_async.await_count, 1)
         add_layout_mock.assert_called_once_with(["layout"])
-        acquire_splash_mock.assert_called_once_with()
-        splash.close_all.assert_called_once_with()
+        close_splash_mock.assert_called_once_with()
         apply_titlebar_mock.assert_called_once_with()
 
-    async def test_app_ready_setup_closes_splash_when_hide_menu_disabled(self):
-        # Dev builds keep menus visible, but still need the app-ready splash close.
-        setup_ui = SetupUI.__new__(SetupUI)
-        setup_ui._SetupUI__sub_app_ready = MagicMock()
-        setup_ui._SetupUI__hide_menu = False
+    async def test_non_home_layout_keeps_three_update_fallback_without_user_ready(self):
+        # Arrange
+        setup_ui = _make_setup_ui(default_layout="ingestcraft")
         app = MagicMock()
         app.next_update_async = AsyncMock()
-        splash = MagicMock()
-        scheduled_coroutines = []
-
-        def capture_coroutine(coroutine):
-            scheduled_coroutines.append(coroutine)
-            return MagicMock()
 
         with (
             patch("lightspeed.trex.app.setup.setup_ui.omni.kit.app.get_app", return_value=app),
-            patch("lightspeed.trex.app.setup.setup_ui.asyncio.ensure_future", side_effect=capture_coroutine),
-            patch("lightspeed.trex.app.setup.setup_ui.MenubarIgnore") as menubar_ignore_mock,
-            patch("lightspeed.trex.app.setup.setup_ui.omni.kit.menu.utils.add_layout") as add_layout_mock,
-            patch(
-                "lightspeed.trex.app.setup.setup_ui.omni.splash.acquire_splash_screen_interface",
-                return_value=splash,
-            ) as acquire_splash_mock,
-            patch("lightspeed.trex.app.setup.setup_ui._apply_windows_dark_titlebar") as apply_titlebar_mock,
+            patch("lightspeed.trex.app.setup.setup_ui._wait_for_home_interactive", new=AsyncMock()) as wait_mock,
+            patch("lightspeed.trex.app.setup.setup_ui._publish_user_ready") as publish_mock,
+            patch.object(SetupUI, "_SetupUI__close_splash_screen") as close_splash_mock,
+            patch("lightspeed.trex.app.setup.setup_ui._apply_windows_dark_titlebar"),
         ):
-            setup_ui._on_app_ready()
-            await scheduled_coroutines[0]
+            # Act
+            await setup_ui._SetupUI__deferred_app_ready_setup()
 
-        self.assertIsNone(setup_ui._SetupUI__sub_app_ready)
+        # Assert
         self.assertEqual(app.next_update_async.await_count, 3)
-        menubar_ignore_mock.assert_not_called()
-        add_layout_mock.assert_not_called()
-        acquire_splash_mock.assert_called_once_with()
-        splash.close_all.assert_called_once_with()
-        apply_titlebar_mock.assert_called_once_with()
+        wait_mock.assert_not_awaited()
+        close_splash_mock.assert_called_once_with()
+        publish_mock.assert_not_called()
+
+    async def test_home_ready_timeout_closes_splash_without_publishing(self):
+        # Arrange
+        setup_ui = _make_setup_ui()
+
+        with (
+            patch("lightspeed.trex.app.setup.setup_ui.asyncio.wait_for", new=AsyncMock(side_effect=TimeoutError)),
+            patch(
+                "lightspeed.trex.app.setup.setup_ui._wait_for_home_interactive",
+                new=MagicMock(return_value=MagicMock()),
+            ),
+            patch.object(SetupUI, "_SetupUI__close_splash_screen") as close_splash_mock,
+            patch("lightspeed.trex.app.setup.setup_ui._publish_user_ready") as publish_mock,
+            patch("lightspeed.trex.app.setup.setup_ui.carb.log_error") as log_error_mock,
+        ):
+            # Act
+            await setup_ui._SetupUI__deferred_app_ready_setup()
+
+        # Assert
+        close_splash_mock.assert_called_once_with()
+        publish_mock.assert_not_called()
+        log_error_mock.assert_called_once_with(
+            "[lightspeed.trex.app.setup] Home did not become interactive within 30 seconds"
+        )
+
+    async def test_duplicate_app_ready_does_not_replace_pending_task(self):
+        """Reuse the pending setup task when app-ready is delivered more than once."""
+        # Arrange
+        setup_ui = _make_setup_ui()
+        pending_task = MagicMock()
+        deferred_setup = MagicMock()
+
+        with (
+            patch.object(
+                SetupUI,
+                "_SetupUI__deferred_app_ready_setup",
+                new=MagicMock(return_value=deferred_setup),
+            ),
+            patch("lightspeed.trex.app.setup.setup_ui.asyncio.ensure_future", return_value=pending_task) as ensure_mock,
+        ):
+            # Act
+            setup_ui._on_app_ready()
+            setup_ui._on_app_ready()
+
+        # Assert
+        ensure_mock.assert_called_once_with(deferred_setup)
+        self.assertIs(setup_ui._SetupUI__app_ready_task, pending_task)
 
     async def test_apply_windows_dark_titlebar_skips_non_windows(self):
         with (
@@ -219,7 +272,9 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
 
     async def test_destroy_removes_preferences_menu_hook_when_registered(self):
         setup_ui = SetupUI.__new__(SetupUI)
+        app_ready_task = MagicMock()
         setup_ui._SetupUI__sub_app_ready = MagicMock()
+        setup_ui._SetupUI__app_ready_task = app_ready_task
         setup_ui._SetupUI__preferences_menu_hook = MagicMock()
         setup_ui._SetupUI__preferences_menu_hook_registered = True
 
@@ -227,8 +282,10 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
             setup_ui.destroy()
 
         remove_hook_mock.assert_called_once_with(setup_ui._SetupUI__preferences_menu_hook)
+        app_ready_task.cancel.assert_called_once_with()
         self.assertFalse(setup_ui._SetupUI__preferences_menu_hook_registered)
         self.assertIsNone(setup_ui._SetupUI__sub_app_ready)
+        self.assertIsNone(setup_ui._SetupUI__app_ready_task)
 
 
 class TestMenubarIgnore(omni.kit.test.AsyncTestCase):

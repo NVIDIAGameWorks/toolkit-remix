@@ -16,11 +16,14 @@
 """
 
 from .e2e.test_home_widget import TestHomeWidgetInvalidDepsFlow, TestHomeWorkspaceLifecycle
-from .unit.test_home_widget import TestLoadWorkFile, TestRefreshRecentItemsDeferred
+from .unit.test_home_widget import TestLoadWorkFile, TestRefreshRecentItemsDeferred, TestVisibilityRefresh
+from .unit.test_workspace import TestHomePageWindow
 
 __all__ = [
+    "TestHomePageWindow",
     "TestHomeWidgetInvalidDepsFlow",
     "TestHomeWorkspaceLifecycle",
     "TestLoadWorkFile",
     "TestRefreshRecentItemsDeferred",
+    "TestVisibilityRefresh",
 ]

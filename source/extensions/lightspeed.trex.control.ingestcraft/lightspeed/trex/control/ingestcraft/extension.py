@@ -37,6 +37,6 @@ class TrexStageCraftControlExtension(omni.ext.IExt):
         self._setup = Setup()
 
     def on_shutdown(self):
+        """Release the IngestCraft setup reference."""
         carb.log_info("[lightspeed.trex.control.ingestcraft] Shutdown")
-        self._setup.destroy()
         self._setup = None

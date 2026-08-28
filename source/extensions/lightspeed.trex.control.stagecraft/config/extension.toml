@@ -3,7 +3,7 @@ kit_sdk_version = "110.*"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix control for the StageCraft"
 description = "Control will connect back end and front end for NVIDIA RTX Remix StageCraft App"
-version = "1.8.2"
+version = "1.8.3"
 readme = "docs/README.md"
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.control.stagecraft"
 category = "internal"
@@ -13,6 +13,7 @@ preview_image = "data/preview.png"
 icon = "data/icon.png"
 
 [dependencies]
+"lightspeed.common" = {}
 "lightspeed.event.shutdown_base" = {}
 "lightspeed.event.events" = {}
 "lightspeed.events_manager" = {}
@@ -35,6 +36,7 @@ icon = "data/icon.png"
 "lightspeed.trex.properties_pane.widget" = {}
 "lightspeed.trex.packaging.widget" = {}
 "omni.flux.utils.common" = {}
+"omni.flux.utils.widget" = {}
 "omni.kit.commands" = {}
 "omni.kit.viewport.menubar.lighting" = {}
 "omni.kit.window.file" = {}
@@ -50,6 +52,32 @@ dependencies = [
 
 args = [
     "--/renderer/mdl/searchPaths/templates=${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl"
+]
+
+pythonTests.exclude = [
+    "lightspeed.trex.control.stagecraft.tests.e2e.test_startup_chain.*",
+]
+
+stdoutFailPatterns.exclude = [
+    # Kit 110 headless viewport setup can briefly render before its transient viewport texture exists.
+    "*[omni.usd] addRender - Missing viewport data entry.*",
+    "*[omni.kit.scene_view.opengl] No UsdRender.Product was found at '/Render/OmniverseKit/HydraTextures/omni_kit_widget_viewport_ViewportTexture_*'*",
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup_chain"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/app/trex/default_layout=stagecraft",
+    "--/renderer/mdl/searchPaths/templates=${lightspeed.trex.app.resources}/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
+]
+
+pythonTests.include = [
+    "lightspeed.trex.control.stagecraft.tests.e2e.test_startup_chain.*",
 ]
 
 stdoutFailPatterns.exclude = [

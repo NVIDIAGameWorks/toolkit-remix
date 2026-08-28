@@ -15,7 +15,13 @@
 * limitations under the License.
 """
 
-__all__ = ["SETTING_JUNCTION_NAME", "ProjectWizardCore", "ProjectWizardKeys", "ProjectWizardSchema"]
+__all__ = [
+    "SETTING_JUNCTION_NAME",
+    "ProjectFileMetadataError",
+    "ProjectWizardCore",
+    "ProjectWizardKeys",
+    "ProjectWizardSchema",
+]
 
-from .items import ProjectWizardKeys, ProjectWizardSchema
+from .items import ProjectFileMetadataError, ProjectWizardKeys, ProjectWizardSchema
 from .wizard import SETTING_JUNCTION_NAME, ProjectWizardCore

@@ -27,6 +27,8 @@ import omni.usd
 import carb
 from carb.input import KeyboardInput
 from lightspeed.common import constants
+from lightspeed.trex.app.setup import lifecycle as _lifecycle
+from lightspeed.trex.app.setup.setup_ui import SetupUI
 from lightspeed.trex.home.widget import HomePageWidget
 from omni.flux.utils.widget.file_pickers import LAST_SELECTED_DIRECTORY_SETTING as _LAST_SELECTED_DIRECTORY_SETTING
 from omni.flux.utils.widget.file_pickers import destroy_file_picker as _destroy_file_picker
@@ -257,6 +259,50 @@ class TestHomeWidgetInvalidDepsFlow(AsyncTestCase):
 
 class TestHomeWorkspaceLifecycle(AsyncTestCase):
     """Exercise Home workspace window lifecycle behavior."""
+
+    async def test_user_ready_fires_after_visible_home_actions_are_usable(self):
+        """Publish readiness only after the visible Home New and Open actions exist."""
+        settings = carb.settings.get_settings()
+        layout_setting = "/app/trex/default_layout"
+        previous_layout = settings.get(layout_setting)
+        _lifecycle._USER_READY = False
+        _lifecycle._USER_READY_EVENT.clear()
+        _lifecycle._HOME_INTERACTIVE.clear()
+        settings.set(layout_setting, "stagecraft")
+        observations = []
+        subscription = _lifecycle.subscribe_user_ready(
+            lambda: observations.append(
+                all(
+                    control and control.widget.enabled
+                    for control in (
+                        ui_test.find(f"{constants.WindowNames.HOME_PAGE}//Frame/**/Button[*].text=='New'"),
+                        ui_test.find(f"{constants.WindowNames.HOME_PAGE}//Frame/**/Button[*].text=='Open'"),
+                    )
+                )
+            )
+        )
+        setup_ui = SetupUI()
+        workspace = HomePageWindow(usd_context_name="")
+
+        try:
+            await arrange_windows()
+            workspace.create_window()
+            workspace.get_window().visible = True
+            for _ in range(50):
+                if _lifecycle.is_user_ready():
+                    break
+                await omni.kit.app.get_app().next_update_async()
+
+            self.assertTrue(_lifecycle.is_user_ready())
+            self.assertEqual(observations, [True])
+        finally:
+            workspace.cleanup()
+            setup_ui.destroy()
+            del subscription
+            settings.set(layout_setting, previous_layout)
+            _lifecycle._USER_READY = False
+            _lifecycle._USER_READY_EVENT.clear()
+            _lifecycle._HOME_INTERACTIVE.clear()
 
     async def test_cleanup_while_deferred_home_tasks_are_pending_cancels_tasks(self):
         """Cancel deferred UI work when the Home workspace is destroyed."""

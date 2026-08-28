@@ -1,0 +1,72 @@
+[package]
+version = "1.5.2-0"
+category = "Application"
+title = "NVIDIA RTX Remix (Full)"
+description = "Full RTX Remix experience with IngestCraft and StageCraft loaded at startup"
+authors = ["Damien Bataille <dbataille@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["lightspeed", "rtx", "remix", "app", "full"]
+readme = """
+# NVIDIA RTX Remix Full Experience
+
+Loads both IngestCraft and StageCraft at startup (legacy full app composition).
+"""
+
+[dependencies]
+"lightspeed.app.trex" = {}
+"lightspeed.app.trex.ingestcraft" = {}
+
+[settings]
+"@import@" = [
+	"./lightspeed.app.trex.app.settings.toml",
+	"./lightspeed.app.rendering.settings.toml",
+]
+
+[settings.app.trex]
+default_layout = "stagecraft"
+
+[[test]]
+name = "startup"
+
+dependencies = [
+    "lightspeed.trex.tests.settings",
+]
+
+stdoutFailPatterns.exclude = [
+	# Headless IngestCraft startup does not create a viewport render product.
+	"*[omni.kit.scene_view.opengl] No UsdRender.Product was found at *",
+]
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 110.1.1+production.305458.6312fa25.gl
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+	"omni.graph.ui-2.10.3",
+	"omni.graph.window.core-3.10.5",
+	"omni.kit.asset_converter-6.0.1",
+	"omni.kit.browser.asset-1.3.16",
+	"omni.kit.browser.core-2.3.18",
+	"omni.kit.browser.folder.core-2.0.3",
+	"omni.kit.core.collection-0.2.4",
+	"omni.kit.graph.delegate.default-1.2.5",
+	"omni.kit.graph.delegate.modern-1.10.15",
+	"omni.kit.graph.editor.core-1.5.8",
+	"omni.kit.graph.usd.commands-1.3.6",
+	"omni.kit.graph.widget.variables-2.1.1",
+	"omni.kit.viewport.menubar.lighting-107.3.2",
+	"omni.kit.widget.zoombar-1.0.7",
+	"omni.services.core-1.11.3",
+	"omni.services.facilities.base-1.0.5",
+	"omni.services.transport.server.base-1.1.2",
+	"omni.services.transport.server.http-1.3.2",
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

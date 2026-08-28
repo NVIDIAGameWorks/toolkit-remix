@@ -31,8 +31,13 @@ import omni.usd
 from omni.flux.utils.widget.resources import get_menubar_ignore_file as _get_menubar_ignore_file
 from omni.kit.menu.utils import MenuLayout
 
+from .lifecycle import _publish_user_ready, _wait_for_home_interactive
+
 _HIDE_MENU = "/exts/lightspeed.trex.app.setup/hide_menu"
 _APP_WINDOW_SETTING = "/app/window/enabled"  # setting affected by "--no-window" arg
+_DEFAULT_LAYOUT = "/app/trex/default_layout"
+_STAGECRAFT_LAYOUT = "stagecraft"
+_HOME_READY_TIMEOUT_SECONDS = 30.0
 _DARK_TITLEBAR_ATTRIBUTES = (20, 19)
 
 MenuLayoutItemTypes = MenuLayout.Menu | MenuLayout.SubMenu | MenuLayout.Item
@@ -96,6 +101,7 @@ class SetupUI:
         """Setup the main Lightspeed settings"""
         self.__settings = carb.settings.get_settings()
         self.__sub_app_ready = None
+        self.__app_ready_task = None
         self.__preferences_menu_hook = self.__clear_preferences_menu_tick
         self.__hide_menu = bool(self.__settings.get(_HIDE_MENU))
         omni.kit.menu.utils.add_hook(self.__preferences_menu_hook)
@@ -115,21 +121,43 @@ class SetupUI:
 
     def _on_app_ready(self, *args):
         self.__sub_app_ready = None
+        if self.__app_ready_task:
+            return
+        self.__app_ready_task = asyncio.ensure_future(self.__deferred_app_ready_setup())
 
-        async def deferred_app_ready_setup():
-            await omni.kit.app.get_app().next_update_async()
-            await omni.kit.app.get_app().next_update_async()
-            await omni.kit.app.get_app().next_update_async()
+    @omni.usd.handle_exception
+    async def __deferred_app_ready_setup(self):
+        """Finalize application UI after the selected layout becomes ready."""
+        task = asyncio.current_task()
+        try:
+            is_stagecraft = self.__settings.get(_DEFAULT_LAYOUT) == _STAGECRAFT_LAYOUT
+            try:
+                if is_stagecraft:
+                    await asyncio.wait_for(_wait_for_home_interactive(), timeout=_HOME_READY_TIMEOUT_SECONDS)
+                else:
+                    for _ in range(3):
+                        await omni.kit.app.get_app().next_update_async()
+                self.__apply_menu_layout()
+            except TimeoutError:
+                carb.log_error("[lightspeed.trex.app.setup] Home did not become interactive within 30 seconds")
+                return
+            finally:
+                self.__close_splash_screen()
 
-            if self.__hide_menu:
-                menubar_ignore = MenubarIgnore()
-                custom_layouts = menubar_ignore.get_menubar_layout()
-                omni.kit.menu.utils.add_layout(custom_layouts)
-
-            self.__close_splash_screen()
             _apply_windows_dark_titlebar()
+            if is_stagecraft:
+                await omni.kit.app.get_app().next_update_async()
+                _publish_user_ready()
+        finally:
+            if self.__app_ready_task is task:
+                self.__app_ready_task = None
 
-        asyncio.ensure_future(deferred_app_ready_setup())
+    def __apply_menu_layout(self):
+        if not self.__hide_menu:
+            return
+        menubar_ignore = MenubarIgnore()
+        custom_layouts = menubar_ignore.get_menubar_layout()
+        omni.kit.menu.utils.add_layout(custom_layouts)
 
     @staticmethod
     def __close_splash_screen():
@@ -145,6 +173,9 @@ class SetupUI:
                 item.ticked_fn = None
 
     def destroy(self):
+        if self.__app_ready_task:
+            self.__app_ready_task.cancel()
+        self.__app_ready_task = None
         self.__sub_app_ready = None
         if self.__preferences_menu_hook_registered:
             omni.kit.menu.utils.remove_hook(self.__preferences_menu_hook)

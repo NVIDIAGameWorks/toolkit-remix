@@ -15,27 +15,21 @@
 * limitations under the License.
 """
 
-import asyncio
-
 import carb.settings
-import omni.kit.app
-import omni.usd
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from lightspeed.trex.utils.widget.quicklayout import load_layout
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
 
 _DEFAULT_LAYOUT = "/app/trex/default_layout"
 
 
 class Setup:
-    def __init__(self):
-        self._default_attr = {}
-        for attr, value in self._default_attr.items():
-            setattr(self, attr, value)
-        self._context_name = _TrexContexts.INGEST_CRAFT.value
+    """Create the IngestCraft stage."""
+
+    def __init__(self) -> None:
+        """Initialize IngestCraft stage creation."""
         self._context = _trex_contexts_instance().get_usd_context(_TrexContexts.INGEST_CRAFT)
         self._context.new_stage_with_callback(self._on_new_stage_created)
 
@@ -44,15 +38,7 @@ class Setup:
         if default_layout == "ingestcraft":
             load_layout(_get_quicklayout_config(_LayoutFiles.INGESTCRAFT))
 
-    def _on_new_stage_created(self, result: bool, error: str):
-        asyncio.ensure_future(self._deferred_startup(self._context))
-
-    @omni.usd.handle_exception
-    async def _deferred_startup(self, context):
-        """Or crash"""
-        await omni.kit.app.get_app_interface().next_update_async()
-        await context.new_stage_async()
-        await omni.kit.app.get_app_interface().next_update_async()
-
-    def destroy(self):
-        _reset_default_attrs(self)
+    def _on_new_stage_created(self, result: bool, error: str) -> None:
+        """Report failure when the initial IngestCraft stage cannot be created."""
+        if not result:
+            carb.log_error(f"[lightspeed.trex.control.ingestcraft] Failed to create IngestCraft stage: {error}")

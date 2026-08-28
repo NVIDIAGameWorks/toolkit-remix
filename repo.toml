@@ -460,6 +460,7 @@ use_packman_to_upload_archive = false
 apps = [
     "${root}/source/apps/lightspeed.app.trex.ingestcraft.kit",
     "${root}/source/apps/lightspeed.app.trex.kit",
+    "${root}/source/apps/lightspeed.app.trex.full.kit",
     "${root}/source/apps/lightspeed.app.trex.stagecraft.kit",
     "${root}/source/apps/lightspeed.app.trex.validation_cli.kit",
     "${root}/source/apps/lightspeed.app.trex.validation_cli_generator.kit",

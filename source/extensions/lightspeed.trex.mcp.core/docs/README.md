@@ -8,6 +8,8 @@ Provides the RTX Remix Toolkit MCP server. It exposes Toolkit REST APIs and regi
 - Mount the Toolkit REST API as MCP tools under the `remix` namespace.
 - Register MCP prompts for Toolkit workflows.
 - Validate the configured port and, when range fallback is enabled, retry startup on an available port if the initial server bind fails.
+- Publish `SERVICE_READY service=mcp` after Uvicorn is accepting connections on the selected endpoint.
+- Close active connections through Uvicorn's supported shutdown lifecycle.
 
 ## Non-Responsibilities
 
@@ -18,6 +20,7 @@ Provides the RTX Remix Toolkit MCP server. It exposes Toolkit REST APIs and regi
 ## Architecture
 
 - `MCPCore` reads the extension settings, builds a FastMCP server from the active `omni.services.core` FastAPI app, mounts it into the supplied MCP instance, registers prompts, and starts SSE transport.
+- `_ServiceReadyServer` publishes the timestamped readiness marker after Uvicorn startup, rather than after the long-running server exits.
 - `MCPPrompts` registers prompt definitions used by the MCP server.
 
 ## Settings

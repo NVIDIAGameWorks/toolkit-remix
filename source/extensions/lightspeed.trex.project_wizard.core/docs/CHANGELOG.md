@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.5]
+### Changed
+- Exposed a specific validation error when an existing project lacks required layer metadata.
+
 ## [2.1.4]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

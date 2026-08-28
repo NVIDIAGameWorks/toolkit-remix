@@ -18,7 +18,9 @@
 import asyncio
 
 import omni.kit
+import omni.usd
 from lightspeed.common.constants import WindowNames as _WindowNames
+from lightspeed.trex.app.setup.lifecycle import mark_home_interactive
 from lightspeed.trex.utils.widget.workspace import WorkspaceWindowBase as _WorkspaceWindowBase
 from omni import ui
 
@@ -60,11 +62,22 @@ class HomePageWindow(_WorkspaceWindowBase):
             self._refresh_docking_task.cancel()
         self._refresh_docking_task = asyncio.ensure_future(self._refresh_docking())
 
+    @omni.usd.handle_exception
     async def _refresh_docking(self):
-        if not self._window.docked:
+        """Dock Home and publish readiness after its final visible update."""
+        task = asyncio.current_task()
+        try:
+            if not self._window.docked:
+                await omni.kit.app.get_app().next_update_async()
+                if not self._window.docked:
+                    dock_space = ui.Workspace.get_window("DockSpace")
+                    self._window.dock_in(dock_space, ui.DockPosition.SAME)
             await omni.kit.app.get_app().next_update_async()
-            dock_space = ui.Workspace.get_window("DockSpace")
-            self._window.dock_in(dock_space, ui.DockPosition.SAME)
+            if self._window and self._window.visible:
+                mark_home_interactive()
+        finally:
+            if self._refresh_docking_task is task:
+                self._refresh_docking_task = None
 
     def cleanup(self):
         """Cancel deferred docking before the window is destroyed."""
