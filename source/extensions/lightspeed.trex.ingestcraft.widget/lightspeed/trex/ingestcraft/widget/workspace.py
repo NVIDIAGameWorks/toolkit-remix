@@ -17,8 +17,9 @@
 
 import asyncio
 
-import lightspeed.trex.sidebar as sidebar
+import lightspeed.trex.sidebar as _sidebar
 import omni.kit.app
+import omni.usd
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import WindowNames as _WindowNames
 from lightspeed.trex.utils.widget.quicklayout import load_layout
@@ -28,14 +29,18 @@ from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quic
 
 from .setup_ui import SetupUI as _IngestCraftUI
 
+_STAGECRAFT_CONTROL_EXT = "lightspeed.trex.control.stagecraft"
+
 
 class IngestCraftWindow(_WorkspaceWindowBase):
-    """IngestCraft window manager"""
+    """Manage the IngestCraft workspace window."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize IngestCraft navigation and window state."""
         super().__init__(*args, **kwargs)
         self._refresh_docking_task = None
-        self.__register_sidebar_items()
+        self._sidebar_subscription = None
+        self.__register_sidebar_item()
 
     @property
     def title(self) -> str:
@@ -61,32 +66,43 @@ class IngestCraftWindow(_WorkspaceWindowBase):
             self._refresh_docking_task.cancel()
         self._refresh_docking_task = asyncio.ensure_future(self._refresh_docking())
 
+    @omni.usd.handle_exception
     async def _refresh_docking(self):
-        await omni.kit.app.get_app().next_update_async()
-        dock_space = ui.Workspace.get_window("DockSpace")
-        self._window.dock_in(dock_space, ui.DockPosition.SAME)
+        """Dock IngestCraft with the workspace after the window updates."""
+        task = asyncio.current_task()
+        try:
+            await omni.kit.app.get_app().next_update_async()
+            dock_space = ui.Workspace.get_window("DockSpace")
+            self._window.dock_in(dock_space, ui.DockPosition.SAME)
+        finally:
+            if self._refresh_docking_task is task:
+                self._refresh_docking_task = None
 
     def cleanup(self):
-        """Cancel deferred docking before the window is destroyed."""
+        """Release standalone navigation and cancel deferred docking."""
         if self._refresh_docking_task:
             self._refresh_docking_task.cancel()
         self._refresh_docking_task = None
+        self._sidebar_subscription = None
         super().cleanup()
 
-    def __register_sidebar_items(self):
-        self.__sub_sidebar_items = sidebar.register_items(
+    def __register_sidebar_item(self):
+        manager = omni.kit.app.get_app().get_extension_manager()
+        if manager.is_extension_enabled(_STAGECRAFT_CONTROL_EXT):
+            return
+        self._sidebar_subscription = _sidebar.register_items(
             [
-                sidebar.ItemDescriptor(
+                _sidebar.ItemDescriptor(
                     name="Ingestion",
                     tooltip="Asset Import/Ingestion",
-                    group=sidebar.Groups.LAYOUTS,
+                    group=_sidebar.Groups.LAYOUTS,
                     mouse_released_fn=self.__open_layout,
                     sort_index=10,
                 )
             ]
         )
 
-    def __open_layout(self, x, y, b, m):
-        if b != 0:
+    def __open_layout(self, x, y, button, modifier):
+        if button != 0:
             return
         load_layout(_get_quicklayout_config(_LayoutFiles.INGESTCRAFT))

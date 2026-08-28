@@ -17,11 +17,14 @@
 
 __all__ = ["EventAppStartCore"]
 
+import asyncio
 import time
 from datetime import datetime, UTC
 
+import carb
 import omni.kit.app
 from lightspeed.events_manager import ILSSEvent
+from lightspeed.trex.app.setup.lifecycle import subscribe_user_ready
 from omni.flux.telemetry.core import get_telemetry_instance
 from omni.flux.utils.common import reset_default_attrs
 from omni.gpu_foundation_factory import get_memory_info
@@ -29,7 +32,10 @@ from omni.hydra.engine.stats import get_device_info
 
 
 class EventAppStartCore(ILSSEvent):
+    """Record startup telemetry after the application reaches user readiness."""
+
     def __init__(self):
+        """Initialize application startup subscriptions, tasks, and timing state."""
         super().__init__()
 
         self.default_attr = {
@@ -39,11 +45,12 @@ class EventAppStartCore(ILSSEvent):
         }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
+        self._user_ready_subscription = None
+        self._telemetry_task = None
+        self._app_start_time = None
+        self._kit_ready_time = None
 
         self._app = omni.kit.app.get_app()
-
-        self._subscription = None
-        self._executed = False
 
     @property
     def name(self) -> str:
@@ -51,7 +58,8 @@ class EventAppStartCore(ILSSEvent):
         return "AppStarted"
 
     def _install(self):
-        """Function that will create the behavior"""
+        """Subscribe to application readiness and capture the startup start time."""
+        self._app_start_time = time.time() - self._app.get_time_since_start_s()
         if self._app.is_app_ready():
             self.__on_app_started(None)
         else:
@@ -60,46 +68,75 @@ class EventAppStartCore(ILSSEvent):
             )
 
     def _uninstall(self):
-        """Function that will delete the behavior"""
+        """Release readiness subscriptions and cancel pending telemetry."""
         self._subscription = None
+        self._user_ready_subscription = None
+        if self._telemetry_task:
+            self._telemetry_task.cancel()
+        self._telemetry_task = None
 
     def __on_app_started(self, payload):
         # Make sure to only execute once (in case of hot reload)
         if self._executed:
             return
         self._executed = True
+        self._subscription = None
+        self._kit_ready_time = time.time()
+        self._user_ready_subscription = subscribe_user_ready(self.__on_user_ready)
 
-        telemetry = get_telemetry_instance()
+    def __on_user_ready(self):
+        if self._telemetry_task:
+            return
+        user_ready_time = time.time()
+        self._telemetry_task = asyncio.ensure_future(self.__record_startup_telemetry(user_ready_time))
+        self._telemetry_task.add_done_callback(self.__on_telemetry_task_done)
 
-        # Get the true start time of the app
-        current_time = time.time()
-        startup_duration = self._app.get_time_since_start_s()
-        app_start_time = current_time - startup_duration
+    @staticmethod
+    def __on_telemetry_task_done(task: asyncio.Task):
+        if task.cancelled():
+            return
+        exception = task.exception()
+        if exception:
+            carb.log_error(f"[lightspeed.event.app_start] Could not record startup telemetry: {exception}")
 
-        # Assume the first device is the main GPU
-        devices_info = get_device_info()
-        device_info = devices_info[0] if devices_info else {}
+    async def __record_startup_telemetry(self, user_ready_time: float):
+        task = asyncio.current_task()
+        try:
+            await self._app.next_update_async()
+            telemetry = get_telemetry_instance()
 
-        # Get the GPU information
-        gpu_description = device_info.get("description", "GPU 0")
-        dedicated_video_memory = device_info.get("dedicated_video_memory", 0)
-        dedicated_system_memory = device_info.get("dedicated_system_memory", 0)
-        usage_info = device_info.get("usage", 0)
+            # Assume the first device is the main GPU
+            devices_info = get_device_info()
+            device_info = devices_info[0] if devices_info else {}
 
-        # Get the host memory information
-        host_info = get_memory_info()
-        total_memory, available_memory = host_info.get("total_memory", 0), host_info.get("available_memory", 0)
+            # Get the GPU information
+            gpu_description = device_info.get("description", "GPU 0")
+            dedicated_video_memory = device_info.get("dedicated_video_memory", 0)
+            dedicated_system_memory = device_info.get("dedicated_system_memory", 0)
+            usage_info = device_info.get("usage", 0)
 
-        with telemetry.sentry_sdk.start_transaction(op="startup", name="App Startup") as transaction:
-            transaction.set_data("gpu", gpu_description)
-            transaction.set_data("dedicated_video_memory", dedicated_video_memory)
-            transaction.set_data("dedicated_system_memory", dedicated_system_memory)
-            transaction.set_data("video_memory_usage", usage_info)
-            transaction.set_data("total_host_memory", total_memory)
-            transaction.set_data("available_host_memory", available_memory)
+            # Get the host memory information
+            host_info = get_memory_info()
+            total_memory, available_memory = host_info.get("total_memory", 0), host_info.get("available_memory", 0)
 
-            transaction.start_timestamp = datetime.fromtimestamp(app_start_time, tz=UTC)
-            transaction.finish(end_timestamp=datetime.fromtimestamp(current_time, tz=UTC))
+            with telemetry.sentry_sdk.start_transaction(op="startup", name="App Startup") as transaction:
+                transaction.set_data("gpu", gpu_description)
+                transaction.set_data("dedicated_video_memory", dedicated_video_memory)
+                transaction.set_data("dedicated_system_memory", dedicated_system_memory)
+                transaction.set_data("video_memory_usage", usage_info)
+                transaction.set_data("total_host_memory", total_memory)
+                transaction.set_data("available_host_memory", available_memory)
+                transaction.set_data("user_ready_duration", user_ready_time - self._app_start_time)
+
+                transaction.start_timestamp = datetime.fromtimestamp(self._app_start_time, tz=UTC)
+                transaction.finish(end_timestamp=datetime.fromtimestamp(self._kit_ready_time, tz=UTC))
+        finally:
+            if self._telemetry_task is task:
+                self._telemetry_task = None
 
     def destroy(self):
+        """Release startup subscriptions, tasks, and timing state."""
+        self._uninstall()
+        self._app_start_time = None
+        self._kit_ready_time = None
         reset_default_attrs(self)

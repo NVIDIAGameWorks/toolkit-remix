@@ -1,6 +1,20 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.3]
+### Added
+- Added an isolated E2E check for the normal StageCraft-to-Home startup chain.
+- Added an always-enabled Ingestion sidebar action that lazy-loads IngestCraft and opens its layout on demand.
+
+### Changed
+- Streamline StageCraft project opening and Ingestion activation by validating requests once, coalescing repeat
+  activations, and reporting timeouts.
+- Clean up deferred tasks and lifecycle-owned subscriptions during StageCraft teardown.
+
+### Fixed
+- Released sidebar subscriptions during teardown so extension reloads cannot retain stale actions.
+- Reset the load-workfile subscription under its assigned lifecycle attribute during teardown.
+
 ## [1.8.2]
 ### Added
 - Added Stage Manager E2E coverage for keeping a mesh selected while hidden and framing it when search filters restore it.

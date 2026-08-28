@@ -16,5 +16,6 @@
 """
 
 from .e2e.test_mass_ingestion import TestMassIngestion
+from .unit.test_workspace import TestIngestCraftWindow
 
-__all__ = ["TestMassIngestion"]
+__all__ = ["TestIngestCraftWindow", "TestMassIngestion"]

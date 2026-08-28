@@ -15,7 +15,10 @@
 * limitations under the License.
 """
 
+import asyncio
+
 import carb
+import omni.kit.app
 import omni.kit.notification_manager as nm
 import omni.kit.undo
 import omni.kit.usd.layers as _layers
@@ -32,7 +35,10 @@ _CONTEXT = "/exts/lightspeed.event.validate_project/context"
 
 
 class EventValidateProjectCore(_ILSSEvent):
+    """Validate and repair the current project after relevant USD events."""
+
     def __init__(self):
+        """Initialize validation services, subscriptions, and task ownership."""
         super().__init__()
         self.default_attr = {
             "_context_name": None,
@@ -42,6 +48,7 @@ class EventValidateProjectCore(_ILSSEvent):
         }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
+        self._validation_task = None
 
         self._context_name = carb.settings.get_settings().get(_CONTEXT) or ""
         self._context = omni.usd.get_context(self._context_name)
@@ -72,13 +79,16 @@ class EventValidateProjectCore(_ILSSEvent):
         )
 
     def _uninstall(self):
-        """Function that will delete the behavior"""
+        """Release validation subscriptions and cancel pending validation."""
         self._stage_event_sub = None
         self._layer_event_sub = None
+        if self._validation_task:
+            self._validation_task.cancel()
+        self._validation_task = None
 
     def __on_stage_event(self, event):
         if event.type in {int(omni.usd.StageEventType.OPENED), int(omni.usd.StageEventType.SAVED)}:
-            self.__validate_project()
+            self.__schedule_validation()
 
     def __on_layer_event(self, event):
         payload = _layers.get_layer_event_payload(event)
@@ -88,7 +98,22 @@ class EventValidateProjectCore(_ILSSEvent):
             _layers.LayerEventType.MUTENESS_STATE_CHANGED,
             _layers.LayerEventType.SUBLAYERS_CHANGED,
         }:
+            self.__schedule_validation()
+
+    def __schedule_validation(self):
+        if self._validation_task:
+            return
+        self._validation_task = asyncio.ensure_future(self.__validate_project_next_update())
+
+    @omni.usd.handle_exception
+    async def __validate_project_next_update(self):
+        task = asyncio.current_task()
+        try:
+            await omni.kit.app.get_app().next_update_async()
             self.__validate_project()
+        finally:
+            if self._validation_task is task:
+                self._validation_task = None
 
     def __show_message(self, message):
         if self.__current_notification:
@@ -102,6 +127,10 @@ class EventValidateProjectCore(_ILSSEvent):
         carb.log_warn(message)
 
     def __validate_project(self):
+        stage = self._context.get_stage()
+        if not stage or stage.GetRootLayer().anonymous:
+            return
+
         project_layer = self.__layer_manager.get_layer_of_type(LayerType.workfile)
         if not project_layer:
             carb.log_warn("Could not validate project. No project layer was found.")
@@ -201,4 +230,6 @@ class EventValidateProjectCore(_ILSSEvent):
                 )
 
     def destroy(self):
+        """Release validation subscriptions and owned tasks."""
+        self._uninstall()
         _reset_default_attrs(self)

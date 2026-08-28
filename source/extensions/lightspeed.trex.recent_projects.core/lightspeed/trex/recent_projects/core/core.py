@@ -19,10 +19,13 @@ __all__ = ["RecentProjectsCore"]
 
 
 import asyncio
+import copy
 import json
 import math
 import os
 import shutil
+import stat
+import tempfile
 from enum import Enum
 from pathlib import Path
 
@@ -40,6 +43,9 @@ from lightspeed.layer_manager.core import (
 from lightspeed.trex.utils.common.asset_utils import is_layer_from_capture
 from omni.flux.utils.common.omni_url import OmniUrl
 from pxr import Sdf, Tf
+
+VALIDATION_CACHE_KEY = "validation"
+VALIDATION_CACHE_SCHEMA = 2
 
 
 class UsdFileSignature(Enum):
@@ -81,15 +87,26 @@ class RecentProjectsCore:
         return f"{directory}/recent_saved_file.json"
 
     def save_recent_file(self, data):
-        """Save the recent work files to the file"""
+        """Save the recent work files to the file."""
         file_path = self.__get_recent_file()
+        file_directory = Path(file_path).parent
+        temporary_path = None
         try:
-            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(file_path, "w", encoding="utf8") as json_file:
+            file_directory.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf8", dir=file_directory, delete=False) as json_file:
+                temporary_path = json_file.name
                 json.dump(data, json_file, indent=2)
+            os.replace(temporary_path, file_path)
+            temporary_path = None
         except OSError as exc:
             carb.log_warn(f"[RecentProjectsCore] Could not save recent file '{file_path}': {exc}")
             return
+        finally:
+            if temporary_path:
+                try:
+                    Path(temporary_path).unlink(missing_ok=True)
+                except OSError as exc:
+                    carb.log_warn(f"[RecentProjectsCore] Could not remove temporary file '{temporary_path}': {exc}")
         carb.log_info(f"Recent saved file tracker saved to {file_path}")
 
     def append_path_to_recent_file(self, path: str, game: str, capture: str, save: bool = True):
@@ -164,21 +181,52 @@ class RecentProjectsCore:
             result[path] = entry
         return result
 
-    def get_path_detail(
-        self, path, recent_file_data: dict[str, dict[str, str]] | None = None
-    ) -> dict[str, str | list[tuple[str, str]]]:
-        """Get details from the given path"""
+    def get_path_detail(self, path, recent_file_data: dict[str, dict[str, object]] | None = None) -> dict[str, object]:
+        """Return cached or validated details for a recent project path.
 
+        Args:
+            path: The project layer path to inspect.
+            recent_file_data: Optional caller-owned recent-project data to update in memory.
+
+        Returns:
+            Project details, including validation failures when present.
+        """
+
+        owns_recent_file_data = recent_file_data is None
         if recent_file_data is None:
             recent_file_data = self.get_recent_file_data()
+
+        entry = recent_file_data.get(path)
+        recent_entry = entry if isinstance(entry, dict) else None
+        if recent_entry is not None:
+            cached_details = self._get_cached_validation_details(recent_entry, path)
+            if cached_details is not None:
+                return cached_details
+
+        fingerprints = {path: self._get_path_fingerprint(path)}
+        result = self.__get_uncached_path_detail(path, recent_entry, fingerprints)
+        if recent_entry is not None and result.get("Invalid") == []:
+            self._cache_validation_details(recent_entry, fingerprints, result)
+            if owns_recent_file_data:
+                self.save_recent_file(recent_file_data)
+        return result
+
+    def __get_uncached_path_detail(
+        self,
+        path: str,
+        recent_entry: dict[str, object] | None,
+        fingerprints: dict[str, dict[str, bool | int]],
+    ) -> dict[str, object]:
+        """Return uncached project details and collect dependency fingerprints."""
+        recent_entry = recent_entry or {}
 
         ok, reason = self._validate_path(path)
         if not ok:
             carb.log_warn(f"[RecentProjectsCore] get_path_detail skipped: {reason}")
             return {
                 "Invalid": [(path, reason)],
-                "Game": recent_file_data.get("game", None),
-                "Capture": recent_file_data.get("capture", None),
+                "Game": recent_entry.get("game", None),
+                "Capture": recent_entry.get("capture", None),
             }
 
         ok, reason = self._validate_usd_file(path)
@@ -186,8 +234,8 @@ class RecentProjectsCore:
             carb.log_warn(f"[RecentProjectsCore] get_path_detail skipped: {reason}")
             return {
                 "Invalid": [(path, reason)],
-                "Game": recent_file_data.get("game", None),
-                "Capture": recent_file_data.get("capture", None),
+                "Game": recent_entry.get("game", None),
+                "Capture": recent_entry.get("capture", None),
             }
 
         result = {}
@@ -195,9 +243,9 @@ class RecentProjectsCore:
         if not recent_url.exists:
             return result
 
-        if path in recent_file_data:
-            result["Game"] = recent_file_data[path].get("game", "")
-            result["Capture"] = recent_file_data[path].get("capture", "")
+        if recent_entry:
+            result["Game"] = recent_entry.get("game", "")
+            result["Capture"] = recent_entry.get("capture", "")
             result["Invalid"] = []
 
             try:
@@ -213,6 +261,7 @@ class RecentProjectsCore:
                     if is_layer_from_capture(resolved):
                         continue
 
+                    fingerprints[resolved] = self._get_path_fingerprint(resolved)
                     ok, reason = self._validate_usd_layer(resolved)
                     if not ok:
                         carb.log_warn(f"[RecentProjectsCore] Skipping sublayer '{sublayer_path}': {reason}")
@@ -247,6 +296,80 @@ class RecentProjectsCore:
         result["Published"] = recent_url.entry.modified_time.strftime("%m/%d/%Y, %H:%M:%S")
         result["Size"] = self.convert_size(recent_url.entry.size)
         return result
+
+    @staticmethod
+    def _get_path_fingerprint(path: str) -> dict[str, bool | int]:
+        """Return a cheap file fingerprint used to invalidate cached validation results."""
+        if not path or not path.strip():
+            return {"exists": False, "is_file": False}
+
+        try:
+            path_stat = Path(path).stat()
+        except OSError:
+            return {"exists": False, "is_file": False}
+
+        is_file = stat.S_ISREG(path_stat.st_mode)
+        fingerprint = {
+            "exists": True,
+            "is_file": is_file,
+        }
+        if is_file:
+            fingerprint["size"] = path_stat.st_size
+            fingerprint["mtime_ns"] = path_stat.st_mtime_ns
+        return fingerprint
+
+    @staticmethod
+    def _get_cached_validation_details(entry: dict[str, object], root_path: str) -> dict[str, object] | None:
+        """Return cached details when every recorded layer fingerprint still matches.
+
+        Args:
+            entry: A recent-project entry that may contain cached validation data.
+            root_path: The project layer path required in the fingerprint set.
+
+        Returns:
+            A detached details mapping for a cache hit, or ``None`` for a cache miss.
+        """
+        validation = entry.get(VALIDATION_CACHE_KEY)
+        if not isinstance(validation, dict):
+            return None
+        if validation.get("schema") != VALIDATION_CACHE_SCHEMA:
+            return None
+        if validation.get("inputs") != {"game": entry.get("game"), "capture": entry.get("capture")}:
+            return None
+
+        fingerprints = validation.get("fingerprints")
+        if not isinstance(fingerprints, dict) or root_path not in fingerprints:
+            return None
+        for fingerprint_path, fingerprint in fingerprints.items():
+            if not isinstance(fingerprint_path, str) or not isinstance(fingerprint, dict):
+                return None
+            if RecentProjectsCore._get_path_fingerprint(fingerprint_path) != fingerprint:
+                return None
+
+        details = validation.get("details")
+        if not isinstance(details, dict) or details.get("Invalid") != []:
+            return None
+        return copy.deepcopy(details)
+
+    @staticmethod
+    def _cache_validation_details(
+        entry: dict[str, object],
+        fingerprints: dict[str, dict[str, bool | int]],
+        details: dict[str, object],
+    ) -> None:
+        """Store validation details and layer fingerprints on a recent-project entry.
+
+        Args:
+            entry: The recent-project entry to mutate.
+            fingerprints: Fingerprints for the root and checked non-capture sublayers.
+            details: The project details produced by validation.
+        """
+        entry[VALIDATION_CACHE_KEY] = {
+            "schema": VALIDATION_CACHE_SCHEMA,
+            "inputs": {"game": entry.get("game"), "capture": entry.get("capture")},
+            "fingerprints": fingerprints,
+            "details": copy.deepcopy(details),
+        }
 
     @staticmethod
     @omni.usd.handle_exception

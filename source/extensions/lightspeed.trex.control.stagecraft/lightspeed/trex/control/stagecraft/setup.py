@@ -47,6 +47,7 @@ from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from lightspeed.trex.hotkeys import TrexHotkeyEvent as _TrexHotkeyEvent
 from lightspeed.trex.hotkeys import get_global_hotkey_manager as _get_global_hotkey_manager
 from lightspeed.trex.menu.workfile import get_instance as _get_menu_workfile_instance
+from lightspeed.trex.project_wizard.core import ProjectFileMetadataError as _ProjectFileMetadataError
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
 from lightspeed.trex.project_wizard.core import ProjectWizardSchema as _ProjectWizardSchema
 from lightspeed.trex.project_wizard.window import WizardTypes as _WizardTypes
@@ -56,6 +57,7 @@ from lightspeed.trex.stage.core.shared import Setup as _StageCoreSetup
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget import show_invalid_deps_rebuild_dialog as _show_invalid_deps_rebuild_dialog
 from lightspeed.trex.utils.widget.quicklayout import load_layout
+from lightspeed.trex.utils.widget.ingestcraft_loader import ensure_ingestcraft_loaded
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.symlink import should_confirm_link_path_replacement as _should_confirm_link_path_replacement
 from omni.flux.utils.widget.resources import get_quicklayout_config as _get_quicklayout_config
@@ -80,8 +82,7 @@ class Setup:
             "_capture_core_setup": None,
             "_replacement_core_setup": None,
             "_sub_import_capture_layer": None,
-            "_sub_import_replacement_layer": None,
-            "_sub_open_workfile": None,
+            "_sub_load_workfile": None,
             "_layer_manager": None,
             "_sub_menu_workfile_save": None,
             "_sub_menu_workfile_save_as": None,
@@ -100,6 +101,8 @@ class Setup:
         }
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
+        self._ingest_activation_task = None
+        self._deferred_tasks: set[asyncio.Task] = set()
 
         self._context_name = _TrexContexts.STAGE_CRAFT.value
         self._context = _trex_contexts_instance().get_usd_context(_TrexContexts.STAGE_CRAFT)
@@ -140,6 +143,7 @@ class Setup:
             self._on_stage_event, name="StagecraftStageEvent"
         )
         self.__sub_sidebar_items = None
+        self.__sub_ingestion_sidebar_item = None
 
         settings = carb.settings.get_settings()
         default_layout = settings.get(_DEFAULT_LAYOUT) or ""
@@ -150,9 +154,17 @@ class Setup:
             stage = self._context.get_stage()
             has_open_project = bool(stage and not bool(stage.GetRootLayer().anonymous))
             if not has_open_project:
-                load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
+                self.__load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
         self.__install_light_rig_reference_validation_patch()
         self.__install_stage_open_lighting_undo_patch()
+
+    def __own_deferred_task(self, task: asyncio.Task) -> asyncio.Task:
+        self._deferred_tasks.add(task)
+        task.add_done_callback(self._deferred_tasks.discard)
+        return task
+
+    def __load_layout(self, layout_file: str) -> None:
+        self.__own_deferred_task(load_layout(layout_file))
 
     @classmethod
     def __install_light_rig_reference_validation_patch(cls):
@@ -311,6 +323,17 @@ class Setup:
                 )
             ]
         )
+        self.__sub_ingestion_sidebar_item = sidebar.register_items(
+            [
+                sidebar.ItemDescriptor(
+                    name="Ingestion",
+                    tooltip="Asset Import/Ingestion",
+                    group=sidebar.Groups.LAYOUTS,
+                    mouse_released_fn=self.__open_ingest_layout,
+                    sort_index=10,
+                ),
+            ]
+        )
         self._update_modding_button_state()
 
     def _on_import_layer(self, layer_type: _LayerType, path: str, existing_file: bool = False):
@@ -330,28 +353,43 @@ class Setup:
             self._replacement_core_setup.import_replacement_layer(path, use_existing_layer=existing_file)
         self._update_modding_button_state()
 
-    def _on_open_workfile(self, path):
-        return self.prompt_if_unsaved_project(lambda: self.__open_stage_and_load_layout(path), "changing project")
-
-    def __open_stage_and_load_layout(self, path):
+    def _on_open_workfile(self, path: str) -> bool:
+        """Validate and open a project after resolving any unsaved StageCraft edits."""
         project_path = Path(path)
-        if not _ProjectWizardSchema.is_project_file_valid(
-            project_path, {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
-        ):
+        try:
+            valid = _ProjectWizardSchema.is_project_file_valid(
+                project_path, {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
+            )
+        except _ProjectFileMetadataError:
+            self.__show_missing_metadata_dialog()
+            return False
+        except ValueError as exc:
+            _TrexMessageDialog(
+                message=str(exc),
+                title="Invalid Selected Project",
+                disable_cancel_button=True,
+            )
+            return False
+        if not valid:
             self.__show_project_open_wizard(project_path)
-            return
+            return False
         deps_directory = project_path.parent / _REMIX_DEPENDENCIES_FOLDER
         if not _ProjectWizardSchema.is_deps_directory_valid(deps_directory) and _should_confirm_link_path_replacement(
             deps_directory
         ):
             _show_invalid_deps_rebuild_dialog(deps_directory, partial(self.__show_project_open_wizard, project_path))
-            return
+            return False
         if not _ProjectWizardSchema.are_project_symlinks_valid(project_path):
             self.__show_project_open_wizard(project_path)
-            return
+            return False
+        return self.prompt_if_unsaved_project(
+            lambda: self.__open_stage_and_load_layout(project_path), "changing project"
+        )
+
+    def __open_stage_and_load_layout(self, project_path: Path):
         self.__set_stage_open_lighting_undo_disabled(True)
-        omni.kit.window.file.open_stage(path)
-        load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
+        omni.kit.window.file.open_stage(str(project_path))
+        self.__load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
 
     def _on_save_as(self, on_save_done: Callable[[bool, str], None] = None):
         self._stage_core_setup.save_as(on_save_done=on_save_done)
@@ -402,17 +440,39 @@ class Setup:
         )
 
     def __create_stage_and_save_previous_identifier(self):
-        ensure_future(self._context.close_stage_async())
-        load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
+        self.__own_deferred_task(ensure_future(self._context.close_stage_async()))
+        self.__load_layout(_get_quicklayout_config(_LayoutFiles.HOME_PAGE))
 
     def __open_layout(self, x, y, b, m):
         if b != 0:
             return
-        load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
+        self.__load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
+
+    def __open_ingest_layout(self, x, y, b, m):
+        if b != 0:
+            return
+        if self._ingest_activation_task and not self._ingest_activation_task.done():
+            return
+        self._ingest_activation_task = self.__own_deferred_task(ensure_future(self._open_ingest_layout_async()))
+
+    @omni.usd.handle_exception
+    async def _open_ingest_layout_async(self):
+        """Load IngestCraft on demand before opening its layout."""
+        try:
+            if not await ensure_ingestcraft_loaded():
+                _TrexMessageDialog(
+                    message="IngestCraft did not become ready. Please try again and check the log for details.",
+                    title="Unable to Open IngestCraft",
+                    disable_cancel_button=True,
+                )
+                return
+            self.__load_layout(_get_quicklayout_config(_LayoutFiles.INGESTCRAFT))
+        finally:
+            self._ingest_activation_task = None
 
     def _on_stage_event(self, event):
         if event.type in {int(omni.usd.StageEventType.OPENED), int(omni.usd.StageEventType.CLOSING)}:
-            asyncio.ensure_future(self._update_modding_button_state_deferred(event.type))
+            self.__own_deferred_task(asyncio.ensure_future(self._update_modding_button_state_deferred(event.type)))
 
     async def _update_modding_button_state_deferred(self, event_type: int):
         await omni.kit.app.get_app().next_update_async()
@@ -443,7 +503,23 @@ class Setup:
     def __show_project_open_wizard(self, project_path: Path):
         wizard = _get_wizard_instance(_WizardTypes.OPEN, self._context_name)
         wizard.set_payload({_ProjectWizardKeys.PROJECT_FILE.value: project_path})
+        self._sub_wizard_completed = wizard.subscribe_wizard_completed(self.__on_project_open_wizard_completed)
         wizard.show_project_wizard(reset_page=True)
+
+    def __on_project_open_wizard_completed(self, _payload=None):
+        self.__load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
+        self._sub_wizard_completed = None
+
+    def __show_missing_metadata_dialog(self):
+        _TrexMessageDialog(
+            message=(
+                "This project was created without the required metadata. Please use the "
+                "Open > Edit workflow in the Project Wizard to repair the project by picking "
+                "MOD layers in the edit workflow and opening the newly edited project."
+            ),
+            title="Missing Project Metadata Detected",
+            disable_cancel_button=True,
+        )
 
     def __show_capture_repair_wizard(self, project_path: Path, remix_directory: Path | None = None):
         wizard = _get_wizard_instance(_WizardTypes.OPEN, self._context_name)
@@ -457,6 +533,7 @@ class Setup:
 
     def _on_capture_repair_completed(self, payload):
         """Import the user-selected capture layer into the already-open stage without recording undo."""
+        self._sub_wizard_completed = None
         capture_file = payload.get(_ProjectWizardKeys.CAPTURE_FILE.value)
         if not capture_file:
             return
@@ -483,7 +560,14 @@ class Setup:
         self.__sub_sidebar_items.set_enabled(bool(has_project))
 
     def destroy(self):
+        """Release StageCraft subscriptions, patches, and owned tasks."""
+        for task in tuple(self._deferred_tasks):
+            task.cancel()
+        self._deferred_tasks.clear()
+        self._ingest_activation_task = None
         self.__set_stage_open_lighting_undo_disabled(False)
         self.__uninstall_light_rig_reference_validation_patch()
         self.__uninstall_stage_open_lighting_undo_patch()
+        self.__sub_sidebar_items = None
+        self.__sub_ingestion_sidebar_item = None
         _reset_default_attrs(self)

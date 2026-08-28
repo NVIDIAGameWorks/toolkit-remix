@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5722: Improved Stage Manager filter responsiveness by reusing stable proxy hierarchies for filter-only updates and reducing repeated predicate work while preserving selection and expansion.
 - REMIX-5819: Added Toolkit-owned guidance for incompatible NVIDIA drivers and updated paired RTX Remix dependencies.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-88b4c47-main`
+- Reduced default RTX Remix startup time and dependencies by loading StageCraft-only by default, lazy-loading IngestCraft, service, and MCP extensions/UI only when needed, deferring MCP bind until app ready, disabling MDL discovery on boot, and skipping splash during warmup/headless runs
 
 ### Removed
 
@@ -127,6 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5967: Fixed the Job Queue window, which showed no jobs after a ComfyUI submission because the workspace window stopped showing and refreshing its content once a layout made the window visible a second time.
 - REMIX-5700: Fixed directory file pickers so a highlighted folder can be selected without navigating into it first.
 - REMIX-5919: Fixed captures taken before the Remix config was moved into the `remix` USD namespace rendering with default `rtx.sceneScale` and `rtx.zUp`, which made RTX particles the wrong size and orientation; their config is now republished under the namespaced attribute when the capture loads.
+- Fixed on-demand IngestCraft loading so the ingest tab enables its validator plugin providers before parsing ingestion schemas.
 
 ## [1.5.2-0]
 

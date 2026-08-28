@@ -15,4 +15,5 @@
 * limitations under the License.
 """
 
+from .unit.test_lifecycle import *
 from .unit.test_setup_ui import *

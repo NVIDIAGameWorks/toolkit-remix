@@ -22,47 +22,40 @@ from lightspeed.trex.contexts import get_instance as trex_contexts_instance
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 
 from . import commands
-from .setup import Setup
+from .setup import Setup as _StageCraftSetup
 from .unsaved_stage import EventUnsavedStageOnShutdown
-
-_stagecraft_control_instance: Setup | None = None
-
-
-def _create_instance():
-    global _stagecraft_control_instance
-    _stagecraft_control_instance = Setup()
-    return _stagecraft_control_instance
-
-
-def get_instance():
-    return _stagecraft_control_instance
 
 
 class TrexStageCraftControlExtension(omni.ext.IExt):
     """Create Final Configuration"""
 
     def __init__(self, *args, **kwargs):
+        """Initialize extension-owned StageCraft resources."""
         super().__init__(*args, **kwargs)
+        self._setup = None
         self._unsaved_event = None
 
     def on_startup(self, ext_id):
+        """Create and register StageCraft resources."""
         carb.log_info("[lightspeed.trex.control.stagecraft] Startup")
 
         trex_contexts_instance().create_usd_context(_TrexContexts.STAGE_CRAFT)
         trex_contexts_instance().set_current_context(_TrexContexts.STAGE_CRAFT)
         commands.register_commands()
 
-        instance = _create_instance()
+        self._setup = _StageCraftSetup()
         self._unsaved_event = EventUnsavedStageOnShutdown()
-        self._unsaved_event.register_interrupter(instance)
+        self._unsaved_event.register_interrupter(self._setup)
         _get_event_manager_instance().register_event(self._unsaved_event)
-        instance.register_sidebar_items()
+        self._setup.register_sidebar_items()
 
     def on_shutdown(self):
+        """Unregister and release StageCraft resources."""
         carb.log_info("[lightspeed.trex.control.stagecraft] Shutdown")
-        global _stagecraft_control_instance
-        if _stagecraft_control_instance:
-            _stagecraft_control_instance.destroy()
-        _stagecraft_control_instance = None
-        commands.unregister_commands()
+        if self._unsaved_event:
+            _get_event_manager_instance().unregister_event(self._unsaved_event)
         self._unsaved_event = None
+        if self._setup:
+            self._setup.destroy()
+        self._setup = None
+        commands.unregister_commands()

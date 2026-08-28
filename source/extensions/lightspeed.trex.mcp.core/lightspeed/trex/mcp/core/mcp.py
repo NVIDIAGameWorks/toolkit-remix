@@ -37,28 +37,32 @@ _MAX_SERVER_START_ATTEMPTS = 2
 _PORT_SETTING_PATH = "/exts/lightspeed.trex.mcp.core/port"
 
 
-async def _run_mcp_server(mcp: FastMCP, host: str, port: int, log_level: str) -> None:
-    config = uvicorn.Config(
-        mcp.http_app(transport="sse"),
-        host=host,
-        port=port,
-        log_level=log_level,
-        lifespan="on",
-        timeout_graceful_shutdown=0,
-    )
-    family = socket.AF_INET6 if ":" in host else socket.AF_INET
-    server_socket = socket.socket(family=family)
-    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-        server_socket.bind((host, port))
-        await uvicorn.Server(config).serve(sockets=[server_socket])
-    finally:
-        server_socket.close()
+class _ServiceReadyServer(uvicorn.Server):
+    """Publish the MCP readiness milestone after Uvicorn starts listening."""
+
+    def __init__(self, config: uvicorn.Config, host: str, port: int) -> None:
+        """Initialize the server with the endpoint reported at readiness."""
+        super().__init__(config)
+        self._host = host
+        self._port = port
+
+    async def startup(self, sockets: list[socket.socket] | None = None) -> None:
+        """Start listening and publish the service-ready timestamp."""
+        await super().startup(sockets=sockets)
+        if not self.should_exit:
+            carb.log_info(f"SERVICE_READY service=mcp host={self._host} port={self._port}")
 
 
 class MCPCore:
+    """Configure and manage the MCP server."""
+
+    _initialization_task: asyncio.Task[None] | None = None
+    _server: _ServiceReadyServer | None = None
+    _shutdown_task: asyncio.Task[None] | None = None
+
     @classmethod
-    def initialize(cls, mcp: FastMCP):
+    def initialize(cls, mcp: FastMCP) -> None:
+        """Schedule MCP server initialization."""
         settings = carb.settings.get_settings()
 
         # Use the MCP extension's own settings path
@@ -67,11 +71,71 @@ class MCPCore:
         allow_range = settings.get_as_bool("/exts/lightspeed.trex.mcp.core/allow_port_range")
         log_level = settings.get("/exts/lightspeed.trex.mcp.core/log_level") or "warning"
 
-        asyncio.ensure_future(cls._initialize_async(mcp, host, port, allow_range, log_level))
+        cls._initialization_task = asyncio.ensure_future(cls._initialize_async(mcp, host, port, allow_range, log_level))
+
+    @classmethod
+    def shutdown(cls) -> asyncio.Task[None] | None:
+        """Schedule MCP server shutdown and return the owned task."""
+        if cls._shutdown_task is not None:
+            return cls._shutdown_task
+        if cls._initialization_task is None:
+            return None
+
+        cls._shutdown_task = asyncio.ensure_future(cls._shutdown_async())
+        return cls._shutdown_task
+
+    @classmethod
+    async def _shutdown_async(cls) -> None:
+        """Stop initialization or let Uvicorn close its active connections."""
+        initialization_task = cls._initialization_task
+        server = cls._server
+        if initialization_task is None:
+            return
+
+        if server is None:
+            initialization_task.cancel()
+        else:
+            server.should_exit = True
+
+        try:
+            await initialization_task
+        except asyncio.CancelledError:
+            pass
+        finally:
+            if cls._initialization_task is initialization_task:
+                cls._initialization_task = None
+            if cls._server is server:
+                cls._server = None
+            cls._shutdown_task = None
+
+    @classmethod
+    async def _run_mcp_server(cls, mcp: FastMCP, host: str, port: int, log_level: str) -> None:
+        """Run and retain the Uvicorn server until it shuts down."""
+        config = uvicorn.Config(
+            mcp.http_app(transport="sse"),
+            host=host,
+            port=port,
+            log_level=log_level,
+            lifespan="on",
+            timeout_graceful_shutdown=0,
+        )
+        family = socket.AF_INET6 if ":" in host else socket.AF_INET
+        server_socket = socket.socket(family=family)
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server = _ServiceReadyServer(config, host, port)
+        cls._server = server
+        try:
+            server_socket.bind((host, port))
+            await server.serve(sockets=[server_socket])
+        finally:
+            server_socket.close()
+            if cls._server is server:
+                cls._server = None
 
     @classmethod
     @omni.usd.handle_exception
-    async def _initialize_async(cls, mcp: FastMCP, host: str, port: int, allow_range: bool, log_level: str):
+    async def _initialize_async(cls, mcp: FastMCP, host: str, port: int, allow_range: bool, log_level: str) -> None:
+        """Initialize the configured MCP server asynchronously."""
         loop = asyncio.get_event_loop()
         with concurrent.futures.ThreadPoolExecutor() as pool:
             # Check if port is available before doing any setup
@@ -113,7 +177,7 @@ class MCPCore:
             for attempt in range(start_attempts):
                 try:
                     # Run the MCP server in SSE mode with configured host and port
-                    await _run_mcp_server(mcp, host, port, log_level)
+                    await cls._run_mcp_server(mcp, host, port, log_level)
                     break
                 except (OSError, SystemExit) as exc:
                     if attempt == start_attempts - 1:
@@ -129,5 +193,3 @@ class MCPCore:
                         f"MCP server failed to start on {host}:{failed_port}, retrying on port {port} instead"
                     )
                     carb.settings.get_settings().set(_PORT_SETTING_PATH, port)
-
-        carb.log_info(f"MCP server initialized on {host}:{port}")

@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.1.5"
+version = "1.1.6"
 authors = ["dbataille@nvidia.com", "ptrottier@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"

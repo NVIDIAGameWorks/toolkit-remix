@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "2.1.7"
+version = "2.1.8"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Window for the IngestCraft"
 description = "Window for NVIDIA RTX Remix IngestCraft App"
@@ -18,6 +18,10 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 "lightspeed.trex.layout.shared.mass_ingestion" = {}
 "lightspeed.trex.sidebar" = {}
 "lightspeed.trex.utils.widget" = {}
+"omni.flux.validator.plugin.check.usd" = { order = -10 }
+"omni.flux.validator.plugin.context.usd_stage" = { order = -10 }
+"omni.flux.validator.plugin.resultor.file" = { order = -10 }
+"omni.flux.validator.plugin.selector.usd" = { order = -10 }
 
 [[python.module]]
 name = "lightspeed.trex.ingestcraft.widget"
@@ -25,10 +29,6 @@ name = "lightspeed.trex.ingestcraft.widget"
 [[test]]
 dependencies = [
     "lightspeed.trex.tests.dependencies",
-    "omni.flux.validator.plugin.check.usd",
-    "omni.flux.validator.plugin.context.usd_stage",
-    "omni.flux.validator.plugin.selector.usd",
-    "omni.flux.validator.plugin.resultor.file"
 ]
 
 args = [
@@ -43,10 +43,6 @@ stdoutFailPatterns.exclude = [
 name = "startup"
 dependencies = [
     "lightspeed.trex.tests.dependencies",
-    "omni.flux.validator.plugin.check.usd",
-    "omni.flux.validator.plugin.context.usd_stage",
-    "omni.flux.validator.plugin.selector.usd",
-    "omni.flux.validator.plugin.resultor.file"
 ]
 
 args = [

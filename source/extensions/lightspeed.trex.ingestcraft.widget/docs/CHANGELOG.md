@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.8]
+### Changed
+- Moved Ingestion sidebar registration to StageCraft control for lazy-loaded startup.
+
+### Fixed
+- Enabled IngestCraft validator plugin providers when the IngestCraft widget is loaded on demand.
+
 ## [2.1.7]
 ### Fixed
 - Canceled pending docking before IngestCraft workspace teardown.

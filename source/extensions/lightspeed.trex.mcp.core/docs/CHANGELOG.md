@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.6]
+### Added
+- Added a `SERVICE_READY service=mcp` milestone after the MCP endpoint begins accepting connections.
+
+### Changed
+- Defer MCP server startup until Kit reports app ready
+- Replaced the misleading post-shutdown initialization log with the bind-complete readiness milestone.
+- Gracefully close active MCP connections during extension shutdown.
+
 ## [1.2.5]
 ### Fixed
 - Corrected stale tool names and argument names in the `replace_model_asset` prompt.

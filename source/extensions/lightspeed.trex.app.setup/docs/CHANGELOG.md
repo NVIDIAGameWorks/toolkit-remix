@@ -1,6 +1,13 @@
 ï»¿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.6]
+### Added
+- Added supported `HOME_INTERACTIVE` and `USER_READY` lifecycle milestones for application startup consumers.
+
+### Changed
+- Close the splash and publish user readiness after the StageCraft Home UI is interactive, with bounded fallback handling.
+
 ## [1.2.5]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

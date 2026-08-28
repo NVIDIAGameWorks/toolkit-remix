@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .unit.test_extension import TestMCPCoreExtension
 from .unit.test_mcp import TestMCPCore
 
-__all__ = ["TestMCPCore"]
+__all__ = ["TestMCPCore", "TestMCPCoreExtension"]

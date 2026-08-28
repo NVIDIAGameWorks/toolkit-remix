@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.0.3"
+version = "1.0.4"
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -14,9 +14,15 @@ preview_image = "data/preview.png"
 
 [dependencies]
 "lightspeed.events_manager" = {}
+"lightspeed.trex.app.setup" = {}
 "omni.flux.telemetry.core" = {}
 "omni.flux.utils.common" = {}
 "omni.hydra.engine.stats" = {}
 
 [[python.module]]
 name = "lightspeed.event.app_start"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

@@ -54,12 +54,8 @@ class ProjectWizardBase(abc.ABC):
 
         self._context_name = context_name
         self._wizard_core = _ProjectWizardCore()
-        self._wizard_window = None
         self._width = width
         self._height = height
-
-        self._wizard_completed_sub = None
-        self._wizard_window = None
 
         self.__on_wizard_completed = _Event(copy=True)
 

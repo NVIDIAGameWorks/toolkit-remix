@@ -27,7 +27,7 @@ import omni.client
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.capture.core.shared import Setup as CaptureCore
-from lightspeed.trex.project_wizard.core import ProjectWizardKeys, ProjectWizardSchema
+from lightspeed.trex.project_wizard.core import ProjectFileMetadataError, ProjectWizardKeys, ProjectWizardSchema
 from lightspeed.trex.replacement.core.shared import Setup as ReplacementCore
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 
@@ -812,7 +812,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
                 MockListEntry(str(project_file.parent), flags=omni.client.ItemFlags.READABLE_FILE),
             )
 
-            with self.assertRaises(ValueError) as cm:
+            with self.assertRaises(ProjectFileMetadataError) as cm:
                 ProjectWizardSchema.is_project_file_valid(
                     project_file, {ProjectWizardKeys.EXISTING_PROJECT.value: True}
                 )
@@ -841,7 +841,7 @@ class TestItems(omni.kit.test.AsyncTestCase):
             mod_file_mock.return_value = False
             capture_file_mock.return_value = False
 
-            with self.assertRaises(ValueError) as cm:
+            with self.assertRaises(ProjectFileMetadataError) as cm:
                 ProjectWizardSchema.is_project_file_valid(
                     project_file, {ProjectWizardKeys.EXISTING_PROJECT.value: True}
                 )
