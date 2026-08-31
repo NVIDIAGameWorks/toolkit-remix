@@ -16,31 +16,56 @@
 """
 
 from omni.kit.test import AsyncTestCase
-from lightspeed.common.texture_info import CompressionFormat, TextureInfo
+from lightspeed.common.texture_info import CompressionFormat, MipFilter, TextureInfo
 
 
 class TestTextureInfo(AsyncTestCase):
-    """Test texture conversion metadata and NVTT flag generation."""
+    """Test texture conversion metadata."""
 
-    async def test_to_nvtt_flag_array_returns_format_gamma_and_extra_args(self):
-        """NVTT flags include the compression format, gamma mode, and caller-provided args."""
-        # Arrange
-        texture_info = TextureInfo(CompressionFormat.BC4, False, ["--mip-filter", "max"])
-
-        # Act
-        flags = texture_info.to_nvtt_flag_array()
+    async def test_stores_compression_format_gamma_and_explicit_mip_filter(self):
+        """Construction stores the compression format, gamma flag, and an explicit mip filter."""
+        # Arrange / Act
+        texture_info = TextureInfo(CompressionFormat.BC4, False, mip_filter=MipFilter.MAX)
 
         # Assert
-        self.assertEqual(flags, ["--format", "bc4", "--no-mip-gamma-correct", "--mip-filter", "max"])
+        self.assertEqual(texture_info.compression_format, CompressionFormat.BC4)
+        self.assertFalse(texture_info.gamma_encoded)
+        self.assertEqual(texture_info.mip_filter, MipFilter.MAX)
 
-    async def test_to_nvtt_flag_array_raises_for_unsupported_compression_format(self):
-        """Invalid runtime compression values fail before building an invalid NVTT argv list."""
-        # Arrange
-        texture_info = TextureInfo(999, False)
-
-        # Act
-        with self.assertRaises(ValueError) as error:
-            texture_info.to_nvtt_flag_array()
+    async def test_mip_filter_defaults_to_box(self):
+        """Construction without a mip filter defaults to MipFilter.BOX."""
+        # Arrange / Act
+        texture_info = TextureInfo(CompressionFormat.BC7, True)
 
         # Assert
-        self.assertIn("Unsupported compression format", str(error.exception))
+        self.assertEqual(texture_info.compression_format, CompressionFormat.BC7)
+        self.assertTrue(texture_info.gamma_encoded)
+        self.assertEqual(texture_info.mip_filter, MipFilter.BOX)
+
+    async def test_two_instances_with_the_same_fields_compare_equal(self):
+        """Frozen TextureInfo compares by value, so a DDS reuse signature can compare two instances directly."""
+        # Arrange / Act
+        first = TextureInfo(CompressionFormat.BC4, False, mip_filter=MipFilter.MAX)
+        second = TextureInfo(CompressionFormat.BC4, False, mip_filter=MipFilter.MAX)
+
+        # Assert
+        self.assertEqual(first, second)
+        self.assertEqual(hash(first), hash(second))
+
+    async def test_instances_with_a_different_field_compare_unequal(self):
+        """A single differing field, such as the mip filter, must break equality."""
+        # Arrange / Act
+        first = TextureInfo(CompressionFormat.BC4, False, mip_filter=MipFilter.MAX)
+        second = TextureInfo(CompressionFormat.BC4, False, mip_filter=MipFilter.BOX)
+
+        # Assert
+        self.assertNotEqual(first, second)
+
+    async def test_fields_cannot_be_reassigned(self):
+        """TextureInfo is frozen so a cached reuse signature can never be mutated after construction."""
+        # Arrange
+        texture_info = TextureInfo(CompressionFormat.BC4, False)
+
+        # Act / Assert
+        with self.assertRaises(AttributeError):
+            texture_info.gamma_encoded = True

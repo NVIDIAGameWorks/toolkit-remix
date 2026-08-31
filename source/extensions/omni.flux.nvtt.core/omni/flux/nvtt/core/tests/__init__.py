@@ -15,15 +15,6 @@
 * limitations under the License.
 """
 
-__all__ = (
-    "DDS_CONVERSION_SETTINGS_METADATA_KEY",
-    "DDS_SOURCE_HASH_METADATA_KEY",
-    "DDS_TEXTURE_TYPE_METADATA_KEY",
-    "ORPHAN_PARAMETER_CLEANUP_SETTING_PATH",
-)
+from .unit.test_library import TestNvttLibrary
 
-DDS_SOURCE_HASH_METADATA_KEY = "asset_pipeline_source_hash"
-DDS_TEXTURE_TYPE_METADATA_KEY = "asset_pipeline_texture_type"
-DDS_CONVERSION_SETTINGS_METADATA_KEY = "asset_pipeline_conversion_settings"
-
-ORPHAN_PARAMETER_CLEANUP_SETTING_PATH = "/exts/omni.usd/mdl/ignoreOrphanParametersCleanup"
+__all__ = ["TestNvttLibrary"]

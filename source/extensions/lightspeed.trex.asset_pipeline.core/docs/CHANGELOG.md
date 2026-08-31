@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.2]
+### Changed
+- DDS conversion now calls `omni.flux.nvtt.core.encode_dds` directly with typed `BlockFormat`, `gamma_encoded`, and
+  `MipmapFilter` settings derived from `TextureInfo`, instead of starting one `nvtt_export` subprocess per texture.
+
 ## [1.1.1]
 ### Fixed
 - Fixed the end-to-end progress test to observe each committed targeted progress notification.

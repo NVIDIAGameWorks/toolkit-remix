@@ -22,7 +22,7 @@ from pathlib import Path
 from omni import ui
 from pxr import Sdf
 
-from .texture_info import CompressionFormat, TextureInfo
+from .texture_info import CompressionFormat, MipFilter, TextureInfo
 
 WINDOW_NAME = "Remix Main Window"
 
@@ -113,7 +113,6 @@ SHADER_NAME_TRANSLUCENT = "AperturePBR_Translucent.mdl"
 
 REMIX_SAMPLE_PATH = "${lightspeed.trex.app.resources}/deps/remix_runtime/sample"
 REMIX_LAUNCHER_PATH = "${lightspeed.trex.app.resources}/deps/remix_runtime/runtime/NvRemixLauncher32.exe"
-NVTT_PATH = "${omni.flux.resources}/deps/tools/nvtt/nvtt_export.exe"
 
 # REGEX Constants
 
@@ -188,7 +187,7 @@ TEXTURE_INFO = {
     MATERIAL_INPUTS_EMISSIVE_MASK_TEXTURE: TextureInfo(CompressionFormat.BC7, True),
     MATERIAL_INPUTS_METALLIC_TEXTURE: TextureInfo(CompressionFormat.BC4, False),
     MATERIAL_INPUTS_TRANSMITTANCE_TEXTURE: TextureInfo(CompressionFormat.BC7, True),
-    MATERIAL_INPUTS_HEIGHT_TEXTURE: TextureInfo(CompressionFormat.BC4, False, ["--mip-filter", "max"]),
+    MATERIAL_INPUTS_HEIGHT_TEXTURE: TextureInfo(CompressionFormat.BC4, False, mip_filter=MipFilter.MAX),
 }
 
 AUTOUPSCALE_LAYER_FILENAME = "autoupscale.usda"

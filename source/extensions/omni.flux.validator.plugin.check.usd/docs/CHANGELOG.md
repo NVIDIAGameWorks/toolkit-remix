@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.3.3]
+### Changed
+- `ConvertToDDS` now uses typed `ConversionSettings` (`BlockFormat`, `gamma_encoded`, `MipmapFilter`) and calls
+  `omni.flux.nvtt.core.encode_dds` directly, instead of running one `nvtt_export` subprocess per texture with
+  string CLI arguments.
+
 ## [4.3.2]
 ### Fixed
 - Forced NVTT texture conversion subprocesses to GPU 0 to prevent multi-GPU crashes.
