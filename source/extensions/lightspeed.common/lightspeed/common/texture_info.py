@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from dataclasses import dataclass
 from enum import IntEnum
 
 
@@ -24,42 +25,27 @@ class CompressionFormat(IntEnum):
     BC7 = 2  # 3 channel lossy compression format (with optional additional 4th alpha channel)
 
 
+class MipFilter(IntEnum):
+    """Mipmap downsampling filter to use when generating a texture's mip chain."""
+
+    BOX = 0
+    MAX = 1
+
+
+@dataclass(frozen=True)
 class TextureInfo:
-    """Class to hold information about a texture's desired compression format, encoding and more.
+    """A texture's desired compression format, encoding, and mip filter.
+
+    Frozen so two textures with the same settings compare equal, which the DDS reuse-cache signature relies on.
 
     Args:
         compression_format (CompressionFormat): The compression format the texture should be exported to.
         gamma_encoded (bool): A boolean flag to indicate if the texture data is encoded in gamma space (True) or
         linear space (False). Note the current pipeline assumes the gamma encoding is consistent throughout, rathe
         than supporting different import/export formats for the time being.
+        mip_filter (MipFilter): The mipmap downsampling filter to use when generating the texture's mip chain.
     """
 
-    def __init__(
-        self,
-        compression_format: CompressionFormat,
-        gamma_encoded: bool,
-        extra_args: list[str] | None = None,
-    ):
-        self.compression_format = compression_format
-        self.gamma_encoded = gamma_encoded
-        self.extra_args: list[str] = extra_args or []
-
-    def to_nvtt_flag_array(self) -> list[str]:
-        compression_format_string = None
-
-        # Note: All valid compression formats handled here, no else case for a fallback as
-        # it should be an error if some other value is somehow passed in.
-        if self.compression_format == CompressionFormat.BC4:
-            compression_format_string = "bc4"
-        elif self.compression_format == CompressionFormat.BC5:
-            compression_format_string = "bc5"
-        elif self.compression_format == CompressionFormat.BC7:
-            compression_format_string = "bc7"
-        else:
-            raise ValueError(f"Unsupported compression format: {self.compression_format}")
-
-        # Note: Textures encoded in gamma space should use gamma correct mip interpolation, otherwise they should not
-        # for highest quality results.
-        mip_gamma_correction_string = "--mip-gamma-correct" if self.gamma_encoded else "--no-mip-gamma-correct"
-
-        return ["--format", compression_format_string, mip_gamma_correction_string] + self.extra_args
+    compression_format: CompressionFormat
+    gamma_encoded: bool
+    mip_filter: MipFilter = MipFilter.BOX

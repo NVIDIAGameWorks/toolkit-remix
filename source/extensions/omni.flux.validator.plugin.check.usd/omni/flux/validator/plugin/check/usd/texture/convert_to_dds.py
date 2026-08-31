@@ -15,15 +15,12 @@
 * limitations under the License.
 """
 
-import os
-import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
 from typing import Any
 
 import carb
-import carb.tokens
 import omni.client
 import omni.ui as ui
 import omni.usd
@@ -33,6 +30,10 @@ from omni.flux.asset_importer.core.data_models import (
 from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP as _TEXTURE_TYPE_INPUT_MAP
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
 from omni.flux.info_icon.widget import InfoIconWidget as _InfoIconWidget
+from omni.flux.nvtt.core import BlockFormat as _BlockFormat
+from omni.flux.nvtt.core import MipmapFilter as _MipmapFilter
+from omni.flux.nvtt.core import NvttUnavailableError as _NvttUnavailableError
+from omni.flux.nvtt.core import encode_dds as _encode_dds
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.utils.common.path_utils import get_new_hash as _get_new_hash
 from omni.flux.utils.common.path_utils import get_udim_sequence as _get_udim_sequence
@@ -56,49 +57,77 @@ def _generate_out_path(in_path_str: str, suffix: str):
     return in_path.with_name(in_stem + suffix)
 
 
-class ConversionArgs(BaseModel):
-    args: list[str]
-    model_config = ConfigDict(extra="forbid")
-
-
 class ConvertToDDS(_CheckBaseUSD):
     DEFAULT_UI_WIDTH_PIXEL = 120
 
     class Data(_CheckBaseUSD.Data):
-        conversion_args: dict[str, ConversionArgs] = Field(
+        class ConversionSettings(BaseModel):
+            """Typed in-process NVTT settings for one texture attribute."""
+
+            block_format: _BlockFormat
+            gamma_encoded: bool
+            mip_filter: _MipmapFilter = _MipmapFilter.BOX
+            model_config = ConfigDict(extra="forbid")
+
+            @field_validator("block_format", mode="before")
+            @classmethod
+            def _block_format_from_name(cls, v: Any) -> Any:
+                """Accept the enum member's lowercase name, e.g. `block_format="bc4"`."""
+                if isinstance(v, str):
+                    return _BlockFormat[v.upper()]
+                return v
+
+            @field_validator("mip_filter", mode="before")
+            @classmethod
+            def _mip_filter_from_name(cls, v: Any) -> Any:
+                """Accept the enum member's lowercase name, e.g. `mip_filter="max"`."""
+                if isinstance(v, str):
+                    return _MipmapFilter[v.upper()]
+                return v
+
+        conversion_settings: dict[str, ConversionSettings] = Field(
             default={
-                "inputs:diffuse_texture": ConversionArgs(
-                    args=["--format", "bc7", "--mip-gamma-correct"],
+                "inputs:diffuse_texture": ConversionSettings(
+                    block_format=_BlockFormat.BC7,
+                    gamma_encoded=True,
                 ),
-                "inputs:normalmap_texture": ConversionArgs(
-                    args=["--format", "bc5", "--no-mip-gamma-correct"],
+                "inputs:normalmap_texture": ConversionSettings(
+                    block_format=_BlockFormat.BC5,
+                    gamma_encoded=False,
                 ),
                 # TODO [REMIX-1018]: our MDL files don't support tangent textures yet.
-                # "inputs:tangent_texture": ConversionArgs(
-                #     args=["--format", "bc5", "--no-mip-gamma-correct"],
+                # "inputs:tangent_texture": ConversionSettings(
+                #     block_format=_BlockFormat.BC5,
+                #     gamma_encoded=False,
                 # ),
-                "inputs:reflectionroughness_texture": ConversionArgs(
-                    args=["--format", "bc4", "--no-mip-gamma-correct"],
+                "inputs:reflectionroughness_texture": ConversionSettings(
+                    block_format=_BlockFormat.BC4,
+                    gamma_encoded=False,
                 ),
-                "inputs:emissive_mask_texture": ConversionArgs(
-                    args=["--format", "bc7", "--mip-gamma-correct"],
+                "inputs:emissive_mask_texture": ConversionSettings(
+                    block_format=_BlockFormat.BC7,
+                    gamma_encoded=True,
                 ),
-                "inputs:metallic_texture": ConversionArgs(
-                    args=["--format", "bc4", "--no-mip-gamma-correct"],
+                "inputs:metallic_texture": ConversionSettings(
+                    block_format=_BlockFormat.BC4,
+                    gamma_encoded=False,
                 ),
-                "inputs:height_texture": ConversionArgs(
-                    args=["--format", "bc4", "--no-mip-gamma-correct", "--mip-filter", "max"],
+                "inputs:height_texture": ConversionSettings(
+                    block_format=_BlockFormat.BC4,
+                    gamma_encoded=False,
+                    mip_filter=_MipmapFilter.MAX,
                 ),
-                "inputs:transmittance_texture": ConversionArgs(
-                    args=["--format", "bc7", "--mip-gamma-correct"],
+                "inputs:transmittance_texture": ConversionSettings(
+                    block_format=_BlockFormat.BC7,
+                    gamma_encoded=True,
                 ),
             }
         )
         replace_udim_textures_by_empty: bool = Field(default=False)
         suffix: str = Field(default=".rtex.dds")
-        # Number of concurrent nvtt_export processes. Each process uses the GPU and holds the
-        # source texture (plus mip chain) in VRAM, so high values can exhaust VRAM on large
-        # (e.g. 8K) texture sets. Configurable so limited-VRAM systems can throttle it. See REMIX-4404.
+        # Number of concurrent DDS encodes. Each encode uses the GPU and holds the source texture
+        # (plus mip chain) in VRAM, so high values can exhaust VRAM on large (e.g. 8K) texture
+        # sets. Configurable so limited-VRAM systems can throttle it. See REMIX-4404.
         max_workers: int = Field(default=2, ge=1)
 
         _compatible_data_flow_names = ["InOutData"]
@@ -127,7 +156,7 @@ class ConvertToDDS(_CheckBaseUSD):
     ) -> tuple[bool, str, Any]:
         """
         Function that will be executed to check if asset paths on the selected prims in the attributes listed in schema
-        data's `conversion_args` are dds encoded
+        data's `conversion_settings` are DDS encoded
 
         Note: This is intended to be run on Shader prims.
 
@@ -143,7 +172,7 @@ class ConvertToDDS(_CheckBaseUSD):
         message = f"Stage: {stage_url}\nCheck:\n"
         all_pass = True
         for prim in selector_plugin_data:
-            for attr_name in schema_data.conversion_args:
+            for attr_name in schema_data.conversion_settings:
                 texture_paths = []
                 attr = prim.GetAttribute(attr_name)
                 if attr and attr.Get():
@@ -207,7 +236,7 @@ class ConvertToDDS(_CheckBaseUSD):
         # collate all the files to generate
         files_needed = {}
         for prim in selector_plugin_data:
-            for attr_name, settings in schema_data.conversion_args.items():
+            for attr_name, settings in schema_data.conversion_settings.items():
                 attr = prim.GetAttribute(attr_name)
                 if attr and attr.Get():
                     abs_path_str = attr.Get().resolvedPath
@@ -249,12 +278,6 @@ class ConvertToDDS(_CheckBaseUSD):
         processed_files = []
         futures = []
         with ThreadPoolExecutor(max_workers=schema_data.max_workers) as executor:
-            nvtt_path = carb.tokens.get_tokens_interface().resolve(
-                "${omni.flux.resources}/deps/tools/nvtt/nvtt_export.exe"
-            )
-            nvtt_env = os.environ.copy()
-            # NVTTE 2023.4.0 can switch from NVTT's selected GPU to GPU 0, so expose only GPU 0.
-            nvtt_env["CUDA_VISIBLE_DEVICES"] = "0"
             for out_path_str, (in_path_str, is_udim, settings, attrs) in files_needed.items():
                 out_path = Path(out_path_str)
                 src_hash = _get_new_hash(in_path_str, out_path_str)
@@ -262,18 +285,17 @@ class ConvertToDDS(_CheckBaseUSD):
                 _validator_factory_utils.push_input_data(schema_data, [in_path_str])
 
                 if not out_path.exists() or src_hash is not None:
-                    cmd = [nvtt_path, in_path_str, "--output", out_path_str] + settings.args
-                    carb.log_info("Queuing DDS conversion: " + str(cmd))
+                    carb.log_info(f"Queuing DDS conversion: {in_path_str} -> {out_path_str} {settings}")
                     future = executor.submit(
-                        subprocess.run,
-                        cmd,
-                        check=True,
-                        capture_output=True,
-                        text=True,
-                        stdin=subprocess.DEVNULL,
-                        env=nvtt_env,
+                        _encode_dds,
+                        Path(in_path_str),
+                        out_path,
+                        block_format=settings.block_format,
+                        gamma_encoded=settings.gamma_encoded,
+                        mip_filter=settings.mip_filter,
                     )
-                    future.original_command = cmd
+                    future.in_path_str = in_path_str
+                    future.settings = settings
                     future.attrs = attrs
                     future.out_path = out_path
                     future.is_udim = is_udim
@@ -301,8 +323,7 @@ class ConvertToDDS(_CheckBaseUSD):
                 for future in as_completed(futures):
                     progress += to_add
                     try:
-                        result = future.result()
-                        carb.log_info("DDS command result: " + str(result))
+                        future.result()
                         out_path_str = str(future.out_path)
                         _write_metadata(out_path_str, "src_hash", future.src_hash)
                         with Sdf.ChangeBlock():
@@ -319,12 +340,12 @@ class ConvertToDDS(_CheckBaseUSD):
 
                         message += f"- PASS: created compressed texture {future.out_path}\n"
                         self.on_progress(progress, f"Compressed to {future.out_path}", True)
-                    except subprocess.CalledProcessError as e:
+                    except (_NvttUnavailableError, RuntimeError) as error:
                         carb.log_error(
-                            "Exception when converting texture to dds.\n"
-                            f"cmd: {e.cmd}\noutput: {e.output}\nstdout: {e.stdout}\nstderr: {e.stderr}"
+                            "Exception when converting texture to DDS.\n"
+                            f"source: {future.in_path_str}\nsettings: {future.settings}\nerror: {error}"
                         )
-                        message += f"- FAIL: failure in dds compression command: {future.original_command}.\n"
+                        message += f"- FAIL: DDS compression failed: {future.in_path_str} {future.settings}.\n"
                         self.on_progress(progress, f"Error from {future.out_path}", True)
                         all_pass = False
 

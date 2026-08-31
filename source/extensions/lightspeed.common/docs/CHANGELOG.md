@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.3]
+### Changed
+- `TextureInfo` is now an immutable, frozen dataclass with value equality and a typed `mip_filter`
+  (`MipFilter`) field, instead of a mutable class built from a caller-supplied argument list. Removed
+  `extra_args` and `to_nvtt_flag_array()`.
+
+### Removed
+- Removed the unused `NVTT_PATH` constant. DDS conversion now calls the `omni.flux.nvtt.core` binding directly instead of resolving the `nvtt_export` executable path.
+
 ## [2.0.2]
 ### Added
 - Added the capture Remix config prim path and attribute names.

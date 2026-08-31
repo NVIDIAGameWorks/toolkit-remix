@@ -22,12 +22,13 @@ import threading
 from unittest.mock import patch
 
 import omni.kit.test
-from lightspeed.common.constants import NVTT_PATH, TEXTURE_INFO
+from lightspeed.common.constants import TEXTURE_INFO
+from lightspeed.common.texture_info import CompressionFormat, MipFilter, TextureInfo
 from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP, TextureTypes
 
 import lightspeed.trex.asset_pipeline.core.steps.convert_dds as convert_dds_module
 from lightspeed.trex.asset_pipeline.core.constants import (
-    DDS_NVTT_ARGS_METADATA_KEY,
+    DDS_CONVERSION_SETTINGS_METADATA_KEY,
     DDS_SOURCE_HASH_METADATA_KEY,
     DDS_TEXTURE_TYPE_METADATA_KEY,
 )
@@ -55,7 +56,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             caller_thread = threading.get_ident()
             worker_threads = []
 
-            def run_nvtt(*_args) -> None:
+            def convert_texture(*_args) -> None:
                 """Record the thread used by the mocked NVTT invocation.
 
                 Args:
@@ -63,7 +64,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
                 """
                 worker_threads.append(threading.get_ident())
 
-            with patch.object(convert_dds_module, "_run_nvtt", side_effect=run_nvtt) as mock_nvtt:
+            with patch.object(convert_dds_module, "_convert_texture", side_effect=convert_texture) as mock_nvtt:
                 # Act
                 await step.run(context)
 
@@ -76,27 +77,24 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             self.assertTrue(worker_threads)
             self.assertNotIn(caller_thread, worker_threads)
 
-    async def test_run_nvtt_uses_timeout(self):
-        """nvtt_export subprocesses fail instead of hanging a worker indefinitely."""
-        # Arrange
-        timeout = 12.5
-
-        with patch.object(convert_dds_module.subprocess, "run") as run_mock:
+    async def test_convert_texture_calls_encode_dds_with_mapped_settings(self):
+        """_convert_texture derives BlockFormat, gamma_encoded, and MipmapFilter from the texture info."""
+        texture_info = TextureInfo(CompressionFormat.BC7, True, mip_filter=MipFilter.BOX)
+        with patch.object(convert_dds_module, "encode_dds") as mock_encode:
             # Act
-            convert_dds_module._run_nvtt("nvtt_export", "input.png", "output.dds", ["--format", "bc7"], timeout=timeout)
+            convert_dds_module._convert_texture("input.png", "output.dds", texture_info)
 
         # Assert
-        run_mock.assert_called_once_with(
-            ["nvtt_export", "input.png", "--output", "output.dds", "--format", "bc7"],
-            check=True,
-            capture_output=True,
-            text=True,
-            stdin=convert_dds_module.subprocess.DEVNULL,
-            timeout=timeout,
+        mock_encode.assert_called_once_with(
+            pathlib.Path("input.png"),
+            pathlib.Path("output.dds"),
+            block_format=convert_dds_module.BlockFormat.BC7,
+            gamma_encoded=True,
+            mip_filter=convert_dds_module.MipmapFilter.BOX,
         )
 
-    async def test_run_uses_canonical_texture_info_for_nvtt_args(self):
-        """DDS conversion derives compression args from the shared texture-info table."""
+    async def test_run_uses_canonical_texture_info_for_conversion(self):
+        """DDS conversion derives compression settings from the shared texture-info table."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Arrange
             output_dir = pathlib.Path(temp_dir) / "processed"
@@ -104,18 +102,17 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             item = RemixAssetItem.from_texture(pathlib.Path("/textures/roughness.png"), TextureTypes.ROUGHNESS)
             context = RemixAssetPipelineContext(items=[item], work_dir=output_dir, output_dir=output_dir)
 
-            with patch.object(convert_dds_module, "_run_nvtt") as mock_nvtt:
+            with patch.object(convert_dds_module, "_convert_texture") as mock_nvtt:
                 # Act
                 await ConvertDDSStep().run(context)
 
             # Assert
             mock_nvtt.assert_called_once()
-            self.assertEqual(pathlib.Path(mock_nvtt.call_args.args[0]).name, pathlib.Path(NVTT_PATH).name)
-            self.assertEqual(mock_nvtt.call_args.args[1], str(pathlib.Path("/textures/roughness.png")))
-            self.assertEqual(pathlib.Path(mock_nvtt.call_args.args[2]).name, "roughness.roughness.dds")
-            self.assertEqual(
-                mock_nvtt.call_args.args[3],
-                TEXTURE_INFO[TEXTURE_TYPE_INPUT_MAP[TextureTypes.ROUGHNESS]].to_nvtt_flag_array(),
+            self.assertEqual(mock_nvtt.call_args.args[0], str(pathlib.Path("/textures/roughness.png")))
+            self.assertEqual(pathlib.Path(mock_nvtt.call_args.args[1]).name, "roughness.roughness.dds")
+            self.assertIs(
+                mock_nvtt.call_args.args[2],
+                TEXTURE_INFO[TEXTURE_TYPE_INPUT_MAP[TextureTypes.ROUGHNESS]],
             )
 
     async def test_run_reuses_existing_dds_output(self):
@@ -136,7 +133,9 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
                     {
                         DDS_SOURCE_HASH_METADATA_KEY: convert_dds_module._hash_existing_file(str(source_path)),
                         DDS_TEXTURE_TYPE_METADATA_KEY: TextureTypes.DIFFUSE.name,
-                        DDS_NVTT_ARGS_METADATA_KEY: convert_dds_module._get_nvtt_args(TextureTypes.DIFFUSE),
+                        DDS_CONVERSION_SETTINGS_METADATA_KEY: convert_dds_module._texture_info_metadata(
+                            convert_dds_module._get_texture_info(TextureTypes.DIFFUSE)
+                        ),
                     }
                 )
             )
@@ -144,7 +143,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=output_dir)
             expected_work_path = context.get_work_path(source_path, stem_suffix=".diffuse", suffix=".dds")
 
-            with patch.object(convert_dds_module, "_run_nvtt") as mock_nvtt:
+            with patch.object(convert_dds_module, "_convert_texture") as mock_nvtt:
                 # Act
                 await ConvertDDSStep().run(context)
 
@@ -198,14 +197,14 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
                     {
                         DDS_SOURCE_HASH_METADATA_KEY: "different-source-hash",
                         DDS_TEXTURE_TYPE_METADATA_KEY: TextureTypes.NORMAL_OTH.name,
-                        DDS_NVTT_ARGS_METADATA_KEY: ["--stale"],
+                        DDS_CONVERSION_SETTINGS_METADATA_KEY: {"block_format": "STALE"},
                     }
                 )
             )
             item = RemixAssetItem.from_texture(source_path, TextureTypes.DIFFUSE)
             context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=output_dir)
 
-            with patch.object(convert_dds_module, "_run_nvtt") as mock_nvtt:
+            with patch.object(convert_dds_module, "_convert_texture") as mock_nvtt:
                 # Act
                 await ConvertDDSStep().run(context)
 
@@ -214,20 +213,6 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             self.assertEqual(item.textures[0].path.parent.parent, work_dir)
             self.assertNotEqual(item.textures[0].path, dds_path)
             mock_nvtt.assert_called_once()
-
-    async def test_reuse_metadata_rejects_non_string_nvtt_args(self):
-        """DDS reuse metadata only accepts JSON-stable string NVTT arguments."""
-        # Arrange
-        dds_path = "/processed/albedo.dds"
-        source_hash = "hash"
-        extra_args = ["--format", pathlib.Path("bc1")]
-
-        # Act
-        with self.assertRaises(TypeError) as error_context:
-            convert_dds_module._can_reuse_dds_output(dds_path, source_hash, TextureTypes.DIFFUSE, extra_args)
-
-        # Assert
-        self.assertIsInstance(error_context.exception, TypeError)
 
     async def test_run_converts_same_stem_textures_to_distinct_work_paths(self):
         """The pipeline context provides collision-safe DDS output paths."""
@@ -250,7 +235,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
                 items=[first_item, second_item], work_dir=work_dir, output_dir=output_dir
             )
 
-            with patch.object(convert_dds_module, "_run_nvtt") as mock_nvtt:
+            with patch.object(convert_dds_module, "_convert_texture") as mock_nvtt:
                 # Act
                 await ConvertDDSStep().run(context)
 

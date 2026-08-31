@@ -17,16 +17,17 @@
 
 from __future__ import annotations
 
-import os
 import shutil
-import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
 
 import omni.usd
+from omni.flux.nvtt.core import BlockFormat as _BlockFormat
+from omni.flux.nvtt.core import MipmapFilter as _MipmapFilter
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.validator.manager.core import ManagerCore as _ManagerCore
+from omni.flux.validator.plugin.check.usd.texture.convert_to_dds import ConvertToDDS as _ConvertToDDS
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path, open_stage
 
@@ -86,6 +87,67 @@ class TestConvertToDDS(AsyncTestCase):
         # Assert
         self.assertEqual(2, check_plugin.data.max_workers)
         model.set_value.assert_called_once_with(2)
+
+    async def test_default_conversion_settings_are_typed(self):
+        """Default validator settings map directly to the in-process encoder."""
+        # Arrange
+        await omni.usd.get_context().new_stage_async()
+        settings = self._make_core().model.check_plugins[0].data.conversion_settings
+
+        # Assert
+        self.assertEqual(_BlockFormat.BC7, settings["inputs:diffuse_texture"].block_format)
+        self.assertTrue(settings["inputs:diffuse_texture"].gamma_encoded)
+        self.assertEqual(_BlockFormat.BC5, settings["inputs:normalmap_texture"].block_format)
+        self.assertFalse(settings["inputs:normalmap_texture"].gamma_encoded)
+        self.assertEqual(_BlockFormat.BC4, settings["inputs:height_texture"].block_format)
+        self.assertEqual(_MipmapFilter.MAX, settings["inputs:height_texture"].mip_filter)
+
+    async def test_conversion_settings_accept_schema_data(self):
+        """Validation schema data can override typed NVTT settings with raw enum values."""
+        # Arrange
+        await omni.usd.get_context().new_stage_async()
+
+        # Act
+        data = _ConvertToDDS.Data.model_validate(
+            {
+                "conversion_settings": {
+                    "inputs:diffuse_texture": {
+                        "block_format": 6,
+                        "gamma_encoded": False,
+                    }
+                }
+            }
+        )
+
+        # Assert
+        setting = data.conversion_settings["inputs:diffuse_texture"]
+        self.assertEqual(_BlockFormat.BC4, setting.block_format)
+        self.assertFalse(setting.gamma_encoded)
+        self.assertEqual(_MipmapFilter.BOX, setting.mip_filter)
+
+    async def test_conversion_settings_accept_string_enum_values(self):
+        """Validation schema data can override typed NVTT settings with lowercase enum names."""
+        # Arrange
+        await omni.usd.get_context().new_stage_async()
+
+        # Act
+        data = _ConvertToDDS.Data.model_validate(
+            {
+                "conversion_settings": {
+                    "inputs:diffuse_texture": {
+                        "block_format": "bc4",
+                        "gamma_encoded": False,
+                        "mip_filter": "max",
+                    }
+                }
+            }
+        )
+
+        # Assert
+        setting = data.conversion_settings["inputs:diffuse_texture"]
+        self.assertEqual(_BlockFormat.BC4, setting.block_format)
+        self.assertFalse(setting.gamma_encoded)
+        self.assertEqual(_MipmapFilter.MAX, setting.mip_filter)
 
     async def test_fix_when_data_flow_raises_releases_executor(self):
         # Arrange
@@ -152,8 +214,11 @@ class TestConvertToDDS(AsyncTestCase):
         self.assertIsNone(core.model.check_plugins[0].data.data_flows[0].input_data)
         self.assertIsNone(core.model.check_plugins[0].data.data_flows[0].output_data)
 
-    async def test_run_fix_with_multiple_visible_gpus_limits_nvtt_to_gpu_zero(self):
-        """NVTT subprocesses see only GPU 0."""
+    async def test_run_fix_converts_textures_in_process(self):
+        """DDS conversion runs the real in-process NVTT encoder end to end.
+
+        GPU pinning is exercised by omni.flux.nvtt.core's own tests, not here.
+        """
         shutil.copytree(get_test_data_path(__name__, "usd/pillow_cube"), self.temp_path / Path("pillow_cube"))
 
         # Arrange
@@ -163,21 +228,9 @@ class TestConvertToDDS(AsyncTestCase):
         stage = usd_context.get_stage()
 
         # Act
-        with (
-            patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "1,0"}),
-            patch(
-                "omni.flux.validator.plugin.check.usd.texture.convert_to_dds.subprocess.run", wraps=subprocess.run
-            ) as subprocess_run_mock,
-        ):
-            await core.deferred_run()
-            parent_visible_devices = os.environ["CUDA_VISIBLE_DEVICES"]
+        await core.deferred_run()
 
         # Assert
-        self.assertEqual("1,0", parent_visible_devices)
-        self.assertGreater(len(subprocess_run_mock.call_args_list), 0)
-        for subprocess_call in subprocess_run_mock.call_args_list:
-            self.assertEqual("0", subprocess_call.kwargs["env"]["CUDA_VISIBLE_DEVICES"])
-
         prim = stage.GetPrimAtPath("/World/Looks/M_Prop_CompanionCube_Pillow_A/Shader")
         in_paths = [
             ("inputs:diffuse_texture", Path("pillow_cube/T_Prop_CompanionCube_Pillow_A_Albedo.png")),
