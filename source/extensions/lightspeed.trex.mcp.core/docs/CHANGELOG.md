@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.7]
+### Added
+- Added a `transport` setting to select the MCP transport, with the legacy `sse` transport still available.
+
+### Changed
+- Switched the default MCP transport to Streamable HTTP, moving the endpoint from `/sse` to `/mcp`.
+
 ## [1.2.6]
 ### Added
 - Added a `SERVICE_READY service=mcp` milestone after the MCP endpoint begins accepting connections.

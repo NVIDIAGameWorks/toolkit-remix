@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.2.6"
+version = "1.2.7"
 authors =["Pierre-Oliver Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Micro-Service MCP Server"
 description = "Micro-Service MCP Server Core for NVIDIA RTX Remix"
@@ -23,6 +23,7 @@ host = "127.0.0.1"
 port = 8000
 allow_port_range = true
 log_level = "warning"
+transport = "streamable-http"
 
 [[python.module]]
 name = "lightspeed.trex.mcp.core"
