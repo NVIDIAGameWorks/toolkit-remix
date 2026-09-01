@@ -35,6 +35,10 @@ from .prompts import MCPPrompts
 
 _MAX_SERVER_START_ATTEMPTS = 2
 _PORT_SETTING_PATH = "/exts/lightspeed.trex.mcp.core/port"
+_DEFAULT_TRANSPORT = "streamable-http"
+# Mirrors the transports FastMCP's `http_app` accepts. Its other transport, stdio, binds the process's own
+# stdin/stdout instead of returning an app to serve, so it cannot reach this Uvicorn path.
+_SUPPORTED_HTTP_TRANSPORTS = ("streamable-http", "sse")
 
 
 class _ServiceReadyServer(uvicorn.Server):
@@ -70,8 +74,17 @@ class MCPCore:
         port = settings.get_as_int("/exts/lightspeed.trex.mcp.core/port") or 8000
         allow_range = settings.get_as_bool("/exts/lightspeed.trex.mcp.core/allow_port_range")
         log_level = settings.get("/exts/lightspeed.trex.mcp.core/log_level") or "warning"
+        transport = settings.get("/exts/lightspeed.trex.mcp.core/transport") or _DEFAULT_TRANSPORT
 
-        cls._initialization_task = asyncio.ensure_future(cls._initialize_async(mcp, host, port, allow_range, log_level))
+        if transport not in _SUPPORTED_HTTP_TRANSPORTS:
+            carb.log_warn(
+                f"MCP server transport '{transport}' is not supported, starting with '{_DEFAULT_TRANSPORT}' instead"
+            )
+            transport = _DEFAULT_TRANSPORT
+
+        cls._initialization_task = asyncio.ensure_future(
+            cls._initialize_async(mcp, host, port, allow_range, log_level, transport=transport)
+        )
 
     @classmethod
     def shutdown(cls) -> asyncio.Task[None] | None:
@@ -109,10 +122,10 @@ class MCPCore:
             cls._shutdown_task = None
 
     @classmethod
-    async def _run_mcp_server(cls, mcp: FastMCP, host: str, port: int, log_level: str) -> None:
+    async def _run_mcp_server(cls, mcp: FastMCP, host: str, port: int, log_level: str, transport: str) -> None:
         """Run and retain the Uvicorn server until it shuts down."""
         config = uvicorn.Config(
-            mcp.http_app(transport="sse"),
+            mcp.http_app(transport=transport),
             host=host,
             port=port,
             log_level=log_level,
@@ -134,7 +147,9 @@ class MCPCore:
 
     @classmethod
     @omni.usd.handle_exception
-    async def _initialize_async(cls, mcp: FastMCP, host: str, port: int, allow_range: bool, log_level: str) -> None:
+    async def _initialize_async(
+        cls, mcp: FastMCP, host: str, port: int, allow_range: bool, log_level: str, transport: str
+    ) -> None:
         """Initialize the configured MCP server asynchronously."""
         loop = asyncio.get_event_loop()
         with concurrent.futures.ThreadPoolExecutor() as pool:
@@ -176,8 +191,8 @@ class MCPCore:
             start_attempts = _MAX_SERVER_START_ATTEMPTS if allow_range else 1
             for attempt in range(start_attempts):
                 try:
-                    # Run the MCP server in SSE mode with configured host and port
-                    await cls._run_mcp_server(mcp, host, port, log_level)
+                    # Run the MCP server with the configured transport, host, and port
+                    await cls._run_mcp_server(mcp, host, port, log_level, transport)
                     break
                 except (OSError, SystemExit) as exc:
                     if attempt == start_attempts - 1:

@@ -60,6 +60,7 @@ class TestMCPCore(omni.kit.test.AsyncTestCase):
         settings,
         allow_range=True,
         validate_port_side_effect=None,
+        transport="streamable-http",
     ):
         mcp = mock.Mock()
         rest_api_mcp = mock.Mock()
@@ -75,7 +76,7 @@ class TestMCPCore(omni.kit.test.AsyncTestCase):
             mock.patch.object(mcp_module.MCPPrompts, "register_prompts"),
             mock.patch.object(mcp_module.MCPCore, "_run_mcp_server", run_mcp_server_mock),
         ):
-            await mcp_module.MCPCore._initialize_async(mcp, "127.0.0.1", 8000, allow_range, "warning")
+            await mcp_module.MCPCore._initialize_async(mcp, "127.0.0.1", 8000, allow_range, "warning", transport)
 
     async def test_initialize_when_mcp_server_bind_fails_retries_with_available_port(self):
         # Arrange
@@ -135,6 +136,7 @@ class TestMCPCore(omni.kit.test.AsyncTestCase):
                         collision_port,
                         allow_range=True,
                         log_level="critical",
+                        transport="streamable-http",
                     )
                 )
                 await self.__wait_for_port(host, retry_port)
@@ -179,6 +181,55 @@ class TestMCPCore(omni.kit.test.AsyncTestCase):
         settings.set.assert_called_once_with("/exts/lightspeed.trex.mcp.core/port", 8001)
         log_error_mock.assert_called_once()
 
+    async def test_run_mcp_server_builds_app_with_configured_transport(self) -> None:
+        """Build the Uvicorn app with the transport the settings selected."""
+        # Arrange
+        host = "127.0.0.1"
+        with socket.socket() as available_port_socket:
+            available_port_socket.bind((host, 0))
+            port = available_port_socket.getsockname()[1]
+
+        mcp = mock.Mock()
+        server = mock.Mock()
+        server.serve = mock.AsyncMock()
+
+        # Act
+        with mock.patch.object(mcp_module, "_ServiceReadyServer", return_value=server):
+            await mcp_module.MCPCore._run_mcp_server(mcp, host, port, "critical", "streamable-http")
+
+        # Assert
+        mcp.http_app.assert_called_once_with(transport="streamable-http")
+
+    async def test_initialize_when_transport_is_unsupported_uses_default_transport(self) -> None:
+        """Fall back to the default transport when the configured transport is not supported."""
+        # Arrange
+        settings = mock.Mock()
+        settings.get.side_effect = {
+            "/exts/lightspeed.trex.mcp.core/host": "127.0.0.1",
+            "/exts/lightspeed.trex.mcp.core/log_level": "critical",
+            "/exts/lightspeed.trex.mcp.core/transport": "websocket",
+        }.get
+        settings.get_as_int.return_value = 8000
+        settings.get_as_bool.return_value = False
+        transports = []
+
+        async def record_transport(*_args: object, **kwargs: object) -> None:
+            """Record the transport the initialization task was given."""
+            transports.append(kwargs["transport"])
+
+        with (
+            mock.patch.object(mcp_module.carb.settings, "get_settings", return_value=settings),
+            mock.patch.object(mcp_module.MCPCore, "_initialize_async", side_effect=record_transport),
+            mock.patch.object(mcp_module.carb, "log_warn") as log_warn_mock,
+        ):
+            # Act
+            mcp_module.MCPCore.initialize(mock.Mock())
+            await mcp_module.MCPCore._initialization_task
+
+        # Assert
+        self.assertEqual(transports, ["streamable-http"])
+        log_warn_mock.assert_called_once()
+
     async def test_shutdown_with_active_client_closes_connection_and_settles_server(self) -> None:
         """Close active clients before completing MCP server shutdown."""
         # Arrange
@@ -188,7 +239,9 @@ class TestMCPCore(omni.kit.test.AsyncTestCase):
             port = available_port_socket.getsockname()[1]
 
         initialization_task = asyncio.create_task(
-            mcp_module.MCPCore._run_mcp_server(FastMCP("Active client shutdown test"), host, port, "critical")
+            mcp_module.MCPCore._run_mcp_server(
+                FastMCP("Active client shutdown test"), host, port, "critical", "streamable-http"
+            )
         )
         mcp_module.MCPCore._initialization_task = initialization_task
         client_writer = None
@@ -220,7 +273,7 @@ class TestMCPCore(omni.kit.test.AsyncTestCase):
         initialization_started = asyncio.Event()
         never_finish = asyncio.Event()
 
-        async def wait_for_shutdown(*_args: object) -> None:
+        async def wait_for_shutdown(*_args: object, **_kwargs: object) -> None:
             """Wait until the initialization task is cancelled."""
             initialization_started.set()
             await never_finish.wait()

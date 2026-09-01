@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5819: Added Toolkit-owned guidance for incompatible NVIDIA drivers and updated paired RTX Remix dependencies.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-88b4c47-main`
 - Reduced default RTX Remix startup time and dependencies by loading StageCraft-only by default, lazy-loading IngestCraft, service, and MCP extensions/UI only when needed, deferring MCP bind until app ready, disabling MDL discovery on boot, and skipping splash during warmup/headless runs
+- Switched the MCP server default transport from the protocol's legacy SSE transport to Streamable HTTP, moving the endpoint from `http://127.0.0.1:8000/sse` to `http://127.0.0.1:8000/mcp`, and added a `/exts/lightspeed.trex.mcp.core/transport` setting so clients that cannot yet speak Streamable HTTP can opt back into the deprecated `sse` transport
 
 ### Removed
 

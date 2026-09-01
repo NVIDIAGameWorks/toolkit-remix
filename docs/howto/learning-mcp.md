@@ -31,10 +31,14 @@ functionality, exposing the REST API endpoints in a format that LLMs can underst
 
 When the RTX Remix Toolkit starts, the MCP server automatically begins running with the following default configuration:
 
-- **Protocol**: Server-Sent Events (SSE)
+- **Protocol**: Streamable HTTP
 - **Host**: `127.0.0.1` or `localhost`
 - **Port**: `8000`
-- **Endpoint**: `http://127.0.0.1:8000/sse`
+- **Endpoint**: `http://127.0.0.1:8000/mcp`
+
+Clients that cannot yet connect over Streamable HTTP can fall back to the protocol's legacy SSE transport by
+setting `/exts/lightspeed.trex.mcp.core/transport` to `sse`, which serves `http://127.0.0.1:8000/sse` instead.
+That transport is deprecated and will be removed in a future release.
 
 ***
 
@@ -157,17 +161,25 @@ appropriately.
 
 The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) is the recommended tool for testing:
 
-1) Make sure `Node.js` is installed. If not, following the instructions [here](https://nodejs.org/en/download)
+1) Make sure `Node.js` 22.19 or newer is installed. If not, follow the instructions
+   [here](https://nodejs.org/en/download). Older versions fail to start the Inspector with an error about
+   `styleText` missing from `node:util`.
 2) Start the RTX Remix Toolkit (ensures MCP server is running)
 3) Launch MCP Inspector:
    ```bash
    npx @modelcontextprotocol/inspector
    ```
-4) Connect to the RTX Remix MCP server:
-    - Click "Add Server"
-    - Enter the SSE endpoint: `http://127.0.0.1:8000/sse`
-    - Click "Connect"
-5) Explore available tools, test commands, and view responses
+   It prints a `http://127.0.0.1:6274` URL with an auth token already filled in. Open that URL.
+4) Add the RTX Remix MCP server:
+    - Choose "Add Servers", then "Add manually"
+    - Server ID: any name, for example `rtx-remix`
+    - Transport: `streamable-http`
+    - URL: `http://127.0.0.1:8000/mcp`
+    - Click "Add"
+5) Turn on the new server's Connect toggle. Once connected, the card reports the negotiated protocol
+   revision.
+6) Use the Tools, Prompts, and Resources tabs to explore and invoke, and the Messages pane to inspect the
+   request and response traffic
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>
