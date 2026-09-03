@@ -87,6 +87,12 @@ e.g., `repo.bat check_changelog`). They live in `tools/utils/` and are dispatche
 | `repo.bat check_changelog`          | Verify all modified extensions have changelog entries (CI)       |
 | `repo.bat check_test_file_location` | Verify `test_*.py` files are in required directories (CI)        |
 | `repo.bat check_forbidden_words`    | Validate that specified words are not present in code files (CI) |
+| `repo.bat check_tests_written`      | Warn when an extension's source changed but its tests did not (CI) |
+
+`check_tests_written` runs on every merge request as the non-blocking `check-tests-written` job. When an extension has
+modified Python source but no modified files under its `tests/` directory, the job finishes with a warning and posts a
+merge request note listing the extensions. The note updates in place on later pushes and is rewritten as resolved once
+the tests are added. Apply the `no-tests-needed` label to the merge request when tests genuinely do not apply.
 
 ## Standalone Utilities (`tools/utils/`)
 
