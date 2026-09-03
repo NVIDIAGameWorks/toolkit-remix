@@ -1,0 +1,20 @@
+check-tests-written:
+  stage: checks_final
+  extends:
+    - .defaults
+    - .linux_build_agent
+    - .soak_check_rules
+  variables:
+    # The merge request diff base must exist locally, so the shallow clone default cannot be used
+    GIT_DEPTH: "0"
+  needs: []
+  # Report as a pipeline warning instead of blocking the merge
+  allow_failure: true
+  script:
+    - ./repo.sh check_tests_written -s "$CI_COMMIT_SHA" -t "$CI_MERGE_REQUEST_DIFF_BASE_SHA" -r missing-tests.md
+  # Runs on both the pass and the fail path so an existing note is resolved once the tests are added
+  after_script:
+    - ./tools/ci/scripts/comment_missing_tests.sh missing-tests.md || echo "Merge request comment failed."
+  rules:
+    - !reference [.defaults, rules]
+    - !reference [.soak_check_rules, rules]

@@ -467,3 +467,16 @@ async def test_duplicate_selected_mesh(self):
 Attaching a debugger to a test run requires the `break` flag to make the test process wait before continuing. The
 procedure and IDE-specific attach steps are in [
 `debugging.md` → Debugging Tests and Startup Logic](../tools/debugging.md#debugging-tests-and-startup-logic).
+
+---
+
+## CI Test Coverage Warning
+
+Every merge request runs the non-blocking `check-tests-written` job. When an extension has modified Python source but
+no modified files under its `tests/` directory, the job finishes with a warning and posts a merge request note naming
+the extensions. It never blocks the merge — it exists to start a conversation about whether tests were missed.
+
+Add or update the matching tests to clear it, or apply the `no-tests-needed` label when tests genuinely do not apply
+(a pure refactor with existing coverage, a revert, or a generated-code update). See
+[`repo-tools.md`](../tools/repo-tools.md#repo-subcommands-repobat) for the underlying `repo.bat check_tests_written`
+subcommand.

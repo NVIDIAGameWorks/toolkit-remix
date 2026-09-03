@@ -112,3 +112,25 @@ app_command = ".\\_build\\windows-x86_64\\release\\lightspeed.app.trex.bat --no-
 time_limit = 20
 # Number of times to run the app
 number = 50
+
+[repo_check_tests_written]
+# Tool name
+command = "check_tests_written"
+# [python module name or path]:[function name]
+entry_point = "${root}/tools/utils/repo_check_tests_written.py:setup_repo_tool"
+# The target commit to compare against
+original_commit = "origin/main"
+# The source commit to compare against
+source_commit = "HEAD"
+# Path prefix for extensions
+extension_path_prefix = "source/extensions"
+# Name of the directory holding an extension's tests
+test_dir_name = "tests"
+# Merge request label that opts a change out of the check
+skip_label = "no-tests-needed"
+# Files that are not subject to the check, using fnmatch syntax where `*` also matches path separators
+files.exclude = [
+    "source/extensions/example.*",
+    "source/extensions/lightspeed.hydra.remix/plugin/usd/usd/resources/codegenTemplates/*",
+    "source/extensions/lightspeed.trex.logic.ogn/python/nodes/*",
+]
