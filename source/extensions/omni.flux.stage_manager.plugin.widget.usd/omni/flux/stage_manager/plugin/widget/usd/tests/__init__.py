@@ -17,5 +17,6 @@
 
 from .unit.test_action_is_visible import TestIsVisibleActionWidgetPlugin
 from .unit.test_custom_tags_list import TestCustomTagsWidgetPlugin
+from .unit.test_state_base import TestStageManagerStateWidgetPlugin
 
-__all__ = ["TestCustomTagsWidgetPlugin", "TestIsVisibleActionWidgetPlugin"]
+__all__ = ["TestCustomTagsWidgetPlugin", "TestIsVisibleActionWidgetPlugin", "TestStageManagerStateWidgetPlugin"]

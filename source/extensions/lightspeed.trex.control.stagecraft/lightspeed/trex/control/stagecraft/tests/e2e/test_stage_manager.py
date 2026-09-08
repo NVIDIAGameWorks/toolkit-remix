@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import gc
+from unittest.mock import patch
 
 import omni.ui as ui
 import omni.usd as usd
@@ -199,6 +200,38 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
             await ui_test.wait_n_updates(1)
         self.fail(f"Stage Manager selection did not settle on {expected_paths}; got {last_selection}")
 
+    async def _find_focus_action_icon(self, prim_path: str):
+        """Find the enabled Focus action icon aligned with a prim row.
+
+        Args:
+            prim_path: USD path identifying the Stage Manager row.
+
+        Returns:
+            The Focus action icon for the requested row.
+        """
+        row_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Label[*].identifier=='nickname_field'"
+        focus_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Image[*].identifier=='focus_in_viewport_widget_image'"
+        for _ in range(120):
+            rows = [
+                row for row in ui_test.find_all(row_selector) if row.widget.visible and row.widget.tooltip == prim_path
+            ]
+            focus_icons = [
+                icon for icon in ui_test.find_all(focus_selector) if icon.widget.visible and icon.widget.enabled
+            ]
+            if rows:
+                row_center_y = rows[0].position.y + (rows[0].size.y / 2)
+                aligned_icons = [
+                    icon for icon in focus_icons if icon.position.y <= row_center_y <= icon.position.y + icon.size.y
+                ]
+                if aligned_icons:
+                    return min(
+                        aligned_icons,
+                        key=lambda icon: abs((icon.position.y + (icon.size.y / 2)) - row_center_y),
+                    )
+            await ui_test.human_delay()
+        self.fail(f"Stage Manager did not expose an enabled Focus icon for {prim_path}")
+        return None
+
     def _get_properties_pane(self):
         for obj in gc.get_objects():
             if isinstance(obj, _AssetReplacementsPane) and obj.window_visible and not obj.destroyed:
@@ -287,6 +320,91 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
 
         await self._wait_for_usd_selection([], settle_frames=5)
         await self._wait_for_stage_manager_model_selection_paths(interaction, [])
+
+    async def test_focus_action_with_multiple_selected_prims_preserves_stage_manager_and_usd_selection(self):
+        """Verify a selected row action preserves Stage Manager and USD multiselection."""
+        selected_paths = [
+            "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh",
+            "/RootNode/meshes/mesh_CED45075A077A49A/mesh",
+        ]
+        usd_context = usd.get_context()
+
+        def get_stage_manager_selection_paths():
+            """Return selected Stage Manager prim paths in model order."""
+            return [
+                str(item.original_tree_item.data.GetPath())
+                for item in interaction.tree.model.selection
+                if item.original_tree_item.data and item.original_tree_item.data.IsValid()
+            ]
+
+        interaction = await self._select_stage_manager_tab("Meshes", "RemixAllMeshesInteractionPlugin")
+        usd_context.get_selection().clear_selected_prim_paths()
+        await ui_test.human_delay()
+        usd_context.get_selection().set_selected_prim_paths(selected_paths, False)
+        await self._wait_for_usd_selection(selected_paths)
+
+        for _ in range(120):
+            stage_manager_selection_before_focus = get_stage_manager_selection_paths()
+            if len(stage_manager_selection_before_focus) == len(selected_paths) and set(
+                stage_manager_selection_before_focus
+            ) == set(selected_paths):
+                break
+            await ui_test.wait_n_updates(1)
+        else:
+            self.fail(
+                f"Stage Manager selection did not settle on {selected_paths}; "
+                f"got {stage_manager_selection_before_focus}"
+            )
+
+        usd_selection_before_focus = list(usd_context.get_selection().get_selected_prim_paths())
+
+        # Use the first selected mesh row and its aligned Focus action icon.
+        focus_icon = await self._find_focus_action_icon(selected_paths[0])
+
+        # Focus frames the selection in the viewport without changing either selection model.
+        with patch(
+            "lightspeed.trex.stage_manager.plugin.widget.usd.focus_in_viewport._get_active_viewport"
+        ) as mock_get_active_viewport:
+            await focus_icon.click()
+            await ui_test.human_delay()
+
+        mock_get_active_viewport.return_value.frame_viewport_selection.assert_called_once()
+        await self._wait_for_usd_selection(usd_selection_before_focus)
+        await self._wait_for_stage_manager_model_selection_paths(interaction, stage_manager_selection_before_focus)
+        self.assertEqual(usd_selection_before_focus, usd_context.get_selection().get_selected_prim_paths())
+        self.assertEqual(stage_manager_selection_before_focus, get_stage_manager_selection_paths())
+
+    async def test_focus_action_on_unselected_prim_selects_row_before_release(self):
+        """Verify an unselected row action selects its row before release."""
+        selected_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"
+        clicked_path = "/RootNode/meshes/mesh_CED45075A077A49A/mesh"
+        usd_context = usd.get_context()
+
+        interaction = await self._select_stage_manager_tab("Meshes", "RemixAllMeshesInteractionPlugin")
+        usd_context.get_selection().clear_selected_prim_paths()
+        await ui_test.human_delay()
+        usd_context.get_selection().set_selected_prim_paths([selected_path], False)
+        await self._wait_for_usd_selection([selected_path])
+        await self._wait_for_stage_manager_model_selection_paths(interaction, [selected_path])
+
+        focus_icon = await self._find_focus_action_icon(clicked_path)
+        release_time_usd_selections = []
+
+        # Clicking an unselected row's action selects that row before the action is released.
+        with patch(
+            "lightspeed.trex.stage_manager.plugin.widget.usd.focus_in_viewport._get_active_viewport"
+        ) as mock_get_active_viewport:
+            mock_get_active_viewport.return_value.frame_viewport_selection.side_effect = lambda *_: (
+                release_time_usd_selections.append(list(usd_context.get_selection().get_selected_prim_paths()))
+            )
+            await focus_icon.click()
+            await ui_test.human_delay()
+
+        mock_get_active_viewport.return_value.frame_viewport_selection.assert_called_once()
+        self.assertEqual([[clicked_path]], release_time_usd_selections)
+        await self._wait_for_usd_selection([clicked_path])
+        await self._wait_for_stage_manager_model_selection_paths(interaction, [clicked_path])
+        self.assertEqual([clicked_path], usd_context.get_selection().get_selected_prim_paths())
 
     async def test_search_filter_frames_selected_mesh(self):
         target_path = "/RootNode/meshes/mesh_FEE1DEADF00D0001/mesh"

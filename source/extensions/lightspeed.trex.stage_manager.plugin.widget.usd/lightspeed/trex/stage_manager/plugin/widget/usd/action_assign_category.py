@@ -45,6 +45,7 @@ class AssignCategoryActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
     _categories_dialog: _RemixCategoriesDialog = PrivateAttr(default=None)
 
     def build_icon_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
+        """Build the category-assignment action image for the row."""
         if not item.data:
             ui.Image(
                 name="CategoriesDisabled",
@@ -55,24 +56,18 @@ class AssignCategoryActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
             return
 
         if item.data:
-            ui.Image(
-                "",
-                width=self._icon_size,
-                height=self._icon_size,
-                name=(
-                    "CategoriesWhite"
-                    if item.data.GetTypeName() in _REMIX_CATEGORIES_ALLOWED_PRIM_TYPES
-                    else "CategoriesDisabled"
-                ),
+            actionable = item.data.GetTypeName() in _REMIX_CATEGORIES_ALLOWED_PRIM_TYPES
+            self.make_action_image(
+                model=model,
+                item=item,
+                name=("CategoriesWhite" if actionable else "CategoriesDisabled"),
                 tooltip=(
                     "Assign Render Categories to prim"
-                    if item.data.GetTypeName() in _REMIX_CATEGORIES_ALLOWED_PRIM_TYPES
+                    if actionable
                     else "Render Categories can only be assigned to mesh prims."
                 ),
                 mouse_released_fn=(
-                    partial(self._show_category_window, item, self._context_name)
-                    if item.data.GetTypeName() in _REMIX_CATEGORIES_ALLOWED_PRIM_TYPES
-                    else None
+                    partial(self._show_category_window, item, self._context_name) if actionable else None
                 ),
             )
 

@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 import carb
 from lightspeed.common import constants
 from lightspeed.trex.viewports.shared.widget import get_active_viewport as _get_active_viewport
-from omni import ui, usd
+from omni import usd
 from omni.flux.stage_manager.factory.plugins import StageManagerMenuMixin as _StageManagerMenuMixin
 from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 class FocusInViewportActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageManagerMenuMixin):
     def build_icon_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
-        # Build the icon
+        """Build the viewport-focus action image for the row."""
         enabled = item.data and UsdGeom.Imageable(item.data)
 
         if enabled:
@@ -47,10 +47,9 @@ class FocusInViewportActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
             icon = "FrameDisabled"
             tooltip = constants.FOCUS_IN_VIEWPORT_TOOLTIP_DISABLED
 
-        ui.Image(
-            "",
-            width=self._icon_size,
-            height=self._icon_size,
+        self.make_action_image(
+            model=model,
+            item=item,
             name=icon,
             tooltip=tooltip,
             enabled=enabled,

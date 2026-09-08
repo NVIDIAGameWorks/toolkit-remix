@@ -46,6 +46,7 @@ class NicknameToggleActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
     """Action to toggle the nickname of a prim"""
 
     def build_icon_ui(self, model: StageManagerTreeModel, item: _StageManagerTreeItem, level: int, expanded: bool):
+        """Build the nickname-toggle action image for the row."""
         if not item.data:
             ui.Image(
                 name="NicknameDisabled",
@@ -55,10 +56,9 @@ class NicknameToggleActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
             )
             return
 
-        ui.Image(
-            "",
-            width=self._icon_size,
-            height=self._icon_size,
+        self.make_action_image(
+            model=model,
+            item=item,
             name=("Nickname" if item.data.GetAttribute(_LSS_NICKNAME).IsValid() else "NicknameDisabled"),
             tooltip="Toggle the nickname of a prim",
             mouse_released_fn=partial(self._toggle_nickname, model, item),
@@ -72,7 +72,7 @@ class NicknameToggleActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
                 height=self._icon_size,
                 name="Nickname",
                 tooltip="Toggle the nickname of all prims in the stage",
-                mouse_released_fn=partial(self._toggle_nickname, model),
+                mouse_released_fn=partial(self._toggle_nickname, model, None),
             )
 
     @classmethod
@@ -113,7 +113,7 @@ class NicknameToggleActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
         button: int = 0,
         modifiers: int = 0,
     ):
-        if not model:
+        if not model or button != 0:
             return
 
         if item and isinstance(item, _StageManagerTreeItem):

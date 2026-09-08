@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.4]
+### Added
+- Added Stage Manager E2E coverage for action-button selection behavior on selected and unselected rows.
+
 ## [1.8.3]
 ### Added
 - Added an isolated E2E check for the normal StageCraft-to-Home startup chain.

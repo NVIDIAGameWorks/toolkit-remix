@@ -20,7 +20,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import omni.kit.commands
-from omni import ui
 from pxr import Usd, UsdGeom
 
 from .base import StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin
@@ -32,6 +31,7 @@ if TYPE_CHECKING:
 
 class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
     def build_icon_ui(self, model: _StageManagerTreeModel, item: _StageManagerTreeItem, level: int, expanded: bool):
+        """Build the visibility action image for the row."""
         enabled = item.data and UsdGeom.Imageable(item.data)
 
         if enabled:
@@ -49,10 +49,9 @@ class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
             tooltip = "The prim cannot be hidden"
 
         # Build the icon
-        ui.Image(
-            "",
-            width=self._icon_size,
-            height=self._icon_size,
+        self.make_action_image(
+            model=model,
+            item=item,
             name=icon,
             tooltip=tooltip,
             enabled=enabled,
