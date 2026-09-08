@@ -47,6 +47,7 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
     """Action to create or remove Particle Systems"""
 
     def build_icon_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
+        """Build the particle-system action image for the row."""
         if not item.data:
             ui.Image(
                 name="ParticleDisabled",
@@ -77,9 +78,9 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
             )
             callback = None
 
-        ui.Image(
-            "",
-            width=self._icon_size,
+        self.make_action_image(
+            model=model,
+            item=item,
             height=self._icon_size - 3,  # Particle icons appear larger than the other icons
             name=icon,
             tooltip=tooltip,

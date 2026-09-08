@@ -140,6 +140,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         level: int,
         expanded: bool,
     ) -> None:
+        """Build the delete or restore action image for the row."""
         if not item.data or not item.data.IsValid():
             ui.Spacer(width=self._icon_size, height=self._icon_size)
             return
@@ -182,10 +183,9 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
             case _:
                 raise ValueError(f"could not sort out prim action type from {item.data}")
 
-        ui.Image(
-            "",
-            width=self._icon_size,
-            height=self._icon_size,
+        self.make_action_image(
+            model=model,
+            item=item,
             name=icon,
             tooltip=tooltip,
             mouse_released_fn=partial(self._build_callback, callback, enabled),

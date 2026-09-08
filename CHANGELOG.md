@@ -132,6 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5700: Fixed directory file pickers so a highlighted folder can be selected without navigating into it first.
 - REMIX-5919: Fixed captures taken before the Remix config was moved into the `remix` USD namespace rendering with default `rtx.sceneScale` and `rtx.zUp`, which made RTX particles the wrong size and orientation; their config is now republished under the namespaced attribute when the capture loads.
 - Fixed on-demand IngestCraft loading so the ingest tab enables its validator plugin providers before parsing ingestion schemas.
+- REMIX-4575: Fixed Stage Manager action icons collapsing multiselection on selected rows while preserving normal selection when an action is clicked on an unselected row.
 
 ## [1.5.2-0]
 

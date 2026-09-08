@@ -26,7 +26,6 @@ from lightspeed.trex.asset_replacements.core.shared import CachedReplacementSkel
 from lightspeed.trex.asset_replacements.core.shared import Setup as AssetReplacementsCore
 from lightspeed.trex.asset_replacements.core.shared import SkeletonReplacementBinding
 from lightspeed.trex.skeleton_replacements.widget import SkeletonRemappingWindow
-from omni import ui
 from omni.flux.stage_manager.plugin.tree.usd.skeleton_groups import SkeletonBoundMeshItem
 from omni.flux.stage_manager.plugin.widget.usd.base import StageManagerStateWidgetPlugin
 from pxr import Sdf
@@ -56,6 +55,7 @@ class RemapSkeletonActionWidgetPlugin(StageManagerStateWidgetPlugin):
         super().build_ui(model, item, level, expanded)
 
     def build_icon_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
+        """Build the skeleton-remapping action image for a compatible row."""
         if not isinstance(item, SkeletonBoundMeshItem):
             return
 
@@ -90,10 +90,9 @@ class RemapSkeletonActionWidgetPlugin(StageManagerStateWidgetPlugin):
             name = "RemapSkeleton"
         else:
             name = "RemapSkeletonDisabled"
-        ui.Image(
-            "",
-            width=self._icon_size,
-            height=self._icon_size,
+        self.make_action_image(
+            model=model,
+            item=item,
             name=name,
             tooltip=tooltip,
             mouse_released_fn=partial(self._show_remapping_window, item) if enabled else None,

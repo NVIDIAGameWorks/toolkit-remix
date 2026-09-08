@@ -30,7 +30,6 @@ from lightspeed.trex.comfyui.core.core import ComfyUICore, ComfyUISubmission
 from lightspeed.trex.comfyui.core.extension import get_comfyui_core_instance
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget.quicklayout import load_layout
-from omni import ui
 from omni.flux.stage_manager.factory.plugins import StageManagerMenuMixin as _StageManagerMenuMixin
 from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
@@ -82,10 +81,9 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
             icon = "AITools"
             tooltip = f"Run '{workflow_name}' for this selection using the current AI Tools settings."
 
-        ui.Image(
-            "",
-            width=self._icon_size,
-            height=self._icon_size,
+        self.make_action_image(
+            model=model,
+            item=item,
             name=icon,
             tooltip=tooltip,
             identifier="submit_comfyui_job_widget_image",
