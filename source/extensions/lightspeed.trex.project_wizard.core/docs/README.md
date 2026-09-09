@@ -7,6 +7,7 @@ Provides project-wizard schemas and project creation or repair services shared b
 - Validate project, mod, capture, and RTX Remix dependency paths.
 - Distinguish missing project-layer metadata from other path validation failures.
 - Create or repair project layers and their linked resources.
+- Replace and save an existing project's selected capture before handing it to StageCraft.
 
 ## Non-Responsibilities
 
@@ -16,4 +17,5 @@ Provides project-wizard schemas and project creation or repair services shared b
 ## Architecture
 
 - `ProjectWizardSchema` validates wizard inputs and raises `ProjectFileMetadataError` for missing project metadata.
-- `ProjectWizardCore` creates or repairs project files from validated wizard data.
+- `ProjectWizardCore` creates or repairs project files from validated wizard data. Existing-project capture changes run
+  in its isolated USD context so the selected capture is saved before the StageCraft context opens the project.

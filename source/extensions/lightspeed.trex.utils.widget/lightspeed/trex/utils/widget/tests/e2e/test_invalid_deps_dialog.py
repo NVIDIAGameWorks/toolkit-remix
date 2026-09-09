@@ -15,13 +15,13 @@
 * limitations under the License.
 """
 
+import asyncio
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-import omni.kit.app
 import omni.ui as ui
-from lightspeed.trex.utils.widget import show_invalid_deps_rebuild_dialog
+from lightspeed.trex.utils.widget import confirm_invalid_deps_rebuild
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.widget.prompt import PromptManager
@@ -32,7 +32,6 @@ _INVALID_DEPS_DIALOG_TITLE = "Invalid Project Dependencies"
 class TestInvalidDepsDialog(AsyncTestCase):
     async def setUp(self):
         await self._destroy_test_windows()
-        self._rebuild_requested = False
 
     async def tearDown(self):
         await self._destroy_test_windows()
@@ -43,7 +42,7 @@ class TestInvalidDepsDialog(AsyncTestCase):
             deps_directory = Path(temp_dir) / "deps"
             deps_directory.mkdir()
             with patch("lightspeed.trex.utils.widget.invalid_deps_dialog.open_file_using_os_default") as reveal_mock:
-                show_invalid_deps_rebuild_dialog(deps_directory, self._mark_rebuild_requested)
+                confirmation_task = asyncio.create_task(confirm_invalid_deps_rebuild(deps_directory))
 
                 # Read the visible prompt instead of inspecting constructor arguments.
                 dialog = await self._wait_for_visible_window(_INVALID_DEPS_DIALOG_TITLE)
@@ -66,33 +65,22 @@ class TestInvalidDepsDialog(AsyncTestCase):
                 # Reveal should open the deps directory for inspection without rebuilding.
                 await reveal_button.click()
                 reveal_mock.assert_called_once_with(str(deps_directory), highlight=True)
-                self.assertFalse(self._rebuild_requested)
+                self.assertFalse(await confirmation_task)
 
     async def test_dialog_runs_rebuild_action_after_next_frame(self):
         with TemporaryDirectory() as temp_dir:
             # Render a fresh prompt so the rebuild action is tested independently from Reveal closing behavior.
             deps_directory = Path(temp_dir) / "deps"
             deps_directory.mkdir()
-            show_invalid_deps_rebuild_dialog(deps_directory, self._mark_rebuild_requested)
+            confirmation_task = asyncio.create_task(confirm_invalid_deps_rebuild(deps_directory))
             rebuild_button = await self._wait_for_prompt_button("Rebuild")
             self.assertIsNotNone(rebuild_button)
 
-            # Rebuild waits one frame before running the handler so the next wizard can center correctly.
-            self.assertFalse(self._rebuild_requested)
+            # Rebuild waits one frame before resolving so the next wizard can center correctly.
             if rebuild_button is not None:
                 await rebuild_button.click()
 
-            self.assertTrue(await self._wait_for_rebuild_requested())
-
-    def _mark_rebuild_requested(self):
-        self._rebuild_requested = True
-
-    async def _wait_for_rebuild_requested(self) -> bool:
-        for _ in range(80):
-            if self._rebuild_requested:
-                return True
-            await omni.kit.app.get_app().next_update_async()
-        return False
+            self.assertTrue(await confirmation_task)
 
     @staticmethod
     async def _wait_for_visible_window(title: str, timeout_steps: int = 50):

@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import asyncio
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -22,6 +23,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import omni.kit.test
 import omni.usd
 from lightspeed.layer_manager.core import LayerType as _LayerType
+from lightspeed.trex.utils.widget import MessageDialogResult
 import lightspeed.trex.control.stagecraft.setup as _setup_module
 from lightspeed.trex.control.stagecraft.setup import Setup
 
@@ -351,12 +353,77 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertNotIn(deferred_task, setup._deferred_tasks)
 
-    async def test_open_workfile_validates_once_before_prompting(self):
-        """Validate a project once before handing its open callback to the unsaved-work prompt."""
+    async def test_confirm_unsaved_project_without_pending_edits_proceeds_without_prompt(self):
+        """A clean project proceeds without displaying a save prompt."""
+        # Arrange
+        setup = Setup.__new__(Setup)
+        setup._layer_manager = MagicMock()
+        setup._layer_manager.get_layer_of_type.side_effect = [MagicMock(), MagicMock()]
+        setup._context = MagicMock()
+        setup._context.has_pending_edit.return_value = False
+
+        with patch.object(_setup_module._TrexMessageDialog, "prompt_async", new=AsyncMock()) as prompt_async:
+            # Act
+            result = await setup._Setup__confirm_unsaved_project("changing project")
+
+        # Assert
+        self.assertTrue(result)
+        prompt_async.assert_not_awaited()
+
+    async def test_confirm_unsaved_project_discard_clears_edits_and_proceeds(self):
+        """Discarding pending edits clears dirty state and permits the action."""
+        # Arrange
+        setup = Setup.__new__(Setup)
+        setup._layer_manager = MagicMock()
+        setup._layer_manager.get_layer_of_type.side_effect = [MagicMock(), MagicMock()]
+        setup._context = MagicMock()
+        setup._context.has_pending_edit.return_value = True
+
+        with patch.object(
+            _setup_module._TrexMessageDialog,
+            "prompt_async",
+            new=AsyncMock(return_value=MessageDialogResult.MIDDLE_2),
+        ):
+            # Act
+            result = await setup._Setup__confirm_unsaved_project("changing project")
+
+        # Assert
+        self.assertTrue(result)
+        setup._context.set_pending_edit.assert_called_once_with(False)
+
+    async def test_confirm_unsaved_project_failed_save_stops_action_and_shows_error(self):
+        """A failed save keeps the requested action from proceeding and reports the failure."""
+        # Arrange
+        setup = Setup.__new__(Setup)
+        setup._layer_manager = MagicMock()
+        setup._layer_manager.get_layer_of_type.side_effect = [MagicMock(), MagicMock()]
+        setup._context = MagicMock()
+        setup._context.has_pending_edit.return_value = True
+        setup._stage_core_setup = MagicMock()
+        setup._stage_core_setup.save.side_effect = lambda on_save_done: on_save_done(False, "save failed")
+        dialog = MagicMock()
+        dialog.prompt_async = AsyncMock(return_value=MessageDialogResult.OK)
+
+        with patch.object(_setup_module, "_TrexMessageDialog", dialog):
+            # Act
+            result = await setup._Setup__confirm_unsaved_project("changing project")
+
+        # Assert
+        self.assertFalse(result)
+        dialog.assert_called_once_with(
+            message="An error occurred while saving the project.",
+            disable_cancel_button=True,
+        )
+
+    async def test_open_workfile_validates_once_before_confirming_unsaved_work(self):
+        """Validate a project once before resolving unsaved work."""
         # Arrange
         setup = Setup.__new__(Setup)
         setup._context_name = "stagecraft"
-        setup.prompt_if_unsaved_project = MagicMock(return_value=False)
+        setup._deferred_tasks = set()
+        setup._Setup__has_unsaved_project = MagicMock(return_value=True)
+        setup._Setup__confirm_unsaved_project = AsyncMock(return_value=False)
+        setup._Setup__open_stage_and_load_layout = MagicMock()
 
         with (
             patch.object(_setup_module._ProjectWizardSchema, "is_project_file_valid", return_value=True) as mock_schema,
@@ -367,20 +434,44 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         ):
             # Act
             result = setup._on_open_workfile("C:/project/mod.usda")
+            await asyncio.gather(*setup._deferred_tasks)
 
         # Assert
         self.assertFalse(result)
         mock_schema.assert_called_once()
         mock_deps.assert_called_once()
         mock_symlinks.assert_called_once()
-        setup.prompt_if_unsaved_project.assert_called_once()
+        setup._Setup__confirm_unsaved_project.assert_awaited_once_with("changing project")
+        setup._Setup__open_stage_and_load_layout.assert_not_called()
+
+    async def test_open_workfile_with_capture_selection_prompts_before_showing_picker(self):
+        """Show the capture picker only after unsaved work is resolved."""
+        # Arrange
+        setup = Setup.__new__(Setup)
+        setup._deferred_tasks = set()
+        setup._Setup__has_unsaved_project = MagicMock(return_value=False)
+        setup._Setup__show_project_open_wizard = MagicMock()
+        setup._Setup__confirm_unsaved_project = AsyncMock(return_value=True)
+
+        with (
+            patch.object(_setup_module._ProjectWizardSchema, "is_project_file_valid", return_value=True),
+            patch.object(_setup_module._ProjectWizardSchema, "is_deps_directory_valid", return_value=True),
+            patch.object(_setup_module._ProjectWizardSchema, "are_project_symlinks_valid", return_value=True),
+        ):
+            # Act
+            result = setup._on_open_workfile("C:/project/mod.usda", select_capture=True)
+            await asyncio.gather(*setup._deferred_tasks)
+
+        # Assert
+        self.assertTrue(result)
+        setup._Setup__confirm_unsaved_project.assert_awaited_once_with("changing project")
+        setup._Setup__show_project_open_wizard.assert_called_once_with(Path("C:/project/mod.usda"), select_capture=True)
 
     async def test_open_workfile_false_validation_result_shows_project_wizard_without_prompting(self):
         """Open the project wizard when project-file validation returns false."""
         # Arrange
         setup = Setup.__new__(Setup)
         setup._Setup__show_project_open_wizard = MagicMock()
-        setup.prompt_if_unsaved_project = MagicMock(return_value=True)
 
         with (
             patch.object(_setup_module._ProjectWizardSchema, "is_project_file_valid", return_value=False),
@@ -392,16 +483,16 @@ class TestSetup(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertFalse(result)
-        setup._Setup__show_project_open_wizard.assert_called_once_with(Path("C:/project/invalid.remix"))
+        setup._Setup__show_project_open_wizard.assert_called_once_with(
+            Path("C:/project/invalid.remix"), select_capture=False
+        )
         mock_deps.assert_not_called()
         mock_symlinks.assert_not_called()
-        setup.prompt_if_unsaved_project.assert_not_called()
 
     async def test_open_workfile_other_validation_error_shows_feedback_without_prompting(self):
         """Contain ordinary project validation failures and show user feedback."""
         # Arrange
         setup = Setup.__new__(Setup)
-        setup.prompt_if_unsaved_project = MagicMock()
 
         with (
             patch.object(
@@ -425,13 +516,11 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         )
         mock_deps.assert_not_called()
         mock_symlinks.assert_not_called()
-        setup.prompt_if_unsaved_project.assert_not_called()
 
     async def test_open_workfile_missing_metadata_shows_guidance_without_prompting(self):
         """Show repair guidance only for the missing project metadata error."""
         # Arrange
         setup = Setup.__new__(Setup)
-        setup.prompt_if_unsaved_project = MagicMock()
 
         with (
             patch.object(
@@ -446,7 +535,6 @@ class TestSetup(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertFalse(result)
-        setup.prompt_if_unsaved_project.assert_not_called()
         mock_dialog.assert_called_once()
         dialog_kwargs = mock_dialog.call_args.kwargs
         self.assertIn("Project Wizard", dialog_kwargs["message"])
@@ -457,29 +545,29 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         """Offer dependency rebuilding before prompting to open an invalid project."""
         # Arrange
         setup = Setup.__new__(Setup)
-        setup.prompt_if_unsaved_project = MagicMock()
+        setup._deferred_tasks = set()
+        setup._Setup__show_project_open_wizard = MagicMock()
 
         with (
             patch.object(_setup_module._ProjectWizardSchema, "is_project_file_valid", return_value=True),
             patch.object(_setup_module._ProjectWizardSchema, "is_deps_directory_valid", return_value=False),
             patch.object(_setup_module, "_should_confirm_link_path_replacement", return_value=True),
-            patch.object(_setup_module, "_show_invalid_deps_rebuild_dialog") as mock_dialog,
+            patch.object(_setup_module, "_confirm_invalid_deps_rebuild", new=AsyncMock(return_value=False)) as confirm,
         ):
             # Act
             result = setup._on_open_workfile("C:/project/mod.usda")
+            await asyncio.gather(*setup._deferred_tasks)
 
         # Assert
         self.assertFalse(result)
-        setup.prompt_if_unsaved_project.assert_not_called()
-        mock_dialog.assert_called_once()
-        self.assertEqual(Path("C:/project/deps"), mock_dialog.call_args.args[0])
+        confirm.assert_awaited_once_with(Path("C:/project/deps"))
+        setup._Setup__show_project_open_wizard.assert_not_called()
 
     async def test_open_workfile_invalid_symlinks_shows_project_wizard_without_prompting(self):
         """Open the repair wizard before prompting when project symlinks are invalid."""
         # Arrange
         setup = Setup.__new__(Setup)
         setup._Setup__show_project_open_wizard = MagicMock()
-        setup.prompt_if_unsaved_project = MagicMock()
 
         with (
             patch.object(_setup_module._ProjectWizardSchema, "is_project_file_valid", return_value=True),
@@ -491,8 +579,9 @@ class TestSetup(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertFalse(result)
-        setup._Setup__show_project_open_wizard.assert_called_once_with(Path("C:/project/invalid.usda"))
-        setup.prompt_if_unsaved_project.assert_not_called()
+        setup._Setup__show_project_open_wizard.assert_called_once_with(
+            Path("C:/project/invalid.usda"), select_capture=False
+        )
 
     async def test_project_open_wizard_owns_completion_subscription(self):
         """Retain the project-wizard completion subscription while the wizard is open."""
@@ -513,6 +602,55 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         wizard.subscribe_wizard_completed.assert_called_once()
         wizard.show_project_wizard.assert_called_once_with(reset_page=True)
         self.assertIs(wizard_subscription, setup._sub_wizard_completed)
+
+    async def test_project_open_wizard_with_capture_prefills_picker(self):
+        """Prefill the capture picker from the project before opening it."""
+        # Arrange
+        setup = Setup.__new__(Setup)
+        setup._context_name = "stagecraft"
+        setup._sub_wizard_completed = None
+        current_capture = Path("C:/project/deps/captures/current.usda")
+        setup._Setup__find_project_capture = MagicMock(return_value=current_capture)
+        wizard = MagicMock()
+        wizard.subscribe_wizard_completed.return_value = MagicMock()
+
+        with (
+            patch.object(_setup_module, "_get_wizard_instance", return_value=wizard),
+            patch.object(_setup_module._ProjectWizardSchema, "is_deps_directory_valid", return_value=True),
+            patch.object(Path, "resolve", lambda self: self),
+        ):
+            # Act
+            setup._Setup__show_project_open_wizard(Path("C:/project/mod.usda"), select_capture=True)
+
+        # Assert
+        wizard.set_payload.assert_called_once_with(
+            {
+                _setup_module._ProjectWizardKeys.PROJECT_FILE.value: Path("C:/project/mod.usda"),
+                _setup_module._ProjectWizardKeys.REMIX_DIRECTORY.value: Path("C:/project/deps"),
+                _setup_module._ProjectWizardKeys.CAPTURE_FILE.value: current_capture,
+            }
+        )
+        self.assertTrue(wizard.show_capture_picker)
+        wizard.show_project_wizard.assert_called_once_with(reset_page=True)
+
+    async def test_find_project_capture_skips_unresolved_sublayers(self):
+        """Ignore broken sublayers while locating the project's capture."""
+        project_layer = SimpleNamespace(subLayerPaths=["missing.usda", "capture.usda"])
+        capture_layer = SimpleNamespace(realPath="C:/project/capture.usda", identifier="capture.usda")
+
+        with (
+            patch.object(_setup_module.Sdf.Layer, "FindOrOpen", return_value=project_layer),
+            patch.object(
+                _setup_module.Sdf.Layer,
+                "FindOrOpenRelativeToLayer",
+                side_effect=[None, capture_layer],
+            ),
+            patch.object(_setup_module._CaptureCoreSetup, "is_layer_a_capture_file", return_value=True) as is_capture,
+        ):
+            result = Setup._Setup__find_project_capture(Path("C:/project/mod.usda"))
+
+        self.assertEqual(Path("C:/project/capture.usda"), result)
+        is_capture.assert_called_once_with(capture_layer)
 
     async def test_project_open_wizard_completion_loads_workspace_and_releases_subscription(self):
         """Load the workspace and release the subscription when the project wizard completes."""

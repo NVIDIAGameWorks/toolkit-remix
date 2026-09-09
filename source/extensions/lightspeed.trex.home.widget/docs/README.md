@@ -8,6 +8,7 @@ Builds the StageCraft Home workspace and its New, Open, Resume, and recent-proje
 - Refresh recent projects when Home becomes visible and cancel that work when Home hides or is destroyed.
 - Populate recent-project cards, persist changed validation entries in one guarded write, and report when the list is ready.
 - Launch project creation workflows and publish open requests after lightweight card and path guards.
+- Offer capture selection when opening a project from either the recent-project right-click or ellipsis menu.
 
 ## Non-Responsibilities
 
@@ -26,7 +27,8 @@ scheduling. Each refresh has a generation token, so replaced, hidden, or teardow
 write cache data. The current refresh validates projects serially on the Kit thread, yielding after each eight cache
 changes, then merges and saves those changes before running thumbnail metadata reads with at most eight concurrent
 operations. It reports `RECENTS_READY` after the current list is applied. After its card and filesystem guards pass,
-opening a project publishes one request for StageCraft to validate and handle.
+opening a project publishes one request for StageCraft to validate and handle. The optional capture-selection action
+uses the same request with a capture-picker flag; Home does not modify the project itself.
 
 `HomePageWidget` explicitly owns the Project Wizard completion subscription and releases it when the wizard completes
 or the widget is destroyed.

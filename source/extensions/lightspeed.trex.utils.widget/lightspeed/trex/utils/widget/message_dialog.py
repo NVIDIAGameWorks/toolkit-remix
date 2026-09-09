@@ -15,9 +15,21 @@
 * limitations under the License.
 """
 
+import asyncio
 from collections.abc import Callable
+from enum import Enum, auto
+from functools import partial
 
 from omni.kit.widget.prompt import PromptButtonInfo, PromptManager
+
+
+class MessageDialogResult(Enum):
+    """Identify the button that closed an awaitable message dialog."""
+
+    OK = auto()
+    MIDDLE = auto()
+    MIDDLE_2 = auto()
+    CANCEL = auto()
 
 
 class TrexMessageDialog:
@@ -52,3 +64,38 @@ class TrexMessageDialog:
             no_title_bar=not bool(title),
             on_window_closed_fn=on_window_closed_fn,
         )
+
+    @classmethod
+    async def prompt_async(
+        cls,
+        message: str,
+        title: str = "",
+        ok_label: str = "Okay",
+        middle_label: str | None = None,
+        middle_2_label: str | None = None,
+        cancel_label: str | None = "Cancel",
+    ) -> MessageDialogResult:
+        """Show a message dialog and wait for the selected button."""
+        result = asyncio.get_running_loop().create_future()
+
+        def resolve(value: MessageDialogResult):
+            if not result.done():
+                result.set_result(value)
+
+        cls(
+            message,
+            title=title,
+            ok_label=ok_label,
+            middle_label=middle_label or "",
+            middle_2_label=middle_2_label or "",
+            cancel_label=cancel_label or "",
+            ok_handler=partial(resolve, MessageDialogResult.OK),
+            middle_handler=partial(resolve, MessageDialogResult.MIDDLE),
+            middle_2_handler=partial(resolve, MessageDialogResult.MIDDLE_2),
+            cancel_handler=partial(resolve, MessageDialogResult.CANCEL),
+            disable_middle_button=middle_label is None,
+            disable_middle_2_button=middle_2_label is None,
+            disable_cancel_button=cancel_label is None,
+            on_window_closed_fn=partial(resolve, MessageDialogResult.CANCEL),
+        )
+        return await result

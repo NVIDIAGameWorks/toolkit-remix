@@ -42,6 +42,7 @@ class RecentProjectDelegate(TreeDelegateBase):
         self._context_menu = None
 
         self.__on_item_open_project = Event()
+        self.__on_item_open_project_with_capture = Event()
         self.__on_item_show_in_explorer = Event()
         self.__on_item_remove_from_recent = Event()
 
@@ -60,6 +61,10 @@ class RecentProjectDelegate(TreeDelegateBase):
         Subscribe to the event triggered when the item should open a project
         """
         return EventSubscription(self.__on_item_open_project, callback)
+
+    def subscribe_item_open_project_with_capture(self, callback: Callable[[str], Any]) -> EventSubscription:
+        """Subscribe to requests to select a capture before opening a project."""
+        return EventSubscription(self.__on_item_open_project_with_capture, callback)
 
     def subscribe_item_show_in_explorer(self, callback: Callable[[], Any]) -> EventSubscription:
         """
@@ -168,6 +173,11 @@ class RecentProjectDelegate(TreeDelegateBase):
             ui.MenuItem(
                 "Open Project",
                 triggered_fn=lambda: self.__on_item_open_project(item.path),
+                enabled=item.exists and not item.invalid,
+            )
+            ui.MenuItem(
+                "Open Project with Capture...",
+                triggered_fn=lambda: self.__on_item_open_project_with_capture(item.path),
                 enabled=item.exists and not item.invalid,
             )
             ui.Separator()

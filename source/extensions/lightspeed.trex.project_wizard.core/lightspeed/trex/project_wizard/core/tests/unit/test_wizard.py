@@ -21,7 +21,7 @@ import sys
 import tempfile
 from pathlib import Path
 from subprocess import CalledProcessError
-from unittest.mock import Mock, call, patch
+from unittest.mock import AsyncMock, Mock, call, patch
 
 import omni.usd
 from lightspeed.common import constants
@@ -85,6 +85,62 @@ class TestWizard(omni.kit.test.AsyncTestCase):
         self.assertEqual([call(0), call(10), call(20), call(30), call(100)], mock.progress_mock.call_args_list)
 
         self.assertEqual(call(True), mock.finished_mock.call_args)
+
+    async def test_setup_project_existing_project_with_capture_replaces_capture_before_success(self):
+        """Replace and save an existing project's capture before opening it in StageCraft."""
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
+        capture_file = remix_dir / constants.REMIX_CAPTURE_FOLDER / "capture.usda"
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=remix_dir,
+            capture_file=capture_file,
+        )
+
+        with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
+            context = Mock()
+            context.open_stage_async = AsyncMock(return_value=(True, None))
+            context.get_stage.return_value = Mock()
+            mock.setup_usd_mock.return_value = (context, Mock())
+
+            # Act
+            await self.core.setup_project_async_with_exceptions({})
+
+        # Assert
+        context.open_stage_async.assert_awaited_once_with(str(project_file))
+        mock.insert_capture_layer_mock.assert_called_once_with(
+            mock.capture_core_mock.return_value,
+            project_file.parent / constants.REMIX_DEPENDENCIES_FOLDER / constants.REMIX_CAPTURE_FOLDER,
+            capture_file,
+            False,
+        )
+        mock.save_project_layer_mock.assert_called_once_with(mock.layer_manager_mock.return_value, False)
+
+    async def test_setup_project_existing_project_open_failure_destroys_context(self):
+        """Destroy the isolated USD context when an existing project cannot be opened."""
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
+        capture_file = remix_dir / constants.REMIX_CAPTURE_FOLDER / "capture.usda"
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=remix_dir,
+            capture_file=capture_file,
+        )
+
+        with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
+            context = Mock()
+            context.open_stage_async = AsyncMock(return_value=(False, None))
+            mock.setup_usd_mock.return_value = (context, Mock())
+            with patch.object(self.core, "_destroy_context") as destroy_context_mock:
+                # Act
+                await self.core.setup_project_async_with_exceptions({})
+
+        # Assert
+        destroy_context_mock.assert_called_once_with()
 
     async def test_setup_project_symlink_error_should_quick_return_error(self):
         # Arrange
