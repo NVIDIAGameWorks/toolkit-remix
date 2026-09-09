@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "category": "E",
+  "name": "unit-tests",
+  "rules": [
+    {"id": "E01", "target": "file", "check": "Each nontrivial implementation source file maps to exactly one unit-test file unless the user explicitly authorizes omission; documentation, agent instructions, declarative review registries, agent configuration, and demonstrably trivial glue are exempt.", "sources": [{"path": ".agents/rules/testing.md", "section": "Testing Requirements"}]},
+    {"id": "E02", "target": "file", "check": "Each nontrivial source class maps to exactly one test class; only demonstrably trivial glue is exempt.", "sources": [{"path": ".agents/rules/testing.md", "section": "Testing Requirements"}]},
+    {"id": "E03", "target": "file", "check": "Every changed unit-test class inherits `omni.kit.test.AsyncTestCase`.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Unit Tests (`tests/unit/`)"}]},
+    {"id": "E04", "target": "file", "check": "Each unit test mocks external dependencies at the imported subject boundary, using `mock.patch.object()` when patching object members.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Unit Tests (`tests/unit/`)"}]},
+    {"id": "E05", "target": "file", "check": "Every changed skipped test has explicit user authorization and a tracking ticket or explanation.", "sources": [{"path": ".agents/rules/testing.md", "section": "Testing Requirements"}, {"path": "docs_dev/code-quality/testing.md", "section": "Skipping Tests"}]},
+    {"id": "E06", "target": "file", "check": "Each unit test without `subTest` contains exactly one ordered `# Arrange`, `# Act`, `# Assert` cycle.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Arrange / Act / Assert"}]},
+    {"id": "E07", "target": "file", "check": "Each unit-test name follows `test_<action>_<condition>_<expected_outcome>` and states concrete behavior.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Test Naming"}]},
+    {"id": "E08", "target": "file", "check": "Each unit test asserts a specific observable behavior rather than only non-null or no-throw execution.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "What is Not a Good Test"}]},
+    {"id": "E09", "target": "file", "check": "Every changed executable behavioral branch has a unit test covering its outcome unless the user explicitly authorizes omission.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Unit Tests (`tests/unit/`)"}, {"path": ".agents/rules/testing.md", "section": "Testing Requirements"}]},
+    {"id": "E10", "target": "file", "check": "Each `subTest` case has an identifying title and its own independent Arrange, Act, and Assert cycle.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Subtests"}]},
+    {"id": "E11", "target": "file", "check": "Each changed test proves consumer behavior without copying implementation logic or repository declarations into expected values.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "What is Not a Good Test"}]},
+    {"id": "E12", "target": "file", "check": "Each changed unit test remains deterministic in the full suite without ordering assumptions, leaked mutable state, arbitrary sleeps, or retries.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "What is Not a Good Test"}, {"path": "docs_dev/code-quality/engineering-standards.md", "section": "Smell Tests"}]},
+    {"id": "E13", "target": "file", "check": "Command tests exercise `do()` and `undo()` in separate test methods.", "sources": [{"path": "docs_dev/patterns/commands.md", "section": "Testing"}]},
+    {"id": "E14", "target": "file", "check": "Tests expecting exceptions use `self.assertRaises` or `self.assertRaisesRegex`, never manual `try`/`except` flags.", "sources": [{"path": ".agents/rules/testing.md", "section": "Testing Requirements"}]}
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "category": "D",
+  "name": "quality",
+  "rules": [
+    {"id": "D01", "target": "file", "check": "Every changed operation-local branch or stored value outside bypass, fallback, compatibility, or migration paths is required by current behavior.", "sources": []},
+    {"id": "D02", "target": "file", "check": "Every newly chosen implementation identifier uses descriptive full words for its domain concept, while reusable style keys name only the generic visual concept; established domain terms and names fixed by an explicit compatibility contract remain exact.", "sources": [{"path": "docs_dev/code-quality/code-style.md", "section": "Naming"}, {"path": "docs_dev/patterns/ui-style.md", "section": "Keep style names generic"}, {"path": ".agents/rules/agent-config.md", "section": "Rules"}]},
+    {"id": "D03", "target": "file", "check": "Changed class members follow repository visibility order.", "sources": [{"path": "docs_dev/code-quality/code-style.md", "section": "Class Member Ordering"}]},
+    {"id": "D04", "target": "file", "check": "Changed production implementation does not duplicate behavior already available from repository code.", "sources": []},
+    {"id": "D05", "target": "file", "check": "Changed files contain no dead or commented-out implementation.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Anti-Patterns"}, {"path": "docs_dev/code-quality/code-style.md", "section": "Inline Comments"}]},
+    {"id": "D06", "target": "file", "check": "Every reused, shared, or domain-semantic literal in changed executable code is represented by one descriptively named constant; exact schema-required declarative keys and values are exempt.", "sources": [{"path": "docs_dev/code-quality/code-style.md", "section": "Constants Vs Inline Values"}]},
+    {"id": "D07", "target": "file", "check": "Every changed `omni.ui` color literal uses AABBGGRR byte order.", "sources": [{"path": "docs_dev/code-quality/code-style.md", "section": "omni.ui Color Format"}]},
+    {"id": "D08", "target": "file", "check": "Every changed public or protected class, function, method, and property has a Google-style docstring.", "sources": [{"path": ".agents/rules/code-comments.md", "section": "Code Comments & Docstrings"}]},
+    {"id": "D09", "target": "file", "check": "Every changed docstring accurately states its callable or type contract, including meaningful arguments, results, failures, ownership, and lifetime constraints.", "sources": [{"path": "docs_dev/code-quality/code-style.md", "section": "Docstrings (Google Style)"}]},
+    {"id": "D10", "target": "file", "check": "Each changed inline comment about current implementation, except required test-structure or user-journey labels, states the reason, invariant, or constraint that makes it necessary.", "sources": [{"path": "docs_dev/code-quality/code-style.md", "section": "Inline Comments"}, {"path": ".agents/rules/code-style.md", "section": "Code Style"}, {"path": "docs_dev/code-quality/testing.md", "section": "Arrange / Act / Assert"}, {"path": "docs_dev/code-quality/testing.md", "section": "E2E Tests (`tests/e2e/`)"}]},
+    {"id": "D11", "target": "file", "check": "Changed comments contain no development history, debugging breadcrumb, or intermediate-review narrative.", "sources": [{"path": ".agents/rules/code-comments.md", "section": "Code Comments & Docstrings"}]},
+    {"id": "D12", "target": "file", "check": "Every changed `# noqa` names the suppressed rule, is backed by evidence that the rule is wrong and no code change can satisfy it, and explains that constraint at the use site.", "sources": [{"path": ".agents/rules/code-style.md", "section": "Code Style"}]},
+    {"id": "D13", "target": "file", "check": "Each changed Python file has the SPDX Apache-2.0 header with the current year for a new file or its original creation year for an existing file; changed non-Python files have no Python header.", "sources": [{"path": ".agents/rules/license.md", "section": "License Headers"}]},
+    {"id": "D14", "target": "file", "check": "Every factual claim added to a comment or docstring is supported by current code or repository evidence.", "sources": [{"path": ".agents/rules/code-comments.md", "section": "Code Comments & Docstrings"}]}
+  ]
+}

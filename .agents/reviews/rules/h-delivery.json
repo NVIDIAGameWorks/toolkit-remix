@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "category": "H",
+  "name": "delivery",
+  "rules": [
+    {"id": "H01", "target": "global", "check": "Every modified extension has exactly one base-relative version bump.", "sources": [{"path": ".agents/rules/completion-gates.md", "section": "Completion Gates"}]},
+    {"id": "H02", "target": "global", "check": "Each modified extension's changelog delta is one Jira-free final-state entry at the end of its applicable section.", "sources": [{"path": ".agents/rules/completion-gates.md", "section": "Completion Gates"}, {"path": ".agents/commands/bump-exts-changelog.md", "section": "Step 3 - Extension Version + Changelog"}]},
+    {"id": "H03", "target": "global", "check": "Root changelog delta is one concise final-state entry at the end of its applicable Unreleased section, prefixed by supplied Jira only.", "sources": [{"path": ".agents/rules/completion-gates.md", "section": "Completion Gates"}, {"path": ".agents/commands/bump-exts-changelog.md", "section": "Step 4 - Root Changelog"}]},
+    {"id": "H04", "target": "global", "check": "Changed behavior, setup, API, and workflow documentation describes the submitted final state.", "sources": [{"path": ".agents/rules/completion-gates.md", "section": "Completion Gates"}]},
+    {"id": "H05", "target": "global", "check": "Each changed behavior that cannot be exercised meaningfully by a unit test has integration or E2E coverage.", "sources": [{"path": ".agents/rules/testing.md", "section": "Testing Requirements"}, {"path": "docs_dev/code-quality/testing.md", "section": "E2E Tests (`tests/e2e/`)"}]},
+    {"id": "H06", "target": "global", "check": "Submitted full-lint evidence includes Ruff's actual remaining-error count rather than only a wrapper summary.", "sources": [{"path": ".agents/rules/completion-gates.md", "section": "Completion Gates"}]},
+    {"id": "H07", "target": "global", "check": "Every submitted failed test, build, lint, or changelog job has inspected failure output and an explicit disposition.", "sources": [{"path": ".agents/rules/completion-gates.md", "section": "Completion Gates"}]},
+    {"id": "H08", "target": "global", "check": "Launcher workflow changes preserve equivalent Windows/POSIX behavior through paired entry points or one verified polyglot entry point.", "sources": [{"path": ".agents/rules/agent-config.md", "section": "Agent Config"}]},
+    {"id": "H09", "target": "global", "check": "Launcher workflow changes preserve debug and release behavior when both variants exist.", "sources": []},
+    {"id": "H10", "target": "global", "evidence": "checks", "check": "Required formatter evidence exists for the exact reviewed head SHA.", "sources": []},
+    {"id": "H11", "target": "global", "evidence": "checks", "check": "Required full-lint evidence exists for the exact reviewed head SHA.", "sources": []},
+    {"id": "H12", "target": "global", "evidence": "checks", "check": "Required relevant-test and measured-coverage evidence exists for the exact reviewed head SHA.", "sources": []},
+    {"id": "H13", "target": "global", "evidence": "checks", "check": "Required applicable build and changelog-job evidence exists for the exact reviewed head SHA.", "sources": []},
+    {"id": "H14", "target": "global", "check": "Green CI is never treated as a substitute for static review.", "sources": []}
+  ]
+}

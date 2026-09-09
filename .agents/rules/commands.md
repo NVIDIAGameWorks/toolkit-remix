@@ -1,10 +1,12 @@
 ## Command Dispatch
 
-Task match -> read `.agents/commands/<name>.md`; follow exactly. No ad-hoc flow; slash not needed.
+Task match -> read `.agents/commands/<name>.md`; follow exactly. Whole Remix reviews use the scripted launcher;
+script-issued packet JSON runs only in a fresh native `reviewer` process. No ad-hoc flow; slash not needed.
 
-Commands: branch `create-branch`; commit `commit`; MR `prepare-mr`; new extension `create-extension`; remove extension
-`remove-extension`; versions/changelogs `bump-exts-changelog`; extension load/test discovery `debug-extension-load`; pip
-dep `add-pip-dep`; Kit tests `kit-test`.
+Commands: branch `create-branch`; commit `commit`; MR `prepare-mr`; RTX Remix review `remix-review`, thread posting
+`remix-review-post-threads`, follow-up `remix-review-follow-up`; new extension
+`create-extension`; remove extension `remove-extension`; versions/changelogs `bump-exts-changelog`; extension load/test
+discovery `debug-extension-load`; pip dep `add-pip-dep`; Kit tests `kit-test`.
 
 Before implementation read pattern docs: undoable command `docs_dev/patterns/commands.md`; REST
 `docs_dev/patterns/services.md`; Stage Manager `docs_dev/patterns/stage-manager.md`; validation/ingestion

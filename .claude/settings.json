@@ -58,15 +58,6 @@
                         "prompt": "You are evaluating whether an e2e-test-writer subagent should stop. Review the conversation to check if the subagent ran the tests it wrote using the project's test runner with a filter flag (-f) to target just the new tests, and whether those tests passed. Context: $ARGUMENTS\n\nRespond with {\"ok\": true} if the subagent ran its new tests and they passed, or {\"ok\": false, \"reason\": \"Run the tests you wrote using the test bat with -f to filter to your new tests. Fix any failures before finishing.\"} if tests were not run or had failures."
                     }
                 ]
-            },
-            {
-                "matcher": "reviewer",
-                "hooks": [
-                    {
-                        "type": "prompt",
-                        "prompt": "You are evaluating whether a code-reviewer subagent should stop. Review the conversation to check if the subagent ran: (1) the format script with --check flag, and (2) the lint script with 'all' argument, using the platform-appropriate variant (.bat on Windows, .sh on Unix). Context: $ARGUMENTS\n\nRespond with {\"ok\": true} if both format and lint checks were run, or {\"ok\": false, \"reason\": \"Before finishing your review, run the format script (with --check) and the lint script (with 'all' argument). Report any format or lint errors found as part of your review findings.\"} if either check was not run."
-                    }
-                ]
             }
         ]
     },
