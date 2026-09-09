@@ -19,7 +19,6 @@ import asyncio
 from asyncio import ensure_future
 from collections.abc import Callable
 from contextlib import nullcontext
-from functools import partial
 from pathlib import Path
 
 import carb
@@ -54,8 +53,9 @@ from lightspeed.trex.project_wizard.window import WizardTypes as _WizardTypes
 from lightspeed.trex.project_wizard.window import get_instance as _get_wizard_instance
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSetup
 from lightspeed.trex.stage.core.shared import Setup as _StageCoreSetup
+from lightspeed.trex.utils.widget import MessageDialogResult as _MessageDialogResult
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
-from lightspeed.trex.utils.widget import show_invalid_deps_rebuild_dialog as _show_invalid_deps_rebuild_dialog
+from lightspeed.trex.utils.widget import confirm_invalid_deps_rebuild as _confirm_invalid_deps_rebuild
 from lightspeed.trex.utils.widget.quicklayout import load_layout
 from lightspeed.trex.utils.widget.ingestcraft_loader import ensure_ingestcraft_loaded
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -232,52 +232,48 @@ class Setup:
     def __set_stage_open_lighting_undo_disabled(cls, value: bool):
         cls._DISABLE_STAGE_OPEN_LIGHTING_UNDO = value
 
-    def prompt_if_unsaved_project(self, callback: Callable[[], None], action_text: str) -> bool:
-        """
-        Check for unsaved project and offer to save before executing callback
-
-        Returns:
-            True if loading right away, False if it will first prompt the user for unsaved progress.
-        """
-
-        def on_save_done(result, error):
-            if not result or error:
-                _TrexMessageDialog(
-                    message="An error occurred while saving the project.",
-                    disable_cancel_button=True,
-                )
-                return
-            # No errors saving, let's call the next step...
-            callback()
-
-        def on_discard():
-            # We want to discard any changes anyway so we can clear dirty state to allow fast quit or
-            # whatever operation comes next.
-            self._context.set_pending_edit(False)
-            callback()
-
+    def __has_unsaved_project(self) -> bool:
         layer_capture = self._layer_manager.get_layer_of_type(_LayerType.capture)
         layer_replacement = self._layer_manager.get_layer_of_type(_LayerType.replacement)
-        if layer_capture and layer_replacement and self._context.has_pending_edit():
-            # A project is open and has unsaved edits:
-            _TrexMessageDialog(
-                f"Do you want to save your changes before {action_text}?",
-                title="Save Project?",
-                ok_label="Save",
-                ok_handler=partial(self._on_save, on_save_done=on_save_done),
-                middle_label="Save As",
-                middle_handler=partial(self._on_save_as, on_save_done=on_save_done),
-                disable_middle_button=False,
-                middle_2_label="Discard",
-                middle_2_handler=on_discard,
-                disable_middle_2_button=False,
-                disable_cancel_button=False,  # Cancel will just do nothing
-            )
-            return False
+        return bool(layer_capture and layer_replacement and self._context.has_pending_edit())
 
-        # If project does not need to be saved, proceed:
-        callback()
-        return True
+    async def __confirm_unsaved_project(self, action_text: str) -> bool:
+        if not self.__has_unsaved_project():
+            return True
+
+        result = await _TrexMessageDialog.prompt_async(
+            f"Do you want to save your changes before {action_text}?",
+            title="Save Project?",
+            ok_label="Save",
+            middle_label="Save As",
+            middle_2_label="Discard",
+        )
+        if result == _MessageDialogResult.MIDDLE_2:
+            self._context.set_pending_edit(False)
+            return True
+        if result not in {_MessageDialogResult.OK, _MessageDialogResult.MIDDLE}:
+            return False
+        if await self.__save_project(save_as=result == _MessageDialogResult.MIDDLE):
+            return True
+
+        _TrexMessageDialog(
+            message="An error occurred while saving the project.",
+            disable_cancel_button=True,
+        )
+        return False
+
+    async def __save_project(self, save_as: bool) -> bool:
+        result = asyncio.get_running_loop().create_future()
+
+        def on_save_done(success, error):
+            if not result.done():
+                result.set_result(bool(success and not error))
+
+        if save_as:
+            self._stage_core_setup.save_as(on_save_done=on_save_done)
+        else:
+            self._stage_core_setup.save(on_save_done=on_save_done)
+        return await result
 
     def should_interrupt_shutdown(self) -> bool:
         """
@@ -302,12 +298,13 @@ class Setup:
         Show a user prompt and decide whether to continue shutting down the app.
         """
 
-        def callback():
-            # Clear dirty state to allow shutdown.
-            self._context.set_pending_edit(False)
-            shutdown_callback(self)
+        self.__own_deferred_task(ensure_future(self.__continue_shutdown(shutdown_callback)))
 
-        self.prompt_if_unsaved_project(callback, "closing app")
+    async def __continue_shutdown(self, shutdown_callback):
+        if not await self.__confirm_unsaved_project("closing app"):
+            return
+        self._context.set_pending_edit(False)
+        shutdown_callback(self)
 
     def register_sidebar_items(self):
         self.__sub_sidebar_items = sidebar.register_items(
@@ -353,9 +350,18 @@ class Setup:
             self._replacement_core_setup.import_replacement_layer(path, use_existing_layer=existing_file)
         self._update_modding_button_state()
 
-    def _on_open_workfile(self, path: str) -> bool:
-        """Validate and open a project after resolving any unsaved StageCraft edits."""
+    def _on_open_workfile(self, path: str, select_capture: bool = False) -> bool:
+        """Validate and open a project after resolving any unsaved StageCraft edits.
+
+        Args:
+            path: Project layer path.
+            select_capture: Whether to select a capture before opening the project.
+
+        Returns:
+            Whether the project-open request can proceed.
+        """
         project_path = Path(path)
+
         try:
             valid = _ProjectWizardSchema.is_project_file_valid(
                 project_path, {_ProjectWizardKeys.EXISTING_PROJECT.value: True}
@@ -371,20 +377,36 @@ class Setup:
             )
             return False
         if not valid:
-            self.__show_project_open_wizard(project_path)
+            self.__show_project_open_wizard(project_path, select_capture=select_capture)
             return False
         deps_directory = project_path.parent / _REMIX_DEPENDENCIES_FOLDER
         if not _ProjectWizardSchema.is_deps_directory_valid(deps_directory) and _should_confirm_link_path_replacement(
             deps_directory
         ):
-            _show_invalid_deps_rebuild_dialog(deps_directory, partial(self.__show_project_open_wizard, project_path))
+            self.__own_deferred_task(
+                ensure_future(self.__continue_open_workfile(project_path, select_capture, deps_directory))
+            )
             return False
         if not _ProjectWizardSchema.are_project_symlinks_valid(project_path):
-            self.__show_project_open_wizard(project_path)
+            self.__show_project_open_wizard(project_path, select_capture=select_capture)
             return False
-        return self.prompt_if_unsaved_project(
-            lambda: self.__open_stage_and_load_layout(project_path), "changing project"
-        )
+        has_unsaved_project = self.__has_unsaved_project()
+        self.__own_deferred_task(ensure_future(self.__continue_open_workfile(project_path, select_capture)))
+        return not has_unsaved_project
+
+    async def __continue_open_workfile(
+        self, project_path: Path, select_capture: bool, invalid_deps_directory: Path | None = None
+    ):
+        if invalid_deps_directory:
+            if await _confirm_invalid_deps_rebuild(invalid_deps_directory):
+                self.__show_project_open_wizard(project_path, select_capture=select_capture)
+            return
+        if not await self.__confirm_unsaved_project("changing project"):
+            return
+        if select_capture:
+            self.__show_project_open_wizard(project_path, select_capture=True)
+        else:
+            self.__open_stage_and_load_layout(project_path)
 
     def __open_stage_and_load_layout(self, project_path: Path):
         self.__set_stage_open_lighting_undo_disabled(True)
@@ -435,9 +457,13 @@ class Setup:
         self._stage_core_setup.redo()
 
     def _on_new_workfile(self):
-        return self.prompt_if_unsaved_project(
-            self.__create_stage_and_save_previous_identifier, "unloading the current stage"
-        )
+        has_unsaved_project = self.__has_unsaved_project()
+        self.__own_deferred_task(ensure_future(self.__continue_new_workfile()))
+        return not has_unsaved_project
+
+    async def __continue_new_workfile(self):
+        if await self.__confirm_unsaved_project("unloading the current stage"):
+            self.__create_stage_and_save_previous_identifier()
 
     def __create_stage_and_save_previous_identifier(self):
         self.__own_deferred_task(ensure_future(self._context.close_stage_async()))
@@ -493,16 +519,45 @@ class Setup:
         deps_directory = project_path.parent / _REMIX_DEPENDENCIES_FOLDER
         deps_directory_invalid = not _ProjectWizardSchema.is_deps_directory_valid(deps_directory)
         if deps_directory_invalid and _should_confirm_link_path_replacement(deps_directory):
-            _show_invalid_deps_rebuild_dialog(deps_directory, partial(self.__show_capture_repair_wizard, project_path))
+            self.__own_deferred_task(ensure_future(self.__continue_capture_repair(project_path, deps_directory)))
             return
         if deps_directory_invalid:
             self.__show_capture_repair_wizard(project_path)
             return
         self.__show_capture_repair_wizard(project_path, deps_directory.resolve())
 
-    def __show_project_open_wizard(self, project_path: Path):
+    async def __continue_capture_repair(self, project_path: Path, deps_directory: Path):
+        if await _confirm_invalid_deps_rebuild(deps_directory):
+            self.__show_capture_repair_wizard(project_path)
+
+    @staticmethod
+    def __find_project_capture(project_path: Path) -> Path | None:
+        """Return the capture sublayer referenced by a project."""
+        project_layer = Sdf.Layer.FindOrOpen(str(project_path))
+        if not project_layer:
+            return None
+        for sublayer_path in project_layer.subLayerPaths:
+            sublayer = Sdf.Layer.FindOrOpenRelativeToLayer(project_layer, sublayer_path)
+            if sublayer and _CaptureCoreSetup.is_layer_a_capture_file(sublayer):
+                return Path(sublayer.realPath or sublayer.identifier)
+        return None
+
+    def __show_project_open_wizard(self, project_path: Path, select_capture: bool = False):
+        """Show the project-open wizard with optional capture selection."""
         wizard = _get_wizard_instance(_WizardTypes.OPEN, self._context_name)
-        wizard.set_payload({_ProjectWizardKeys.PROJECT_FILE.value: project_path})
+        payload = {_ProjectWizardKeys.PROJECT_FILE.value: project_path}
+        if select_capture:
+            deps_directory = project_path.parent / _REMIX_DEPENDENCIES_FOLDER
+            if _ProjectWizardSchema.is_deps_directory_valid(deps_directory):
+                remix_directory = deps_directory.resolve()
+                payload[_ProjectWizardKeys.REMIX_DIRECTORY.value] = remix_directory
+                capture_path = self.__find_project_capture(project_path)
+                if capture_path:
+                    payload[_ProjectWizardKeys.CAPTURE_FILE.value] = (
+                        remix_directory / _REMIX_CAPTURE_FOLDER / capture_path.name
+                    )
+        wizard.set_payload(payload)
+        wizard.show_capture_picker = select_capture
         self._sub_wizard_completed = wizard.subscribe_wizard_completed(self.__on_project_open_wizard_completed)
         wizard.show_project_wizard(reset_page=True)
 

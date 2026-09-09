@@ -190,6 +190,17 @@ class ProjectWizardCore:
                         self._log_error(extract_error)
                         self._on_run_finished(False, error=extract_error)
                         return False, extract_error
+                if model.capture_file:
+                    if not dry_run:
+                        result, _ = await context.open_stage_async(str(model.project_file))
+                        if not result:
+                            error_message = f"Could not open stage for the project file ({model.project_file})."
+                            self._log_error(error_message)
+                            self._on_run_finished(False, error=error_message)
+                            self._destroy_context()
+                            return False, error_message
+                    await self._insert_capture_layer(capture_core, captures_directory, model.capture_file, dry_run)
+                    await self._save_project_layer(layer_manager, dry_run)
                 self._destroy_context()
                 self._log_info(f"Project is ready: {model.project_file}")
                 self._on_run_progress(100)

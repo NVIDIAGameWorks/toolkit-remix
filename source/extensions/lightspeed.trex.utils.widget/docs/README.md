@@ -23,7 +23,7 @@ on-demand IngestCraft activation.
 - `WorkspaceWidget` and `WorkspaceWindowBase` define reusable context-aware workspace lifecycles.
 - `load_layout` schedules Kit's async quick-layout loader and reapplies tab-bar visibility after docking settles. The
   returned task owns file and layout errors so each caller can report them in its product context.
-- `RemixCategoriesDialog` and `TrexMessageDialog` provide shared dialog components.
+- `RemixCategoriesDialog` and `TrexMessageDialog` provide shared dialog components, including awaitable prompt results.
 - `asset_validation` owns replacement file-picker validation and routes accepted selections to caller callbacks.
 - `ingestcraft_loader` enables disabled runtime extensions without importing their modules eagerly and waits on the
   IngestCraft context's native stage-opened event.

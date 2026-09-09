@@ -18,11 +18,16 @@
 import shutil
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
+import omni.client
 import omni.ui as ui
 import omni.usd
+from lightspeed.common.constants import GlobalEventNames
+from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
 from lightspeed.common.constants import REMIX_DEPENDENCIES_FOLDER as _REMIX_DEPENDENCIES_FOLDER
 from lightspeed.common.constants import REMIX_FOLDER as _REMIX_FOLDER
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.contexts.extension import get_instance as _get_context_manager
 from lightspeed.trex.contexts.setup import Contexts as _Contexts
 from omni.flux.utils.common.symlink import create_folder_symlinks as _create_folder_symlinks
@@ -33,6 +38,7 @@ from omni.kit.widget.prompt import PromptManager
 from pxr import Sdf
 
 _CAPTURE_NAME = "capture.usda"
+_SECOND_CAPTURE_NAME = "capture_2.usda"
 _INVALID_DEPS_DIALOG_TITLE = "Invalid Project Dependencies"
 _PROJECT_WIZARD_TITLE = "RTX Remix Project Wizard"
 
@@ -105,10 +111,56 @@ class TestCaptureRepairOnOpen(AsyncTestCase):
         self.assertFalse(self._is_window_visible(_INVALID_DEPS_DIALOG_TITLE))
         self.assertTrue(deps_path.exists())
 
-    def _copy_project_without_capture_layer(self) -> Path:
+    async def test_open_project_with_capture_selection_saves_and_opens_selected_capture(self):
+        project_path = self._copy_project()
+        deps_path = project_path.parent / _REMIX_DEPENDENCIES_FOLDER
+        remix_path = project_path.parent.parent / _REMIX_FOLDER
+        shutil.move(deps_path, remix_path)
+        project_directory = remix_path / "mods" / project_path.parent.name
+        shutil.rmtree(project_directory)
+        shutil.move(project_path.parent, project_directory)
+        project_path = project_directory / project_path.name
+        deps_path = project_directory / _REMIX_DEPENDENCIES_FOLDER
+        captures_path = remix_path / _REMIX_CAPTURE_FOLDER
+        shutil.copy(captures_path / _CAPTURE_NAME, captures_path / _SECOND_CAPTURE_NAME)
+        _create_folder_symlinks([(deps_path, remix_path)], create_junction=True)
+
+        # The real StageCraft event opens the existing-project wizard without loading the old capture first.
+        _get_event_manager_instance().call_global_custom_event(
+            GlobalEventNames.LOAD_PROJECT_PATH.value,
+            str(project_path),
+            select_capture=True,
+        )
+
+        self.assertIsNotNone(await self._wait_for_visible_window(_PROJECT_WIZARD_TITLE, timeout_steps=120))
+        second_capture_label = await self._wait_for_capture_label(_SECOND_CAPTURE_NAME)
+        self.assertIsNotNone(second_capture_label)
+        await second_capture_label.click()
+        await ui_test.wait_n_updates(2)
+
+        open_button = await self._wait_for_widget(
+            f"{_PROJECT_WIZARD_TITLE}//Frame/**/Button[*].identifier=='NextButton'", timeout_steps=120
+        )
+        self.assertIsNotNone(open_button)
+        with patch.object(omni.client, "create_checkpoint", return_value=(omni.client.Result.OK, None)):
+            await open_button.click()
+            await self._wait_for_stagecraft_project(project_path)
+
+        # The wizard must persist the choice before StageCraft opens the project.
+        expected_capture_path = f"./{_REMIX_DEPENDENCIES_FOLDER}/{_REMIX_CAPTURE_FOLDER}/{_SECOND_CAPTURE_NAME}"
+        project_layer = Sdf.Layer.FindOrOpen(str(project_path))
+        self.assertIn(expected_capture_path, project_layer.subLayerPaths)
+        self.assertNotIn(
+            f"./{_REMIX_DEPENDENCIES_FOLDER}/{_REMIX_CAPTURE_FOLDER}/{_CAPTURE_NAME}", project_layer.subLayerPaths
+        )
+
+    def _copy_project(self) -> Path:
         project_root = Path(self._temp_dir.name) / "project_example"
         shutil.copytree(_get_test_data("usd/project_example"), project_root)
-        project_path = project_root / "combined.usda"
+        return project_root / "combined.usda"
+
+    def _copy_project_without_capture_layer(self) -> Path:
+        project_path = self._copy_project()
 
         project_layer = Sdf.Layer.FindOrOpen(str(project_path))
         self.assertIsNotNone(project_layer)
@@ -120,6 +172,9 @@ class TestCaptureRepairOnOpen(AsyncTestCase):
 
     async def _open_stagecraft_project(self, project_path: Path):
         await self._usd_context.open_stage_async(str(project_path))
+        await self._wait_for_stagecraft_project(project_path)
+
+    async def _wait_for_stagecraft_project(self, project_path: Path):
         expected_path = project_path.resolve()
         for _ in range(120):
             stage = self._usd_context.get_stage()

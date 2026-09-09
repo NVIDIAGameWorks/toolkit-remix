@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.12]
+### Added
+- Added an "Open Project with Capture..." action to recent-project context menus.
+
 ## [1.8.11]
 ### Changed
 - Refresh recent projects once per visible Home transition, reject stale task results, and report when the current list is applied.

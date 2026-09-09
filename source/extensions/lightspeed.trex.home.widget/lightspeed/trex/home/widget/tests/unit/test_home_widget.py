@@ -478,6 +478,29 @@ class TestLoadWorkFile(AsyncTestCase):
 
         # Assert
         event_manager.call_global_custom_event.assert_called_once_with(
-            GlobalEventNames.LOAD_PROJECT_PATH.value, "/project/legacy.usda"
+            GlobalEventNames.LOAD_PROJECT_PATH.value, "/project/legacy.usda", select_capture=False
         )
         mock_load_layout.assert_not_called()
+
+    async def test_existing_project_with_capture_selection_requests_stagecraft_picker(self):
+        """Request capture selection when opening a recent project with the capture workflow."""
+        # Arrange
+        widget = HomePageWidget.__new__(HomePageWidget)
+        widget._window_visible = True
+        widget._recent_model = MagicMock()
+        widget._recent_model.get_item_by_path.return_value = None
+        event_manager = MagicMock()
+
+        with (
+            patch("lightspeed.trex.home.widget.home_widget.Path.exists", return_value=True),
+            patch("lightspeed.trex.home.widget.home_widget._get_event_manager_instance", return_value=event_manager),
+        ):
+            # Act
+            widget._load_work_file("/project/legacy.usda", select_capture=True)
+
+        # Assert
+        event_manager.call_global_custom_event.assert_called_once_with(
+            GlobalEventNames.LOAD_PROJECT_PATH.value,
+            "/project/legacy.usda",
+            select_capture=True,
+        )

@@ -22,22 +22,13 @@ from pathlib import Path
 import omni.kit.app
 from omni.flux.utils.common.path_utils import open_file_using_os_default
 
+from .message_dialog import MessageDialogResult as _MessageDialogResult
 from .message_dialog import TrexMessageDialog as _TrexMessageDialog
 
 
-def show_invalid_deps_rebuild_dialog(deps_directory: Path, rebuild_handler: Callable[[], None]):
-    async def _rebuild_after_next_frame():
-        # Let the prompt close before centering the wizard in the settled window.
-        await omni.kit.app.get_app().next_update_async()
-        rebuild_handler()
-
-    def _on_rebuild():
-        asyncio.ensure_future(_rebuild_after_next_frame())
-
-    def _on_reveal_in_explorer():
-        open_file_using_os_default(str(deps_directory), highlight=True)
-
-    _TrexMessageDialog(
+async def confirm_invalid_deps_rebuild(deps_directory: Path) -> bool:
+    """Ask whether an invalid dependencies directory should be rebuilt."""
+    result = await _TrexMessageDialog.prompt_async(
         title="Invalid Project Dependencies",
         message=(
             'The "deps" folder in this project is not a valid symlink and must be rebuilt before the '
@@ -48,9 +39,23 @@ def show_invalid_deps_rebuild_dialog(deps_directory: Path, rebuild_handler: Call
         ),
         ok_label="Rebuild",
         middle_label="Reveal in Explorer",
-        cancel_label="Cancel",
-        ok_handler=_on_rebuild,
-        middle_handler=_on_reveal_in_explorer,
-        disable_middle_button=False,
-        disable_cancel_button=False,
     )
+    if result == _MessageDialogResult.MIDDLE:
+        open_file_using_os_default(str(deps_directory), highlight=True)
+        return False
+    if result != _MessageDialogResult.OK:
+        return False
+
+    # Let the prompt close before centering the wizard in the settled window.
+    await omni.kit.app.get_app().next_update_async()
+    return True
+
+
+def show_invalid_deps_rebuild_dialog(deps_directory: Path, rebuild_handler: Callable[[], None]):
+    """Show the legacy callback-based invalid dependencies prompt."""
+
+    async def confirm_rebuild():
+        if await confirm_invalid_deps_rebuild(deps_directory):
+            rebuild_handler()
+
+    asyncio.ensure_future(confirm_rebuild())

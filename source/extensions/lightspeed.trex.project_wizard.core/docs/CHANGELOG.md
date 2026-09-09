@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.6]
+### Changed
+- Apply and save a selected capture in the isolated Project Wizard context before opening an existing project in StageCraft.
+
 ## [2.1.5]
 ### Changed
 - Exposed a specific validation error when an existing project lacks required layer metadata.

@@ -78,6 +78,7 @@ class HomePageWidget(_WorkspaceWidget):
             "_credits_window": None,
             "_item_remove_from_recent_sub": None,
             "_item_project_opened_sub": None,
+            "_item_project_opened_with_capture_sub": None,
             "_item_show_in_explorer_sub": None,
             "_refresh_recent_items_task": None,
         }
@@ -100,6 +101,9 @@ class HomePageWidget(_WorkspaceWidget):
         self._item_project_opened_sub = self._recent_delegate.subscribe_item_open_project(
             # A lambda is required, or we get a crash because the event is not hashable
             self._load_work_file
+        )
+        self._item_project_opened_with_capture_sub = self._recent_delegate.subscribe_item_open_project_with_capture(
+            partial(self._load_work_file, select_capture=True)
         )
         self._item_show_in_explorer_sub = self._recent_delegate.subscribe_item_show_in_explorer(self._show_in_explorer)
 
@@ -560,8 +564,13 @@ class HomePageWidget(_WorkspaceWidget):
             self._recent_saved_file.remove_path_from_recent_file(path)
         self._schedule_recent_items_refresh()
 
-    def _load_work_file(self, path: str):
-        """Request that StageCraft validate and open an existing project."""
+    def _load_work_file(self, path: str, select_capture: bool = False):
+        """Request that StageCraft validate and open an existing project.
+
+        Args:
+            path: Project layer path.
+            select_capture: Whether to select a capture before opening the project.
+        """
         if not self._window_visible:
             return
 
@@ -584,7 +593,11 @@ class HomePageWidget(_WorkspaceWidget):
             return
 
         event_manager = _get_event_manager_instance()
-        event_manager.call_global_custom_event(constants.GlobalEventNames.LOAD_PROJECT_PATH.value, path)
+        event_manager.call_global_custom_event(
+            constants.GlobalEventNames.LOAD_PROJECT_PATH.value,
+            path,
+            select_capture=select_capture,
+        )
 
     def _invoke_mod_setup_wizard(self, wizard_type: _WizardTypes, project_path: str | None = None):
         def on_load_project(_payload=None):

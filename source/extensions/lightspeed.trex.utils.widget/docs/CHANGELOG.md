@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.3]
+### Added
+- Added awaitable message-dialog and invalid project dependency confirmation helpers.
+
 ## [1.8.2]
 ### Added
 - Added lazy IngestCraft extension loader used by the StageCraft sidebar.
