@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "category": "A",
+  "name": "scope",
+  "rules": [
+    {"id": "A01", "target": "global", "check": "The submitted change contains one cohesive logical change.", "sources": [{"path": "docs_dev/getting-started/git-workflow.md", "section": "One branch per change"}]},
+    {"id": "A02", "target": "global", "check": "The submitted change contains no unrelated cleanup or refactoring.", "sources": [{"path": "docs_dev/getting-started/git-workflow.md", "section": "One branch per change"}]},
+    {"id": "A03", "target": "global", "check": "The submitted change contains no generated build artifacts.", "sources": []},
+    {"id": "A04", "target": "global", "check": "The submitted change does not edit ignored build output that a clean build discards. This output includes vendored Kit extension code under `_build/**/extscache/`.", "sources": [{"path": ".agents/rules/engineering-standards.md", "section": "Engineering Standards"}, {"path": "docs_dev/getting-started/tech-stack.md", "section": "Build Output"}]},
+    {"id": "A05", "target": "global", "check": "The submitted change does not require ignored local-only files such as `*.local.*`, `.vscode/settings.json`, or `deps/**/user.toml` to build, run, or test.", "sources": [{"path": "docs_dev/tools/ide-vscode.md", "section": "1. Create your local `settings.json`"}, {"path": ".agents/rules/agent-config.md", "section": "Rules"}]}
+  ]
+}

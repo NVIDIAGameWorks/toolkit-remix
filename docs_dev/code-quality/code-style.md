@@ -153,6 +153,8 @@ When converting from web/HTML hex colors (`#RRGGBB`), reverse the R/G/B bytes an
 Only comment the **why**, never the **what**. If a comment explains what the code does, rewrite the code to
 speak for itself.
 
+Verify every factual claim added to a comment or docstring against current code or repository evidence.
+
 | Do                               | Don't                                           |
 |----------------------------------|-------------------------------------------------|
 | Non-obvious design constraints   | Narrating obvious steps (`# Create the widget`) |

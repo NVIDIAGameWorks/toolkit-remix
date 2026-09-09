@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "category": "I",
+  "name": "mr-description",
+  "rules": [
+    {"id": "I01", "target": "global", "evidence": "description", "check": "The review description states the final purpose of the change.", "sources": [{"path": ".agents/commands/prepare-mr.md", "section": "Required MR Body"}]},
+    {"id": "I02", "target": "global", "evidence": "description", "check": "The review description states the final before-and-after behavior.", "sources": [{"path": ".agents/commands/prepare-mr.md", "section": "Required MR Body"}]},
+    {"id": "I03", "target": "global", "evidence": "description", "check": "The review description explains the final implementation.", "sources": [{"path": ".agents/commands/prepare-mr.md", "section": "Required MR Body"}]},
+    {"id": "I04", "target": "global", "evidence": "description", "check": "The review description identifies every modified extension.", "sources": [{"path": "docs_dev/getting-started/git-workflow.md", "section": "MR description"}]},
+    {"id": "I05", "target": "global", "evidence": "description", "check": "Acceptance criteria explicitly stated in the captured review description are satisfied by the submitted change.", "sources": []},
+    {"id": "I06", "target": "global", "evidence": "description", "check": "The review description reports measured coverage for affected extensions.", "sources": [{"path": ".agents/commands/prepare-mr.md", "section": "Required MR Body"}, {"path": "docs_dev/getting-started/git-workflow.md", "section": "MR description"}]},
+    {"id": "I07", "target": "global", "evidence": "description", "check": "The review description discloses known issues or explicitly states that none are known.", "sources": [{"path": "docs_dev/getting-started/git-workflow.md", "section": "MR description"}, {"path": ".agents/rules/completion-gates.md", "section": "Completion Gates"}]},
+    {"id": "I08", "target": "global", "evidence": "description", "check": "Relevant user-interface changes include current final-state media.", "sources": [{"path": "docs_dev/patterns/ui-style.md", "section": "Post mockups and progress for review"}]},
+    {"id": "I09", "target": "global", "evidence": "description", "check": "The review description contains no commit chronology, temporary behavior, abandoned approach, or intermediate-only fix.", "sources": []},
+    {"id": "I10", "target": "global", "evidence": "description", "check": "The review description records the submitted validation evidence.", "sources": []}
+  ]
+}

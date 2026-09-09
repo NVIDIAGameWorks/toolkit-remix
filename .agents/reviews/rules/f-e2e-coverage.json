@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "category": "F",
+  "name": "e2e-coverage",
+  "rules": [
+    {"id": "F01", "target": "file", "check": "Each changed end-to-end test exercises real project data in a real Kit environment configured with its required settings.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Test Dependencies and Settings Extensions"}, {"path": "docs_dev/code-quality/testing.md", "section": "E2E Tests (`tests/e2e/`)"}]},
+    {"id": "F02", "target": "file", "check": "Each end-to-end action is driven through a user-visible control rather than an internal implementation method.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "E2E Tests (`tests/e2e/`)"}]},
+    {"id": "F03", "target": "file", "check": "Each end-to-end assertion verifies the workflow's user-visible UI, USD, or filesystem outcome.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Verifying Results"}]},
+    {"id": "F04", "target": "file", "check": "Changed end-to-end comments narrate the user journey instead of dividing the workflow into Arrange, Act, and Assert sections.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "E2E Tests (`tests/e2e/`)"}, {"path": "docs_dev/code-quality/code-style.md", "section": "Inline Comments"}]},
+    {"id": "F05", "target": "file", "check": "Each changed end-to-end selector uses the most stable available identifier or visible property.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Finding UI Elements"}]},
+    {"id": "F06", "target": "file", "check": "Each changed end-to-end UI action synchronizes with `ui_test.human_delay()` rather than `time.sleep()` or `next_update_async()`.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Driving Interactions and Waiting"}]},
+    {"id": "F07", "target": "file", "check": "Each changed end-to-end test uses explicit fixture paths and layers rather than production discovery APIs unless discovery is the subject under test.", "sources": [{"path": ".agents/rules/testing.md", "section": "Testing Requirements"}]},
+    {"id": "F08", "target": "file", "check": "Each changed end-to-end test is isolated from concurrent and subsequent tests: local execution is nonparallel and no owned state survives completion.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Local E2E execution"}, {"path": "docs_dev/code-quality/testing.md", "section": "Setup / Teardown"}, {"path": ".agents/rules/testing.md", "section": "Testing Requirements"}]},
+    {"id": "F09", "target": "file", "check": "Each changed end-to-end test proves a user workflow rather than static appearance, layout, or business logic suitable for a unit test.", "sources": [{"path": ".agents/rules/testing.md", "section": "Testing Requirements"}]},
+    {"id": "F10", "target": "file", "check": "Changed end-to-end setup reuses an existing helper or context manager when one covers the workflow.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Shared Test Utilities"}]},
+    {"id": "F11", "target": "file", "check": "A changed test package contains no `__init__.py` below its top-level `tests/__init__.py`.", "sources": [{"path": "docs_dev/architecture/extension-guide.md", "section": "Tests Export Pattern"}]},
+    {"id": "F12", "target": "file", "check": "Changed `extension.toml` test entries preserve the repository-standard default/startup group pair.", "sources": [{"path": "docs_dev/code-quality/testing.md", "section": "Declaring Tests in `extension.toml`"}]}
+  ]
+}

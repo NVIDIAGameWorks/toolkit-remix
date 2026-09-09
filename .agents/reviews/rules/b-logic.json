@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "category": "B",
+  "name": "logic",
+  "rules": [
+    {"id": "B01", "target": "file", "check": "Each changed fix is implemented in the component that creates the problem rather than compensated for by a caller or presentation layer.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Core Principle"}, {"path": "docs_dev/code-quality/engineering-standards.md", "section": "Design Rules"}]},
+    {"id": "B02", "target": "file", "check": "Generic reusable code belongs in `omni.flux.*`, while Remix-specific code belongs in `lightspeed.trex.*`.", "sources": [{"path": ".agents/context/architecture.md", "section": "Architecture Rules"}]},
+    {"id": "B03", "target": "file", "check": "Each changed normal control-flow path produces its intended state.", "sources": []},
+    {"id": "B04", "target": "file", "check": "Each changed error, invalid-input, or boundary path preserves correct behavior.", "sources": []},
+    {"id": "B05", "target": "file", "check": "Each changed cancellation, re-entry, or teardown path leaves correct state.", "sources": []},
+    {"id": "B06", "target": "file", "check": "Each changed type, ownership relation, or optional value matches its runtime contract.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "`hasattr` / `getattr` Policy"}]},
+    {"id": "B07", "target": "file", "check": "Each changed serialized or public API value preserves its declared contract.", "sources": []},
+    {"id": "B08", "target": "file", "check": "Each changed trust boundary validates untrusted input before use.", "sources": []},
+    {"id": "B09", "target": "file", "check": "Each operation-scoped resource acquired by changed code is released on every exit path.", "sources": []},
+    {"id": "B10", "target": "file", "check": "Each changed exception handler preserves or propagates every failure it cannot handle completely.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Anti-Patterns"}]},
+    {"id": "B11", "target": "file", "check": "Changed UI code is not the source of truth for application state.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Smell Tests"}]},
+    {"id": "B12", "target": "file", "check": "Changed production timing, retry, or tolerance behavior fixes the underlying asynchronous or data-flow condition instead of hiding it.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Anti-Patterns"}, {"path": "docs_dev/code-quality/engineering-standards.md", "section": "Smell Tests"}]},
+    {"id": "B13", "target": "file", "check": "Every changed bypass, fallback, compatibility path, or partial migration has a demonstrated current requirement.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Anti-Patterns"}]},
+    {"id": "B14", "target": "file", "check": "Changed executable implementation prefers deletion and repository reuse, then the standard library, native support, and existing dependencies, before adding the minimum custom mechanism or dependency.", "sources": []},
+    {"id": "B15", "target": "file", "check": "Each changed executable component has one describable responsibility.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Design Rules"}]},
+    {"id": "B16", "target": "file", "check": "Every changed public method or type is required by a current consumer.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Design Rules"}]},
+    {"id": "B17", "target": "file", "check": "No changed function is 200 or more lines long.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Anti-Patterns"}]},
+    {"id": "B18", "target": "file", "check": "Every added abstraction or extension point is required by current behavior or established repository architecture.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Design Rules"}]},
+    {"id": "B19", "target": "file", "check": "Changed code uses direct access or explicit typing instead of `getattr()` or `hasattr()` for repository-owned types.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "`hasattr` / `getattr` Policy"}]},
+    {"id": "B20", "target": "file", "check": "Each object retained for reuse has cost and lifetime that justify retention.", "sources": []},
+    {"id": "B21", "target": "file", "check": "Changed per-item traversal, lookup, and I/O remain linear without repeated stable collection scans, stage or schema lookups, settings reads, disk access, or network requests.", "sources": []},
+    {"id": "B22", "target": "file", "check": "Changed hot paths do not recreate equivalent in-memory values through repeated construction, conversion, or allocation.", "sources": []},
+    {"id": "B23", "target": "file", "check": "Each changed cache has an explicit invalidation event.", "sources": []}
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "category": "C",
+  "name": "dependencies-api",
+  "rules": [
+    {"id": "C01", "target": "file", "check": "Every consumed extension, including `omni.kit.commands`, is declared through the applicable direct runtime dependency or test dependency aggregator.", "sources": [{"path": "docs_dev/architecture/extension-guide.md", "section": "`extension.toml` Reference"}, {"path": "docs_dev/code-quality/testing.md", "section": "Test Dependencies and Settings Extensions"}]},
+    {"id": "C02", "target": "file", "check": "Every declared extension dependency has a remaining direct consumer import.", "sources": [{"path": ".agents/context/architecture.md", "section": "Architecture Rules"}]},
+    {"id": "C03", "target": "file", "check": "Every removed import has a targeted consumer-wide remaining-use scan with no stale reference.", "sources": []},
+    {"id": "C04", "target": "file", "check": "Every removed module or package export binding has a targeted repository-consumer scan with no stale reference.", "sources": []},
+    {"id": "C05", "target": "file", "check": "Every removed non-export public API member has a targeted repository-consumer scan with no stale reference.", "sources": []},
+    {"id": "C06", "target": "file", "check": "Each third-party Python package added or retained by the change has one exact central pin.", "sources": [{"path": "docs_dev/patterns/pip-packages.md", "section": "Step 1 — Add to `deps/pip_flux.toml`"}]},
+    {"id": "C07", "target": "file", "check": "Each third-party Python package added or retained by the change has documented compatible-license confirmation.", "sources": [{"path": "docs_dev/patterns/pip-packages.md", "section": "Step 0 — License Check (Required Before Adding)"}]},
+    {"id": "C08", "target": "file", "check": "Each third-party Python package added or retained by the change remains integrated into the Flux pip archive build.", "sources": [{"path": "docs_dev/patterns/pip-packages.md", "section": "How It Works"}, {"path": "docs_dev/patterns/pip-packages.md", "section": "Step 2 — Build"}]},
+    {"id": "C09", "target": "file", "check": "Every extension importing a third-party Python package directly depends on `omni.flux.pip_archive`.", "sources": [{"path": "docs_dev/patterns/pip-packages.md", "section": "Step 3 — Declare the Runtime Dependency"}]},
+    {"id": "C10", "target": "file", "check": "A third-party Python package's Open Source Review Board (OSRB) record exists from addition through removal of its last repository consumer.", "sources": [{"path": "docs_dev/patterns/pip-packages.md", "section": "Step 0 — License Check (Required Before Adding)"}]},
+    {"id": "C11", "target": "file", "check": "Third-party Python packages are supplied only by the Flux pip archive, never a standalone `requirements.txt` or direct installation.", "sources": [{"path": "docs_dev/patterns/pip-packages.md", "section": "How It Works"}]},
+    {"id": "C12", "target": "file", "check": "Each changed intra-extension import is relative.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Relative Imports Within an Extension"}]},
+    {"id": "C13", "target": "file", "check": "Each changed import alias is required by a real collision or an established external convention.", "sources": [{"path": "docs_dev/code-quality/code-style.md", "section": "Import Aliases"}]},
+    {"id": "C14", "target": "file", "check": "Each changed import binds every used symbol explicitly at module scope.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Import Rules"}, {"path": "docs_dev/code-quality/engineering-standards.md", "section": "Import the Symbol, Not the Path"}]},
+    {"id": "C15", "target": "file", "check": "Each changed cross-extension symbol uses an absolute import from its nearest meaningful public package.", "sources": [{"path": "docs_dev/code-quality/engineering-standards.md", "section": "Import Rules"}, {"path": "docs_dev/code-quality/engineering-standards.md", "section": "Relative Imports Within an Extension"}]},
+    {"id": "C16", "target": "file", "check": "Every changed public Python namespace, including a test package's classes, is exactly defined by `__all__` and explicit package imports.", "sources": [{"path": "docs_dev/code-quality/code-style.md", "section": "Module Exports"}, {"path": "docs_dev/code-quality/testing.md", "section": "Test Export"}, {"path": "docs_dev/architecture/extension-guide.md", "section": "Tests Export Pattern"}]},
+    {"id": "C17", "target": "file", "check": "Every changed `omni.ext.IExt` implementation lives in `extension.py` rather than `__init__.py`.", "sources": [{"path": "docs_dev/architecture/extension-guide.md", "section": "Directory Layout"}]}
+  ]
+}
