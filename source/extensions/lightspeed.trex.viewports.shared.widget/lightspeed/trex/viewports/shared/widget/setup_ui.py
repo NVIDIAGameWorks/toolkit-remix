@@ -56,7 +56,8 @@ _PROPERTY_PANEL_MIN_WIDTH = 240
 _PROPERTY_VIEWPORT_SPLITTER_WIDTH = 12
 
 
-def _show_remix_failure_dialog(error_message: str) -> bool:
+def _show_remix_failure_dialog(error_message: str, title: str = "RTX Remix Renderer failed to initialize") -> bool:
+    """Show at most one terminal Remix initialization failure dialog."""
     global _REMIX_FAILURE_DIALOG_SHOWN
 
     if _REMIX_FAILURE_DIALOG_SHOWN:
@@ -70,12 +71,13 @@ def _show_remix_failure_dialog(error_message: str) -> bool:
         omni.kit.app.get_app().post_quit(0)
 
     _TrexMessageDialog(
-        title="RTX Remix Renderer failed to initialize",
+        title=title,
         message=error_message,
         ok_label="Exit",
         ok_handler=exit_app,
+        cancel_label="",
+        cancel_handler=exit_app,
         on_window_closed_fn=exit_app,
-        disable_cancel_button=True,
     )
     _REMIX_FAILURE_DIALOG_SHOWN = True
     return True
@@ -346,6 +348,7 @@ class SetupUI(_WorkspaceWidget):
         return carb.settings.get_settings().get_as_bool(SetupUI._ACTIVATE_REMIX_RENDERER_SETTING)
 
     def _activate_remix_viewport_renderer(self, reason: str) -> bool:
+        """Request the HdRemix viewport renderer and report whether the request was accepted."""
         if not self._should_activate_remix_renderer():
             carb.log_info(
                 "[lightspeed.trex.viewports.shared.widget] "
@@ -366,25 +369,31 @@ class SetupUI(_WorkspaceWidget):
         try:
             set_hd_engine = getattr(viewport_api, "set_hd_engine", None)
             if callable(set_hd_engine):
-                set_hd_engine(self._REMIX_ENGINE_NAME, self._REMIX_RENDER_MODE)
+                request_accepted = (
+                    set_hd_engine(self._REMIX_ENGINE_NAME, self._REMIX_RENDER_MODE) == self._REMIX_ENGINE_NAME
+                )
             else:
                 viewport_api.hydra_engine = self._REMIX_ENGINE_NAME
                 viewport_api.render_mode = self._REMIX_RENDER_MODE
+                request_accepted = self._is_remix_viewport_renderer_selected(viewport_api)
         except Exception as exc:  # noqa: BLE001
             message = f"Failed to activate HdRemix renderer for {self.viewport_id} during {reason}: {exc!r}"
             carb.log_warn(f"[lightspeed.trex.viewports.shared.widget] {message}")
-            _show_remix_failure_dialog(message)
             return False
 
         carb.log_info(
             "[lightspeed.trex.viewports.shared.widget] "
-            f"Activated HdRemix renderer for {self.viewport_id} during {reason}: "
-            f"renderer_selected={self._is_remix_viewport_renderer_selected(viewport_api)!r}, "
-            f"signature={self._viewport_signature()!r}"
+            f"Requested HdRemix renderer activation for {self.viewport_id} during {reason}: "
+            f"request_accepted={request_accepted!r}"
         )
-        return True
+        return request_accepted
 
     async def _wait_for_stable_viewport(self) -> tuple[object, ...] | None:
+        """Wait for a ready viewport signature to remain stable.
+
+        Returns:
+            The stable viewport signature, or None when stabilization times out.
+        """
         settings = carb.settings.get_settings()
         stable_frame_target = settings.get_as_int(self._REMIX_VIEWPORT_STABLE_FRAMES_SETTING) or 10
         timeout_frames = settings.get_as_int(self._REMIX_VIEWPORT_STABLE_TIMEOUT_FRAMES_SETTING) or 240
@@ -416,39 +425,87 @@ class SetupUI(_WorkspaceWidget):
             f"Viewport did not stabilize before HdRemix activation after {timeout_frames} frames. "
             f"Last signature={stable_signature!r}"
         )
-        return stable_signature
+        return None
 
     async def _activate_remix_renderer_async(self, reason: str, retry_support: bool = True):
+        """Activate HdRemix with one retry for a supported viewport failure.
+
+        When retry_support is False, activation stops after applying renderer settings.
+        Terminal support or viewport failures show an Exit-only dialog.
+
+        Args:
+            reason: Context included in activation diagnostics.
+            retry_support: Whether to continue through viewport activation and support
+                validation after applying renderer settings.
+        """
         settings = carb.settings.get_settings()
-        if not self._should_activate_remix_renderer():
-            carb.log_info(
-                "[lightspeed.trex.viewports.shared.widget] "
-                f"Skipping HdRemix renderer activation for {self.viewport_id} during {reason}."
-            )
-            return
-
-        self._apply_remix_renderer_settings()
-
-        if not retry_support:
-            return
-
-        stable_signature = await self._wait_for_stable_viewport()
-        if not self._viewport_signature_ready(stable_signature):
-            return
-
-        if not self._activate_remix_viewport_renderer(f"{reason}-stable"):
-            return
-        dwell_frames = settings.get_as_int(self._REMIX_POST_STABLE_DWELL_FRAMES_SETTING) or 120
-        for frame in range(1, dwell_frames + 1):
-            await omni.kit.app.get_app().next_update_async()
-            if frame in (1, dwell_frames):
+        for attempt in range(2):
+            attempt_reason = reason if attempt == 0 else f"{reason}-automatic-retry"
+            if not self._should_activate_remix_renderer():
                 carb.log_info(
                     "[lightspeed.trex.viewports.shared.widget] "
-                    f"HdRemix post-stable dwell frame={frame}/{dwell_frames}, "
-                    f"signature={self._viewport_signature()!r}"
+                    f"Skipping HdRemix renderer activation for {self.viewport_id} during {attempt_reason}."
                 )
+                return
 
-        await self._retry_remix_support_after_renderer_activation(reason)
+            self._apply_remix_renderer_settings()
+            if not retry_support:
+                return
+
+            stable_signature = await self._wait_for_stable_viewport()
+            viewport_ready = self._viewport_signature_ready(stable_signature)
+            if viewport_ready and self._activate_remix_viewport_renderer(f"{attempt_reason}-stable"):
+                dwell_frames = settings.get_as_int(self._REMIX_POST_STABLE_DWELL_FRAMES_SETTING) or 120
+                for frame in range(1, dwell_frames + 1):
+                    await omni.kit.app.get_app().next_update_async()
+                    if frame in (1, dwell_frames):
+                        carb.log_info(
+                            "[lightspeed.trex.viewports.shared.widget] "
+                            f"HdRemix post-stable dwell frame={frame}/{dwell_frames}, "
+                            f"signature={self._viewport_signature()!r}"
+                        )
+
+                viewport_api = self.viewport_api
+                if viewport_api is not None and self._is_remix_viewport_renderer_selected(viewport_api):
+                    await self._retry_remix_support_after_renderer_activation(attempt_reason)
+                    return
+
+            if not self._should_activate_remix_renderer():
+                return
+
+            support_level, error_message = _is_remix_supported()
+            if support_level == _RemixSupport.WAITING_FOR_INIT:
+                timeout_frames = settings.get_as_int(self._REMIX_TIMEOUT_FRAMES_SETTING) or 500
+                frames_passed = await _retry_remix_support_async(
+                    timeout_frames=timeout_frames,
+                    reason=f"{attempt_reason} for {self.viewport_id}",
+                )
+                carb.log_info(
+                    "[lightspeed.trex.viewports.shared.widget] "
+                    f"HdRemix support resolution for {self.viewport_id} during {attempt_reason} "
+                    f"took {frames_passed} frame(s)."
+                )
+                support_level, error_message = _is_remix_supported()
+
+            if support_level == _RemixSupport.NOT_SUPPORTED:
+                _show_remix_failure_dialog(error_message)
+                return
+            if support_level != _RemixSupport.SUPPORTED:
+                return
+            if attempt == 0:
+                carb.log_warn(
+                    "[lightspeed.trex.viewports.shared.widget] "
+                    f"HdRemix viewport initialization failed for {self.viewport_id} during {attempt_reason}; "
+                    "retrying once."
+                )
+                continue
+
+            _show_remix_failure_dialog(
+                "The RTX Remix renderer is supported, but the viewport could not be initialized after two attempts. "
+                "Exit and restart the RTX Remix Toolkit.",
+                title="RTX Remix viewport failed to initialize",
+            )
+            return
 
     async def _retry_remix_support_after_renderer_activation(self, reason: str):
         support_level, _error_message = _is_remix_supported()

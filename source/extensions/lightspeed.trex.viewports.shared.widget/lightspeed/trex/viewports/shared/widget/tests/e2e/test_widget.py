@@ -16,19 +16,24 @@
 """
 
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock, patch
+
 import carb.input
 import carb.settings
 import omni.appwindow
+import omni.kit.app
 import omni.kit.widget.toolbar as _toolbar_module
 import omni.ui as ui
 import omni.usd
 from lightspeed.trex.contexts.extension import get_instance as _get_context_manager
 from lightspeed.trex.contexts.setup import Contexts as _TrexContext
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
+from lightspeed.trex.viewports.shared.widget import setup_ui as _setup_ui
 from lightspeed.trex.viewports.shared.widget.tools import teleport as _teleport_tool
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit import ui_test
 from omni.kit.ui_test import Vec2
+from omni.kit.widget.prompt import PromptManager as _PromptManager
 from omni.ui.tests.test_base import OmniUiTest
 from pxr import UsdGeom
 
@@ -154,6 +159,102 @@ class TestSharedViewportWidget(OmniUiTest):
             if "snap" in widget_name:
                 count += 1
         return count
+
+    async def test_terminal_remix_failure_dialog_requests_quit_for_each_dismissal_path(self):
+        """Request app exit for every user-visible way to dismiss a terminal Remix failure."""
+        dialog_title = "RTX Remix Renderer failed to initialize"
+        popup_setting = _setup_ui._SHOW_REMIX_SUPPORT_POPUP_SETTING
+        settings = carb.settings.get_settings()
+        original_popup_setting = settings.get(popup_setting)
+        original_dialog_shown = _setup_ui._REMIX_FAILURE_DIALOG_SHOWN
+        prompts = []
+        windows = []
+        wrapped_app = MagicMock(wraps=omni.kit.app.get_app())
+        wrapped_app.post_quit = MagicMock()
+
+        async def show_fresh_dialog():
+            # The class setup keeps real committed stages open. Renderer failure depends on the host GPU, so
+            # establish only that terminal state directly.
+            _setup_ui._REMIX_FAILURE_DIALOG_SHOWN = False
+            _setup_ui._show_remix_failure_dialog("RTX Remix Renderer is unavailable.")
+
+            for _ in range(50):
+                prompt = _PromptManager.query_prompt_by_title(dialog_title)
+                window = ui.Workspace.get_window(dialog_title)
+                visible_buttons = [
+                    button
+                    for button in ui_test.find_all(f"{dialog_title}//Frame/**/Button[*]")
+                    if button.widget.visible
+                ]
+                if prompt is not None and window is not None and window.visible and visible_buttons:
+                    break
+                await ui_test.human_delay()
+            else:
+                self.fail("Terminal Remix failure dialog did not become visible")
+
+            self.assertIsInstance(window, ui.Window)
+            self.assertEqual(["Exit"], [button.widget.text for button in visible_buttons])
+            prompts.append(prompt)
+            windows.append(window)
+            return prompt, window, visible_buttons[0]
+
+        with patch.object(_setup_ui.omni.kit.app, "get_app", return_value=wrapped_app):
+            try:
+                settings.set(popup_setting, True)
+
+                # A mouse user dismisses the first fresh dialog through its sole visible action.
+                prompt, window, exit_button = await show_fresh_dialog()
+                quit_requests = wrapped_app.post_quit.call_count
+                await exit_button.click()
+                await ui_test.human_delay()
+                self.assertFalse(window.visible)
+                self.assertEqual(quit_requests + 1, wrapped_app.post_quit.call_count)
+                wrapped_app.post_quit.assert_called_with(0)
+                prompt.destroy()
+                window.destroy()
+                await ui_test.human_delay(human_delay_speed=10)
+
+                # A keyboard user focuses the next dialog and dismisses it with Escape.
+                prompt, window, _ = await show_fresh_dialog()
+                dialog = ui_test.find(dialog_title)
+                self.assertIsNotNone(dialog)
+                await dialog.focus()
+                await ui_test.human_delay()
+                quit_requests = wrapped_app.post_quit.call_count
+                await ui_test.emulate_keyboard_press(carb.input.KeyboardInput.ESCAPE)
+                await ui_test.human_delay()
+                self.assertFalse(window.visible)
+                self.assertEqual(quit_requests + 1, wrapped_app.post_quit.call_count)
+                wrapped_app.post_quit.assert_called_with(0)
+                prompt.destroy()
+                window.destroy()
+                await ui_test.human_delay(human_delay_speed=10)
+
+                # Closing the final fresh dialog through the real window exercises the native visibility callback.
+                _, window, _ = await show_fresh_dialog()
+                quit_requests = wrapped_app.post_quit.call_count
+                window.visible = False
+                await ui_test.human_delay()
+                self.assertFalse(window.visible)
+                self.assertEqual(quit_requests + 1, wrapped_app.post_quit.call_count)
+                wrapped_app.post_quit.assert_called_with(0)
+            finally:
+                for prompt in prompts:
+                    prompt.destroy()
+                for prompt in list(_PromptManager._prompts):
+                    if prompt._title == dialog_title:
+                        prompt.destroy()
+                for window in windows:
+                    window.destroy()
+                for window in list(ui.Workspace.get_windows()):
+                    if window.title == dialog_title:
+                        window.destroy()
+                if original_popup_setting is None:
+                    settings.destroy_item(popup_setting)
+                else:
+                    settings.set(popup_setting, original_popup_setting)
+                _setup_ui._REMIX_FAILURE_DIALOG_SHOWN = original_dialog_shown
+                await ui_test.human_delay(human_delay_speed=10)
 
     async def test_property_panel_splitter_enforces_minimum_width(self):
         window, widget = await self.__setup_single_widget(width=600)

@@ -13,6 +13,7 @@ camera-mutating action is canceled and a warning explains that the capture game 
 - Build and manage shared RTX Remix viewport instances.
 - Host the viewport/Properties pane splitter and keep the Properties pane at least 240 pixels wide.
 - Coordinate viewport layers, tools, statistics, activation, and renderer startup behavior.
+- Retry supported viewport initialization once and report terminal startup failures through an Exit-only dialog.
 - Protect capture game-camera source data while still allowing mutating camera workflows through perspective copies.
 
 ## Non-Responsibilities
