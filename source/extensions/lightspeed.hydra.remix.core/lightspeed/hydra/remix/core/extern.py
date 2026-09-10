@@ -376,11 +376,22 @@ async def _load_remix_extern_impl(is_async: bool, timeout_frames: int | None = 5
             time.sleep(0.05)
 
         frames_passed += 1
-        if timeout_frames is not None and frames_passed > timeout_frames:
-            _hdremix_support_level = RemixSupport.NOT_SUPPORTED
+        if (
+            _hdremix_support_level == RemixSupport.WAITING_FOR_INIT
+            and timeout_frames is not None
+            and frames_passed > timeout_frames
+        ):
             suffix = f": {_last_waiting_message}" if _last_waiting_message else ""
-            _hdremix_error_message = f"Remix initialization timeout{' (async)' if is_async else ''}{suffix}"
-            carb.log_error(_hdremix_error_message)
+            timeout_diagnostic = f"Remix initialization timeout{' (async)' if is_async else ''}{suffix}"
+            carb.log_error(timeout_diagnostic)
+            _hdremix_support_level = RemixSupport.NOT_SUPPORTED
+            _hdremix_error_message = (
+                f"{timeout_diagnostic}\n\n"
+                "The RTX Remix renderer did not finish initializing.\n\n"
+                "A common cause on desktop PCs is connecting the monitor to a motherboard or integrated-graphics "
+                "port instead of the NVIDIA GPU. Connect the monitor directly to the NVIDIA GPU, then restart the "
+                "RTX Remix Toolkit."
+            )
             break
         if _hdremix_support_level == RemixSupport.WAITING_FOR_INIT and _hdremix_error_message != _last_waiting_message:
             carb.log_info(f"{_hdremix_error_message}. Will Retry.")
@@ -398,7 +409,7 @@ async def load_remix_extern_async(timeout_frames: int | None = 500) -> int:
 
     if _support_check_task is None or _support_check_task.done():
         _support_check_task = asyncio.create_task(_load_remix_extern_impl(is_async=True, timeout_frames=timeout_frames))
-    return await _support_check_task
+    return await asyncio.shield(_support_check_task)
 
 
 def load_remix_extern(timeout_frames: int | None = 500) -> int:
@@ -421,7 +432,10 @@ def remix_extern_init():
 
 
 def remix_extern_destroy():
+    """Destroy the Remix extern instance and cancel its owned support task."""
     global _instance, _support_check_task
+    if _support_check_task is not None and not _support_check_task.done():
+        _support_check_task.cancel()
     _instance = None
     _support_check_task = None
     RemixExtern.clear_hdremix_dll_handle()

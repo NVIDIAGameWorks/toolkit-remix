@@ -6,6 +6,7 @@ Loads the HdRemix native library and exposes the renderer integration used by RT
 
 - Preload `HdRemix.dll` and report whether the renderer is supported.
 - Cache the support state and user-facing message.
+- Report local initialization timeouts with qualified display-connection guidance.
 - Normalize known native support failures into actionable Toolkit guidance while preserving native diagnostics in logs.
 - Provide object-picking, highlighting, and renderer configuration bindings.
 
