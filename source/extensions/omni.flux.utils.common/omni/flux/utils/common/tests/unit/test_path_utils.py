@@ -42,6 +42,36 @@ class TestPathUtils(omni.kit.test.AsyncTestCase):
         self.assertFalse(_path_utils.is_absolute_path(r"path/to"))
         self.assertFalse(_path_utils.is_absolute_path(r"path"))
 
+    async def test_get_local_path_keeps_plain_local_path(self):
+        # Arrange
+        local_path = r"C:\path\file.dds"
+
+        # Act
+        result = _path_utils.get_local_path(local_path)
+
+        # Assert
+        self.assertEqual(result, Path(local_path))
+
+    async def test_get_local_path_converts_file_url(self):
+        # Arrange
+        file_url = "file:///C:/path/file.dds"
+
+        # Act
+        result = _path_utils.get_local_path(file_url)
+
+        # Assert
+        self.assertEqual(result, Path("C:/path/file.dds"))
+
+    async def test_get_local_path_rejects_remote_url(self):
+        # Arrange
+        remote_url = "omniverse://server/project/file.dds"
+
+        # Act
+        result = _path_utils.get_local_path(remote_url)
+
+        # Assert
+        self.assertIsNone(result)
+
     async def test_is_file_path_valid(self):
         # Assert
         with tempfile.NamedTemporaryFile("w") as tmpfile:

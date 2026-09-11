@@ -34,6 +34,7 @@ from copy import deepcopy
 from typing import Any, Generic, TypeVar
 
 import carb
+from lightspeed.trex.asset_pipeline.core.metadata import MetadataApplyReceipt
 from pxr import Sdf
 
 from .enums import RemixType, WorkflowCategory, WorkflowSourceType, WorkflowType
@@ -170,11 +171,13 @@ class ComfyUIApplyReceipt:
         original_authored_values: Shader inputs paired with their exact prior target-layer spellings.
         original_compare_values: Shader inputs paired with canonical prior values used for comparisons.
         applied_compare_values: Shader inputs paired with canonical values expected after Apply.
+        prior_metadata: Prior sidecar content for every local output texture, captured before Apply.
     """
 
     original_authored_values: tuple[tuple[str, str | None], ...]
     original_compare_values: tuple[tuple[str, str | None], ...]
     applied_compare_values: tuple[tuple[str, str | None], ...]
+    prior_metadata: MetadataApplyReceipt = MetadataApplyReceipt(prior_meta=())
 
     def __post_init__(self) -> None:
         """Validate paired original and applied snapshots for one exact target set.

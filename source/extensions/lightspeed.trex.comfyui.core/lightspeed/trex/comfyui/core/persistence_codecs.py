@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from lightspeed.trex.asset_pipeline.core.metadata import MetadataApplyReceipt
 from omni.flux.job_queue.core.persistence import PersistenceCodec
 from omni.flux.job_queue.core.persistence_codec import decode_positional_payload
 
@@ -42,6 +43,26 @@ from .resolvers import (
 __all__ = ("COMFYUI_CODECS",)
 
 
+def _decode_comfyui_apply_receipt(payload: object) -> ComfyUIApplyReceipt:
+    """Decode a ComfyUIApplyReceipt payload, accepting the released shape without prior_metadata.
+
+    Args:
+        payload: Decoded custom payload: a 3-tuple (released, before the metadata revert fix) or a
+            4-tuple (current).
+
+    Returns:
+        Constructed ComfyUIApplyReceipt value, with prior_metadata defaulted to an empty receipt for
+        the legacy shape.
+
+    Raises:
+        TypeError: If the payload is not an exact tuple.
+        ValueError: If the tuple length matches neither the released nor the current shape.
+    """
+    if type(payload) is tuple and len(payload) == 3:
+        payload = (*payload, MetadataApplyReceipt(prior_meta=()))
+    return decode_positional_payload(ComfyUIApplyReceipt, payload, 4)
+
+
 # Every codec key is derived from its type's name so none is a hand-written string that can drift.
 # The Apply handler keeps its own plugin ``name`` because that is the identity its runtime registry uses.
 COMFYUI_CODECS = (
@@ -57,8 +78,9 @@ COMFYUI_CODECS = (
             value.original_authored_values,
             value.original_compare_values,
             value.applied_compare_values,
+            value.prior_metadata,
         ),
-        lambda payload: decode_positional_payload(ComfyUIApplyReceipt, payload, 3),
+        _decode_comfyui_apply_receipt,
     ),
     PersistenceCodec(
         type_key(ComfyUIApplyTarget),

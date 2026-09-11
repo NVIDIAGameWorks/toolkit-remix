@@ -119,6 +119,7 @@ Product UI / Stage Manager
 - **Context-safe reversible Apply**: Apply revalidates the project and edit target, correlates processed textures by their
   stable keys, accepts the pipeline's OpenGL/DirectX-to-octahedral normal conversion while requiring every other final
   semantic to remain exact, preserves pre-first-Apply target-layer opinions across Reapply,
-  rejects external edits, and restores the originals through the canonical replacement API on Revert. Revert verifies
-  one exact target-layer snapshot against its durable applied-value receipt, then forwards that unchanged snapshot as
-  the shared force baseline for mutation-boundary rechecks.
+  rejects external edits, and restores the originals and each processed texture's prior metadata sidecar through the
+  canonical replacement API on Revert. Revert verifies one exact target-layer snapshot against its durable
+  applied-value receipt, then forwards that unchanged snapshot as the shared force baseline for mutation-boundary
+  rechecks.

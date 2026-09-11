@@ -18,8 +18,8 @@
 import pathlib
 from unittest.mock import MagicMock, patch
 
-from lightspeed.trex.asset_pipeline.core.job import TextureProcessingJob
-from lightspeed.trex.asset_pipeline.core.models import (
+from lightspeed.trex.asset_pipeline.core.jobs import TextureProcessingJob
+from lightspeed.trex.asset_pipeline.core.jobs.models import (
     ProcessedTexture,
     TextureProcessingItem,
     TextureProcessingRequest,

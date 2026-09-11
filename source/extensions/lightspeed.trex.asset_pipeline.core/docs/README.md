@@ -1,393 +1,338 @@
 # lightspeed.trex.asset_pipeline.core
 
-Remix-specific asset processing pipeline foundations.
+Remix-specific asset processing pipelines and queue jobs for RTX Remix model
+and texture optimization.
 
-This extension owns the concrete Remix contract on top of the generic Flux
-pipeline base. The pipeline is one linear list of steps over one stable
-`RemixAssetItem` type. The same item type covers standalone textures, ComfyUI
-image outputs, model files, model-referenced textures, and embedded model
-textures once the importer materializes them as files.
+The extension adds concrete Remix behavior to the generic Flux pipeline and
+job queue frameworks. It contains no UI.
 
 ## Responsibilities
 
-- Define Remix asset item types: `RemixAssetItem`, `TextureAsset`, and `TextureBinding`.
-- Define explicit enums for Remix pipeline contracts: `AssetKind` and `MaterialType`.
-- Provide the canonical step order through `build_remix_asset_pipeline()`.
-- Run the canonical steps through `run_remix_asset_pipeline()`, which owns the
-  temporary workspace, final reported publish phase, progress forwarding, and
-  temporary-file cleanup.
-- Expose `TextureProcessingJob` with exact texture-only queue ports, immutable
-  source/result records, stable item keys, and local or remote publication.
-- Implement the asset processing foundations: input standardization, model
-  processing, normal OTH conversion, DDS conversion, reference rewriting, and
-  metadata sidecars.
-- Keep blocking normal and DDS converters off the caller's event-loop thread.
-- Read shader identifiers directly from authored USD data without loading UI material-library modules.
+- Define the stable Remix domain types: `RemixAssetItem`, `TextureAsset`,
+  `TextureBinding`, and `AssetKind`.
+- Build the texture and mesh pipelines.
+- Assemble standalone texture and asset optimization graphs. Add asset optimization
+  jobs to an existing graph through `add_asset_optimization_jobs()`.
+- Run each linear pipeline in a temporary workspace. Publish only its final
+  outputs and matching metadata sidecars.
+- Implement input standardization, texture discovery, normal and DDS
+  conversion, material conversion, reference updates, root wrapping, and
+  unit-scale normalization.
+- Expose immutable texture, prepare, and mesh job requests and results.
+- Persist queue values, codec contracts, Apply handlers, and Apply receipts
+  so the job queue can reconstruct work after a process restart.
+- Write and restore deterministic metadata sidecars through default Apply
+  handlers built on a reusable capture/write/revert utility. A consumer
+  supplies its own handler in place of the default.
+- Lease isolated native USD contexts for model work.
+- Derive each material target from authored shader identifiers without loading UI
+  material-library modules.
 
 ## Non-Responsibilities
 
-- Does not define the generic pipeline framework; that lives in `omni.flux.asset_pipeline.core`.
-- Does not assign ComfyUI outputs to shader inputs. The ComfyUI apply handler owns guarded live-stage replacement.
-- Does not delete caller-owned source files. The runner deletes only its own temporary workspace.
-- Does not own graph execution, fan-out, dependencies, or aggregation; the job queue owns that.
-- Does not provide generic reusable asset processing for every product. This is Remix-specific.
+- Does not define the generic pipeline framework. That framework lives in
+  `omni.flux.asset_pipeline.core`.
+- Does not execute graphs, schedule dependencies, or provide queue storage.
+  `omni.flux.job_queue.core` owns those operations.
+- Does not create UI or assign ComfyUI outputs to live shader inputs. The
+  product Apply handler owns live-stage assignment.
+- Does not delete caller-owned source files. The runner deletes only its
+  temporary workspace.
+- Does not provide generic asset processing for all products. The steps are
+  Remix-specific.
+- Does not reverse lossy file conversion. Queue Apply/Revert covers metadata
+  sidecars, not DDS decompression.
+- Does not select shader variants from material names. Authored shader identifiers
+  determine each material target.
+- Does not offer a stable API to consumers outside this repository. The RTX
+  Remix extensions in this repository are its only supported consumers, and
+  they update with it in the same merge request.
 
-## Core Structure
+## Architecture
 
-```text
-+---------------------------+
-| RemixAssetItem            |
-| kind: AssetKind           |
-| value: primary path       |
-| source_path: original     |
-| material_type: enum      |
-| textures: TextureAsset[]  |
-| bindings: TextureBinding[]|
-+------------+--------------+
-             |
-             | stable item object flows through every step
-             v
-+---------------------------+
-| TextureAsset              |
-| path: current image path  |
-| texture_type: TextureTypes|
-| original_path: first path |
-+---------------------------+
-             ^
-             |
-+---------------------------+
-| TextureBinding            |
-| shader_path: Sdf.Path     |
-| input_name: str           |
-| original_asset_path: Sdf  |
-| texture: TextureAsset     |
-+---------------------------+
+The extension has four layers: domain records, linear pipeline steps, queue
+jobs, and persistence or Apply integration.
+
+### Key Types
+
+- `RemixAssetItem` is the stable item that flows through every step. It
+  represents either a texture or a model.
+- `TextureAsset` tracks a texture's current path, original path, and semantic.
+  `source_path` returns the original path when set, else the current path;
+  steps key output naming and reuse checks on it. `TextureBinding` connects
+  that record to one authored shader input.
+- `RemixAssetPipelineConfig` supplies the output directory and any required
+  texture semantic.
+- `RemixAssetPipelineContext` owns the current items, workspace paths, output
+  reservations, execution state, and one native USD context lease. `textures`
+  yields every texture record across the items.
+- `PrepareOptimizationJob`, `TextureProcessingJob`, and `MeshOptimizationJob`
+  compose into the graphs that `build_texture_optimization_graph()` and
+  `build_asset_optimization_graph()` assemble. `add_asset_optimization_jobs()` adds
+  the prepare, texture, and mesh jobs to an existing graph.
+- `SaveTextureMetadataHandler` and `SaveMeshMetadataHandler` are the default
+  Apply/Revert boundary each builder binds to its terminal job. A consumer
+  overrides either through the builder's `handler_type` parameter.
+- The `metadata` module exposes `capture_metadata_receipt()`,
+  `write_metadata_for_paths()`, `revert_metadata()`, and
+  `write_input_sidecars()`, the utility both default handlers and a
+  consumer's own handler build on. `constants` holds the matching sidecar
+  keys.
+- `persistence_codecs.py` serializes immutable job values, default Apply handlers,
+  and the `MetadataApplyReceipt` that SQLite stores.
+- `utils.py` contains `get_authoring_spec()`, `publish_remote_outputs()`, and
+  the shared path helpers. The `pipeline` package does not re-export them.
+
+### Pipeline Composition
+
+The extension exposes two processing pipelines. The texture pipeline converts
+standalone or discovered textures. The mesh pipeline consumes the processed
+texture result and authors the final model.
+
+The queue adds a prepare phase before those pipelines:
+
+| Queue phase | Ordered work | Legacy parity rule |
+| --- | --- | --- |
+| Prepare | standardize/import → cleanup → materials → discover dependencies | Convert materials before discovering textures, as the legacy schema ran `MaterialShaders` before `ConvertToDDS`, so every source-shader texture is found under its AperturePBR input. |
+| Texture pipeline | OTH normal → DDS | Convert shared sources once and retain legacy output names. |
+| Mesh pipeline | standardize/import → cleanup → materials → emissive → textures → references → metadata | Clean materials before conversion. Apply references and root changes last. The legacy schema never triangulated, so neither does this pipeline. |
+
+`ApplyProcessedTexturesStep` consumes a ledger keyed by
+`(material_path, texture_type)`. This identity survives shader path changes
+that occur during material conversion.
+
+When a consumer connects the jobs into a graph, `MeshOptimizationJob`
+validates every ledger entry against the texture-processing result before
+this step runs. A missing or unresolved ledger entry fails model assembly
+there; the pipeline does not publish a model that still refers to an
+unprocessed discovered texture.
+
+Direct, standalone use of `ApplyProcessedTexturesStep` skips that upstream
+validation. A discovered binding with no matching processed-texture entry
+falls back to the resolved source texture instead of failing.
+
+An existing DDS is reused only when its sidecar `src_hash` equals the hash of
+the current source texture, as the legacy plugin decided. The output filename
+carries the texture semantic, so the same path with the same source hash is the
+same conversion. A matching name alone is not sufficient.
+
+Material conversion preserves authored AperturePBR variants. OmniGlass maps to
+`AperturePBR_Translucent`. OmniPBR, OmniPBR_Opacity, and UsdPreviewSurface map to
+`AperturePBR_Opacity`. An unsupported shader fails conversion. Callers create a
+model item with `RemixAssetItem.from_model(path)`; they do not select one shader
+variant for the whole model.
+
+### Job Composition
+
+`build_texture_optimization_graph()` and `build_asset_optimization_graph()`
+assemble the two graph shapes below, bind Apply to the terminal job, and
+return the graph and that job. Both take a `handler_type` and `target`, so a
+product supplies its own handler without this extension importing that
+product.
+
+`add_asset_optimization_jobs(graph, source, ...)` adds the prepare, texture, and
+mesh jobs to an existing graph. It returns the terminal `MeshOptimizationJob`.
+`build_asset_optimization_graph()` creates a graph and calls that same function.
+Both paths use one implementation of the asset graph.
+
+A caller with an upstream image job adds a `TextureProcessingJob` to its graph
+and connects the image request output to `SOURCE_TEXTURES`. A caller with an
+upstream model job uses `add_asset_optimization_jobs()` instead.
+`lightspeed.trex.comfyui.core` uses these paths for workflow outputs.
+
+```mermaid
+flowchart LR
+    P[PrepareOptimizationJob]
+    T[TextureProcessingJob]
+    M[MeshOptimizationJob]
+    A[Apply: default or caller-supplied]
+
+    P -->|TextureProcessingRequest| T
+    P -->|Prepared model| M
+    T -->|TextureProcessingResult| M
+    M -.->|terminal| A
 ```
 
-The conversion steps operate on `TextureAsset` records. They do not care whether
-the image came from Asset Library, ComfyUI, a model reference, or an embedded
-model texture.
+The prepare job discovers model textures and sub-USD dependencies. It sends
+the texture request to the texture job and the prepared model to the mesh
+job.
 
-## Workspace And Publishing
+The mesh job waits for both inputs. It applies processed textures, publishes
+the model, and preserves complete job lineage. Its inner texture job never
+carries an Apply binding. `add_asset_optimization_jobs()` binds Apply only to the
+terminal mesh job, so Apply cannot run before the complete model is ready.
 
-Steps do not create the final output directory and do not own cleanup policy.
-The Remix runner creates one temporary work directory, gives it to the context,
-then publishes only the final paths still referenced by `RemixAssetItem` and
-`TextureAsset` records. Sidecar `.meta` files for those final paths are moved
-with them. Anything else left in the temporary directory is an intermediate and
-is removed when the runner exits.
+A caller using the standalone builder submits the graph and reads the
+terminal job's outputs; it never constructs `JobGraph`, `add_job`,
+`connect`, or `ApplyBinding` directly:
 
-Steps also do not invent temporary filename collision rules. When a step needs a
-publishable derived file, it asks
-`RemixAssetPipelineContext.reserve_output_path()` for both paths: `work_path` is
-the temporary file the step writes, and `output_path` is the final path the
-runner will publish to. The context keeps readable file names inside per-source
-workspace directories, so two inputs named `albedo.png` cannot overwrite each
-other during conversion. `copy_to_work_dir()` uses the same policy for existing
-DDS files or other caller-owned inputs. When a step needs to copy a reusable
-final file into an already-reserved derived path, it uses `copy_to_work_path()`
-so publish reservations stay stable.
-
-Final publishing is also pipeline-owned. Each `TextureProcessingRequest` carries
-a stable project or import root. The context preserves every source's path
-relative to that root and includes the processing semantic in derived names,
-for example `textures/chair/albedo.diffuse.dds`. Independent jobs therefore map
-the same source and semantic to the same reusable destination without allowing
-same-named sources from other folders to overwrite it. A stable source-path
-hash remains the fallback only for a genuine collision after that mapping.
-Steps never choose deduplication suffixes. If a step needs to probe a reusable
-final file from an earlier run, it uses the `output_path` from its reservation.
-The runner uses the same reservation table for local and remote publication.
-
-When a step needs to author a reference from one published output to another,
-for example a model USD file pointing at a processed texture, it uses
-`RemixAssetPipelineContext.get_relative_output_asset_path()`. That method
-reserves both final paths and computes the asset reference against the final
-published locations, not the temporary workspace.
-
-Existing final DDS files are reused only when their sidecar metadata matches the
-current source hash, texture type, and NVTT arguments. A name match alone is not
-treated as a valid cache hit.
-
-```text
-caller input files
-        |
-        v
-+-----------------------------+
-| run_remix_asset_pipeline()  |
-| creates temp work_dir       |
-+-------------+---------------+
-              |
-              v
-+-----------------------------+
-| pipeline steps              |
-| write outputs to work_dir   |
-| update item/texture paths   |
-+-------------+---------------+
-              |
-              v
-+-----------------------------+
-| publish final item paths    |
-| + matching .meta files      |
-| final reported phase        |
-+-------------+---------------+
-              |
-              v
-output_dir/source-relative/final files
-
-temp work_dir/intermediates -> deleted by runner cleanup
+```python
+graph, mesh_job = build_asset_optimization_graph(request, handler_type=MyHandler, target=my_target)
+queue_jobs = {job.job_id: job for job in get_job_queue().submit(graph)}
+await queue_jobs[mesh_job.job_id].outputs(timeout=300)
 ```
 
-## Stage Access And Performance
+`MeshOptimizationRequest.output_url` selects the final output directory. It
+accepts a nonblank string or `None`. `None` keeps outputs in the durable queue
+job directory. The prepare result retains the requested destination. The inner
+texture job keeps its outputs local. The mesh job copies those textures beside
+the model and publishes the model, textures, and dependency layers together.
+`MeshOptimizationResult.asset_url` identifies the published model.
 
-Model steps may need to read or mutate a full USD stage, but they must not open
-the model through the app's default USD context. The user can have an
-interactive work-in-progress stage open while ingestion runs in the background.
-Opening into the default context would replace or disturb that stage.
+Queue request and result records are immutable. Persisted codec names and
+tuple order define the persistence contract.
 
-`RemixAssetPipelineContext` owns one uniquely named ingestion USD context per
-pipeline run:
+`TextureProcessingItem.key` is caller-defined and unique within one request.
+The matching `ProcessedTexture` retains that key, so consumers do not depend
+on output names or changed normal semantics.
 
-```text
-job queue pipeline A              job queue pipeline B
-        |                                  |
-        v                                  v
-+----------------------+          +----------------------+
-| RemixAssetPipeline   |          | RemixAssetPipeline   |
-| Context A            |          | Context B            |
-| stage context name   |          | stage context name   |
-| remix_asset_..._uuid |          | remix_asset_..._uuid |
-+----------+-----------+          +----------+-----------+
-           |                                 |
-           v                                 v
-+----------------------+          +----------------------+
-| ingestion USD context|          | ingestion USD context|
-| cached current stage |          | cached current stage |
-+----------------------+          +----------------------+
+### Runner and Publication
+
+`run_remix_asset_pipeline()` validates the configured steps and runs each
+source item in order. It reports per-step progress and per-item completion.
+
+The runner creates one temporary workspace. Steps request collision-safe work
+and output paths from `RemixAssetPipelineContext`; they do not invent path
+suffixes.
+
+Output reservations preserve each source path relative to its project or
+import root. They include the processing semantic in derived names. A stable
+source hash handles only a remaining collision.
+
+A published model is `<source stem>.usd` with its converted textures beside it
+in `textures/<stem>.<letter>.rtex.dds`, referenced as `./textures/...`. This is
+the layout the retired validator produced. Model references never refer to
+temporary workspace paths.
+
+The runner publishes only paths that the final item records still reference.
+It moves matching `.meta` sidecars with those files and removes all
+intermediates. A DDS sidecar carries exactly the legacy keys: `src_hash`,
+`base_hash`, `validation_passed`, `validation_extensions`. DDS reuse checks
+`src_hash` alone, as the legacy plugin did, so a legacy-ingested texture is
+reused rather than re-encoded.
+
+`tests/e2e/test_legacy_fixtures.py` proves the contract against data the
+retired validator produced and that the repository already ships: a fresh
+conversion of the legacy source yields the legacy filename, the legacy sidecar
+keys, and the same `src_hash`, and a validator-produced DDS that carries only
+its legacy sidecar is reused untouched. These tests never import the validator
+extensions; this extension replaces them and must not depend on them.
+
+Local outputs remain durable when no remote publication URL exists.
+`utils.publish_remote_outputs()` creates missing remote parent directories, stages
+the complete output directory, and saves the prior destination as a backup. It
+then replaces the destination with the new directory.
+
+Cancellation or publication failure triggers rollback. The rollback restores
+the prior destination and removes incomplete transaction data when possible.
+
+### Apply Handlers
+
+File conversion is forward-only and idempotent. It has no Apply/Revert
+surface.
+
+This extension ships two default Apply handlers, `SaveTextureMetadataHandler`
+and `SaveMeshMetadataHandler`, built on the `metadata` module:
+`capture_metadata_receipt()` records the prior sidecar contents in a
+`MetadataApplyReceipt` before Apply writes a sidecar, `write_metadata_for_paths()`
+writes validation metadata after a successful job, and `revert_metadata()`
+restores each prior sidecar exactly, removing a sidecar that did not exist
+before Apply. The utility accepts local `Path` values and remote URL strings.
+Each handler captures all input and output sidecars before it writes. If a later
+write fails, the handler restores every sidecar from that attempt.
+Each graph builder binds its default handler; a product
+overrides it through `handler_type`. The sidecar keys that utility writes
+live in `constants`.
+
+Two behaviours in that utility are deliberate. A missing or unhashable INPUT
+is skipped, because Apply runs after processing and a consumed source may
+already be gone. An unhashable OUTPUT raises, because this pipeline produced
+it. Revert reads the durable receipt, never the current disk state.
+
+```mermaid
+flowchart TB
+    D(["Terminal job reaches DONE<br/>its output is durable"])
+    CAP["<b>capture_metadata_receipt(outputs)</b><br/>read each existing sidecar<br/>&rarr; MetadataApplyReceipt(prior_meta)<br/><i>prior text, or None if absent</i>"]
+    PER[("queue persists the receipt")]
+    EXT["<b>get_current_validation_extensions()</b><br/><i>Kit thread only, never a worker</i>"]
+    WIN["<b>write_input_sidecars(inputs)</b><br/>base_hash only<br/><i>missing or unhashable input: SKIPPED</i>"]
+    WOU["<b>write_metadata_for_paths(outputs)</b><br/>base_hash + validation_passed<br/>+ validation_extensions<br/><i>unhashable OUTPUT: raises FileNotFoundError</i>"]
+    OK(["Metadata matches the applied state"])
+    REV["<b>revert_metadata(receipt)</b><br/>restore prior text, or unlink<br/>when prior was None<br/><i>driven by the receipt, not the disk</i>"]
+    PRE(["Exact pre-Apply state"])
+
+    D --> CAP --> PER --> EXT --> WIN --> WOU --> OK
+    OK -. "Apply fails, or the user reverts" .-> REV --> PRE
 ```
 
-The cache is intentionally per pipeline context, not global. That keeps parallel
-job-queue pipelines isolated while still avoiding repeated
-create/open/close/destroy cycles between adjacent model steps in the same
-pipeline. Steps call `context.open_stage()`; they do not call
-`Usd.Stage.Open()` directly. The runner closes and destroys the ingestion
-context before deleting the temporary workspace.
+Product-specific registration and live-stage changes stay outside this
+extension. `lightspeed.trex.comfyui.core` is the worked example: its
+`ComfyUIJobApplyHandler` calls this extension's `metadata` utility and adds
+the product-specific Apply/Revert actions.
 
-## Canonical Pipeline
+### Native USD Context Lifetime
 
-```text
-RemixAssetItem
-      |
-      v
-+-----------------------------+
-| StandardizeInputStep        |
-| texture: create records     |
-| model: import to USD        |
-+-----------------------------+
-      |
-      v
-+-----------------------------+
-| TriangulateMeshesStep       |  model-only
-+-----------------------------+
-      |
-      v
-+-----------------------------+
-| ConvertMaterialsStep        |  model-only
-+-----------------------------+
-      |
-      v
-+-----------------------------+
-| CollectTexturesStep         |  model-only
-+-----------------------------+
-      |
-      v
-+-----------------------------+
-| ConvertNormalStep           |  all texture records
-+-----------------------------+
-      |
-      v
-+-----------------------------+
-| ConvertDDSStep              |  all texture records
-+-----------------------------+
-      |
-      v
-+-----------------------------+
-| UpdateTexturesStep          |  model bindings
-+-----------------------------+
-      |
-      v
-+-----------------------------+
-| WriteMetadataStep           |  final textures/models
-+-----------------------------+
-      |
-      v
-+-----------------------------+
-| Publish processed assets    |  final phase, blocking I/O off-loop
-+-----------------------------+
-```
+> **Warning:** Each outer `async with RemixAssetPipelineContext(...)` scope
+> leases one ingestion USD context exclusively. The scope exit closes the stage
+> and returns the lease to the shared pool. The package never destroys a
+> context.
 
-Model-only steps skip with an explicit reason for texture-only runs.
+The exclusive lease prevents parallel jobs from sharing mutable USD state. It
+also prevents ingestion from replacing the interactive stage in the app's
+default context.
 
-## Input Flows
+Steps open, save, and close stages only through
+`RemixAssetPipelineContext.open_stage()`, `save_stage()`, and `close_stage()`.
+They do not call `Usd.Stage.Open()` or use the default USD context.
 
-```text
-Standalone texture or ComfyUI output
-        |
-        v
-RemixAssetItem.from_texture(path, texture_type)
-        |
-        v
-normal conversion if needed -> DDS conversion -> metadata
-        |
-        v
-caller uses final TextureAsset.path
-```
+The context holds one stage at a time. A step that processes dependency layers
+must close the stage between layers. Callers must not retain stage, prim, or
+layer handles across an open of a different path.
 
-```text
-Model file (FBX/OBJ/glTF/USD)
-        |
-        v
-RemixAssetItem.from_model(path, material_type)
-        |
-        v
-ImporterCore standardizes to USD and materializes embedded textures
-        |
-        v
-triangulate meshes -> convert materials to AperturePBR
-        |
-        v
-collect TextureAsset + TextureBinding records from shader inputs
-        |
-        v
-normal conversion -> DDS conversion -> update USD texture asset paths -> metadata
-```
+The outermost scope exit closes the current stage before the runner removes
+its workspace, then returns the still-live native context to the free list.
 
-## Job Queue Boundary
+If close fails, the context returns to the free list with its stage. The next
+`open_stage()` on that context replaces the leftover stage, the same way the
+default context replaces the open project. The pool is therefore bounded by
+the peak number of concurrent scopes in every case.
 
-```text
-Product workflow
-        |
-        | binds TextureProcessingRequest
-        | (items + source_root + output_url)
-        v
-+-----------------------------+
-| TextureProcessingJob        |
-| input: SOURCE_TEXTURES      |
-| output: PROCESSED_TEXTURES  |
-| immutable result only after |
-| full pipeline success       |
-+-------------+---------------+
-              |
-              v
-+-----------------------------+
-| Job Queue                   |
-| async execution             |
-| dependencies / fan-out      |
-| may run pipelines in        |
-| parallel                    |
-+-------------+---------------+
-              |
-              | runs one isolated linear pipeline per job
-              v
-+-----------------------------+
-| Remix asset pipeline        |
-| no branching                |
-| no graph ownership          |
-| no shader apply/unapply     |
-| one ingestion USD context   |
-| per pipeline context        |
-+-----------------------------+
-```
-
-The queue job accepts textures only. Future model or mesh queue jobs reuse the
-same underlying Remix asset pipeline through their own exact typed contracts and
-scheduler lanes. The pipeline itself remains linear.
-
-## Application Boundary
-
-File conversion steps are forward-only, idempotent, and safe to rerun. They do
-not implement revert.
-
-ComfyUI application is outside this extension:
-
-```text
-ComfyUI job output
-        |
-        v
-asset pipeline processes image file
-        |
-        v
-ComfyUI apply handler validates the live stage and assigns the processed texture
-```
-
-The pipeline exposes no apply, unapply, or revert surface. Lossy steps such as
-DDS compression cannot restore the original image from the compressed output.
-
-`TextureProcessingItem.key` is caller-defined and unique within one request. The
-same key appears on `ProcessedTexture`, so downstream consumers correlate outputs
-without relying on filenames or final texture semantics. This matters for normal
-maps because processing changes DirectX/OpenGL semantics to octahedral normals.
-
-Queue graphs may bind `TextureProcessingJob.SOURCE_TEXTURES` to a literal
-`TextureProcessingRequest` or connect another job's exact `TextureProcessingRequest`
-output. `TextureProcessingJob` uses the same `JobInputs` mapping for both paths and
-returns one immutable `TextureProcessingResult` on
-`TextureProcessingJob.PROCESSED_TEXTURES`. It has no product-specific Apply handler
-or ComfyUI dependency.
-
-## Design Requirements
-
-| Requirement | Required design response |
-| --- | --- |
-| Avoid performance regressions from file-based processing | Reuse one isolated ingestion USD context per `RemixAssetPipelineContext`. Adjacent model steps share the cached current stage instead of creating contexts or cold-opening stages one after another. Keep this per pipeline run so parallel jobs do not share mutable USD state. |
-| Do not disturb the interactive stage | Steps must not use `Usd.Stage.Open()` directly or the app's default USD context. Full-stage reads/writes go through `RemixAssetPipelineContext`, which owns a uniquely named ingestion-only context and runner cleanup. |
-| Keep revert/state tracking honest | Pipeline step state records ran/skipped/error status only. File conversions do not store rollback history. Live-stage application is implemented explicitly by its owning caller. |
-| Clean temporary files without step boilerplate | Steps ask `RemixAssetPipelineContext` for collision-safe workspace paths and write purposeful outputs there. The runner publishes only final referenced files plus matching `.meta` sidecars, deduplicates final names when needed, then deletes the temporary workspace. |
-| Prefer shared utilities over plugins | Common texture, triangulation, and material conversion logic should be shared functions/core utilities, not new plugin abstractions unless multiple implementations are truly needed. |
-| Put hard reasoning at authoring time | The canonical builder owns ordering. `validate_pipeline()` catches type/config/order problems before mutation. `should_run()` only answers whether a valid step has no work left. |
-| Keep Flux generic and Lightspeed concrete | Flux owns base item/context/step/validation/execution-state classes. Remix item types, configuration, and concrete steps live here. |
-| Use one stable item type | Every concrete step accepts `RemixAssetItem`. Steps mutate `TextureAsset` and `TextureBinding` records, not the item type. |
-| Support model textures cleanly | Model import must materialize embedded textures as readable files, then represent them as normal `TextureAsset` records with `TextureBinding` rewrite state. |
-| Do not guess material type | Model callers must provide `MaterialType.OPAQUE` or `MaterialType.TRANSLUCENT` on the model item. The pipeline maps that semantic material type to the concrete AperturePBR shader. If a caller wants old heuristic behavior, it owns that guess before calling the pipeline. |
-| Avoid unstructured metadata growth | Do not add generic metadata dictionaries for pipeline contracts. Add explicit typed fields or typed context objects. |
-| Validate instead of silently skipping | Wrong item/context types fail validation. Missing required model outputs, unresolved texture paths, or unsupported material conversions must fail clearly. |
-| Keep steps idempotent | Re-running a step should converge: reuse existing DDS output, leave already-OTH normals alone, and rewrite metadata deterministically. |
-| Keep Kit responsive without moving USD work | Pipeline steps remain sequential on Kit's event loop. Large input copies, hashing, normal conversion, DDS conversion, and transactional publication use the shared cancellation-safe worker helper. USD work and extension operations stay sequential on Kit's thread. |
-| Configure steps explicitly | Use mandatory constructor arguments through `RemixAssetPipelineConfig` or explicit step constructors. Do not auto-discover schemas or auto-generate UIs for steps. |
-| Keep the pipeline linear | Branching, fan-out, dependencies, and synchronization belong to the job queue or higher-level orchestration. |
-| Keep the scope Remix-specific | Base abstractions are reusable through Flux, but concrete asset processing behavior is not a generic product framework. |
+Never call `omni.usd.destroy_context()` for a leased context. The native
+context can still hold queued `omni.kit.usd.layers` events, and destroying it
+then crashes the process.
 
 ## Usage
+
+Import the public pipeline types from the extension root. The runner opens and
+closes the context scope for the run:
 
 ```python
 import pathlib
 
 from omni.flux.asset_importer.core.data_models import TextureTypes
+
 from lightspeed.trex.asset_pipeline.core import (
     RemixAssetItem,
     RemixAssetPipelineConfig,
     RemixAssetPipelineContext,
+    build_remix_texture_pipeline,
     run_remix_asset_pipeline,
 )
 
-item = RemixAssetItem.from_texture(pathlib.Path("/outputs/normal.png"), TextureTypes.NORMAL_DX)
-context = RemixAssetPipelineContext(items=[item])
+item = RemixAssetItem.from_texture(
+    pathlib.Path("/outputs/normal.png"),
+    TextureTypes.NORMAL_DX,
+)
 config = RemixAssetPipelineConfig(
     output_dir=pathlib.Path("/project/processed_textures"),
     texture_type=TextureTypes.NORMAL_DX,
 )
+context = RemixAssetPipelineContext(items=[item])
 
-await run_remix_asset_pipeline(config, context)
-
+await run_remix_asset_pipeline(
+    config,
+    context,
+    steps=build_remix_texture_pipeline(),
+)
 processed_texture = item.textures[0].path
-```
-
-```python
-import pathlib
-
-from lightspeed.trex.asset_pipeline.core import MaterialType, RemixAssetItem
-
-item = RemixAssetItem.from_model(pathlib.Path("/assets/chair.fbx"), MaterialType.OPAQUE)
-# The canonical pipeline standardizes to USD, collects referenced/materialized
-# textures, processes those textures, and updates the USD texture references.
 ```

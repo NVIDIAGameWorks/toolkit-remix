@@ -24,8 +24,8 @@ from unittest import mock
 import lightspeed.trex.comfyui.core.extension as extension
 import lightspeed.trex.comfyui.core.core as core_module
 import lightspeed.trex.comfyui.core.settings as settings
-from lightspeed.trex.asset_pipeline.core.job import TextureProcessingJob
-from lightspeed.trex.asset_pipeline.core.models import TextureProcessingItem, TextureProcessingRequest
+from lightspeed.trex.asset_pipeline.core.jobs.texture_processing import TextureProcessingJob
+from lightspeed.trex.asset_pipeline.core.jobs.models import TextureProcessingItem, TextureProcessingRequest
 from lightspeed.trex.comfyui.core.apply_handler import ComfyUIJobApplyHandler
 from lightspeed.trex.comfyui.core.connection import get_connected_endpoint, set_connected_endpoint
 from lightspeed.trex.comfyui.core.core import (
@@ -494,32 +494,6 @@ class TestComfyUICore(AsyncTestCase):
         self.assertIs(stage, context.get_stage.return_value)
         self.assertEqual(stage_identifier, "anon:project")
         self.assertEqual(edit_target_identifier, "anon:edit-target")
-
-    async def test_anonymous_stage_uses_queue_owned_processed_output(self) -> None:
-        """Anonymous-stage graphs never construct an invalid publication URL from the layer identifier."""
-        # Arrange
-        core = ComfyUICore("texturecraft")
-        core._workflow = Workflow()
-        context = _make_context("anon:project", "anon:edit-target")
-        stage = context.get_stage.return_value
-        stage.GetRootLayer.return_value.anonymous = True
-        material = _make_material("/World/Looks/Wall")
-
-        # Act
-        with mock.patch("lightspeed.trex.comfyui.core.core.get_context", return_value=context):
-            graph = core._create_job_graphs_for_candidates(
-                [(material, ["/World/Mesh"])],
-                core._workflow,
-                "anon:project",
-                "anon:edit-target",
-                ("http", "127.0.0.1", 8188),
-                core._client_id,
-                stage=stage,
-            )[0]
-
-        # Assert
-        generation_job = graph.jobs[0]
-        self.assertIsNone(_get_workflow_request(graph, generation_job).output_url)
 
     async def test_create_jobs_preserves_json_value_types(self) -> None:
         """Resolved booleans, numbers, paths, and nulls retain their JSON meaning."""

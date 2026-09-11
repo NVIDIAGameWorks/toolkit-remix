@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.5]
+### Changed
+- Updated the pipeline stub in the typed product workflow test to accept the runner's `steps` argument.
+
 ## [2.1.4]
 ### Added
 - Added an end-to-end test that submits a ComfyUI workflow from the real Workflow window and requires the row of the

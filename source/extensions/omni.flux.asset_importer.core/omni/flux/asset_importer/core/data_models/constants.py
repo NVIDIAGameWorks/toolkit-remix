@@ -21,14 +21,28 @@ SUPPORTED_ASSET_EXTENSIONS = [
     ".usda",
     ".usd",
     ".usdc",
+    ".usdz",
     ".fbx",
     ".obj",
     ".gltf",
+    ".glb",
+    ".ply",
+    ".stl",
     ".lxo",
 ]
 
 """
-Taken from `omni.kit.tool.asset_importer`
+Formats ``omni.kit.asset_converter`` reads. It converts OBJ, FBX, and glTF natively, in text and in
+binary form, and falls back to Assimp for the rest, which is how ``.ply``, ``.stl``, and ``.lxo``
+arrive. ``.usdz`` also goes to the converter, because the importer routes only ``.usd``, ``.usda``,
+and ``.usdc`` to the dependency collector.
+
+Every suffix here except ``.fbx`` and ``.lxo`` has a conversion test in
+``tests/e2e/test_asset_importer.py``, which also fails when a suffix is added without one. ``.fbx``
+is covered by the checked-in fixtures.
+
+``.usdb`` is deliberately absent: this build's USD registers no file format for it, so nothing can
+read it. Note that ``ImporterCore`` still routes that suffix to the collector.
 """
 
 

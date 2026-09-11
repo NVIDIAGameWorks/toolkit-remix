@@ -24,7 +24,7 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import omni.usd
-from lightspeed.trex.asset_pipeline.core.job import TextureProcessingJob
+from lightspeed.trex.asset_pipeline.core.jobs.texture_processing import TextureProcessingJob
 from lightspeed.trex.comfyui.core.api import ComfyUIAPI
 from lightspeed.trex.comfyui.core.connection import set_connected_endpoint
 from lightspeed.trex.comfyui.core.core import ComfyUICore
@@ -205,9 +205,9 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
             destination.write_bytes(b"generated")
             return destination
 
-        async def run_pipeline(config, context, *, on_step_started: object, on_item_completed) -> None:
+        async def run_pipeline(config, context, steps=None, *, on_step_started: object, on_item_completed) -> None:
             """Publish deterministic DDS files while exposing pipeline overlap signals."""
-            del on_step_started
+            del on_step_started, steps
             nonlocal processing_count
             processing_count += 1
             current = processing_count
@@ -233,7 +233,7 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
             patch.object(ComfyUIAPI, "wait_for_prompt_completion", new=wait_for_prompt),
             patch.object(ComfyUIAPI, "download_image", new=download_image),
             patch(
-                "lightspeed.trex.asset_pipeline.core.job.run_remix_asset_pipeline",
+                "lightspeed.trex.asset_pipeline.core.jobs.texture_processing.run_remix_asset_pipeline",
                 new=run_pipeline,
             ),
         ):
@@ -459,9 +459,9 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
             destination.write_bytes(b"generated")
             return destination
 
-        async def run_pipeline(config, context, *, on_step_started: object, on_item_completed) -> None:
+        async def run_pipeline(config, context, steps=None, *, on_step_started: object, on_item_completed) -> None:
             """Publish one deterministic processed texture for the retargeted graph."""
-            del on_step_started
+            del on_step_started, steps
             config.output_dir.mkdir(parents=True, exist_ok=True)
             for index, item in enumerate(context.items, start=1):
                 output = config.output_dir / f"{item.source_path.stem}.dds"
@@ -486,7 +486,9 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
                 ),
             ),
             patch.object(ComfyUIAPI, "download_image", new=download_image),
-            patch("lightspeed.trex.asset_pipeline.core.job.run_remix_asset_pipeline", new=run_pipeline),
+            patch(
+                "lightspeed.trex.asset_pipeline.core.jobs.texture_processing.run_remix_asset_pipeline", new=run_pipeline
+            ),
         ):
             self._scheduler = JobScheduler(self._interface)
             self._scheduler.start()

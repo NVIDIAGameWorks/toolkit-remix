@@ -17,10 +17,19 @@
 
 __all__ = ["ComfyUIJobApplyHandler"]
 
+import pathlib
 from typing import Any
 
-from lightspeed.trex.asset_pipeline.core.models import TextureProcessingResult
+from lightspeed.trex.asset_pipeline.core.jobs.models import TextureProcessingResult
+from lightspeed.trex.asset_pipeline.core.metadata import (
+    capture_metadata_receipt,
+    get_current_validation_extensions,
+    revert_metadata,
+    write_metadata_for_paths,
+)
+from lightspeed.trex.asset_pipeline.core.worker import run_in_worker_thread
 from lightspeed.trex.texture_replacements.core.shared import TextureReplacementsCore
+from omni.client import is_local_url
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.job_queue.core.apply_handler_base import ApplyHandler
 from omni.flux.job_queue.core.enums import ApplyOperation, ApplyPolicy
@@ -145,6 +154,18 @@ def _read_exact_authored_values(layer: Sdf.Layer, paths: tuple[str, ...]) -> tup
     )
 
 
+def _local_texture_paths(value: TextureProcessingResult) -> list[pathlib.Path]:
+    """Return the local filesystem paths of every processed texture output.
+
+    Args:
+        value: Fully processed textures.
+
+    Returns:
+        Local paths whose metadata sidecars Apply writes and Revert restores.
+    """
+    return [pathlib.Path(item.asset_url) for item in value.items if is_local_url(item.asset_url)]
+
+
 class ComfyUIJobApplyHandler(ApplyHandler):
     """Apply and safely revert processed ComfyUI textures."""
 
@@ -261,6 +282,7 @@ class ComfyUIJobApplyHandler(ApplyHandler):
         _stage, target_layer = _get_apply_stage(target)
         target_paths = tuple(path for path, _ in replacements)
         original_authored_values = _read_exact_authored_values(target_layer, target_paths)
+        prior_metadata = await run_in_worker_thread(capture_metadata_receipt, _local_texture_paths(value))
         return ComfyUIApplyReceipt(
             original_authored_values=original_authored_values,
             original_compare_values=tuple(
@@ -268,6 +290,7 @@ class ComfyUIJobApplyHandler(ApplyHandler):
                 for path, authored_value in original_authored_values
             ),
             applied_compare_values=self._expected_values(target_layer, replacements),
+            prior_metadata=prior_metadata,
         )
 
     @staticmethod
@@ -330,11 +353,27 @@ class ComfyUIJobApplyHandler(ApplyHandler):
             return
         if current_values != receipt.original_compare_values:
             self._raise_external_edit()
-        TextureReplacementsCore(target.context_name).replace_textures(
-            list(ordered_replacements),
-            force=False,
-            target_layer=target_layer,
-        )
+        local_paths = _local_texture_paths(value)
+        # Read the extension manager here, on the Kit thread, not inside the worker.
+        validation_extensions = get_current_validation_extensions()
+        rollback_receipt = await run_in_worker_thread(capture_metadata_receipt, local_paths)
+        try:
+            await run_in_worker_thread(
+                write_metadata_for_paths, local_paths, validation_extensions, value.validation_passed
+            )
+            if (
+                _read_compare_values(target_layer, tuple(path for path, _ in receipt.applied_compare_values))
+                != current_values
+            ):
+                self._raise_external_edit()
+            TextureReplacementsCore(target.context_name).replace_textures(
+                list(ordered_replacements),
+                force=False,
+                target_layer=target_layer,
+            )
+        except BaseException:
+            await run_in_worker_thread(revert_metadata, rollback_receipt)
+            raise
 
     async def revert(
         self,
@@ -360,12 +399,19 @@ class ComfyUIJobApplyHandler(ApplyHandler):
             (path, _canonicalize_asset_url(target_layer, value)) for path, value in expected_current_values
         )
         if expected_current_values == receipt.original_authored_values:
+            await run_in_worker_thread(revert_metadata, receipt.prior_metadata)
             return
         if current_values != receipt.applied_compare_values:
             self._raise_external_edit()
-        TextureReplacementsCore(target.context_name).replace_textures(
-            list(receipt.original_authored_values),
-            force=True,
-            target_layer=target_layer,
-            expected_current_textures=list(expected_current_values),
-        )
+        rollback_receipt = await run_in_worker_thread(capture_metadata_receipt, _local_texture_paths(value))
+        try:
+            await run_in_worker_thread(revert_metadata, receipt.prior_metadata)
+            TextureReplacementsCore(target.context_name).replace_textures(
+                list(receipt.original_authored_values),
+                force=True,
+                target_layer=target_layer,
+                expected_current_textures=list(expected_current_values),
+            )
+        except BaseException:
+            await run_in_worker_thread(revert_metadata, rollback_receipt)
+            raise

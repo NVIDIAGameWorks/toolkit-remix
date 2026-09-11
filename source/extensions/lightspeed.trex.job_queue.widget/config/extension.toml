@@ -1,5 +1,5 @@
 [package]
-version = "1.1.0"
+version = "1.1.1"
 authors = ["Sam Bourne <sbourne@nvidia.com>"]
 title = "NVIDIA RTX Remix Job Queue Widget"
 description = "Job Queue workspace windows for NVIDIA RTX Remix"
