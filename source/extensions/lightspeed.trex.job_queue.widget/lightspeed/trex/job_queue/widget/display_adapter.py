@@ -18,12 +18,13 @@
 __all__ = ["TextureProcessingDisplayAdapter"]
 
 import pathlib
-from urllib.request import url2pathname
 
 import carb
-from lightspeed.trex.asset_pipeline.core.job import TextureProcessingJob
-from lightspeed.trex.asset_pipeline.core.models import TextureProcessingRequest, TextureProcessingResult
-from omni.client import break_url, is_local_url
+from lightspeed.trex.asset_pipeline.core.jobs import TextureProcessingJob
+from lightspeed.trex.asset_pipeline.core.jobs.models import (
+    TextureProcessingRequest,
+    TextureProcessingResult,
+)
 from omni.flux.job_queue.core import get_job_queue
 from omni.flux.job_queue.core.models import QueueJobDetailsSnapshot
 from omni.flux.job_queue.core.job import JobProgress
@@ -36,7 +37,7 @@ from omni.flux.job_queue.widget.display_adapter_base import (
 )
 from omni.flux.job_queue.widget.constants import ADAPTER_ERRORS
 from omni.flux.job_queue.widget.enums import DisplayState, JobDetailSectionPlacement
-from omni.flux.utils.common.path_utils import open_file_using_os_default
+from omni.flux.utils.common.path_utils import get_local_path, open_file_using_os_default
 
 
 class TextureProcessingDisplayAdapter(JobDisplayAdapter):
@@ -107,9 +108,7 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
         if type(result) is not TextureProcessingResult or not result.items:
             return None, "Processed textures are not available yet."
 
-        local_paths = tuple(
-            path for item in result.items if (path := self._local_asset_path(item.asset_url)) is not None
-        )
+        local_paths = tuple(path for item in result.items if (path := get_local_path(item.asset_url)) is not None)
         if not local_paths:
             return None, "Processed textures are stored remotely and cannot be opened in File Explorer."
         if len(local_paths) != len(result.items):
@@ -136,9 +135,7 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
         result = details.outputs.get(job.PROCESSED_TEXTURES) if details.outputs is not None else None
         if type(result) is not TextureProcessingResult:
             return None
-        output_paths = tuple(
-            path for item in result.items if (path := self._local_asset_path(item.asset_url)) is not None
-        )
+        output_paths = tuple(path for item in result.items if (path := get_local_path(item.asset_url)) is not None)
         return self._shared_parent(output_paths)
 
     @staticmethod
@@ -153,21 +150,6 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
         """
         parents = {path.parent for path in paths}
         return next(iter(parents)) if len(parents) == 1 else None
-
-    @staticmethod
-    def _local_asset_path(asset_url: str) -> pathlib.Path | None:
-        """Convert one local asset URL or path to a native path.
-
-        Args:
-            asset_url: Published texture URL from a typed processing result.
-
-        Returns:
-            Native local path, or None for a remote URL.
-        """
-        if not is_local_url(asset_url):
-            return None
-        url = break_url(asset_url)
-        return pathlib.Path(url2pathname(url.path) if url.scheme == "file" else asset_url)
 
     def get_detail_directories(
         self,

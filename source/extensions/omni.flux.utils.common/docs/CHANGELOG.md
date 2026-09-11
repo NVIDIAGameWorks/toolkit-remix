@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.15.0]
+### Added
+- Added `path_utils.get_local_path` to convert a local path or `file://` URL to a filesystem path and return `None` for a remote URL.
+
 ## [3.14.4]
 ### Changed
 - Updated `async_wrap` for Python 3.12 and extension metadata for Kit SDK 110 compatibility.

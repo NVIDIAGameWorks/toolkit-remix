@@ -18,21 +18,27 @@
 __all__ = ["AssetPipelineCoreExtension"]
 
 import omni.ext
+from omni.flux.job_queue.core import handlers
 from omni.flux.job_queue.core.persistence import get_registry
 
-from .persistence_codecs import TEXTURE_PROCESSING_CODECS
+from .jobs.apply_handler import SaveMeshMetadataHandler, SaveTextureMetadataHandler
+from .persistence_codecs import MESH_OPTIMIZATION_CODECS, TEXTURE_PROCESSING_CODECS
+
+
+_APPLY_HANDLERS = [SaveMeshMetadataHandler, SaveTextureMetadataHandler]
 
 
 class AssetPipelineCoreExtension(omni.ext.IExt):
-    """Register process-owned texture-processing persistence codecs."""
+    """Register process-owned texture- and mesh-optimization persistence codecs and Apply handlers."""
 
     def on_startup(self, _ext_id: str) -> None:
-        """Register the texture-processing persistence codecs.
+        """Register the texture- and mesh-optimization persistence codecs and Apply handlers.
 
         Args:
             _ext_id: Extension identifier supplied by Kit.
         """
-        get_registry().register_codecs(TEXTURE_PROCESSING_CODECS)
+        get_registry().register_codecs(TEXTURE_PROCESSING_CODECS + MESH_OPTIMIZATION_CODECS)
+        handlers.register_plugins(_APPLY_HANDLERS)
 
     def on_shutdown(self) -> None:
-        """Keep codecs available until the queue core drains active jobs and destroys its registry."""
+        """Keep codecs and handlers available until the queue core drains active jobs and destroys its registry."""

@@ -32,7 +32,7 @@ from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common.omni_url import OmniUrl
-from omni.kit.usd.collect import Collector
+from omni.kit.usd.collect import Collector, CollectorStatus
 from pydantic import BaseModel, Field, create_model, field_validator
 from pydantic.functional_validators import SkipValidation
 
@@ -106,6 +106,11 @@ class ImporterCore:
         """
         self.__on_batch_finished = _Event()
         self.__on_batch_progress = _Event()
+        self._last_collected_paths: dict[Path, Path] = {}
+
+    def get_last_collected_paths(self) -> dict[Path, Path]:
+        """Return resolved local source-to-copy paths from the last batch."""
+        return self._last_collected_paths.copy()
 
     def import_batch(self, batch_config: str | Path | dict, default_output_folder: str | Path = None):
         """
@@ -146,6 +151,7 @@ class ImporterCore:
         """
         As import_batch, but async without error handling.  This is meant for testing.
         """
+        self._last_collected_paths.clear()
         if default_output_folder is not None:
             default_output_folder = omni.client.normalize_url(str(default_output_folder))
             result, entry = omni.client.stat(default_output_folder)
@@ -245,7 +251,14 @@ class ImporterCore:
                     self._on_batch_progress(progress + to_add * step / total)  # noqa: B023
 
             def on_finish():
-                collector_weakref().destroy()  # noqa: B023
+                collector = collector_weakref()  # noqa: B023
+                if collector.get_status() == CollectorStatus.FINISHED:
+                    for source_url, target_url in collector.get_source_target_url_mapping().items():
+                        source_path = _path_utils.get_local_path(source_url)
+                        target_path = _path_utils.get_local_path(target_url)
+                        if source_path is not None and target_path is not None:
+                            self._last_collected_paths[source_path.resolve()] = target_path.resolve()
+                collector.destroy()
 
             await collection.collect(progress_callback, on_finish)
 

@@ -2,10 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.1]
+### Fixed
+- Preserved source-to-copy paths from the last import batch to distinguish textures with the same filename.
+
+## [3.1.0]
+### Added
+- Added `.glb`, `.usdz`, `.ply`, and `.stl` to the supported asset extensions.
+
 ## [3.0.1]
 ### Changed
 - Removed stale `omni.services.core` dependency from the core asset importer extension
-
 ## [3.0.0]
 ### Changed
 - Kept reusable folder scanning and one-pass file-selection classification in core while moving scanner UI ownership to the widget extension.

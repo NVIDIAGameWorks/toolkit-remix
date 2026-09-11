@@ -29,9 +29,7 @@ from omni.flux.asset_importer.core.data_models import (
 import lightspeed.trex.asset_pipeline.core.steps.standardize_input as standardize_input_module
 from lightspeed.trex.asset_pipeline.core import (
     AssetKind,
-    MaterialType,
     RemixAssetItem,
-    RemixAssetPipelineConfig,
     RemixAssetPipelineContext,
 )
 from lightspeed.trex.asset_pipeline.core.steps import StandardizeInputStep
@@ -47,7 +45,7 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
         context = RemixAssetPipelineContext(items=[item], work_dir=pathlib.Path("/work"))
 
         # Act
-        errors = StandardizeInputStep(_make_config()).validate(context)
+        errors = StandardizeInputStep(TextureTypes.DIFFUSE).validate(context)
 
         # Assert
         self.assertEqual(errors, [])
@@ -57,7 +55,7 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
         # Arrange
         suffix = SUPPORTED_ASSET_EXTENSIONS[0].upper()
         model_path = pathlib.Path("/models") / f"chair{suffix}"
-        item = RemixAssetItem.from_model(model_path, MaterialType.OPAQUE)
+        item = RemixAssetItem.from_model(model_path)
         context = RemixAssetPipelineContext(
             items=[item],
             work_dir=pathlib.Path("/work"),
@@ -65,7 +63,7 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
         )
 
         # Act
-        errors = StandardizeInputStep(_make_config()).validate(context)
+        errors = StandardizeInputStep(TextureTypes.DIFFUSE).validate(context)
 
         # Assert
         self.assertEqual(errors, [])
@@ -73,11 +71,11 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
     async def test_validate_with_model_item_requires_output_dir(self):
         """Model standardization needs final-path reservations before mutation."""
         # Arrange
-        item = RemixAssetItem.from_model(pathlib.Path("/models/chair.fbx"), MaterialType.OPAQUE)
+        item = RemixAssetItem.from_model(pathlib.Path("/models/chair.fbx"))
         context = RemixAssetPipelineContext(items=[item], work_dir=pathlib.Path("/work"))
 
         # Act
-        errors = StandardizeInputStep(_make_config()).validate(context)
+        errors = StandardizeInputStep(TextureTypes.DIFFUSE).validate(context)
 
         # Assert
         self.assertIn("context.output_dir must be set by the pipeline runner", "\n".join(errors))
@@ -90,7 +88,7 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
         context = RemixAssetPipelineContext(items=[item], work_dir=pathlib.Path("/work"))
 
         # Act
-        errors = StandardizeInputStep(_make_config()).validate(context)
+        errors = StandardizeInputStep(TextureTypes.DIFFUSE).validate(context)
 
         # Assert
         self.assertIn("unsupported texture extension '.txt'", "\n".join(errors))
@@ -99,11 +97,11 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
         """Input validation rejects model files unsupported by the shared importer constants."""
         # Arrange
         model_path = pathlib.Path("/models/chair.ma")
-        item = RemixAssetItem.from_model(model_path, MaterialType.OPAQUE)
+        item = RemixAssetItem.from_model(model_path)
         context = RemixAssetPipelineContext(items=[item], work_dir=pathlib.Path("/work"))
 
         # Act
-        errors = StandardizeInputStep(_make_config()).validate(context)
+        errors = StandardizeInputStep(TextureTypes.DIFFUSE).validate(context)
 
         # Assert
         self.assertIn("unsupported model extension '.ma'", "\n".join(errors))
@@ -114,10 +112,9 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
         texture_path = pathlib.Path("/textures/albedo.png")
         item = RemixAssetItem(value=texture_path, kind=AssetKind.TEXTURE, source_path=texture_path)
         context = RemixAssetPipelineContext(items=[item], work_dir=pathlib.Path("/work"))
-        config = RemixAssetPipelineConfig(output_dir=pathlib.Path("/processed"), texture_type=None)
 
         # Act
-        errors = StandardizeInputStep(config).validate(context)
+        errors = StandardizeInputStep(None).validate(context)
 
         # Assert
         self.assertIn("requires an explicit texture type", "\n".join(errors))
@@ -134,7 +131,7 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
             context = RemixAssetPipelineContext(items=[item], work_dir=work_dir)
 
             # Act
-            await StandardizeInputStep(_make_config(texture_type=TextureTypes.ROUGHNESS)).run(context)
+            await StandardizeInputStep(TextureTypes.ROUGHNESS).run(context)
 
             # Assert
             self.assertEqual(len(item.textures), 1)
@@ -155,7 +152,7 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
             context = RemixAssetPipelineContext(items=[item], work_dir=work_dir)
 
             # Act
-            await StandardizeInputStep(_make_config()).run(context)
+            await StandardizeInputStep(TextureTypes.DIFFUSE).run(context)
 
             # Assert
             self.assertEqual(item.textures[0].path.parent.parent, work_dir)
@@ -175,7 +172,7 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
 
             # Act
             with self.assertRaises(FileNotFoundError) as raised:
-                await StandardizeInputStep(_make_config()).run(context)
+                await StandardizeInputStep(TextureTypes.DIFFUSE).run(context)
 
             # Assert
             self.assertIn(str(texture_path), str(raised.exception))
@@ -189,17 +186,17 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
             source_path.write_text("")
             output_dir = temp_path / "processed"
             output_dir.mkdir()
-            item = RemixAssetItem.from_model(source_path, MaterialType.OPAQUE)
+            item = RemixAssetItem.from_model(source_path)
             context = RemixAssetPipelineContext(items=[item], work_dir=output_dir, output_dir=output_dir)
 
             with patch.object(standardize_input_module, "ImporterCore") as importer_core_mock:
                 importer_core_mock.return_value.import_batch_async = AsyncMock(return_value=True)
 
                 # Act
-                await StandardizeInputStep(_make_config(output_dir=output_dir)).run(context)
+                await StandardizeInputStep(TextureTypes.DIFFUSE).run(context)
 
             # Assert
-            self.assertEqual(item.value.name, "chair.opaque.usd")
+            self.assertEqual(item.value.name, "chair.usd")
             self.assertEqual(item.value.parent.parent, output_dir)
             importer_core_mock.return_value.import_batch_async.assert_awaited_once()
 
@@ -212,17 +209,17 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
             source_path.write_text("#usda 1.0\n")
             output_dir = temp_path / "processed"
             output_dir.mkdir()
-            item = RemixAssetItem.from_model(source_path, MaterialType.OPAQUE)
+            item = RemixAssetItem.from_model(source_path)
             context = RemixAssetPipelineContext(items=[item], work_dir=output_dir, output_dir=output_dir)
 
             with patch.object(standardize_input_module, "ImporterCore") as importer_core_mock:
                 importer_core_mock.return_value.import_batch_async = AsyncMock(return_value=True)
 
                 # Act
-                await StandardizeInputStep(_make_config(output_dir=output_dir)).run(context)
+                await StandardizeInputStep(TextureTypes.DIFFUSE).run(context)
 
             # Assert
-            self.assertEqual(item.value.name, "chair.opaque.usd")
+            self.assertEqual(item.value.name, "chair.usd")
             self.assertEqual(item.value.parent.parent, output_dir)
             importer_core_mock.return_value.import_batch_async.assert_awaited_once()
 
@@ -238,8 +235,8 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
             output_dir = temp_path / "processed"
             output_dir.mkdir()
             items = [
-                RemixAssetItem.from_model(first_source_path, MaterialType.OPAQUE),
-                RemixAssetItem.from_model(second_source_path, MaterialType.OPAQUE),
+                RemixAssetItem.from_model(first_source_path),
+                RemixAssetItem.from_model(second_source_path),
             ]
             context = RemixAssetPipelineContext(items=items, work_dir=output_dir, output_dir=output_dir)
 
@@ -247,15 +244,8 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
                 importer_core_mock.return_value.import_batch_async = AsyncMock(return_value=True)
 
                 # Act
-                await StandardizeInputStep(_make_config(output_dir=output_dir)).run(context)
+                await StandardizeInputStep(TextureTypes.DIFFUSE).run(context)
 
             # Assert
             importer_core_mock.assert_called_once()
             self.assertEqual(importer_core_mock.return_value.import_batch_async.await_count, 2)
-
-
-def _make_config(
-    output_dir: pathlib.Path = pathlib.Path("/processed"),
-    texture_type: TextureTypes = TextureTypes.DIFFUSE,
-) -> RemixAssetPipelineConfig:
-    return RemixAssetPipelineConfig(output_dir=output_dir, texture_type=texture_type)

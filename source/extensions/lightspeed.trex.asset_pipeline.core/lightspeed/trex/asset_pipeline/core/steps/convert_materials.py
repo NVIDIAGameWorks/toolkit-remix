@@ -36,8 +36,8 @@ from omni.usd import get_shader_from_material
 from pxr import Usd, UsdShade
 
 from ..constants import ORPHAN_PARAMETER_CLEANUP_SETTING_PATH
-from ..pipeline_context import RemixAssetPipelineContext
-from ..pipeline_item import AssetKind, MaterialType, RemixAssetItem
+from ..pipeline.context import RemixAssetPipelineContext
+from ..pipeline.item import AssetKind, RemixAssetItem
 
 if TYPE_CHECKING:
     from omni.flux.utils.material_converter.base.converter_base import ConverterBase
@@ -49,83 +49,41 @@ _ORPHAN_PARAMETER_CLEANUP_PREVIOUS_VALUE: object | None = None
 
 
 class ConvertMaterialsStep(PipelineStep):
-    """Convert model materials to the AperturePBR shader for the selected material type."""
+    """Convert model materials according to their authored shader identifiers."""
 
     context_type = RemixAssetPipelineContext
     item_types = (RemixAssetItem,)
 
     @property
     def name(self) -> str:
-        """Return the step identifier.
-
-        Returns:
-            Stable pipeline step name.
-        """
+        """Return the step identifier."""
         return "convert_materials"
 
     @property
     def description(self) -> str:
-        """Return a human-readable description.
-
-        Returns:
-            User-facing phase description.
-        """
+        """Return a human-readable description."""
         return "Prepare model materials"
 
-    def validate(self, context: PipelineContext) -> list[str]:
-        """Require callers to provide the material type for model items.
-
-        Args:
-            context: Pipeline state to validate.
-
-        Returns:
-            Ordered validation errors.
-        """
-        errors = super().validate(context)
-
-        for index, item in enumerate(context.items):
-            if isinstance(item, RemixAssetItem) and item.kind is AssetKind.MODEL and item.material_type is None:
-                errors.append(f"{self.name}: item {index} must provide material_type")
-        return errors
-
     def should_run(self, context: RemixAssetPipelineContext) -> bool:
-        """Return whether the context contains any model items.
-
-        Args:
-            context: Pipeline state containing the candidate asset items.
-
-        Returns:
-            True when at least one model requires material inspection.
-        """
+        """Return whether the context contains any model items."""
         return any(item.kind is AssetKind.MODEL for item in context.items)
 
     def skip_reason(self, context: PipelineContext) -> str:
-        """Return why this step has no material conversion work.
-
-        Args:
-            context: Pipeline state without model items.
-
-        Returns:
-            User-readable skip reason.
-        """
+        """Return why this step has no material conversion work."""
         return "no model items"
 
     async def run(self, context: RemixAssetPipelineContext) -> None:
         """Convert every material in every model item to AperturePBR.
 
-        Args:
-            context: Remix pipeline state containing standardized model stages.
-
         Raises:
             RuntimeError: If no converter supports an authored material or conversion fails.
-            ValueError: If a model requests an unsupported material type.
         """
         for item in context.items:
             if item.kind is not AssetKind.MODEL:
                 continue
 
-            stage = context.open_stage(item.value)
-            target_output = _get_target_shader_output(item.material_type)
+            stage = await context.open_stage(item.value)
+
             material_paths = [prim.GetPath() for prim in stage.Traverse() if prim.IsA(UsdShade.Material)]
 
             with _orphan_parameter_cleanup_disabled():
@@ -133,13 +91,10 @@ class ConvertMaterialsStep(PipelineStep):
                 for prim_path in material_paths:
                     prim = stage.GetPrimAtPath(prim_path)
                     if prim and prim.IsValid():
-                        changed = (
-                            await _convert_material_if_needed(context.stage_context_name, prim, target_output)
-                            or changed
-                        )
+                        changed = await _convert_material_if_needed(context.stage_context_name, prim) or changed
 
             if changed:
-                context.save_stage()
+                await context.save_stage()
                 carb.log_info(f"[ConvertMaterials] Saved converted stage {item.value}")
 
 
@@ -177,23 +132,27 @@ def _orphan_parameter_cleanup_disabled() -> Iterator[None]:
 async def _convert_material_if_needed(
     context_name: str,
     material_prim: Usd.Prim,
-    target_output: SupportedShaderOutputs,
 ) -> bool:
-    """Convert a material unless it already authors the target shader.
+    """Convert a material to the output selected by its authored shader.
 
     Args:
         context_name: USD context used by the material converter.
         material_prim: Material prim whose shader should be inspected and converted.
-        target_output: AperturePBR shader variant required by the asset.
 
     Returns:
         True when conversion changed the material.
 
     Raises:
         RuntimeError: If no converter supports the shader or conversion fails.
-        ValueError: If ``target_output`` is unsupported.
     """
     input_subidentifier = _get_material_shader_subidentifier(material_prim)
+    target_output = _select_output_shader(input_subidentifier)
+    if input_subidentifier is None or target_output is None:
+        raise RuntimeError(
+            f"Unsupported material shader '{input_subidentifier}' on {material_prim.GetPath()}; "
+            "cannot select an AperturePBR output"
+        )
+
     if input_subidentifier == target_output.value:
         return False
 
@@ -204,10 +163,36 @@ async def _convert_material_if_needed(
             f"cannot convert to {target_output.value}"
         )
 
-    success, message, _was_skipped = await MaterialConverterCore.convert(context_name, converter)
+    success, message, was_skipped = await MaterialConverterCore.convert(context_name, converter)
     if not success:
         raise RuntimeError(message or f"Failed to convert material {material_prim.GetPath()} to {target_output.value}")
-    return not _was_skipped
+    return not was_skipped
+
+
+def _select_output_shader(input_subidentifier: str | None) -> SupportedShaderOutputs | None:
+    """Select the AperturePBR output for an authored input shader identifier.
+
+    Args:
+        input_subidentifier: Normalized authored shader identifier.
+
+    Returns:
+        The matching AperturePBR output, or ``None`` for an unsupported identifier.
+    """
+    match input_subidentifier:
+        case SupportedShaderOutputs.APERTURE_PBR_OPACITY.value:
+            return SupportedShaderOutputs.APERTURE_PBR_OPACITY
+        case SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT.value:
+            return SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT
+        case SupportedShaderInputs.OMNI_GLASS.value:
+            return SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT
+        case (
+            SupportedShaderInputs.OMNI_PBR.value
+            | SupportedShaderInputs.OMNI_PBR_OPACITY.value
+            | SupportedShaderInputs.USD_PREVIEW_SURFACE.value
+        ):
+            return SupportedShaderOutputs.APERTURE_PBR_OPACITY
+        case _:
+            return None
 
 
 def _get_material_shader_subidentifier(material_prim: Usd.Prim) -> str | None:
@@ -226,56 +211,47 @@ def _get_material_shader_subidentifier(material_prim: Usd.Prim) -> str | None:
 
 
 async def _build_converter(
-    material_prim: Usd.Prim, input_subidentifier: str | None, target_output: SupportedShaderOutputs
-) -> ConverterBase | None:
+    material_prim: Usd.Prim, input_subidentifier: str, target_output: SupportedShaderOutputs
+) -> ConverterBase:
     """Build a converter for a material and target AperturePBR shader.
+
+    An OmniGlass input uses the glass converter. Other inputs use an empty shader for a translucent
+    target, as the legacy ``MaterialShaders`` plugin did. Opaque targets use the converter for each input shader.
 
     Args:
         material_prim: Material prim to pass to the matching converter builder.
-        input_subidentifier: Normalized authored shader identifier, if known.
+        input_subidentifier: Normalized authored shader identifier.
         target_output: AperturePBR shader variant required by the asset.
 
     Returns:
-        Converter for the supported input shader, or None when no converter matches.
+        Converter for the supported input shader.
 
     Raises:
         ValueError: If ``target_output`` is not a supported AperturePBR variant.
+        RuntimeError: If the input shader is unsupported.
     """
     if target_output not in (
         SupportedShaderOutputs.APERTURE_PBR_OPACITY,
         SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT,
     ):
         raise ValueError(f"Unsupported material shader output: {target_output}")
-
     target_subidentifier = target_output.value
-    supported_inputs = {shader_input.value for shader_input in SupportedShaderInputs}
-
-    if input_subidentifier not in supported_inputs:
-        shader_prim = get_shader_from_material(material_prim, get_prim=True)
-        if shader_prim is None or not shader_prim.IsValid():
-            return None
-
-        _matching_builder, matching_input = await MaterialConverterCore.find_matching_supported_material(shader_prim)
-        if matching_input is None:
-            return None
-        input_subidentifier = matching_input.value
 
     if input_subidentifier == SupportedShaderInputs.OMNI_GLASS.value:
         return OmniGlassToAperturePBRConverterBuilder().build(material_prim, target_subidentifier)
+    if target_output is SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT:
+        return NoneToAperturePBRConverterBuilder().build(material_prim, target_subidentifier)
 
     match input_subidentifier:
         case SupportedShaderInputs.OMNI_PBR.value | SupportedShaderInputs.OMNI_PBR_OPACITY.value:
             return OmniPBRToAperturePBRConverterBuilder().build(material_prim, target_subidentifier)
         case SupportedShaderInputs.USD_PREVIEW_SURFACE.value:
             return USDPreviewSurfaceToAperturePBRConverterBuilder().build(material_prim, target_subidentifier)
-        case SupportedShaderInputs.NONE.value:
-            return NoneToAperturePBRConverterBuilder().build(material_prim, target_subidentifier)
 
-    carb.log_warn(
-        f"[ConvertMaterials] No converter registered for material shader '{input_subidentifier}' "
-        f"on {material_prim.GetPath()}"
+    raise RuntimeError(
+        f"Unsupported material shader '{input_subidentifier}' on {material_prim.GetPath()}; "
+        f"cannot convert to {target_output.value}"
     )
-    return None
 
 
 def _get_authored_shader_subidentifier(shader_prim: Usd.Prim) -> str | None:
@@ -310,22 +286,3 @@ def _normalize_shader_identifier(value: object) -> str | None:
     if value is None:
         return None
     return str(value).split("(", maxsplit=1)[0].removesuffix(".mdl")
-
-
-def _get_target_shader_output(material_type: MaterialType) -> SupportedShaderOutputs:
-    """Map one Remix material semantic to its AperturePBR shader output.
-
-    Args:
-        material_type: Material opacity semantic.
-
-    Returns:
-        Matching AperturePBR shader output.
-
-    Raises:
-        ValueError: If the material type is unsupported.
-    """
-    if material_type is MaterialType.OPAQUE:
-        return SupportedShaderOutputs.APERTURE_PBR_OPACITY
-    if material_type is MaterialType.TRANSLUCENT:
-        return SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT
-    raise ValueError(f"Unsupported material type: {material_type}")

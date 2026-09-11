@@ -24,12 +24,11 @@ import pathlib
 import carb
 from omni.flux.asset_importer.core import ImporterCore
 from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS, SUPPORTED_TEXTURE_EXTENSIONS
-from omni.flux.asset_importer.core.data_models import UsdExtensions
+from omni.flux.asset_importer.core.data_models import TextureTypes, UsdExtensions
 from omni.flux.asset_pipeline.core import PipelineContext, PipelineStep
 
-from ..pipeline_config import RemixAssetPipelineConfig
-from ..pipeline_context import RemixAssetPipelineContext
-from ..pipeline_item import AssetKind, RemixAssetItem, TextureAsset
+from ..pipeline.context import RemixAssetPipelineContext
+from ..pipeline.item import AssetKind, RemixAssetItem, TextureAsset
 from ..worker import run_in_worker_thread
 
 
@@ -39,42 +38,28 @@ class StandardizeInputStep(PipelineStep):
     context_type = RemixAssetPipelineContext
     item_types = (RemixAssetItem,)
 
-    def __init__(self, config: RemixAssetPipelineConfig):
-        """Create the step from immutable pipeline configuration.
+    def __init__(self, texture_type: TextureTypes | None) -> None:
+        """Create the step with the default texture semantic.
 
         Args:
-            config: Pipeline configuration supplying default texture semantics.
+            texture_type: Semantic used when synthesizing a missing texture record. None means
+                the step cannot create one and will raise at validation time.
         """
         super().__init__()
-        self._config = config
+        self._texture_type = texture_type
 
     @property
     def name(self) -> str:
-        """Return the step identifier.
-
-        Returns:
-            Stable pipeline step name.
-        """
+        """Return the step identifier."""
         return "standardize_input"
 
     @property
     def description(self) -> str:
-        """Return a human-readable description.
-
-        Returns:
-            User-facing phase description.
-        """
+        """Return a human-readable description."""
         return "Prepare source files"
 
     def validate(self, context: PipelineContext) -> list[str]:
-        """Validate supported input kinds and file extensions before mutation.
-
-        Args:
-            context: Pipeline state to validate.
-
-        Returns:
-            Ordered validation errors.
-        """
+        """Validate supported input kinds and file extensions before mutation."""
         errors = super().validate(context)
         if errors:
             return errors
@@ -88,7 +73,7 @@ class StandardizeInputStep(PipelineStep):
         asset_extensions = {extension.lower() for extension in SUPPORTED_ASSET_EXTENSIONS}
         for index, item in enumerate(context.items):
             suffix = item.source_path.suffix.lower()
-            if item.kind is AssetKind.TEXTURE and not item.textures and self._config.texture_type is None:
+            if item.kind is AssetKind.TEXTURE and not item.textures and self._texture_type is None:
                 errors.append(f"{self.name}: item {index} requires an explicit texture type")
             if item.kind is AssetKind.TEXTURE and suffix not in texture_extensions:
                 errors.append(f"{self.name}: item {index} has unsupported texture extension '{suffix}'")
@@ -97,14 +82,7 @@ class StandardizeInputStep(PipelineStep):
         return errors
 
     def should_run(self, context: RemixAssetPipelineContext) -> bool:
-        """Return true when any item still needs canonical records or model import.
-
-        Args:
-            context: Remix pipeline state to inspect.
-
-        Returns:
-            Whether any source item still needs workspace standardization.
-        """
+        """Return true when any item still needs canonical records or model import."""
         return any(
             (item.kind is AssetKind.TEXTURE and not item.textures)
             or (
@@ -119,21 +97,11 @@ class StandardizeInputStep(PipelineStep):
         )
 
     def skip_reason(self, context: PipelineContext) -> str:
-        """Return why this step has no work for the already-compatible context.
-
-        Args:
-            context: Pipeline state without standardization work.
-
-        Returns:
-            User-readable skip reason.
-        """
+        """Return why this step has no work for the already-compatible context."""
         return "all items are already standardized"
 
     async def run(self, context: RemixAssetPipelineContext) -> None:
         """Populate missing texture records and import models into canonical USD files.
-
-        Args:
-            context: Pipeline state containing source items and the temporary work directory.
 
         Raises:
             FileNotFoundError: If a source texture or model does not exist.
@@ -144,12 +112,12 @@ class StandardizeInputStep(PipelineStep):
         for item in context.items:
             if item.kind is AssetKind.TEXTURE:
                 if not item.textures:
-                    if self._config.texture_type is None:
+                    if self._texture_type is None:
                         raise ValueError("Texture items without records require an explicit texture type")
                     item.textures.append(
                         TextureAsset(
                             path=item.source_path,
-                            texture_type=self._config.texture_type,
+                            texture_type=self._texture_type,
                             original_path=item.source_path,
                         )
                     )
@@ -210,6 +178,7 @@ class StandardizeInputStep(PipelineStep):
         if not success:
             raise RuntimeError(f"Failed to import model asset: {item.source_path}")
 
+        item.collected_dependencies = importer_core.get_last_collected_paths()
         item.value = work_path
 
     def _get_model_work_path(
@@ -221,19 +190,19 @@ class StandardizeInputStep(PipelineStep):
     ) -> pathlib.Path:
         """Return the canonical USD workspace path for one model source.
 
+        The model keeps its source stem, as the legacy importer wrote it: ``chair.fbx`` imports to
+        ``chair.usd``.
+
         Args:
             context: Remix pipeline state providing the workspace directory.
-            item: Model item carrying its source path and processing semantic.
+            item: Model item carrying its source path.
             create_parent: Whether to create the workspace parent directory.
 
         Returns:
             Reserved canonical USD workspace path.
         """
-        if item.material_type is None:
-            raise ValueError("Model assets require a material semantic")
         return context.get_work_path(
             item.source_path,
-            stem_suffix=f".{item.material_type.name.lower()}",
             suffix=f".{UsdExtensions.USD.value}",
             create_parent=create_parent,
         )

@@ -23,7 +23,7 @@ import pathlib
 from copy import deepcopy
 from typing import Any, ClassVar
 
-from lightspeed.trex.asset_pipeline.core.models import TextureProcessingItem, TextureProcessingRequest
+from lightspeed.trex.asset_pipeline.core.jobs.models import TextureProcessingItem, TextureProcessingRequest
 from omni.flux.job_queue.core.errors import JobExecutionError
 from omni.flux.job_queue.core.job import (
     Job,

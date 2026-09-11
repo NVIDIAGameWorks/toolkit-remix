@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4970: Validator and pipeline DDS conversions now call the NVTT C binding directly through `omni.flux.nvtt.core.encode_dds`, with typed validator format, gamma, and mip-filter settings.
 - REMIX-2968: Added a non-blocking `check-tests-written` merge request job that warns when an extension's Python source changed without any change to its tests, posting a self-resolving merge request note and honoring a `no-tests-needed` opt-out label
 - REMIX-5930: Added an "Open Project with Capture..." recent-project action that selects and saves the active capture before opening StageCraft.
+- REMIX-5976: Added an in-process typed texture and mesh asset-processing graph with ingestion parity, durable queue restart, publication and metadata Apply, and context isolation.
 
 ### Changed
 

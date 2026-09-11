@@ -18,20 +18,29 @@
 __all__ = [
     "AssetKind",
     "AssetPipelineCoreExtension",
-    "MaterialType",
     "PipelineOutputPath",
     "RemixAssetItem",
     "RemixAssetPipelineConfig",
     "RemixAssetPipelineContext",
     "TextureAsset",
     "TextureBinding",
-    "build_remix_asset_pipeline",
+    "build_prepare_optimization_steps",
+    "build_remix_mesh_pipeline",
+    "build_remix_texture_pipeline",
     "run_remix_asset_pipeline",
 ]
 
 from .extension import AssetPipelineCoreExtension
-from .pipeline_builder import build_remix_asset_pipeline
-from .pipeline_config import RemixAssetPipelineConfig
-from .pipeline_context import PipelineOutputPath, RemixAssetPipelineContext
-from .pipeline_item import AssetKind, MaterialType, RemixAssetItem, TextureAsset, TextureBinding
-from .pipeline_runner import run_remix_asset_pipeline
+from .pipeline import (
+    AssetKind,
+    PipelineOutputPath,
+    RemixAssetItem,
+    RemixAssetPipelineConfig,
+    RemixAssetPipelineContext,
+    TextureAsset,
+    TextureBinding,
+    build_prepare_optimization_steps,
+    build_remix_mesh_pipeline,
+    build_remix_texture_pipeline,
+    run_remix_asset_pipeline,
+)

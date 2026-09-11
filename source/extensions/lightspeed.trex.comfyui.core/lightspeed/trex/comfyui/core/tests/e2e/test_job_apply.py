@@ -21,11 +21,13 @@ import tempfile
 from unittest.mock import patch
 
 import omni.usd
-from lightspeed.trex.asset_pipeline.core.models import ProcessedTexture, TextureProcessingResult
+from lightspeed.trex.asset_pipeline.core.constants import VALIDATION_PASSED_KEY
+from lightspeed.trex.asset_pipeline.core.jobs.models import ProcessedTexture, TextureProcessingResult
 from lightspeed.trex.comfyui.core.apply_handler import ComfyUIJobApplyHandler
 from lightspeed.trex.comfyui.core.models import ComfyUIApplyTarget
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.job_queue.core.errors import ApplyExecutionError
+from omni.flux.utils.common.path_utils import read_metadata
 from omni.kit import undo
 from omni.kit.test import AsyncTestCase
 from pxr import Sdf, UsdShade
@@ -196,6 +198,42 @@ class TestComfyUIJobApplyE2E(AsyncTestCase):
             self._target_layer.GetAttributeAtPath(self._albedo_path).default.path,
             "textures/original-albedo.dds",
         )
+
+    async def test_revert_restores_prior_sidecar_metadata_on_disk(self):
+        """Revert restores the exact sidecar bytes that existed before a real Apply overwrote them."""
+        target = self._target((("albedo", self._albedo_path),))
+        applied_url = str(pathlib.Path(self._temp_dir.name) / "processed-albedo.dds")
+        sidecar = pathlib.Path(applied_url).with_suffix(".dds.meta")
+        prior_sidecar_content = '{"prior": "sidecar"}'
+        sidecar.write_text(prior_sidecar_content)
+        value = self._result((("albedo", applied_url, TextureTypes.DIFFUSE),))
+        handler = ComfyUIJobApplyHandler()
+        receipt = await handler.capture_receipt(value, target)
+
+        # Apply overwrites the sidecar with real hashed metadata.
+        await handler.apply(value, target, receipt)
+        self.assertNotEqual(sidecar.read_text(), prior_sidecar_content)
+
+        # Revert restores the exact prior sidecar bytes captured before Apply.
+        await ComfyUIJobApplyHandler().revert(value, target, receipt)
+
+        self.assertEqual(sidecar.read_text(), prior_sidecar_content)
+
+    async def test_apply_records_failed_validation_in_sidecar(self):
+        """A result whose pipeline recorded an error is written as validation_passed=False, not True."""
+        target = self._target((("albedo", self._albedo_path),))
+        applied_url = str(pathlib.Path(self._temp_dir.name) / "processed-albedo.dds")
+        value = dataclasses.replace(
+            self._result((("albedo", applied_url, TextureTypes.DIFFUSE),)), validation_passed=False
+        )
+        handler = ComfyUIJobApplyHandler()
+        receipt = await handler.capture_receipt(value, target)
+
+        # Apply writes the real sidecar for the processed texture.
+        await handler.apply(value, target, receipt)
+
+        # The sidecar carries the pipeline outcome, so a consumer can tell a failed run from a clean one.
+        self.assertIs(read_metadata(applied_url, VALIDATION_PASSED_KEY), False)
 
     async def test_reapply_detects_target_layer_edit_hidden_by_stronger_opinion(self):
         """A stronger composed value cannot hide an external edit on the persisted target layer."""

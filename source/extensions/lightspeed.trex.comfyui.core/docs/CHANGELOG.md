@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.5]
+### Fixed
+- Wrote metadata sidecars for processed textures before replacing shader inputs, recording the pipeline's real `validation_passed` outcome, and restored them on Revert, so a texture's metadata always matches its current applied state. Separately, imported the asset pipeline job modules from their current location and the metadata sidecar helpers from the asset pipeline's `metadata` module, so the extension starts instead of failing to load.
+
 ## [3.0.4]
 ### Added
 - Returned typed `Workflow` entries from discovery, with the display name, description, and server-defined type of each

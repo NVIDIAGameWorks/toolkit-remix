@@ -16,21 +16,25 @@
 """
 
 __all__ = [
-    "CollectTexturesStep",
+    "ApplyProcessedTexturesStep",
     "ConvertDDSStep",
     "ConvertMaterialsStep",
     "ConvertNormalStep",
+    "DiscoverTexturesStep",
+    "MaterialCleanupStep",
+    "MetaStep",
+    "NormalizeEmissiveIntensityStep",
+    "ReferenceStep",
     "StandardizeInputStep",
-    "TriangulateMeshesStep",
-    "UpdateTexturesStep",
-    "WriteMetadataStep",
 ]
 
-from .collect_textures import CollectTexturesStep
+from .apply_processed_textures import ApplyProcessedTexturesStep
 from .convert_dds import ConvertDDSStep
 from .convert_materials import ConvertMaterialsStep
 from .convert_normal import ConvertNormalStep
+from .discover_textures import DiscoverTexturesStep
+from .material_cleanup import MaterialCleanupStep
+from .meta import MetaStep
+from .reference import ReferenceStep
 from .standardize_input import StandardizeInputStep
-from .triangulate_meshes import TriangulateMeshesStep
-from .update_textures import UpdateTexturesStep
-from .write_metadata import WriteMetadataStep
+from .normalize_emissive_intensity import NormalizeEmissiveIntensityStep

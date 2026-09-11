@@ -24,6 +24,7 @@ __all__ = [
     "elide_path",
     "get_absolute_path_from_relative",
     "get_invalid_extensions",
+    "get_local_path",
     "get_new_hash",
     "get_udim_sequence",
     "hash_file",
@@ -52,6 +53,7 @@ import subprocess
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from urllib.request import url2pathname
 from enum import Enum, auto
 
 import carb
@@ -71,6 +73,21 @@ def is_absolute_path(path: str) -> bool:
     """Check if the path is absolute or not"""
     parts = omni.client.break_url(path)
     return parts.scheme not in {None, "file"} or ntpath.isabs(parts.path) or posixpath.isabs(parts.path)
+
+
+def get_local_path(url: str) -> Path | None:
+    """Convert a local URL or path to a filesystem path, or return None for a remote URL.
+
+    Args:
+        url: Local path, ``file://`` URL, or remote URL.
+
+    Returns:
+        The local filesystem path, or None when the URL is remote.
+    """
+    if not omni.client.is_local_url(url):
+        return None
+    parts = omni.client.break_url(url)
+    return Path(url2pathname(parts.path) if parts.scheme == "file" else url)
 
 
 def get_absolute_path_from_relative(path: str, layer: Sdf.Layer):

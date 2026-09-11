@@ -33,7 +33,7 @@ from typing import Any
 
 import carb
 from lightspeed.common.constants import REMIX_INGESTED_ASSETS_FOLDER
-from lightspeed.trex.asset_pipeline.core.job import TextureProcessingJob
+from lightspeed.trex.asset_pipeline.core.jobs import TextureProcessingJob
 from lightspeed.trex.asset_pipeline.core.worker import run_in_worker_thread
 from omni.flux.job_queue.core import get_job_queue
 from omni.flux.job_queue.core.enums import JobState
@@ -1427,7 +1427,10 @@ class ComfyUICore:
                 material_path=material_path,
                 texture_targets=tuple(texture_targets.items()),
             )
-            processing_job = TextureProcessingJob(
+            graph = JobGraph(name=f"{workflow.name} - {workflow.active_preset or 'Custom Settings'}")
+            graph.add_job(generation_job)
+            graph.bind(generation_job, ComfyUIJob.WORKFLOW_REQUEST, request)
+            texture_job = TextureProcessingJob(
                 name="Texture optimization",
                 apply_binding=ApplyBinding(
                     output_port=TextureProcessingJob.PROCESSED_TEXTURES,
@@ -1435,13 +1438,10 @@ class ComfyUICore:
                     target=target,
                 ),
             )
-            graph = JobGraph(name=f"{workflow.name} - {workflow.active_preset or 'Custom Settings'}")
-            graph.add_job(generation_job)
-            graph.add_job(processing_job)
-            graph.bind(generation_job, ComfyUIJob.WORKFLOW_REQUEST, request)
+            graph.add_job(texture_job)
             graph.connect(
                 generation_job.output(ComfyUIJob.GENERATED_TEXTURES),
-                processing_job.input(TextureProcessingJob.SOURCE_TEXTURES),
+                texture_job.input(TextureProcessingJob.SOURCE_TEXTURES),
             )
             graphs.append(graph)
         if report is not None:

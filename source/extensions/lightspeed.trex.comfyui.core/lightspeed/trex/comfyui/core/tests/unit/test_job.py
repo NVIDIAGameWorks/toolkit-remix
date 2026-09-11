@@ -16,19 +16,22 @@
 """
 
 import dataclasses
+import json
 import pathlib
 import tempfile
 import uuid
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from lightspeed.trex.asset_pipeline.core.job import TextureProcessingJob
-from lightspeed.trex.asset_pipeline.core.models import (
+import lightspeed.trex.comfyui.core.apply_handler as apply_handler_module
+from lightspeed.trex.asset_pipeline.core.jobs.models import (
     ProcessedTexture,
     TextureProcessingItem,
     TextureProcessingRequest,
     TextureProcessingResult,
 )
+from lightspeed.trex.asset_pipeline.core.jobs.texture_processing import TextureProcessingJob
+from lightspeed.trex.asset_pipeline.core.metadata import MetadataApplyReceipt
 from lightspeed.trex.comfyui.core.api import ComfyUIImageResult
 from lightspeed.trex.comfyui.core.connection import set_connected_endpoint
 from lightspeed.trex.comfyui.core.enums import WorkflowCategory, WorkflowSourceType
@@ -247,117 +250,6 @@ class TestComfyUIJob(AsyncTestCase):
 
                 # Assert
                 self.assertIs(type(error_context.exception), error_type)
-
-    async def test_capture_receipt_is_non_mutating_and_apply_uses_it(self):
-        """Receipt capture reads the baseline before a separate Apply authors USD."""
-        # Arrange
-        handler = ComfyUIJobApplyHandler()
-        target = ComfyUIApplyTarget(
-            context_name="texturecraft",
-            project_path="C:/submitted/project.usda",
-            edit_target_layer="C:/project/mod.usda",
-            material_path="/World/Looks/Material",
-            texture_targets=(("albedo", "/Shader.inputs:diffuse_texture"),),
-        )
-        value = TextureProcessingResult(
-            items=(
-                ProcessedTexture(
-                    key="albedo",
-                    source_path=pathlib.Path("C:/queue/albedo.png"),
-                    asset_url="C:/project/albedo.dds",
-                    texture_type=TextureTypes.DIFFUSE,
-                ),
-            )
-        )
-        stage = MagicMock()
-        layer = MagicMock()
-        layer.anonymous = True
-        replacements = MagicMock()
-        original_authored_values = (("/Shader.inputs:diffuse_texture", "../textures/old.dds"),)
-        original_compare_values = (("/Shader.inputs:diffuse_texture", "C:/project/textures/old.dds"),)
-        with (
-            patch("lightspeed.trex.comfyui.core.apply_handler._get_apply_stage", return_value=(stage, layer)),
-            patch(
-                "lightspeed.trex.comfyui.core.apply_handler._read_exact_authored_values",
-                return_value=original_authored_values,
-            ) as read_exact,
-            patch(
-                "lightspeed.trex.comfyui.core.apply_handler._canonicalize_asset_url",
-                side_effect=(
-                    "C:/project/textures/old.dds",
-                    "C:/project/albedo.dds",
-                    "C:/project/albedo.dds",
-                ),
-            ),
-            patch(
-                "lightspeed.trex.comfyui.core.apply_handler._read_compare_values",
-                return_value=original_compare_values,
-            ) as read_compare,
-            patch("lightspeed.trex.comfyui.core.apply_handler.TextureReplacementsCore", return_value=replacements),
-        ):
-            # Act
-            receipt = await handler.capture_receipt(value, target)
-            replacement_calls_before_apply = replacements.replace_textures.call_count
-            result = await handler.apply(value, target, receipt)
-
-        # Assert
-        self.assertEqual(receipt.original_authored_values, original_authored_values)
-        self.assertEqual(receipt.original_compare_values, original_compare_values)
-        self.assertEqual(receipt.applied_compare_values, (("/Shader.inputs:diffuse_texture", "C:/project/albedo.dds"),))
-        self.assertEqual(replacement_calls_before_apply, 0)
-        self.assertIsNone(result)
-        read_exact.assert_called_once_with(layer, ("/Shader.inputs:diffuse_texture",))
-        read_compare.assert_called_once_with(layer, ("/Shader.inputs:diffuse_texture",))
-        replacements.replace_textures.assert_called_once_with(
-            [("/Shader.inputs:diffuse_texture", "C:/project/albedo.dds")],
-            force=False,
-            target_layer=layer,
-        )
-
-    async def test_apply_retry_after_mutation_is_idempotent(self):
-        """Retry after an interrupted Apply does not author a duplicate replacement command."""
-        # Arrange
-        handler = ComfyUIJobApplyHandler()
-        path = "/Shader.inputs:diffuse_texture"
-        target = ComfyUIApplyTarget(
-            context_name="texturecraft",
-            project_path="C:/project/project.usda",
-            edit_target_layer="C:/project/mod.usda",
-            material_path="/World/Looks/Material",
-            texture_targets=(("albedo", path),),
-        )
-        value = TextureProcessingResult(
-            items=(
-                ProcessedTexture(
-                    key="albedo",
-                    source_path=pathlib.Path("C:/queue/albedo.png"),
-                    asset_url="C:/project/albedo.dds",
-                    texture_type=TextureTypes.DIFFUSE,
-                ),
-            )
-        )
-        receipt = ComfyUIApplyReceipt(
-            original_authored_values=((path, "old.dds"),),
-            original_compare_values=((path, "old.dds"),),
-            applied_compare_values=((path, "C:/project/albedo.dds"),),
-        )
-        layer = MagicMock()
-        layer.anonymous = True
-        replacements = MagicMock()
-        with (
-            patch("lightspeed.trex.comfyui.core.apply_handler._get_apply_stage", return_value=(MagicMock(), layer)),
-            patch(
-                "lightspeed.trex.comfyui.core.apply_handler._read_compare_values",
-                return_value=receipt.applied_compare_values,
-            ),
-            patch("lightspeed.trex.comfyui.core.apply_handler.TextureReplacementsCore", return_value=replacements),
-        ):
-            # Act
-            result = await handler.apply(value, target, receipt)
-
-        # Assert
-        self.assertIsNone(result)
-        replacements.replace_textures.assert_not_called()
 
     async def test_apply_rejects_processed_texture_incompatible_with_material_input(self):
         """A processed normal map cannot be applied through an albedo target key."""
@@ -623,6 +515,487 @@ class TestComfyUIJob(AsyncTestCase):
             expected_current_textures=list(receipt.applied_compare_values),
         )
 
+    async def test_capture_receipt_and_revert_round_trip_real_sidecars(self):
+        """Capture reads real prior sidecars; Revert restores or deletes them exactly after a real Apply write."""
+        # Arrange
+        handler = ComfyUIJobApplyHandler()
+        albedo_path = "/Shader.inputs:diffuse_texture"
+        normal_path = "/Shader.inputs:normalmap_texture"
+        target = ComfyUIApplyTarget(
+            context_name="texturecraft",
+            project_path="C:/project/project.usda",
+            edit_target_layer="C:/project/mod.usda",
+            material_path="/World/Looks/Material",
+            texture_targets=(("albedo", albedo_path), ("normal_ogl", normal_path)),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = pathlib.Path(temp_dir)
+            albedo_output = temp_path / "albedo.dds"
+            albedo_output.write_bytes(b"DDS")
+            albedo_sidecar = albedo_output.with_suffix(".dds.meta")
+            albedo_sidecar.write_text('{"prior": "albedo"}')
+            normal_output = temp_path / "normal.dds"
+            normal_output.write_bytes(b"DDS")
+            normal_sidecar = normal_output.with_suffix(".dds.meta")
+            self.assertFalse(normal_sidecar.exists())
+
+            value = TextureProcessingResult(
+                items=(
+                    ProcessedTexture(
+                        key="albedo",
+                        source_path=pathlib.Path("C:/queue/albedo.png"),
+                        asset_url=str(albedo_output),
+                        texture_type=TextureTypes.DIFFUSE,
+                    ),
+                    ProcessedTexture(
+                        key="normal_ogl",
+                        source_path=pathlib.Path("C:/queue/normal.png"),
+                        asset_url=str(normal_output),
+                        texture_type=TextureTypes.NORMAL_OTH,
+                    ),
+                )
+            )
+            layer = MagicMock()
+            layer.anonymous = True
+            replacements = MagicMock()
+            original_authored_values = ((albedo_path, "old-albedo.dds"), (normal_path, "old-normal.dds"))
+            applied_authored_values = ((albedo_path, str(albedo_output)), (normal_path, str(normal_output)))
+            with (
+                patch("lightspeed.trex.comfyui.core.apply_handler._get_apply_stage", return_value=(MagicMock(), layer)),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._read_exact_authored_values",
+                    side_effect=[original_authored_values, applied_authored_values],
+                ),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._canonicalize_asset_url",
+                    side_effect=lambda _layer, asset_url: asset_url,
+                ),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._read_compare_values",
+                    return_value=original_authored_values,
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler.TextureReplacementsCore", return_value=replacements),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler.get_current_validation_extensions",
+                    return_value=[],
+                ),
+            ):
+                # Act
+                receipt = await handler.capture_receipt(value, target)
+                await handler.apply(value, target, receipt)
+                albedo_after_apply = albedo_sidecar.read_text()
+                normal_after_apply = normal_sidecar.read_text()
+
+                await handler.revert(value, target, receipt)
+
+            # Assert: capture read the real prior sidecar for the output that had one, and recorded none otherwise.
+            self.assertEqual(
+                dict(receipt.prior_metadata.prior_meta),
+                {albedo_sidecar: '{"prior": "albedo"}', normal_sidecar: None},
+            )
+            # Apply overwrote both sidecars with real hashed metadata before Revert ran.
+            self.assertNotEqual(albedo_after_apply, '{"prior": "albedo"}')
+            self.assertTrue(normal_after_apply)
+            # Revert restored the exact prior sidecar bytes and deleted the sidecar absent before Apply.
+            self.assertEqual(albedo_sidecar.read_text(), '{"prior": "albedo"}')
+            self.assertFalse(normal_sidecar.exists())
+
+    async def test_apply_restores_sidecars_when_metadata_write_fails(self):
+        """A partial metadata write restores both prior sidecars."""
+        # Arrange
+        handler = ComfyUIJobApplyHandler()
+        shader_path = "/Shader.inputs:diffuse_texture"
+        target = ComfyUIApplyTarget(
+            context_name="texturecraft",
+            project_path="C:/project/project.usda",
+            edit_target_layer="C:/project/mod.usda",
+            material_path="/World/Looks/Material",
+            texture_targets=(("albedo", shader_path), ("normal_ogl", "/Shader.inputs:normalmap_texture")),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = pathlib.Path(temp_dir) / "albedo.dds"
+            output.write_bytes(b"DDS")
+            sidecar = output.with_suffix(".dds.meta")
+            sidecar.write_bytes(b'{"prior": "first Apply"}')
+            normal_output = pathlib.Path(temp_dir) / "normal.dds"
+            normal_output.write_bytes(b"DDS")
+            normal_sidecar = normal_output.with_suffix(".dds.meta")
+            normal_before = {"prior": "normal"}
+            normal_sidecar.write_text(json.dumps(normal_before))
+            value = TextureProcessingResult(
+                items=(
+                    ProcessedTexture(
+                        key="albedo",
+                        source_path=pathlib.Path("C:/queue/albedo.png"),
+                        asset_url=str(output),
+                        texture_type=TextureTypes.DIFFUSE,
+                    ),
+                    ProcessedTexture(
+                        key="normal_ogl",
+                        source_path=pathlib.Path("C:/queue/normal.png"),
+                        asset_url=str(normal_output),
+                        texture_type=TextureTypes.NORMAL_OTH,
+                    ),
+                ),
+            )
+            original_values = ((shader_path, "old.dds"), ("/Shader.inputs:normalmap_texture", "old_normal.dds"))
+            metadata_error = RuntimeError("Metadata write failed")
+
+            def fail_metadata_write(*_args):
+                sidecar.write_text(json.dumps({"partial": "write"}))
+                raise metadata_error
+
+            with (
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._get_apply_stage",
+                    return_value=(MagicMock(), MagicMock()),
+                ),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._read_exact_authored_values",
+                    return_value=original_values,
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler._read_compare_values", return_value=original_values),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._canonicalize_asset_url",
+                    side_effect=lambda _layer, url: url,
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler.get_current_validation_extensions", return_value=[]),
+                patch("lightspeed.trex.comfyui.core.apply_handler.TextureReplacementsCore"),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler.write_metadata_for_paths",
+                    side_effect=fail_metadata_write,
+                ),
+            ):
+                receipt = await handler.capture_receipt(value, target)
+                # A later attempt must preserve its own baseline, not the first Apply baseline.
+                before_apply = {"prior": "this Apply attempt"}
+                sidecar.write_text(json.dumps(before_apply))
+
+                # Act
+                with self.assertRaises(RuntimeError) as error_context:
+                    await handler.apply(value, target, receipt)
+
+            # Assert
+            self.assertIs(error_context.exception, metadata_error)
+            self.assertEqual(json.loads(sidecar.read_text()), before_apply)
+            self.assertEqual(json.loads(normal_sidecar.read_text()), normal_before)
+
+    async def test_apply_restores_sidecar_when_shader_changes_during_metadata_write(self):
+        """An external shader edit stops Apply and restores prior metadata."""
+        # Arrange
+        handler = ComfyUIJobApplyHandler()
+        shader_path = "/Shader.inputs:diffuse_texture"
+        target = ComfyUIApplyTarget(
+            context_name="texturecraft",
+            project_path="C:/project/project.usda",
+            edit_target_layer="C:/project/mod.usda",
+            material_path="/World/Looks/Material",
+            texture_targets=(("albedo", shader_path),),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = pathlib.Path(temp_dir) / "albedo.dds"
+            output.write_bytes(b"DDS")
+            sidecar = output.with_suffix(".dds.meta")
+            sidecar.write_bytes(b'{"prior": "first Apply"}')
+            value = TextureProcessingResult(
+                items=(
+                    ProcessedTexture(
+                        key="albedo",
+                        source_path=pathlib.Path("C:/queue/albedo.png"),
+                        asset_url=str(output),
+                        texture_type=TextureTypes.DIFFUSE,
+                    ),
+                ),
+            )
+            original_values = ((shader_path, "old.dds"),)
+            with (
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._get_apply_stage",
+                    return_value=(MagicMock(), MagicMock()),
+                ),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._read_exact_authored_values",
+                    return_value=original_values,
+                ),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._read_compare_values",
+                    side_effect=[original_values, ((shader_path, "edited.dds"),)],
+                ),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._canonicalize_asset_url",
+                    side_effect=lambda _layer, url: url,
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler.get_current_validation_extensions", return_value=[]),
+                patch("lightspeed.trex.comfyui.core.apply_handler.TextureReplacementsCore") as replacements,
+            ):
+                receipt = await handler.capture_receipt(value, target)
+                # A later attempt must preserve its own baseline, not the first Apply baseline.
+                before_apply = {"prior": "this Apply attempt"}
+                sidecar.write_text(json.dumps(before_apply))
+
+                # Act
+                with self.assertRaises(ApplyExecutionError):
+                    await handler.apply(value, target, receipt)
+
+            # Assert
+            replacements.return_value.replace_textures.assert_not_called()
+            self.assertEqual(json.loads(sidecar.read_text()), before_apply)
+
+    async def test_revert_restores_sidecar_when_shader_already_matches_original(self):
+        """Revert restores prior metadata when the shader already has its original value."""
+        # Arrange
+        handler = ComfyUIJobApplyHandler()
+        shader_path = "/Shader.inputs:diffuse_texture"
+        target = ComfyUIApplyTarget(
+            context_name="texturecraft",
+            project_path="C:/project/project.usda",
+            edit_target_layer="C:/project/mod.usda",
+            material_path="/World/Looks/Material",
+            texture_targets=(("albedo", shader_path),),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = pathlib.Path(temp_dir) / "albedo.dds"
+            output.write_bytes(b"DDS")
+            sidecar = output.with_suffix(".dds.meta")
+            sidecar.write_bytes(b'{"prior": "first Apply"}')
+            value = TextureProcessingResult(
+                items=(
+                    ProcessedTexture(
+                        key="albedo",
+                        source_path=pathlib.Path("C:/queue/albedo.png"),
+                        asset_url=str(output),
+                        texture_type=TextureTypes.DIFFUSE,
+                    ),
+                ),
+            )
+            original_values = ((shader_path, "old.dds"),)
+            with (
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._get_apply_stage",
+                    return_value=(MagicMock(), MagicMock()),
+                ),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._read_exact_authored_values",
+                    return_value=original_values,
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler._read_compare_values", return_value=original_values),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._canonicalize_asset_url",
+                    side_effect=lambda _layer, url: url,
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler.get_current_validation_extensions", return_value=[]),
+                patch("lightspeed.trex.comfyui.core.apply_handler.TextureReplacementsCore") as replacements,
+            ):
+                receipt = await handler.capture_receipt(value, target)
+                before_apply = json.loads(sidecar.read_text())
+                await handler.apply(value, target, receipt)
+                replacements.return_value.replace_textures.reset_mock()
+
+                # Act
+                await handler.revert(value, target, receipt)
+
+            # Assert
+            replacements.return_value.replace_textures.assert_not_called()
+            self.assertEqual(json.loads(sidecar.read_text()), before_apply)
+
+    async def test_apply_restores_sidecar_when_shader_update_fails(self):
+        """A failed shader update restores the sidecar data from before this Apply attempt."""
+        # Arrange
+        handler = ComfyUIJobApplyHandler()
+        shader_path = "/Shader.inputs:diffuse_texture"
+        target = ComfyUIApplyTarget(
+            context_name="texturecraft",
+            project_path="C:/project/project.usda",
+            edit_target_layer="C:/project/mod.usda",
+            material_path="/World/Looks/Material",
+            texture_targets=(("albedo", shader_path),),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = pathlib.Path(temp_dir) / "albedo.dds"
+            output.write_bytes(b"DDS")
+            sidecar = output.with_suffix(".dds.meta")
+            sidecar.write_bytes(b'{"prior": "first Apply"}')
+            value = TextureProcessingResult(
+                items=(
+                    ProcessedTexture(
+                        key="albedo",
+                        source_path=pathlib.Path("C:/queue/albedo.png"),
+                        asset_url=str(output),
+                        texture_type=TextureTypes.DIFFUSE,
+                    ),
+                ),
+            )
+            original_values = ((shader_path, "old.dds"),)
+            shader_error = RuntimeError("Shader update failed")
+            with (
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._get_apply_stage",
+                    return_value=(MagicMock(), MagicMock()),
+                ),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._read_exact_authored_values",
+                    return_value=original_values,
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler._read_compare_values", return_value=original_values),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._canonicalize_asset_url",
+                    side_effect=lambda _layer, url: url,
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler.get_current_validation_extensions", return_value=[]),
+                patch("lightspeed.trex.comfyui.core.apply_handler.TextureReplacementsCore") as replacements,
+            ):
+                receipt = await handler.capture_receipt(value, target)
+                # A later attempt must preserve its own baseline, not the first Apply baseline.
+                before_apply = {"prior": "this Apply attempt"}
+                sidecar.write_text(json.dumps(before_apply))
+                replacements.return_value.replace_textures.side_effect = shader_error
+
+                # Act
+                with self.assertRaises(RuntimeError) as error_context:
+                    await handler.apply(value, target, receipt)
+
+            # Assert
+            self.assertIs(error_context.exception, shader_error)
+            self.assertEqual(json.loads(sidecar.read_text()), before_apply)
+
+    async def test_revert_restores_sidecar_when_shader_restore_fails(self):
+        """A failed shader restore retains the sidecar data from the applied state."""
+        # Arrange
+        handler = ComfyUIJobApplyHandler()
+        shader_path = "/Shader.inputs:diffuse_texture"
+        target = ComfyUIApplyTarget(
+            context_name="texturecraft",
+            project_path="C:/project/project.usda",
+            edit_target_layer="C:/project/mod.usda",
+            material_path="/World/Looks/Material",
+            texture_targets=(("albedo", shader_path),),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = pathlib.Path(temp_dir) / "albedo.dds"
+            output.write_bytes(b"DDS")
+            sidecar = output.with_suffix(".dds.meta")
+            value = TextureProcessingResult(
+                items=(
+                    ProcessedTexture(
+                        key="albedo",
+                        source_path=pathlib.Path("C:/queue/albedo.png"),
+                        asset_url=str(output),
+                        texture_type=TextureTypes.DIFFUSE,
+                    ),
+                ),
+            )
+            original_values = ((shader_path, "old.dds"),)
+            applied_values = ((shader_path, str(output)),)
+            shader_error = RuntimeError("Shader restore failed")
+            with (
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._get_apply_stage",
+                    return_value=(MagicMock(), MagicMock()),
+                ),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._read_exact_authored_values",
+                    side_effect=[original_values, applied_values],
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler._read_compare_values", return_value=original_values),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._canonicalize_asset_url",
+                    side_effect=lambda _layer, url: url,
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler.get_current_validation_extensions", return_value=[]),
+                patch("lightspeed.trex.comfyui.core.apply_handler.TextureReplacementsCore") as replacements,
+            ):
+                receipt = await handler.capture_receipt(value, target)
+                await handler.apply(value, target, receipt)
+                before_revert = json.loads(sidecar.read_text())
+                replacements.return_value.replace_textures.side_effect = shader_error
+
+                # Act
+                with self.assertRaises(RuntimeError) as error_context:
+                    await handler.revert(value, target, receipt)
+
+            # Assert
+            self.assertIs(error_context.exception, shader_error)
+            self.assertTrue(sidecar.is_file())
+            self.assertEqual(json.loads(sidecar.read_text()), before_revert)
+
+    async def test_revert_restores_both_sidecars_when_one_metadata_restore_fails(self):
+        """A metadata restore that fails on the second sidecar leaves neither sidecar partly restored."""
+        # Arrange
+        handler = ComfyUIJobApplyHandler()
+        albedo_shader = "/Shader.inputs:diffuse_texture"
+        roughness_shader = "/Shader.inputs:reflectionroughness_texture"
+        target = ComfyUIApplyTarget(
+            context_name="texturecraft",
+            project_path="C:/project/project.usda",
+            edit_target_layer="C:/project/mod.usda",
+            material_path="/World/Looks/Material",
+            texture_targets=(("albedo", albedo_shader), ("roughness", roughness_shader)),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = pathlib.Path(temp_dir)
+            outputs = {}
+            for key in ("albedo", "roughness"):
+                output = temp_path / f"{key}.dds"
+                output.write_bytes(b"DDS")
+                sidecar = output.with_suffix(".dds.meta")
+                sidecar.write_text(json.dumps({"prior": key}))
+                outputs[key] = (output, sidecar)
+            value = TextureProcessingResult(
+                items=tuple(
+                    ProcessedTexture(
+                        key=key,
+                        source_path=pathlib.Path(f"C:/queue/{key}.png"),
+                        asset_url=str(outputs[key][0]),
+                        texture_type=texture_type,
+                    )
+                    for key, texture_type in (("albedo", TextureTypes.DIFFUSE), ("roughness", TextureTypes.ROUGHNESS))
+                ),
+            )
+            original_values = ((albedo_shader, "old-albedo.dds"), (roughness_shader, "old-roughness.dds"))
+            applied_values = tuple((path, str(outputs[key][0])) for key, path in target.texture_targets)
+            restore_error = RuntimeError("Sidecar is read-only")
+            real_revert_metadata = apply_handler_module.revert_metadata
+
+            restore_calls = []
+
+            def fail_durable_restore(received):
+                """Half-restore the durable receipt, then fail; a rollback receipt restores normally."""
+                restore_calls.append(received)
+                if received is receipt.prior_metadata:
+                    real_revert_metadata(type(received)(prior_meta=received.prior_meta[:1]))
+                    raise restore_error
+                real_revert_metadata(received)
+
+            with (
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._get_apply_stage",
+                    return_value=(MagicMock(), MagicMock()),
+                ),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._read_exact_authored_values",
+                    side_effect=[original_values, applied_values],
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler._read_compare_values", return_value=original_values),
+                patch(
+                    "lightspeed.trex.comfyui.core.apply_handler._canonicalize_asset_url",
+                    side_effect=lambda _layer, url: url,
+                ),
+                patch("lightspeed.trex.comfyui.core.apply_handler.get_current_validation_extensions", return_value=[]),
+                patch("lightspeed.trex.comfyui.core.apply_handler.TextureReplacementsCore"),
+            ):
+                receipt = await handler.capture_receipt(value, target)
+                await handler.apply(value, target, receipt)
+                applied = {key: json.loads(outputs[key][1].read_text()) for key in outputs}
+                with patch.object(apply_handler_module, "revert_metadata", side_effect=fail_durable_restore):
+                    # Act
+                    with self.assertRaises(RuntimeError) as error_context:
+                        await handler.revert(value, target, receipt)
+
+            # Assert
+            self.assertIs(error_context.exception, restore_error)
+            for key, (_output, sidecar) in outputs.items():
+                self.assertEqual(json.loads(sidecar.read_text()), applied[key])
+
     async def test_apply_receipt_target_mismatch_exposes_safe_reason_and_diagnostic(self):
         """Invalid saved Apply data provides recovery guidance without leaking internal terms."""
         # Arrange
@@ -643,67 +1016,6 @@ class TestComfyUIJob(AsyncTestCase):
         self.assertNotIn("receipt", error_context.exception.reason.lower())
         self.assertIn("saved Apply data", error_context.exception.reason)
         self.assertIn("receipt", str(error_context.exception.diagnostic))
-
-    async def test_reapply_matches_target_sets_and_uses_receipt_order(self):
-        """Reapply remains stable when processed items and target metadata use different orders."""
-        # Arrange
-        handler = ComfyUIJobApplyHandler()
-        albedo_path = "/Shader.inputs:diffuse_texture"
-        normal_path = "/Shader.inputs:normalmap_texture"
-        target = ComfyUIApplyTarget(
-            context_name="texturecraft",
-            project_path="C:/project/project.usda",
-            edit_target_layer="C:/project/mod.usda",
-            material_path="/World/Looks/Material",
-            texture_targets=(("normal_ogl", normal_path), ("albedo", albedo_path)),
-        )
-        value = TextureProcessingResult(
-            items=(
-                ProcessedTexture(
-                    key="normal_ogl",
-                    source_path=pathlib.Path("C:/queue/normal.png"),
-                    asset_url="C:/project/normal.dds",
-                    texture_type=TextureTypes.NORMAL_OTH,
-                ),
-                ProcessedTexture(
-                    key="albedo",
-                    source_path=pathlib.Path("C:/queue/albedo.png"),
-                    asset_url="C:/project/albedo.dds",
-                    texture_type=TextureTypes.DIFFUSE,
-                ),
-            )
-        )
-        receipt = ComfyUIApplyReceipt(
-            original_authored_values=((albedo_path, "old-albedo.dds"), (normal_path, "old-normal.dds")),
-            original_compare_values=((albedo_path, "old-albedo.dds"), (normal_path, "old-normal.dds")),
-            applied_compare_values=(
-                (albedo_path, "C:/project/albedo.dds"),
-                (normal_path, "C:/project/normal.dds"),
-            ),
-        )
-        stage = MagicMock()
-        layer = MagicMock()
-        layer.anonymous = True
-        replacements = MagicMock()
-        with (
-            patch("lightspeed.trex.comfyui.core.apply_handler._get_apply_stage", return_value=(stage, layer)),
-            patch(
-                "lightspeed.trex.comfyui.core.apply_handler._read_compare_values",
-                return_value=receipt.applied_compare_values,
-            ) as read_compare,
-            patch("lightspeed.trex.comfyui.core.apply_handler.TextureReplacementsCore", return_value=replacements),
-        ):
-            # Act
-            result = await handler.apply(value, target, receipt)
-
-        # Assert
-        self.assertIsNone(result)
-        self.assertEqual(
-            receipt.original_authored_values,
-            ((albedo_path, "old-albedo.dds"), (normal_path, "old-normal.dds")),
-        )
-        read_compare.assert_called_once_with(layer, (albedo_path, normal_path))
-        replacements.replace_textures.assert_not_called()
 
     async def test_authored_asset_url_rejects_unsupported_usd_values(self):
         """Receipt capture never stringifies a blocked or malformed USD opinion."""
@@ -731,6 +1043,9 @@ class TestComfyUIJob(AsyncTestCase):
             original_authored_values=(("/Shader.inputs:diffuse_texture", None),),
             original_compare_values=(("/Shader.inputs:diffuse_texture", None),),
             applied_compare_values=(("/Shader.inputs:diffuse_texture", "C:/project/albedo.dds"),),
+            prior_metadata=MetadataApplyReceipt(
+                prior_meta=((pathlib.Path("C:/project/albedo.dds.meta"), '{"prior": "meta"}'),)
+            ),
         )
 
         # Act
@@ -740,6 +1055,66 @@ class TestComfyUIJob(AsyncTestCase):
         # Assert
         self.assertEqual(restored_target, target)
         self.assertEqual(restored_receipt, receipt)
+        self.assertEqual(restored_receipt.prior_metadata, receipt.prior_metadata)
+
+    async def test_legacy_apply_receipt_payload_decodes_with_empty_metadata_and_reverts_as_noop(self):
+        """A released 3-tuple ComfyUIApplyReceipt payload decodes with empty prior_metadata and reverts inertly."""
+        # Arrange
+        path = "/Shader.inputs:diffuse_texture"
+        receipt = ComfyUIApplyReceipt(
+            original_authored_values=((path, "old.dds"),),
+            original_compare_values=((path, "old.dds"),),
+            applied_compare_values=((path, "applied.dds"),),
+        )
+        envelope = json.loads(serialize(receipt))
+        envelope["value"]["value"] = envelope["value"]["value"][:3]  # drop prior_metadata: released shape
+
+        # Act
+        legacy_receipt = deserialize(json.dumps(envelope))
+
+        # Assert: the legacy payload decodes with an empty metadata receipt.
+        self.assertEqual(legacy_receipt, receipt)
+        self.assertEqual(legacy_receipt.prior_metadata, MetadataApplyReceipt(prior_meta=()))
+
+        # Revert with the decoded legacy receipt is a metadata no-op: nothing to restore or delete.
+        target = ComfyUIApplyTarget(
+            context_name="texturecraft",
+            project_path="C:/project/project.usda",
+            edit_target_layer="C:/project/mod.usda",
+            material_path="/World/Looks/Material",
+            texture_targets=(("albedo", path),),
+        )
+        layer = MagicMock()
+        replacements = MagicMock()
+        value = MagicMock(spec=TextureProcessingResult)
+        with (
+            patch("lightspeed.trex.comfyui.core.apply_handler._get_apply_stage", return_value=(MagicMock(), layer)),
+            patch(
+                "lightspeed.trex.comfyui.core.apply_handler._read_exact_authored_values",
+                return_value=legacy_receipt.applied_compare_values,
+            ),
+            patch("lightspeed.trex.comfyui.core.apply_handler.TextureReplacementsCore", return_value=replacements),
+            patch("lightspeed.trex.comfyui.core.apply_handler.revert_metadata") as revert_metadata_mock,
+        ):
+            await ComfyUIJobApplyHandler().revert(value, target, legacy_receipt)
+
+        revert_metadata_mock.assert_called_once_with(MetadataApplyReceipt(prior_meta=()))
+
+    async def test_apply_receipt_payload_arity_outside_legacy_and_current_shapes_raises(self):
+        """A ComfyUIApplyReceipt payload of any length other than 3 or 4 raises ValueError."""
+        # Arrange
+        path = "/Shader.inputs:diffuse_texture"
+        receipt = ComfyUIApplyReceipt(
+            original_authored_values=((path, "old.dds"),),
+            original_compare_values=((path, "old.dds"),),
+            applied_compare_values=((path, "applied.dds"),),
+        )
+        envelope = json.loads(serialize(receipt))
+        envelope["value"]["value"] = envelope["value"]["value"][:2]  # neither 3 nor 4 values
+
+        # Act / Assert
+        with self.assertRaises(ValueError):
+            deserialize(json.dumps(envelope))
 
     async def test_queue_restart_reconstructs_typed_children_and_binding(self):
         """Queue tables reconstruct both children, the workflow input, and the processing Apply binding."""

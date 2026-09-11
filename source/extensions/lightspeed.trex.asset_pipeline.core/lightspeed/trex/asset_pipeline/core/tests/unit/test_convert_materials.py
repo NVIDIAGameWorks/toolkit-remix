@@ -19,61 +19,57 @@ import pathlib
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import omni.kit.test
-from omni.flux.asset_pipeline.core import PipelineContext
 from omni.flux.utils.material_converter.utils import SupportedShaderInputs, SupportedShaderOutputs
 
-from lightspeed.trex.asset_pipeline.core import AssetKind, MaterialType, RemixAssetItem, RemixAssetPipelineContext
+from lightspeed.trex.asset_pipeline.core import RemixAssetItem, RemixAssetPipelineContext
 from lightspeed.trex.asset_pipeline.core.constants import ORPHAN_PARAMETER_CLEANUP_SETTING_PATH
 from lightspeed.trex.asset_pipeline.core.steps import ConvertMaterialsStep
 import lightspeed.trex.asset_pipeline.core.steps.convert_materials as convert_materials_module
-from lightspeed.trex.asset_pipeline.core.steps.convert_materials import _build_converter
+from lightspeed.trex.asset_pipeline.core.steps.convert_materials import (
+    _build_converter,
+    _convert_material_if_needed,
+    _select_output_shader,
+)
 
 
 class TestConvertMaterials(omni.kit.test.AsyncTestCase):
     """Test material conversion and shader identifier discovery."""
 
-    async def test_validate_with_model_missing_material_type_returns_error(self):
-        """The pipeline does not guess opacity/translucent; the caller sends that decision."""
-        # Arrange
-        item = RemixAssetItem(
-            value=pathlib.Path("/models/chair.usd"),
-            kind=AssetKind.MODEL,
-            source_path=pathlib.Path("/models/chair.usd"),
-        )
-        context = RemixAssetPipelineContext(items=[item])
-
-        # Act
-        errors = ConvertMaterialsStep().validate(context)
-
-        # Assert
-        self.assertIn("must provide material_type", "\n".join(errors))
-
-    async def test_validate_keeps_material_type_error_with_other_errors(self):
-        """Material type validation stays visible when base validation also reports errors."""
-        # Arrange
-        item = RemixAssetItem(
-            value=pathlib.Path("/models/chair.usd"),
-            kind=AssetKind.MODEL,
-            source_path=pathlib.Path("/models/chair.usd"),
-        )
-        context = PipelineContext(items=[item])
-
-        # Act
-        errors = ConvertMaterialsStep().validate(context)
-
-        # Assert
-        self.assertIn("expected context RemixAssetPipelineContext", "\n".join(errors))
-        self.assertIn("must provide material_type", "\n".join(errors))
-
-    async def test_build_converter_with_translucent_omni_pbr_uses_omni_pbr_builder(self):
-        """Translucent conversion delegates to the OmniPBR converter builder."""
+    async def test_build_converter_with_omni_glass_uses_omni_glass_builder(self):
+        """OmniGlass conversion delegates to the OmniGlass converter builder."""
         # Arrange
         material_prim = MagicMock()
         converter = MagicMock()
         builder = MagicMock()
         builder.build.return_value = converter
 
-        with patch.object(convert_materials_module, "OmniPBRToAperturePBRConverterBuilder", return_value=builder):
+        with patch.object(convert_materials_module, "OmniGlassToAperturePBRConverterBuilder", return_value=builder):
+            # Act
+            result = await _build_converter(
+                material_prim,
+                SupportedShaderInputs.OMNI_GLASS.value,
+                SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT,
+            )
+
+        # Assert
+        self.assertIs(result, converter)
+        builder.build.assert_called_once_with(
+            material_prim,
+            SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT.value,
+        )
+
+    async def test_build_converter_with_translucent_omni_pbr_uses_none_builder(self):
+        """A non-glass input that becomes translucent starts from a bare shader, as legacy did."""
+        # Arrange
+        material_prim = MagicMock()
+        converter = MagicMock()
+        builder = MagicMock()
+        builder.build.return_value = converter
+
+        with (
+            patch.object(convert_materials_module, "NoneToAperturePBRConverterBuilder", return_value=builder),
+            patch.object(convert_materials_module, "OmniPBRToAperturePBRConverterBuilder") as omni_pbr_builder,
+        ):
             # Act
             result = await _build_converter(
                 material_prim,
@@ -87,6 +83,7 @@ class TestConvertMaterials(omni.kit.test.AsyncTestCase):
             material_prim,
             SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT.value,
         )
+        omni_pbr_builder.assert_not_called()
 
     async def test_build_converter_raises_for_unsupported_target_output(self):
         """Unsupported target shader outputs fail at the converter boundary."""
@@ -101,18 +98,91 @@ class TestConvertMaterials(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertIn("Unsupported material shader output", str(error.exception))
 
+    def test_select_output_shader_preserves_aperture_variants(self):
+        """AperturePBR inputs retain their authored output variant."""
+        # Act
+        outputs = (
+            _select_output_shader(SupportedShaderOutputs.APERTURE_PBR_OPACITY.value),
+            _select_output_shader(SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT.value),
+        )
+
+        # Assert
+        self.assertEqual(
+            outputs,
+            (
+                SupportedShaderOutputs.APERTURE_PBR_OPACITY,
+                SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT,
+            ),
+        )
+
+    def test_select_output_shader_maps_omni_glass_to_translucent(self):
+        """OmniGlass converts to AperturePBR Translucent."""
+        # Act
+        output = _select_output_shader(SupportedShaderInputs.OMNI_GLASS.value)
+
+        # Assert
+        self.assertIs(output, SupportedShaderOutputs.APERTURE_PBR_TRANSLUCENT)
+
+    def test_select_output_shader_maps_opaque_inputs_to_opacity(self):
+        """Opaque input shaders convert to AperturePBR Opacity."""
+        # Act
+        outputs = tuple(
+            _select_output_shader(shader.value)
+            for shader in (
+                SupportedShaderInputs.OMNI_PBR,
+                SupportedShaderInputs.OMNI_PBR_OPACITY,
+                SupportedShaderInputs.USD_PREVIEW_SURFACE,
+            )
+        )
+
+        # Assert
+        self.assertEqual(outputs, (SupportedShaderOutputs.APERTURE_PBR_OPACITY,) * 3)
+
+    async def test_convert_material_without_converter_raises(self):
+        """A supported shader without a converter fails before conversion."""
+        # Arrange
+        material_prim = MagicMock()
+        material_prim.GetPath.return_value = "/World/Looks/MissingConverter"
+        with (
+            patch.object(
+                convert_materials_module,
+                "_get_material_shader_subidentifier",
+                return_value=SupportedShaderInputs.OMNI_PBR.value,
+            ),
+            patch.object(convert_materials_module, "_build_converter", AsyncMock(return_value=None)),
+        ):
+            # Act
+            with self.assertRaisesRegex(RuntimeError, "cannot convert"):
+                await _convert_material_if_needed("", material_prim)
+
+    async def test_convert_material_with_unsupported_shader_raises(self):
+        """An unsupported authored shader fails through the converter error path."""
+        # Arrange
+        material_prim = MagicMock()
+        material_prim.GetPath.return_value = "/World/Looks/Unsupported"
+
+        with patch.object(
+            convert_materials_module,
+            "_get_material_shader_subidentifier",
+            return_value="Unsupported",
+        ):
+            # Act
+            with self.assertRaisesRegex(RuntimeError, "Unsupported material shader"):
+                await _convert_material_if_needed("", material_prim)
+
     async def test_run_does_not_save_stage_when_materials_are_already_converted(self):
         """No-op material conversion does not rewrite the model file."""
         # Arrange
         material_prim = MagicMock()
         material_prim.GetPath.return_value = "/World/Looks/Material"
+        material_prim.GetName.return_value = "Material"
         stage = MagicMock()
         stage.Traverse.return_value = [material_prim]
         stage.GetPrimAtPath.return_value = material_prim
-        item = RemixAssetItem.from_model(pathlib.Path("/models/chair.usd"), MaterialType.OPAQUE)
+        item = RemixAssetItem.from_model(pathlib.Path("/models/chair.usd"))
         context = RemixAssetPipelineContext(items=[item])
-        context.open_stage = MagicMock(return_value=stage)
-        context.save_stage = MagicMock()
+        context.open_stage = AsyncMock(return_value=stage)
+        context.save_stage = AsyncMock()
 
         with patch.object(convert_materials_module, "_convert_material_if_needed", AsyncMock(return_value=False)):
             # Act

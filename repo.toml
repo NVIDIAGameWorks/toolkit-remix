@@ -519,6 +519,10 @@ import sysconfig
 # Extension changelogs are embedded as snippets and intentionally start with version H2 headings.
 suppress_warnings = ["myst.header"]
 
+# GitHub/GitLab-style ```mermaid fences render as MyST directives instead of falling through to
+# Pygments syntax highlighting, which has no "mermaid" lexer.
+myst_fence_as_directive = ["mermaid"]
+
 # Ensure interpreter site-packages take precedence over vendored modules
 paths = sysconfig.get_paths()
 for lib_type in ("purelib", "platlib"):
@@ -641,7 +645,7 @@ autodoc.pydantic_settings_show_json = false
 autodoc.pydantic_model_show_json_error_strategy = "coerce"
 autodoc.pydantic_settings_show_json_error_strategy = "coerce"
 
-extensions_extra = ["sphinxcontrib.video", "sphinxcontrib.autodoc_pydantic"]
+extensions_extra = ["sphinxcontrib.video", "sphinxcontrib.autodoc_pydantic", "sphinxcontrib.mermaid"]
 
 library_paths = [
     # libomniAudioSchema.so: cannot open shared object file: No such file or directory

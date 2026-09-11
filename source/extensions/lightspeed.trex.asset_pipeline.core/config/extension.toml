@@ -1,5 +1,5 @@
 [package]
-version = "1.1.2"
+version = "1.2.0"
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "RTX Remix Asset Pipeline Steps"
 description = "Concrete pipeline steps for RTX Remix asset processing (normal conversion, DDS, metadata)"
@@ -15,6 +15,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
 "lightspeed.common" = {}
 "omni.client" = {}
 "omni.usd" = {}
+"omni.kit.usd.layers" = {}
 "omni.flux.asset_importer.core" = {}
 "omni.flux.asset_pipeline.core" = {}
 "omni.flux.job_queue.core" = {}
