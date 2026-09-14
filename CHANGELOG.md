@@ -145,6 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed on-demand IngestCraft loading so the ingest tab enables its validator plugin providers before parsing ingestion schemas.
 - REMIX-4575: Fixed Stage Manager action icons collapsing multiselection on selected rows while preserving normal selection when an action is clicked on an unselected row.
 - REMIX-6053: Surfaced RTX Remix renderer startup failures with actionable graphics guidance and retried supported viewport initialization once before requiring restart.
+- REMIX-4777: Decoupled Stage Manager action tests from the Remix viewport renderer, restored context-bound frame requests, and added real delete/restore click plus app-level viewport Delete-key coverage.
 
 ## [1.5.2-0]
 

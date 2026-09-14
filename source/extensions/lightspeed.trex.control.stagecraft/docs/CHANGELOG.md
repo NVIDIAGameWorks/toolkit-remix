@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.6]
+### Added
+- Added app-level coverage for deleting a selected replacement prim with the focused Remix viewport's Delete key.
+
 ## [1.8.5]
 ### Added
 - Route recent-project capture-selection requests through the existing Project Wizard before opening StageCraft.

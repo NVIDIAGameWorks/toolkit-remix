@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.5]
+### Fixed
+- Routed Stage Manager frame requests to the viewport matching the requested USD context.
+
 ## [1.8.4]
 ### Fixed
 - Retried supported viewport initialization once and surfaced terminal renderer or viewport startup failures.

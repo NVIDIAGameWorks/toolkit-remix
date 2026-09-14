@@ -639,6 +639,7 @@ class GlobalEventNames(Enum):
     CAPTURE_LAYER_IMPORTED = "Capture layer imported"
     ACTIVE_VIEWPORT_CHANGED = "Active viewport changed"  # Emitted by trex.viewports.shared.widgets
     VIEWPORT_DELETE_SELECTION_REQUEST = "Viewport delete selection request"
+    VIEWPORT_FRAME_PRIMS_REQUEST = "Viewport frame prims request"
     CONTEXT_CHANGED = "Context changed"
     PAGE_CHANGED = "Page changed"
     OPEN_WORKSPACE = "Open the Workspace Page Layout"

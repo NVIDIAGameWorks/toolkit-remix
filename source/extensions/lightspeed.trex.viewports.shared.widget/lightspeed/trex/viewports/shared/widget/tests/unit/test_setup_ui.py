@@ -21,6 +21,8 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 import omni.kit.test
 import lightspeed.trex.viewports.shared.widget.extension as _extension
 import lightspeed.trex.viewports.shared.widget.setup_ui as _setup_ui
+from lightspeed.common.constants import GlobalEventNames
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.hydra.remix.core import RemixSupport as _RemixSupport
 
 _ENSURE_EDITABLE = "lightspeed.trex.viewports.shared.widget.setup_ui._ensure_editable_camera"
@@ -359,6 +361,33 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         self.assertIs(existing_viewport, viewport)
         self.assertIs(existing_viewport, _extension.get_instance(""))
         setup_ui_mock.assert_not_called()
+
+    async def test_frame_prims_request_routes_to_viewport_for_requested_context(self):
+        # Arrange
+        viewport = MagicMock(destroyed=False)
+        _extension._VIEWPORT_MANAGER_INSTANCE["texturecraft"] = viewport
+        paths = ["/World/A", "/World/B"]
+
+        # Act
+        _get_event_manager_instance().call_global_custom_event(
+            GlobalEventNames.VIEWPORT_FRAME_PRIMS_REQUEST.value,
+            paths,
+            "texturecraft",
+        )
+
+        # Assert
+        viewport.frame_viewport_selection.assert_called_once_with(paths)
+
+    async def test_frame_prims_request_without_matching_viewport_is_safe_noop(self):
+        # Arrange
+        extension = _extension.TrexViewportSharedExtension()
+
+        with patch.object(_extension, "get_instance", return_value=None) as mock_get_instance:
+            # Act
+            extension._on_frame_prims_requested(["/World/A"], "missing_context")
+
+        # Assert
+        mock_get_instance.assert_called_once_with("missing_context")
 
     async def test_activate_remix_renderer_async_uses_setting_not_test_mode(self):
         """Renderer activation should honor its setting outside the test-mode shortcut."""

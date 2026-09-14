@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.5]
+### Changed
+- Removed the unused shared viewport dependency.
+
 ## [1.2.4]
 ### Changed
 - Adopted the shared tree child-capability contract for joint items.

@@ -25,6 +25,7 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 import omni.kit.commands
 import omni.kit.test
 from lightspeed.common import constants
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.comfyui.core.core import ComfyUISubmission, ComfyUISubmissionResult
 from lightspeed.trex.stage_manager.plugin.tree.usd.category_groups import CategoryGroupsItem as _CategoryGroupsItem
 from lightspeed.trex.stage_manager.plugin.tree.usd.category_groups import CategoryGroupsModel as _CategoryGroupsModel
@@ -316,7 +317,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
 
         await self.__destroy(_window)
 
-    async def test_prim_can_be_framed_in_viewport(self):
+    async def test_focus_icon_click_requests_framing_and_presentation_reflects_enabled_state(self):
         # Set up the test
         await self.__create_project(create_symlinks=False)
         _window, _widget = await self.__setup_widget(widget_plugin_type=_FocusInViewportActionWidgetPlugin)
@@ -346,6 +347,16 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         self.assertEqual(
             focus_in_viewport_widget_image.widget.tooltip,
             TestStageManagerPluginWidget.FOCUS_IN_VIEWPORT_TOOLTIP_ENABLED,
+        )
+
+        with patch.object(_get_event_manager_instance(), "call_global_custom_event") as mock_call_event:
+            await focus_in_viewport_widget_image.click()
+            await ui_test.human_delay()
+
+        mock_call_event.assert_called_once_with(
+            constants.GlobalEventNames.VIEWPORT_FRAME_PRIMS_REQUEST.value,
+            ["/RootNode/meshes/mesh_one/SphereLight"],
+            "",
         )
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
