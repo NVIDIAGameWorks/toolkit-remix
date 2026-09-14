@@ -83,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   display-only comparison and fast exact-snapshot feedback adjudication, retain schema-1/2 posting and follow-up
   compatibility, and report unavailable measured coverage as a nonfatal gap while leaving enforcement to test or CI
   coverage reports.
+- Strengthened Remix Review testing rules for unit/UI boundaries, real E2E data, meaningful assertions, and test consolidation while preserving service/API coverage.
 
 ### Removed
 
