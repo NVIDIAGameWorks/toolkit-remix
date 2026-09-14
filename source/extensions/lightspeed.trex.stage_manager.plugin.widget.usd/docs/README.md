@@ -6,7 +6,7 @@ USD-specific Stage Manager state and action widgets for RTX Remix capture editin
 
 - Register the RTX Remix USD widget plugins with the Stage Manager factory.
 - Render capture, category, nickname, particle, skeleton, logic-graph, rename, focus, and delete/restore controls.
-- Route focused-viewport Delete requests to the matching USD context.
+- Route viewport Delete requests to the matching USD context and publish context-bound frame requests.
 - Execute regular and capture deletion as one undoable operation.
 - Snapshot explicit selections, confirm skipped prepared jobs, and pass accepted submissions back to the ComfyUI core.
 - Observe and cancel asynchronous ComfyUI submission and AI Tools layout tasks owned by the extension.
@@ -14,14 +14,19 @@ USD-specific Stage Manager state and action widgets for RTX Remix capture editin
 ## Non-Responsibilities
 
 - Building the Stage Manager tree or context-menu payloads; the Flux Stage Manager extensions own those models.
-- Owning viewport keyboard focus or input capture; `lightspeed.trex.viewports.shared.widget` emits requests.
+- Owning viewport keyboard focus, input capture, camera navigation, or framing; the shared viewport owns those concerns.
 - Creating ComfyUI job graphs or executing queued jobs; the ComfyUI and job-queue core extensions own that work.
 - Bridging ComfyUI state events into Stage Manager; the ComfyUI listener plugin owns event integration.
 
 ## Architecture
 
 - `LightspeedStageManagerUSDWidgetPluginsExtension` registers all widget classes and coordinates teardown.
-- `LightspeedStageManagerUSDWidgetPluginsExtension` routes viewport deletion requests to the requesting USD context.
+- `FocusInViewportActionWidgetPlugin` publishes selected prim paths and their USD context through the shared frame-request
+  event; the viewport owner resolves the matching embedded viewport and performs native Kit framing.
+- Toolkit embeds its viewport instead of creating a Kit `ViewportWindow`, so Stage Manager must not use Kit's active
+  `ViewportWindow` lookup to resolve it.
+- `LightspeedStageManagerUSDWidgetPluginsExtension` consumes shared viewport-delete events without requiring the
+  Remix viewport implementation.
 - `SubmitComfyUIJobActionWidgetPlugin` snapshots the explicit selection and connection readiness, then lets the
   ComfyUI core resolve candidates and create skipped jobs for missing inputs.
 - `DeleteRestoreActionWidgetPlugin` applies undoable capture-reference and light-intensity edits.

@@ -22,6 +22,8 @@ from typing import TYPE_CHECKING
 
 import carb
 import omni.ext
+from lightspeed.common.constants import GlobalEventNames
+from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.light.gizmos.layer import LightGizmosLayer as _LightGizmosLayer
 from lightspeed.particle.gizmos.layer import ParticleGizmosLayer as _ParticleGizmosLayer
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
@@ -111,12 +113,17 @@ class TrexViewportSharedExtension(omni.ext.IExt):
         self.__registered = None
         self.__teleport_button_group = None
         self.__frame_hotkey_sub = None
+        self.__frame_prims_sub = None
 
     def on_startup(self, ext_id):
         carb.log_info("[lightspeed.trex.viewports.shared.widget] Startup")
         _apply_integrated_viewport_ui_settings()
         self.__add_tools()
         self.__register_hotkeys()
+        self.__frame_prims_sub = _get_event_manager_instance().subscribe_global_custom_event(
+            GlobalEventNames.VIEWPORT_FRAME_PRIMS_REQUEST.value,
+            self._on_frame_prims_requested,
+        )
         self._workspace_window = _MainViewportWindow(create_instance, _TrexContexts.STAGE_CRAFT.value)
         self._workspace_window.create_window()
         omni.ui.Workspace.set_show_window_fn(self._workspace_window.title, self._workspace_window.show_window_fn)
@@ -185,6 +192,12 @@ class TrexViewportSharedExtension(omni.ext.IExt):
             frame_active_viewport,
         )
 
+    def _on_frame_prims_requested(self, paths: list[str], context_name: str) -> None:
+        """Frame paths in the viewport that owns the requested USD context."""
+        viewport = get_instance(context_name)
+        if viewport:
+            viewport.frame_viewport_selection(paths)
+
     def on_shutdown(self):
         carb.log_info("[lightspeed.trex.viewports.shared.widget] Shutdown")
         if self.__registered:
@@ -192,6 +205,7 @@ class TrexViewportSharedExtension(omni.ext.IExt):
         self.__remove_tools()
         self.__registered = None
         self.__frame_hotkey_sub = None
+        self.__frame_prims_sub = None
         if self._workspace_window:
             self._workspace_window.cleanup()
             omni.ui.Workspace.set_show_window_fn(self._workspace_window.title, lambda *_: None)

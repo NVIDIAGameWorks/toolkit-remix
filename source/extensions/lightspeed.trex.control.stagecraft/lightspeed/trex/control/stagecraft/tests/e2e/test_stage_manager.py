@@ -361,14 +361,14 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         # Use the first selected mesh row and its aligned Focus action icon.
         focus_icon = await self._find_focus_action_icon(selected_paths[0])
 
-        # Focus frames the selection in the viewport without changing either selection model.
+        # Focus requests framing without changing either selection model.
         with patch(
-            "lightspeed.trex.stage_manager.plugin.widget.usd.focus_in_viewport._get_active_viewport"
-        ) as mock_get_active_viewport:
+            "lightspeed.trex.stage_manager.plugin.widget.usd.focus_in_viewport._frame_paths_in_viewport"
+        ) as mock_frame_paths_in_viewport:
             await focus_icon.click()
             await ui_test.human_delay()
 
-        mock_get_active_viewport.return_value.frame_viewport_selection.assert_called_once()
+        mock_frame_paths_in_viewport.assert_called_once()
         await self._wait_for_usd_selection(usd_selection_before_focus)
         await self._wait_for_stage_manager_model_selection_paths(interaction, stage_manager_selection_before_focus)
         self.assertEqual(usd_selection_before_focus, usd_context.get_selection().get_selected_prim_paths())
@@ -392,15 +392,15 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
 
         # Clicking an unselected row's action selects that row before the action is released.
         with patch(
-            "lightspeed.trex.stage_manager.plugin.widget.usd.focus_in_viewport._get_active_viewport"
-        ) as mock_get_active_viewport:
-            mock_get_active_viewport.return_value.frame_viewport_selection.side_effect = lambda *_: (
-                release_time_usd_selections.append(list(usd_context.get_selection().get_selected_prim_paths()))
+            "lightspeed.trex.stage_manager.plugin.widget.usd.focus_in_viewport._frame_paths_in_viewport"
+        ) as mock_frame_paths_in_viewport:
+            mock_frame_paths_in_viewport.side_effect = lambda *_: release_time_usd_selections.append(
+                list(usd_context.get_selection().get_selected_prim_paths())
             )
             await focus_icon.click()
             await ui_test.human_delay()
 
-        mock_get_active_viewport.return_value.frame_viewport_selection.assert_called_once()
+        mock_frame_paths_in_viewport.assert_called_once()
         self.assertEqual([[clicked_path]], release_time_usd_selections)
         await self._wait_for_usd_selection([clicked_path])
         await self._wait_for_stage_manager_model_selection_paths(interaction, [clicked_path])
