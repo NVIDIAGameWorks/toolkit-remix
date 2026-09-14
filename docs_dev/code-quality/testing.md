@@ -190,6 +190,37 @@ Pattern: `test_<action>_<condition>_<expected_outcome>`
 
 ---
 
+## Test Classification and Coverage
+
+Classify the behavior and dependencies a test actually exercises before checking its structure. A directory, test
+name, imported module, or runner group declares intent but does not prove the test's boundary.
+
+| Kind | Exercised boundary | Structure |
+|------|--------------------|-----------|
+| Unit | One isolated method or logic behavior, with external dependencies mocked | One ordered AAA cycle per test or subtest |
+| E2E | A real workflow through actual UI controls or public service/API entry points, with real application components and data | UI: narrative workflow comments, no structural AAA sections; service/API: AAA is permitted |
+
+[Service/API tests](../patterns/services.md#testing) exercise the live router and real workflow data. They belong in
+the existing `tests/e2e/` suite and may use AAA; the absence of UI does not make them unit tests. No separate test
+category, directory, or runner group is needed. Renaming a mocked UI workflow does not exempt it from the E2E
+requirements or establish coverage of the real UI path.
+
+Move an isolated method test mistakenly placed in `tests/e2e/` into the unit suite and retain its valid AAA structure.
+Do not also recommend removing those markers. A real UI E2E containing AAA sections needs narrative workflow comments.
+
+### Coverage by Boundary
+
+- Independently testable logic maps to one unit-test file per source file and one test class per source class.
+- Rendered interactions require E2E coverage. Do not demand artificial unit tests solely to duplicate that coverage.
+  Mixed modules need unit coverage for independent logic and E2E coverage for rendered behavior.
+- Preserve the trivial-glue exception. Mechanical forwarding to an already-tested shared factory needs no additional
+  test that only repeats its wiring. Existing tests suffice when they exercise the changed contract; new predicates,
+  branches, callback semantics, or other behavior still need coverage at the appropriate boundary.
+- Documentation, agent instructions, declarative review registries, and agent configuration do not require unit-test
+  file mappings. These boundaries do not change the measured [coverage requirement](#coverage-requirement).
+
+---
+
 ## Unit Tests (`tests/unit/`)
 
 Unit tests are **method-level tests**. Each test targets a single public method and verifies one specific behavior of
@@ -204,6 +235,11 @@ that method.
   has an `if/else`, there should be tests for both branches.
 - Test one behavior per test method using the Arrange/Act/Assert pattern
 - Assert specific values, not just that code ran without exceptions
+
+Unit tests must not create live windows or widgets, render or locate controls, issue gestures, or verify rendered
+focus, layout, visibility, selection, or modal behavior. Models, predicates, formatting, commands, callbacks, and
+controller logic can be unit-tested with live UI dependencies mocked at the subject boundary. An imported UI module,
+immutable value type, or frame wait alone does not prove live UI testing; inspect the executed interaction.
 
 ### Arrange / Act / Assert
 
@@ -229,6 +265,11 @@ async def test_process_returns_converted_paths_when_inputs_are_valid(self):
 - Assertions come last and are never followed by more actions.
 - No `Arrange → Assert → Act → Assert` loops — these tests are testing two things and are harder to diagnose when they
   fail.
+- The markers must describe the execution: correct labels do not excuse multiple independent actions hidden in one
+  section or helper. Helpers and setup/teardown methods need no AAA markers of their own.
+- Fixture preparation, shared immutable case tables, and cleanup do not themselves count as additional Acts. Neither
+  does an `assertRaises` context enclosing the single action that must raise; use it as required by the exception
+  assertion rule. Subsequent cleanup must not exercise another behavior under test.
 
 ### Subtests
 
@@ -262,20 +303,44 @@ async def test_validate_returns_expected_result_for_each_input(self):
 
 ## E2E Tests (`tests/e2e/`)
 
-E2E tests verify **full user-visible workflows** from start to finish. They drive the application the way a user would —
-through the UI. Unlike unit tests, E2E tests do not follow the Arrange/Act/Assert pattern — a single test can exercise
-a complete multi-step workflow (open a window, fill fields, click buttons, verify results, open another window, etc.).
+E2E tests verify **real workflows** from start to finish through their public entry point: actual UI controls or a
+service/API. UI workflows use narrative comments rather than Arrange/Act/Assert sections and may exercise multiple
+steps (open a window, fill fields, click buttons, verify results, open another window, etc.). Service/API workflows
+may use AAA and need not drive UI controls.
 
-- Use a real running Kit instance with real data
+- Use a real running Kit instance with real workflow data and application components; see [Real E2E Data](#real-e2e-data)
 - Inherit `omni.kit.test.AsyncTestCase` (same base class as unit tests)
-- **Trigger actions through UI elements** — not by calling internal methods directly
-- **Verify results** through UI state, filesystem checks, or USD stage values as appropriate
-- Use `await ui_test.human_delay()` for frame waits — **never** `time.sleep()` or `next_update_async()`
+- **Trigger the action under test through its real public entry point** — actual controls for a UI workflow or the
+  live service/API for a service workflow. Fixture preparation and cleanup may use APIs, but must not perform the
+  action whose path the test claims to exercise
+- **Verify results** through UI state, API responses/status, domain state, filesystem checks, or USD stage values as
+  appropriate
+- In UI E2Es, use `await ui_test.human_delay()` for frame waits — **never** `time.sleep()` or `next_update_async()`
 - Local `tests-<extension.name>.bat` runs can stay headless by adding `-- --no-window`. Omit it when visible UI helps
   debug widget focus, rendering, or modal behavior. Add `--dev` when you intentionally want to watch local E2E tests run.
 - Reserved for behaviors that cannot be meaningfully tested with mocks
 - For UI automation details, see
   the [Kit UI test framework](https://docs.omniverse.nvidia.com/kit/docs/kit-manual/latest/guide/testing_exts_python.html#omni-kit-ui-test-writing-ui-tests)
+
+### Real E2E Data
+
+These requirements apply to both UI and service/API E2Es.
+
+Prefer representative repository projects and the [shared test utilities](#shared-test-utilities). A small stage
+created through real USD APIs is valid when it provides the behavior the workflow needs; do not load a larger project
+solely because one exists. A dialog or other stage-independent workflow needs no artificial stage setup.
+
+Do not replace workflow data or exercised application components with mocks, fakes, stubs, or canned responses. This
+includes fake stages, mocked domain models, and replacement service responses. If the required real service or data
+cannot be exercised, record the limitation and do not claim E2E coverage for the replaced path.
+
+A narrow interception may observe or suppress an irreversible external effect, such as terminating the test process,
+only when the real application path reaches that terminal boundary, the interception supplies no workflow data, and
+the test verifies that the effect was requested. For example, clicking the real Exit button and verifying the request
+to quit may intercept process termination; replacing the dialog's decision logic or input data is not permitted.
+
+The presence of `mock` alone is not evidence of a violation. Identify the exact data or application component replaced
+and explain how that replacement bypasses the claimed workflow.
 
 ### Setup / Teardown
 
@@ -430,22 +495,57 @@ after drag-and-drop, after any async UI update, and in `finally` blocks during c
 E2E tests can verify through multiple channels depending on the workflow:
 
 - **UI state** — widgets appear, display expected values, are enabled/disabled
+- **Service/API contract** — the real endpoint returns the expected response/status and domain state changes as required
 - **USD stage** — prims exist, attributes have expected values, layers are composed correctly
 - **Filesystem** — output files were created, directories have expected contents
 
 Workflows like project wizard, ingestion, asset replacements, texture conversion, and packaging produce side effects
-beyond the UI. Always verify the actual outcome, not just that the UI looks right.
+beyond the UI. Verify the actual workflow outcome; construction, rendering, no exception, or an incidental callback
+alone is insufficient. Supplementary assertions are welcome, and a callback assertion is valid when the requested
+notification or terminal effect is itself the contract. See [Test Value and Consolidation](#test-value-and-consolidation).
 
 ---
 
 ## What is Not a Good Test
 
-- Tests with no assertions (or only `assertIsNotNone`)
-- Tests that replicate implementation logic rather than testing behavior
+- Tests with no assertions, or assertions that cannot detect a relevant regression
+- Tests that repeat their setup, implementation logic, or repository declarations as expected values
 - Tests that only cover the happy path and ignore errors, edge cases, and invalid input
 - Tests with magic `sleep`/delay to handle timing — fix the async code instead
 - Tests that pass alone but fail alongside others — shared mutable state is leaking
 - Unit tests with more than one Act — split them into separate test methods
+
+### Test Value and Consolidation
+
+Every test needs an assertion tied to an observable contract. A weak-assertion finding must identify a plausible
+regression that the test would miss. Non-null, callback, and call-count assertions are valid when they establish that
+contract; their syntax alone is not a defect. For example, a notification test may assert the subscriber's payload,
+whereas assigning a label in setup and asserting that same assigned value proves no application behavior.
+
+Distinguish two opportunities:
+
+- **Redundant coverage:** identify both tests and show that one fully covers the other's behavior and useful failure
+  signal, so removing the weaker test loses no meaningful protection.
+- **Duplicated mechanics:** cite substantial repeated setup or scenario logic and propose an existing helper, a small
+  local helper, or parameterized cases that preserve distinct outcomes, isolation, and useful failure messages. Unit
+  parameterization must retain an independent AAA cycle and identifying title for every case.
+
+Compare changed tests with directly relevant neighbors; do not audit the whole repository. Short setup repetition,
+common assertion syntax, and complementary unit/E2E coverage do not establish redundancy. Different branches and
+outcomes still need their own cases, even when their mechanics can be shared. Do not introduce a configurable test
+framework merely to eliminate a few repeated lines.
+
+### Review Evidence
+
+Report only violations introduced or worsened by the current delta. Cite the changed trigger and the executed
+interaction, replaced data, missing outcome, or duplicated code; import-only or formatting changes do not expose
+unrelated historical test debt. For coverage findings, identify the changed behavior missing protection and inspect
+existing shared tests before requesting another test file.
+
+Classify before recommending structure or relocation, using [Test Classification and Coverage](#test-classification-and-coverage).
+Group manifestations that share one corrective change under the same classification defect. Structure and
+maintainability violations are policy/maintainability findings unless separate evidence establishes a functional
+failure. The existing review verification and causal grouping remain responsible for validating and combining claims.
 
 ---
 
