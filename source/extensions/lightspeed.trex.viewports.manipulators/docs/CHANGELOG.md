@@ -1,6 +1,12 @@
 ï»¿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.2]
+### Fixed
+- Kept camera pointer drags moving beyond screen edges by using native cursor capture and restoring the prior cursor mode afterward.
+- Avoided restoring an unknown cursor mode when reading the native cursor mode fails at drag start.
+- Preserved the original cursor mode when another camera drag starts before cursor cleanup.
+
 ## [1.7.1]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.
