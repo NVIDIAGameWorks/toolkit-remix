@@ -15,7 +15,9 @@
 * limitations under the License.
 """
 
-from unittest.mock import MagicMock, patch
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import MagicMock, call, patch
 
 import omni.kit.test
 import omni.usd
@@ -25,7 +27,9 @@ from lightspeed.common.constants import CAPTURED_REMIX_SETTINGS as _REMIX_SETTIN
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
-from pxr import Sdf, Usd, UsdGeom
+from pxr import Sdf, Tf, Usd, UsdGeom
+
+from ... import setup as _setup
 
 _CONFIG_A = ["rtx.sceneScale = 0.01", "rtx.zUp = True"]
 _CONFIG_B = ["rtx.sceneScale = 1.0", "rtx.zUp = False"]
@@ -100,28 +104,70 @@ class TestSetup(omni.kit.test.AsyncTestCase):
                 omni.kit.commands.execute("CreatePrim", prim_type="RectLight", prim_path=light_path)
         return stage, layer_replacement, layer_sub_replacement, layer_capture
 
-    async def test_is_capture_file_true(self):
-        _stage, _layer_replacement, _layer_sub_replacement, layer_capture = await self.__create_setup_01()
-        core = _CaptureCoreSetup("")
-        result = core.is_capture_file(layer_capture.identifier)
+    async def test_is_capture_file_with_capture_metadata_returns_true(self):
+        """Return true when capture metadata identifies the layer."""
+        # Arrange
+        capture_path = "C:/captures/capture.usda"
+        layer = MagicMock()
+        layer.customLayerData.get.return_value = _LayerType.capture.value
+
+        with patch.object(Sdf.Layer, "OpenAsAnonymous", return_value=layer) as open_layer:
+            # Act
+            result = _CaptureCoreSetup.is_capture_file(capture_path)
+
+        # Assert
         self.assertTrue(result)
+        open_layer.assert_called_once_with(capture_path, metadataOnly=True)
 
-    async def test_is_capture_file_false_wrong_customdata(self):
-        _stage, layer_replacement, _layer_sub_replacement, _layer_capture = await self.__create_setup_01()
-        core = _CaptureCoreSetup("")
-        result = core.is_capture_file(layer_replacement.identifier)
+    async def test_is_layer_a_capture_file_with_wrong_layer_type_returns_false(self):
+        """Return false when layer metadata identifies another layer type."""
+        # Arrange
+        layer = MagicMock()
+        layer.customLayerData.get.return_value = _LayerType.replacement.value
+
+        # Act
+        result = _CaptureCoreSetup.is_layer_a_capture_file(layer)
+
+        # Assert
         self.assertFalse(result)
 
-    async def test_is_capture_file_false_no_customdata(self):
-        _stage, _layer_replacement, layer_sub_replacement, _layer_capture = await self.__create_setup_01()
-        core = _CaptureCoreSetup("")
-        result = core.is_capture_file(layer_sub_replacement.identifier)
+    async def test_is_layer_a_capture_file_without_layer_type_returns_false(self):
+        """Return false when layer metadata has no layer type."""
+        # Arrange
+        layer = MagicMock()
+        layer.customLayerData.get.return_value = None
+
+        # Act
+        result = _CaptureCoreSetup.is_layer_a_capture_file(layer)
+
+        # Assert
         self.assertFalse(result)
 
-    async def test_is_capture_file_false_no_layer(self):
-        core = _CaptureCoreSetup("")
-        result = core.is_capture_file("123456789")
+    async def test_is_capture_file_when_open_returns_none_returns_false(self):
+        """Return false when USD metadata cannot be opened."""
+        # Arrange
+        capture_path = "C:/captures/missing.usda"
+
+        with patch.object(Sdf.Layer, "OpenAsAnonymous", return_value=None) as open_layer:
+            # Act
+            result = _CaptureCoreSetup.is_capture_file(capture_path)
+
+        # Assert
         self.assertFalse(result)
+        open_layer.assert_called_once_with(capture_path, metadataOnly=True)
+
+    async def test_is_capture_file_when_open_raises_tf_error_returns_false(self):
+        """Return false when USD metadata opening raises an error."""
+        # Arrange
+        capture_path = "C:/captures/invalid.usda"
+
+        with patch.object(Sdf.Layer, "OpenAsAnonymous", side_effect=Tf.ErrorException("open failed")) as open_layer:
+            # Act
+            result = _CaptureCoreSetup.is_capture_file(capture_path)
+
+        # Assert
+        self.assertFalse(result)
+        open_layer.assert_called_once_with(capture_path, metadataOnly=True)
 
     async def test_get_capture_files_filters_and_sorts_capture_files(self):
         # Arrange
@@ -177,6 +223,63 @@ class TestSetup(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertEqual([], result)
+
+    async def test_get_capture_files_with_thumbnails_mixed_entries_returns_accepted_files_in_listing_order(self):
+        """Return readable capture USDs with thumbnails in client listing order."""
+        # Arrange
+        captures_directory = Path("C:/project/deps/captures")
+        core = _CaptureCoreSetup("")
+        valid_a = str(captures_directory / "valid_a.usda")
+        invalid = str(captures_directory / "not_a_capture.usd")
+        valid_b = str(captures_directory / "valid_b.usd")
+        thumbnail = str(captures_directory / ".thumbs" / "valid_a.usda.dds")
+        entries = [
+            SimpleNamespace(relative_path="valid_a.usda", flags=omni.client.ItemFlags.READABLE_FILE),
+            SimpleNamespace(relative_path="not_a_capture.usd", flags=omni.client.ItemFlags.READABLE_FILE),
+            SimpleNamespace(relative_path="unreadable.usda", flags=omni.client.ItemFlags.WRITEABLE_FILE),
+            SimpleNamespace(relative_path="ignored.txt", flags=omni.client.ItemFlags.READABLE_FILE),
+            SimpleNamespace(relative_path="valid_b.usd", flags=omni.client.ItemFlags.READABLE_FILE),
+        ]
+
+        with (
+            patch.object(_setup.omni.client, "list", return_value=(omni.client.Result.OK, entries)),
+            patch.object(
+                core, "is_capture_file", side_effect=lambda path: path in {valid_a, valid_b}
+            ) as is_capture_file,
+            patch.object(
+                core, "get_capture_image", side_effect=lambda path: thumbnail if path == valid_a else None
+            ) as get_capture_image,
+            patch.object(_setup, "ThreadPoolExecutor", create=True) as executor_class,
+        ):
+            executor_class.return_value.__enter__.return_value.map.side_effect = map
+
+            # Act
+            result = core.get_capture_files_with_thumbnails(captures_directory=captures_directory)
+
+        # Assert
+        self.assertEqual([(valid_a, thumbnail), (valid_b, None)], result)
+        executor_class.assert_called_once_with(max_workers=10)
+        self.assertEqual([call(valid_a), call(invalid), call(valid_b)], is_capture_file.call_args_list)
+        self.assertEqual([call(valid_a), call(valid_b)], get_capture_image.call_args_list)
+
+    async def test_get_capture_files_with_thumbnails_failed_listing_returns_empty_without_processing(self):
+        """Return no captures when the client directory listing fails."""
+        # Arrange
+        captures_directory = Path("C:/project/deps/captures")
+        core = _CaptureCoreSetup("")
+
+        with (
+            patch.object(_setup.omni.client, "list", return_value=(omni.client.Result.ERROR_NOT_FOUND, [])),
+            patch.object(core, "is_capture_file") as is_capture_file,
+            patch.object(_setup, "ThreadPoolExecutor", create=True) as executor_class,
+        ):
+            # Act
+            result = core.get_capture_files_with_thumbnails(captures_directory)
+
+        # Assert
+        self.assertEqual([], result)
+        is_capture_file.assert_not_called()
+        executor_class.assert_not_called()
 
     async def test_async_get_replaced_hashes_two_meshes(self):
         """We set an override on 2 meshes"""

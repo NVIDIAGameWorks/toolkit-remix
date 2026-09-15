@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.6]
+### Changed
+- Skip progress fetching for progress-hidden trees and support optional exact-item double-click callbacks.
+
 ## [1.5.5]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

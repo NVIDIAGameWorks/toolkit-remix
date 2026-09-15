@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.2]
+### Changed
+- Delegate bounded capture discovery and thumbnail resolution to Capture Core, and invoke the current primary wizard
+  action when a valid capture is double-clicked on an unblocked page.
+
 ## [1.3.1]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

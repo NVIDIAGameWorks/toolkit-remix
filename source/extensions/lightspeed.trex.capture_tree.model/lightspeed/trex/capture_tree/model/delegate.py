@@ -17,12 +17,14 @@
 
 import functools
 import os
+from collections.abc import Callable
 
 import omni.ui as ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.widget.color import color_to_hex as _color_to_hex
 from omni.flux.utils.widget.loader import Loader as _Loader
 
+from .items import CaptureTreeItem
 from .model import HEADER_DICT
 
 
@@ -33,11 +35,20 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
     DEFAULT_NO_IMAGE_SIZE = (400, 100)
     DEFAULT_IMAGE_ICON_SIZE = 24
 
-    def __init__(self, preview_on_hover: bool = True):
+    def __init__(
+        self, preview_on_hover: bool = True, item_double_clicked_fn: Callable[[CaptureTreeItem], None] | None = None
+    ):
+        """Create the capture tree delegate.
+
+        Args:
+            preview_on_hover: Whether hovering a thumbnail displays its larger preview.
+            item_double_clicked_fn: Callback invoked when a capture item is double-clicked with the left mouse button.
+        """
         super().__init__()
 
         self._default_attr = {
             "_preview_on_hover": None,
+            "_item_double_clicked_fn": None,
             "_path_scroll_frames": None,
             "_window_bigger_image": None,
             "_bigger_image": None,
@@ -48,6 +59,7 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
             setattr(self, attr, value)
 
         self._preview_on_hover = preview_on_hover
+        self._item_double_clicked_fn = item_double_clicked_fn
         self._path_scroll_frames = {}
 
         self.__cancel_mouse_hovered = False
@@ -76,9 +88,25 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
                         identifier="item_no_thumbnail",
                     )
             frame.set_mouse_hovered_fn(functools.partial(self._on_image_hovered, image_widget, item))
+            if self._item_double_clicked_fn is not None:
+                image_widget.set_mouse_double_clicked_fn(functools.partial(self._on_item_double_clicked, item))
 
     def get_window_bigger_image(self):
         return self._window_bigger_image
+
+    def _on_item_double_clicked(self, item: CaptureTreeItem, _x, _y, button, _modifier):
+        """Activate a capture item after a left-button double-click.
+
+        Args:
+            item: Capture item receiving the double-click.
+            _x: Mouse x coordinate ignored by the delegate.
+            _y: Mouse y coordinate ignored by the delegate.
+            button: Mouse button that triggered the event.
+            _modifier: Keyboard modifier state ignored by the delegate.
+        """
+        if button != 0 or self._item_double_clicked_fn is None:
+            return
+        self._item_double_clicked_fn(item)
 
     def __create_bigger_image_ui(self):
         flags = ui.WINDOW_FLAGS_NO_COLLAPSE
@@ -182,7 +210,8 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
             if column_id == 0:
                 with ui.HStack():
                     ui.Spacer(height=0, width=ui.Pixel(8))
-                    with ui.Frame(height=0, separate_window=True):
+                    path_frame = ui.Frame(height=0, separate_window=True)
+                    with path_frame:
                         self._path_scroll_frames[id(item)] = ui.ScrollingFrame(
                             name="TreePanelBackground",
                             height=ui.Pixel(self.DEFAULT_IMAGE_ICON_SIZE),
@@ -198,6 +227,8 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
                                 identifier="item_title",
                             )
                     ui.Spacer(height=0, width=ui.Pixel(8))
+                if self._item_double_clicked_fn is not None:
+                    path_frame.set_mouse_double_clicked_fn(functools.partial(self._on_item_double_clicked, item))
             if column_id == 1:
                 with ui.ZStack():
                     if replaced_items is not None and total_items is not None:
@@ -237,4 +268,5 @@ class CaptureTreeDelegate(ui.AbstractItemDelegate):
         return _color_to_hex((r, g, 0, 0.3))
 
     def destroy(self):
+        """Destroy the delegate and release its activation callback."""
         _reset_default_attrs(self)

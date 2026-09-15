@@ -291,6 +291,7 @@ class TestWizardWindow(AsyncTestCase):
         }
 
     async def test_navigation_should_go_through_all_pages_and_back(self):
+        """Navigate Create and Edit while capture activation advances the real Edit workflow."""
         # Setup the test
         wizard_window = self.wizard._wizard_window._window
 
@@ -353,25 +354,29 @@ class TestWizardWindow(AsyncTestCase):
         # Capture tree should now be rendered
         _ = await self.__find_setup_page_components(wizard_window, validate_capture_tree=True)
 
-        capture_labels = ui_test.find_all(f"{wizard_window.title}//Frame/**/Label[*].identifier=='item_title'")
-        self.assertGreater(len(capture_labels), 0)
-
         # "Select Mods" button should still be blocked
         await nav_buttons[TestComponents.NEXT_BUTTON].click()
         await ui_test.human_delay()
 
-        # Select a capture
+        _ = await self.__find_setup_page_components(wizard_window, validate_capture_tree=True)
+        capture_labels = ui_test.find_all(f"{wizard_window.title}//Frame/**/Label[*].identifier=='item_title'")
+        self.assertGreater(len(capture_labels), 0)
+
+        # Select first so the row redraw cannot replace the target during the double-click gesture.
         await capture_labels[0].click()
         await ui_test.human_delay()
+        capture_labels = ui_test.find_all(f"{wizard_window.title}//Frame/**/Label[*].identifier=='item_title'")
 
-        # Go to the mod selection page, should be unblocked not that a capture is selected
-        await nav_buttons[TestComponents.NEXT_BUTTON].click()
+        # Activate the capture to advance the real Edit workflow.
+        await capture_labels[0].double_click()
         await ui_test.human_delay()
 
-        _ = await self.__find_existing_mods_components(wizard_window)
+        components = await self.__find_existing_mods_components(wizard_window)
         nav_buttons = await self.__find_navigation_buttons(wizard_window)
 
         self.assertEqual("Create", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
+        self.assertIsNotNone(components[TestComponents.AVAILABLE_MODS_TREE])
+        self.assertIsNotNone(components[TestComponents.SELECTED_MODS_TREE])
 
         # "Create" button should be blocked
         await nav_buttons[TestComponents.NEXT_BUTTON].click()
@@ -433,7 +438,7 @@ class TestWizardWindow(AsyncTestCase):
         # _ = await self.__find_navigation_buttons(wizard_window, should_exist=False)
 
     async def test_create_project_should_create_project(self):
-        """Create a project while a completion subscriber releases itself during dispatch."""
+        """Activate a capture while blocked, then create the project once the destination is valid."""
         # Setup the test
         wizard_window = self.wizard._wizard_window._window
         completion_payloads = []
@@ -457,29 +462,33 @@ class TestWizardWindow(AsyncTestCase):
         await components[TestComponents.CREATE_OPTION].click()
         await ui_test.human_delay()
 
-        # Fill up the fields
+        # Load the real capture list while the project destination is still incomplete.
         components = await self.__find_setup_page_components(wizard_window)
         nav_buttons = await self.__find_navigation_buttons(wizard_window)
-
-        await components[TestComponents.PROJECT_STRING_FIELD].input(str(self.project_path), end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay()
 
         await components[TestComponents.REMIX_STRING_FIELD].input(str(self.remix_dir), end_key=KeyboardInput.ENTER)
         # Let the captures widget load
         await ui_test.human_delay(50)
 
-        capture_labels = ui_test.find_all(
-            f"{wizard_window.title}//Frame/**/Label[*].name=='PropertiesPaneSectionTreeItem'"
-        )
+        capture_labels = ui_test.find_all(f"{wizard_window.title}//Frame/**/Label[*].identifier=='item_title'")
 
         self.assertGreater(len(capture_labels), 0)
+        self.assertEqual("Create", nav_buttons[TestComponents.NEXT_BUTTON].widget.text)
+        capture_label = capture_labels[0]
 
-        # Select a capture layer
-        await capture_labels[0].click()
+        # Double-clicking a capture selects it but cannot create while the project destination is invalid.
+        await capture_label.double_click()
         await ui_test.human_delay()
 
-        # Create the project
-        await nav_buttons[TestComponents.NEXT_BUTTON].click()
+        self.assertTrue(wizard_window.visible)
+        self.assertFalse(self.project_path.exists())
+        self.assertEqual([], completion_payloads)
+
+        # Once the destination is valid, the same capture activation invokes the Create action.
+        await components[TestComponents.PROJECT_STRING_FIELD].input(str(self.project_path), end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay()
+
+        await capture_label.double_click()
         await ui_test.human_delay(50)
 
         # Make sure the project and symlinks were created
