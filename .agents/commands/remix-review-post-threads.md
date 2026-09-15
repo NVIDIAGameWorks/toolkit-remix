@@ -11,21 +11,35 @@ command-only; invocation authorizes only these thread creations.
   grouped-primary/index behavior; schema 1 retains per-file/index behavior. Block malformed results instead of
   falling back to another schema.
 - Reject schema-3 feedback adjudication derivatives; they do not create new review roots.
-- Require a GitLab MR or GitHub PR scope. Derive forge and hostname from the result. Before any write, require the
-  matching authenticated CLI: `glab auth status --hostname <host>` or `gh auth status --hostname <host>`.
+- Require a GitLab MR or GitHub PR scope. Derive forge and hostname from the result. Before any write, require one
+  authenticated forge client for that host: a forge MCP server (GitLab or GitHub tools) or the forge CLI
+  (`glab auth status --hostname <host>` or `gh auth status --hostname <host>`). Use one client for the whole run.
 - Fetch the authenticated account, live review, diff, and every complete discussion/comment page. The live head must
   equal the reviewed head; a moved head requires a new review.
 - If this run already has `follow-up.json`, create no roots. Report the existing state and stop.
 
 ## Post
 
-- Use only result findings. Map `major`/`high` to `P0`, `medium` to `P1`, and `low`/`minor` to `P2`. Skip and
-  report unknown severity.
+- Use only result findings. Trim and lowercase the severity, then map it to the Jira-style priority: `critical` to
+  `BLOCKER` (absolutely needed), `major`/`high` to `P0` (must have), `medium`/`moderate` to `P1` (should have), and
+  `low`/`minor`/`nit` to `P2` (nice to have). Skip and report a severity that is still unknown after normalization.
 - For schema 3, deduplicate by `(run_id, finding_id)`. Create one thread at `primary_location`; include supporting
   manifestations in its body and never post them separately. For schema 2, use grouped primary/index identity. For
   schema 1, retain one thread per independently actionable file.
-- If no valid inline position exists, skip and report it; never post a general comment.
-- Body: `[P#] **Title**`, concrete problem and impact, suggested direction, then the matching marker:
+- Every thread is an inline diff thread on a changed line. GitLab: create a discussion with `body` and a `position`
+  object: `position_type: "text"`, `base_sha`, `start_sha`, `head_sha` from the live MR `diff_refs`, `new_path`,
+  `old_path`, and the line fields for the side the finding targets. A head-side line (added or context) sends
+  `new_line`, plus `old_line` when the line also exists in the base. A base-side line (deleted, or a deleted file)
+  sends `old_line` only. GitHub: create a pull request review comment with `path`, `line`, `commit_id`, and `side`
+  `RIGHT` for a head-side line or `LEFT` for a base-side line. Compute the line numbers from the diff hunks; a line
+  outside every hunk has no inline position.
+- Send `position` as a nested JSON object. With an MCP tool, pass it as the structured `position` argument. With
+  `glab api`, write the JSON body to a file and post it with `-H "Content-Type: application/json" --input <file>`.
+  Never use `-f`/`-F` form fields: they flatten `position[...]` keys and GitLab then silently creates a general
+  `DiscussionNote`.
+- If no valid inline position exists, skip and report it; never post a general comment. Post one thread first and
+  verify it before posting the rest.
+- Body: `[BLOCKER|P0|P1|P2] **Title**`, concrete problem and impact, suggested direction, then the matching marker:
 
   ```text
   <!-- remix-review run=<run-id> finding_id=F-0001 finding=<index> location=1 -->
@@ -35,8 +49,10 @@ command-only; invocation authorizes only these thread creations.
   `<!-- remix-review run=<run-id> finding=<one-based-index> location=<one-based-index> -->`.
 - Refresh every discussion/comment page before each write. A matching marker, same-run receipt, or equivalent live
   thread means handled. A receipted thread absent live is dismissed and must never be recreated.
-- Post sequentially through `glab api` or `gh api`. Retain each returned ID and verify author, path, line, body, and
-  unresolved state. Stop on first failure and report successful partial posts.
+- Post sequentially. Retain each returned ID and verify author, path, line, body, and unresolved state. On GitLab the
+  returned `notes[0].type` must be `DiffNote` and `notes[0].position` must echo the path and line fields that were
+  sent (`new_path`/`new_line` for a head-side line, `old_path`/`old_line` for a base-side line); a `DiscussionNote`
+  or a missing `position` is a failure, not a success. Stop on first failure and report successful partial posts.
 
 Never edit, delete, resolve, or reply to threads; change source, review metadata, approvals; or touch CI.
 

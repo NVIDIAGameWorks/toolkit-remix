@@ -13,8 +13,8 @@ separately authorized and command-only; invocation authorizes only the bounded w
   earlier review runs or merge their receipts.
 - Set `start_sha` to the latest completed same-run follow-up's `end_sha`; without one, use this result's reviewed head.
   It must be an exact 40-character commit.
-- Require a GitLab MR or GitHub PR scope and the matching authenticated CLI:
-  `glab auth status --hostname <host>` or `gh auth status --hostname <host>`.
+- Require a GitLab MR or GitHub PR scope and one authenticated forge client for that host: a forge MCP server
+  (GitLab or GitHub tools) or the forge CLI (`glab auth status --hostname <host>` or `gh auth status --hostname <host>`).
 - Set `end_sha` to the current live head. It must be an exact commit, and `start_sha` must be its ancestor; otherwise
   stop and require a new review.
 - Fetch the authenticated account, live review, and every complete discussion/comment page. Inspect only threads
@@ -47,8 +47,9 @@ separately authorized and command-only; invocation authorizes only the bounded w
   <!-- remix-review-follow-up run=<run-id> start=<start_sha> end=<end_sha> kind=<reply|thread> source=<thread-id|regression-index> -->
   ```
 
-- Write sequentially through `glab api` or `gh api`; retain and verify each returned ID/link. Any write or
-  verification failure stops remaining writes with `blocked`.
+- Write sequentially through the forge client; retain and verify each returned ID/link. New regression threads follow
+  the inline `position` rules of `remix-review-post-threads`. Any write or verification failure stops remaining
+  writes with `blocked`.
 - Never edit source or caller Git state, edit/delete remote messages, reopen threads, approve, change review metadata,
   or wait for, poll, trigger, or retry CI.
 
