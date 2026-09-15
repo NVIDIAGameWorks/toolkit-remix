@@ -71,13 +71,14 @@ class CaptureTreeModel(ui.AbstractItemModel):
         self.__on_stage_opened_or_closed = _Event()
         self.__on_sublayers_changed = _Event()
 
-    def refresh(self, paths: list[tuple[str, str]]):
+    def refresh(self, paths: list[tuple[str, str | None]]):
         """Refresh the list"""
         self.__children = [CaptureTreeItem(path, image) for path, image in sorted(paths, key=lambda x: x[0])]
         self._progress_cache.clear()
         self._item_changed(None)
 
-        self.fetch_progress()
+        if self._show_progress:
+            self.fetch_progress()
 
     def get_item_children(self, item):
         """Returns all the children when the model asks it."""

@@ -5,6 +5,14 @@ Loads capture layers and emits capture-load events for downstream systems.
 Existing capture layers emit the capture-loaded event during project open even when saved perspective metadata exists,
 so the capture game camera can reassert camera authority.
 
+## Capture classification
+
+`is_capture_file()` classifies persisted root-layer metadata through a metadata-only anonymous layer. It identifies
+Remix captures without certifying that the full stage can be opened or composed.
+
+`get_capture_files_with_thumbnails()` lists readable USD files in a capture directory, classifies them with bounded
+concurrency, and returns valid captures in directory order with thumbnails resolved only for accepted files.
+
 ## Remix config
 
 A capture stores the `rtx.*` options it was taken with on a `UsdRenderSettings` prim at `/remix_settings`, as a string

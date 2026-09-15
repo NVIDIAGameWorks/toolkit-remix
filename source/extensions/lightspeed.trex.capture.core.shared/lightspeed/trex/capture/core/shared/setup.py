@@ -17,6 +17,7 @@
 
 import functools
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -31,7 +32,9 @@ from lightspeed.layer_manager.core.data_models import LayerType, LayerTypeKeys
 from omni.flux.utils.common import async_wrap as _async_wrap
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from PIL import Image
-from pxr import Sdf, Usd, UsdGeom
+from pxr import Sdf, Tf, Usd, UsdGeom
+
+_CAPTURE_VALIDATION_MAX_WORKERS = 10
 
 
 class Setup:
@@ -209,7 +212,19 @@ class Setup:
 
     @staticmethod
     def is_capture_file(path: str) -> bool:
-        layer = Sdf.Layer.FindOrOpen(path)
+        """Return whether the asset metadata identifies a Remix capture.
+
+        Args:
+            path: The asset path to inspect.
+
+        Returns:
+            Whether the asset is identified as a Remix capture.
+        """
+        try:
+            layer = Sdf.Layer.OpenAsAnonymous(path, metadataOnly=True)
+        except Tf.ErrorException:
+            return False
+
         return Setup.is_layer_a_capture_file(layer)
 
     @staticmethod
@@ -237,6 +252,34 @@ class Setup:
         result = await wrapped_fn()
         await callback(result)
 
+    def get_capture_files_with_thumbnails(self, captures_directory: Path) -> list[tuple[str, str | None]]:
+        """Return valid captures and their thumbnails in directory-list order.
+
+        Args:
+            captures_directory: Directory containing capture candidates.
+
+        Returns:
+            Ordered capture paths paired with optional thumbnail paths.
+        """
+        result, entries = omni.client.list(str(captures_directory))
+        if result != omni.client.Result.OK:
+            return []
+
+        candidate_paths = [
+            str(captures_directory / entry.relative_path)
+            for entry in entries
+            if entry.flags & omni.client.ItemFlags.READABLE_FILE
+            and Path(entry.relative_path).suffix in constants.USD_EXTENSIONS
+        ]
+
+        def _validate_capture(capture_path: str) -> tuple[str, str | None] | None:
+            if not self.is_capture_file(capture_path):
+                return None
+            return capture_path, self.get_capture_image(capture_path)
+
+        with ThreadPoolExecutor(max_workers=_CAPTURE_VALIDATION_MAX_WORKERS) as executor:
+            return [capture for capture in executor.map(_validate_capture, candidate_paths) if capture is not None]
+
     def get_capture_files(self) -> list[str]:
         def _get_files(_file):
             return _file.is_file() and _file.suffix in constants.USD_EXTENSIONS and self.is_capture_file(str(_file))
@@ -249,12 +292,6 @@ class Setup:
         except FileNotFoundError:
             return []
 
-        # It will deadlock
-        # result = []
-        # with concurrent.futures.ThreadPoolExecutor() as executor:
-        #     for file, is_valid in executor.map(_get_files, Path(self.__directory).iterdir()):
-        #         if is_valid:
-        #             result.append(str(file))
         return sorted(result, reverse=True)
 
     def get_capture_image(self, path: str) -> str | None:

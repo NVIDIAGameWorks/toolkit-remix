@@ -16,8 +16,8 @@
 """
 
 from asyncio import ensure_future
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 
 from lightspeed.common import constants as _constants
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
@@ -27,7 +27,7 @@ from lightspeed.trex.capture_tree.model import CaptureTreeModel as _CaptureTreeM
 from lightspeed.trex.project_wizard.core import ProjectWizardKeys as _ProjectWizardKeys
 from lightspeed.trex.project_wizard.core import ProjectWizardSchema as _ProjectWizardSchema
 from lightspeed.trex.project_wizard.file_picker.widget import FilePickerWidget as _FilePickerWidget
-from omni import client, kit, ui, usd
+from omni import kit, ui, usd
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import async_wrap as _async_wrap
@@ -76,7 +76,9 @@ class SetupPage(_WizardPage):
         self._capture_core = _CaptureCoreSetup(self._context_name)
 
         self._capture_model = _CaptureTreeModel(context_name=self._context_name, show_progress=False)
-        self._capture_delegate = _CaptureTreeDelegate(preview_on_hover=False)
+        self._capture_delegate = _CaptureTreeDelegate(
+            preview_on_hover=False, item_double_clicked_fn=self.__on_capture_item_double_clicked
+        )
 
         self._open_or_create = True
         self._show_capture_picker = False
@@ -115,6 +117,7 @@ class SetupPage(_WizardPage):
         self._done_text = "Open" if self.open_or_create else "Create"
 
         self.payload = {_ProjectWizardKeys.EXISTING_PROJECT.value: value}
+        self.__update_validity()
 
     @property
     def show_capture_picker(self) -> bool:
@@ -124,6 +127,7 @@ class SetupPage(_WizardPage):
     @show_capture_picker.setter
     def show_capture_picker(self, value: bool) -> None:
         self._show_capture_picker = value
+        self.__update_validity()
 
     def __validate_project_path(self, project_path: str):
         validation_error = None
@@ -165,11 +169,11 @@ class SetupPage(_WizardPage):
         if capture_selected is not None:
             self._capture_selected = capture_selected
 
-        # Only block capture selected when creating a project
+        capture_required = not self._open_or_create or self._show_capture_picker
         self.blocked = (
             not self._project_path_valid
             or not self._remix_path_valid
-            or (not self._capture_selected and not self._open_or_create)
+            or (not self._capture_selected and capture_required)
         )
 
     def __update_payload_project(self, project_path: str | None):
@@ -181,6 +185,9 @@ class SetupPage(_WizardPage):
         }
 
     def __update_payload_remix(self, remix_path: str):
+        if Path(remix_path or "") != self.payload.get(_ProjectWizardKeys.REMIX_DIRECTORY.value):
+            self._payload.pop(_ProjectWizardKeys.CAPTURE_FILE.value, None)
+            self.__update_validity(capture_selected=False)
         if remix_path:
             self.payload = {
                 _ProjectWizardKeys.REMIX_DIRECTORY.value: Path(remix_path),
@@ -197,7 +204,14 @@ class SetupPage(_WizardPage):
         self.payload = {
             _ProjectWizardKeys.CAPTURE_FILE.value: Path(selection[0].path),
         }
-        self.__update_validity(capture_selected=bool(self.payload.get(_ProjectWizardKeys.CAPTURE_FILE.value, False)))
+        self.__update_validity(capture_selected=True)
+
+    def __on_capture_item_double_clicked(self, item: _CaptureTreeItem) -> None:
+        if self._capture_tree:
+            self._capture_tree.selection = [item]
+        self.__update_payload_capture([item])
+        if not self.blocked:
+            self.request_next()
 
     def __enable_capture_picker(self, enable: bool):
         if not self.show_capture_picker:
@@ -219,39 +233,35 @@ class SetupPage(_WizardPage):
                 )
 
         if enable:
-            ensure_future(self.__fetch_capture_files_wrapped(self.__update_capture_picker_ui))
+            captures_directory = (
+                Path(self.payload.get(_ProjectWizardKeys.REMIX_DIRECTORY.value, "")) / _constants.REMIX_CAPTURE_FOLDER
+            )
+            ensure_future(self.__fetch_capture_files_wrapped(captures_directory, self.__update_capture_picker_ui))
 
         if self._capture_overlay_widget:
             self._capture_overlay_widget.visible = not enable
 
     @usd.handle_exception
-    async def __fetch_capture_files_wrapped(self, callback):
-        wrapped_fn = _async_wrap(self.__fetch_capture_files)
-        captures = await wrapped_fn()
+    async def __fetch_capture_files_wrapped(
+        self, captures_directory: Path, callback: Callable[[list[tuple[str, str | None]]], None]
+    ) -> None:
+        capture_core = self._capture_core
+        if capture_core is None:
+            return
 
-        callback(captures)
+        wrapped_fn = _async_wrap(capture_core.get_capture_files_with_thumbnails)
+        captures = await wrapped_fn(captures_directory)
 
-    def __fetch_capture_files(self):
-        captures = []
-        captures_dir = (
+        if self._payload is None:
+            return
+
+        current_captures_directory = (
             Path(self.payload.get(_ProjectWizardKeys.REMIX_DIRECTORY.value, "")) / _constants.REMIX_CAPTURE_FOLDER
         )
+        if captures_directory == current_captures_directory:
+            callback(captures)
 
-        result, entries = client.list(str(captures_dir))
-        if result == client.Result.OK:
-            for entry in entries:
-                if Path(entry.relative_path).suffix not in _constants.USD_EXTENSIONS:
-                    continue
-
-                capture_path = captures_dir / entry.relative_path
-                if not self._capture_core.is_capture_file(str(capture_path)):
-                    continue
-
-                captures.append(str(capture_path))
-
-        return captures
-
-    def __update_capture_picker_ui(self, capture_files: list[str]):
+    def __update_capture_picker_ui(self, capture_files: list[tuple[str, str | None]]):
         if not self._capture_frame:
             return
 
@@ -267,7 +277,7 @@ class SetupPage(_WizardPage):
         if self._capture_background:
             self._capture_background.visible = True
 
-        self._capture_model.refresh([(path, self._capture_core.get_capture_image(path)) for path in capture_files])
+        self._capture_model.refresh(capture_files)
 
         with self._capture_frame:
             self._capture_tree = ui.TreeView(
