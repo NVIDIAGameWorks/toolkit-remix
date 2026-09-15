@@ -19,6 +19,8 @@ from functools import wraps
 from typing import Any, cast
 
 import carb
+import carb.windowing
+import omni.appwindow
 import omni.kit.app
 import omni.usd
 from lightspeed.trex.utils.common.camera import (
@@ -28,6 +30,7 @@ from lightspeed.trex.utils.common.camera import (
 )
 from omni.flux.utils.common.interactive_usd_notices import begin_interaction as _begin_interaction
 from omni.flux.utils.common.interactive_usd_notices import end_interaction as _end_interaction
+from omni.kit.manipulator.camera import CameraGestureBase as _CameraGestureBase
 from omni.kit.manipulator.camera import ViewportCameraManipulator as _BaseViewportCameraManipulator
 
 from .interface.i_manipulator import IManipulator
@@ -47,7 +50,7 @@ _CAMERA_GESTURE_BINDINGS = {
 
 
 class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
-    """Camera manipulator that brackets camera gestures with USD notice interactions."""
+    """Camera manipulator that coordinates gesture lifecycle, including USD notice deferral and cursor capture."""
 
     def __init__(
         self,
@@ -60,6 +63,9 @@ class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
         self.__ensure_editable_camera = ensure_editable_camera
         self.__notice_interaction = None
         self.__wrapped_gesture_ids: set[int] = set()
+        self.__cursor_window = None
+        self.__cursor_windowing = None
+        self.__previous_cursor_mode = None
         super().__init__(viewport_api, *args, **kwargs)
 
     def on_build(self):
@@ -76,6 +82,7 @@ class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
         if gesture_id in self.__wrapped_gesture_ids:
             return
 
+        capture_cursor = isinstance(gesture, _CameraGestureBase)
         on_began = gesture.on_began
         on_changed = gesture.on_changed
         on_ended = gesture.on_ended
@@ -89,11 +96,17 @@ class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
                     return None
                 # Lock pseudo-ortho views before base gesture setup so pan/zoom never inherit a rotated view.
                 self.__lock_pseudo_orthographic_camera_orientation()
+                if capture_cursor:
+                    self.__capture_cursor()
                 result = on_began(*args, **kwargs)
                 self.__sync_pseudo_orthographic_navigation()
                 return result
             except Exception:
-                self._end_interaction()
+                try:
+                    if capture_cursor:
+                        self.__restore_cursor()
+                finally:
+                    self._end_interaction()
                 raise
 
         @wraps(on_changed)
@@ -103,7 +116,11 @@ class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
             try:
                 return on_changed(*args, **kwargs)
             except Exception:
-                self._end_interaction()
+                try:
+                    if capture_cursor:
+                        self.__restore_cursor()
+                finally:
+                    self._end_interaction()
                 raise
 
         @wraps(on_ended)
@@ -112,14 +129,44 @@ class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
                 return on_ended(*args, **kwargs)
             finally:
                 try:
-                    self.__lock_pseudo_orthographic_camera_orientation()
+                    if capture_cursor:
+                        self.__restore_cursor()
                 finally:
-                    self._end_interaction()
+                    try:
+                        self.__lock_pseudo_orthographic_camera_orientation()
+                    finally:
+                        self._end_interaction()
 
         gesture.on_began = wrapped_on_began
         gesture.on_changed = wrapped_on_changed
         gesture.on_ended = wrapped_on_ended
         self.__wrapped_gesture_ids.add(gesture_id)
+
+    def __capture_cursor(self):
+        if self.__cursor_window is not None:
+            return
+
+        app_window = omni.appwindow.get_default_app_window()
+        window = app_window.get_window() if app_window else None
+        if window is None:
+            return
+
+        windowing = carb.windowing.acquire_windowing_interface()
+        self.__previous_cursor_mode = windowing.get_cursor_mode(window)
+        self.__cursor_window = window
+        self.__cursor_windowing = windowing
+        windowing.set_cursor_mode(window, carb.windowing.CursorMode.DISABLED)
+
+    def __restore_cursor(self):
+        if self.__cursor_window is None:
+            return
+
+        try:
+            self.__cursor_windowing.set_cursor_mode(self.__cursor_window, self.__previous_cursor_mode)
+        finally:
+            self.__cursor_window = None
+            self.__cursor_windowing = None
+            self.__previous_cursor_mode = None
 
     def __is_pseudo_orthographic_camera(self) -> bool:
         return _is_pseudo_orthographic_camera_path(self.__viewport_api.camera_path)
@@ -161,10 +208,15 @@ class _ViewportCameraManipulator(_BaseViewportCameraManipulator):
         self.__notice_interaction = None
 
     def destroy(self):
-        """End active notice interactions and destroy the base manipulator."""
+        """Restore cursor state, end active notice interactions, and destroy the base camera manipulator."""
 
-        self._end_interaction()
-        super().destroy()
+        try:
+            self.__restore_cursor()
+        finally:
+            try:
+                self._end_interaction()
+            finally:
+                super().destroy()
 
 
 class CameraDefault(IManipulator):

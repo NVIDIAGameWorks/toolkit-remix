@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.7.1"
+version = "1.7.2"
 authors = ["dbataille@nvidia.com"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -18,6 +18,7 @@ preview_image = "data/preview.png"
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.utils.common" = {}
 "lightspeed.hydra.remix.core" = {}
+"omni.appwindow" = {}
 "omni.kit.manipulator.camera" = {}
 "omni.kit.manipulator.prim" = {}
 "omni.kit.manipulator.selection" = {}
