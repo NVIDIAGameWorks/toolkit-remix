@@ -18,6 +18,7 @@
 __all__ = ["RemixAllCategoriesInteractionPlugin"]
 
 from lightspeed.trex.utils.common.prim_utils import get_extended_selection as _get_extended_selection
+from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
 from pydantic import Field
 
@@ -35,6 +36,9 @@ class RemixAllCategoriesInteractionPlugin(RemixStageManagerUSDInteractionPlugin)
     display_name: str = Field(default="Categories", exclude=True)
     tooltip: str = Field(default="View the available prims, grouped by RTX Remix Runtime categories", exclude=True)
 
+    internal_context_filters: list[StageManagerFilterPlugin] = Field(
+        default=[{"name": "IsCategoryFilterPlugin"}], exclude=True
+    )
     tree: _StageManagerTreePlugin = Field(default={"name": "CategoryGroupsTreePlugin"}, exclude=True)
 
     compatible_trees: list[str] = Field(default=["CategoryGroupsTreePlugin", "PrimGroupsTreePlugin"], exclude=True)

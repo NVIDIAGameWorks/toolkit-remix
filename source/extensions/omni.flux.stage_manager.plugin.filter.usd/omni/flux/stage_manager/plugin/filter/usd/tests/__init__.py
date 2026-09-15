@@ -18,7 +18,11 @@
 from .unit.test_additional_filters import TestAdditionalFiltersUnit
 from .unit.test_custom_tags_filter import TestCustomTagsFilterPluginUnit
 from .unit.test_ignore_prims_filter import TestIgnorePrimsFilterPluginUnit
+from .unit.test_light_prims_filter import TestLightPrimsFilterPlugin
+from .unit.test_material_prims_filter import TestMaterialBindingsFilterPlugin, TestMaterialPrimsFilterPlugin
 from .unit.test_search_filter import TestSearchFilterPluginUnit
+from .unit.test_skeleton_prims_filter import TestSkeletonPrimsFilterPluginUnit
+from .unit.test_toggleable_filter import TestToggleableUSDFilterPluginUnit
 from .unit.test_usd_base_filter import TestStageManagerUSDFilterPluginUnit
 from .unit.test_visible_prims_filter_tooltip import TestVisiblePrimsFilterTooltipUnit
 
@@ -26,7 +30,12 @@ __all__ = [
     "TestAdditionalFiltersUnit",
     "TestCustomTagsFilterPluginUnit",
     "TestIgnorePrimsFilterPluginUnit",
+    "TestLightPrimsFilterPlugin",
+    "TestMaterialBindingsFilterPlugin",
+    "TestMaterialPrimsFilterPlugin",
     "TestSearchFilterPluginUnit",
+    "TestSkeletonPrimsFilterPluginUnit",
     "TestStageManagerUSDFilterPluginUnit",
+    "TestToggleableUSDFilterPluginUnit",
     "TestVisiblePrimsFilterTooltipUnit",
 ]

@@ -17,15 +17,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+__all__ = ["InstanceGroupFilterPlugin"]
 
 from lightspeed.common.constants import ROOTNODE_INSTANCES as _ROOTNODE_INSTANCES
+from omni.flux.stage_manager.factory import StageManagerItem
 from omni.flux.stage_manager.factory.plugins.filter_plugin import FilterCategory as _FilterCategory
 from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 from pydantic import Field
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class InstanceGroupFilterPlugin(_ToggleableUSDFilterPlugin):
@@ -39,5 +37,13 @@ class InstanceGroupFilterPlugin(_ToggleableUSDFilterPlugin):
     tooltip: str = Field(default="Filter for instance group", exclude=True)
     filter_category: _FilterCategory = Field(default=_FilterCategory.GROUP, exclude=True)
 
-    def _filter_predicate(self, prim: Usd.Prim) -> bool:
-        return str(prim.GetPath()).startswith(_ROOTNODE_INSTANCES)
+    def _evaluate_item(self, item: StageManagerItem) -> bool:
+        """Evaluate whether an item belongs to the instance group.
+
+        Args:
+            item: Stage Manager item containing the prim to evaluate.
+
+        Returns:
+            Whether the prim path belongs to the instance-group namespace.
+        """
+        return str(item.data.GetPath()).startswith(_ROOTNODE_INSTANCES)

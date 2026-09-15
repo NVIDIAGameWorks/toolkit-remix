@@ -26,23 +26,32 @@ from .base import StageManagerUSDTreePlugin as _StageManagerUSDTreePlugin
 
 
 class PrimGroupsItem(_StageManagerUSDTreeItem):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.available_icons = _get_prim_type_icons()
-
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
 
+    def __hash__(self):
+        """Hash stable prim rows by USD path without building their display hierarchy."""
+        return hash(self.path) if self.path is not None else super().__hash__()
+
     @property
     def icon(self):
-        if not self.available_icons:
+        """Return the configured icon name for the item's Prim type.
+
+        Returns:
+            The matching icon name, or ``"Xform"`` for an invalid or unknown Prim type.
+
+        Raises:
+            AttributeError: If no Prim-type icons are configured.
+        """
+        available_icons = _get_prim_type_icons()
+        if not available_icons:
             raise AttributeError("No icons available. Please check the default_schema.json file.")
         if not self.data or not self.data.IsValid():
             return "Xform"
         type_name = self.data.GetTypeName()
         if type_name:
-            return self.available_icons.get(type_name, "Xform")
+            return available_icons.get(type_name, "Xform")
 
         return "Xform"
 

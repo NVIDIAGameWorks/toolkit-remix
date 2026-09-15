@@ -129,6 +129,10 @@ class SkeletonBoundMeshItem(SkeletonTreeItem):
 
 
 class SkeletonGroupsModel(_VirtualGroupsModel):
+    """Build sparse skeleton, joint, and bound-mesh relationships from context candidates."""
+
+    requires_context_ancestors = False
+
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr

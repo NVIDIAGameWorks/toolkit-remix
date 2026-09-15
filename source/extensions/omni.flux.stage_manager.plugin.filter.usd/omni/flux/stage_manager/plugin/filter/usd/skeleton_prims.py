@@ -17,20 +17,27 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+__all__ = ["SkeletonPrimsFilterPlugin"]
 
+from omni.flux.stage_manager.factory import StageManagerItem
 from pxr import UsdSkel
 from pydantic import Field
 
 from .base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class SkeletonPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Skeleton Prims", exclude=True)
     tooltip: str = Field(default="Filter for skeleton prims", exclude=True)
 
-    def _filter_predicate(self, prim: Usd.Prim) -> bool:
+    def _evaluate_item(self, item: StageManagerItem) -> bool:
+        """Evaluate whether an item contains a skeleton-related prim.
+
+        Args:
+            item: Stage Manager item containing the prim to evaluate.
+
+        Returns:
+            Whether the prim uses skeleton bindings or is a skeleton container.
+        """
+        prim = item.data
         return prim.HasAPI(UsdSkel.BindingAPI) or prim.GetTypeName() in {"Skeleton", "SkelRoot"}

@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.30.3]
+### Changed
+- Renamed the bundled Stage Manager ancestor policy to `allow_context_ancestors` while preserving the Skeleton
+  interaction's explicit sparse-tree veto.
+
 ## [1.30.2]
 ### Added
 - Added ComfyUI protocol, disconnected-state, and retarget icons and reorganized the TextureCraft layout used by AI Tools around Setup, Workflow, Job Queue, a full-height Job Details column, and Stage Manager submission.

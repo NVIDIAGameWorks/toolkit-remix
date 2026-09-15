@@ -45,6 +45,10 @@ class MeshGroupsItem(_VirtualGroupsItem):
 
 
 class MeshGroupsModel(_VirtualGroupsModel):
+    """Build a virtual mesh hierarchy from prepared item context data."""
+
+    requires_context_ancestors = False
+
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
@@ -70,7 +74,15 @@ class MeshGroupsModel(_VirtualGroupsModel):
         items: list[_StageManagerItem],
         cancel_event: threading.Event,
     ) -> list[MeshGroupsItem] | None:
-        """Build mesh groups unless the refresh is cancelled."""
+        """Build mesh groups from context-culled items using their USD prim data.
+
+        Args:
+            items: Context-filtered items whose data contains the mesh or instance USD prim.
+            cancel_event: Event that stops construction and discards the partial tree.
+
+        Returns:
+            Mesh group items, or None when cancellation occurs.
+        """
         if cancel_event.is_set():
             return None
 

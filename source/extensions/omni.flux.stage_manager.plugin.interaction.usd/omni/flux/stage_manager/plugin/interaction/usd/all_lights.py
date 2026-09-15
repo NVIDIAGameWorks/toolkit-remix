@@ -23,11 +23,13 @@ from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractio
 
 
 class AllLightsInteractionPlugin(_StageManagerUSDInteractionPlugin):
+    """Provide the light-focused interaction with grouped-tree support."""
+
     display_name: str = Field(default="Lights", exclude=True)
     tooltip: str = Field(default="View the available lights, grouped by light type", exclude=True)
 
     internal_context_filters: list[_StageManagerFilterPlugin] = Field(
-        default=[{"name": "LightPrimsFilterPlugin"}], exclude=True
+        default=[{"name": "LightPrimsFilterPlugin", "filter_active": False}], exclude=True
     )
 
     tree: _StageManagerTreePlugin = Field(default={"name": "LightGroupsTreePlugin"}, exclude=True)

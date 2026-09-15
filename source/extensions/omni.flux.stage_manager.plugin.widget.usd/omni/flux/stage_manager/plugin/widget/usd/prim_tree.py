@@ -42,19 +42,21 @@ class PrimTreeWidgetPlugin(_StageManagerUSDWidgetPlugin, _StageManagerMenuMixin)
     item_spacing: int = Field(default=8, description="The horizontal space between the items in pixels", exclude=True)
 
     def build_ui(self, model: _StageManagerTreeModel, item: _StageManagerTreeItem, level: int, expanded: bool):
+        """Build one visible Prim row."""
         with ui.HStack(spacing=ui.Pixel(self.item_spacing), tooltip=item.tooltip or ""):
-            if item.icon:
+            icon_name = item.icon
+            if icon_name:
                 with ui.VStack(width=0):
                     ui.Spacer(width=0)
-                    ui.Image("", name=item.icon, width=ui.Pixel(self.icon_size), height=ui.Pixel(self.icon_size))
+                    ui.Image("", name=icon_name, width=ui.Pixel(self.icon_size), height=ui.Pixel(self.icon_size))
                     ui.Spacer(width=0)
             else:
                 ui.Spacer(height=0, width=0)
             item.build_widget()
 
     def build_overview_ui(self, model: _StageManagerTreeModel):
-        # Make sure to only count prims, not virtual groups
-        prims_count = sum(not item.original_tree_item.is_virtual for item in model.iter_items_children())
+        """Build the visible Prim count overview."""
+        prims_count = model.visible_non_virtual_items_count
 
         ui.Label(f"{prims_count} prim{'s' if prims_count > 1 else ''} available")
 

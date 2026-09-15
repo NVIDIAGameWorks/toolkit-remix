@@ -1,6 +1,19 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [7.0.0]
+### Added
+- Added typed, refresh-owned display-name and group-membership preparation to `StageManagerItem`.
+- Added a tree-model capability for declaring whether context ancestors are required.
+
+### Changed
+- Renamed the interaction ancestor policy from `include_invalid_parents` to `allow_context_ancestors` and combined it
+  with each tree model's requirement during context preparation.
+- Extended filter predicate builders with cooperative context-refresh cancellation and prepared display names before
+  sparse context culling.
+- Eliminated redundant per-item work, published visible-row counts, and consolidated filtering and tree preparation into
+  cooperatively paced worker transactions.
+
 ## [6.0.0]
 ### Changed
 - Improved Stage Manager filter responsiveness with stable proxy hierarchies while preserving selection and expansion.

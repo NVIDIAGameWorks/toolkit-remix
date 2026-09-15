@@ -22,7 +22,6 @@ import threading
 from lightspeed.common.constants import HIDDEN_REMIX_CATEGORIES as _HIDDEN_REMIX_CATEGORIES
 from lightspeed.common.constants import REMIX_CATEGORIES_DISPLAY_NAMES as _REMIX_CATEGORIES_DISPLAY_NAMES
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
-from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsDelegate as _VirtualGroupsDelegate
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsItem as _VirtualGroupsItem
 from omni.flux.stage_manager.plugin.tree.usd.virtual_groups import VirtualGroupsModel as _VirtualGroupsModel
@@ -81,6 +80,10 @@ class CategoryGroupsItem(_VirtualGroupsItem):
 
 
 class CategoryGroupsModel(_VirtualGroupsModel):
+    """Build a virtual category hierarchy from prepared item state."""
+
+    requires_context_ancestors = False
+
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
@@ -106,7 +109,15 @@ class CategoryGroupsModel(_VirtualGroupsModel):
         items: list[_StageManagerItem],
         cancel_event: threading.Event,
     ) -> list[CategoryGroupsItem] | None:
-        """Build category groups unless the refresh is cancelled."""
+        """Build category groups from required refresh-prepared item state.
+
+        Args:
+            items: Context-filtered items with prepared category memberships and display names.
+            cancel_event: Event that stops construction and discards the partial tree.
+
+        Returns:
+            Category group items, or None when cancellation occurs.
+        """
         if cancel_event.is_set():
             return None
 
@@ -117,21 +128,15 @@ class CategoryGroupsModel(_VirtualGroupsModel):
                 return None
             parent_lookup[attr] = self._build_item(display_name, None, tooltip=f"{display_name} Group", category=attr)
 
-        # Get unique item names
-        item_names = _StageManagerUtils.get_unique_names(items)
-
         # Add category items to the groups
         for item in items:
             if cancel_event.is_set():
                 return None
             path_str = str(item.data.GetPath())
-            name, parent = item_names[item]
-            for attr in item.data.GetAttributes():
+            name, parent = item.prepared_display_name
+            for attr_name in item.prepared_group_memberships:
                 if cancel_event.is_set():
                     return None
-                attr_name = attr.GetName()
-                if attr_name not in parent_lookup or not attr.Get():
-                    continue
 
                 tree_item = self._build_item(
                     name,

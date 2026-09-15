@@ -17,9 +17,12 @@
 
 from __future__ import annotations
 
+__all__ = ["CustomTagsFilterPlugin"]
+
 import contextlib
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import partial
+from threading import Event
 
 from omni import ui
 from omni.flux.custom_tags.core import CustomTagsCore as _CustomTagsCore
@@ -143,15 +146,47 @@ class CustomTagsFilterPlugin(_CheckboxGroupFilterPlugin):
             all_tag_paths = self._get_all_tag_paths(refresh_stage=self._all_tag_paths is None)
         return not self._core.prim_has_any_tag(prim, all_tag_paths)
 
-    def build_filter_predicate(self):
-        """Build a predicate with all tag paths computed once for untagged matching."""
-        if not self._filter_enabled or self._core is None or not self.include_untagged:
-            return self.filter_predicate
+    def build_filter_predicate(self, cancel_event: Event | None = None) -> Callable[[_StageManagerItem], bool]:
+        """Build a predicate using active selections or neutral tag memberships.
 
-        all_tag_paths = [
-            tag_path for tag_path in (self._core.get_all_tags() or []) if tag_path and not tag_path.isEmpty
-        ]
-        return partial(self.filter_predicate, all_tag_paths=all_tag_paths)
+        Args:
+            cancel_event: Optional event used for cooperative neutral preparation cancellation.
+
+        Returns:
+            Predicate that evaluates one Stage Manager item.
+        """
+        if self._filter_enabled:
+            if self._core is None or not self.include_untagged:
+                return self.filter_predicate
+
+            all_tag_paths = [
+                tag_path for tag_path in (self._core.get_all_tags() or []) if tag_path and not tag_path.isEmpty
+            ]
+            return partial(self.filter_predicate, all_tag_paths=all_tag_paths)
+
+        core = _CustomTagsCore(context_name=self._context_name)
+        try:
+            tags_by_prim_path: dict[str, list[str]] = {}
+            tag_paths = [] if cancel_event and cancel_event.is_set() else core.get_all_tags() or []
+            for tag_path in tag_paths:
+                if cancel_event and cancel_event.is_set():
+                    break
+                for prim_path in core.get_tag_prims(tag_path):
+                    if cancel_event and cancel_event.is_set():
+                        break
+                    tags_by_prim_path.setdefault(str(prim_path), []).append(str(tag_path))
+        finally:
+            core.destroy()
+
+        def filter_tagged_item(item: _StageManagerItem) -> bool:
+            item.mark_display_name_candidate()
+            tag_paths = tags_by_prim_path.get(str(item.data.GetPath()))
+            if tag_paths is None:
+                return False
+            item.prepare_group_memberships(tag_paths)
+            return True
+
+        return filter_tagged_item
 
     def _filter_items_changed(self):
         self._all_tag_paths = None

@@ -20,6 +20,7 @@ import threading
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, Mock, call, patch
 
+import omni.kit.app
 import omni.kit.test
 from omni.flux.stage_manager.factory.items import StageManagerItem
 from omni.flux.stage_manager.factory.plugins.interaction_plugin import StageManagerInteractionPlugin
@@ -28,30 +29,42 @@ from pydantic import PrivateAttr
 
 
 class _TestInteractionPlugin(StageManagerInteractionPlugin):
+    """Provide the minimum concrete interaction used by queue tests."""
+
     def _setup_listeners(self):
+        """Skip listener setup for tests."""
         pass
 
     def _clear_listeners(self):
+        """Skip listener cleanup for tests."""
         pass
 
     def build_ui(self, *args, **kwargs):
+        """Skip UI construction for tests."""
         pass
 
 
 class _QueueingInteractionPlugin(_TestInteractionPlugin):
+    """Queue a second context update during the first update."""
+
     _update_calls: int = PrivateAttr(default=0)
 
     async def _update_context_items(self):
+        """Record an update and enqueue a replacement on the first call."""
         self._update_calls += 1
         if self._update_calls == 1:
             self._update_queue.put_nowait(True)
 
 
 class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
+    """Test Stage Manager interaction update scheduling and publication."""
+
     def _make_plugin(self, **kwargs):
+        """Create a minimally configured interaction plugin."""
         return _TestInteractionPlugin.model_construct(display_name="TestInteraction", tooltip="For tests", **kwargs)
 
     async def test_on_hidden_clears_stale_ui_refresh_targets(self):
+        """Clear stale UI refresh targets when the interaction is hidden."""
         # Arrange
         plugin = self._make_plugin(filters=[], additional_filters=[])
         plugin._result_frames = [Mock()]
@@ -69,12 +82,14 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         self.assertIsNone(plugin._tree_widget)
 
     async def test_refresh_tree_model_with_widget_uses_default_refresh_path(self):
+        """Refresh through the widget while temporarily disabling keep-alive."""
         # Arrange
         keep_alive_disabled = False
         refresh_result = Mock(input_items_count=4, output_items_count=4)
 
         @asynccontextmanager
         async def _keep_alive_disabled():
+            """Record the keep-alive-disabled scope."""
             nonlocal keep_alive_disabled
             keep_alive_disabled = True
             try:
@@ -88,6 +103,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         keep_alive_during_refresh = []
 
         async def _refresh_model(**_kwargs):
+            """Record keep-alive state during model refresh."""
             keep_alive_during_refresh.append(keep_alive_disabled)
             return refresh_result
 
@@ -109,9 +125,12 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         plugin._wait_for_post_refresh_work.assert_awaited_once_with()
 
     async def test_filter_update_during_context_post_refresh_is_applied_before_completion(self):
+        """Apply a filter update queued during context post-refresh work."""
+
         # Arrange
         @asynccontextmanager
         async def _keep_alive_disabled():
+            """Provide the keep-alive-disabled scope."""
             yield
 
         refresh_result = Mock(input_items_count=5, output_items_count=5)
@@ -125,6 +144,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         post_refresh_count = 0
 
         async def _wait_for_post_refresh_work():
+            """Queue a filter refresh during the first post-refresh wait."""
             nonlocal post_refresh_count
             post_refresh_count += 1
             if post_refresh_count == 1:
@@ -146,6 +166,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         self.assertFalse(plugin._filter_refresh_pending)
 
     async def test_filter_update_uses_filter_only_tree_path(self):
+        """Use proxy filtering without rebuilding the canonical tree."""
         # Arrange
         plugin = self._make_plugin(tree=Mock())
         plugin.tree.apply_filters = AsyncMock(return_value=(4, 3))
@@ -167,6 +188,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         plugin._wait_for_post_refresh_work.assert_awaited_once_with()
 
     async def test_refresh_tree_filters_records_counts_expands_roots_and_finishes_transaction(self):
+        """Record filter counts and finish a successful filter transaction."""
         # Arrange
         roots = [Mock(), Mock()]
         selection = [Mock()]
@@ -203,6 +225,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         transaction.finish.assert_called_once_with()
 
     async def test_refresh_tree_filters_none_finishes_transaction_as_cancelled(self):
+        """Finish the transaction as cancelled when filtering returns no result."""
         # Arrange
         transaction = Mock()
         plugin = self._make_plugin(tree=Mock())
@@ -224,6 +247,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         transaction.finish.assert_called_once_with()
 
     async def test_model_sync_failure_is_observed_by_filter_transaction(self):
+        """Report model synchronization failures on the active transaction."""
         # Arrange
         transaction = Mock()
         plugin = self._make_plugin(tree=Mock())
@@ -247,16 +271,19 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         transaction.finish.assert_called_once_with()
 
     async def test_queue_context_update_immediately_cancels_filter_model_work(self):
+        """Cancel active filter-model work when a context update is queued."""
         # Arrange
         filter_started = asyncio.Event()
         release_filter = asyncio.Event()
         release_context = asyncio.Event()
 
         async def _apply_filters():
+            """Block filter application until cleanup releases it."""
             filter_started.set()
             await release_filter.wait()
 
         async def _update_context_items():
+            """Block context preparation until cleanup releases it."""
             await release_context.wait()
 
         plugin = self._make_plugin(tree=Mock())
@@ -287,6 +314,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
             await asyncio.gather(*tasks, return_exceptions=True)
 
     async def test_filter_update_cancels_superseded_model_task(self):
+        """Cancel the prior model task before applying a newer filter update."""
         # Arrange
         release_old_task = asyncio.Event()
         old_task = asyncio.create_task(release_old_task.wait())
@@ -315,6 +343,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         plugin.tree.apply_filters.assert_awaited_once_with()
 
     async def test_refresh_tree_model_without_widget_skips_refresh_and_cleans_state(self):
+        """Skip refresh and clear refresh state when no widget exists."""
         # Arrange
         plugin = self._make_plugin(tree=Mock())
         plugin._tree_widget = None
@@ -339,6 +368,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         self.assertFalse(plugin._loading_frame.visible)
 
     async def test_update_queue_worker_drains_updates_queued_during_context_refresh(self):
+        """Drain an update queued while the current context update runs."""
         # Arrange
         plugin = _QueueingInteractionPlugin.model_construct(
             display_name="TestInteraction",
@@ -355,6 +385,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         self.assertTrue(plugin._update_queue.empty())
 
     async def test_update_queue_worker_with_context_update_does_not_wait_frames(self):
+        """Run an already-queued context update without an extra frame wait."""
         # Arrange
         plugin = self._make_plugin()
         plugin._update_queue = asyncio.Queue()
@@ -365,10 +396,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         # Act
         with (
             patch.object(plugin, "_update_context_items", new=AsyncMock()) as update_context_items,
-            patch(
-                "omni.flux.stage_manager.factory.plugins.interaction_plugin.omni.kit.app.get_app",
-                return_value=kit_app,
-            ),
+            patch.object(omni.kit.app, "get_app", return_value=kit_app),
         ):
             await plugin._update_queue_worker()
 
@@ -377,12 +405,13 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         kit_app.next_update_async.assert_not_awaited()
 
     async def test_update_context_items_when_active_waits_one_frame_before_getting_items(self):
+        """Wait one frame before collecting active-interaction context items."""
         # Arrange
         call_order = []
         plugin = self._make_plugin(
             context_filters=[],
             internal_context_filters=[],
-            include_invalid_parents=True,
+            allow_context_ancestors=True,
             tree=Mock(),
         )
         plugin._is_active = True
@@ -394,6 +423,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         kit_app = Mock()
 
         async def _next_update():
+            """Record the initial frame wait."""
             call_order.append("next_update")
 
         kit_app.next_update_async = AsyncMock(side_effect=_next_update)
@@ -401,10 +431,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         # Act
         with (
             patch.object(asyncio, "sleep", new=AsyncMock()) as sleep_mock,
-            patch(
-                "omni.flux.stage_manager.factory.plugins.interaction_plugin.omni.kit.app.get_app",
-                return_value=kit_app,
-            ),
+            patch.object(omni.kit.app, "get_app", return_value=kit_app),
             patch.object(StageManagerUtils, "filter_items", new=AsyncMock(return_value=["source"])),
         ):
             await plugin._update_context_items()
@@ -414,7 +441,173 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         kit_app.next_update_async.assert_awaited_once_with()
         sleep_mock.assert_not_awaited()
 
+    async def test_update_context_items_culls_context_for_the_tree_model_capability(self):
+        """Publish context items according to each tree model's ancestor requirement."""
+        test_cases = (
+            (
+                "grouped model excludes invalid ancestors",
+                False,
+                True,
+                ("retained", "matching", "matching"),
+                (None, "retained", "retained"),
+            ),
+            (
+                "hierarchical model retains invalid ancestors",
+                True,
+                True,
+                ("root", "retained", "excluded", "matching", "matching"),
+                (None, "root", "retained", "excluded", "excluded"),
+            ),
+            (
+                "explicit sparse mode overrides hierarchy",
+                True,
+                False,
+                ("retained", "matching", "matching"),
+                (None, "retained", "retained"),
+            ),
+        )
+        for (
+            title,
+            requires_context_ancestors,
+            allow_context_ancestors,
+            expected_identifiers,
+            expected_parent_identifiers,
+        ) in test_cases:
+            with self.subTest(
+                title=title,
+                requires_context_ancestors=requires_context_ancestors,
+                allow_context_ancestors=allow_context_ancestors,
+            ):
+                # Arrange
+                kit_app = Mock()
+                kit_app.next_update_async = AsyncMock()
+                root = StageManagerItem("root")
+                retained = StageManagerItem("retained", parent=root)
+                excluded = StageManagerItem("excluded", parent=retained)
+                matching = StageManagerItem("matching", parent=excluded)
+                matching_duplicate = StageManagerItem("matching", parent=excluded)
+                context_items = [root, retained, excluded, matching, matching_duplicate]
+                published_items = []
+                publication_order = []
+                predicate_items = []
+                tree = Mock()
+                tree.model.requires_context_ancestors = requires_context_ancestors
+
+                def _set_context_items(items, published_items=published_items, publication_order=publication_order):
+                    """Record the model publication order and published items."""
+                    published_items.append(items)
+                    publication_order.append("set_context_items")
+
+                context_filter = Mock(enabled=True)
+
+                def _predicate(item, predicate_items=predicate_items):
+                    """Reject the excluded source items while recording evaluation order."""
+                    predicate_items.append(item)
+                    return item.identifier not in {"excluded", "root"}
+
+                def _context_items_changed(publication_order=publication_order):
+                    """Record context publication after its items are available."""
+                    publication_order.append("context_items_changed")
+
+                tree.model.set_context_items.side_effect = _set_context_items
+                context_filter.build_filter_predicate.return_value = _predicate
+                plugin = self._make_plugin(
+                    context_filters=[context_filter],
+                    internal_context_filters=[],
+                    allow_context_ancestors=allow_context_ancestors,
+                    tree=tree,
+                )
+                plugin._is_active = True
+                plugin._update_queue = asyncio.Queue()
+                plugin._context = Mock()
+                plugin._context.get_items.return_value = context_items
+                plugin._context_items_changed = Mock(side_effect=_context_items_changed)
+
+                # Act
+                with patch.object(omni.kit.app, "get_app", return_value=kit_app):
+                    await plugin._update_context_items()
+
+                # Assert
+                self.assertEqual(1, len(published_items))
+                tree.model.set_context_items.assert_called_once_with(published_items[0])
+                self.assertEqual(expected_identifiers, tuple(item.identifier for item in published_items[0]))
+                self.assertEqual(
+                    expected_parent_identifiers,
+                    tuple(item.parent.identifier if item.parent else None for item in published_items[0]),
+                )
+                self.assertIs(published_items[0][-2], matching)
+                self.assertIs(published_items[0][-1], matching_duplicate)
+                self.assertIsNot(published_items[0][-2], published_items[0][-1])
+                self.assertEqual(context_items, predicate_items)
+                self.assertEqual(["set_context_items", "context_items_changed"], publication_order)
+                plugin._context_items_changed.assert_called_once_with()
+
+    async def test_update_context_items_prepares_display_names_before_sparse_culling(self):
+        """Prepare display names before sparse context candidates are culled."""
+        # Arrange
+        relevant_path = Mock()
+        relevant_path.name = "Shared"
+        relevant_path.GetParentPath.return_value.name = "World"
+        relevant_prim = Mock()
+        relevant_prim.GetPath.return_value = relevant_path
+        relevant = StageManagerItem("relevant", data=relevant_prim)
+
+        ancestor_path = Mock()
+        ancestor_path.name = "Shared"
+        ancestor_path.GetParentPath.return_value.name = "Other"
+        ancestor_prim = Mock()
+        ancestor_prim.GetPath.return_value = ancestor_path
+        ancestor = StageManagerItem("ancestor", data=ancestor_prim)
+
+        rejected_candidate_path = Mock()
+        rejected_candidate_path.name = "Child"
+        rejected_candidate_path.GetParentPath.return_value.name = "Shared"
+        rejected_candidate_prim = Mock()
+        rejected_candidate_prim.GetPath.return_value = rejected_candidate_path
+        rejected_candidate = StageManagerItem("rejected_candidate", data=rejected_candidate_prim, parent=ancestor)
+
+        schema_filter = Mock(enabled=True)
+        schema_filter.build_filter_predicate.return_value = lambda item: item is not ancestor
+        intrinsic_filter = Mock(enabled=True)
+
+        def _intrinsic_predicate(item):
+            """Mark display-name candidates and retain the relevant item."""
+            item.mark_display_name_candidate()
+            return item is relevant
+
+        intrinsic_filter.build_filter_predicate.return_value = _intrinsic_predicate
+        tree = Mock()
+        tree.model.requires_context_ancestors = False
+        plugin = self._make_plugin(
+            context_filters=[schema_filter],
+            internal_context_filters=[intrinsic_filter],
+            allow_context_ancestors=True,
+            tree=tree,
+        )
+        plugin._is_active = True
+        plugin._update_queue = asyncio.Queue()
+        plugin._context = Mock()
+        plugin._context.get_items.return_value = [ancestor, rejected_candidate, relevant]
+        plugin._context_items_changed = Mock()
+        kit_app = Mock()
+        kit_app.next_update_async = AsyncMock()
+
+        # Act
+        with patch.object(omni.kit.app, "get_app", return_value=kit_app):
+            await plugin._update_context_items()
+
+        # Assert
+        published_items = tree.model.set_context_items.call_args.args[0]
+        self.assertEqual([relevant], published_items)
+        self.assertTrue(relevant.is_display_name_candidate)
+        self.assertTrue(rejected_candidate.is_display_name_candidate)
+        self.assertFalse(ancestor.is_display_name_candidate)
+        self.assertEqual(("Shared", "World"), relevant.prepared_display_name)
+        self.assertEqual(("Shared", "Other"), ancestor.prepared_display_name)
+        self.assertEqual(("Child", None), rejected_candidate.prepared_display_name)
+
     async def test_context_update_queued_during_initial_frame_prevents_stale_context_publication(self):
+        """Discard stale context work replaced during the initial frame wait."""
         # Arrange
         frame_started = asyncio.Event()
         release_frame = asyncio.Event()
@@ -422,7 +615,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         plugin = self._make_plugin(
             context_filters=[],
             internal_context_filters=[],
-            include_invalid_parents=True,
+            allow_context_ancestors=True,
             tree=Mock(),
         )
         plugin._is_active = True
@@ -435,6 +628,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         kit_app = Mock()
 
         async def _next_update():
+            """Block the initial frame so a replacement update can be queued."""
             nonlocal frame_count
             frame_count += 1
             if frame_count == 1:
@@ -446,10 +640,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
 
         # Act
         with (
-            patch(
-                "omni.flux.stage_manager.factory.plugins.interaction_plugin.omni.kit.app.get_app",
-                return_value=kit_app,
-            ),
+            patch.object(omni.kit.app, "get_app", return_value=kit_app),
             patch.object(plugin, "_prepare_context_items", prepare_context_items),
         ):
             plugin._update_items_task = asyncio.create_task(plugin._update_queue_worker())
@@ -470,21 +661,27 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         plugin._context_items_changed.assert_called_once_with()
 
     async def test_update_context_items_runs_collection_and_predicate_preparation_on_worker(self):
+        """Run collection, predicate preparation, and evaluation on a worker."""
         # Arrange
         main_thread_id = threading.get_ident()
-        worker_thread_ids = []
+        worker_thread_ids = {}
+        predicate_cancel_events = {}
         source_item = StageManagerItem("source", data=object())
-        context_filter = Mock(enabled=True)
+        context_filter = Mock(enabled=True, filter_active=False)
 
         def _get_items(*_args):
-            worker_thread_ids.append(threading.get_ident())
+            """Record the collection thread and return one source item."""
+            worker_thread_ids["collection"] = threading.get_ident()
             return [source_item]
 
-        def _build_filter_predicate():
-            worker_thread_ids.append(threading.get_ident())
+        def _build_filter_predicate(cancel_event):
+            """Build a worker predicate while recording preparation and evaluation threads."""
+            worker_thread_ids["predicate_builder"] = threading.get_ident()
+            predicate_cancel_events["predicate_builder"] = cancel_event
 
             def _predicate(_item):
-                worker_thread_ids.append(threading.get_ident())
+                """Record worker-thread item evaluation."""
+                worker_thread_ids["predicate_evaluation"] = threading.get_ident()
                 return True
 
             return _predicate
@@ -493,7 +690,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         plugin = self._make_plugin(
             context_filters=[context_filter],
             internal_context_filters=[],
-            include_invalid_parents=True,
+            allow_context_ancestors=True,
             tree=Mock(),
         )
         plugin._is_active = True
@@ -506,25 +703,24 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         kit_app.next_update_async = AsyncMock()
 
         # Act
-        with patch(
-            "omni.flux.stage_manager.factory.plugins.interaction_plugin.omni.kit.app.get_app",
-            return_value=kit_app,
-        ):
+        with patch.object(omni.kit.app, "get_app", return_value=kit_app):
             await plugin._update_context_items()
 
         # Assert
-        self.assertEqual(3, len(worker_thread_ids))
-        self.assertTrue(all(thread_id != main_thread_id for thread_id in worker_thread_ids))
+        self.assertEqual({"collection", "predicate_builder", "predicate_evaluation"}, set(worker_thread_ids))
+        self.assertTrue(all(thread_id != main_thread_id for thread_id in worker_thread_ids.values()))
+        self.assertIs(predicate_cancel_events["predicate_builder"], plugin._context_refresh_cancel_event)
         plugin.tree.model.set_context_items.assert_called_once()
 
     async def test_update_queue_worker_when_lightweight_update_arrives_during_context_refresh_publishes_then_dirties(
         self,
     ):
+        """Publish context results before dirtying widgets for a lightweight update."""
         # Arrange
         plugin = self._make_plugin(
             context_filters=[],
             internal_context_filters=[],
-            include_invalid_parents=True,
+            allow_context_ancestors=True,
             tree=Mock(),
         )
         plugin._is_active = True
@@ -540,6 +736,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         filter_call_count = 0
 
         async def _filter_items(*_args, **_kwargs):
+            """Queue a lightweight update during the first filtering pass."""
             nonlocal filter_call_count
             filter_call_count += 1
             if filter_call_count == 1:
@@ -548,10 +745,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
 
         # Act
         with (
-            patch(
-                "omni.flux.stage_manager.factory.plugins.interaction_plugin.omni.kit.app.get_app",
-                return_value=kit_app,
-            ),
+            patch.object(omni.kit.app, "get_app", return_value=kit_app),
             patch.object(StageManagerUtils, "filter_items", new=AsyncMock(side_effect=_filter_items)) as filter_items,
         ):
             await plugin._update_queue_worker()
@@ -563,6 +757,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         plugin._tree_widget.dirty_widgets.assert_called_once_with()
 
     async def test_set_active_false_cancels_pending_update_and_model_refresh_tasks(self):
+        """Cancel pending update and model tasks when the plugin deactivates."""
         # Arrange
         plugin = self._make_plugin()
         plugin._is_active = True
@@ -583,12 +778,14 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         self.assertTrue(plugin._context_refresh_cancel_event.is_set())
 
     async def test_immediate_reactivation_restarts_cancelled_queue_worker(self):
+        """Restart the queue worker after immediate deactivation and reactivation."""
         # Arrange
         plugin = self._make_plugin(filters=[], additional_filters=[])
         plugin._update_queue = asyncio.Queue()
         update_started = asyncio.Event()
 
         async def _update_context_items():
+            """Signal that the restarted context update ran."""
             update_started.set()
 
         plugin._update_context_items = AsyncMock(side_effect=_update_context_items)
@@ -611,11 +808,12 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         self.assertTrue(plugin._update_queue.empty())
 
     async def test_update_context_items_discards_result_when_new_context_update_is_queued(self):
+        """Discard context results superseded during filtering."""
         # Arrange
         plugin = self._make_plugin(
             context_filters=[],
             internal_context_filters=[],
-            include_invalid_parents=True,
+            allow_context_ancestors=True,
             tree=Mock(),
         )
         plugin._is_active = True
@@ -626,6 +824,7 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
         plugin.tree.model.set_context_items = Mock()
 
         async def _filter_items(*_args, **kwargs):
+            """Cancel the current generation and queue its replacement."""
             kwargs["cancel_event"].set()
             plugin._update_queue.put_nowait(True)
             return ["stale"]

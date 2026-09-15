@@ -19,19 +19,16 @@ from __future__ import annotations
 
 __all__ = ["MeshPrimsFilterPlugin"]
 
-from typing import TYPE_CHECKING
-
 from lightspeed.trex.utils.common.prim_utils import (
+    get_prototype,
     is_empty_mesh_prim,
     is_in_light_group,
     is_instance,
     is_mesh_prototype,
 )
+from omni.flux.stage_manager.factory import StageManagerItem
 from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin
 from pydantic import Field
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class MeshPrimsFilterPlugin(ToggleableUSDFilterPlugin):
@@ -42,25 +39,32 @@ class MeshPrimsFilterPlugin(ToggleableUSDFilterPlugin):
         default=True, description="Whether the filter should also include instances with the meshes or not."
     )
 
-    def _filter_predicate(self, prim: Usd.Prim) -> bool:
-        """Return whether a prim belongs in the mesh filter.
+    def _evaluate_item(self, item: StageManagerItem) -> bool:
+        """Evaluate whether an item belongs in the mesh filter.
 
         Args:
-            prim: Prim to evaluate.
+            item: Stage Manager item containing the prim to evaluate.
 
         Returns:
-            Whether the prim is a Mesh, GeomSubset, empty mesh-root container, or eligible included non-light instance.
+            Whether the item contains a mesh prototype, empty mesh-root container, or mapped instance.
         """
+        prim = item.data
         if not prim:
             return False
 
         prim_path = str(prim.GetPath())
-        return bool(
-            is_mesh_prototype(prim, prim_path=prim_path)
-            or is_empty_mesh_prim(prim, prim_path=prim_path)
-            or (
-                self.include_instances
-                and is_instance(prim, prim_path=prim_path)
-                and not is_in_light_group(prim, prim_path=prim_path)
-            )
-        )
+        if is_mesh_prototype(prim, prim_path=prim_path) or is_empty_mesh_prim(prim, prim_path=prim_path):
+            return True
+        if (
+            not self.include_instances
+            or not is_instance(prim, prim_path=prim_path)
+            or is_in_light_group(prim, prim_path=prim_path)
+        ):
+            return False
+
+        mesh_prim = get_prototype(prim)
+        if not mesh_prim:
+            return False
+
+        mesh_path = str(mesh_prim.GetPath())
+        return is_mesh_prototype(mesh_prim, prim_path=mesh_path) or is_empty_mesh_prim(mesh_prim, prim_path=mesh_path)

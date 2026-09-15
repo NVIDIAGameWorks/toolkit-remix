@@ -18,6 +18,7 @@
 import abc
 from collections.abc import Callable
 from enum import Enum
+from threading import Event as _ThreadEvent
 
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
@@ -25,6 +26,8 @@ from pydantic import Field, PrivateAttr
 
 from ..items import StageManagerItem as _StageManagerItem
 from .base import StageManagerUIPluginBase as _StageManagerUIPluginBase
+
+__all__ = ["FilterCategory", "StageManagerFilterPlugin"]
 
 
 class FilterCategory(Enum):
@@ -64,13 +67,20 @@ class StageManagerFilterPlugin(_StageManagerUIPluginBase, abc.ABC):
         """
         pass
 
-    def build_filter_predicate(self) -> Callable[[_StageManagerItem], bool]:
+    def build_filter_predicate(self, cancel_event: _ThreadEvent | None = None) -> Callable[[_StageManagerItem], bool]:
         """
         Build the predicate used for one filter refresh.
 
         This method runs in the refresh worker. Most filters should implement only
         :meth:`filter_predicate`; overrides are reserved for refresh-local caches or
-        other data that should be prepared once before item evaluation.
+        other data that should be prepared once before item evaluation. Context
+        filters may use ``cancel_event`` for cooperative cancellation during that
+        preparation. Intrinsic context predicates may write derived results only to
+        the refresh-owned item they evaluate; they must not mutate shared filter,
+        model, or UI state.
+
+        Args:
+            cancel_event: Event set when the current refresh is superseded.
 
         Returns:
             Predicate to evaluate for each Stage Manager item.

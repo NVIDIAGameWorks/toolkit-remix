@@ -15,20 +15,26 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING
+__all__ = ["OmniPrimsFilterPlugin"]
 
+from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.utils.common.prims import get_omni_prims as _get_omni_prims
 from pydantic import Field
 
 from .base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class OmniPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Omniverse Prims", exclude=True)
     tooltip: str = Field(default="Filter for Omniverse prims", exclude=True)
 
-    def _filter_predicate(self, prim: "Usd.Prim") -> bool:
-        return prim.GetPath() in _get_omni_prims()
+    def _evaluate_item(self, item: _StageManagerItem) -> bool:
+        """Evaluate whether an item contains an Omniverse prim.
+
+        Args:
+            item: Stage Manager item containing the prim to evaluate.
+
+        Returns:
+            Whether the prim path belongs to the Omniverse prim set.
+        """
+        return item.data.GetPath() in _get_omni_prims()

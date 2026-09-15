@@ -19,4 +19,8 @@ from .checkbox_group import CheckboxGroupFilterPlugin
 from .toggleable import ToggleableUSDFilterPlugin
 from .usd_base import StageManagerUSDFilterPlugin
 
-__all__ = ["CheckboxGroupFilterPlugin", "StageManagerUSDFilterPlugin", "ToggleableUSDFilterPlugin"]
+__all__ = [
+    "CheckboxGroupFilterPlugin",
+    "StageManagerUSDFilterPlugin",
+    "ToggleableUSDFilterPlugin",
+]

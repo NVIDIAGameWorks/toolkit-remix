@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.4]
+### Changed
+- Prepared neutral Category memberships through the canonical Category filter and migrated Remix toggleable filters to
+  the item-aware `_evaluate_item(item)` contract.
+
+### Fixed
+- Required mapped Mesh instances to resolve to valid mesh prototypes or empty mesh roots before they are retained.
+
 ## [2.6.3]
 ### Changed
 - Optimized Asset State, Remix Category, and Mesh filtering.

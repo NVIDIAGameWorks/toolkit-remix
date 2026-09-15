@@ -29,11 +29,10 @@ from .unit.test_prims import TestPrims
 from .unit.test_progress import TestProgressWorker
 from .unit.test_serialize import TestSerializer
 from .unit.test_symlink import TestSymlink
-from .unit.test_task_budget import TestAdaptiveTaskBudget
+from .unit.test_task_budget import TestWorkerYieldBudget
 from .unit.test_version import TestVersion
 
 __all__ = [
-    "TestAdaptiveTaskBudget",
     "TestEvent",
     "TestGetMousePosition",
     "TestIcons",
@@ -50,4 +49,5 @@ __all__ = [
     "TestSymlink",
     "TestVersion",
     "TestWidgetDropRouter",
+    "TestWorkerYieldBudget",
 ]

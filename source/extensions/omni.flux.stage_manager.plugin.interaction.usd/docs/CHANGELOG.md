@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Changed
+- Adopted the `allow_context_ancestors` interaction policy in place of `include_invalid_parents`.
+- Configured canonical Light and Custom Tags context filters plus the internal Material Bindings filter while existing
+  deduplication omits redundant Additional Filters entries.
+
+### Fixed
+- Propagated the selected USD context name to context and internal context filters before predicate construction.
+
 ## [2.16.8]
 ### Fixed
 - Preserved and correctly framed Stage Manager USD selection across user-filter changes, including when selected rows are temporarily hidden.

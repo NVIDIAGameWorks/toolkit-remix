@@ -21,13 +21,17 @@ from pydantic import Field
 
 from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
 
+__all__ = ["AllMaterialsInteractionPlugin"]
+
 
 class AllMaterialsInteractionPlugin(_StageManagerUSDInteractionPlugin):
+    """Provide the material interaction and grouped-tree support."""
+
     display_name: str = Field(default="Materials", exclude=True)
     tooltip: str = Field(default="View the available materials and the meshes that use them", exclude=True)
 
     internal_context_filters: list[_StageManagerFilterPlugin] = Field(
-        default=[{"name": "MaterialPrimsFilterPlugin"}], exclude=True
+        default=[{"name": "MaterialBindingsFilterPlugin"}], exclude=True
     )
     tree: _StageManagerTreePlugin = Field(default={"name": "MaterialGroupsTreePlugin"}, exclude=True)
 
@@ -38,6 +42,7 @@ class AllMaterialsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "CustomTagsFilterPlugin",
             "IgnorePrimsFilterPlugin",
             "VisiblePrimsFilterPlugin",
+            "MaterialBindingsFilterPlugin",
             "MaterialPrimsFilterPlugin",
             "OmniPrimsFilterPlugin",
             "SearchFilterPlugin",

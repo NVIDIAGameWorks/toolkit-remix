@@ -74,7 +74,8 @@ class _TestToggleableFilter(ToggleableUSDFilterPlugin):
     filter_category: FilterCategory = Field(default=FilterCategory.PRIMS)
     refresh_count: int = Field(default=0, exclude=True)
 
-    def _filter_predicate(self, prim):
+    def _evaluate_item(self, _item):
+        """Return whether the item matches this test filter."""
         return True
 
     def build_ui(self):

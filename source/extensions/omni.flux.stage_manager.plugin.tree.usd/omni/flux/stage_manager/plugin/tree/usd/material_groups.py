@@ -20,7 +20,6 @@ from __future__ import annotations
 import threading
 
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
-from omni.flux.utils.common.materials import get_materials_from_prim_paths as _get_materials_from_prim_paths
 from pxr import Usd, UsdGeom, UsdShade
 from pydantic import Field
 
@@ -43,6 +42,10 @@ class MaterialGroupsItem(_VirtualGroupsItem):
 
 
 class MaterialGroupsModel(_VirtualGroupsModel):
+    """Build sparse material groups from context-classified materials and bound meshes."""
+
+    requires_context_ancestors = False
+
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
@@ -81,7 +84,16 @@ class MaterialGroupsModel(_VirtualGroupsModel):
         items: list[_StageManagerItem],
         cancel_event: threading.Event,
     ) -> list[MaterialGroupsItem] | None:
-        """Build material groups unless the refresh is cancelled."""
+        """Build material groups from required context-filtered item metadata.
+
+        Args:
+            items: Material and mesh items, with ordered material-binding metadata on mesh items.
+            cancel_event: Event that stops construction and discards the partial tree.
+
+        Returns:
+            Material group items, or None when cancellation occurs.
+
+        """
         if cancel_event.is_set():
             return None
 
@@ -95,7 +107,7 @@ class MaterialGroupsModel(_VirtualGroupsModel):
             prim = item.data
             if prim.IsA(UsdGeom.Mesh):
                 mesh_items.append(item)
-            if prim.IsA(UsdShade.Material):
+            elif prim.IsA(UsdShade.Material):
                 item_path = str(prim.GetPath())
                 tree_items[item_path] = self._build_item(
                     prim.GetPath().name,
@@ -104,7 +116,6 @@ class MaterialGroupsModel(_VirtualGroupsModel):
                     is_virtual=True,
                 )
                 tree_items[item_path].path = item_path
-
         # Create child mesh group items from mesh list
         for item in mesh_items:
             if cancel_event.is_set():
@@ -114,11 +125,9 @@ class MaterialGroupsModel(_VirtualGroupsModel):
             item_name = prim_path.name
             parent_name = prim_path.GetParentPath().name
 
-            # Find target materials; There should normally be 1, but handle multiple
-            for material in _get_materials_from_prim_paths([prim_path]):
+            for parent_material_path in item.prepared_group_memberships:
                 if cancel_event.is_set():
                     return None
-                parent_material_path = str(material.GetPrim().GetPath())
                 # Create the mesh children per parent material
                 if parent_material_path in tree_items:
                     mat_tree_item = self._build_item(

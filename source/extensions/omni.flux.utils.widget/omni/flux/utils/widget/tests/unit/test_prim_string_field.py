@@ -6,7 +6,7 @@
 * you may not use this file except in compliance with the License.
 * You may obtain a copy of the License at
 *
-* https://www.apache.org/licenses/LICENSE-2.0
+* http://www.apache.org/licenses/LICENSE-2.0
 *
 * Unless required by applicable law or agreed to in writing, software
 * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,3 +14,20 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
+from unittest.mock import patch
+
+import omni.kit.test
+
+from ...usd.prims import string_field
+
+
+class TestUsdPrimNameFieldStyle(omni.kit.test.AsyncTestCase):
+    """Test read-only Prim-name style fallback behavior."""
+
+    async def test_read_only_style_without_configured_font_omits_font(self):
+        """Fall back to the UI default when no custom font can be resolved."""
+        with patch.object(string_field, "get_fonts", return_value=""):
+            style = string_field._make_read_only_style("Missing")
+
+        self.assertNotIn("font", style)

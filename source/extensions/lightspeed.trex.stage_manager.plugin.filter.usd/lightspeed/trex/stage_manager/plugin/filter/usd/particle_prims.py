@@ -17,19 +17,23 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from lightspeed.common.constants import PARTICLE_SCHEMA_NAME as _PARTICLE_SCHEMA_NAME
+from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin as _ToggleableUSDFilterPlugin
 from pydantic import Field
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class ParticleSystemsFilterPlugin(_ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Particle System Prims", exclude=True)
     tooltip: str = Field(default="Filter for particle systems", exclude=True)
 
-    def _filter_predicate(self, prim: Usd.Prim) -> bool:
-        return prim.HasAPI(_PARTICLE_SCHEMA_NAME)
+    def _evaluate_item(self, item: _StageManagerItem) -> bool:
+        """Evaluate whether an item contains a particle system.
+
+        Args:
+            item: Stage Manager item containing the prim to evaluate.
+
+        Returns:
+            Whether the prim has the particle-system schema.
+        """
+        return item.data.HasAPI(_PARTICLE_SCHEMA_NAME)

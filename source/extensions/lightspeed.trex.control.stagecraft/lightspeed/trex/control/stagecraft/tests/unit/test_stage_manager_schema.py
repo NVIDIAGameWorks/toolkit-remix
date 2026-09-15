@@ -20,6 +20,7 @@ from pathlib import Path
 
 import omni.kit.app
 from omni.kit.test import AsyncTestCase
+from omni.flux.stage_manager.core import StageManagerSchema
 
 
 class TestStageManagerSchema(AsyncTestCase):
@@ -38,6 +39,7 @@ class TestStageManagerSchema(AsyncTestCase):
         return json.loads(schema_path.read_text(encoding="utf-8"))
 
     async def test_stage_manager_interactions_force_context_refresh_for_filter_property_changes(self):
+        """Verify interactions retain required context-refresh rules."""
         # Arrange
         schema = self._load_default_schema()
         expected_interactions = [
@@ -50,12 +52,10 @@ class TestStageManagerSchema(AsyncTestCase):
             "RemixAllTagsInteractionPlugin",
         ]
         required_rule_starts = ("collection:", "visibility")
-
         # Act
-        interaction_names = []
+        resolved_schema = StageManagerSchema(**schema)
         missing_rules = []
         for interaction in schema["interactions"]:
-            interaction_names.append(interaction["name"])
             rules = interaction["filtering_rules"]["force_refresh_rules"]
             for rule_start in required_rule_starts:
                 if not any(
@@ -64,5 +64,27 @@ class TestStageManagerSchema(AsyncTestCase):
                     missing_rules.append(f"{interaction['name']}: {rule_start}")
 
         # Assert
-        self.assertEqual(expected_interactions, interaction_names)
+        self.assertEqual(expected_interactions, [interaction.name for interaction in resolved_schema.interactions])
         self.assertEqual([], missing_rules)
+
+    async def test_stage_manager_skeleton_interaction_should_not_allow_context_ancestors(self):
+        """Verify the Skeleton interaction disallows context ancestors."""
+        # Arrange
+        schema = self._load_default_schema()
+        raw_skeleton_interaction = next(
+            interaction
+            for interaction in schema["interactions"]
+            if interaction["name"] == "RemixAllSkeletonsInteractionPlugin"
+        )
+
+        # Act
+        resolved_schema = StageManagerSchema(**schema)
+        resolved_skeleton_interaction = next(
+            interaction
+            for interaction in resolved_schema.interactions
+            if interaction.name == "RemixAllSkeletonsInteractionPlugin"
+        )
+
+        # Assert
+        self.assertIs(False, raw_skeleton_interaction["allow_context_ancestors"])
+        self.assertFalse(resolved_skeleton_interaction.allow_context_ancestors)

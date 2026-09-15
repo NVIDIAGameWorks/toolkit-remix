@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING
+from typing import final
 
 from omni import ui
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
@@ -29,8 +29,7 @@ from pydantic import Field, PrivateAttr
 from .checkbox_group import build_aligned_checkbox_row as _build_aligned_checkbox_row
 from .usd_base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
 
-if TYPE_CHECKING:
-    from pxr import Usd
+__all__ = ["ToggleableUSDFilterPlugin"]
 
 
 class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
@@ -46,13 +45,22 @@ class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
         self._checkbox = None
         self._value_changed_sub = None
 
+    @final
     def filter_predicate(self, item: _StageManagerItem) -> bool:
+        """Evaluate an item using the active include-or-exclude policy.
+
+        Args:
+            item: Stage Manager item to evaluate.
+
+        Returns:
+            Whether the item should be retained.
+        """
         # Self-contained: filter_items_by_category pre-checks this, but async filter_items and direct callers do not.
         if not self.filter_active:
             return True
 
-        result = self._filter_predicate(item.data)
-        return result if self.include_results else not result
+        matches = self._evaluate_item(item)
+        return matches if self.include_results else not matches
 
     def build_ui(self):
         # Single HStack to match combo box filter row height (no VStack/Spacers)
@@ -77,14 +85,13 @@ class ToggleableUSDFilterPlugin(_StageManagerUSDFilterPlugin, abc.ABC):
         self._filter_items_changed()
 
     @abc.abstractmethod
-    def _filter_predicate(self, prim: Usd.Prim) -> bool:
-        """
-        The predicate function to filter prims.
+    def _evaluate_item(self, item: _StageManagerItem) -> bool:
+        """Evaluate an item's positive filter match.
 
         Args:
-            prim: The USD prim to inspect.
+            item: Stage Manager item to evaluate.
 
         Returns:
-            True if the prim should be included in the results, False otherwise.
+            Whether the item matches before include-or-exclude policy is applied.
         """
         pass

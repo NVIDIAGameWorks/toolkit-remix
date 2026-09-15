@@ -19,6 +19,12 @@ import omni.kit.test
 from omni.flux.stage_manager.plugin.interaction.usd.base import StageManagerUSDInteractionPlugin
 from omni.flux.stage_manager.plugin.interaction.usd.extension import StageManagerUSDInteractionPluginsExtension
 
+from ...all_lights import AllLightsInteractionPlugin
+from ...all_materials import AllMaterialsInteractionPlugin
+from ...all_prims import AllPrimsInteractionPlugin
+from ...all_skeletons import AllSkeletonsInteractionPlugin
+from ...all_tags import AllTagsInteractionPlugin
+
 __all__ = ["TestStageManagerUSDInteractionDefaults"]
 
 
@@ -38,3 +44,71 @@ class TestStageManagerUSDInteractionDefaults(omni.kit.test.AsyncTestCase):
                 self.assertFalse(overrides_refresh)
                 self.assertFalse(overrides_context_update)
                 self.assertTrue(inherits_base)
+
+    async def test_registered_interactions_should_use_expected_intrinsic_classifier_and_tree_compatibility(self):
+        """Keep registered interactions compatible with their intrinsic filters and trees."""
+        # Arrange
+        expected_defaults = (
+            (
+                AllLightsInteractionPlugin,
+                [{"name": "LightPrimsFilterPlugin", "filter_active": False}],
+                ["LightPrimsFilterPlugin"],
+                ["LightGroupsTreePlugin", "PrimGroupsTreePlugin"],
+                True,
+            ),
+            (
+                AllMaterialsInteractionPlugin,
+                [{"name": "MaterialBindingsFilterPlugin"}],
+                ["MaterialBindingsFilterPlugin", "MaterialPrimsFilterPlugin"],
+                ["MaterialGroupsTreePlugin", "PrimGroupsTreePlugin"],
+                True,
+            ),
+            (
+                AllPrimsInteractionPlugin,
+                [],
+                [],
+                ["PrimGroupsTreePlugin", "VirtualGroupsTreePlugin"],
+                True,
+            ),
+            (
+                AllSkeletonsInteractionPlugin,
+                [{"name": "SkeletonPrimsFilterPlugin"}],
+                ["SkeletonPrimsFilterPlugin"],
+                ["PrimGroupsTreePlugin", "SkeletonGroupsTreePlugin"],
+                True,
+            ),
+            (
+                AllTagsInteractionPlugin,
+                [{"name": "CustomTagsFilterPlugin"}],
+                ["CustomTagsFilterPlugin"],
+                ["CustomTagGroupsTreePlugin", "PrimGroupsTreePlugin"],
+                True,
+            ),
+        )
+        interaction_classes = StageManagerUSDInteractionPluginsExtension._PLUGINS
+
+        for (
+            interaction_class,
+            expected_internal_filters,
+            expected_compatible_filters,
+            expected_trees,
+            allow_context_ancestors,
+        ) in expected_defaults:
+            with self.subTest(title=interaction_class.__name__):
+                # Arrange
+                interaction = interaction_class()
+
+                # Act
+                internal_filters = interaction.internal_context_filters
+                compatible_filters = interaction.compatible_filters
+                compatible_trees = interaction.compatible_trees
+                actual_allow_context_ancestors = interaction.allow_context_ancestors
+
+                # Assert
+                self.assertEqual(expected_internal_filters, internal_filters)
+                self.assertEqual(expected_trees, compatible_trees)
+                for filter_name in expected_compatible_filters:
+                    self.assertIn(filter_name, compatible_filters)
+                self.assertEqual(allow_context_ancestors, actual_allow_context_ancestors)
+
+        self.assertEqual([interaction_class for interaction_class, *_ in expected_defaults], interaction_classes)

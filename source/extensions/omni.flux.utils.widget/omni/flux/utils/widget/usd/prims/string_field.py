@@ -31,14 +31,16 @@ __all__ = ["GLOBAL_SHOW_NICKNAMES_SETTING", "UsdPrimNameField"]
 
 def _make_read_only_style(font_name: str) -> dict:
     """Build a read-only label style, resolving the font lazily to avoid import-time font directory access."""
-    return {
+    style = {
         "background_color": 0x00000000,
-        "font": get_fonts(font_name),
         "font_size": 16,
         ":hovered": {
             "color": 0xFFFFFFFF,
         },
     }
+    if font := get_fonts(font_name):
+        style["font"] = font
+    return style
 
 
 FIELD_EDITABLE_STYLE = {

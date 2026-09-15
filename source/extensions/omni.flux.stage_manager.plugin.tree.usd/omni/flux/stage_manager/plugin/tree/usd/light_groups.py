@@ -21,7 +21,6 @@ import threading
 from typing import TYPE_CHECKING
 
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
-from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
 from omni.flux.utils.common.icons import get_prim_type_icons as _get_prim_type_icons
 from omni.flux.utils.common.lights import LightTypes as _LightTypes
 from omni.flux.utils.common.lights import get_light_type as _get_light_type
@@ -81,6 +80,10 @@ class LightGroupsItem(_VirtualGroupsItem):
 
 
 class LightGroupsModel(_VirtualGroupsModel):
+    """Build sparse light-type groups from context-classified candidates."""
+
+    requires_context_ancestors = False
+
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
@@ -138,8 +141,6 @@ class LightGroupsModel(_VirtualGroupsModel):
                 light_type=light_type,
             )
 
-        item_names = _StageManagerUtils.get_unique_names(items)
-
         # Add light items to the groups
         for item in items:
             if cancel_event.is_set():
@@ -149,7 +150,7 @@ class LightGroupsModel(_VirtualGroupsModel):
                 continue
 
             path_str = str(item.data.GetPath())
-            item_name, parent_name = item_names[item]
+            item_name, parent_name = item.prepared_display_name
 
             light_tree_item = self._build_item(
                 item_name,
