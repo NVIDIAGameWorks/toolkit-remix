@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.5]
+### Removed
+- Removed hand-authored Remix category metadata now owned by `lightspeed.trex.schemas`.
+
 ## [2.0.4]
 ### Added
 - Added the global context-bound viewport prim framing request event name.

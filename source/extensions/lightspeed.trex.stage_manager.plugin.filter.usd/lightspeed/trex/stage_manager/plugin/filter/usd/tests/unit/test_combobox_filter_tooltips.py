@@ -18,6 +18,7 @@
 from unittest.mock import patch
 
 import omni.kit.test
+from lightspeed.trex.schemas.categories import DEPRECATED_REMIX_CATEGORIES
 from lightspeed.trex.stage_manager.plugin.filter.usd.is_capture import IsCaptureFilterPlugin, ReferenceType
 from lightspeed.trex.stage_manager.plugin.filter.usd.is_category import IsCategoryFilterPlugin
 from lightspeed.trex.stage_manager.plugin.filter.usd.is_logic_graph import FilterTypes, RemixLogicPrimsFilterPlugin
@@ -70,6 +71,19 @@ class TestComboboxFilterTooltipsUnit(omni.kit.test.AsyncTestCase):
             "- Individual categories: Show prims assigned to the selected render category.",
             tooltip,
         )
+
+    async def test_remix_category_options_exclude_deprecated_categories(self):
+        """Exclude deprecated categories from the Remix category filter options."""
+        # Arrange
+        plugin = IsCategoryFilterPlugin()
+
+        # Act
+        category_options = set(plugin._CATEGORY_DISPLAY_LABELS.values())
+
+        # Assert
+        self.assertIn("Decal", category_options)
+        self.assertNotIn("Decal Static", category_options)
+        self.assertTrue(category_options.isdisjoint(DEPRECATED_REMIX_CATEGORIES))
 
     async def test_remix_logic_tooltip_describes_each_combo_box_option(self):
         # Arrange

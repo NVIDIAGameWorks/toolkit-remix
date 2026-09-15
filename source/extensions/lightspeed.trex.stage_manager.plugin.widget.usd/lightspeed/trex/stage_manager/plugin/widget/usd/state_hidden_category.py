@@ -18,7 +18,7 @@
 from typing import TYPE_CHECKING
 
 from lightspeed.common.constants import HIDDEN_REMIX_CATEGORIES as _HIDDEN_REMIX_CATEGORIES
-from lightspeed.common.constants import REMIX_CATEGORIES_DISPLAY_NAMES as _REMIX_CATEGORIES_DISPLAY_NAMES
+from lightspeed.trex.schemas.categories import REMIX_CATEGORIES_DISPLAY_NAMES as _REMIX_CATEGORIES_DISPLAY_NAMES
 from omni import ui
 from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,

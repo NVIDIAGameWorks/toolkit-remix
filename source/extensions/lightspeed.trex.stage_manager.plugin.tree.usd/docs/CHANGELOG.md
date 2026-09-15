@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.1]
+### Changed
+- Sourced Remix category display names from the authoritative USD schema.
+
+### Fixed
+- Updated category grouping tests to import schema-owned category display names.
+
 ## [3.0.0]
 ### Changed
 - Changed Category groups to require refresh-prepared display names and category memberships, and consumed sparse inputs

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.5]
+### Changed
+- Sourced hidden-category state labels from the authoritative USD schema.
+
 ## [3.1.4]
 ### Fixed
 - Routed Stage Manager focus actions through a context-bound viewport event without loading the Remix viewport renderer.

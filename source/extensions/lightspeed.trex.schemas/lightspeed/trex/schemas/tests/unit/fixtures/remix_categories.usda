@@ -1,0 +1,20 @@
+#usda 1.0
+
+class "RemixInstanceCategoryAPI"
+{
+    bool remix_category:world_ui = 0 (
+        doc = "Textures on draw calls that should be treated as screen space UI elements and rendered above the ray traced scene.\n\nUse this category for interface textures that belong in screen space."
+        displayGroup = "Remix Categories"
+        displayName = "World UI"
+    )
+    bool remix_category:sky = 0 (
+        doc = "\n   \nTextures on draw calls used for the sky."
+        displayGroup = "Remix Categories"
+        displayName = "Sky"
+    )
+    bool remix_category:decal_Static = 0 (
+        doc = "Textures on draw calls used for decals."
+        displayGroup = "Remix Categories"
+        displayName = "Decal Static"
+    )
+}

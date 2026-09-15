@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.5]
+### Changed
+- Sourced Remix category filter labels from the authoritative USD schema.
+
+### Fixed
+- Excluded deprecated Remix categories from the category filter options.
+
 ## [2.6.4]
 ### Changed
 - Prepared neutral Category memberships through the canonical Category filter and migrated Remix toggleable filters to

@@ -1388,122 +1388,136 @@ class TestSelectionTreeWidget(AsyncTestCase):
     async def test_assign_single_remix_category(self):
         # setup
         _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        try:
+            # select
+            usd_context = omni.usd.get_context()
+            usd_context.get_selection().set_selected_prim_paths(
+                ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"],
+                False,
+            )
 
-        # select
-        usd_context = omni.usd.get_context()
-        usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
-        )
+            await ui_test.human_delay(human_delay_speed=3)
 
-        await ui_test.human_delay(human_delay_speed=3)
+            category_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='Categories'")
+            await category_button.click()
+            await ui_test.human_delay(3)
 
-        category_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='Categories'")
-        await category_button.click()
-        await ui_test.human_delay(3)
+            # Set a random remix category for us to assign
+            box = ui_test.find(
+                "Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:alpha_blend_to_cutout'"
+            )
+            await ui_test.emulate_mouse_move_and_click(box.position)
+            await ui_test.human_delay(3)
 
-        # Set a random remix category for us to assign
-        box = ui_test.find("Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:world_ui'")
-        await ui_test.emulate_mouse_move_and_click(box.position)
-        await ui_test.human_delay(3)
+            # Assign the category
+            assign_button = ui_test.find(
+                "Add Render Categories to Prim//Frame/**/Button[*].identifier=='AssignCategoryButton'"
+            )
+            await assign_button.click()
+            await ui_test.human_delay(3)
 
-        # Assign the category
-        assign_button = ui_test.find(
-            "Add Render Categories to Prim//Frame/**/Button[*].identifier=='AssignCategoryButton'"
-        )
-        await assign_button.click()
-        await ui_test.human_delay(3)
+            # Check that the category got assigned on the prim
+            stage = usd_context.get_stage()
+            prim = stage.GetPrimAtPath(
+                "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
+            )
+            attrs = prim.GetAttributes()
+            test_attr = [attr for attr in attrs if attr.GetName() == "remix_category:alpha_blend_to_cutout"]
 
-        # Check that the category got assigned on the prim
-        stage = usd_context.get_stage()
-        prim = stage.GetPrimAtPath(
-            "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
-        )
-        attrs = prim.GetAttributes()
-        test_attr = [attr for attr in attrs if attr.GetName() == "remix_category:world_ui"]
-
-        self.assertEqual(len(test_attr), 1)
-
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+            self.assertEqual(len(test_attr), 1)
+        finally:
+            await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
     async def test_assign_single_remix_category_preserves_selection(self):
         # setup
         _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
-        selected_path = (
-            "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
-        )
+        try:
+            selected_path = (
+                "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
+            )
 
-        # select
-        usd_context = omni.usd.get_context()
-        usd_context.get_selection().set_selected_prim_paths([selected_path], False)
+            # select
+            usd_context = omni.usd.get_context()
+            usd_context.get_selection().set_selected_prim_paths([selected_path], False)
 
-        await ui_test.human_delay(human_delay_speed=3)
-        self.assertTrue(_selection_wid.get_selection(get_instances=False))
+            await ui_test.human_delay(human_delay_speed=3)
+            self.assertTrue(_selection_wid.get_selection(get_instances=False))
 
-        category_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='Categories'")
-        await category_button.click()
-        await ui_test.human_delay(3)
+            category_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='Categories'")
+            await category_button.click()
+            await ui_test.human_delay(3)
 
-        # Set a random remix category for us to assign
-        box = ui_test.find("Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:world_ui'")
-        await ui_test.emulate_mouse_move_and_click(box.position)
-        await ui_test.human_delay(3)
+            # Set a random remix category for us to assign
+            box = ui_test.find(
+                "Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:alpha_blend_to_cutout'"
+            )
+            await ui_test.emulate_mouse_move_and_click(box.position)
+            await ui_test.human_delay(3)
 
-        # Assign the category
-        assign_button = ui_test.find(
-            "Add Render Categories to Prim//Frame/**/Button[*].identifier=='AssignCategoryButton'"
-        )
-        await assign_button.click()
-        await ui_test.human_delay(3)
+            # Assign the category
+            assign_button = ui_test.find(
+                "Add Render Categories to Prim//Frame/**/Button[*].identifier=='AssignCategoryButton'"
+            )
+            await assign_button.click()
+            await ui_test.human_delay(3)
 
-        self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [selected_path])
-        self.assertTrue(_selection_wid.get_selection(get_instances=False))
-
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+            self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [selected_path])
+            self.assertTrue(_selection_wid.get_selection(get_instances=False))
+        finally:
+            await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
     async def test_assign_multiple_remix_category(self):
         # setup
         _window, _selection_wid, _mesh_property_wid = await self.__setup_widget()  # Keep in memory during test
+        try:
+            # select
+            usd_context = omni.usd.get_context()
+            usd_context.get_selection().set_selected_prim_paths(
+                ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"],
+                False,
+            )
 
-        # select
-        usd_context = omni.usd.get_context()
-        usd_context.get_selection().set_selected_prim_paths(
-            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"], False
-        )
+            await ui_test.human_delay(human_delay_speed=3)
 
-        await ui_test.human_delay(human_delay_speed=3)
+            category_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='Categories'")
+            await category_button.click()
+            await ui_test.human_delay(3)
 
-        category_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='Categories'")
-        await category_button.click()
-        await ui_test.human_delay(3)
+            # Set a random remix category for us to assign
+            box = ui_test.find(
+                "Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:alpha_blend_to_cutout'"
+            )
+            await ui_test.emulate_mouse_move_and_click(box.position)
+            await ui_test.human_delay(3)
+            box2 = ui_test.find(
+                "Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:animated_water'"
+            )
+            await ui_test.emulate_mouse_move_and_click(box2.position)
+            await ui_test.human_delay(3)
 
-        # Set a random remix category for us to assign
-        box = ui_test.find("Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:world_ui'")
-        await ui_test.emulate_mouse_move_and_click(box.position)
-        await ui_test.human_delay(3)
-        box2 = ui_test.find("Add Render Categories to Prim//Frame/**/CheckBox[*].name=='remix_category:decal_Static'")
-        await ui_test.emulate_mouse_move_and_click(box2.position)
-        await ui_test.human_delay(3)
+            # Assign the category
+            assign_button = ui_test.find(
+                "Add Render Categories to Prim//Frame/**/Button[*].identifier=='AssignCategoryButton'"
+            )
+            await assign_button.click()
 
-        # Assign the category
-        assign_button = ui_test.find(
-            "Add Render Categories to Prim//Frame/**/Button[*].identifier=='AssignCategoryButton'"
-        )
-        await assign_button.click()
+            await ui_test.human_delay(3)
 
-        await ui_test.human_delay(3)
+            # Check that the category got assigned on the prim
+            stage = usd_context.get_stage()
+            prim = stage.GetPrimAtPath(
+                "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
+            )
+            attrs = prim.GetAttributes()
+            test_attr = [
+                attr
+                for attr in attrs
+                if attr.GetName() in {"remix_category:alpha_blend_to_cutout", "remix_category:animated_water"}
+            ]
 
-        # Check that the category got assigned on the prim
-        stage = usd_context.get_stage()
-        prim = stage.GetPrimAtPath(
-            "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"
-        )
-        attrs = prim.GetAttributes()
-        test_attr = [
-            attr for attr in attrs if attr.GetName() in {"remix_category:world_ui", "remix_category:decal_Static"}
-        ]
-
-        self.assertEqual(len(test_attr), 2)
-        await self.__destroy(_window, _selection_wid, _mesh_property_wid)
+            self.assertEqual(len(test_attr), 2)
+        finally:
+            await self.__destroy(_window, _selection_wid, _mesh_property_wid)
 
     async def test_remix_categories_button_visibility(self):
         # setup
