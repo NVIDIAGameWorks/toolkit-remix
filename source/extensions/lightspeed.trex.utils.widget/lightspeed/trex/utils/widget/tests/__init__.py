@@ -16,8 +16,15 @@
 """
 
 from .e2e.test_invalid_deps_dialog import TestInvalidDepsDialog
+from .unit.test_categories_dialog import TestRemixCategoriesDialog
 from .unit.test_ingestcraft_loader import TestIngestCraftLoader
 from .unit.test_message_dialog import TestMessageDialog
 from .unit.test_quicklayout import TestQuickLayout
 
-__all__ = ["TestIngestCraftLoader", "TestInvalidDepsDialog", "TestMessageDialog", "TestQuickLayout"]
+__all__ = [
+    "TestIngestCraftLoader",
+    "TestInvalidDepsDialog",
+    "TestMessageDialog",
+    "TestQuickLayout",
+    "TestRemixCategoriesDialog",
+]

@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.3.0]
+### Added
+- Added authoritative Remix category metadata loading from the HdRemix USD schema.
+- Added explicit deprecated-category metadata and an assignable category subset.
+
+### Fixed
+- Loaded the packaged generated category schema and tolerated package versions that omit optional descriptions.
+
 ## [0.2.4]
 ### Fixed
 - Registered the Remix particle schema plugin from either HdRemix USD plugin layout.

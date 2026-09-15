@@ -153,9 +153,6 @@
             "name": "RemixAllMeshesInteractionPlugin",
             "filters": [
                 {
-                    "name": "IsCaptureFilterPlugin"
-                },
-                {
                     "name": "SearchFilterPlugin"
                 },
                 {
@@ -433,9 +430,6 @@
             },
             "filters": [
                 {
-                    "name": "IsCaptureFilterPlugin"
-                },
-                {
                     "name": "SearchFilterPlugin"
                 },
                 {
@@ -708,12 +702,6 @@
                 ]
             },
             "filters": [
-                {
-                    "name": "IsCategoryFilterPlugin"
-                },
-                {
-                    "name": "IsCaptureFilterPlugin"
-                },
                 {
                     "name": "SearchFilterPlugin"
                 },

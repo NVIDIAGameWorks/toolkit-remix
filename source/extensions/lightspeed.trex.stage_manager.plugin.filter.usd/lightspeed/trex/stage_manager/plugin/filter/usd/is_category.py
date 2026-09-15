@@ -19,7 +19,7 @@ import threading
 from collections.abc import Callable
 from typing import TYPE_CHECKING, ClassVar
 
-from lightspeed.common.constants import REMIX_CATEGORIES_DISPLAY_NAMES as _REMIX_CATEGORIES_DISPLAY_NAMES
+from lightspeed.trex.schemas.categories import ASSIGNABLE_REMIX_CATEGORIES as _ASSIGNABLE_REMIX_CATEGORIES
 from omni import ui
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
 from omni.flux.stage_manager.plugin.filter.usd.base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
@@ -30,6 +30,10 @@ if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 
 __all__ = ["IsCategoryFilterPlugin"]
+
+_ASSIGNABLE_REMIX_CATEGORIES_DISPLAY_NAMES = {
+    details["attr"]: name for name, details in _ASSIGNABLE_REMIX_CATEGORIES.items()
+}
 
 
 class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
@@ -50,7 +54,9 @@ class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
         default="All Categories", description="Whether to keep all categories or filter by category type."
     )
 
-    _CATEGORY_DISPLAY_LABELS: dict = PrivateAttr(default={"All": "All Categories", **_REMIX_CATEGORIES_DISPLAY_NAMES})
+    _CATEGORY_DISPLAY_LABELS: dict = PrivateAttr(
+        default={"All": "All Categories", **_ASSIGNABLE_REMIX_CATEGORIES_DISPLAY_NAMES}
+    )
     _cat_type_combobox: ui.ComboBox | None = PrivateAttr(default=None)
     _current_attr: str | None = PrivateAttr(default=None)
 
@@ -107,7 +113,7 @@ class IsCategoryFilterPlugin(_StageManagerUSDFilterPlugin):
                 if not attribute.IsValid():
                     continue
                 attribute_name = attribute.GetName()
-                if attribute_name in _REMIX_CATEGORIES_DISPLAY_NAMES and attribute.Get():
+                if attribute_name in _ASSIGNABLE_REMIX_CATEGORIES_DISPLAY_NAMES and attribute.Get():
                     category_names.append(attribute_name)
             if not category_names:
                 return False

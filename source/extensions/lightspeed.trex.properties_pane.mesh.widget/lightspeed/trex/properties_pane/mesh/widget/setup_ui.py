@@ -24,12 +24,17 @@ import typing
 import carb
 import omni.client
 import omni.kit.app
+import omni.kit.commands
+import omni.kit.undo
 import omni.ui as ui
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.common.constants import PROPERTIES_NAMES_COLUMN_WIDTH
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.asset_replacements.core.shared.data_models import ReplacementAssetType as _ReplacementAssetType
+from lightspeed.trex.schemas.categories import DEPRECATED_REMIX_CATEGORIES as _DEPRECATED_REMIX_CATEGORIES
+from lightspeed.trex.schemas.categories import REMIX_CATEGORIES as _REMIX_CATEGORIES
+from lightspeed.trex.schemas.categories import REMIX_CATEGORIES_DISPLAY_NAMES as _REMIX_CATEGORIES_DISPLAY_NAMES
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemAsset as _ItemAsset
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemInstance as _ItemInstance
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemInstancesGroup as _ItemInstancesGroup
@@ -915,33 +920,73 @@ class SetupUI(_PropertyGroupExpansionMixin):
             else:
                 carb.log_info("No reference set")
 
+    def _migrate_deprecated_remix_categories(self, mesh_prims):
+        """Switch active deprecated decal categories to Decal."""
+        decal_details = _REMIX_CATEGORIES.get("Decal")
+        if not decal_details or not mesh_prims:
+            return
+
+        decal_name = decal_details["attr"]
+        deprecated_attribute_names = tuple(
+            category_details["attr"]
+            for category_name in _DEPRECATED_REMIX_CATEGORIES
+            if (category_details := _REMIX_CATEGORIES.get(category_name))
+        )
+        changes = []
+        for mesh_prim in mesh_prims:
+            attribute_values = {attribute.GetName(): attribute.Get() for attribute in mesh_prim.GetAttributes()}
+            active_deprecated_attributes = [
+                attribute_name
+                for attribute_name in deprecated_attribute_names
+                if attribute_values.get(attribute_name, False)
+            ]
+            if not active_deprecated_attributes:
+                continue
+
+            if not attribute_values.get(decal_name, False):
+                changes.append((mesh_prim, decal_name, True))
+            changes.extend((mesh_prim, attribute_name, False) for attribute_name in active_deprecated_attributes)
+
+        if not changes:
+            return
+
+        with omni.kit.undo.group():
+            for prim, attribute_name, value in changes:
+                stage = prim.GetStage()
+                property_path = prim.GetPath().AppendProperty(attribute_name)
+                attribute = prim.GetAttribute(attribute_name)
+                if attribute:
+                    omni.kit.commands.execute(
+                        "ChangeProperty",
+                        prop_path=property_path,
+                        value=value,
+                        prev=None,
+                        target_layer=stage.GetEditTarget().GetLayer(),
+                        usd_context_name=self._context_name,
+                    )
+                else:
+                    omni.kit.commands.execute(
+                        "CreateUsdAttribute",
+                        prim=prim,
+                        attr_name=attribute_name,
+                        attr_value=value,
+                        attr_type=Sdf.ValueTypeNames.Bool,
+                    )
+
     def _refresh_remix_categories(self, mesh_prims):
+        """Refresh displayed Remix category values for the given mesh prims."""
+        if not mesh_prims:
+            return
+
+        self._migrate_deprecated_remix_categories(mesh_prims)
+
         # Check render categories to see if any are applied
         remix_attrs = {}
-        decals = []
-        decal_static_name = constants.REMIX_CATEGORIES["Decal"]["attr"]
-        decal_display_name = "Decal"
         for attr in mesh_prims[0].GetAttributes():
             attr_name = attr.GetName()
-            display_name = constants.REMIX_CATEGORIES_DISPLAY_NAMES.get(attr_name, "")
+            display_name = _REMIX_CATEGORIES_DISPLAY_NAMES.get(attr_name, "")
             if display_name:
                 remix_attrs[display_name] = attr.Get()
-
-            # Checking for deprecated decal types
-            if "decal" in attr_name and decal_static_name not in attr_name:
-                decals.append(attr.Get())
-
-        # Convert deprecated decal types to decal_Static
-        if decal_display_name not in remix_attrs and decals:
-            value = any(decals)
-            self._core.add_attribute(
-                [mesh_prims[0].GetPath()],
-                decal_static_name,
-                value,
-                False,
-                Sdf.ValueTypeNames.Bool,
-            )
-            remix_attrs[decal_display_name] = value
 
         any_true = [v for v in remix_attrs.values() if v]
         # If there are no values, or they are all False, hide the scrolling frame

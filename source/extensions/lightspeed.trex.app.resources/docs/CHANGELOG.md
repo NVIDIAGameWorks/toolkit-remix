@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.30.4]
+### Changed
+- Limited the Stage Manager Categories tab top bar to Search and Additional Filters.
+- Moved Asset State from the Stage Manager filter bar to the Additional Filters menu.
+
 ## [1.30.3]
 ### Changed
 - Renamed the bundled Stage Manager ancestor policy to `allow_context_ancestors` while preserving the Skeleton

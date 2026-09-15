@@ -20,8 +20,8 @@ from collections.abc import Callable
 
 import omni.ui as ui
 import omni.usd
-from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
+from lightspeed.trex.schemas.categories import ASSIGNABLE_REMIX_CATEGORIES as _ASSIGNABLE_REMIX_CATEGORIES
 from lightspeed.trex.utils.common.dialog_utils import add_dialog as _add_dialog
 from pxr import Sdf, Usd
 
@@ -57,7 +57,7 @@ class RemixCategoriesDialog:
         self._core = _AssetReplacementsCore(context_name)
         self._categories_model = _Model()
         self._categories_delegate = _Delegate()
-        for name, attr_details in constants.REMIX_CATEGORIES.items():
+        for name, attr_details in _ASSIGNABLE_REMIX_CATEGORIES.items():
             self._categories_model.add_item(
                 name,
                 description=attr_details["full_description"],
@@ -111,7 +111,7 @@ class RemixCategoriesDialog:
                 attr_name = attr.GetName()
                 check = [
                     attr_details["attr"]
-                    for _, attr_details in constants.REMIX_CATEGORIES.items()
+                    for _, attr_details in _ASSIGNABLE_REMIX_CATEGORIES.items()
                     if attr_details["attr"] == attr_name
                 ]
                 if check:
@@ -167,9 +167,10 @@ class RemixCategoriesDialog:
                             self._categories_tree.set_selection_changed_fn(self._categories_model.set_items_selected)
                     with ui.HStack(spacing=ui.Pixel(self._WIDGET_PADDING), width=self._WIDGET_WIDTH):
                         ui.Spacer()
-                        ui.Button(
+                        self._assign_button = ui.Button(
                             text="Assign",
                             clicked_fn=functools.partial(self._assign_remix_category, values, mesh_prims),
+                            enabled=bool(_ASSIGNABLE_REMIX_CATEGORIES),
                             height=ui.Pixel(self._BUTTON_HEIGHT),
                             width=ui.Pixel(self._BUTTON_WIDTH),
                             identifier="AssignCategoryButton",

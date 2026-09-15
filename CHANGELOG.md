@@ -86,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Strengthened Remix Review testing rules for unit/UI boundaries, real E2E data, meaningful assertions, and test consolidation while preserving service/API coverage.
 - REMIX-5733: Reduced Stage Manager refresh stalls by culling and preparing interaction items once, reusing published
   tree data, cooperatively pacing worker work, and safely falling back when custom Prim-name fonts are unavailable.
+- REMIX-5566: Sourced Remix category metadata from the authoritative HdRemix USD schema, displayed `remix_category:decal_Static` as Decal, kept non-Decal categories visible when Decal is absent, disabled assignment when schema data is unavailable without blocking Toolkit, made deprecated decal migration composition-safe on undo, and updated Stage Manager category filtering controls.
 
 ### Removed
 

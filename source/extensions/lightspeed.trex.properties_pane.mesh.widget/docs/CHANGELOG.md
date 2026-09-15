@@ -1,9 +1,19 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.4]
+### Changed
+- Sourced Remix category names and attributes from the authoritative USD schema.
+
+### Fixed
+- Migrated deprecated decal categories to Decal across displayed meshes with composition-safe undo.
+- Displayed non-Decal categories when Decal is unavailable.
+- Handled unavailable category schemas without blocking mesh properties.
+
 ## [1.5.3]
 ### Added
 - Added public expand and collapse all group forwarding for object property pane headers.
+
 ### Fixed
 - Guarded expand and collapse all group forwarding when child property widgets are not initialized.
 
