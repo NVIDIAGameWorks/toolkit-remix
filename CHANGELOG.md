@@ -84,6 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   compatibility, and report unavailable measured coverage as a nonfatal gap while leaving enforcement to test or CI
   coverage reports.
 - Strengthened Remix Review testing rules for unit/UI boundaries, real E2E data, meaningful assertions, and test consolidation while preserving service/API coverage.
+- REMIX-5733: Reduced Stage Manager refresh stalls by culling and preparing interaction items once, reusing published
+  tree data, cooperatively pacing worker work, and safely falling back when custom Prim-name fonts are unavailable.
 
 ### Removed
 

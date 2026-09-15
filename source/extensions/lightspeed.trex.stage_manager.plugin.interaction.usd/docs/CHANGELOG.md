@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Changed
+- Adopted the `allow_context_ancestors` interaction policy in place of `include_invalid_parents`.
+- Added the canonical Category filter to context preparation so existing deduplication omits a redundant Additional
+  Filters entry.
+
 ## [2.6.6]
 ### Changed
 - Updated interaction exclusions and refresh subscriptions for `SubmitComfyUIJobActionWidgetPlugin`.

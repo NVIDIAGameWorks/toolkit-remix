@@ -15,25 +15,31 @@
 * limitations under the License.
 """
 
+import threading
 from functools import partial
 from unittest.mock import Mock, patch
 
 from omni import ui
 from omni.kit import ui_test
 import omni.kit.test
+from omni.flux.stage_manager.factory import StageManagerItem
 from omni.flux.stage_manager.factory.plugins.filter_plugin import FilterCategory
 from omni.flux.stage_manager.plugin.filter.usd.additional_filters import AdditionalFiltersPopupMenuItemDelegate
-from omni.flux.stage_manager.plugin.filter.usd.custom_tags import CustomTagsFilterPlugin
 from pxr import Sdf
+
+from ... import custom_tags
+from ...custom_tags import CustomTagsFilterPlugin
 
 __all__ = ["TestCustomTagsFilterPluginUnit"]
 
 _TAG_CAR = "/World/CustomTags.collection:car"
 _TAG_RED = "/World/CustomTags.collection:red"
+_CAR_PRIM_PATH = "/World/Car"
 _UNTAGGED_CHECKBOX_IDENTIFIER = "filter_checkbox_custom_tags_untagged"
 
 
-def _make_item(prim_path: str = "/World/Car"):
+def _make_item(prim_path: str = _CAR_PRIM_PATH):
+    """Create a mock filter item for a prim path."""
     mock_prim = Mock()
     mock_prim.GetPath.return_value = Mock()
     mock_prim.GetPath.return_value.__str__ = lambda s: prim_path
@@ -43,6 +49,7 @@ def _make_item(prim_path: str = "/World/Car"):
 
 
 def _make_plugin_with_core(**kwargs) -> CustomTagsFilterPlugin:
+    """Create an enabled Custom Tags filter with a mock query core."""
     plugin = CustomTagsFilterPlugin(**kwargs)
     plugin._core = Mock()
     plugin._core.get_all_tags.return_value = []
@@ -50,6 +57,13 @@ def _make_plugin_with_core(**kwargs) -> CustomTagsFilterPlugin:
     plugin._core.get_tag_prims.return_value = []
     plugin._filter_enabled = True
     return plugin
+
+
+def _make_stage_item(prim_path: str) -> StageManagerItem:
+    """Create a Stage Manager item for a prim path."""
+    prim = Mock()
+    prim.GetPath.return_value = Sdf.Path(prim_path)
+    return StageManagerItem(prim_path, data=prim)
 
 
 class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
@@ -403,10 +417,10 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
         plugin._prim_counts = {_TAG_CAR: 1}
         plugin._core.get_all_tags.return_value = [Sdf.Path(_TAG_CAR), Sdf.Path(_TAG_RED)]
         plugin._core.prim_has_any_tag.side_effect = [False, False]
-        item = _make_item()
+        item = _make_stage_item(_CAR_PRIM_PATH)
+        predicate = plugin.build_filter_predicate()
 
         # Act
-        predicate = plugin.build_filter_predicate()
         result = predicate(item)
 
         # Assert
@@ -414,6 +428,9 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
         self.assertEqual(plugin.filter_predicate, predicate.func)
         self.assertEqual({"all_tag_paths"}, set(predicate.keywords))
         self.assertTrue(result)
+        self.assertFalse(item.is_display_name_candidate)
+        with self.assertRaises(RuntimeError):
+            _ = item.prepared_group_memberships
         self.assertEqual([], plugin._all_tag_paths)
         self.assertEqual({_TAG_CAR: 1}, plugin._prim_counts)
         plugin._core.get_all_tags.assert_called_once_with()
@@ -613,3 +630,121 @@ class TestCustomTagsFilterPluginUnit(omni.kit.test.AsyncTestCase):
         self.assertTrue(plugin.include_untagged)
         self.assertTrue(plugin._filter_enabled)
         self.assertTrue(plugin.enabled)
+
+    async def test_build_filter_predicate_with_neutral_filter_prepares_targets_and_destroys_temporary_core(self):
+        """Prepare ordered exact targets and release the temporary query core."""
+        # Arrange
+        tag_paths = [Sdf.Path(_TAG_CAR), Sdf.Path(_TAG_RED)]
+        plugin = CustomTagsFilterPlugin()
+        plugin._context_name = "texturecraft"
+        temporary_core = Mock()
+        temporary_core.get_all_tags.return_value = tag_paths
+        temporary_core.get_tag_prims.return_value = [Sdf.Path(_CAR_PRIM_PATH)]
+
+        # Act
+        with patch.object(custom_tags, "_CustomTagsCore", return_value=temporary_core) as core_class:
+            plugin.build_filter_predicate(threading.Event())
+
+        # Assert
+        core_class.assert_called_once_with(context_name="texturecraft")
+        temporary_core.get_all_tags.assert_called_once_with()
+        self.assertEqual(tag_paths, [mock_call.args[0] for mock_call in temporary_core.get_tag_prims.call_args_list])
+        temporary_core.destroy.assert_called_once_with()
+
+    async def test_built_predicate_with_exact_targets_preserves_membership_order_and_metadata(self):
+        """Retain exact tagged prims with ordered refresh-local tag metadata."""
+        # Arrange
+        tag_paths = [Sdf.Path(_TAG_CAR), Sdf.Path(_TAG_RED)]
+        plugin = CustomTagsFilterPlugin()
+        temporary_core = Mock()
+        temporary_core.get_all_tags.return_value = tag_paths
+        temporary_core.get_tag_prims.side_effect = [[Sdf.Path(_CAR_PRIM_PATH)], [Sdf.Path(_CAR_PRIM_PATH)]]
+        tagged_item = _make_stage_item(_CAR_PRIM_PATH)
+        descendant_item = _make_stage_item(f"{_CAR_PRIM_PATH}/Wheel")
+        untagged_item = _make_stage_item("/World/Truck")
+        with patch.object(custom_tags, "_CustomTagsCore", return_value=temporary_core):
+            predicate = plugin.build_filter_predicate(threading.Event())
+
+        # Act
+        results = [predicate(item) for item in (tagged_item, descendant_item, untagged_item)]
+
+        # Assert
+        self.assertEqual([True, False, False], results)
+        self.assertEqual((_TAG_CAR, _TAG_RED), tagged_item.prepared_group_memberships)
+        for item in (descendant_item, untagged_item):
+            with self.assertRaises(RuntimeError):
+                _ = item.prepared_group_memberships
+        self.assertTrue(all(item.is_display_name_candidate for item in (tagged_item, descendant_item, untagged_item)))
+
+    async def test_build_filter_predicate_with_pre_set_cancel_event_skips_enumeration_and_destroys_core(self):
+        """Skip tag catalog and target enumeration when cancellation is already requested."""
+        # Arrange
+        cancel_event = threading.Event()
+        cancel_event.set()
+        plugin = CustomTagsFilterPlugin()
+        temporary_core = Mock()
+
+        # Act
+        with patch.object(custom_tags, "_CustomTagsCore", return_value=temporary_core):
+            plugin.build_filter_predicate(cancel_event)
+
+        # Assert
+        temporary_core.get_all_tags.assert_not_called()
+        temporary_core.get_tag_prims.assert_not_called()
+        temporary_core.destroy.assert_called_once_with()
+
+    async def test_build_filter_predicate_with_cancelled_refresh_stops_enumerating_tags(self):
+        """Stop tag enumeration after the context refresh is cancelled."""
+        # Arrange
+        cancel_event = threading.Event()
+        tag_paths = [Sdf.Path(_TAG_CAR), Sdf.Path(_TAG_RED)]
+        plugin = CustomTagsFilterPlugin()
+        temporary_core = Mock()
+        temporary_core.get_all_tags.return_value = tag_paths
+
+        def cancel_after_first_target_query(_tag_path: Sdf.Path) -> list[Sdf.Path]:
+            """Cancel the refresh while returning the first tag's exact targets."""
+            cancel_event.set()
+            return [Sdf.Path(_CAR_PRIM_PATH)]
+
+        temporary_core.get_tag_prims.side_effect = cancel_after_first_target_query
+
+        # Act
+        with patch.object(custom_tags, "_CustomTagsCore", return_value=temporary_core):
+            plugin.build_filter_predicate(cancel_event)
+
+        # Assert
+        temporary_core.get_tag_prims.assert_called_once_with(tag_paths[0])
+        temporary_core.destroy.assert_called_once_with()
+
+    async def test_prepared_predicate_with_no_tags_rejects_item(self):
+        """Reject items when refresh preparation finds no tag definitions."""
+
+        # Arrange
+        plugin = CustomTagsFilterPlugin()
+        temporary_core = Mock()
+        temporary_core.get_all_tags.return_value = []
+        with patch.object(custom_tags, "_CustomTagsCore", return_value=temporary_core):
+            predicate = plugin.build_filter_predicate(threading.Event())
+        item = _make_stage_item(_CAR_PRIM_PATH)
+
+        # Act
+        result = predicate(item)
+
+        # Assert
+        self.assertFalse(result)
+        with self.assertRaises(RuntimeError):
+            _ = item.prepared_group_memberships
+        self.assertTrue(item.is_display_name_candidate)
+
+    async def test_filter_predicate_with_neutral_configuration_returns_true(self):
+        """Pass through direct evaluation while neutral preparation owns tag target resolution."""
+        # Arrange
+        plugin = CustomTagsFilterPlugin()
+        item = _make_stage_item(_CAR_PRIM_PATH)
+
+        # Act
+        result = plugin.filter_predicate(item)
+
+        # Assert
+        self.assertTrue(result)

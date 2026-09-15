@@ -24,11 +24,14 @@ from .additional_filters import AdditionalFilterPlugin as _AdditionalFilterPlugi
 from .custom_tags import CustomTagsFilterPlugin as _CustomTagsFilterPlugin
 from .ignore_prims import IgnorePrimsFilterPlugin as _IgnorePrimsFilterPlugin
 from .light_prims import LightPrimsFilterPlugin as _LightPrimsFilterPlugin
+from .material_prims import MaterialBindingsFilterPlugin as _MaterialBindingsFilterPlugin
 from .material_prims import MaterialPrimsFilterPlugin as _MaterialPrimsFilterPlugin
 from .omni_prims import OmniPrimsFilterPlugin as _OmniPrimsFilterPlugin
 from .search import SearchFilterPlugin as _SearchFilterPlugin
 from .skeleton_prims import SkeletonPrimsFilterPlugin as _SkeletonPrimsFilterPlugin
 from .visible_prims import VisiblePrimsFilterPlugin as _VisiblePrimsFilterPlugin
+
+__all__ = ["StageManagerUSDFilterPluginsExtension"]
 
 
 class StageManagerUSDFilterPluginsExtension(omni.ext.IExt):
@@ -37,6 +40,7 @@ class StageManagerUSDFilterPluginsExtension(omni.ext.IExt):
         _CustomTagsFilterPlugin,
         _IgnorePrimsFilterPlugin,
         _LightPrimsFilterPlugin,
+        _MaterialBindingsFilterPlugin,
         _MaterialPrimsFilterPlugin,
         _OmniPrimsFilterPlugin,
         _SearchFilterPlugin,

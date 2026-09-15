@@ -16,7 +16,9 @@
 """
 
 import re
+from collections.abc import Callable
 from functools import partial
+from threading import Event as _Event
 
 from omni import ui
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
@@ -24,6 +26,8 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from pydantic import Field, PrivateAttr
 
 from .base import StageManagerUSDFilterPlugin as _StageManagerUSDFilterPlugin
+
+__all__ = ["SearchFilterPlugin"]
 
 # Path-like search terms are handled literally against prim paths before regex detection. For non-path terms,
 # backslash remains a regex metacharacter so explicit regex escapes like \d work as expected.
@@ -91,8 +95,15 @@ class SearchFilterPlugin(_StageManagerUSDFilterPlugin):
             return literal_search_term in nickname.casefold()
         return compiled_pattern is not None and bool(compiled_pattern.search(nickname))
 
-    def build_filter_predicate(self):
-        """Build a search predicate with matching state computed once for the refresh."""
+    def build_filter_predicate(self, cancel_event: _Event | None = None) -> Callable[[_StageManagerItem], bool]:
+        """Build a predicate that captures refresh-local search matching state.
+
+        Args:
+            cancel_event: Unused optional event accepted by the shared builder contract.
+
+        Returns:
+            Callable that evaluates items with the captured matching state.
+        """
         return partial(self.filter_predicate, search_state=self._get_search_state(self.search_term))
 
     @staticmethod

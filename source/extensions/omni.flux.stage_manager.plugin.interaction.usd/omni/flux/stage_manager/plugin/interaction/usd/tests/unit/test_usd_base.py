@@ -83,6 +83,36 @@ class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
         # Assert
         self.assertEqual(["set_context_name", "factory_refresh"], call_order)
 
+    async def test_set_context_name_with_named_context_updates_both_context_filter_collections(self):
+        """Propagate the active USD context to both context-filter collections."""
+        # Arrange
+        plugin = self._make_plugin()
+        plugin._context = SimpleNamespace(context_name="ingestcraft")
+        context_filter = mock.Mock()
+        internal_context_filter = mock.Mock()
+        plugin.context_filters = [context_filter]
+        plugin.internal_context_filters = [internal_context_filter]
+
+        # Act
+        plugin._set_context_name()
+
+        # Assert
+        context_filter.set_context_name.assert_called_once_with("ingestcraft")
+        internal_context_filter.set_context_name.assert_called_once_with("ingestcraft")
+
+    async def test_set_context_name_with_context_filter_missing_context_name_method_skips_filter(self):
+        """Skip generic context filters that do not use a USD context name."""
+        # Arrange
+        plugin = self._make_plugin()
+        plugin._context = SimpleNamespace(context_name="ingestcraft")
+        plugin.context_filters = [SimpleNamespace()]
+
+        # Act
+        plugin._set_context_name()
+
+        # Assert
+        self.assertEqual("ingestcraft", plugin._context_name)
+
     async def test_get_refresh_expand_filtered_roots_uses_explicit_filter_active_state(self):
         # Arrange
         cases = (
@@ -381,6 +411,7 @@ class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
         self.assertEqual([item_a, item_b], plugin.tree.model.selection)
 
     async def test_update_tree_selection_preserves_path_order_while_retaining_hidden_selection(self):
+        """Preserve USD path order while retaining selected hidden duplicates."""
         # Arrange
         plugin = self._make_plugin()
         plugin.synchronize_selection = True
@@ -446,6 +477,7 @@ class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
         self.assertEqual(2, plugin._tree_widget.call_count)
 
     async def test_set_tree_widget_selection_skips_unchanged_membership(self):
+        """Skip tree framing when selection membership is unchanged."""
         # Arrange
         plugin = self._make_plugin()
         item_a = _make_tree_item("/World/A")
@@ -464,6 +496,7 @@ class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
         self.assertIsNone(plugin._programmatic_tree_selection_paths)
 
     async def test_set_tree_widget_selection_frames_changed_membership_once(self):
+        """Frame a changed selection once and record its source paths."""
         # Arrange
         plugin = self._make_plugin()
         item_a = _make_tree_item("/World/A")
@@ -497,6 +530,7 @@ class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
         self.assertEqual(("/World/Cube",), paths)
 
     async def test_update_nickname_items_matches_canonical_data_and_notifies_proxy(self):
+        """Match nickname changes through canonical data and notify the proxy."""
         # Arrange
         plugin = self._make_plugin()
         prim = mock.Mock()

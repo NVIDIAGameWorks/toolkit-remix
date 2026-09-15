@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Added
+- Added the internal `MaterialBindingsFilterPlugin` to resolve and prepare grouped material memberships once per mesh.
+
+### Changed
+- Replaced the toggleable subclass hook `_filter_predicate(prim)` with the item-aware `_evaluate_item(item)` contract.
+- Reused neutral Light and Custom Tags configurations for context preparation and limited Light matching to supported,
+  displayable light types.
+
 ## [2.10.1]
 ### Changed
 - Optimized Stage Manager Search filtering by avoiding unnecessary nickname and path work.

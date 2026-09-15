@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.0.0]
+### Changed
+- Changed grouped tree models to consume sparse context inputs and refresh-prepared display names, Material bindings,
+  and Custom Tag memberships instead of rediscovering them in the model worker, while reusing stable Prim-path hashes
+  and lazy icon-map lookup during tree preparation.
+
 ## [3.0.0]
 ### Changed
 - Updated context-menu payloads to accept proxy rows while continuing to provide canonical items to USD actions.

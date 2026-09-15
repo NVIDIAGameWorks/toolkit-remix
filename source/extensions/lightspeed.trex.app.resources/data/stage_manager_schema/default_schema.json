@@ -537,7 +537,7 @@
         },
         {
             "name": "RemixAllSkeletonsInteractionPlugin",
-            "include_invalid_parents": false,
+            "allow_context_ancestors": false,
             "filtering_rules": {
                 "force_refresh_rules": [
                     {

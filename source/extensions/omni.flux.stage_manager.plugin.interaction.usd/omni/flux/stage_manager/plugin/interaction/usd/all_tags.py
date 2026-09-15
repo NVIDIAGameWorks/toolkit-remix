@@ -15,13 +15,18 @@
 * limitations under the License.
 """
 
+from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin
 from omni.flux.stage_manager.factory.plugins import StageManagerTreePlugin as _StageManagerTreePlugin
 from pydantic import Field
 
 from .base import StageManagerUSDInteractionPlugin as _StageManagerUSDInteractionPlugin
 
+__all__ = ["AllTagsInteractionPlugin"]
+
 
 class AllTagsInteractionPlugin(_StageManagerUSDInteractionPlugin):
+    """Provide the custom-tag interaction and grouped-tree support."""
+
     display_name: str = Field(default="Custom Tags", exclude=True)
     tooltip: str = Field(default="View the available prims, grouped by custom tags", exclude=True)
 
@@ -49,4 +54,7 @@ class AllTagsInteractionPlugin(_StageManagerUSDInteractionPlugin):
             "PrimTreeWidgetPlugin",
         ],
         exclude=True,
+    )
+    internal_context_filters: list[StageManagerFilterPlugin] = Field(
+        default=[{"name": "CustomTagsFilterPlugin"}], exclude=True
     )

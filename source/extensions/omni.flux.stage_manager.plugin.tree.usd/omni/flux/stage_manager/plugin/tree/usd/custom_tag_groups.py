@@ -21,7 +21,6 @@ import threading
 
 from omni.flux.custom_tags.core import CustomTagsCore as _CustomTagsCore
 from omni.flux.stage_manager.factory import StageManagerItem as _StageManagerItem
-from omni.flux.stage_manager.factory import StageManagerUtils as _StageManagerUtils
 from pxr import Usd
 from pydantic import Field
 
@@ -42,6 +41,10 @@ class CustomTagGroupsItem(_VirtualGroupsItem):
 
 
 class CustomTagGroupsModel(_VirtualGroupsModel):
+    """Build sparse custom-tag groups from refresh-prepared memberships."""
+
+    requires_context_ancestors = False
+
     @property
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
@@ -80,26 +83,23 @@ class CustomTagGroupsModel(_VirtualGroupsModel):
                 )
                 group_item.path = str(tag_path)
                 tree_items.append(group_item)
-                for prim_path in core.get_tag_prims(tag_path):
-                    if cancel_event.is_set():
-                        return None
-                    tag_items.setdefault(prim_path, []).append(group_item)
+                tag_items[str(tag_path)] = group_item
 
             if not tree_items:
                 return tree_items
 
-            item_names = _StageManagerUtils.get_unique_names(items)
             for item in items:
                 if cancel_event.is_set():
                     return None
                 prim_path = item.data.GetPath()
-                if prim_path not in tag_items:
-                    continue
 
-                item_name, parent_name = item_names[item]
-                for group_item in tag_items[prim_path]:
+                item_name, parent_name = item.prepared_display_name
+                for tag_path in item.prepared_group_memberships:
                     if cancel_event.is_set():
                         return None
+                    group_item = tag_items.get(tag_path)
+                    if group_item is None:
+                        continue
                     path_str = str(prim_path)
                     cust_tree_item = self._build_item(
                         item_name, item.data, tooltip=path_str, display_name_ancestor=parent_name

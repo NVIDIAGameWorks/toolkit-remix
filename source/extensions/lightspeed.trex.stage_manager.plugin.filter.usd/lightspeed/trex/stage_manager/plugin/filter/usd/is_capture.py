@@ -17,6 +17,7 @@
 
 __all__ = ["IsCaptureFilterPlugin", "ReferenceType"]
 
+import threading
 from collections.abc import Callable
 from enum import Enum
 from functools import partial
@@ -169,8 +170,11 @@ class IsCaptureFilterPlugin(StageManagerUSDFilterPlugin):
                 )
         return False
 
-    def build_filter_predicate(self) -> Callable[[StageManagerItem], bool]:
+    def build_filter_predicate(self, cancel_event: threading.Event | None = None) -> Callable[[StageManagerItem], bool]:
         """Build an Asset State predicate with refresh-local caches and replacement layers.
+
+        Args:
+            cancel_event: Optional context-refresh cancellation signal.
 
         Returns:
             Predicate that evaluates a Stage Manager item against the prepared Asset State data.

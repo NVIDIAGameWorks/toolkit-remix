@@ -32,11 +32,11 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypeVar
 
-import carb.settings
 import omni.kit.context_menu
 from omni import ui, usd
 from omni.flux.utils.common.menus import Menu as _Menu
 from omni.flux.utils.common.menus import MenuGroup as _MenuGroup
+from omni.flux.utils.common.task_budget import WorkerYieldBudget
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
@@ -77,6 +77,7 @@ class StageManagerTreeItem(_TreeItemBase):
         path: str | None = None,
         **kwargs,
     ):
+        """Initialize a Stage Manager tree item."""
         super().__init__(**kwargs)
         self._display_name = display_name
         self._tooltip = tooltip
@@ -86,12 +87,12 @@ class StageManagerTreeItem(_TreeItemBase):
 
         self._parent = None
 
-        self._settings = carb.settings.get_settings()
         self._long_display_path_name = None
 
     @property
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
+        """Return attributes reset when the tree item is destroyed."""
         default_attr = super().default_attr
         default_attr.update(
             {
@@ -100,7 +101,6 @@ class StageManagerTreeItem(_TreeItemBase):
                 "_data": None,
                 "_path": None,
                 "_parent_name": None,
-                "_settings": None,
                 "_nickname_field": None,
                 "_proxy": None,
             }
@@ -278,6 +278,8 @@ class TreeRefreshResult:
         items_by_path: All visible data-backed rows for each stable path, including duplicates.
         item_by_hash: Every visible row indexed for exact expansion-state restoration.
         path_by_hash: Visible stable-path fallback retained after the previous tree is released.
+        visible_items_count: Number of rows in the visible proxy hierarchy.
+        visible_non_virtual_items_count: Number of visible non-virtual row occurrences.
         input_items_count: Context items considered before user filtering.
         output_items_count: Context items retained after user filtering.
     """
@@ -287,16 +289,24 @@ class TreeRefreshResult:
     items_by_path: dict[str, list[StageManagerTreeItemProxy]]
     item_by_hash: dict[int, StageManagerTreeItemProxy]
     path_by_hash: dict[int, str]
+    visible_items_count: int
+    visible_non_virtual_items_count: int
     input_items_count: int
     output_items_count: int
 
 
 class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
-    """
-    A TreeView model used to define the structure of the tree
+    """A TreeView model used to define the structure of the tree.
+
+    Attributes:
+        requires_context_ancestors: Whether context refreshes retain invalid
+            ancestors needed to build this model's hierarchy.
     """
 
+    requires_context_ancestors: bool = True
+
     def __init__(self):
+        """Initialize an empty tree model and its refresh state."""
         self._canonical_root_items = []
         self._items = []
 
@@ -309,6 +319,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
         self._items_by_path: dict[str, list[StageManagerTreeItemProxy]] = {}
         self._item_by_hash: dict[int, StageManagerTreeItemProxy] = {}
         self._refresh_cancel_event: threading.Event | None = None
+        self._visible_items_count = 0
+        self._visible_non_virtual_items_count = 0
 
     def destroy(self):
         if self._refresh_cancel_event:
@@ -362,6 +374,16 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
         """
         self._selection = list(items)
 
+    @property
+    def visible_items_count(self) -> int:
+        """Return the number of rows in the current visible proxy hierarchy."""
+        return self._visible_items_count
+
+    @property
+    def visible_non_virtual_items_count(self) -> int:
+        """Return the number of visible non-virtual row occurrences."""
+        return self._visible_non_virtual_items_count
+
     def get_items_by_path(self, path: str) -> list[StageManagerTreeItemProxy]:
         """
         Get all tree items for a USD path without walking the tree.
@@ -384,6 +406,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
         self.selection = []
         self._items_by_path = {}
         self._item_by_hash = {}
+        self._visible_items_count = 0
+        self._visible_non_virtual_items_count = 0
         self._item_changed(None)
 
     @property
@@ -483,6 +507,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
             visible_children_by_proxy,
             items_by_path,
             item_by_hash,
+            visible_items_count,
+            visible_non_virtual_items_count,
             input_items_count,
             output_items_count,
         ) = result
@@ -490,6 +516,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
         self._items = root_items
         self._items_by_path = items_by_path
         self._item_by_hash = item_by_hash
+        self._visible_items_count = visible_items_count
+        self._visible_non_virtual_items_count = visible_non_virtual_items_count
         self._item_changed(None)
         return input_items_count, output_items_count
 
@@ -507,6 +535,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
         self.selection = []
         self._items_by_path = result.items_by_path
         self._item_by_hash = result.item_by_hash
+        self._visible_items_count = result.visible_items_count
+        self._visible_non_virtual_items_count = result.visible_non_virtual_items_count
         self._item_changed(None)
 
     def notify_item_changed(self, item: StageManagerTreeItem | StageManagerTreeItemProxy | None = None):
@@ -557,6 +587,24 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
         if item is None:
             return self._items
         return item.children or []
+
+    def get_children_count(
+        self,
+        items: Iterable[StageManagerTreeItemProxy] | None = None,
+        recursive: bool = True,
+    ) -> int:
+        """Count visible rows, using the published total for the normal full-tree query.
+
+        Args:
+            items: Optional root items for an explicit traversal.
+            recursive: Whether to include descendants in the count.
+
+        Returns:
+            The published visible-row count for the default query, or the base traversal count otherwise.
+        """
+        if items is None and recursive:
+            return self._visible_items_count
+        return super().get_children_count(items=items, recursive=recursive)
 
     def get_item_value_model_count(self, item: StageManagerTreeItemProxy):
         return self.column_count
@@ -646,6 +694,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
             visible_children_by_proxy,
             items_by_path,
             item_by_hash,
+            visible_items_count,
+            visible_non_virtual_items_count,
             input_items_count,
             output_items_count,
         ) = projection
@@ -662,6 +712,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
             items_by_path=items_by_path,
             item_by_hash=item_by_hash,
             path_by_hash=path_by_hash,
+            visible_items_count=visible_items_count,
+            visible_non_virtual_items_count=visible_non_virtual_items_count,
             input_items_count=input_items_count,
             output_items_count=output_items_count,
         )
@@ -753,7 +805,8 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
         filters_active: bool,
         cancel_event: threading.Event,
     ) -> tuple | None:
-        """Return visible proxy roots, links, and lookups, or ``None`` when cancelled."""
+        """Return visible proxy roots, links, lookups, and visible item counts, or ``None`` when cancelled."""
+        worker_yield_budget = WorkerYieldBudget()
         matched_branch_proxies = set()
         if filters_active:
             for item in canonical_items:
@@ -763,6 +816,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
                 parent_proxy = item.parent.proxy if item.parent is not None else None
                 if item.path in visible_paths or (item.path is None and parent_proxy in matched_branch_proxies):
                     matched_branch_proxies.add(proxy)
+                worker_yield_budget.checkpoint()
 
         visible_proxies = set()
         visible_children_by_proxy = {}
@@ -772,6 +826,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
 
             proxy = item.proxy
             visible_children = [child.proxy for child in item.children if child.proxy in visible_proxies]
+            worker_yield_budget.checkpoint()
 
             if filters_active and proxy not in matched_branch_proxies and not visible_children:
                 continue
@@ -783,13 +838,18 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
 
         items_by_path: dict[str, list[StageManagerTreeItemProxy]] = {}
         item_by_hash: dict[int, StageManagerTreeItemProxy] = {}
+        visible_non_virtual_items_count = 0
         for canonical_item in canonical_items:
             if cancel_event.is_set():
                 return None
 
             item = canonical_item.proxy
+            worker_yield_budget.checkpoint()
             if item not in visible_proxies:
                 continue
+
+            if not canonical_item.is_virtual:
+                visible_non_virtual_items_count += 1
 
             item_hash = hash(item)
             item_by_hash[item_hash] = item
@@ -799,7 +859,14 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
 
             items_by_path.setdefault(path, []).append(item)
 
-        return root_items, visible_children_by_proxy, items_by_path, item_by_hash
+        return (
+            root_items,
+            visible_children_by_proxy,
+            items_by_path,
+            item_by_hash,
+            len(visible_proxies),
+            visible_non_virtual_items_count,
+        )
 
     @staticmethod
     def _set_visible_proxy_children(
@@ -819,8 +886,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
         items: list[_StageManagerItem],
         cancel_event: threading.Event,
     ) -> list[StageManagerTreeItem] | None:
-        """
-        Recursively build the model items from Stage Manager items
+        """Build canonical tree items from parent-before-child Stage Manager items.
 
         Args:
             items: Read-only Stage Manager items in parent-before-child order.
@@ -832,6 +898,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
 
         tree_items = []
         tree_item_by_stage_item = {}
+        worker_yield_budget = WorkerYieldBudget()
         for item in items:
             if cancel_event.is_set():
                 return None
@@ -848,6 +915,7 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
             else:
                 # Add to the parent
                 tree_item.parent = tree_item_by_stage_item[item.parent]
+            worker_yield_budget.checkpoint()
 
         return tree_items
 

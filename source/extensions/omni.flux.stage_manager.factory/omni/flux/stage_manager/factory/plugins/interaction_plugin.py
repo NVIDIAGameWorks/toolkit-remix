@@ -25,7 +25,6 @@ from collections.abc import Callable
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
-import omni.appwindow
 import omni.kit.app
 import omni.usd
 from omni import ui
@@ -119,11 +118,9 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         exclude=True,
     )
 
-    include_invalid_parents: bool = Field(
+    allow_context_ancestors: bool = Field(
         default=True,
-        description=(
-            "Whether the tree should include invalid context item parents or whether the tree should be sparse"
-        ),
+        description="Whether this interaction permits context ancestors when the selected tree requires them.",
         exclude=True,
     )
 
@@ -779,11 +776,13 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                 for filter_plugin in (self.context_filters + self.internal_context_filters)
                 if filter_plugin.enabled
             ]
+            include_context_ancestors = self.allow_context_ancestors and self.tree.model.requires_context_ancestors
             filtered_items = await self._prepare_context_items(
                 self._context,
                 context_filters,
-                self.include_invalid_parents,
+                include_context_ancestors,
                 cancel_event,
+                include_display_name_ancestors=self.allow_context_ancestors,
             )
             if filtered_items is None or cancel_event.is_set() or not self._is_active:
                 self._finish_refresh_transaction(transaction, "cancelled")
@@ -808,17 +807,20 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
     async def _prepare_context_items(
         context: _StageManagerContextPlugin,
         context_filters: list[_StageManagerFilterPlugin],
-        include_invalid_parents: bool,
+        include_context_ancestors: bool,
         cancel_event: threading.Event,
+        include_display_name_ancestors: bool | None = None,
     ):
         """
-        Collect and filter context items in bounded worker chunks.
+        Collect context items, then filter them in one cooperative worker transaction.
 
         Args:
             context: Context plugin that supplies source items.
             context_filters: Enabled filters captured for this refresh.
-            include_invalid_parents: Whether invalid ancestors remain visible.
+            include_context_ancestors: Whether context ancestors remain visible.
             cancel_event: Signal set when this refresh is superseded.
+            include_display_name_ancestors: Whether display-name candidates retain source ancestors. ``None`` follows
+                ``include_context_ancestors``.
 
         Returns:
             Filtered refresh-owned wrappers, or None when cancelled.
@@ -827,14 +829,15 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
         if context_items is None or cancel_event.is_set():
             return None
         predicates = await asyncio.to_thread(
-            lambda: [filter_plugin.build_filter_predicate() for filter_plugin in context_filters]
+            lambda: [filter_plugin.build_filter_predicate(cancel_event) for filter_plugin in context_filters]
         )
         if cancel_event.is_set():
             return None
         return await _StageManagerUtils.filter_items(
             context_items,
             predicates,
-            include_invalid_parents=include_invalid_parents,
+            include_invalid_parents=include_context_ancestors,
+            include_display_name_ancestors=include_display_name_ancestors,
             cancel_event=cancel_event,
         )
 

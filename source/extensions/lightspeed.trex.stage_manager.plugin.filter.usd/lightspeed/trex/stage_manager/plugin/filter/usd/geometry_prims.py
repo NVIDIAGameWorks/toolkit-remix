@@ -19,15 +19,11 @@ from __future__ import annotations
 
 __all__ = ["GeometryPrimsFilterPlugin"]
 
-from typing import TYPE_CHECKING
-
 from lightspeed.trex.utils.common.prim_utils import is_empty_mesh_prim
+from omni.flux.stage_manager.factory import StageManagerItem
 from omni.flux.stage_manager.plugin.filter.usd.base import ToggleableUSDFilterPlugin
 from pxr import UsdGeom
 from pydantic import Field
-
-if TYPE_CHECKING:
-    from pxr import Usd
 
 
 class GeometryPrimsFilterPlugin(ToggleableUSDFilterPlugin):
@@ -48,7 +44,16 @@ class GeometryPrimsFilterPlugin(ToggleableUSDFilterPlugin):
     display_name: str = Field(default="Geometry Prims", exclude=True)
     tooltip: str = Field(default="Filter for geometry prims", exclude=True)
 
-    def _filter_predicate(self, prim: Usd.Prim) -> bool:
+    def _evaluate_item(self, item: StageManagerItem) -> bool:
+        """Evaluate whether an item contains displayable Remix geometry.
+
+        Args:
+            item: Stage Manager item containing the prim to evaluate.
+
+        Returns:
+            Whether the prim is a mesh or an empty mesh-root container.
+        """
+        prim = item.data
         if not prim:
             return False
         return prim.IsA(UsdGeom.Mesh) or is_empty_mesh_prim(prim)

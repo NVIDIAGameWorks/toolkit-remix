@@ -18,7 +18,7 @@ automatically set to the class name and is used to reference plugins in schema c
 | **ContextPlugin**     | `StageManagerContextPlugin`     | Provides data items to display (`get_items()`). One per stage manager. Has a `data_type` (NONE, USD, FILE) that constrains which listeners and interactions are compatible.                                             |
 | **InteractionPlugin** | `StageManagerInteractionPlugin` | Represents a tab. Orchestrates tree, filters, columns, and widgets. Has `compatible_data_type` that must match the context. Declares `compatible_filters`, `compatible_trees`, and `compatible_widgets` for validation. |
 | **TreePlugin**        | `StageManagerTreePlugin`        | Provides `TreeModel` (filtering, refresh, column count) and `TreeDelegate` (rendering, context menus). `TreeItem` represents individual items with display name, data, and optional nickname.                           |
-| **FilterPlugin**      | `StageManagerFilterPlugin`      | Implements `filter_predicate(item) -> bool` and can override `_refresh_filter_active()` to update the `filter_active` field when its current UI state is neutral. User-visible filters appear in the UI; context-only filters (`display=False`) run silently. Fires `_on_filter_items_changed` when the user changes parameters.             |
+| **FilterPlugin**      | `StageManagerFilterPlugin`      | Implements `filter_predicate(item) -> bool` and can override `_refresh_filter_active()` to update the `filter_active` field when its current UI state is neutral. The interaction collection that owns it determines the phase: `context_filters` and `internal_context_filters` run during context preparation, while `filters` and `additional_filters` run during user filtering. `display` controls UI only. Fires `_on_filter_items_changed` when the user changes parameters.             |
 | **ColumnPlugin**      | `StageManagerColumnPlugin`      | Groups widgets horizontally in the tree. Has `display_name` and `width` (Fraction/Percent/Pixel). Implements `build_ui()` for cells and `build_header()` for column headers.                                            |
 | **WidgetPlugin**      | `StageManagerWidgetPlugin`      | Individual cell widget inside a column. Implements `build_ui()` and `build_overview_ui()` (summary row). Fires `_on_item_clicked`.                                                                                      |
 | **ListenerPlugin**    | `StageManagerListenerPlugin`    | Subscribes to data change events (USD stage changes, layer mutations). Has `compatible_data_type` that must match the context.                                                                                          |
@@ -137,6 +137,49 @@ lightspeed.trex.stage_manager.widget (composition)
 Stage Manager has two refresh paths: context changes replace the tree generation, while user-filter changes project the
 existing generation without rebuilding it.
 
+### Filter execution phases
+
+Reuse one filter when user filtering and context classification share the same domain rule. Lights, Custom Tags, and
+Categories use neutral internal configurations of their canonical filters to prepare context items. Materials use a
+separate internal binding filter because user filtering accepts meshes broadly while grouping retains only bound meshes.
+Interaction wiring determines when each filter runs: schema-defined `context_filters` and interaction-owned
+`internal_context_filters` run in the context worker after source collection and before `set_context_items()` and
+canonical tree construction. Do not duplicate a filter solely to run it in this phase.
+
+User filtering is a separate projection step. Only active plugins from the interaction's `filters` and
+`additional_filters` run against the retained context items after canonical construction; enabled internal filters still
+run during context preparation. A user-filter refresh changes the visible proxy hierarchy but does not redefine
+interaction membership or rebuild the canonical tree.
+
+Ancestor retention separates interaction permission, tree capability, and the effective result. An interaction uses
+`allow_context_ancestors` to grant permission, while its selected tree uses `requires_context_ancestors` to state whether
+it needs source ancestors. The context worker retains ancestors only when both are `True`:
+
+| `allow_context_ancestors` | `requires_context_ancestors` | `include_context_ancestors` |
+|---|---|---|
+| `False` | Either | `False` |
+| `True` | `False` | `False` |
+| `True` | `True` | `True` |
+
+Tree models require ancestors by default. Concrete grouped models set `requires_context_ancestors = False` because they
+construct their own hierarchy. Setting `allow_context_ancestors = False` remains an interaction-level sparse-tree veto
+for every compatible model.
+
+### Refresh-owned prepared state
+
+Every `StageManagerItem` owns typed prepared state for one full context refresh. Internal context classifiers mark
+display-name candidates with `mark_display_name_candidate()` or store semantic results with `prepare_display_name()`
+and `prepare_group_memberships()`; tree models consume those memberships without depending on the classifier's name or
+repeating USD queries. Active user-filter configurations do not write this state. Do not use prepared state for shared
+filter, model, or UI state, or as a long-lived cache.
+`reset_filter_state()` retains prepared state for the wrapper's lifetime; destroying the wrapper clears it.
+
+Context predicates remain ordered, short-circuiting, cancellable, and off-thread. An item rejected by a schema context
+filter does not reach an internal classifier and therefore does not join the legacy display-name candidate set. An item
+that reaches an internal classifier may still be marked as a display-name candidate before that classifier rejects it.
+Do not add a whole-list `prepare_items()` pass: it would duplicate USD work, evaluate candidates rejected earlier, or
+require another cache.
+
 ### Tree ownership
 
 - Canonical items own the complete hierarchy and never change while user filters toggle.
@@ -144,6 +187,12 @@ existing generation without rebuilding it.
   stable until a full refresh replaces the generation.
 - TreeView, selection, expansion, and path lookups use proxies. Builders, menus, and actions explicitly unwrap
   `proxy.original_tree_item`; selection callbacks map canonical items back through `canonical.proxy`.
+- Visible counts are published and reset together before the single global item notification, so
+  `visible_items_count` and `visible_non_virtual_items_count` describe one visible generation. Counts include virtual rows
+  and duplicate row occurrences; the non-virtual count excludes virtual rows but still counts each duplicate occurrence.
+  The default recursive full-tree count uses the cached total, while explicit items or nonrecursive requests use the
+  base traversal over the requested visible proxies. Base construction and projection periodically yield cooperatively
+  while checking cancellation so long refreshes do not monopolize the worker.
 
 ### Refresh paths
 
@@ -160,12 +209,20 @@ unchanged topology.
 
 ### Worker and publication contracts
 
-- Most filter plugins implement only `filter_predicate()`. `build_filter_predicate()` is the advanced hook for binding
-  refresh-local caches or other inputs that should be prepared once before item evaluation. Built predicates must not
-  access `omni.ui` or mutate shared state. Ordinary filter settings do not need explicit snapshots: newer filter work
-  supersedes stale work, so the last requested apply wins. User-filter pipelines skip inactive filters before building
-  predicates; context filters continue to use their existing enabled lifecycle.
-- Filter workers read canonical topology but do not mutate items, proxies, model fields, indexes, or UI before
+- `ToggleableUSDFilterPlugin.filter_predicate(item)` is the final public template: it owns inactive pass-through and
+  include/exclude inversion. Toggleable subclasses implement `_evaluate_item(item)` as a side-effect-free positive domain
+  match. Other filters implement `filter_predicate()` directly. `build_filter_predicate(cancel_event=None)` is the single
+  refresh-local builder: user filtering calls it without an event after skipping inactive filters, while context filtering
+  supplies its cancellation event. A specialized builder may wrap `_evaluate_item()` for a neutral internal configuration
+  and prepare only the refresh-owned item it evaluates. Configuration selects that preparation behavior; the event does
+  not select an execution phase. Built predicates must not access `omni.ui` or mutate shared state. Ordinary filter
+  settings do not need explicit snapshots: newer filter work supersedes stale work, so the last requested apply wins.
+- Context filtering runs as one synchronous worker transaction. Each transaction owns a `WorkerYieldBudget` whose
+  periodic checkpoints release the GIL while preserving cancellation checks. Intermediate validity, prepared-name,
+  and parent mutations remain private to refresh-owned wrappers, and only a completed, uncancelled result is published
+  atomically. Tree construction and proxy projection each own a separate budget; context filtering uses a longer GIL
+  release than tree preparation to favor viewport responsiveness during its larger unit of work.
+- Filter-only workers read canonical topology but do not mutate items, proxies, model fields, indexes, or UI before
   publication. Publication reconnects proxies and emits one global item notification.
 - New context work cancels obsolete work, and newer filter work supersedes older filter work. Filter edits received
   during a context refresh are coalesced into its published generation; captured-root checks reject stale filter results.
@@ -175,6 +232,9 @@ unchanged topology.
   when cancelled. `get_items_by_path(path)` returns all currently visible proxies, including grouped duplicates.
 
 Refresh telemetry spans worker execution through post-refresh work and records only trigger, status, and wrapper counts.
+`input_items_count` is the post-context wrapper count passed to canonical construction, before user filtering;
+`output_items_count` is the wrapper count retained after user filtering. These values are candidate counts, not canonical
+or visible row counts.
 
 ---
 

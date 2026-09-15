@@ -23,6 +23,7 @@ from .e2e.test_scrolling_tree_widget import TestScrollingTreeWidgetLifecycle
 from .unit.test_combo_box import TestSectionedComboBox
 from .unit.test_gradient import TestGradientUtils
 from .unit.test_grouped_keys_model import TestInMemoryGroupedKeysModel
+from .unit.test_prim_string_field import TestUsdPrimNameFieldStyle
 from .unit.test_drag_field import TestBoundedNumericDragBase
 from .unit.test_scrolling_tree_widget import TestScrollingTreeWidget
 from .unit.test_search import TestSearch
@@ -51,4 +52,5 @@ __all__ = [
     "TestTreeItemBase",
     "TestTreeWidget",
     "TestTreeWidgetModel",
+    "TestUsdPrimNameFieldStyle",
 ]

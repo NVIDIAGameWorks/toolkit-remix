@@ -15,97 +15,145 @@
 * limitations under the License.
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import omni.kit.test
 from omni.flux.stage_manager.factory import StageManagerItem
-from pxr import Usd, UsdGeom
 
+from ... import mesh_prims
 from ...mesh_prims import MeshPrimsFilterPlugin
 
 __all__ = ["TestMeshPrimsFilterUnit"]
 
 _HASH = "0123456789ABCDEF"
-_SECOND_HASH = "FEDCBA9876543210"
 
 
 class TestMeshPrimsFilterUnit(omni.kit.test.AsyncTestCase):
     """Tests Mesh filter predicates against their documented contract."""
 
-    async def test_filter_predicate_with_representative_prims_matches_documented_contract(self):
-        """Match representative USD prims against the documented filter contract."""
+    async def test_filter_predicate_with_groupable_mesh_candidates_retains_only_valid_group_rows(self):
+        """Retain direct and source-stage-mapped mesh-group candidates."""
         cases = [
-            ("mesh_child", "mesh_child", {}, True),
-            ("geom_subset", "geom_subset", {}, True),
-            ("empty_mesh_root", "empty_mesh_root", {}, True),
-            ("nonempty_mesh_root", "mesh_root", {}, False),
-            ("instance", "instance", {}, True),
-            ("light_group", "light_group", {}, False),
-            ("unrelated", "unrelated", {}, False),
-            ("nested_instance", "nested_instance", {}, True),
-            ("nested_instance_without_instances", "nested_instance", {"include_instances": False}, False),
-            ("exclude_matching_instance", "instance", {"include_results": False}, False),
-            ("exclude_unrelated_prim", "unrelated", {"include_results": False}, True),
-            ("inactive_filter", "unrelated", {"filter_active": False}, True),
+            ("mesh_prototype", f"/RootNode/meshes/mesh_{_HASH}/Mesh", "prototype", None, True, True),
+            ("empty_mesh_root", f"/RootNode/meshes/mesh_{_HASH}", "empty", None, True, True),
+            ("non_instance", "/RootNode/Unrelated", "non_instance", None, True, False),
+            (
+                "light_group_instance",
+                f"/RootNode/lights/light_{_HASH}_0/Mesh",
+                "light_instance",
+                None,
+                True,
+                False,
+            ),
+            (
+                "instance_without_instances",
+                f"/RootNode/instances/inst_{_HASH}_0/Mesh",
+                "instance",
+                None,
+                False,
+                False,
+            ),
+            (
+                "instance_mapped_to_prototype",
+                f"/RootNode/instances/inst_{_HASH}_0/Mesh",
+                "instance",
+                "prototype",
+                True,
+                True,
+            ),
+            (
+                "instance_mapped_to_empty_mesh_root",
+                f"/RootNode/instances/inst_{_HASH}_0/Mesh",
+                "instance",
+                "empty",
+                True,
+                True,
+            ),
+            (
+                "instance_mapped_to_missing_prim",
+                f"/RootNode/instances/inst_{_HASH}_0/Mesh",
+                "instance",
+                "missing",
+                True,
+                False,
+            ),
+            (
+                "instance_mapped_to_invalid_group_candidate",
+                f"/RootNode/instances/inst_{_HASH}_0/Mesh",
+                "instance",
+                "invalid",
+                True,
+                False,
+            ),
         ]
+        expected_mesh_path = f"/RootNode/meshes/mesh_{_HASH}/Mesh"
 
-        for title, prim_kind, plugin_kwargs, expected in cases:
+        for title, prim_path, source_kind, mapped_kind, include_instances, expected in cases:
             with self.subTest(title=title):
                 # Arrange
-                stage = Usd.Stage.CreateInMemory()
-                mesh_root = UsdGeom.Xform.Define(stage, f"/Root/mesh_{_HASH}").GetPrim()
-                mesh_child = UsdGeom.Mesh.Define(stage, f"{mesh_root.GetPath()}/Mesh").GetPrim()
-                geom_subset = UsdGeom.Subset.Define(stage, f"{mesh_root.GetPath()}/Subset").GetPrim()
-                empty_mesh_root = UsdGeom.Xform.Define(stage, f"/Root/mesh_{_SECOND_HASH}").GetPrim()
-                instance = UsdGeom.Xform.Define(stage, f"/Root/inst_{_HASH}/Descendant").GetPrim()
-                light_group = UsdGeom.Xform.Define(stage, f"/Root/light_{_HASH}/Descendant").GetPrim()
-                unrelated = UsdGeom.Xform.Define(stage, "/Root/Unrelated").GetPrim()
-                nested_instance = UsdGeom.Xform.Define(
-                    stage, f"/Root/mesh_{_HASH}/inst_{_SECOND_HASH}/Descendant"
-                ).GetPrim()
-                prims = {
-                    "mesh_child": mesh_child,
-                    "geom_subset": geom_subset,
-                    "empty_mesh_root": empty_mesh_root,
-                    "mesh_root": mesh_root,
-                    "instance": instance,
-                    "light_group": light_group,
-                    "unrelated": unrelated,
-                    "nested_instance": nested_instance,
-                }
-                prim = prims[prim_kind]
-                item = StageManagerItem(prim.GetPath(), data=prim)
-                plugin = MeshPrimsFilterPlugin(**plugin_kwargs)
+                prim = MagicMock()
+                prim.__bool__.return_value = True
+                prim.GetPath.return_value = prim_path
+                mapped_prim = MagicMock()
+                mapped_prim.__bool__.return_value = mapped_kind not in {None, "missing"}
+                mapped_prim.GetPath.return_value = expected_mesh_path
+                item = StageManagerItem(prim_path, data=prim)
+                plugin = MeshPrimsFilterPlugin(include_instances=include_instances)
+                with (
+                    patch.object(mesh_prims, "get_prototype") as get_prototype_mock,
+                    patch.object(mesh_prims, "is_mesh_prototype") as is_mesh_prototype_mock,
+                    patch.object(mesh_prims, "is_empty_mesh_prim") as is_empty_mesh_prim_mock,
+                    patch.object(mesh_prims, "is_instance") as is_instance_mock,
+                    patch.object(mesh_prims, "is_in_light_group") as is_in_light_group_mock,
+                ):
+                    get_prototype_mock.return_value = None if mapped_kind == "missing" else mapped_prim
+                    is_mesh_prototype_mock.side_effect = [
+                        source_kind == "prototype",
+                        mapped_kind == "prototype",
+                    ]
+                    is_empty_mesh_prim_mock.side_effect = [source_kind == "empty", mapped_kind == "empty"]
+                    is_instance_mock.return_value = source_kind in {"instance", "light_instance"}
+                    is_in_light_group_mock.return_value = source_kind == "light_instance"
 
-                # Act
-                result = plugin.filter_predicate(item)
+                    # Act
+                    result = plugin.filter_predicate(item)
 
-                # Assert
-                self.assertEqual(expected, result)
+                    # Assert
+                    self.assertEqual(expected, result)
+                    with self.assertRaises(RuntimeError):
+                        _ = item.prepared_group_memberships
+                    if mapped_kind is None:
+                        get_prototype_mock.assert_not_called()
+                    else:
+                        get_prototype_mock.assert_called_once_with(prim)
+                        if mapped_kind == "missing":
+                            mapped_prim.GetPath.assert_not_called()
+                        else:
+                            mapped_prim.GetPath.assert_called_once_with()
 
-    async def test_filter_predicate_reads_path_once_for_valid_prim_and_never_for_invalid_prim(self):
-        """Read a valid prim path exactly once and skip invalid prim path access."""
-        cases = [
-            ("valid", True, True, 1),
-            ("invalid", False, False, 0),
-        ]
+    async def test_filter_predicate_with_invalid_prim_rejects_without_path_or_stage_access(self):
+        """Reject a falsey prim before path, stage, or classification access."""
+        # Arrange
+        prim = MagicMock()
+        prim.__bool__.return_value = False
+        item = StageManagerItem("invalid", data=prim)
+        plugin = MeshPrimsFilterPlugin()
+        with (
+            patch.object(mesh_prims, "get_prototype") as get_prototype_mock,
+            patch.object(mesh_prims, "is_mesh_prototype") as is_mesh_prototype_mock,
+            patch.object(mesh_prims, "is_empty_mesh_prim") as is_empty_mesh_prim_mock,
+            patch.object(mesh_prims, "is_instance") as is_instance_mock,
+            patch.object(mesh_prims, "is_in_light_group") as is_in_light_group_mock,
+        ):
+            # Act
+            result = plugin.filter_predicate(item)
 
-        for title, is_valid, expected, expected_path_calls in cases:
-            with self.subTest(title=title):
-                # Arrange
-                if is_valid:
-                    stage = Usd.Stage.CreateInMemory()
-                    prim = UsdGeom.Xform.Define(stage, f"/Root/mesh_{_HASH}").GetPrim()
-                else:
-                    prim = Usd.Prim()
-                prim_spy = MagicMock(wraps=prim)
-                prim_spy.__bool__.return_value = bool(prim)
-                item = StageManagerItem(title, data=prim_spy)
-                plugin = MeshPrimsFilterPlugin()
-
-                # Act
-                result = plugin.filter_predicate(item)
-
-                # Assert
-                self.assertEqual(expected, result)
-                self.assertEqual(expected_path_calls, prim_spy.GetPath.call_count)
+            # Assert
+            self.assertFalse(result)
+            prim.GetPath.assert_not_called()
+            prim.GetStage.assert_not_called()
+            get_prototype_mock.assert_not_called()
+            is_mesh_prototype_mock.assert_not_called()
+            is_empty_mesh_prim_mock.assert_not_called()
+            is_instance_mock.assert_not_called()
+            is_in_light_group_mock.assert_not_called()

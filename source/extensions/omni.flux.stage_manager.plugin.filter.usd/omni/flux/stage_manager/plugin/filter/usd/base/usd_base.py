@@ -21,6 +21,8 @@ from typing import ClassVar
 from omni.flux.stage_manager.factory.plugins import StageManagerFilterPlugin as _StageManagerFilterPlugin
 from pydantic import PrivateAttr
 
+__all__ = ["StageManagerUSDFilterPlugin"]
+
 
 class StageManagerUSDFilterPlugin(_StageManagerFilterPlugin, abc.ABC):
     _filter_active_fields: ClassVar[tuple[str, ...]] = ()

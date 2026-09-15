@@ -19,15 +19,16 @@ __all__ = ["StageManagerUtils"]
 
 import asyncio
 import threading
-import time
 from collections import Counter
 from collections.abc import Callable, Iterable
 
-from omni.flux.utils.common.task_budget import AdaptiveTaskBudget
+from omni.flux.utils.common.task_budget import WorkerYieldBudget
 
 from .items import StageManagerItem
 from .plugins.filter_plugin import FilterCategory as _FilterCategory
 from .plugins.filter_plugin import StageManagerFilterPlugin as _StageManagerFilterPlugin
+
+_FILTER_WORKER_YIELD_SECONDS = 0.004
 
 
 def _filter_result_closed(
@@ -65,21 +66,43 @@ def _filter_result_closed(
 
 
 class StageManagerUtils:
-    _task_budget = AdaptiveTaskBudget()
+    """Filter Stage Manager items and prepare refresh-owned wrapper state."""
 
     @classmethod
-    def get_unique_names(cls, items: Iterable[StageManagerItem]) -> dict[StageManagerItem, tuple[str, str | None]]:
+    def get_unique_names(
+        cls,
+        items: Iterable[StageManagerItem],
+        cancel_event: threading.Event | None = None,
+    ) -> dict[StageManagerItem, tuple[str, str | None]] | None:
         """
         Get unique names from a list of prim paths.
         If the name is not unique, the name and parent name will be returned.
 
         Args:
             items: Stage Manager items wrapping USD prims.
+            cancel_event: Signal set when this work has been superseded.
 
         Returns:
-            A dict of { path: unique_name } where unique_name is a list of prim names that should identify the path
+            A mapping from each Stage Manager item to its ``(leaf_name, parent_name_or_none)`` tuple, or ``None`` when
+            cancelled.
         """
-        default_names = {item: item.data.GetPath().name for item in items}
+        return cls._get_unique_names(items, cancel_event=cancel_event)
+
+    @staticmethod
+    def _get_unique_names(
+        items: Iterable[StageManagerItem],
+        cancel_event: threading.Event | None = None,
+        worker_yield_budget: WorkerYieldBudget | None = None,
+    ) -> dict[StageManagerItem, tuple[str, str | None]] | None:
+        """Build unique display names, optionally pacing an enclosing worker transaction."""
+        items = list(items)
+        default_names = {}
+        for item in items:
+            if cancel_event and cancel_event.is_set():
+                return None
+            default_names[item] = item.data.GetPath().name
+            if worker_yield_budget:
+                worker_yield_budget.checkpoint()
 
         # Count how many times each default name occurs.
         name_counts = Counter(default_names.values())
@@ -87,11 +110,15 @@ class StageManagerUtils:
         # Build the result dictionary:
         result = {}
         for item in items:
+            if cancel_event and cancel_event.is_set():
+                return None
             # If the name is not unique, add the parent name to the list of names
             if name_counts[default_names[item]] == 1:
                 result[item] = (default_names[item], None)
             else:
                 result[item] = (default_names[item], item.data.GetPath().GetParentPath().name)
+            if worker_yield_budget:
+                worker_yield_budget.checkpoint()
         return result
 
     @classmethod
@@ -168,9 +195,10 @@ class StageManagerUtils:
         predicates: list[Callable[[StageManagerItem], bool]],
         include_invalid_parents: bool = True,
         cancel_event: threading.Event | None = None,
+        include_display_name_ancestors: bool | None = None,
     ) -> list[StageManagerItem] | None:
         """
-        Filter refresh-owned items in bounded worker chunks.
+        Filter refresh-owned items in one cooperative worker transaction.
 
         Note:
             The supplied wrappers must be owned exclusively by the current context refresh. This method intentionally
@@ -181,6 +209,8 @@ class StageManagerUtils:
             predicates: Predicates to execute on each item
             include_invalid_parents: Whether to include invalid parent items of valid items in the filtered list
             cancel_event: Signal set when this work has been superseded
+            include_display_name_ancestors: Whether display-name candidates include source ancestors. Defaults to
+                ``include_invalid_parents``.
 
         Returns:
             Filtered items, including invalid ancestors when requested or reparented to the nearest valid ancestor
@@ -191,65 +221,86 @@ class StageManagerUtils:
         if not items or not predicates:
             return items
 
-        partition = cls._task_budget.compute_partition(len(items), len(predicates))
-        chunk_size = partition.chunk_size
-
-        async def run_chunks(callback) -> bool:
-            for start_index in range(0, len(items), chunk_size):
-                if cancel_event and cancel_event.is_set():
-                    return False
-                end_index = min(start_index + chunk_size, len(items))
-                await asyncio.to_thread(callback, start_index, end_index)
-            return not cancel_event or not cancel_event.is_set()
-
-        def filter_chunk(start_index: int, end_index: int) -> float:
-            started = time.perf_counter()
-            for item in items[start_index:end_index]:
-                if cancel_event and cancel_event.is_set():
-                    break
-                item.is_valid = all(predicate(item) for predicate in predicates)
-            return (time.perf_counter() - started) * 1000.0
-
-        loop = asyncio.get_event_loop()
-        wait_started = loop.time()
-        chunk_compute_ms = 0.0
-        executed_chunks = 0
-        for start_index in range(0, len(items), chunk_size):
-            if cancel_event and cancel_event.is_set():
-                return None
-            end_index = min(start_index + chunk_size, len(items))
-            chunk_compute_ms += await asyncio.to_thread(filter_chunk, start_index, end_index)
-            executed_chunks += 1
-        executor_wait_ms = (loop.time() - wait_started) * 1000.0
-
-        if cancel_event and cancel_event.is_set():
-            return None
-        cls._task_budget.update_metrics(
-            compute_ms=chunk_compute_ms,
-            executor_wait_ms=executor_wait_ms,
-            task_count=executed_chunks,
-            item_count=len(items),
-            predicate_count=len(predicates),
+        include_name_ancestors = (
+            include_invalid_parents if include_display_name_ancestors is None else include_display_name_ancestors
         )
 
-        if include_invalid_parents:
-            return await asyncio.to_thread(lambda: [item for item in items if item.is_valid or item.is_child_valid])
-
-        filtered_items = []
-
-        def collect_reparented_chunk(start_index: int, end_index: int):
-            for item in items[start_index:end_index]:
-                if cancel_event and cancel_event.is_set():
-                    return
-                if not item.is_valid:
-                    continue
-                parent = item.parent
-                while parent and not parent.is_valid:
+        def collect_items(worker_yield_budget: WorkerYieldBudget) -> list[StageManagerItem] | None:
+            """Collect retained items, reconnecting sparse results when requested."""
+            filtered_items = []
+            if include_invalid_parents:
+                for item in items:
                     if cancel_event and cancel_event.is_set():
-                        return
-                    parent = parent.parent
-                # Establish the hierarchy among surviving refresh-owned items before transferring them to the model.
-                item.parent = parent
-                filtered_items.append(item)
+                        return None
+                    if item.is_valid or item.is_child_valid:
+                        filtered_items.append(item)
+                    worker_yield_budget.checkpoint()
+                return filtered_items
 
-        return filtered_items if await run_chunks(collect_reparented_chunk) else None
+            for item in items:
+                if cancel_event and cancel_event.is_set():
+                    return None
+                if item.is_valid:
+                    parent = item.parent
+                    while parent and not parent.is_valid:
+                        if cancel_event and cancel_event.is_set():
+                            return None
+                        parent = parent.parent
+                    # Establish the hierarchy among surviving refresh-owned items before transferring them to the model.
+                    item.parent = parent
+                    filtered_items.append(item)
+                worker_yield_budget.checkpoint()
+            return filtered_items
+
+        def filter_worker() -> list[StageManagerItem] | None:
+            """Filter and prepare all refresh-owned items as one synchronous transaction."""
+            worker_yield_budget = WorkerYieldBudget(yield_seconds=_FILTER_WORKER_YIELD_SECONDS)
+            display_name_candidates = []
+            for index in range(len(items)):
+                if cancel_event and cancel_event.is_set():
+                    return None
+                item = items[index]
+                item.set_filter_validity(
+                    all(predicate(item) for predicate in predicates),
+                    propagate_to_ancestors=include_invalid_parents,
+                )
+                if item.is_display_name_candidate:
+                    display_name_candidates.append(item)
+                worker_yield_budget.checkpoint()
+
+            if not display_name_candidates:
+                return collect_items(worker_yield_budget)
+
+            naming_items = set(display_name_candidates)
+            if include_name_ancestors:
+                if cancel_event and cancel_event.is_set():
+                    return None
+                source_items = set(items)
+                if cancel_event and cancel_event.is_set():
+                    return None
+                for item in display_name_candidates:
+                    if cancel_event and cancel_event.is_set():
+                        return None
+                    parent = item.parent
+                    while parent in source_items and parent not in naming_items:
+                        if cancel_event and cancel_event.is_set():
+                            return None
+                        naming_items.add(parent)
+                        parent = parent.parent
+                    worker_yield_budget.checkpoint()
+            display_names = cls._get_unique_names(
+                naming_items,
+                cancel_event=cancel_event,
+                worker_yield_budget=worker_yield_budget,
+            )
+            if display_names is None:
+                return None
+            for item, name in display_names.items():
+                if cancel_event and cancel_event.is_set():
+                    return None
+                item.prepare_display_name(name)
+                worker_yield_budget.checkpoint()
+            return collect_items(worker_yield_budget)
+
+        filtered_items = await asyncio.to_thread(filter_worker)
+        return None if cancel_event and cancel_event.is_set() else filtered_items

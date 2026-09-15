@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
-from .unit.test_grouped_tree_worker_preparation import TestRemixUSDGroupedTreeWorkerPreparation
+from .unit.test_category_groups import TestCategoryGroupsModel
+from .unit.test_mesh_groups import TestMeshGroupsModel
 
-__all__ = ["TestRemixUSDGroupedTreeWorkerPreparation"]
+__all__ = ["TestCategoryGroupsModel", "TestMeshGroupsModel"]
