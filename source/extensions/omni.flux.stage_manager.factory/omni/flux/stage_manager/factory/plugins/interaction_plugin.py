@@ -25,6 +25,8 @@ from collections.abc import Callable
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
+import carb.input
+import omni.appwindow
 import omni.kit.app
 import omni.usd
 from omni import ui
@@ -363,6 +365,7 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
                             columns_resizable=False,  # Can't resize the results after resizing a column
                             column_widths=column_widths,
                             keep_alive=True,
+                            key_pressed_fn=self._on_tree_key_pressed,
                         )
 
                         self._selection_changed_sub = self._tree_widget.subscribe_selection_changed(
@@ -690,6 +693,26 @@ class StageManagerInteractionPlugin(_StageManagerUIPluginBase, abc.ABC):
             items: The list of items selected in the tree.
         """
         self.tree.model.selection = items
+
+    def _on_tree_key_pressed(self, key: int, modifiers: int, is_down: bool) -> None:
+        """Select every retained prim and expand the Stage Manager root.
+
+        Args:
+            key: Keyboard key that triggered the event.
+            modifiers: Active keyboard modifier flags.
+            is_down: Whether the key was pressed rather than released.
+        """
+        if (
+            not self._tree_widget
+            or key != int(carb.input.KeyboardInput.A)
+            or modifiers != carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL
+            or not is_down
+        ):
+            return
+
+        self._tree_widget.select_all()
+        for root_node in self.tree.model.get_items_by_path("/RootNode"):
+            self._tree_widget.set_expanded(root_node, True, False)
 
     def _validate_data_type(self):
         """

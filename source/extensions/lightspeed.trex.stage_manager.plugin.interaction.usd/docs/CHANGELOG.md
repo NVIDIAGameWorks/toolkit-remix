@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.1]
+### Changed
+- Changed Meshes, Materials, and Categories to use related prims for framing only.
+
 ## [3.0.0]
 ### Changed
 - Adopted the `allow_context_ancestors` interaction policy in place of `include_invalid_parents`.

@@ -185,6 +185,17 @@ class ScrollingTreeWidget:
                 return
         self._set_tree_selection_without_notification(items)
 
+    def select_all(self) -> None:
+        """Select every item the model currently exposes as selectable."""
+        if self._destroyed:
+            return
+        select_all_children = self._tree_widget.select_all_children
+        self._tree_widget.select_all_children = False
+        try:
+            self._tree_widget.selection = list(self._model.iter_selectable_items())
+        finally:
+            self._tree_widget.select_all_children = select_all_children
+
     async def frame_items(self, items: list[TreeItemBase], update_cache: bool = True) -> None:
         """Expand ancestors before scrolling to items.
 

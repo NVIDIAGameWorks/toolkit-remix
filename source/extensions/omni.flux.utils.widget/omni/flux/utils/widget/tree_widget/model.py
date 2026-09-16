@@ -129,6 +129,10 @@ class TreeModelBase(ui.AbstractItemModel, Generic[T]):
                 if recursive:
                     yield from self.iter_items_children([child], recursive=recursive)
 
+    def iter_selectable_items(self) -> Iterable[T]:
+        """Iterate every item eligible for user selection."""
+        yield from self.iter_items_children()
+
     def destroy(self):
         reset_default_attrs(self)
 

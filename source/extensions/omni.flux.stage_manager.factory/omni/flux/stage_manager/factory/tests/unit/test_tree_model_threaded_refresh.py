@@ -655,6 +655,7 @@ class TestStageManagerTreeModelThreadedRefresh(_StageManagerTreeTestCase):
         # Assert
         self.assertIsNotNone(result)
         self.assertEqual(1, active_filter._prepare_call_count)
+        self.assertEqual(3, len(active_filter._predicate_thread_ids))
         self.assertIsNotNone(unfiltered_result)
 
     async def test_threaded_refresh_clears_owned_cancel_event_when_build_fails(self):
@@ -910,6 +911,10 @@ class TestStageManagerTreeModelThreadedRefresh(_StageManagerTreeTestCase):
         self.assertEqual([], model.get_items_by_path("/Dropped"))
         self.assertEqual(3, model.visible_items_count)
         self.assertEqual(3, model.visible_non_virtual_items_count)
+        self.assertEqual(
+            ["/World", "/World/Child", "/World/Child/Leaf"],
+            [item.original_tree_item.path for item in model.iter_selectable_items()],
+        )
 
     async def test_default_recursive_count_uses_projection_count(self):
         """Return the published visible-row count for the default recursive query."""
@@ -962,6 +967,50 @@ class TestStageManagerTreeModelThreadedRefresh(_StageManagerTreeTestCase):
         # Assert
         self.assertEqual(2, result)
 
+    async def test_selectable_items_include_context_filter_ancestors(self):
+        # Arrange
+        model = _BuildItemsTreeModel()
+        self.addCleanup(model.destroy)
+        context_items = _make_context_tree()
+        context_items[0].is_valid = False
+        context_items[1].is_valid = False
+        context_items[2].is_valid = True
+        model.set_context_items(context_items)
+
+        # Act
+        await model.refresh()
+
+        # Assert
+        self.assertEqual(
+            ["/World", "/World/Child", "/World/Child/Leaf"],
+            [item.original_tree_item.path for item in model.iter_selectable_items()],
+        )
+
+    async def test_iter_selectable_items_excludes_synthetic_groups_and_root_rows(self):
+        # Arrange
+        model = _ConcreteTreeModel()
+        self.addCleanup(model.destroy)
+        non_virtual_root_data = Mock()
+        virtual_root_data = Mock()
+        nested_root_data = Mock()
+        virtual_prim_data = Mock()
+        items = [
+            _SpecializedTreeItem("RootNode", non_virtual_root_data, path="/RootNode"),
+            _VirtualTreeItem("Virtual Root", virtual_root_data, path="/RootNode"),
+            _SpecializedTreeItem("Nested RootNode", nested_root_data, path="/World/RootNode"),
+            _VirtualTreeItem("Virtual Prim", virtual_prim_data),
+            _VirtualTreeItem("Synthetic Group", None),
+        ]
+        for item in items:
+            self.addCleanup(item.destroy)
+        model._items = [StageManagerTreeItemProxy(item) for item in items]
+
+        # Act
+        result = list(model.iter_selectable_items())
+
+        # Assert
+        self.assertEqual([items[2].proxy, items[3].proxy], result)
+
     async def test_apply_filters_without_active_filters_does_not_read_context_paths(self):
         """Restore all proxies without rereading context paths when filters are inactive."""
         # Arrange
@@ -990,6 +1039,10 @@ class TestStageManagerTreeModelThreadedRefresh(_StageManagerTreeTestCase):
             item.data.GetPath.assert_not_called()
         self.assertEqual([], hidden_proxies)
         self.assertEqual([dropped_proxy], model.get_items_by_path("/Dropped"))
+        self.assertEqual(
+            ["/World", "/Dropped", "/World/Child", "/World/Child/Leaf"],
+            [item.original_tree_item.path for item in model.iter_selectable_items()],
+        )
 
     async def _start_blocked_filter(self, task_group: asyncio.TaskGroup):
         """Start a filter worker paused before publication.
@@ -1082,4 +1135,8 @@ class TestStageManagerTreeModelThreadedRefresh(_StageManagerTreeTestCase):
         self.assertEqual(
             ["GroupA", "GroupB"],
             [item.original_tree_item.display_name for item in model.get_item_children(None)],
+        )
+        self.assertEqual(
+            ["SharedPrim", "SharedPrim"],
+            [item.original_tree_item.display_name for item in model.iter_selectable_items()],
         )

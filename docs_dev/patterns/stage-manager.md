@@ -193,6 +193,17 @@ require another cache.
   The default recursive full-tree count uses the cached total, while explicit items or nonrecursive requests use the
   base traversal over the requested visible proxies. Base construction and projection periodically yield cooperatively
   while checking cancellation so long refreshes do not monopolize the worker.
+- Tree-focused Ctrl+A traverses the published model and selects retained data-backed rows except `RootNode`. Synthetic
+  virtual groups are excluded. This includes hierarchy parents and descendants under collapsed branches. Ctrl+A is not
+  intercepted while the search field has focus.
+
+### Selection and framing
+
+`_get_selection()` is the authoritative exact selection. The update loop highlights every visible proxy for each
+selected path, including grouped duplicates. A retained hidden proxy for an exact selected path also counts as a match,
+so it suppresses navigation fallback. `_get_framing_selection()` supplies related navigation candidates only; when no
+exact proxy is available, the loop frames the first data-backed candidate in rendered sorted/filtered order. Custom Tags
+and `get_extended_selection()` keep their existing behavior.
 
 ### Refresh paths
 

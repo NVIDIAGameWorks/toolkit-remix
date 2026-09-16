@@ -11,6 +11,12 @@
 |     Ctrl + Y     | Redo                                    |
 |       ESC        | Deselect any currently selected objects |
 
+## Stage Manager Shortcuts
+
+| Input    | Description |
+|:--------:|:------------|
+| Ctrl + A | With focus in the Stage Manager tree, select every data-backed prim retained by the active tab and user filters, including hierarchy ancestors and descendants in collapsed branches. The capture `RootNode` and synthetic grouping rows remain unselected. In the search field, this shortcut selects the search text instead. |
+
 ## Viewport Shortcuts
 
 |  Input   | Description                                                                        |

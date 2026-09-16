@@ -20,6 +20,7 @@ import threading
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, Mock, call, patch
 
+import carb.input
 import omni.kit.app
 import omni.kit.test
 from omni.flux.stage_manager.factory.items import StageManagerItem
@@ -62,6 +63,70 @@ class TestStageManagerInteractionUpdateQueue(omni.kit.test.AsyncTestCase):
     def _make_plugin(self, **kwargs):
         """Create a minimally configured interaction plugin."""
         return _TestInteractionPlugin.model_construct(display_name="TestInteraction", tooltip="For tests", **kwargs)
+
+    async def test_tree_ctrl_a_selects_published_tree_items(self):
+        """Delegate Ctrl+A to the scrolling tree's generic selection operation."""
+        # Arrange
+        plugin = self._make_plugin(tree=Mock())
+        plugin.tree.model.get_items_by_path.return_value = []
+        plugin._tree_widget = Mock()
+
+        # Act
+        plugin._on_tree_key_pressed(
+            int(carb.input.KeyboardInput.A),
+            carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL,
+            True,
+        )
+
+        # Assert
+        plugin._tree_widget.select_all.assert_called_once_with()
+
+    async def test_tree_ctrl_a_expands_root_node(self):
+        """Expand the retained RootNode row when selecting all."""
+        # Arrange
+        root_node = Mock()
+        plugin = self._make_plugin(tree=Mock())
+        plugin.tree.model.get_items_by_path.return_value = [root_node]
+        plugin._tree_widget = Mock()
+
+        # Act
+        plugin._on_tree_key_pressed(
+            int(carb.input.KeyboardInput.A),
+            carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL,
+            True,
+        )
+
+        # Assert
+        plugin._tree_widget.set_expanded.assert_called_once_with(root_node, True, False)
+
+    async def test_tree_non_ctrl_a_input_does_not_change_selection(self):
+        """Ignore key input that is not an exact Ctrl+A key press."""
+        cases = (
+            (int(carb.input.KeyboardInput.A), 0, True, "plain A"),
+            (
+                int(carb.input.KeyboardInput.A),
+                carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL,
+                False,
+                "Ctrl+A key up",
+            ),
+            (
+                int(carb.input.KeyboardInput.A),
+                carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL | carb.input.KEYBOARD_MODIFIER_FLAG_SHIFT,
+                True,
+                "Ctrl+Shift+A",
+            ),
+        )
+        for key, modifiers, is_down, title in cases:
+            with self.subTest(title=title):
+                # Arrange
+                plugin = self._make_plugin(tree=Mock())
+                plugin._tree_widget = Mock()
+
+                # Act
+                plugin._on_tree_key_pressed(key, modifiers, is_down)
+
+                # Assert
+                plugin._tree_widget.select_all.assert_not_called()
 
     async def test_on_hidden_clears_stale_ui_refresh_targets(self):
         """Clear stale UI refresh targets when the interaction is hidden."""

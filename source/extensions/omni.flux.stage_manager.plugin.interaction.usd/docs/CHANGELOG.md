@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.1]
+### Fixed
+- Fixed Stage Manager selection synchronization to frame related items without selecting them.
+
 ## [3.0.0]
 ### Changed
 - Adopted the `allow_context_ancestors` interaction policy in place of `include_invalid_parents`.

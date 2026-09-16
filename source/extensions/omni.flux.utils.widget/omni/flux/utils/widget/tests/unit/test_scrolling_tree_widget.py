@@ -357,6 +357,55 @@ class TestScrollingTreeWidget(AsyncTestCase):
         del widget
         window.destroy()
 
+    async def test_select_all_selects_model_items_without_expanding_them(self):
+        """Select every published model item without changing tree expansion."""
+        # Arrange
+        model, delegate, items = self._create_test_tree()
+        root = items[0]
+        child = root.children[0]
+        selectable_items = [items[2], child.children[0]]
+        model.iter_selectable_items = lambda: iter(selectable_items)
+        received_items = []
+
+        await arrange_windows(topleft_window="Stage")
+        window = ui.Window("TestUserSelection", height=400, width=400)
+
+        with window.frame:
+            widget = ScrollingTreeWidget(model, delegate, frame_selection=True, select_all_children=True)
+
+        selection_changed_sub = widget.subscribe_selection_changed(received_items.extend)
+        await ui_test.human_delay()
+
+        # Act
+        widget.select_all()
+        await ui_test.human_delay()
+
+        # Assert
+        self.assertEqual(selectable_items, widget.selection)
+        self.assertEqual(selectable_items, received_items)
+        self.assertFalse(widget.is_expanded(root))
+        self.assertFalse(widget.is_expanded(child))
+        self.assertTrue(widget._tree_widget.select_all_children)  # pylint: disable=protected-access
+
+        del selection_changed_sub
+        del widget
+        window.destroy()
+
+    def test_select_all_when_destroyed_does_not_access_model_or_tree(self):
+        """Ignore select-all requests after the widget is destroyed."""
+        # Arrange
+        previous_selection = [MockTreeItem("Previous")]
+        tree_widget = SimpleNamespace(selection=previous_selection)
+        model = Mock()
+        widget = SimpleNamespace(_destroyed=True, _model=model, _tree_widget=tree_widget)
+
+        # Act
+        ScrollingTreeWidget.select_all(widget)
+
+        # Assert
+        self.assertIs(previous_selection, tree_widget.selection)
+        model.iter_selectable_items.assert_not_called()
+
     async def test_is_expanded_delegation(self):
         """Test that is_expanded delegates to the underlying tree widget."""
         model, delegate, items = self._create_test_tree()
