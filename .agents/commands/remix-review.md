@@ -5,6 +5,29 @@ synthesis. The `scope` command is the only way to identify the scope and changed
 inspect the target for findings or delegate review outside the script. `packet-worker.md` is the canonical worker and
 receipt contract.
 
+## Request intent
+
+Before starting either workflow, use the request and conversation context to establish the intended scope.
+"Follow-up review" alone does not mean updating existing MR threads.
+
+| Established intent | Existing workflow |
+| --- | --- |
+| Another full review of the revised MR | `remix-review` |
+| Verify fixes or explanations in existing discussions, reply, or resolve threads | `remix-review-follow-up` |
+| A new full review and follow-up on existing discussions | Both workflows, retaining separate state and outputs |
+| Intent remains ambiguous | Ask before starting either workflow |
+
+For ambiguous requests, ask: "Do you want a new full review, follow-up on existing MR threads, or both?"
+A clear earlier instruction remains sufficient; do not force a menu or repeat a question already answered.
+
+Selecting a full review does not authorize thread mutations, enable score comparison, or trigger feedback
+adjudication. Keep the existing execution, reporting, scoring, and approval rules. "Both" invokes the existing
+workflows; it adds no combined mode, merged result format, or automatic cross-review finding reconciliation.
+
+When both workflows are requested, select the existing completed result that owns the discussions by path or run ID
+before starting either workflow. Retain it as the thread-follow-up input regardless of execution order. If the intended
+existing run is unclear, ask. This selection does not authorize score comparison.
+
 ## Workflow
 
 1. Pick the scope from the request, then run the read-only `scope` command with that scope. It resolves the same forge
@@ -134,7 +157,9 @@ penalties; it never recalculates the previous result with the current pool. Cont
 `comparison.reason_code: "no_previous_run"`. Review-identity mismatch or malformed explicitly selected artifacts fail
 before provider setup.
 
-For a rebased branch, review its current base and head and optionally add `--previous-run` for display comparison.
+For thread-only follow-up after a rebase, use `remix-review-follow-up`; rewritten history alone does not require a
+new full review. For an explicitly requested full review of a rebased branch, review its current base and head and
+optionally add `--previous-run` for display comparison.
 
 ## Fast feedback adjudication
 
