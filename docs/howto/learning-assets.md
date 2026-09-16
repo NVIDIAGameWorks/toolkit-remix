@@ -99,6 +99,14 @@ properties in the "Object Properties" panel.
 
 ![Adjust Position](../data/images/remix-assets-transforms.png)
 
+To set all three axes to the same value, click either link icon between the X, Y, and Z fields for **Position**,
+**Rotation**, or **Scale**. Enabling the link immediately copies that object's X value to Y and Z. For multiple selected
+objects, each object uses its own X value. Both links, the row, and label become highlighted to indicate that grouped
+editing is active. The first axis receives inline keyboard focus and is selected for immediate typing without moving any
+field out of the row. Typing a value or dragging any field applies that value equally to all three axes. While grouped
+editing remains active, double-click any axis field to edit that field directly. Click either link again, or link another
+transform row, to return to editing one axis at a time without changing the current values.
+
 ```{tip}
 Apply transforms to the "Xforms" prim, available on all ingested assets. Captured assets should have transforms applied
 to the "mesh" prim.

@@ -24,7 +24,14 @@ from omni.flux.property_widget_builder.delegates.float_value.drag import FloatDr
 
 
 class TestFloatDragFieldUnit(omni.kit.test.AsyncTestCase):
-    """Unit tests for FloatDragFieldGroup logic (no UI rendering)."""
+    """Unit tests for FloatDragFieldGroup logic."""
+
+    async def setUp(self):
+        self._fields = []
+
+    async def tearDown(self):
+        for field in self._fields:
+            field.destroy()
 
     # ------------------------------------------------------------------
     # Default constructor values

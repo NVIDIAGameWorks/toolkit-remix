@@ -37,12 +37,14 @@ from pxr import Sdf, Usd
 
 from .field_builders import ALL_FIELD_BUILDERS
 from .items import _BaseUSDAttributeItem
+from .items import USDAttributeXformItem as _USDAttributeXformItem
 from .items import USDAttributeItemStub as _USDAttributeItemStub
 from .items import USDLogicalGroupOutletItem as _USDLogicalGroupOutletItem
 from .logical_row import LogicalRowState as _LogicalRowState
 
 if TYPE_CHECKING:
     from .model import USDModel as _USDModel
+
 
 __all__ = ("BuildLayerTransferMenu", "USDDelegate")
 
@@ -350,7 +352,16 @@ class USDDelegate(_Delegate):
                                         )
                                         ui.Spacer()
                                     ui.Spacer(width=self._MORE_ICON_SPACING)
-                            NameField()(item, right_aligned=self._right_aligned_labels)
+                            if isinstance(item, _USDAttributeXformItem) and item.supports_group_edit:
+                                NameField(identifier=f"transform_group_edit_label_{row.name}")(
+                                    item,
+                                    right_aligned=self._right_aligned_labels,
+                                    selected=item.linked_edit_enabled,
+                                    subscribe_selected_changed=item.subscribe_linked_edit_changed,
+                                    register_subscription=self._subscriptions.append,
+                                )
+                            else:
+                                NameField()(item, right_aligned=self._right_aligned_labels)
                         ui.Spacer()
                     widgets = [outer]
                 # Logical group outlets render a value-column button but do not own value models.

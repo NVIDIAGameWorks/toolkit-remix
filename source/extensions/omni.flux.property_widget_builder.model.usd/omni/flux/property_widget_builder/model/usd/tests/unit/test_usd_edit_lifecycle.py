@@ -25,13 +25,14 @@ from omni.flux.fcurve.widget import FCurve, FCurveKey, InfinityType, TangentType
 from omni.flux.curve_editor.widget.payload import curve_to_payload
 from omni.flux.property_widget_builder.model.usd import model as _model_module
 from omni.flux.property_widget_builder.model.usd.curve_primvar import PropertyPrimvarCurveModel
+from omni.flux.property_widget_builder.model.usd.items import USDAttributeXformItem
 from omni.flux.property_widget_builder.model.usd.logical_group_constants import CURVE_LOGICAL_GROUP_DEFINITION
 from omni.flux.property_widget_builder.model.usd.item_model.attr_value import UsdAttributeValueModel
 from omni.flux.property_widget_builder.model.usd.item_model.attr_value import VirtualUsdAttributeValueModel
 from omni.flux.property_widget_builder.model.usd.model import USDModel
 from omni.flux.property_widget_builder.widget import ItemGroup
 from omni.flux.utils.common.interactive_usd_notices import register_objects_changed_listener as _register_listener
-from pxr import Sdf, UsdGeom
+from pxr import Gf, Sdf, UsdGeom
 
 
 def _make_model(stage, value=0.0):
@@ -47,6 +48,38 @@ def _make_model(stage, value=0.0):
 
 def _usd_value(stage):
     return stage.GetPrimAtPath("/DragTestPrim").GetAttribute("testFloat").Get()
+
+
+def _make_group_edit_item(stage, values):
+    """Create a multi-selection xform item and its represented scale attributes."""
+    attributes = []
+    for index, value in enumerate(values):
+        prim = stage.DefinePrim(f"/GroupEditPrim{index}", "Xform")
+        attr = UsdGeom.Xformable(prim).AddScaleOp().GetAttr()
+        attr.Set(Gf.Vec3f(*value))
+        attributes.append(attr)
+    return USDAttributeXformItem("", [attr.GetPath() for attr in attributes]), attributes
+
+
+def _make_group_edit_item_with_related_override(stage):
+    """Create a composed xform item whose related specs are absent from the edit target."""
+    root_layer = stage.GetRootLayer()
+    weak_layer = Sdf.Layer.CreateAnonymous("group_edit_weak.usda")
+    root_layer.subLayerPaths.append(weak_layer.identifier)
+    stage.SetEditTarget(weak_layer)
+    prim = stage.DefinePrim("/GroupEditRelatedPrim", "Xform")
+    xformable = UsdGeom.Xformable(prim)
+    scale_attr = xformable.AddScaleOp().GetAttr()
+    scale_attr.Set(Gf.Vec3f(1.0, 2.0, 3.0))
+    rotate_attr = xformable.AddRotateXYZOp().GetAttr()
+    rotate_attr.Set(Gf.Vec3f(10.0, 20.0, 30.0))
+    stage.SetEditTarget(root_layer)
+    item = USDAttributeXformItem(
+        "",
+        [scale_attr.GetPath()],
+        related_attribute_paths=[scale_attr.GetPath(), rotate_attr.GetPath()],
+    )
+    return item, scale_attr, root_layer, rotate_attr.GetPath()
 
 
 def _curve(curve_id, key_values):
@@ -287,7 +320,7 @@ class TestUsdAttributeValueModelEditBatching(omni.kit.test.AsyncTestCase):
 
             # Assert
             begin_group.assert_called_once_with()
-            end_group.assert_called_once_with()
+            end_group.assert_called_once_with(remove_if_empty=True)
             self.assertAlmostEqual(_usd_value(self.stage), 30.0)
 
     async def test_cancel_property_edit_interaction_aborts_active_batch_edit(self):
@@ -357,6 +390,289 @@ class TestUsdAttributeValueModelEditBatching(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertAlmostEqual(model.get_value_as_float(), 0.0)
         self.assertAlmostEqual(_usd_value(self.stage), 0.0)
+
+    async def test_group_edit_copy_when_first_target_command_fails_stops_and_remains_unlinked(self):
+        # Arrange
+        original_values = ((1.0, 2.0, 3.0), (9.0, 8.0, 7.0))
+        item, attributes = _make_group_edit_item(self.stage, original_values)
+
+        try:
+            with patch("omni.kit.commands.execute", return_value=(False, None)) as execute_command:
+                # Act
+                item.toggle_linked_edit()
+
+            # Assert
+            self.assertFalse(item.linked_edit_enabled)
+            self.assertEqual(execute_command.call_count, 1)
+            self.assertEqual([attr.Get() for attr in attributes], [Gf.Vec3f(*value) for value in original_values])
+            self.assertEqual(
+                [model._values for model in item.value_models],
+                [[Gf.Vec3f(*value) for value in original_values]] * 3,
+            )
+        finally:
+            item.destroy()
+
+    async def test_group_edit_copy_when_later_target_command_fails_rolls_back_and_remains_unlinked(self):
+        # Arrange
+        original_values = ((1.0, 2.0, 3.0), (9.0, 8.0, 7.0))
+        item, attributes = _make_group_edit_item(self.stage, original_values)
+        omni.kit.undo.clear_stack()
+        omni.kit.undo.clear_history()
+        sentinel_prim = self.stage.DefinePrim("/FailedCopyUndoSentinel")
+        sentinel_attr = sentinel_prim.CreateAttribute("value", Sdf.ValueTypeNames.Float)
+        sentinel_attr.Set(1.0)
+        omni.kit.commands.execute(
+            "ChangeProperty",
+            prop_path=str(sentinel_attr.GetPath()),
+            value=2.0,
+            prev=None,
+            usd_context_name="",
+        )
+        execute = omni.kit.commands.execute
+        change_property_calls = 0
+
+        def fail_second_change_property(command_name, **kwargs):
+            nonlocal change_property_calls
+            if command_name == "ChangeProperty":
+                change_property_calls += 1
+                if change_property_calls == 2:
+                    return False, None
+            return execute(command_name, **kwargs)
+
+        try:
+            with patch("omni.kit.commands.execute", side_effect=fail_second_change_property):
+                # Act
+                item.toggle_linked_edit()
+
+            # Assert
+            self.assertFalse(item.linked_edit_enabled)
+            self.assertEqual(change_property_calls, 2)
+            self.assertEqual([attr.Get() for attr in attributes], [Gf.Vec3f(*value) for value in original_values])
+            self.assertEqual(
+                [model._values for model in item.value_models],
+                [[Gf.Vec3f(*value) for value in original_values]] * 3,
+            )
+            self.assertFalse(omni.kit.undo.can_redo())
+            self.assertEqual(
+                [entry.name for entry in omni.kit.undo.get_undo_stack() if entry.level == 0],
+                ["ChangeProperty"],
+            )
+        finally:
+            item.destroy()
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+
+    async def test_group_edit_copy_when_related_spec_succeeds_and_value_fails_restores_override_and_cache(self):
+        # Arrange
+        item, scale_attr, target_layer, related_path = _make_group_edit_item_with_related_override(self.stage)
+        execute = omni.kit.commands.execute
+        change_property_calls = 0
+
+        def fail_value_write(command_name, **kwargs):
+            nonlocal change_property_calls
+            if command_name == "ChangeProperty":
+                change_property_calls += 1
+                if change_property_calls == 2:
+                    return False, None
+            return execute(command_name, **kwargs)
+
+        try:
+            with patch("omni.kit.commands.execute", side_effect=fail_value_write):
+                # Act
+                item.toggle_linked_edit()
+
+            # Assert
+            self.assertFalse(item.linked_edit_enabled)
+            self.assertEqual(scale_attr.Get(), Gf.Vec3f(1.0, 2.0, 3.0))
+            self.assertIsNone(target_layer.GetPropertyAtPath(related_path))
+            self.assertEqual([model.get_value_as_float() for model in item.value_models], [1.0, 2.0, 3.0])
+        finally:
+            item.destroy()
+
+    async def test_group_edit_copy_when_python_error_follows_write_rolls_back_and_reraises(self):
+        # Arrange
+        original_values = ((1.0, 2.0, 3.0), (9.0, 8.0, 7.0))
+        item, attributes = _make_group_edit_item(self.stage, original_values)
+        x_model = item.value_models[0]
+        get_target_layer = x_model._get_target_layer
+        x_model._get_target_layer = MagicMock(
+            side_effect=[get_target_layer(attributes[0]), RuntimeError("lookup failed")]
+        )
+        for model in item.value_models:
+            model._value = Gf.Vec3f(99.0)
+
+        try:
+            # Act
+            with self.assertRaisesRegex(RuntimeError, "lookup failed"):
+                item.toggle_linked_edit()
+
+            # Assert
+            self.assertFalse(item.linked_edit_enabled)
+            self.assertEqual([attr.Get() for attr in attributes], [Gf.Vec3f(*value) for value in original_values])
+            self.assertEqual([model.get_value_as_float() for model in item.value_models], [9.0, 8.0, 7.0])
+        finally:
+            item.destroy()
+
+    async def test_group_edit_copy_inside_outer_undo_group_raises_before_writing(self):
+        # Arrange
+        item, attributes = _make_group_edit_item(self.stage, ((1.0, 2.0, 3.0),))
+
+        try:
+            with omni.kit.undo.group():
+                # Act
+                with self.assertRaisesRegex(RuntimeError, "top-level undo operation"):
+                    item.value_models[0].copy_first_channel_to_all_attributes()
+
+            # Assert
+            self.assertEqual(attributes[0].Get(), Gf.Vec3f(1.0, 2.0, 3.0))
+        finally:
+            item.destroy()
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+
+    async def test_group_edit_value_when_later_target_fails_rolls_back_and_refreshes_linked_caches(self):
+        # Arrange
+        original_values = ((1.0, 2.0, 3.0), (9.0, 8.0, 7.0))
+        item, attributes = _make_group_edit_item(self.stage, original_values)
+
+        try:
+            item.set_linked_edit_enabled(True)
+            x_model = item.value_models[0]
+            execute = omni.kit.commands.execute
+            change_property_calls = 0
+
+            def fail_second_change_property(command_name, **kwargs):
+                nonlocal change_property_calls
+                if command_name == "ChangeProperty":
+                    change_property_calls += 1
+                    if change_property_calls == 2:
+                        return False, None
+                return execute(command_name, **kwargs)
+
+            with patch("omni.kit.commands.execute", side_effect=fail_second_change_property):
+                # Act
+                x_model.set_value(42.0)
+
+            # Assert
+            expected_values = [Gf.Vec3f(*value) for value in original_values]
+            self.assertEqual([attr.Get() for attr in attributes], expected_values)
+            self.assertEqual([model._values for model in item.value_models], [expected_values] * 3)
+            self.assertEqual([model.get_value_as_float() for model in item.value_models], [9.0, 8.0, 7.0])
+        finally:
+            item.destroy()
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+
+    async def test_group_edit_batch_when_later_target_fails_rolls_back_and_refreshes_linked_caches(self):
+        # Arrange
+        original_values = ((1.0, 2.0, 3.0), (9.0, 8.0, 7.0))
+        item, attributes = _make_group_edit_item(self.stage, original_values)
+
+        try:
+            item.set_linked_edit_enabled(True)
+            x_model = item.value_models[0]
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+            x_model.begin_batch_edit()
+            x_model.set_value(42.0)
+            execute = omni.kit.commands.execute
+            change_property_calls = 0
+
+            def fail_second_change_property(command_name, **kwargs):
+                nonlocal change_property_calls
+                if command_name == "ChangeProperty":
+                    change_property_calls += 1
+                    if change_property_calls == 2:
+                        return False, None
+                return execute(command_name, **kwargs)
+
+            with patch("omni.kit.commands.execute", side_effect=fail_second_change_property):
+                # Act
+                x_model.end_batch_edit()
+
+            # Assert
+            self.assertFalse(x_model.is_batch_editing)
+            expected_values = [Gf.Vec3f(*value) for value in original_values]
+            self.assertEqual([attr.Get() for attr in attributes], expected_values)
+            self.assertEqual([model._values for model in item.value_models], [expected_values] * 3)
+            self.assertEqual([model.get_value_as_float() for model in item.value_models], [9.0, 8.0, 7.0])
+        finally:
+            item.destroy()
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+
+    async def test_reset_row_nested_failed_write_closes_group_without_consuming_prior_history(self):
+        # Arrange
+        item, _attributes = _make_group_edit_item(self.stage, ((2.0, 3.0, 4.0), (5.0, 6.0, 7.0)))
+
+        try:
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+            sentinel_prim = self.stage.DefinePrim("/NestedResetUndoSentinel")
+            sentinel_attr = sentinel_prim.CreateAttribute("value", Sdf.ValueTypeNames.Float)
+            sentinel_attr.Set(1.0)
+            omni.kit.commands.execute(
+                "ChangeProperty",
+                prop_path=str(sentinel_attr.GetPath()),
+                value=2.0,
+                prev=None,
+                usd_context_name="",
+            )
+            execute = omni.kit.commands.execute
+            change_property_calls = 0
+
+            def fail_second_change_property(command_name, **kwargs):
+                nonlocal change_property_calls
+                if command_name == "ChangeProperty":
+                    change_property_calls += 1
+                    if change_property_calls == 2:
+                        return False, None
+                return execute(command_name, **kwargs)
+
+            with patch("omni.kit.commands.execute", side_effect=fail_second_change_property):
+                # Act
+                item.reset_row_value()
+
+            # Assert
+            self.assertEqual(sentinel_attr.Get(), 2.0)
+            self.assertEqual(
+                [entry.name for entry in omni.kit.undo.get_undo_stack() if entry.level == 0],
+                ["ChangeProperty", "Group"],
+            )
+        finally:
+            item.destroy()
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+
+    async def test_group_edit_copy_when_values_are_uniform_does_not_consume_next_undo(self):
+        # Arrange
+        item, _attributes = _make_group_edit_item(self.stage, ((1.0, 1.0, 1.0),))
+
+        try:
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+            prim = self.stage.DefinePrim("/UndoSentinel")
+            attr = prim.CreateAttribute("sentinel", Sdf.ValueTypeNames.Float)
+            attr.Set(1.0)
+            omni.kit.commands.execute(
+                "ChangeProperty",
+                prop_path=str(attr.GetPath()),
+                value=2.0,
+                prev=None,
+                usd_context_name="",
+            )
+            item.toggle_linked_edit()
+
+            # Act
+            omni.kit.undo.undo()
+
+            # Assert
+            self.assertTrue(item.linked_edit_enabled)
+            self.assertEqual(attr.Get(), 1.0)
+        finally:
+            item.destroy()
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
 
     async def test_end_batch_edit_records_single_undoable_change(self):
         # Arrange

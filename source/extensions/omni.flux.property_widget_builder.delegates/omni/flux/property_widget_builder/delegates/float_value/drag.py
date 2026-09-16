@@ -18,6 +18,7 @@
 __all__ = ("FloatDragFieldGroup",)
 
 from typing import Any
+
 import omni.ui as ui
 from omni.flux.utils.common.types import RealNumber, ScalarValue
 from omni.flux.utils.widget import FloatBoundedDrag
@@ -27,6 +28,21 @@ from ..base import AbstractDragFieldGroup
 
 class FloatDragFieldGroup(AbstractDragFieldGroup):
     """A float drag field delegate with optional min/max bounds and step."""
+
+    @staticmethod
+    def _get_linked_edit_model_type():
+        """Return the native Float model factory for linked typed editing."""
+        return ui.SimpleFloatModel
+
+    @staticmethod
+    def _get_linked_edit_field_type():
+        """Return the native Float field type for linked typed editing."""
+        return ui.FloatField
+
+    @staticmethod
+    def _get_linked_edit_value(model):
+        """Return the native Float value for linked typed editing."""
+        return model.get_value_as_float()
 
     def __init__(
         self,

@@ -2,6 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.1]
+### Added
+- Added optional persistent-selection styling for shared property labels.
+- Added reusable linked drag-field controls with synchronized values, active-row coordination, and first-field text focus.
+
+### Changed
+- Kept linked drag rows active when focus moves away until explicitly unlinked or another row is linked.
+
+### Fixed
+- Kept active-row coordination distinct for linked rows with matching labels.
+
 ## [2.0.0]
 ### Changed
 - Added shared ComboBox and stable native property identifiers, and required relative file pickers to receive an explicit stage resolver.

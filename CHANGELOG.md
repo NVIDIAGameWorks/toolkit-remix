@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5930: Added an "Open Project with Capture..." recent-project action that selects and saves the active capture before opening StageCraft.
 - REMIX-5976: Added an in-process typed texture and mesh asset-processing graph with ingestion parity, durable queue restart, publication and metadata Apply, and context isolation.
 - REMIX-5971: Added Ctrl+A selection for selectable prim rows retained by the active Stage Manager tab and filters, including hierarchy parents and collapsed descendants.
+- REMIX-2698: Added linked Position, Rotation, and Scale XYZ editing that copies X across all axes and keeps subsequent edits synchronized.
 
 ### Changed
 

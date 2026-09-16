@@ -61,6 +61,10 @@ This is a regular `ui.AbstractItemDelegate`. The delegate will show each value o
 
 `_build_widget` has to be subclassed if you want to show your data.
 
+`Delegate` owns the shared `DragFieldGroupCoordinator` used by linked drag-field rows. Factory builders that return an
+`AbstractDragFieldGroup` should set both `supports_field_cleanup=True` and `builds_drag_field_group=True` so the delegate
+passes the row cleanup callback and shared coordinator to the builder.
+
 
 ## Implementation example(s)
 

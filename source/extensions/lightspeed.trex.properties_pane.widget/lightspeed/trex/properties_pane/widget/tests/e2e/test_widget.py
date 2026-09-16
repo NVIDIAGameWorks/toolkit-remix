@@ -22,9 +22,13 @@ from unittest import mock
 import omni.kit.undo
 import omni.ui as ui
 import omni.usd
-from carb.input import KeyboardInput
+from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardInput
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
+from lightspeed.trex.contexts.extension import get_instance as _get_context_manager
+from lightspeed.trex.contexts.setup import Contexts as _Contexts
+from lightspeed.trex.hotkeys import TrexHotkeyEvent as _TrexHotkeyEvent
+from lightspeed.trex.hotkeys import get_global_hotkey_manager as _get_global_hotkey_manager
 from lightspeed.trex.properties_pane.particle.widget.particle_lookup_table import (
     get_particle_lookup_table as _get_particle_lookup_table,
 )
@@ -608,6 +612,222 @@ class TestAssetReplacementsWidget(AsyncTestCase):
                 set(object_property_paths),
                 {path for path in object_property_paths if replacement_layer.GetPropertyAtPath(path) is not None},
             )
+        finally:
+            replacement_layer.ImportFromString(replacement_layer_before)
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+            await self.__destroy(_window, _wid)
+
+    async def test_grouped_transform_link_copies_x_and_updates_all_axes(self):
+        object_selection_path = "/RootNode/instances/inst_FEE1DEADF00D0001_0/reference_override/Cube_01"
+        translate_path = "/RootNode/meshes/mesh_FEE1DEADF00D0001/reference_override/Cube_01.xformOp:translate"
+        stage = omni.usd.get_context().get_stage()
+        translate_attr = stage.GetAttributeAtPath(translate_path)
+        self.assertTrue(translate_attr)
+        original_value = translate_attr.Get()
+        layer_manager = _LayerManagerCore(context_name="")
+        replacement_layer = layer_manager.get_layer_of_type(_LayerType.replacement)
+        self.assertIsNotNone(replacement_layer)
+        replacement_layer_before = replacement_layer.ExportToString()
+        _window, _wid = await self.__setup_widget("test_grouped_transform_link_copies_x_and_updates_all_axes")
+        # This pane-only fixture omits Stagecraft's normal undo subscriber; keep the user-facing Ctrl+Z route intact.
+        undo_hotkey_sub = _get_global_hotkey_manager().subscribe_hotkey_event(
+            _TrexHotkeyEvent.CTRL_Z, omni.kit.undo.undo, context=_Contexts.STAGE_CRAFT
+        )
+
+        try:
+            layer_manager.set_edit_target_layer_of_type(_LayerType.replacement, do_undo=False)
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+            await self.__set_selection([object_selection_path])
+
+            position_label = self.__label(_window.title, text="Position  X")
+            self.assertIsNotNone(position_label)
+            group_links = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='linked_drag_field_link_Position  XYZ'"
+            )
+            self.assertEqual(len(group_links), 2)
+            self.assertEqual([link.widget.name for link in group_links], ["LinkOff", "LinkOff"])
+
+            await group_links[0].click()
+            await ui_test.human_delay(human_delay_speed=4)
+
+            position_label = self.__label(_window.title, text="Position  X")
+            self.assertIsNotNone(position_label)
+            group_links = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='linked_drag_field_link_Position  XYZ'"
+            )
+            fields = self.__float_drags_for_attribute(_window.title, translate_path)
+            self.assertEqual([link.widget.name for link in group_links], ["Link", "Link"])
+            self.assertEqual(position_label.widget.style_type_name_override, "PropertiesWidgetLabelSelected")
+            self.assertTrue(all("Selected" not in field.widget.style_type_name_override for field in fields))
+            inline_editors = ui_test.find_all(
+                f"{_window.title}//Frame/**/FloatField[*].identifier=='linked_drag_field_inline_editor'"
+            )
+            visible_inline_editors = [editor for editor in inline_editors if editor.widget.visible]
+            self.assertEqual(len(visible_inline_editors), 1)
+
+            linked_value = type(original_value)(original_value[0])
+            self.assertEqual(translate_attr.Get(), linked_value)
+
+            await ui_test.emulate_char_press("6.25")
+            await ui_test.human_delay()
+            await ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
+            await ui_test.human_delay(human_delay_speed=8)
+
+            self.assertSequenceEqual(tuple(translate_attr.Get()), (6.25, 6.25, 6.25))
+            inline_editors = ui_test.find_all(
+                f"{_window.title}//Frame/**/FloatField[*].identifier=='linked_drag_field_inline_editor'"
+            )
+            self.assertFalse(any(editor.widget.visible for editor in inline_editors))
+            await position_label.click()
+            await ui_test.human_delay()
+            with mock.patch.object(_get_context_manager(), "get_current_context", return_value=_Contexts.STAGE_CRAFT):
+                await ui_test.emulate_keyboard_press(KeyboardInput.Z, KEYBOARD_MODIFIER_FLAG_CONTROL)
+            await ui_test.human_delay(human_delay_speed=8)
+            self.assertEqual(translate_attr.Get(), linked_value)
+            group_links = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='linked_drag_field_link_Position  XYZ'"
+            )
+            self.assertEqual([link.widget.name for link in group_links], ["Link", "Link"])
+
+            # Dragging any visible axis while linked changes all three axes through the real UI path.
+            fields = self.__float_drags_for_attribute(_window.title, translate_path)
+            target = fields[1].center
+            target.x += 200
+            await ui_test.emulate_mouse_drag_and_drop(fields[1].center, target)
+            await ui_test.human_delay(human_delay_speed=8)
+            dragged_value = translate_attr.Get()
+            self.assertNotEqual(dragged_value[0], linked_value[0])
+            self.assertSequenceEqual(tuple(dragged_value), (dragged_value[0],) * 3)
+
+            await group_links[1].click()
+            await ui_test.human_delay(human_delay_speed=4)
+            group_links = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='linked_drag_field_link_Position  XYZ'"
+            )
+            self.assertEqual([link.widget.name for link in group_links], ["LinkOff", "LinkOff"])
+            self.assertEqual(translate_attr.Get(), dragged_value)
+        finally:
+            del undo_hotkey_sub
+            replacement_layer.ImportFromString(replacement_layer_before)
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+            await self.__destroy(_window, _wid)
+
+    async def test_grouped_transform_multi_selection_discards_dirty_text_on_unlink_and_escape(self):
+        instance_root = "/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root"
+        prototype_root = "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root"
+        selection_paths = (
+            f"{instance_root}/Cube",
+            f"{instance_root}/Cube_01",
+        )
+        translate_paths = (
+            f"{prototype_root}/Cube.xformOp:translate",
+            f"{prototype_root}/Cube_01.xformOp:translate",
+        )
+        stage = omni.usd.get_context().get_stage()
+        translate_attrs = tuple(stage.GetAttributeAtPath(path) for path in translate_paths)
+        self.assertTrue(all(translate_attrs))
+        layer_manager = _LayerManagerCore(context_name="")
+        replacement_layer = layer_manager.get_layer_of_type(_LayerType.replacement)
+        self.assertIsNotNone(replacement_layer)
+        replacement_layer_before = replacement_layer.ExportToString()
+        _window, _wid = await self.__setup_widget(
+            "test_grouped_transform_multi_selection_discards_dirty_text_on_unlink_and_escape"
+        )
+
+        try:
+            layer_manager.set_edit_target_layer_of_type(_LayerType.replacement, do_undo=False)
+            omni.kit.undo.clear_stack()
+            omni.kit.undo.clear_history()
+            await self.__set_selection(list(selection_paths))
+
+            # Linking through the visible Position control intentionally copies each selected object's X to Y and Z.
+            position_label = self.__label(_window.title, text="Position  X")
+            self.assertIsNotNone(
+                position_label,
+                [label.widget.text for label in self.__visible(f"{_window.title}//Frame/**/Label[*]")],
+            )
+            group_links = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='linked_drag_field_link_Position  XYZ'"
+            )
+            self.assertEqual([link.widget.name for link in group_links], ["LinkOff", "LinkOff"])
+            await group_links[0].click()
+            await ui_test.human_delay(human_delay_speed=8)
+            group_links = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='linked_drag_field_link_Position  XYZ'"
+            )
+            self.assertEqual([link.widget.name for link in group_links], ["Link", "Link"])
+            inline_editors = ui_test.find_all(
+                f"{_window.title}//Frame/**/FloatField[*].identifier=='linked_drag_field_inline_editor'"
+            )
+            self.assertEqual(len([editor for editor in inline_editors if editor.widget.visible]), 1)
+            linked_values = tuple(attribute.Get() for attribute in translate_attrs)
+            self.assertSequenceEqual(tuple(linked_values[0]), (-100.0, -100.0, -100.0))
+            self.assertSequenceEqual(tuple(linked_values[1]), (100.0, 100.0, 100.0))
+            linked_layer = replacement_layer.ExportToString()
+
+            # Unlinking while text is dirty cancels the pending edit before focus loss can commit it.
+            await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
+            await ui_test.human_delay()
+            await ui_test.emulate_keyboard_press(KeyboardInput.BACKSPACE)
+            await ui_test.human_delay()
+            await ui_test.emulate_char_press("999.0")
+            await ui_test.human_delay()
+            group_links = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='linked_drag_field_link_Position  XYZ'"
+            )
+            await group_links[1].click()
+            await ui_test.human_delay(human_delay_speed=8)
+            self.assertEqual(tuple(attribute.Get() for attribute in translate_attrs), linked_values)
+            self.assertEqual(replacement_layer.ExportToString(), linked_layer)
+            inline_editors = ui_test.find_all(
+                f"{_window.title}//Frame/**/FloatField[*].identifier=='linked_drag_field_inline_editor'"
+            )
+            self.assertFalse(any(editor.widget.visible for editor in inline_editors))
+
+            # Escape also cancels dirty linked text, hides the editor, and leaves the persistent link enabled.
+            # First make the unlinked row non-uniform so re-linking performs the normal X-to-all synchronization.
+            fields = self.__float_drags_for_attribute(_window.title, translate_paths[0])
+            drag_target = fields[1].center
+            drag_target.x += 50
+            await ui_test.emulate_mouse_drag_and_drop(fields[1].center, drag_target)
+            await ui_test.human_delay(human_delay_speed=8)
+            self.assertTrue(any(value[1] != value[0] for value in (attribute.Get() for attribute in translate_attrs)))
+            group_links = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='linked_drag_field_link_Position  XYZ'"
+            )
+            await group_links[0].click()
+            await ui_test.human_delay(human_delay_speed=8)
+            group_links = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='linked_drag_field_link_Position  XYZ'"
+            )
+            self.assertEqual([link.widget.name for link in group_links], ["Link", "Link"])
+            inline_editors = ui_test.find_all(
+                f"{_window.title}//Frame/**/FloatField[*].identifier=='linked_drag_field_inline_editor'"
+            )
+            self.assertEqual(len([editor for editor in inline_editors if editor.widget.visible]), 1)
+            escape_values = tuple(attribute.Get() for attribute in translate_attrs)
+            escape_layer = replacement_layer.ExportToString()
+            await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
+            await ui_test.human_delay()
+            await ui_test.emulate_keyboard_press(KeyboardInput.BACKSPACE)
+            await ui_test.human_delay()
+            await ui_test.emulate_char_press("888.0")
+            await ui_test.human_delay()
+            await ui_test.emulate_keyboard_press(KeyboardInput.ESCAPE)
+            await ui_test.human_delay(human_delay_speed=8)
+            self.assertEqual(tuple(attribute.Get() for attribute in translate_attrs), escape_values)
+            self.assertEqual(replacement_layer.ExportToString(), escape_layer)
+            inline_editors = ui_test.find_all(
+                f"{_window.title}//Frame/**/FloatField[*].identifier=='linked_drag_field_inline_editor'"
+            )
+            self.assertFalse(any(editor.widget.visible for editor in inline_editors))
+            group_links = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='linked_drag_field_link_Position  XYZ'"
+            )
+            self.assertEqual([link.widget.name for link in group_links], ["Link", "Link"])
         finally:
             replacement_layer.ImportFromString(replacement_layer_before)
             omni.kit.undo.clear_stack()

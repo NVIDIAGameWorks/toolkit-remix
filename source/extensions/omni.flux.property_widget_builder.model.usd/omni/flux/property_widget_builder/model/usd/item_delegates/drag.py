@@ -23,6 +23,8 @@ import omni.ui as ui
 from omni.flux.property_widget_builder.delegates.float_value.drag import FloatDragFieldGroup
 from omni.flux.property_widget_builder.delegates.int_value.drag import IntDragFieldGroup
 
+from ..items import USDAttributeXformItem as _USDAttributeXformItem
+
 if TYPE_CHECKING:
     from ..items import USDAttributeItem
 
@@ -64,6 +66,7 @@ class USDFloatDragField(FloatDragFieldGroup):
     def build_ui(self, item, **kwargs) -> list[ui.Widget]:
         """Apply USD metadata bounds and step, then build the drag UI."""
         _apply_item_constraints(self, item)
+        self.linkable = isinstance(item, _USDAttributeXformItem) and item.supports_group_edit
         return super().build_ui(item, **kwargs)
 
 
@@ -78,4 +81,5 @@ class USDIntDragField(IntDragFieldGroup):
     def build_ui(self, item, **kwargs) -> list[ui.Widget]:
         """Apply USD metadata bounds and step, then build the drag UI."""
         _apply_item_constraints(self, item)
+        self.linkable = isinstance(item, _USDAttributeXformItem) and item.supports_group_edit
         return super().build_ui(item, **kwargs)

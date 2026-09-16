@@ -67,7 +67,15 @@ class USDBuilderList(FieldBuilderList):
 
         return claim_each(_predicate)
 
-    def _build_func_decorator(self, claim_func, *, supports_field_cleanup: bool = False) -> Callable:
+    def _build_func_decorator(
+        self,
+        claim_func,
+        *,
+        supports_field_cleanup: bool = False,
+        builds_drag_field_group: bool = False,
+    ) -> Callable:
+        """Register a USD field builder with its claim and lifecycle metadata."""
+
         def _deco(
             build_func: Callable[..., ui.Widget | list[ui.Widget] | None],
         ) -> Callable[..., ui.Widget | list[ui.Widget] | None]:
@@ -76,16 +84,20 @@ class USDBuilderList(FieldBuilderList):
                     claim_func=claim_func,
                     build_func=build_func,
                     supports_field_cleanup=supports_field_cleanup,
+                    builds_drag_field_group=builds_drag_field_group,
                 )
             )
             return build_func
 
         return _deco
 
-    def register_by_type(self, *types, supports_field_cleanup: bool = False):
-        """
-        Decorator to simplify registering a build function for USDAttributeItem of specific type(s).
-        """
+    def register_by_type(
+        self,
+        *types,
+        supports_field_cleanup: bool = False,
+        builds_drag_field_group: bool = False,
+    ):
+        """Register a builder for USD attributes with any of the provided types."""
 
         def _predicate(item: _USDAttributeItem) -> bool:
             try:
@@ -94,7 +106,11 @@ class USDBuilderList(FieldBuilderList):
                 return False
             return _get_type_name(metadata) in types
 
-        return self._build_func_decorator(claim_each(_predicate), supports_field_cleanup=supports_field_cleanup)
+        return self._build_func_decorator(
+            claim_each(_predicate),
+            supports_field_cleanup=supports_field_cleanup,
+            builds_drag_field_group=builds_drag_field_group,
+        )
 
     def register_by_name(self, *names, supports_field_cleanup: bool = False):
         """
@@ -155,10 +171,15 @@ def _fallback_builder(item) -> None:
     mapping.tf_gf_vec4f,
     mapping.tf_gf_vec4d,
     supports_field_cleanup=True,
+    builds_drag_field_group=True,
 )
-def _floating_point_builder(item, *, register_cleanup=None) -> list[ui.Widget]:
+def _floating_point_builder(item, *, register_cleanup=None, linked_edit_coordinator=None) -> list[ui.Widget]:
     builder = USDFloatDragField(identifier=_generate_identifier(item))
-    return builder(item, register_cleanup=register_cleanup)
+    return builder(
+        item,
+        register_cleanup=register_cleanup,
+        linked_edit_coordinator=linked_edit_coordinator,
+    )
 
 
 @DEFAULT_FIELD_BUILDERS.register_by_type(
@@ -174,10 +195,15 @@ def _floating_point_builder(item, *, register_cleanup=None) -> list[ui.Widget]:
     mapping.tf_gf_vec4i,
     mapping.tf_gf_vec4h,
     supports_field_cleanup=True,
+    builds_drag_field_group=True,
 )
-def _integer_builder(item, *, register_cleanup=None) -> list[ui.Widget]:
+def _integer_builder(item, *, register_cleanup=None, linked_edit_coordinator=None) -> list[ui.Widget]:
     builder = USDIntDragField(identifier=_generate_identifier(item))
-    return builder(item, register_cleanup=register_cleanup)
+    return builder(
+        item,
+        register_cleanup=register_cleanup,
+        linked_edit_coordinator=linked_edit_coordinator,
+    )
 
 
 @DEFAULT_FIELD_BUILDERS.register_by_type(

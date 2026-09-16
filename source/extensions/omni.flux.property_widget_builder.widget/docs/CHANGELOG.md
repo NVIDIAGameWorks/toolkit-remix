@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.12.8]
+### Changed
+- Coordinated linked drag-field rows across property widget rebuilds and active-row changes.
+
 ## [2.12.7]
 ### Changed
 - Exposed PropertyWidget tree column sizing options while preserving default minimum column widths

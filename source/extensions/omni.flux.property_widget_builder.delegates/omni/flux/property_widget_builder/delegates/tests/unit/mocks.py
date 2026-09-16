@@ -15,11 +15,26 @@
 * limitations under the License.
 """
 
-__all__ = ("MockValueModel",)
+__all__ = ("MockItem", "MockValueModel")
 
 from typing import Any
 
+from omni.flux.property_widget_builder.widget import Item
 from omni.flux.property_widget_builder.widget.tree.item_model import ItemValueModel
+
+
+class MockItem(Item):
+    """Minimal item wrapper for grouped field tests."""
+
+    def __init__(self, value_models, name: str = "Value"):
+        super().__init__()
+        self._name_models = [MockValueModel(name)]
+        self._value_models = value_models
+
+    @property
+    def default_attr(self) -> dict[str, None]:
+        """Return attributes reset by the base item cleanup helper."""
+        return super().default_attr
 
 
 class MockValueModel(ItemValueModel):

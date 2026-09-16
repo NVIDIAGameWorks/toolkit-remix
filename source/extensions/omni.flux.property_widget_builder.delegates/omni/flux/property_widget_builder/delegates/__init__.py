@@ -29,6 +29,7 @@ __all__ = (
     "CreatorField",
     "DefaultField",
     "DefaultLabelField",
+    "DragFieldGroupCoordinator",
     "FileAccess",
     "FileFlags",
     "FilePicker",
@@ -42,7 +43,7 @@ __all__ = (
 
 from omni.flux.utils.common.types import RealNumber, ScalarValue
 
-from .base import AbstractDragFieldGroup, AbstractField
+from .base import AbstractDragFieldGroup, AbstractField, DragFieldGroupCoordinator
 from .default import ComboboxField, CreatorField, DefaultField
 from .float_value import ColorField, ColorGradientField, FloatDragFieldGroup
 from .int_value import BytesToHuman, IntDragFieldGroup

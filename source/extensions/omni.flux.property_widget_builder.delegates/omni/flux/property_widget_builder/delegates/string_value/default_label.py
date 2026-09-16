@@ -21,6 +21,7 @@ __all__ = (
 )
 
 import functools
+from collections.abc import Callable
 
 import omni.ui as ui
 
@@ -53,7 +54,23 @@ class DefaultLabelField(AbstractField):
 
 
 class NameField(AbstractField):
-    def _create_attribute_name_build_fn(self, item, right_aligned):
+    """Build property name labels with optional selected behavior."""
+
+    @staticmethod
+    def _set_selected_style(widget: ui.Widget, selected: bool) -> None:
+        """Apply the existing selected style suffix to a property label."""
+        suffix = "Selected" if selected else ""
+        widget.style_type_name_override = f"PropertiesWidgetLabel{suffix}"
+
+    def _create_attribute_name_build_fn(
+        self,
+        item,
+        right_aligned: bool,
+        selected: bool,
+        subscribe_selected_changed: Callable[[Callable[[bool], None]], object] | None,
+        register_subscription: Callable[[object], None] | None,
+    ) -> None:
+        """Build property labels with optional selection behavior."""
         from omni.flux.property_widget_builder.widget import ItemGroup  # noqa: PLC0415
 
         widgets = []
@@ -66,9 +83,21 @@ class NameField(AbstractField):
                     for name_model in item.name_models:
                         value = name_model.get_value_as_string()
                         tooltip = name_model.get_tool_tip()
-                        widget = ui.Label(value, width=0, name="PropertiesWidgetLabel")
+                        widget = ui.Label(
+                            value,
+                            width=0,
+                            name="PropertiesWidgetLabel",
+                            style_type_name_override=(
+                                "PropertiesWidgetLabelSelected" if selected else "PropertiesWidgetLabel"
+                            ),
+                            identifier=self.identifier or "",
+                        )
                         if tooltip:
                             widget.set_tooltip(tooltip)
+                        if subscribe_selected_changed is not None and register_subscription is not None:
+                            register_subscription(
+                                subscribe_selected_changed(functools.partial(self._set_selected_style, widget))
+                            )
                         widgets.append(widget)
 
                     ui.Spacer(width=ui.Pixel(8))
@@ -77,10 +106,27 @@ class NameField(AbstractField):
             if isinstance(item, ItemGroup):
                 ui.Spacer(height=0)
 
-    def build_ui(self, item, right_aligned: bool = True):
+    def build_ui(
+        self,
+        item,
+        right_aligned: bool = True,
+        selected: bool = False,
+        subscribe_selected_changed: Callable[[Callable[[bool], None]], object] | None = None,
+        register_subscription: Callable[[object], None] | None = None,
+    ) -> list[ui.Widget]:
+        """Build the property name cell and optional persistent selection behavior."""
         stack = ui.VStack()
         with stack:
             frame = ui.Frame()
-            frame.set_build_fn(functools.partial(self._create_attribute_name_build_fn, item, right_aligned))
+            frame.set_build_fn(
+                functools.partial(
+                    self._create_attribute_name_build_fn,
+                    item,
+                    right_aligned,
+                    selected,
+                    subscribe_selected_changed,
+                    register_subscription,
+                )
+            )
             ui.Spacer(width=0)
         return [stack]
