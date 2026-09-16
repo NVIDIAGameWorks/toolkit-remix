@@ -4,9 +4,11 @@ Task match -> read `.agents/commands/<name>.md`; follow exactly. Whole Remix rev
 script-issued packet JSON runs only in a fresh native `reviewer` process. No ad-hoc flow; slash not needed.
 
 Commands: branch `create-branch`; commit `commit`; MR `prepare-mr`; RTX Remix review `remix-review`, thread posting
-`remix-review-post-threads`, follow-up `remix-review-follow-up`; new extension
+`remix-review-post-threads`, thread follow-up `remix-review-follow-up`; new extension
 `create-extension`; remove extension `remove-extension`; versions/changelogs `bump-exts-changelog`; extension load/test
 discovery `debug-extension-load`; pip dep `add-pip-dep`; Kit tests `kit-test`.
+
+For ambiguous review-follow-up requests, apply [Request intent](../commands/remix-review.md#request-intent).
 
 Before implementation read pattern docs: undoable command `docs_dev/patterns/commands.md`; REST
 `docs_dev/patterns/services.md`; Stage Manager `docs_dev/patterns/stage-manager.md`; validation/ingestion
