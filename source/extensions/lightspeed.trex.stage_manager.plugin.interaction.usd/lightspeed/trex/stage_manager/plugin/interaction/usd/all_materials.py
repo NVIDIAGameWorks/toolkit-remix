@@ -57,8 +57,8 @@ class RemixAllMaterialsInteractionPlugin(AllMaterialsInteractionPlugin, RemixSta
         exclude=True,
     )
 
-    def _get_selection(self):
-        """Return Remix-related prim paths for the current USD selection.
+    def _get_framing_selection(self):
+        """Return Remix-related prim paths for framing the current USD selection.
 
         Returns:
             Selected prim paths expanded to related meshes, materials, shaders, lights, and children.

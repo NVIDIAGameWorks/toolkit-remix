@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.31.2]
+### Added
+- Added scrolling-tree select-all support that notifies subscribers without changing expansion or scroll state.
+
 ## [1.31.1]
 ### Fixed
 - Fell back to the default UI font when a custom Prim-name font is unavailable.

@@ -15,8 +15,12 @@
 * limitations under the License.
 """
 
-import omni.kit.test
+from unittest import mock
 
+import omni.kit.test
+from lightspeed.trex.stage_manager.plugin.interaction.usd import all_categories as _all_categories
+from lightspeed.trex.stage_manager.plugin.interaction.usd import all_materials as _all_materials
+from lightspeed.trex.stage_manager.plugin.interaction.usd import all_meshes as _all_meshes
 from lightspeed.trex.stage_manager.plugin.interaction.usd.base import RemixStageManagerUSDInteractionPlugin
 from lightspeed.trex.stage_manager.plugin.interaction.usd.extension import (
     RemixStageManagerUSDInteractionPluginsExtension,
@@ -125,3 +129,33 @@ class TestRemixStageManagerUSDInteractionDefaults(omni.kit.test.AsyncTestCase):
                 self.assertEqual(allow_context_ancestors, actual_allow_context_ancestors)
 
         self.assertEqual([interaction_class for interaction_class, *_ in expected_defaults], interaction_classes)
+
+    async def test_related_interactions_use_extended_selection_for_framing_only(self):
+        """Use each tab's existing relationship helper only for framing candidates."""
+        cases = (
+            ("Meshes", _all_meshes, _all_meshes.RemixAllMeshesInteractionPlugin, "_get_extended_selection"),
+            ("Materials", _all_materials, _all_materials.RemixAllMaterialsInteractionPlugin, "get_extended_selection"),
+            (
+                "Categories",
+                _all_categories,
+                _all_categories.RemixAllCategoriesInteractionPlugin,
+                "_get_extended_selection",
+            ),
+        )
+        for tab_name, module, interaction_class, helper_name in cases:
+            with self.subTest(title=tab_name):
+                # Arrange
+                interaction = interaction_class.model_construct()
+                interaction._context_name = "test_context"
+                expected_selection = [f"/World/{tab_name}"]
+
+                # Act
+                framing_selection = interaction_class.__dict__.get("_get_framing_selection", lambda _interaction: [])
+                with mock.patch.object(module, helper_name, return_value=expected_selection) as get_extended_selection:
+                    result = framing_selection(interaction)
+
+                # Assert
+                self.assertFalse("_get_selection" in interaction_class.__dict__)
+                self.assertTrue("_get_framing_selection" in interaction_class.__dict__)
+                get_extended_selection.assert_called_once_with("test_context")
+                self.assertEqual(expected_selection, result)

@@ -85,6 +85,15 @@ class TreeWidget(ui.TreeView):
             "_validate_action_selection": None,
         }
 
+    @property
+    def select_all_children(self) -> bool:
+        """Whether selecting a parent also selects its descendants."""
+        return self._select_all_children
+
+    @select_all_children.setter
+    def select_all_children(self, value: bool) -> None:
+        self._select_all_children = value
+
     def _on_item_clicked(self, should_validate: bool, model: _TreeModelBase, item: _TreeItemBase):
         """
         This makes sure the right-clicked items is in the selection

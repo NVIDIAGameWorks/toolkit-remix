@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-2968: Added a non-blocking `check-tests-written` merge request job that warns when an extension's Python source changed without any change to its tests, posting a self-resolving merge request note and honoring a `no-tests-needed` opt-out label
 - REMIX-5930: Added an "Open Project with Capture..." recent-project action that selects and saves the active capture before opening StageCraft.
 - REMIX-5976: Added an in-process typed texture and mesh asset-processing graph with ingestion parity, durable queue restart, publication and metadata Apply, and context isolation.
+- REMIX-5971: Added Ctrl+A selection for selectable prim rows retained by the active Stage Manager tab and filters, including hierarchy parents and collapsed descendants.
 
 ### Changed
 
@@ -153,6 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-4314: Enabled continuous viewport camera drags with native cursor capture while restoring the prior cursor mode when each drag ends.
 - Fixed Remix Review failing on a failed required CI check and made `remix-review-post-threads` post inline diff threads with Jira-style `BLOCKER`/`P0`/`P1`/`P2` priorities.
 - Fixed ambiguous Remix review follow-up routing and allowed thread follow-up across rewritten history while preserving review snapshots, discussion IDs, and scores.
+- REMIX-6083: Fixed Stage Manager Meshes, Materials, and Categories tabs highlighting related prims as selected while preserving related-item framing.
 
 ## [1.5.2-0]
 

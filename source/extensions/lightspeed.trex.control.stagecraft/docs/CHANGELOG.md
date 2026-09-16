@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.8]
+### Added
+- Added Stage Manager E2E coverage for Ctrl+A selection respecting active tabs, filters, and search-field focus.
+- Added end-to-end coverage for exact Stage Manager selection across related tabs.
+
 ## [1.8.7]
 ### Added
 - Added shipped-schema regression coverage for Stage Manager context refresh rules and the Skeleton ancestor policy.

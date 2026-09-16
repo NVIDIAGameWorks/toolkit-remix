@@ -276,7 +276,6 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
                 items = _make_tree([("root", None), ("a", 0), ("b", 0), ("c", 0)])
                 plugin_1 = _TestFilterPlugin(lambda item: item.identifier == "a", category=category)
                 plugin_2 = _TestFilterPlugin(lambda item: item.identifier == "b", category=category)
-
                 # Act
                 result = StageManagerUtils.filter_items_by_category(items, [plugin_1, plugin_2])
 
@@ -288,7 +287,6 @@ class TestStageManagerUtils(omni.kit.test.AsyncTestCase):
         items = _make_tree([("root", None), ("a", 0), ("b", 0), ("c", 0)])
         plugin_1 = _TestFilterPlugin(lambda item: item.identifier in ("a", "b"), category=FilterCategory.OTHER)
         plugin_2 = _TestFilterPlugin(lambda item: item.identifier == "b", category=FilterCategory.OTHER)
-
         # Act
         result = StageManagerUtils.filter_items_by_category(items, [plugin_1, plugin_2])
 

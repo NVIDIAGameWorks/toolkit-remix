@@ -20,9 +20,10 @@ from __future__ import annotations
 import gc
 from unittest.mock import patch
 
+import omni.kit.commands
 import omni.ui as ui
 import omni.usd as usd
-from carb.input import KeyboardInput
+from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardInput
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import WindowNames as _WindowNames
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
@@ -38,6 +39,56 @@ from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage
 from omni.kit.ui_test.query import WidgetRef
 from omni.kit.ui_test import Vec2
+from pxr import Sdf, Usd
+
+
+_MESH_TAB_SELECTION_PATHS = {
+    "/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh",
+    "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube",
+    "/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01",
+    "/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube",
+    "/RootNode/instances/inst_BAC90CAA733B0859_1/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01",
+    "/RootNode/instances/inst_BAC90CAA733B0859_2/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube",
+    "/RootNode/instances/inst_BAC90CAA733B0859_2/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01",
+    "/RootNode/instances/inst_CED45075A077A49A_0/mesh",
+    "/RootNode/instances/inst_FEE1DEADF00D0001_0/mesh",
+    "/RootNode/instances/inst_FEE1DEADF00D0001_0/reference_override/Cube_01",
+    "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh",
+    "/RootNode/meshes/mesh_BAC90CAA733B0859",
+    "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube",
+    "/RootNode/meshes/mesh_BAC90CAA733B0859/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube_01",
+    "/RootNode/meshes/mesh_CED45075A077A49A/mesh",
+    "/RootNode/meshes/mesh_FEE1DEADF00D0001/mesh",
+    "/RootNode/meshes/mesh_FEE1DEADF00D0001/reference_override/Cube_01",
+}
+_LIGHT_PRIM_PATHS = {
+    "/RootNode/lights/light_0FBF0D906770A019",
+    "/RootNode/lights/light_9907D0B07D040077",
+    "/RootNode/lights/light_EDF9B59568FD1142",
+    "/RootNode/instances/inst_CED45075A077A49A_0/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankA",
+    "/RootNode/instances/inst_CED45075A077A49A_0/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankB",
+    "/RootNode/instances/inst_FEE1DEADF00D0001_0/TransferWorkflowLight",
+    "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankA",
+    "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankB",
+    "/RootNode/meshes/mesh_FEE1DEADF00D0001/TransferWorkflowLight",
+}
+_LIGHT_FILTER_SELECTION_PATHS = _LIGHT_PRIM_PATHS | {
+    "/RootNode/instances",
+    "/RootNode/instances/inst_CED45075A077A49A_0",
+    "/RootNode/instances/inst_CED45075A077A49A_0/ref_e58b2a90258740278bd55cd166bf7ba3",
+    "/RootNode/instances/inst_CED45075A077A49A_0/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A",
+    "/RootNode/instances/inst_CED45075A077A49A_0/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights",
+    "/RootNode/instances/inst_FEE1DEADF00D0001_0",
+    "/RootNode/lights",
+    "/RootNode/meshes",
+    "/RootNode/meshes/mesh_CED45075A077A49A",
+    "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3",
+    "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A",
+    "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights",
+    "/RootNode/meshes/mesh_FEE1DEADF00D0001",
+}
+_TARGET_MESH_PATH = "/RootNode/meshes/mesh_FEE1DEADF00D0001/mesh"
+_TARGET_MESH_INSTANCE_PATH = "/RootNode/instances/inst_FEE1DEADF00D0001_0/mesh"
 
 
 class TestStageManagerPropertiesInteraction(AsyncTestCase):
@@ -92,6 +143,16 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         self.fail(f"Stage Manager did not activate {interaction_name}")
         return None
 
+    async def _press_ctrl_a_in_stage_manager_tree(self):
+        """Focus the Stage Manager tree and press Ctrl+A."""
+        frame_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/ScrollingFrame[*].name=='TreePanelBackground'"
+        frames = [frame for frame in ui_test.find_all(frame_selector) if frame.widget.visible]
+        self.assertTrue(frames)
+        await frames[-1].click()
+        await ui_test.human_delay()
+        await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
+        await ui_test.human_delay()
+
     @staticmethod
     def _find_tagged_items(interaction, prim_path: str, tag_name: str):
         def matches_tag(item):
@@ -107,8 +168,12 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
 
         return interaction.tree.model.find_items(matches_tag)
 
-    async def _input_stage_manager_search(self, value: str, target_path: str, expected_visible: bool = True):
-        """Enter a search and wait for its observable result."""
+    async def _set_stage_manager_search(self, value: str):
+        """Enter a Stage Manager search value.
+
+        Args:
+            value: Search value to enter.
+        """
         search_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/StringField[*].identifier=='search_field'"
         for _ in range(80):
             search_fields = [field for field in ui_test.find_all(search_selector) if field.widget.visible]
@@ -118,13 +183,71 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         else:
             self.fail("Stage Manager search field was not visible")
 
-        await search_fields[0].input(
-            value,
-            human_delay_speed=0,
-            end_key=KeyboardInput.ENTER,
-            clear_before_input=True,
-        )
+        search_field = search_fields[0]
+        if value:
+            await search_field.input(
+                value,
+                human_delay_speed=0,
+                end_key=KeyboardInput.ENTER,
+                clear_before_input=True,
+            )
+        else:
+            await search_field.click()
+            await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
+            await ui_test.emulate_keyboard_press(KeyboardInput.BACKSPACE)
+            await ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
+        search_field.widget.model.end_edit()
         await ui_test.human_delay()
+
+    async def _set_stage_manager_light_filter(self, interaction, active: bool):
+        """Set the Light Prims filter through the Additional Filters popup.
+
+        Args:
+            interaction: Active Stage Manager interaction plugin.
+            active: Whether the Light Prims filter should be enabled.
+        """
+        light_filter = next(
+            filter_ for filter_ in interaction.additional_filters if filter_.name == "LightPrimsFilterPlugin"
+        )
+        icon_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Image[*]"
+        for _ in range(120):
+            icons = [
+                icon
+                for icon in ui_test.find_all(icon_selector)
+                if icon.widget.visible and icon.widget.tooltip == "Additional Filters"
+            ]
+            if icons:
+                await icons[-1].click()
+                break
+            await ui_test.wait_n_updates(1)
+        else:
+            self.fail("Additional Filters button was not visible")
+
+        for _ in range(120):
+            if light_filter._checkbox and light_filter._checkbox.visible:
+                break
+            await ui_test.wait_n_updates(1)
+        else:
+            self.fail("Light Prims filter checkbox was not visible")
+
+        if light_filter.filter_active != active:
+            checkbox_position = Vec2(
+                light_filter._checkbox.screen_position_x + 1,
+                light_filter._checkbox.screen_position_y + 1,
+            )
+            await ui_test.emulate_mouse_move(checkbox_position)
+            await ui_test.emulate_mouse_click()
+        for _ in range(120):
+            if light_filter.filter_active == active:
+                await ui_test.emulate_keyboard_press(KeyboardInput.ESCAPE)
+                await ui_test.wait_n_updates(2)
+                return
+            await ui_test.wait_n_updates(1)
+        self.fail(f"Light Prims filter did not become {'active' if active else 'inactive'}")
+
+    async def _input_stage_manager_search(self, value: str, target_path: str, expected_visible: bool = True):
+        """Enter a search and wait for its observable result."""
+        await self._set_stage_manager_search(value)
 
         row_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Label[*].identifier=='nickname_field'"
         frame_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/ScrollingFrame[*].name=='TreePanelBackground'"
@@ -156,14 +279,22 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         raise AssertionError(f"Stage Manager did not {expected_result} for {target_path}")
 
     async def _wait_for_usd_selection(
-        self, expected_paths: list[str], settle_frames: int = 10, timeout_frames: int = 120
+        self, expected_paths: list[str] | set[str], settle_frames: int = 10, timeout_frames: int = 120
     ):
+        """Wait for the USD selection to contain the expected paths.
+
+        Args:
+            expected_paths: USD prim paths expected in the selection.
+            settle_frames: Consecutive matching frames required before returning.
+            timeout_frames: Maximum frames to wait.
+        """
+        expected_paths = set(expected_paths)
         usd_context = usd.get_context()
         stable_frames = 0
         last_paths = []
         for _ in range(timeout_frames):
             last_paths = usd_context.get_selection().get_selected_prim_paths()
-            if last_paths == expected_paths:
+            if set(last_paths) == expected_paths:
                 stable_frames += 1
                 if stable_frames >= settle_frames:
                     return
@@ -186,8 +317,17 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         self.fail(f"Stage Manager did not select {expected_path}; got {last_selection}")
 
     async def _wait_for_stage_manager_model_selection_paths(
-        self, interaction, expected_paths: list[str], timeout_frames: int = 120
+        self, interaction, expected_paths: list[str], settle_frames: int = 1, timeout_frames: int = 120
     ):
+        """Wait until the Stage Manager model selection remains at the expected paths.
+
+        Args:
+            interaction: Active Stage Manager interaction to inspect.
+            expected_paths: Ordered prim paths expected in the model selection.
+            settle_frames: Consecutive matching frames required before returning.
+            timeout_frames: Maximum frames to wait before failing.
+        """
+        stable_frames = 0
         last_selection = []
         for _ in range(timeout_frames):
             last_selection = []
@@ -196,7 +336,11 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
                 if original_item.data and original_item.data.IsValid():
                     last_selection.append(str(original_item.data.GetPath()))
             if last_selection == expected_paths:
-                return
+                stable_frames += 1
+                if stable_frames >= settle_frames:
+                    return
+            else:
+                stable_frames = 0
             await ui_test.wait_n_updates(1)
         self.fail(f"Stage Manager selection did not settle on {expected_paths}; got {last_selection}")
 
@@ -231,6 +375,39 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
             await ui_test.human_delay()
         self.fail(f"Stage Manager did not expose an enabled Focus icon for {prim_path}")
         return None
+
+    async def _wait_for_stage_manager_selectable_paths(self, interaction, expected_paths, timeout_frames: int = 120):
+        """Wait for the Stage Manager model to expose exactly the expected selectable paths.
+
+        Args:
+            interaction: Active Stage Manager interaction plugin.
+            expected_paths: Prim paths expected from the model's selectable iterator.
+            timeout_frames: Maximum frames to wait.
+        """
+        expected_paths = set(expected_paths)
+        last_paths = []
+        for _ in range(timeout_frames):
+            last_paths = [item.original_tree_item.path for item in interaction.tree.model.iter_selectable_items()]
+            if set(last_paths) == expected_paths:
+                return
+            await ui_test.wait_n_updates(1)
+        self.fail(f"Stage Manager selectable paths did not settle on {expected_paths}; got {last_paths}")
+
+    async def _wait_for_stage_manager_selectable_path(self, interaction, expected_path: str, timeout_frames: int = 120):
+        """Wait for the Stage Manager model to expose a selectable path.
+
+        Args:
+            interaction: Active Stage Manager interaction plugin.
+            expected_path: Prim path expected from the model's selectable iterator.
+            timeout_frames: Maximum frames to wait.
+        """
+        last_paths = []
+        for _ in range(timeout_frames):
+            last_paths = [item.original_tree_item.path for item in interaction.tree.model.iter_selectable_items()]
+            if expected_path in last_paths:
+                return
+            await ui_test.wait_n_updates(1)
+        self.fail(f"Stage Manager selectable paths did not include {expected_path}; got {last_paths}")
 
     def _get_properties_pane(self):
         for obj in gc.get_objects():
@@ -320,6 +497,60 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
 
         await self._wait_for_usd_selection([], settle_frames=5)
         await self._wait_for_stage_manager_model_selection_paths(interaction, [])
+
+    async def test_related_tabs_frame_without_highlighting_related_prims(self):
+        """Keep exact USD selection without highlighting related rows across related tabs."""
+        parent_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B"
+        related_mesh_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"
+        related_material_path = "/RootNode/Looks/mat_BC868CE5A075ABB1"
+        related_tabs = (
+            ("Meshes", "RemixAllMeshesInteractionPlugin", related_mesh_path),
+            ("Materials", "RemixAllMaterialsInteractionPlugin", related_material_path),
+            ("Categories", "RemixAllCategoriesInteractionPlugin", related_mesh_path),
+        )
+        usd_context = usd.get_context()
+        stage = usd_context.get_stage()
+        related_mesh = stage.GetPrimAtPath(related_mesh_path)
+        self.assertTrue(related_mesh.IsValid())
+
+        with Usd.EditContext(stage, stage.GetSessionLayer()):
+            omni.kit.commands.execute(
+                "CreateUsdAttribute",
+                prim=related_mesh,
+                attr_name="remix_category:world_ui",
+                attr_value=True,
+                attr_type=Sdf.ValueTypeNames.Bool,
+            )
+
+        prims_interaction = await self._select_stage_manager_tab("Prims", "RemixAllPrimsInteractionPlugin")
+        usd_context.get_selection().clear_selected_prim_paths()
+        await ui_test.human_delay()
+        usd_context.get_selection().set_selected_prim_paths([parent_path], False)
+        await self._wait_for_usd_selection([parent_path])
+        await self._wait_for_stage_manager_model_selection(prims_interaction, parent_path)
+
+        for display_name, interaction_name, related_path in related_tabs:
+            # Switching views must preserve the user's exact USD selection without highlighting its relations.
+            interaction = await self._select_stage_manager_tab(display_name, interaction_name)
+            self.assertEqual([parent_path], usd_context.get_selection().get_selected_prim_paths())
+
+            # Tab activation can precede tree publication, so wait for the known related row before checking selection.
+            for _ in range(120):
+                related_items = interaction.tree.model.find_items(
+                    lambda item, expected_path=related_path: (
+                        item.original_tree_item.data is not None and str(item.original_tree_item.path) == expected_path
+                    )
+                )
+                if related_items:
+                    break
+                await ui_test.wait_n_updates(1)
+            else:
+                self.fail(f"{display_name} did not publish a related data-backed item")
+
+            self.assertEqual([parent_path], usd_context.get_selection().get_selected_prim_paths())
+            await self._wait_for_stage_manager_model_selection_paths(interaction, [], settle_frames=5)
+            self.assertEqual([parent_path], usd_context.get_selection().get_selected_prim_paths())
+            self.assertTrue(related_items)
 
     async def test_focus_action_with_multiple_selected_prims_preserves_stage_manager_and_usd_selection(self):
         """Verify a selected row action preserves Stage Manager and USD multiselection."""
@@ -423,6 +654,73 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
 
         await self._input_stage_manager_search("", target_path)
         await self._wait_for_usd_selection([target_path])
+
+    async def test_select_all_with_ctrl_a_without_user_filters_selects_all_mesh_tab_prims(self):
+        await self._select_stage_manager_tab("Meshes", "RemixAllMeshesInteractionPlugin")
+
+        await self._input_stage_manager_search("", _TARGET_MESH_PATH)
+        await self._press_ctrl_a_in_stage_manager_tree()
+
+        await self._wait_for_usd_selection(_MESH_TAB_SELECTION_PATHS)
+
+    async def test_select_all_with_ctrl_a_with_light_filter_selects_retained_prims(self):
+        interaction = await self._select_stage_manager_tab("Prims", "RemixAllPrimsInteractionPlugin")
+        await self._set_stage_manager_search("")
+        await self._wait_for_stage_manager_selectable_path(interaction, _TARGET_MESH_PATH)
+        unfiltered_paths = {item.original_tree_item.path for item in interaction.tree.model.iter_selectable_items()}
+        self.assertTrue(unfiltered_paths)
+        await self._set_stage_manager_light_filter(interaction, True)
+
+        try:
+            await self._wait_for_stage_manager_selectable_paths(interaction, _LIGHT_FILTER_SELECTION_PATHS)
+            await self._press_ctrl_a_in_stage_manager_tree()
+            await self._wait_for_usd_selection(_LIGHT_FILTER_SELECTION_PATHS)
+        finally:
+            await self._set_stage_manager_light_filter(interaction, False)
+            await self._wait_for_stage_manager_selectable_paths(interaction, unfiltered_paths)
+
+    async def test_select_all_with_ctrl_a_with_empty_search_result_clears_selection(self):
+        await self._select_stage_manager_tab("Meshes", "RemixAllMeshesInteractionPlugin")
+        usd.get_context().get_selection().set_selected_prim_paths([_TARGET_MESH_INSTANCE_PATH], False)
+        await self._wait_for_usd_selection([_TARGET_MESH_INSTANCE_PATH])
+
+        await self._input_stage_manager_search(
+            "definitelynomatchingprimname", _TARGET_MESH_PATH, expected_visible=False
+        )
+        try:
+            await self._press_ctrl_a_in_stage_manager_tree()
+            await self._wait_for_usd_selection([])
+        finally:
+            await self._input_stage_manager_search("", _TARGET_MESH_PATH)
+
+    async def test_ctrl_a_in_search_field_selects_text_without_changing_prim_selection(self):
+        await self._select_stage_manager_tab("Meshes", "RemixAllMeshesInteractionPlugin")
+        await self._input_stage_manager_search("mesh", _TARGET_MESH_PATH)
+
+        search_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/StringField[*].identifier=='search_field'"
+        search_fields = [field for field in ui_test.find_all(search_selector) if field.widget.visible]
+        self.assertEqual(1, len(search_fields))
+        usd.get_context().get_selection().set_selected_prim_paths([_TARGET_MESH_INSTANCE_PATH], False)
+        await self._wait_for_usd_selection([_TARGET_MESH_INSTANCE_PATH], settle_frames=5)
+
+        await search_fields[0].click()
+        await ui_test.human_delay()
+        await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
+        await ui_test.emulate_keyboard_press(KeyboardInput.DEL)
+        await ui_test.human_delay()
+        self.assertEqual("", search_fields[0].widget.model.get_value_as_string())
+        await self._wait_for_usd_selection([_TARGET_MESH_INSTANCE_PATH], settle_frames=5)
+        await self._input_stage_manager_search("", _TARGET_MESH_INSTANCE_PATH)
+
+    async def test_switching_tabs_after_ctrl_a_preserves_mesh_selection(self):
+        await self._select_stage_manager_tab("Meshes", "RemixAllMeshesInteractionPlugin")
+
+        await self._input_stage_manager_search("", _TARGET_MESH_PATH)
+        await self._press_ctrl_a_in_stage_manager_tree()
+        await self._wait_for_usd_selection(_MESH_TAB_SELECTION_PATHS)
+
+        await self._select_stage_manager_tab("Lights", "RemixAllLightsInteractionPlugin")
+        await self._wait_for_usd_selection(_MESH_TAB_SELECTION_PATHS)
 
     async def test_material_properties_update_stage_manager_should_not_refresh(self):
         selection_prim_path = (

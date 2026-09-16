@@ -390,6 +390,17 @@ class StageManagerTreeModel(_TreeModelBase[StageManagerTreeItemProxy]):
         """
         return list(self._items_by_path.get(path, []))
 
+    def iter_selectable_items(self) -> Iterable[StageManagerTreeItemProxy]:
+        """Iterate selectable rows retained in the published tree, including collapsed branches.
+
+        Yields:
+            Proxy rows eligible for user selection.
+        """
+        for item in self.iter_items_children():
+            original_item = item.original_tree_item
+            if original_item.data is not None and original_item.path != "/RootNode":
+                yield item
+
     def set_context_items(self, items: list[_StageManagerItem]):
         """
         Take ownership of items fetched in the context worker without copying.

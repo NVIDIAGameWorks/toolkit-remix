@@ -435,6 +435,170 @@ class TestStageManagerUSDInteractionPlugin(AsyncTestCase):
         plugin._tree_widget.set_selection_async.assert_awaited_once_with([b_visible, a_visible, a_hidden])
         self.assertEqual([b_visible, a_visible, a_hidden], plugin.tree.model.selection)
 
+    async def test_update_tree_selection_with_no_exact_match_frames_first_rendered_related_item_without_selecting_it(
+        self,
+    ):
+        """Frame the first rendered related row without selecting or writing it back."""
+        # Arrange
+        plugin = self._make_plugin()
+        plugin.synchronize_selection = True
+        plugin._is_active = True
+        plugin._context_name = ""
+        plugin._tree_selection_task = SimpleNamespace(cancelled=lambda: False)
+        pathless_group = mock.Mock(original_tree_item=SimpleNamespace(path=None, data=None))
+        path_bearing_group = mock.Mock(original_tree_item=SimpleNamespace(path="/World/RelatedGroup", data=None))
+        raw_selected_item = _make_tree_item("/World/Parent")
+        first_rendered_related = _make_tree_item("/World/RelatedFirst")
+        second_rendered_related = _make_tree_item("/World/RelatedSecond")
+        rendered_items = [
+            pathless_group,
+            path_bearing_group,
+            raw_selected_item,
+            first_rendered_related,
+            second_rendered_related,
+        ]
+        plugin.tree.model.selection = []
+        plugin.tree.model.get_items_by_path.return_value = []
+
+        async def _find_items_async(predicate):
+            return [item for item in rendered_items if predicate(item)]
+
+        plugin.tree.model.find_items_async = mock.AsyncMock(side_effect=_find_items_async)
+        plugin._tree_widget = SimpleNamespace(
+            selection=[],
+            set_selection_async=mock.AsyncMock(),
+            frame_items=mock.AsyncMock(),
+        )
+
+        with (
+            mock.patch.object(plugin, "_get_selection", return_value=["/World/Parent"]),
+            mock.patch.object(
+                plugin,
+                "_get_framing_selection",
+                return_value=[
+                    "/World/RelatedSecond",
+                    "/World/Parent",
+                    "/World/RelatedGroup",
+                    "/World/RelatedFirst",
+                ],
+            ),
+            mock.patch("omni.usd.get_context") as get_context,
+        ):
+            selection_mock = mock.MagicMock()
+            get_context.return_value.get_selection.return_value = selection_mock
+
+            # Act
+            await plugin._update_tree_selection_async()
+
+            # Assert
+            self.assertEqual([], plugin._tree_widget.selection)
+            self.assertEqual([], plugin.tree.model.selection)
+            selection_mock.set_selected_prim_paths.assert_not_called()
+            plugin._tree_widget.frame_items.assert_awaited_once_with([first_rendered_related], update_cache=False)
+
+    async def test_update_tree_selection_with_exact_match_does_not_frame_related_items(self):
+        """Prefer visible or retained exact matches over related-item framing."""
+        cases = ("visible", "retained hidden")
+        for case in cases:
+            with self.subTest(title=case):
+                # Arrange
+                plugin = self._make_plugin()
+                plugin.synchronize_selection = True
+                plugin._is_active = True
+                plugin._tree_selection_task = SimpleNamespace(cancelled=lambda: False)
+                exact_item = _make_tree_item("/World/Exact")
+                plugin.tree.model.selection = [exact_item] if case == "retained hidden" else []
+                plugin.tree.model.get_items_by_path.return_value = [exact_item] if case == "visible" else []
+                plugin.tree.model.find_items_async = mock.AsyncMock()
+                plugin._tree_widget = SimpleNamespace(
+                    selection=[],
+                    set_selection_async=mock.AsyncMock(),
+                    frame_items=mock.AsyncMock(),
+                )
+
+                with (
+                    mock.patch.object(plugin, "_get_selection", return_value=["/World/Exact"]),
+                    mock.patch.object(
+                        plugin, "_get_framing_selection", return_value=["/World/Related"]
+                    ) as get_framing_selection,
+                ):
+                    # Act
+                    await plugin._update_tree_selection_async()
+
+                # Assert
+                self.assertEqual([exact_item], plugin.tree.model.selection)
+                get_framing_selection.assert_not_called()
+                plugin.tree.model.find_items_async.assert_not_awaited()
+                plugin._tree_widget.frame_items.assert_not_awaited()
+
+    async def test_update_tree_selection_when_selection_changes_during_related_framing_applies_latest_selection(self):
+        """Apply the newest USD selection when it changes during related framing."""
+        # Arrange
+        plugin = self._make_plugin()
+        plugin.synchronize_selection = True
+        plugin._is_active = True
+        raw_selection = ["/World/ParentA"]
+        related_item_a = _make_tree_item("/World/RelatedA")
+        related_item_b = _make_tree_item("/World/RelatedB")
+        first_related_framing_started = asyncio.Event()
+        release_first_related_framing = asyncio.Event()
+        framed_items = []
+        rendered_items = [related_item_a, related_item_b]
+        plugin.tree.model.selection = []
+        plugin.tree.model.get_items_by_path.return_value = []
+
+        async def _find_items_async(predicate):
+            return [item for item in rendered_items if predicate(item)]
+
+        async def _frame_items(items, update_cache):
+            if items == [related_item_a]:
+                first_related_framing_started.set()
+                await release_first_related_framing.wait()
+            framed_items.append((items, update_cache))
+
+        plugin.tree.model.find_items_async = mock.AsyncMock(side_effect=_find_items_async)
+        plugin._tree_widget = SimpleNamespace(
+            selection=[],
+            set_selection_async=mock.AsyncMock(),
+            frame_items=_frame_items,
+        )
+
+        async def _queue_latest_selection_after_first_related_frame():
+            await first_related_framing_started.wait()
+            raw_selection[:] = ["/World/ParentB"]
+            plugin._update_tree_selection()
+            release_first_related_framing.set()
+
+        latest_selection_task = asyncio.ensure_future(_queue_latest_selection_after_first_related_frame())
+
+        async def _change_selection_during_related_framing():
+            selection_task = plugin._update_tree_selection()
+            try:
+                await selection_task
+            finally:
+                latest_selection_task.cancel()
+                await asyncio.gather(latest_selection_task, return_exceptions=True)
+
+        with (
+            mock.patch.object(plugin, "_get_selection", side_effect=lambda: list(raw_selection)),
+            mock.patch.object(
+                plugin,
+                "_get_framing_selection",
+                side_effect=lambda: {
+                    "/World/ParentA": ["/World/RelatedA"],
+                    "/World/ParentB": ["/World/RelatedB"],
+                }[raw_selection[0]],
+            ),
+        ):
+            # Act
+            await _change_selection_during_related_framing()
+
+        # Assert
+        self.assertTrue(first_related_framing_started.is_set())
+        self.assertEqual([], plugin._tree_widget.selection)
+        self.assertEqual([], plugin.tree.model.selection)
+        self.assertEqual(([related_item_b], False), framed_items[-1])
+
     async def test_update_tree_selection_when_selection_changes_during_framing_applies_latest_selection(self):
         # Arrange
         plugin = self._make_plugin()

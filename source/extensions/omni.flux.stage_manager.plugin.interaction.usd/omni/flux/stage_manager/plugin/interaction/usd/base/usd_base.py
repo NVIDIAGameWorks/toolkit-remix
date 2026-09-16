@@ -207,6 +207,33 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
                 return
 
             await self._set_tree_widget_selection_async(list(matching_items))
+            if self._tree_selection_update_pending:
+                continue
+
+            if selected_paths and not matching_items:
+                framing_paths = set(self._get_framing_selection()) - set(selected_paths)
+                if framing_paths:
+                    framing_items = await self.tree.model.find_items_async(
+                        lambda item, framing_paths=framing_paths: (
+                            item.original_tree_item.data is not None and item.original_tree_item.path in framing_paths
+                        )
+                    )
+                    task_cancelled = (
+                        self._tree_selection_task is None
+                        or self._tree_selection_task.cancelled()
+                        or not self._is_active
+                    )
+                    if task_cancelled:
+                        return
+                    if self._tree_selection_update_pending or list(dict.fromkeys(self._get_selection())) != list(
+                        selected_paths
+                    ):
+                        continue
+                    if framing_items:
+                        await self._tree_widget.frame_items([framing_items[0]], update_cache=False)
+                        if list(dict.fromkeys(self._get_selection())) != list(selected_paths):
+                            self._tree_selection_update_pending = True
+
             if not self._tree_selection_update_pending:
                 return
 
@@ -242,6 +269,14 @@ class StageManagerUSDInteractionPlugin(_StageManagerInteractionPlugin, abc.ABC):
 
     def _get_selection(self) -> list[str]:
         return omni.usd.get_context(self._context_name).get_selection().get_selected_prim_paths()
+
+    def _get_framing_selection(self) -> list[str]:
+        """Return related USD prim paths eligible for navigation-only framing.
+
+        Returns:
+            Related prim paths to consider for framing.
+        """
+        return []
 
     def _get_refresh_expand_filtered_roots(self) -> bool:
         return self._should_expand_filtered_items()
