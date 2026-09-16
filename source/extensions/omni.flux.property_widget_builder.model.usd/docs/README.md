@@ -17,6 +17,8 @@ USD property rows can represent one authored USD attribute or a logical group of
 - Grouped rows, such as particle gradients, use suffix-based logical group definitions so `:times` and `:values` are handled as one row.
 - Logical group outlets, such as particle curves, keep their display model inert but report the backing curve primvars through `get_owned_attributes()`.
 - Active reset indicator tooltips show the default USD value when the row can resolve the value that reset will restore.
+- Three-channel transform rows use synchronized link icons in both inter-field gaps. Their tooltips indicate whether multi-channel editing is on or off. Enabling them copies each represented object's X value to its Y and Z channels in one undoable edit, then activates a row-, label-, and links-highlighted grouped-edit state. The first field uses an inline text editor for immediate keyboard focus, and one validated field value is applied to every axis through a single USD write.
+- Double-clicking any field while grouped editing remains active uses that field's native text editor without replacing the native drag behavior.
 
 ## Usage
 

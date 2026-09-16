@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.4]
+### Added
+- Added end-to-end coverage for synchronized inter-field link toggles, initial X-to-Y/Z copying, grouped Position
+  visuals, immediate first-field typing, undo, and unlinking.
+
 ## [1.17.3]
 ### Added
 - Added Material Properties header menu actions to expand or collapse all material property groups.

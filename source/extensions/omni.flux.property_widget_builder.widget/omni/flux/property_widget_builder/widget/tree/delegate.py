@@ -29,10 +29,14 @@ import dataclasses
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-import carb
 import omni.ui as ui
 import omni.usd
-from omni.flux.property_widget_builder.delegates import AbstractDragFieldGroup, NameField
+from omni.flux.property_widget_builder.delegates import (
+    AbstractDragFieldGroup,
+    AbstractField,
+    DragFieldGroupCoordinator,
+    NameField,
+)
 from omni.flux.property_widget_builder.delegates.default import DefaultField
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 
@@ -50,6 +54,7 @@ class ClaimResult:
     ``primary`` items stay visible and are built by this builder.
     ``companions`` are hidden (they belong to the same logical group but should not
     render their own row in the property panel).
+
     """
 
     primary: list[Item] = dataclasses.field(default_factory=list)
@@ -74,11 +79,15 @@ class FieldBuilder:
     :class:`ClaimResult` indicating which items this builder claims as primary (visible)
     and which as companions (hidden).  Use :func:`claim_each` to wrap a simple per-item
     predicate.  ``build_func`` builds the widget for each primary item.
+
+    Factory functions that create an ``AbstractDragFieldGroup`` set
+    ``builds_drag_field_group`` so rows share the delegate's link coordinator.
     """
 
     claim_func: Callable[[list[Item]], ClaimResult]
     build_func: Callable[..., ui.Widget | list[ui.Widget] | None]
     supports_field_cleanup: bool = False
+    builds_drag_field_group: bool = False
 
 
 class FieldBuilderList(list[FieldBuilder]):
@@ -86,11 +95,14 @@ class FieldBuilderList(list[FieldBuilder]):
     A simple list of FieldBuilder with some helper methods to assist in constructing FieldBuilder instances.
     """
 
-    def register_build(self, predicate: Callable[[Item], bool], *, supports_field_cleanup: bool = False):
-        """
-        Decorator for simplifying the construction of a FieldBuilder wrapping a per-item predicate
-        with a build method.
-        """
+    def register_build(
+        self,
+        predicate: Callable[[Item], bool],
+        *,
+        supports_field_cleanup: bool = False,
+        builds_drag_field_group: bool = False,
+    ):
+        """Register a field builder that claims items with the provided predicate."""
 
         def _deco(
             build_func: Callable[..., ui.Widget | list[ui.Widget] | None],
@@ -100,6 +112,7 @@ class FieldBuilderList(list[FieldBuilder]):
                     claim_func=claim_each(predicate),
                     build_func=build_func,
                     supports_field_cleanup=supports_field_cleanup,
+                    builds_drag_field_group=builds_drag_field_group,
                 )
             )
             return build_func
@@ -126,8 +139,9 @@ class Delegate(_TreeDelegateBase):
         # rendering as their own rows. Track only companions hidden by claim resolution so it can unhide its own
         # previous companions without clearing visibility state owned by other systems.
         self._claim_hidden_companion_items: set[Item] = set()
-        self._subscriptions: list[carb.Subscription] = []
+        self._subscriptions: list[object] = []
         self._field_cleanup_callbacks: list[Callable[[], None]] = []
+        self._drag_field_group_coordinator = DragFieldGroupCoordinator()
         self._apply_item_expanded_fn: Callable[[Item, bool], None] | None = None
 
         # This is populated during a right click event within `_show_menu`. We store this Menu instance to avoid it
@@ -147,6 +161,7 @@ class Delegate(_TreeDelegateBase):
                 "_claim_hidden_companion_items": None,
                 "_subscriptions": None,
                 "_field_cleanup_callbacks": None,
+                "_drag_field_group_coordinator": None,
                 "_apply_item_expanded_fn": None,
                 "_context_menu": None,
             }
@@ -162,6 +177,7 @@ class Delegate(_TreeDelegateBase):
         for cleanup in tuple(self._field_cleanup_callbacks):
             cleanup()
         self._field_cleanup_callbacks.clear()
+        self._drag_field_group_coordinator.reset()
         self._name_widgets.clear()
         self._builder_map.clear()
         self._claim_hidden_companion_items.clear()
@@ -262,10 +278,17 @@ class Delegate(_TreeDelegateBase):
         item: Item,
     ) -> ui.Widget | list[ui.Widget] | None:
         build_func = builder.build_func
-        if builder.supports_field_cleanup:
-            return build_func(item, register_cleanup=self._field_cleanup_callbacks.append)
         if isinstance(build_func, AbstractDragFieldGroup):
-            return build_func(item, register_cleanup=self._field_cleanup_callbacks.append)
+            return build_func(
+                item,
+                register_cleanup=self._field_cleanup_callbacks.append,
+                linked_edit_coordinator=self._drag_field_group_coordinator,
+            )
+        if builder.supports_field_cleanup:
+            kwargs = {"register_cleanup": self._field_cleanup_callbacks.append}
+            if builder.builds_drag_field_group:
+                kwargs["linked_edit_coordinator"] = self._drag_field_group_coordinator
+            return build_func(item, **kwargs)
         return build_func(item)
 
     def build_widget(self, model: Model, item: Item, column_id: int, level: int, expanded: bool) -> None:
@@ -313,7 +336,11 @@ class Delegate(_TreeDelegateBase):
             # if the value has a bigger height we need to resize the height of the name stack to have the same size
             asyncio.ensure_future(self.__resize_name_height(widgets, item))
 
-        self.set_model_edit_fn(widgets, item)
+        builder = self._builder_map.get(id(item))
+        if builder is None or (
+            not builder.builds_drag_field_group and not isinstance(builder.build_func, AbstractDragFieldGroup)
+        ):
+            self.set_model_edit_fn(widgets, item)
         self.set_model_value_changed_fn(widgets, item)
 
     def _build_header(self, column_id):
@@ -355,37 +382,6 @@ class Delegate(_TreeDelegateBase):
                 )
                 self._set_mixed_style(value_model, widget)
 
-    @staticmethod
-    def _set_style_state(widget: ui.Widget, selected: bool | None = None, mixed: bool | None = None):
-        """
-        Set the correct style override name for the current state.
-
-        Args:
-            widget: the value widget
-            selected: whether to change the styling to "selected" state. None value will stay same.
-            mixed: whether to change the styling to "mixed" state. None value will stay same.
-        """
-        style_override = widget.style_type_name_override
-
-        def check_and_strip_existing(style_override_, suffix_, arg_):
-            if style_override_.endswith(suffix_):
-                if arg_ is None:
-                    arg_ = True
-                style_override_ = style_override_[: -len(suffix_)]
-            return style_override_, arg_
-
-        selected_suffix = "Selected"
-        mixed_suffix = "Mixed"
-        # "Mixed" will always be second, i.e. DelegateSelectedMixed
-        style_override, mixed = check_and_strip_existing(style_override, mixed_suffix, mixed)
-        style_override, selected = check_and_strip_existing(style_override, selected_suffix, selected)
-        if selected:
-            style_override = f"{style_override}{selected_suffix}"
-        if mixed:
-            style_override = f"{style_override}{mixed_suffix}"
-        if widget.style_type_name_override != style_override:
-            widget.style_type_name_override = style_override
-
     def _set_selected_style(self, widget: ui.Widget, value: bool):
         """
         Set the style name override of the widget when the widget is edited
@@ -394,7 +390,7 @@ class Delegate(_TreeDelegateBase):
             widget: the widget that is edited (or not)
             value: edited or not
         """
-        self._set_style_state(widget, selected=value)
+        AbstractField.set_style_state(widget, selected=value)
 
     def _set_mixed_style(self, item_value_model: "ItemModelBase", widget: ui.Widget):
         """
@@ -404,7 +400,7 @@ class Delegate(_TreeDelegateBase):
             widget: the widget that is edited (or not)
             value: edited or not
         """
-        self._set_style_state(widget, mixed=item_value_model.is_mixed)
+        AbstractField.set_style_state(widget, mixed=item_value_model.is_mixed)
 
     def _show_context_menu(self, model: Model, item: Item):
         """

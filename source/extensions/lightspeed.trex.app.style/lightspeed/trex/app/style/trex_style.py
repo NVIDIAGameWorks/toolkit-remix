@@ -439,6 +439,8 @@ current_dict.update(
         "Image::LockDisabled": {"image_url": _get_icons("lock"), "color": _WHITE_30},
         "Image::Light": {"image_url": _get_icons("light"), "color": _WHITE_60},
         "Image::LinkOff": {"image_url": _get_icons("link-off"), "color": _WHITE_30},
+        "Image::Link": {"image_url": _get_icons("link"), "color": _BLUE_ACTION},
+        "Image::Link:hovered": {"image_url": _get_icons("link"), "color": _WHITE_100},
         "Image::Lock": {"image_url": _get_icons("lock"), "color": _WHITE_60},
         "Image::Lock:hovered": {"image_url": _get_icons("lock"), "color": _WHITE_100},
         "Image::UnlockDisabled": {"image_url": _get_icons("unlock"), "color": _WHITE_30},

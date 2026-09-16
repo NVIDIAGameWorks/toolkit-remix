@@ -18,6 +18,7 @@
 __all__ = ("IntDragFieldGroup",)
 
 from typing import Any
+
 import omni.ui as ui
 from omni.flux.utils.common.types import RealNumber, ScalarValue
 from omni.flux.utils.widget import IntBoundedDrag
@@ -27,6 +28,21 @@ from ..base import AbstractDragFieldGroup
 
 class IntDragFieldGroup(AbstractDragFieldGroup):
     """An integer drag field delegate with optional min/max bounds and step."""
+
+    @staticmethod
+    def _get_linked_edit_model_type():
+        """Return the native Int model factory for linked typed editing."""
+        return ui.SimpleIntModel
+
+    @staticmethod
+    def _get_linked_edit_field_type():
+        """Return the native Int field type for linked typed editing."""
+        return ui.IntField
+
+    @staticmethod
+    def _get_linked_edit_value(model):
+        """Return the native Int value for linked typed editing."""
+        return model.get_value_as_int()
 
     def __init__(
         self,

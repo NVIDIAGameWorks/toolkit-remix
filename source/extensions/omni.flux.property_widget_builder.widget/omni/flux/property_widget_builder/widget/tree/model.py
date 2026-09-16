@@ -27,6 +27,8 @@ import typing
 from collections.abc import Callable, Mapping
 
 import omni.kit.app
+from omni.flux.utils.common import Event as _Event
+from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 
@@ -49,6 +51,8 @@ class Item(_TreeItemBase):
         self._value_models: list[ItemModelBase] = []
         self._hidden: bool = False
         self._on_hidden_changed: Callable[[], None] | None = None
+        self._linked_edit_enabled = False
+        self._linked_edit_changed = _Event()
 
     @property
     def hidden(self) -> bool:
@@ -73,6 +77,8 @@ class Item(_TreeItemBase):
                 "_value_models": None,
                 "_hidden": None,
                 "_on_hidden_changed": None,
+                "_linked_edit_enabled": False,
+                "_linked_edit_changed": None,
             }
         )
         return default_attr
@@ -105,6 +111,41 @@ class Item(_TreeItemBase):
     def read_only(self) -> bool:
         """Whether the item can have values edited or not"""
         return not (self.value_models and not any(x.read_only for x in self.value_models))
+
+    @property
+    def linked_edit_enabled(self) -> bool:
+        """Whether edits to one value model apply to every model in this item."""
+        return self._linked_edit_enabled
+
+    def set_linked_edit_enabled(self, enabled: bool) -> None:
+        """Set linked editing and notify subscribers when its state changes."""
+        enabled = bool(enabled)
+        if enabled == self._linked_edit_enabled:
+            return
+        self._linked_edit_enabled = enabled
+        self._on_linked_edit_changed(enabled)
+
+    def _on_linked_edit_changed(self, enabled: bool) -> None:
+        """Notify linked-edit subscribers after the item updates its state."""
+        self._linked_edit_changed(enabled)
+
+    def toggle_linked_edit(self) -> None:
+        """Toggle linked editing, copying the first model value when enabling it."""
+        if not self._linked_edit_enabled:
+            value = self.value_models[0].get_value()
+            for model in self.value_models[1:]:
+                model.set_value(value)
+        self.set_linked_edit_enabled(not self._linked_edit_enabled)
+
+    def subscribe_linked_edit_changed(self, function: Callable[[bool], None]) -> _EventSubscription:
+        """Subscribe to linked-edit state changes."""
+        return _EventSubscription(self._linked_edit_changed, function)
+
+    def synchronize_linked_edit_value(self, source_index: int, value) -> None:
+        """Apply one edited value to the other value models while linked."""
+        for index, model in enumerate(self.value_models):
+            if index != source_index:
+                model.set_value(value)
 
     def serialize(self) -> dict:
         return {

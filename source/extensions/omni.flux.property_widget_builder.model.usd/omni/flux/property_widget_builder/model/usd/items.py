@@ -756,6 +756,43 @@ class USDAttributeXformItem(USDAttributeItem):
             related_override_paths=related_attribute_paths,
         )
         self._related_attribute_paths = related_attribute_paths
+        self._configure_group_edit_models()
+
+    @property
+    def supports_group_edit(self) -> bool:
+        """Whether this xform row exposes exactly three editable channels."""
+        return self.element_count == 3 and not self.read_only
+
+    def set_linked_edit_enabled(self, enabled: bool) -> None:
+        """Enable or disable grouped channel editing without authoring USD values."""
+        super().set_linked_edit_enabled(bool(enabled and self.supports_group_edit))
+
+    def _on_linked_edit_changed(self, enabled: bool) -> None:
+        """Configure USD channel models before publishing the linked state."""
+        self._configure_group_edit_models()
+        super()._on_linked_edit_changed(enabled)
+
+    def toggle_linked_edit(self) -> None:
+        """Toggle grouped editing and copy each represented transform's X value when enabling."""
+        if self.linked_edit_enabled:
+            self.set_linked_edit_enabled(False)
+            return
+        if self.value_models[0].copy_first_channel_to_all_attributes():
+            self.set_linked_edit_enabled(True)
+
+    def synchronize_linked_edit_value(self, source_index: int, value) -> None:
+        """Leave linked USD propagation to the configured value models."""
+
+    def _configure_group_edit_models(self) -> None:
+        """Share this row's group state and sibling channels with each value model."""
+        for value_model in self.value_models:
+            value_model.configure_group_edit(self.value_models, self.linked_edit_enabled)
+
+    def destroy(self):
+        """Break channel links before destructive item cleanup."""
+        for value_model in self.value_models or []:
+            value_model.configure_group_edit([], False)
+        super().destroy()
 
     @property
     @abc.abstractmethod

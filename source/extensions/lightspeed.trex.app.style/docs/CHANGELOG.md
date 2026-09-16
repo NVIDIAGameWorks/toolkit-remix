@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.2]
+### Added
+- Added active and hovered link-icon styles for grouped transform editing.
+
 ## [1.27.1]
 ### Changed
 - Changed the sectioned combo box section style: the name is smaller and faded, and a faded thin line runs beside it.

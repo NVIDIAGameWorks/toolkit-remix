@@ -2,6 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.36.8]
+### Added
+- Added synchronized link toggles between three-axis USD transform fields that copy each represented object's X value to Y and Z when enabled, with state-aware tooltips, inline first-field keyboard focus, and one-step undo.
+
+### Changed
+- Added two pixels of padding around grouped transform link icons.
+
+### Fixed
+- Preserved integer component types when editing integer USD vectors.
+- Rolled back linked multi-selection edits when any target write fails.
+
 ## [2.36.7]
 ### Changed
 - Updated property expansion controls to reflect existing child rows.
