@@ -46,6 +46,11 @@ A manifestation may be outside the hunk when the basis explains its causal path 
 evidence cannot establish ownership. Only a failed required exact-head forge check may omit Git delta evidence.
 Malformed ownership rejects the receipt; the host never repairs it. Review phases return candidates, never findings.
 
+For test findings, apply `docs_dev/code-quality/testing.md` -> Review Evidence before proposing a candidate. A changed
+test, class, fixture, or file is not blanket ownership of existing test debt. Identify the specific changed behavior
+that introduces or worsens the violation and explain why the requested correction is necessary for that behavior.
+The same requirement applies to suggestions, not only blocking findings; omit unrelated cleanup requests.
+
 ## Current-candidate verification
 
 Verification packets carry pipeline-assigned candidates in `validated_candidates`. Try to falsify every candidate by
@@ -58,6 +63,8 @@ reading its cited code, direct callers, and tests. Return exactly one `dispositi
 Independently classify ownership as `introduced_or_worsened`, `pre_existing`, or `uncertain`, and explain the causal
 judgment in the evidence. An upheld pre-existing candidate is excluded before final synthesis. Relevant uncertainty,
 malformed ownership, or disagreement with the host Git index fails closed. Never rewrite, invent, or omit a candidate.
+For test candidates, check whether the cited edit actually changes the alleged defect; a touched location or a shared
+feature alone does not prove `introduced_or_worsened` ownership.
 
 ## Feedback verification
 

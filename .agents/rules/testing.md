@@ -29,4 +29,6 @@ Non-trivial/risky feature work -> plan tests before impl. Use Plan mode/approval
 - Every `tests/__init__.py` must export its test classes.
 - Never skip tests unless the user explicitly authorizes it.
 - Review only violations introduced or worsened by the delta; unrelated historical test debt remains out of scope.
-  Detailed boundaries and evidence requirements: `docs_dev/code-quality/testing.md`.
+  Touching a test, class, or file does not make its existing violations reviewable. Require a causal link from the
+  changed behavior to each finding and requested fix; proximity or relevance to the same feature is insufficient.
+  Detailed boundaries and evidence requirements: `docs_dev/code-quality/testing.md` -> Review Evidence.

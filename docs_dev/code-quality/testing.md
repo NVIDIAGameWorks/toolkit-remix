@@ -537,10 +537,21 @@ framework merely to eliminate a few repeated lines.
 
 ### Review Evidence
 
-Report only violations introduced or worsened by the current delta. Cite the changed trigger and the executed
-interaction, replaced data, missing outcome, or duplicated code; import-only or formatting changes do not expose
-unrelated historical test debt. For coverage findings, identify the changed behavior missing protection and inspect
-existing shared tests before requesting another test file.
+Report only violations introduced or worsened by the current delta. Editing a test, class, fixture, or file does not
+make its pre-existing violations part of the MR. This applies to suggestions as well as blocking findings, even when
+the existing issue is in the same test or concerns the same feature.
+
+For each finding, cite the changed trigger and explain what was valid or no worse before the MR, what the delta
+introduces or worsens, and why the requested fix is necessary for the changed behavior. Cite the executed interaction,
+replaced data, missing outcome, or duplicated code that demonstrates that causal link. If the same concern and fix
+apply unchanged to the base revision, omit them from the MR review. A correction may touch existing code when the
+delta makes it newly inadequate, but limit the request to the demonstrated impact.
+
+For example, adding an assertion does not make an existing test name, AAA layout, mock, or sibling test newly
+noncompliant. Adding a new UI action without synchronization, replacing real workflow data with a mock, or changing a
+contract so an existing assertion no longer protects it can justify a finding tied to that change. For coverage
+findings, identify the changed behavior missing protection and inspect existing shared tests before requesting
+another test file; do not use a test edit to demand coverage for unchanged production branches.
 
 Classify before recommending structure or relocation, using [Test Classification and Coverage](#test-classification-and-coverage).
 Group manifestations that share one corrective change under the same classification defect. Structure and
