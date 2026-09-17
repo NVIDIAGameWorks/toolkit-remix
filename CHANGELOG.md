@@ -90,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tree data, cooperatively pacing worker work, and safely falling back when custom Prim-name fonts are unavailable.
 - REMIX-5566: Sourced Remix category metadata from the authoritative HdRemix USD schema, displayed `remix_category:decal_Static` as Decal, kept non-Decal categories visible when Decal is absent, disabled assignment when schema data is unavailable without blocking Toolkit, made deprecated decal migration composition-safe on undo, and updated Stage Manager category filtering controls.
 - REMIX-6016: Improved Project Wizard capture discovery and capture activation.
+- Tightened test review scope to require evidence that the MR introduced or worsened each reported issue, excluding unrelated pre-existing test debt.
 
 ### Removed
 
