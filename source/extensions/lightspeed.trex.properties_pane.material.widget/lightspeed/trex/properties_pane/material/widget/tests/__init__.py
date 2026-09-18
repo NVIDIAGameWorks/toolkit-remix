@@ -15,4 +15,7 @@
 * limitations under the License.
 """
 
-from .e2e.test_widget import *
+from .e2e.test_widget import TestMaterialPropertyWidget
+from .unit.test_setup_ui import TestSetupUI
+
+__all__ = ("TestMaterialPropertyWidget", "TestSetupUI")

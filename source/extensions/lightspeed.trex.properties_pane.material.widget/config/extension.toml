@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "2.3.3"
+version = "2.3.4"
 authors =["Damien Bataille <dbataille@nvidia.com>", "Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Material Properties implementation for the StageCraft"
 description = "Material Properties implementation for NVIDIA RTX Remix StageCraft App"
@@ -19,6 +19,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 "omni.ui" = {}
 "omni.usd" = {}
 "lightspeed.common" = {}
+"lightspeed.hdremix.renderer_settings" = {}
 "lightspeed.tool.material.core" = {}
 "lightspeed.trex.asset_replacements.core.shared" = {}
 "lightspeed.trex.material.core.shared" = {}

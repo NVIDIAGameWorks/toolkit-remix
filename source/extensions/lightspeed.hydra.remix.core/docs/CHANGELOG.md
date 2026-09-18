@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.4]
+### Added
+- Exposed process-local Remix extern readiness and native DLSS Neural Rendering capability state to dependent Toolkit extensions without initiating renderer support polling.
+
 ## [0.8.3]
 ### Fixed
 - Made HdRemix support polling cancellation-safe and added qualified display-connection guidance for local initialization timeouts.

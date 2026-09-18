@@ -1,27 +1,41 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.0.2"
+version = "1.0.3"
 authors = ["nvidia"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
 readme = "docs/README.md"
-keywords = ["hdremix", "renderer", "settings", "preferences", "nrc", "restir"]
+keywords = ["hdremix", "renderer", "settings", "preferences", "nrc", "restir", "dlss"]
 title = "Lightspeed HdRemix Renderer Settings"
-description = "Preferences page that exposes live HdRemix renderer toggles such as the GI integrator (NRC / ReSTIR GI / Importance Sampled)."
+description = "Preferences page that exposes live HdRemix renderer toggles such as DLSS NR controls and the GI integrator (NRC / ReSTIR GI / Importance Sampled)."
 category = "internal"
 
 [ui]
 name = "Lightspeed HdRemix Renderer Settings"
 
 [dependencies]
+"lightspeed.common" = {}
+"lightspeed.event.events" = {}
+"lightspeed.events_manager" = {}
 "lightspeed.hydra.remix.core" = {}
 "omni.flux.utils.common" = {}
 "omni.kit.window.preferences" = {}
 "omni.ui" = {}
+"omni.usd" = {}
 
 [settings]
 persistent.exts."lightspeed.hdremix.renderer_settings".integrateIndirectMode = 2
 persistent.exts."lightspeed.hdremix.renderer_settings".overrideCaptureIntegrator = false
+persistent.exts."lightspeed.hdremix.renderer_settings".enableDlssNeuralRendering = false
+persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingModel = 0
+persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingIntensity = 1.0
+persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingToneIntensity = 0.3
+persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingStructureIntensity = 0.7
+persistent.exts."lightspeed.hdremix.renderer_settings".enableDlssNeuralRenderingAutoMask = false
+persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingCharacterIntensity = 0.5
+persistent.exts."lightspeed.hdremix.renderer_settings".enableDlssNeuralRenderingHighlightRecovery = true
+persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingHighlightRecoveryThresholds = [1.0, 8.0, 0.75, 0.99]
+persistent.exts."lightspeed.hdremix.renderer_settings".enableDlssNeuralRenderingVolumetricImprovement = true
 
 [[python.module]]
 name = "lightspeed.hdremix.renderer_settings"

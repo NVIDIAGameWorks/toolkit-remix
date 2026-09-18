@@ -17,10 +17,12 @@
 
 import contextlib
 import inspect
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import carb
 import carb.settings
+import lightspeed.hdremix.renderer_settings.preferences as _preferences
 from lightspeed.hdremix.renderer_settings.settings_bridge import (
     DEFAULT_INTEGRATE_INDIRECT_MODE,
     INTEGRATE_INDIRECT_MODE_LABELS,
@@ -147,3 +149,79 @@ class TestHdRemixRendererPreferencePage(AsyncTestCase):
                 src,
                 "build() must re-acquire self._settings after destroy() nullifies it.",
             )
+
+    def test_on_dlss_availability_changed_with_setting_updates_frame_visibility(self):
+        """The availability callback should mirror the shared setting onto the DLSS frame."""
+        for available in (False, True):
+            with self.subTest(title=f"available={available}"):
+                # Arrange
+                settings = MagicMock()
+                settings.get.return_value = available
+                frame = SimpleNamespace(visible=not available)
+                page = HdRemixRendererPreferencePage.__new__(HdRemixRendererPreferencePage)
+                page._settings = settings
+                page._dlss_frame = frame
+
+                # Act
+                page._on_dlss_neural_rendering_availability_changed()
+
+                # Assert
+                self.assertIs(frame.visible, available)
+                settings.get.assert_called_once_with(_preferences.SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE)
+
+    def test_build_with_existing_dlss_panel_destroys_and_replaces_panel(self):
+        """Rebuilding the preference page should replace its existing DLSS panel exactly once."""
+        # Arrange
+        settings = MagicMock()
+        settings.get.return_value = True
+        settings.subscribe_to_node_change_events.return_value = "availability-subscription"
+        old_panel = MagicMock()
+        new_panel = MagicMock()
+        frame = MagicMock()
+        page = HdRemixRendererPreferencePage.__new__(HdRemixRendererPreferencePage)
+        page._settings = settings
+        page._dlss_availability_subscription = None
+        page._dlss_settings_panel = old_panel
+        page._dlss_frame = None
+
+        # Act
+        with (
+            patch.object(_preferences.ui, "VStack", return_value=MagicMock()),
+            patch.object(_preferences.ui, "Frame", return_value=frame),
+            patch.object(_preferences, "DlssSettingsPanel", return_value=new_panel) as panel_type,
+            patch.object(page, "add_frame", return_value=MagicMock()),
+            patch.object(page, "_build_override_capture_row"),
+            patch.object(page, "_build_integrator_row"),
+        ):
+            page.build()
+
+        # Assert
+        old_panel.destroy.assert_called_once_with()
+        panel_type.assert_called_once_with("preferences_dlss_neural_rendering", "Setting.Label")
+        self.assertIs(page._dlss_settings_panel, new_panel)
+        self.assertIs(page._dlss_frame, frame)
+        self.assertEqual(page._dlss_availability_subscription, "availability-subscription")
+
+    def test_destroy_with_dlss_subscription_unsubscribes_and_releases_widgets(self):
+        """Destroying the preference page should release its DLSS listener and panel."""
+        # Arrange
+        settings = MagicMock()
+        subscription = MagicMock()
+        panel = MagicMock()
+        page = HdRemixRendererPreferencePage.__new__(HdRemixRendererPreferencePage)
+        page._settings = settings
+        page._dlss_availability_subscription = subscription
+        page._dlss_frame = MagicMock()
+        page._dlss_settings_panel = panel
+
+        with patch.object(_preferences, "_reset_default_attrs") as reset_default_attrs:
+            # Act
+            page.destroy()
+
+        # Assert
+        settings.unsubscribe_to_change_events.assert_called_once_with(subscription)
+        panel.destroy.assert_called_once_with()
+        self.assertIsNone(page._dlss_settings_panel)
+        self.assertIsNone(page._dlss_availability_subscription)
+        self.assertIsNone(page._dlss_frame)
+        reset_default_attrs.assert_called_once_with(page)

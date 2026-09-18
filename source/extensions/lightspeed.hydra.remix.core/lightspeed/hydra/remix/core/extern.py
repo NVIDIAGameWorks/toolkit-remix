@@ -17,6 +17,36 @@
 
 from __future__ import annotations
 
+__all__ = [
+    "REMIX_HYDRA_ENGINE_NAME",
+    "REMIX_RENDERERS_SETTING",
+    "REMIX_RENDER_MODE",
+    "RemixExtern",
+    "RemixRequestQueryType",
+    "RemixSupport",
+    "get_dlss_neural_rendering_support",
+    "hdremix_findworldposition_request",
+    "hdremix_highlight_paths",
+    "hdremix_objectpicking_request",
+    "hdremix_set_configvar",
+    "hdremix_set_configvar_async",
+    "is_remix_extern_ready",
+    "is_remix_supported",
+    "is_remix_timeout",
+    "load_remix_extern",
+    "load_remix_extern_async",
+    "mark_remix_not_supported",
+    "remix_extern_destroy",
+    "remix_extern_init",
+    "request_dict_pop",
+    "request_dict_push",
+    "reset_remix_support_for_retry",
+    "retry_remix_support_async",
+    "safe_remix_extern",
+    "safe_remix_extern_async",
+    "viewport_api_request_query_hdremix",
+]
+
 import asyncio
 import ctypes
 import time
@@ -50,6 +80,16 @@ REMIX_RENDERERS_SETTING = f"{REMIX_RENDER_MODE}:Remix"
 def is_remix_supported() -> tuple[RemixSupport, str]:
     """Return the cached Remix support result."""
     return (_hdremix_support_level, _hdremix_error_message)
+
+
+def get_dlss_neural_rendering_support() -> RemixSupport:
+    """Return the current DLSS Neural Rendering capability state."""
+    return RemixExtern.check_dlss_neural_rendering_support()
+
+
+def is_remix_extern_ready() -> bool:
+    """Return whether the Remix extern has been initialized."""
+    return _instance is not None
 
 
 def is_remix_timeout() -> bool:
@@ -240,6 +280,38 @@ class RemixExtern:
 
         carb.log_info("HdRemix.dll loaded.")
         return RemixSupport.SUPPORTED, "Success"
+
+    @classmethod
+    def check_dlss_neural_rendering_support(cls) -> RemixSupport:
+        """Query whether the loaded dxvk-remix runtime supports DLSS Neural Rendering."""
+        try:
+            dll = cls.__load_hdremix_library()
+        except FileNotFoundError:
+            return RemixSupport.WAITING_FOR_INIT
+        except OSError as exc:
+            carb.log_error(f"HdRemix.dll load error while querying DLSS Neural Rendering support: {exc}")
+            return RemixSupport.NOT_SUPPORTED
+
+        if not hasattr(dll, "hdremix_getdlssneuralrenderingstatus"):
+            carb.log_warn(
+                "HdRemix.dll doesn't have 'hdremix_getdlssneuralrenderingstatus'. "
+                "DLSS Neural Rendering settings will remain hidden."
+            )
+            return RemixSupport.NOT_SUPPORTED
+
+        get_support = dll.hdremix_getdlssneuralrenderingstatus
+        get_support.argtypes = []
+        get_support.restype = ctypes.c_int
+
+        status = get_support()
+        try:
+            return RemixSupport(status)
+        except ValueError:
+            carb.log_error(
+                f"HdRemix.dll returned invalid DLSS Neural Rendering support status {status}. "
+                "DLSS Neural Rendering settings will remain hidden."
+            )
+            return RemixSupport.NOT_SUPPORTED
 
     @classmethod
     def __load_dll(cls):
