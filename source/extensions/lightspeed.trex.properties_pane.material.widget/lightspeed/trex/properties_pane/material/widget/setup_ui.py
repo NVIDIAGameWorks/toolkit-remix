@@ -58,6 +58,7 @@ from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.path_utils import get_invalid_extensions as _get_invalid_extensions
 from omni.flux.utils.widget.file_pickers import open_file_picker as _open_file_picker
 from omni.kit.window.drop_support import ExternalDragDrop as _ExternalDragDrop
+from omni.mdl.neuraylib import ensure_running
 from pxr import Sdf, Usd, UsdShade
 
 from .texture_assignment_model import Delegate, Model
@@ -625,6 +626,9 @@ class SetupUI(_PropertyGroupExpansionMixin):
         if not materials:
             hide_properties()
             return
+
+        # Neuray registers the MDL search paths with USD when it starts.
+        ensure_running()
 
         # Build material property widget accordingly
         self._material_properties_frames[self.MAT_PROP_FRAME].visible = True

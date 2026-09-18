@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.3]
+### Fixed
+- Initialize the MDL backend before resolving material assets.
+### Added
+- Regression coverage for the resolved MDL path and conversion actions on first material selection.
+
 ## [2.3.2]
 ### Added
 - Added expand-all and collapse-all forwarding for TREX material property groups.

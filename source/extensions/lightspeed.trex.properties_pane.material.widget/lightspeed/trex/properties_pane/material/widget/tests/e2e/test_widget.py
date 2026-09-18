@@ -24,8 +24,10 @@ from pathlib import Path
 import carb
 import carb.eventdispatcher
 import carb.input
+import carb.tokens
 import omni.appwindow
 import omni.client
+import omni.kit.clipboard
 import omni.ui as ui
 import omni.usd
 from carb.input import KeyboardInput
@@ -1160,6 +1162,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             await self.__destroy(_window, _material_property_wid)
 
     async def test_burger_menu_populates(self):
+        """Resolve the first selected material's MDL file and enable its conversion menu."""
         _window, _material_property_wid = await self.__setup_widget()
 
         try:
@@ -1170,6 +1173,23 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             )
             await ui_test.human_delay(10)
 
+            # The copied path must already resolve on the first selection, before opening the conversion menu.
+            material_name_label = ui_test.find(f"{_window.title}//Frame/**/Label[*].identifier=='material_label'")
+            self.assertIsNotNone(material_name_label)
+            omni.kit.clipboard.copy("")
+            await material_name_label.click(right_click=True)
+            await ui_test.human_delay(5)
+            await ui_test.menu.select_context_menu("Copy Material MDL Path")
+            await ui_test.human_delay(15)
+            copied_mdl_path = Path(omni.kit.clipboard.paste())
+            expected_mdl_path = Path(
+                carb.tokens.get_tokens_interface().resolve(
+                    "${lightspeed.trex.app.resources}/deps/omni_core_materials/Base/AperturePBR_Opacity.mdl"
+                )
+            )
+            self.assertTrue(copied_mdl_path.is_file(), f"First selection copied an invalid MDL path: {copied_mdl_path}")
+            self.assertEqual(copied_mdl_path.resolve(), expected_mdl_path.resolve())
+
             # grab burger menu and click
             # NOTE: There are value grabbing limitations with `omni.kit.ui_test.menu`
             menu_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='menu_burger_image'")
@@ -1179,7 +1199,8 @@ class TestMaterialPropertyWidget(AsyncTestCase):
 
             # grab hamburger menu and ensure it is populated correctly
             context_menu = await omni.kit.ui_test.menu.get_context_menu()
-            self.assertTrue("Convert to Translucent" in context_menu.get("_"))
+            self.assertIn("_", context_menu, f"No enabled material actions after first selection: {context_menu}")
+            self.assertIn("Convert to Translucent", context_menu["_"])
 
             # click away and reset context_menu var
             await ui_test.emulate_mouse_move_and_click(menu_image.position - ui_test.Vec2(10, 0))
@@ -1199,7 +1220,8 @@ class TestMaterialPropertyWidget(AsyncTestCase):
 
             # grab hamburger menu and ensure it is populated correctly
             context_menu = await omni.kit.ui_test.menu.get_context_menu()
-            self.assertTrue("Convert to Translucent" in context_menu.get("_"))
+            self.assertIn("_", context_menu, f"No enabled material actions after changing selection: {context_menu}")
+            self.assertIn("Convert to Translucent", context_menu["_"])
 
             # click away to avoid interference with other tests
             await ui_test.emulate_mouse_move_and_click(menu_image.position - ui_test.Vec2(10, 0))

@@ -157,6 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Remix Review failing on a failed required CI check and made `remix-review-post-threads` post inline diff threads with Jira-style `BLOCKER`/`P0`/`P1`/`P2` priorities.
 - Fixed ambiguous Remix review follow-up routing and allowed thread follow-up across rewritten history while preserving review snapshots, discussion IDs, and scores.
 - REMIX-6083: Fixed Stage Manager Meshes, Materials, and Categories tabs highlighting related prims as selected while preserving related-item framing.
+- Fixed intermittent failures loading material properties and conversion menus.
 
 ## [1.5.2-0]
 
