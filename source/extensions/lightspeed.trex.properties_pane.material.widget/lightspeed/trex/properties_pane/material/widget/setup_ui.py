@@ -24,10 +24,12 @@ from functools import partial
 from pathlib import Path
 
 import carb
+import carb.settings
 import omni.client
 import omni.kit.app
 from lightspeed.common import constants as _constants
 from lightspeed.common.constants import PROPERTIES_NAMES_COLUMN_WIDTH
+from lightspeed.hdremix.renderer_settings.dlss_settings import SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE
 from lightspeed.tool.material.core import ToolMaterialCore as _ToolMaterialCore
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.asset_replacements.core.shared.usd_copier import copy_non_usd_asset as _copy_non_usd_asset
@@ -62,6 +64,13 @@ from omni.mdl.neuraylib import ensure_running
 from pxr import Sdf, Usd, UsdShade
 
 from .texture_assignment_model import Delegate, Model
+
+
+_DLSS_NEURAL_RENDERING_GROUP_NAMES = {
+    "DLSS 3D-Guided Neural Generation [Experimental]",
+    "DLSS Neural Rendering",
+    "DLSS Neural Rendering [Experimental]",
+}
 
 
 class TextureDialog(ui.Window):
@@ -103,6 +112,7 @@ class SetupUI(_PropertyGroupExpansionMixin):
             "_convert_translucent_button": None,
             "_sub_on_material_refresh_done": None,
             "_external_drag_and_drop": None,
+            "_dlss_availability_subscription": None,
             "_texture_dialog": None,
         }
         for attr, value in self._default_attr.items():
@@ -110,6 +120,7 @@ class SetupUI(_PropertyGroupExpansionMixin):
 
         self._context_name = context_name
         self._context = usd.get_context(self._context_name)
+        self._settings = carb.settings.get_settings()
         self._layer_transfer_menu_fn = layer_transfer_menu_fn
         self._asset_replacement_core = _AssetReplacementsCore(context_name)
         self._core = _MaterialCore(context_name)
@@ -125,6 +136,9 @@ class SetupUI(_PropertyGroupExpansionMixin):
         self._context_menu: ui.Menu | None = None
 
         self.__create_ui()
+        self._dlss_availability_subscription = self._settings.subscribe_to_node_change_events(
+            SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE, self._on_dlss_neural_rendering_availability_changed
+        )
 
         self.__on_material_changed = _Event()
         self.__on_go_to_ingest_tab = _Event()
@@ -287,10 +301,35 @@ class SetupUI(_PropertyGroupExpansionMixin):
         material. And setting callback for setting texture edit status.
         """
         items = self._material_properties_widget.property_model.get_all_items(include_hidden=True)
+        self._update_dlss_neural_rendering_group_visibility(items)
         for item in items:
             for value_model in item.value_models:
                 if usd_properties_utils.get_type_name(value_model.metadata) == Sdf.ValueTypeNames.Asset:
                     value_model.set_callback_pre_set_value(self.__check_asset_was_ingested_and_in_proj_dir)
+
+    def _on_dlss_neural_rendering_availability_changed(self, *_args, **_kwargs) -> None:
+        """Update the material controls when DLSS Neural Rendering availability changes."""
+        if self._material_properties_widget is None:
+            return
+        items = self._material_properties_widget.property_model.get_all_items(include_hidden=True)
+        self._update_dlss_neural_rendering_group_visibility(items)
+
+    def _update_dlss_neural_rendering_group_visibility(self, items: list) -> None:
+        """Show the DLSS Neural Rendering material group only when the runtime reports support.
+
+        Args:
+            items: Material property items generated from the active MDL.
+        """
+        if self._settings is None:
+            return
+        hidden = not bool(self._settings.get(SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE))
+        for item in items:
+            if (
+                item.can_have_children
+                and item.name_models
+                and item.name_models[0].get_value_as_string() in _DLSS_NEURAL_RENDERING_GROUP_NAMES
+            ):
+                item.hidden = hidden
 
     def _texture_assignment(
         self, selected_paths: list[Path], items, allow_dialog_skip=True, basename=None, found_paths=None
@@ -856,6 +895,10 @@ class SetupUI(_PropertyGroupExpansionMixin):
 
     def destroy(self):
         self._unfiltered_selected_prims = []
+        if self._settings is not None and self._dlss_availability_subscription is not None:
+            self._settings.unsubscribe_to_change_events(self._dlss_availability_subscription)
+        self._dlss_availability_subscription = None
+        self._settings = None
         if self._external_drag_and_drop:
             self._external_drag_and_drop.destroy()
             self._external_drag_and_drop = None

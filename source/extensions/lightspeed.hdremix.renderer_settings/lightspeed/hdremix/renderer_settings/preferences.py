@@ -21,6 +21,8 @@ import omni.ui as ui
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.window.preferences import PreferenceBuilder
 
+from .dlss_settings import DLSS_SETTINGS_TITLE, SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE
+from .dlss_settings_panel import DlssSettingsPanel
 from .settings_bridge import (
     DEFAULT_INTEGRATE_INDIRECT_MODE,
     DEFAULT_OVERRIDE_CAPTURE_INTEGRATOR,
@@ -35,9 +37,8 @@ class HdRemixRendererPreferencePage(PreferenceBuilder):
     """Preferences page adding HdRemix renderer toggles under Edit > Preferences > HdRemix Renderer."""
 
     def __init__(self):
+        """Initialize persistent settings and preference widgets."""
         super().__init__("HdRemix Renderer")
-        # default_attr drives destroy() via _reset_default_attrs — matches the bridge
-        # cleanup pattern. Anything held on to and released on destroy must be listed here.
         self.default_attr = {
             "_settings": None,
             "_integrate_indirect_combo": None,
@@ -47,6 +48,9 @@ class HdRemixRendererPreferencePage(PreferenceBuilder):
         }
         for attr, value in self.default_attr.items():
             setattr(self, attr, value)
+        self._dlss_availability_subscription = None
+        self._dlss_frame = None
+        self._dlss_settings_panel = None
 
         self._settings = carb.settings.get_settings()
         if self._settings.get(SETTINGS_INTEGRATE_INDIRECT_MODE) is None:
@@ -55,6 +59,7 @@ class HdRemixRendererPreferencePage(PreferenceBuilder):
             self._settings.set(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, DEFAULT_OVERRIDE_CAPTURE_INTEGRATOR)
 
     def build(self) -> None:
+        """Build the HdRemix renderer preferences page."""
         # Re-acquire the carb settings handle on every build: Kit's preference
         # window destroys + rebuilds the page on tab switches and after closing
         # the window, and our destroy() nullifies _settings via
@@ -64,7 +69,17 @@ class HdRemixRendererPreferencePage(PreferenceBuilder):
         # right pane empty.
         if self._settings is None:
             self._settings = carb.settings.get_settings()
+        if self._dlss_availability_subscription is not None:
+            self._settings.unsubscribe_to_change_events(self._dlss_availability_subscription)
+            self._dlss_availability_subscription = None
+        if self._dlss_settings_panel is not None:
+            self._dlss_settings_panel.destroy()
+            self._dlss_settings_panel = None
         with ui.VStack(height=0):
+            self._dlss_frame = ui.Frame(visible=bool(self._settings.get(SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE)))
+            with self._dlss_frame:
+                with self.add_frame(DLSS_SETTINGS_TITLE):
+                    self._dlss_settings_panel = DlssSettingsPanel("preferences_dlss_neural_rendering", "Setting.Label")
             # Section + control labels match the dxvk-remix runtime overlay
             # ("INDIRECT ILLUMINATION" section, "Integrate Indirect Illumination Mode"
             # combo) so this Kit preferences page reads identical to the in-game UI.
@@ -72,6 +87,14 @@ class HdRemixRendererPreferencePage(PreferenceBuilder):
                 with ui.VStack(spacing=4):
                     self._build_override_capture_row()
                     self._build_integrator_row()
+        self._dlss_availability_subscription = self._settings.subscribe_to_node_change_events(
+            SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE, self._on_dlss_neural_rendering_availability_changed
+        )
+
+    def _on_dlss_neural_rendering_availability_changed(self, *_args, **_kwargs) -> None:
+        """Update DLSS Neural Rendering settings visibility."""
+        if self._dlss_frame is not None:
+            self._dlss_frame.visible = bool(self._settings.get(SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE))
 
     def _build_override_capture_row(self) -> None:
         # When unchecked (default), the bridge skips both the startup push AND
@@ -136,4 +159,12 @@ class HdRemixRendererPreferencePage(PreferenceBuilder):
         self._settings.set(SETTINGS_INTEGRATE_INDIRECT_MODE, index)
 
     def destroy(self):
+        """Release the shared DLSS panel and preference state."""
+        if self._settings is not None and self._dlss_availability_subscription is not None:
+            self._settings.unsubscribe_to_change_events(self._dlss_availability_subscription)
+        self._dlss_availability_subscription = None
+        self._dlss_frame = None
+        if self._dlss_settings_panel is not None:
+            self._dlss_settings_panel.destroy()
+            self._dlss_settings_panel = None
         _reset_default_attrs(self)

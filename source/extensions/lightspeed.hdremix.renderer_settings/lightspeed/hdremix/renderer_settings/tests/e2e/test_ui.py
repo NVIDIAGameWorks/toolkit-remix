@@ -24,6 +24,13 @@ import omni.kit.app
 import omni.kit.test
 import omni.kit.ui_test
 import omni.kit.window.preferences
+from ...dlss_settings import (
+    DLSS_ENABLE,
+    DLSS_HIGHLIGHT_RECOVERY_THRESHOLDS,
+    DLSS_MODEL,
+    DLSS_TONE_INTENSITY,
+    SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE,
+)
 from lightspeed.hdremix.renderer_settings.settings_bridge import (
     DEFAULT_INTEGRATE_INDIRECT_MODE,
     INTEGRATE_INDIRECT_MODE_LABELS,
@@ -33,6 +40,7 @@ from lightspeed.hdremix.renderer_settings.settings_bridge import (
 from omni.kit.window.preferences import get_page_list
 
 _HDREMIX_PATCH_TARGET = "lightspeed.hdremix.renderer_settings.settings_bridge._hdremix_set_configvar"
+_REMIX_READY_PATCH_TARGET = "lightspeed.hdremix.renderer_settings.settings_bridge.is_remix_extern_ready"
 
 
 class TestHdRemixRendererE2E(omni.kit.test.AsyncTestCase):
@@ -56,14 +64,15 @@ class TestHdRemixRendererE2E(omni.kit.test.AsyncTestCase):
             await omni.kit.app.get_app().next_update_async()
 
     async def tearDown(self):
-        if self._original_mode is None:
-            self._settings.destroy_item(SETTINGS_INTEGRATE_INDIRECT_MODE)
-        else:
-            self._settings.set(SETTINGS_INTEGRATE_INDIRECT_MODE, self._original_mode)
-        if self._original_override is None:
-            self._settings.destroy_item(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR)
-        else:
-            self._settings.set(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, self._original_override)
+        with patch(_HDREMIX_PATCH_TARGET):
+            if self._original_mode is None:
+                self._settings.destroy_item(SETTINGS_INTEGRATE_INDIRECT_MODE)
+            else:
+                self._settings.set(SETTINGS_INTEGRATE_INDIRECT_MODE, self._original_mode)
+            if self._original_override is None:
+                self._settings.destroy_item(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR)
+            else:
+                self._settings.set(SETTINGS_OVERRIDE_CAPTURE_INTEGRATOR, self._original_override)
 
     async def test_hdremix_renderer_present_and_kit_viewport_page_build_is_stubbed(self):
         # The extension does two things on startup:
@@ -125,6 +134,113 @@ class TestHdRemixRendererE2E(omni.kit.test.AsyncTestCase):
         finally:
             inst.hide_preferences_window()
             await omni.kit.ui_test.human_delay(10)
+
+    async def test_dlss_controls_persist_after_reopening_preferences(self):
+        """Rendered DLSS controls should persist Boolean, enum, scalar, and vector edits across a rebuild."""
+        bool_setting = DLSS_ENABLE
+        scalar_setting = DLSS_TONE_INTENSITY
+        vector_setting = DLSS_HIGHLIGHT_RECOVERY_THRESHOLDS
+        tested_paths = (
+            SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE,
+            bool_setting.setting_path,
+            DLSS_MODEL.setting_path,
+            scalar_setting.setting_path,
+            vector_setting.setting_path,
+        )
+        original_values = {path: self._settings.get(path) for path in tested_paths}
+        page = next(page for page in get_page_list() if page.get_title() == "HdRemix Renderer")
+        preferences = omni.kit.window.preferences.get_instance()
+        self.assertIsNotNone(preferences, "omni.kit.window.preferences is not loaded")
+
+        with patch(_REMIX_READY_PATCH_TARGET, return_value=True), patch(_HDREMIX_PATCH_TARGET):
+            try:
+                self._settings.set(SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE, True)
+                self._settings.set(bool_setting.setting_path, True)
+                self._settings.set(DLSS_MODEL.setting_path, 0)
+                self._settings.set(scalar_setting.setting_path, 0.2)
+                self._settings.set(vector_setting.setting_path, [1.0, 8.0, 0.75, 0.99])
+
+                preferences.show_preferences_window()
+                for _ in range(3):
+                    await omni.kit.app.get_app().next_update_async()
+                self.assertTrue(omni.kit.window.preferences.select_page(page))
+                for _ in range(3):
+                    await omni.kit.app.get_app().next_update_async()
+
+                enable_editor = omni.kit.ui_test.find(
+                    "Preferences//Frame/**/CheckBox[*].identifier=="
+                    "'preferences_dlss_neural_rendering_enableDlssNeuralRendering'"
+                )
+                model_editor = omni.kit.ui_test.find(
+                    "Preferences//Frame/**/ComboBox[*].identifier=="
+                    "'preferences_dlss_neural_rendering_dlssNeuralRenderingModel'"
+                )
+                tone_editor = omni.kit.ui_test.find(
+                    "Preferences//Frame/**/FloatDrag[*].identifier=="
+                    "'preferences_dlss_neural_rendering_dlssNeuralRenderingToneIntensity'"
+                )
+                threshold_editor = omni.kit.ui_test.find(
+                    "Preferences//Frame/**/FloatDrag[*].identifier=="
+                    "'preferences_dlss_neural_rendering_dlssNeuralRenderingHighlightRecoveryThresholds_2'"
+                )
+                self.assertIsNotNone(enable_editor)
+                self.assertIsNotNone(model_editor)
+                self.assertIsNotNone(tone_editor)
+                self.assertIsNotNone(threshold_editor)
+
+                enable_editor.widget.model.set_value(False)
+                model_editor.widget.model.get_item_value_model().set_value(2)
+                tone_editor.widget.model.set_value(0.65)
+                threshold_editor.widget.model.set_value(6.5)
+                await omni.kit.ui_test.human_delay()
+
+                self.assertFalse(self._settings.get(bool_setting.setting_path))
+                self.assertEqual(self._settings.get(DLSS_MODEL.setting_path), 2)
+                self.assertAlmostEqual(self._settings.get(scalar_setting.setting_path), 0.65)
+                persisted_vector = list(self._settings.get(vector_setting.setting_path))
+                self.assertEqual(persisted_vector, [1.0, 8.0, 6.5, 0.99])
+
+                preferences.hide_preferences_window()
+                await omni.kit.app.get_app().next_update_async()
+                preferences.show_preferences_window()
+                for _ in range(3):
+                    await omni.kit.app.get_app().next_update_async()
+                self.assertTrue(omni.kit.window.preferences.select_page(page))
+                for _ in range(3):
+                    await omni.kit.app.get_app().next_update_async()
+
+                enable_editor = omni.kit.ui_test.find(
+                    "Preferences//Frame/**/CheckBox[*].identifier=="
+                    "'preferences_dlss_neural_rendering_enableDlssNeuralRendering'"
+                )
+                model_editor = omni.kit.ui_test.find(
+                    "Preferences//Frame/**/ComboBox[*].identifier=="
+                    "'preferences_dlss_neural_rendering_dlssNeuralRenderingModel'"
+                )
+                tone_editor = omni.kit.ui_test.find(
+                    "Preferences//Frame/**/FloatDrag[*].identifier=="
+                    "'preferences_dlss_neural_rendering_dlssNeuralRenderingToneIntensity'"
+                )
+                threshold_editor = omni.kit.ui_test.find(
+                    "Preferences//Frame/**/FloatDrag[*].identifier=="
+                    "'preferences_dlss_neural_rendering_dlssNeuralRenderingHighlightRecoveryThresholds_2'"
+                )
+                self.assertIsNotNone(enable_editor)
+                self.assertIsNotNone(model_editor)
+                self.assertIsNotNone(tone_editor)
+                self.assertIsNotNone(threshold_editor)
+                self.assertFalse(enable_editor.widget.model.get_value_as_bool())
+                self.assertEqual(model_editor.widget.model.get_item_value_model().get_value_as_int(), 2)
+                self.assertAlmostEqual(tone_editor.widget.model.get_value_as_float(), 0.65)
+                self.assertAlmostEqual(threshold_editor.widget.model.get_value_as_float(), 6.5)
+            finally:
+                preferences.hide_preferences_window()
+                for path, value in original_values.items():
+                    if value is None:
+                        self._settings.destroy_item(path)
+                    else:
+                        self._settings.set(path, value)
+                await omni.kit.app.get_app().next_update_async()
 
     async def test_persistent_setting_seeded_with_default(self):
         # The page's __init__ seeds the setting if missing. This pins the carb

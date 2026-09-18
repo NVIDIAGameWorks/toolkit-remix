@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.3]
+### Added
+- Added capability-gated **DLSS 3D-Guided Neural Generation [Experimental]** controls to Edit > Preferences > HdRemix Renderer, including Model A/B/C selection, marketing-aligned intensity defaults, Auto Mask, and collapsed advanced controls for highlight recovery and volumetric improvement.
+
+### Fixed
+- Reset pre-release DLSS Neural Rendering capture values and persistent setting keys to the release defaults.
+
 ## [1.0.2]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5976: Added an in-process typed texture and mesh asset-processing graph with ingestion parity, durable queue restart, publication and metadata Apply, and context isolation.
 - REMIX-5971: Added Ctrl+A selection for selectable prim rows retained by the active Stage Manager tab and filters, including hierarchy parents and collapsed descendants.
 - REMIX-2698: Added linked Position, Rotation, and Scale XYZ editing that copies X across all axes and keeps subsequent edits synchronized.
+- Added runtime-gated **DLSS 3D-Guided Neural Generation [Experimental]** global controls, including Model A/B/C selection and advanced highlight and volumetric controls, to the viewport Render Settings pane and Edit > Preferences > HdRemix Renderer, plus capability-gated per-material control-mask settings in MDL material properties. Global controls are seeded from each current-schema capture's resolved runtime config without writing those values back, pre-release capture values are reset to the release defaults, and all related UI remains hidden when the feature is unavailable.
 
 ### Changed
 
@@ -91,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5566: Sourced Remix category metadata from the authoritative HdRemix USD schema, displayed `remix_category:decal_Static` as Decal, kept non-Decal categories visible when Decal is absent, disabled assignment when schema data is unavailable without blocking Toolkit, made deprecated decal migration composition-safe on undo, and updated Stage Manager category filtering controls.
 - REMIX-6016: Improved Project Wizard capture discovery and capture activation.
 - Tightened test review scope to require evidence that the MR introduced or worsened each reported issue, excluding unrelated pre-existing test debt.
+- Update Remix target dependencies: hdremix and omni_core_materials to `ext-5fcc864-main`
 
 ### Removed
 

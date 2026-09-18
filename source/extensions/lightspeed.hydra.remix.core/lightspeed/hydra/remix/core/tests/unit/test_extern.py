@@ -53,6 +53,28 @@ class TestExtern(omni.kit.test.AsyncTestCase):
         _extern.RemixExtern._hdremix_dll_handle = self._original_dll_handle
         _extern._support_check_task = self._original_support_check_task
 
+    async def test_is_remix_extern_ready_returns_false_without_instance(self):
+        """Readiness should be false when no Remix extern instance exists."""
+        # Arrange
+        _extern._instance = None
+
+        # Act
+        is_ready = _extern.is_remix_extern_ready()
+
+        # Assert
+        self.assertFalse(is_ready)
+
+    async def test_is_remix_extern_ready_returns_true_with_instance(self):
+        """Readiness should be true when a Remix extern instance exists."""
+        # Arrange
+        _extern._instance = MagicMock()
+
+        # Act
+        is_ready = _extern.is_remix_extern_ready()
+
+        # Assert
+        self.assertTrue(is_ready)
+
     async def test_safe_remix_extern_raises_runtime_error_when_load_does_not_create_instance(self):
         with patch.object(_extern, "load_remix_extern", return_value=0):
             with self.assertRaisesRegex(RuntimeError, "HdRemix extern is unavailable"):
@@ -307,3 +329,111 @@ class TestExtern(omni.kit.test.AsyncTestCase):
         log_error.assert_called_once_with(native_message)
         self.assertEqual([ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_uint32)], support_function.argtypes)
         self.assertIs(support_function.restype, ctypes.c_int)
+
+    async def test_check_dlss_neural_rendering_support_with_valid_status_returns_matching_state(self):
+        """DLSS Neural Rendering support should preserve every valid native tri-state value."""
+        for native_status, expected_support in (
+            (-1, _extern.RemixSupport.WAITING_FOR_INIT),
+            (0, _extern.RemixSupport.NOT_SUPPORTED),
+            (1, _extern.RemixSupport.SUPPORTED),
+        ):
+            with self.subTest(title=expected_support.name):
+                # Arrange
+                support_function = MagicMock(return_value=native_status)
+                dll = SimpleNamespace(hdremix_getdlssneuralrenderingstatus=support_function)
+
+                # Act
+                with patch.object(
+                    _extern.RemixExtern,
+                    "_RemixExtern__load_hdremix_library",
+                    return_value=dll,
+                ):
+                    result = _extern.RemixExtern.check_dlss_neural_rendering_support()
+
+                # Assert
+                self.assertIs(result, expected_support)
+                support_function.assert_called_once_with()
+                self.assertEqual(support_function.argtypes, [])
+                self.assertIs(support_function.restype, ctypes.c_int)
+
+    async def test_check_dlss_neural_rendering_support_without_library_returns_waiting(self):
+        """A library that is not loaded yet should leave capability discovery pending."""
+        # Arrange / Act
+        with patch.object(
+            _extern.RemixExtern,
+            "_RemixExtern__load_hdremix_library",
+            side_effect=FileNotFoundError,
+        ):
+            result = _extern.RemixExtern.check_dlss_neural_rendering_support()
+
+        # Assert
+        self.assertIs(result, _extern.RemixSupport.WAITING_FOR_INIT)
+
+    async def test_check_dlss_neural_rendering_support_with_load_error_returns_not_supported(self):
+        """A broken HdRemix dependency should fail closed instead of polling forever."""
+        # Arrange
+        error = OSError("missing dependency")
+
+        with (
+            patch.object(
+                _extern.RemixExtern,
+                "_RemixExtern__load_hdremix_library",
+                side_effect=error,
+            ),
+            patch.object(_extern.carb, "log_error") as log_error,
+        ):
+            # Act
+            result = _extern.RemixExtern.check_dlss_neural_rendering_support()
+
+        # Assert
+        self.assertIs(result, _extern.RemixSupport.NOT_SUPPORTED)
+        log_error.assert_called_once_with(
+            "HdRemix.dll load error while querying DLSS Neural Rendering support: missing dependency"
+        )
+
+    async def test_check_dlss_neural_rendering_support_without_export_returns_not_supported(self):
+        """An older HdRemix library should leave DLSS Neural Rendering settings unavailable."""
+        # Arrange
+        dll = SimpleNamespace()
+
+        with (
+            patch.object(
+                _extern.RemixExtern,
+                "_RemixExtern__load_hdremix_library",
+                return_value=dll,
+            ),
+            patch.object(_extern.carb, "log_warn") as log_warn,
+        ):
+            # Act
+            result = _extern.RemixExtern.check_dlss_neural_rendering_support()
+
+        # Assert
+        self.assertIs(result, _extern.RemixSupport.NOT_SUPPORTED)
+        log_warn.assert_called_once_with(
+            "HdRemix.dll doesn't have 'hdremix_getdlssneuralrenderingstatus'. "
+            "DLSS Neural Rendering settings will remain hidden."
+        )
+
+    async def test_check_dlss_neural_rendering_support_with_invalid_status_returns_not_supported(self):
+        """An invalid native status should fail closed and keep DLSS Neural Rendering settings hidden."""
+        # Arrange
+        support_function = MagicMock(return_value=2)
+        dll = SimpleNamespace(hdremix_getdlssneuralrenderingstatus=support_function)
+
+        with (
+            patch.object(
+                _extern.RemixExtern,
+                "_RemixExtern__load_hdremix_library",
+                return_value=dll,
+            ),
+            patch.object(_extern.carb, "log_error") as log_error,
+        ):
+            # Act
+            result = _extern.RemixExtern.check_dlss_neural_rendering_support()
+
+        # Assert
+        self.assertIs(result, _extern.RemixSupport.NOT_SUPPORTED)
+        log_error.assert_called_once_with(
+            "HdRemix.dll returned invalid DLSS Neural Rendering support status 2. "
+            "DLSS Neural Rendering settings will remain hidden."
+        )

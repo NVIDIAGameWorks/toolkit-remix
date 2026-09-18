@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.4]
+### Fixed
+- Hid the **DLSS 3D-Guided Neural Generation [Experimental]** material group when runtime support is unavailable while retaining compatibility with legacy group names and accounting for it in E2E texture-group expansion.
+
 ## [2.3.3]
 ### Fixed
 - Initialize the MDL backend before resolving material assets.

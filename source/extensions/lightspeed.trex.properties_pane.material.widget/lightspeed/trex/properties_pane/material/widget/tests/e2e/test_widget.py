@@ -22,6 +22,7 @@ from enum import Enum
 from pathlib import Path
 
 import carb
+import carb.settings
 import carb.eventdispatcher
 import carb.input
 import carb.tokens
@@ -32,6 +33,7 @@ import omni.ui as ui
 import omni.usd
 from carb.input import KeyboardInput
 from lightspeed.common import constants as _constants
+from lightspeed.hdremix.renderer_settings.dlss_settings import SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.contexts import get_instance as _trex_contexts_instance
@@ -53,6 +55,10 @@ MATERIAL_ROOT_PATH = "/RootNode/Looks/"
 RELATIVE_SOURCE_TEXTURE_PATH = "project_example/sources/textures/"
 RELATIVE_CAPTURE_TEXTURE_PATH = "project_example/deps/captures/materials/textures/"
 METAL_WALL_ASSET_PARTIAL_BASENAME = "T_MetalPanelWall_HeavyRust_"
+DLSS_MATERIAL_GROUP_PREFIXES = (
+    "DLSS 3D-Guided Neural Generation",
+    "DLSS Neural Rendering",
+)
 # Map of property name to whether it has a texture attribute set in the test material
 PROPERTY_BRANCHES_MAP = {
     "Base Material": True,
@@ -66,6 +72,7 @@ PROPERTY_BRANCHES_MAP = {
     "Normal": True,
     "Displacement": False,
     "Subsurface": False,
+    "DLSS Neural Rendering": False,
 }
 BRANCHES_TO_EXPAND: list[bool] = list(PROPERTY_BRANCHES_MAP.values())
 # texture types in order that they appear
@@ -265,6 +272,47 @@ class TestMaterialPropertyWidget(AsyncTestCase):
 
         finally:
             await self.__destroy(_window, _material_property_wid)
+
+    async def test_set_dlss_neural_rendering_availability_updates_material_group_visibility(self):
+        settings = carb.settings.get_settings()
+        original_availability = settings.get(SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE)
+        settings.set(SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE, False)
+        _window = None
+        _material_property_wid = None
+
+        try:
+            _window, _material_property_wid = await self.__setup_widget()
+            usd_context = omni.usd.get_context()
+            usd_context.get_selection().set_selected_prim_paths(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"], False)
+            await ui_test.human_delay(human_delay_speed=3)
+
+            labels = [
+                item.widget.text
+                for item in ui_test.find_all(f"{_window.title}//Frame/**/Label[*]")
+                if item.widget.visible
+            ]
+            self.assertIn("Base Material", labels)
+            self.assertFalse(any(label.startswith(DLSS_MATERIAL_GROUP_PREFIXES) for label in labels))
+
+            settings.set(SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE, True)
+            await ui_test.human_delay(human_delay_speed=3)
+
+            labels = [
+                item.widget.text
+                for item in ui_test.find_all(f"{_window.title}//Frame/**/Label[*]")
+                if item.widget.visible
+            ]
+            self.assertEqual(
+                sum(label.startswith(DLSS_MATERIAL_GROUP_PREFIXES) for label in labels),
+                1,
+            )
+        finally:
+            if _window is not None and _material_property_wid is not None:
+                await self.__destroy(_window, _material_property_wid)
+            if original_availability is None:
+                settings.destroy_item(SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE)
+            else:
+                settings.set(SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE, original_availability)
 
     async def test_material_property_field_stays_inside_narrow_panel_when_shown_after_hidden_build(self):
         _window, _material_property_wid = await self.__setup_widget(width=240)

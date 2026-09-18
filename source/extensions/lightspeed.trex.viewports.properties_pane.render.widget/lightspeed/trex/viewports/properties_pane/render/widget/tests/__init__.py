@@ -15,18 +15,6 @@
 * limitations under the License.
 """
 
-from .e2e.test_ui import TestHdRemixRendererE2E
-from .unit.test_dlss_settings import TestDlssSettings
-from .unit.test_dlss_settings_panel import TestDlssSettingsPanel
-from .unit.test_extension import TestHdRemixRendererExtension
-from .unit.test_preferences import TestHdRemixRendererPreferencePage
-from .unit.test_settings_bridge import TestHdRemixSettingsBridge
+from .unit.test_setup_ui import TestRenderPaneSetupUI
 
-__all__ = (
-    "TestDlssSettings",
-    "TestDlssSettingsPanel",
-    "TestHdRemixRendererE2E",
-    "TestHdRemixRendererExtension",
-    "TestHdRemixRendererPreferencePage",
-    "TestHdRemixSettingsBridge",
-)
+__all__ = ("TestRenderPaneSetupUI",)
