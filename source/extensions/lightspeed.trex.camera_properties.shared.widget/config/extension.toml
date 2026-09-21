@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.2.2"
+version = "1.2.3"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Camera Properties implementation"
 description = "Camera Properties implementation for NVIDIA RTX Remix App"
@@ -23,3 +23,14 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 
 [[python.module]]
 name = "lightspeed.trex.camera_properties.shared.widget"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

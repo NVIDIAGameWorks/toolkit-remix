@@ -160,6 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed ambiguous Remix review follow-up routing and allowed thread follow-up across rewritten history while preserving review snapshots, discussion IDs, and scores.
 - REMIX-6083: Fixed Stage Manager Meshes, Materials, and Categories tabs highlighting related prims as selected while preserving related-item framing.
 - Fixed intermittent failures loading material properties and conversion menus.
+- REMIX-5614: Fixed camera clipping-range value tooltips to identify the Near and Far fields instead of X and Y axes.
 
 ## [1.5.2-0]
 

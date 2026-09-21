@@ -14,3 +14,11 @@ properties_create_ui.refresh(usd_paths)
 properties_create_ui.expand_all_groups()
 properties_create_ui.collapse_all_groups()
 ```
+
+Lookup entries may provide `tooltip_channel_names` for vector attributes whose components have semantic names:
+
+```python
+lookup_table = {
+    "clippingRange": {"name": "Clipping Range", "tooltip_channel_names": ("Near", "Far")},
+}
+```

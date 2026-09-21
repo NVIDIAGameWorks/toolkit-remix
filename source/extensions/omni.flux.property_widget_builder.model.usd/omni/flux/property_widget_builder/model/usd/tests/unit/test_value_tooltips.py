@@ -16,10 +16,12 @@
 """
 
 from typing import Any, cast
+from unittest import mock
 
 import omni.kit.test
 import omni.usd
 from omni.flux.property_widget_builder.model.usd import USDAttributeItem, USDAttrListItem, VirtualUSDAttributeItem
+from omni.flux.property_widget_builder.model.usd.item_model import attr_value as _attr_value
 from pxr import Gf, Sdf
 
 
@@ -236,3 +238,101 @@ class TestUSDAttributeValueTooltips(omni.kit.test.AsyncTestCase):
         self.assertTrue(tooltip.startswith("Translate X: Mixed Values:"))
         self.assertIn("(1, 2, 3)", tooltip)
         self.assertIn("(4, 5, 6)", tooltip)
+
+
+class TestUSDAttributeChannelTooltips(omni.kit.test.AsyncTestCase):
+    """Test multichannel tooltip labels without a live USD stage."""
+
+    @staticmethod
+    def __mock_usd_context(value, attribute_valid=True):
+        attribute = mock.MagicMock()
+        attribute.Get.return_value = value
+        attribute.HasAuthoredValue.return_value = True
+        attribute.IsHidden.return_value = False
+        attribute.IsValid.return_value = attribute_valid
+        prim = mock.MagicMock()
+        prim.GetAttribute.return_value = attribute
+        prim.IsValid.return_value = True
+        stage = mock.MagicMock()
+        stage.GetPrimAtPath.return_value = prim
+        return mock.MagicMock(get_stage=mock.MagicMock(return_value=stage))
+
+    async def test_vector2_tooltip_uses_explicit_channel_names(self):
+        """Explicit vector channel names should replace axis labels."""
+        # Arrange
+        context = self.__mock_usd_context(Gf.Vec2f(1.0, 1000.0))
+        with mock.patch.object(_attr_value.omni.usd, "get_context", return_value=context):
+            item = USDAttributeItem(
+                context_name="",
+                attribute_paths=[Sdf.Path("/TooltipTestPrim.clippingRange")],
+                value_type_name=Sdf.ValueTypeNames.Float2,
+                display_attr_names=["Clipping Range"],
+                tooltip_channel_names=["Near", "Far"],
+            )
+
+        # Act
+        near_tooltip = item.value_models[0].get_tool_tip()
+        far_tooltip = item.value_models[1].get_tool_tip()
+
+        # Assert
+        self.assertEqual(near_tooltip, "Clipping Range Near: 1.0")
+        self.assertEqual(far_tooltip, "Clipping Range Far: 1000.0")
+
+    async def test_vector3_tooltip_uses_axis_fallback_after_explicit_channel_names_end(self):
+        """Missing explicit channel names should fall back to the matching axis labels."""
+        # Arrange
+        context = self.__mock_usd_context(Gf.Vec3f(1.0, 2.0, 3.0))
+        with mock.patch.object(_attr_value.omni.usd, "get_context", return_value=context):
+            item = USDAttributeItem(
+                context_name="",
+                attribute_paths=[Sdf.Path("/TooltipTestPrim.range")],
+                value_type_name=Sdf.ValueTypeNames.Float3,
+                display_attr_names=["Range"],
+                tooltip_channel_names=["Minimum"],
+            )
+
+        # Act
+        tooltips = [value_model.get_tool_tip() for value_model in item.value_models]
+
+        # Assert
+        self.assertEqual(tooltips, ["Range Minimum: 1.0", "Range Y: 2.0", "Range Z: 3.0"])
+
+    async def test_virtual_vector_tooltip_uses_explicit_channel_names(self):
+        """Virtual vector attributes should use explicit tooltip channel names."""
+        # Arrange
+        context = self.__mock_usd_context(None, attribute_valid=False)
+        with mock.patch.object(_attr_value.omni.usd, "get_context", return_value=context):
+            item = VirtualUSDAttributeItem(
+                context_name="",
+                attribute_paths=[Sdf.Path("/VirtualVectorTooltipPrim.virtualRange")],
+                value_type_name=Sdf.ValueTypeNames.Float2,
+                default_value=Gf.Vec2f(2.0, 2000.0),
+                display_attr_names=["Virtual Range"],
+                tooltip_channel_names=["Minimum", "Maximum"],
+            )
+
+        # Act
+        tooltips = [value_model.get_tool_tip() for value_model in item.value_models]
+
+        # Assert
+        self.assertEqual(tooltips, ["Virtual Range Minimum: 2.0", "Virtual Range Maximum: 2000.0"])
+
+    async def test_virtual_vector_tooltip_uses_axis_fallback_after_explicit_channel_names_end(self):
+        """Missing virtual channel names should fall back to the matching axis labels."""
+        # Arrange
+        context = self.__mock_usd_context(None, attribute_valid=False)
+        with mock.patch.object(_attr_value.omni.usd, "get_context", return_value=context):
+            item = VirtualUSDAttributeItem(
+                context_name="",
+                attribute_paths=[Sdf.Path("/VirtualVectorTooltipPrim.virtualRange")],
+                value_type_name=Sdf.ValueTypeNames.Float3,
+                default_value=Gf.Vec3f(2.0, 2000.0, 3000.0),
+                display_attr_names=["Virtual Range"],
+                tooltip_channel_names=["Minimum"],
+            )
+
+        # Act
+        tooltips = [value_model.get_tool_tip() for value_model in item.value_models]
+
+        # Assert
+        self.assertEqual(tooltips, ["Virtual Range Minimum: 2.0", "Virtual Range Y: 2000.0", "Virtual Range Z: 3000.0"])

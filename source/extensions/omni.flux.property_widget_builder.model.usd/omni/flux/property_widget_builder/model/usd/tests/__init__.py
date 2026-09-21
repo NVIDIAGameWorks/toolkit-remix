@@ -39,7 +39,7 @@ from .unit.test_relationship_value_model import TestUsdRelationshipValueModel
 from .unit.test_setup_ui import TestUSDPropertyWidget
 from .unit.test_usd_attribute_item_bounds import TestUSDAttributeItemBounds
 from .unit.test_usd_attribute_xform_item import TestUSDAttributeXformItem
-from .unit.test_value_tooltips import TestUSDAttributeValueTooltips
+from .unit.test_value_tooltips import TestUSDAttributeChannelTooltips, TestUSDAttributeValueTooltips
 
 from .e2e.test_curve_editor_popup import TestCurveEditorPopupLifecycle
 from .e2e.test_delegate_alignment import TestDelegateAlignment
@@ -70,6 +70,7 @@ __all__ = [
     "TestPropertyGroupExpansionMixin",
     "TestRelationshipUtils",
     "TestSetDataPrimvarsCommand",
+    "TestUSDAttributeChannelTooltips",
     "TestUSDAttributeItemBounds",
     "TestUSDAttributeValueTooltips",
     "TestUSDAttributeXformItem",

@@ -614,6 +614,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         value_type_name: Sdf.ValueTypeName | None = None,
         tooltip_display_name: str | None = None,
         related_override_paths: list[Sdf.Path] | None = None,
+        tooltip_channel_name: str | None = None,
     ):
         """
         Value model of an attribute value
@@ -627,6 +628,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             tooltip_display_name: optional display name used to prefix value widget tooltips
             default_value: optional override for the default value
             related_override_paths: optional related properties that should receive specs with this value write
+            tooltip_channel_name: optional channel suffix used instead of the default axis name
         """
         super().__init__(
             context_name,
@@ -634,12 +636,14 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             read_only=read_only,
             value_type_name=value_type_name,
             tooltip_display_name=tooltip_display_name,
+            tooltip_channel_name=tooltip_channel_name,
             related_override_paths=related_override_paths,
         )
         self._channel_index = channel_index
         # should we treat value as a "multi" value or by channel.
         self._is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(self._value_type_name, False)
-        self._tooltip_channel_name = _get_channel_name(channel_index) if self._is_multichannel else None
+        if self._tooltip_channel_name is None and self._is_multichannel:
+            self._tooltip_channel_name = _get_channel_name(channel_index)
         self._has_wrong_value = False
         self._default_value = default_value
         self._group_edit_models = ()
@@ -935,6 +939,7 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         create_callback: Callable[[Usd.Attribute, Any], None] | None = None,
         tooltip_display_name: str | None = None,
         related_override_paths: list[Sdf.Path] | None = None,
+        tooltip_channel_name: str | None = None,
     ):
         self._create_callback = create_callback
 
@@ -952,6 +957,7 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
             read_only=read_only,
             value_type_name=value_type_name,
             tooltip_display_name=tooltip_display_name,
+            tooltip_channel_name=tooltip_channel_name,
             related_override_paths=related_override_paths,
         )
 

@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,6 @@
 * limitations under the License.
 """
 
-from .unit import TestPropertyWidget
+from .e2e.test_setup_ui import TestCameraPropertiesSetupUI
 
-from .e2e.test_widget import *
+__all__ = ["TestCameraPropertiesSetupUI"]

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.3]
+### Fixed
+- Identified the near and far clipping-range fields in their value tooltips.
+
 ## [1.2.2]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

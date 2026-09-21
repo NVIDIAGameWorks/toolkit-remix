@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from typing import Any
+
 import carb.input
 import omni.kit.clipboard
 import omni.kit.undo
@@ -52,7 +54,7 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         self,
         width=WINDOW_WIDTH,
         height=WINDOW_HEIGHT,
-        lookup_table: dict[str, dict[str, str]] | None = None,
+        lookup_table: dict[str, dict[str, Any]] | None = None,
     ) -> (ui.Window, "_PropertyWidget"):
         window = ui.Window("TestPropertyWidget", width=width, height=height)
         with window.frame:
@@ -65,11 +67,27 @@ class TestUSDPropertiesWidget(AsyncTestCase):
 
     async def __destroy(self, window, widget):
         # if we destroy viewports before the stage is fully loaded than it will be stuck in loading state.
-        await wait_stage_loading()
+        try:
+            await wait_stage_loading()
+        finally:
+            try:
+                widget.destroy()
+            finally:
+                window.destroy()
+                await ui_test.human_delay()
 
-        widget.destroy()
-        window.destroy()
-        await ui_test.human_delay()
+    async def __collect_float_drag_tooltips(self, window_title: str) -> set[str]:
+        tooltips = set()
+        fields = ui_test.find_all(
+            f"{window_title}//Frame/**/FloatBoundedDrag[*].identifier=="
+            "'/Xform/Cube.clippingRange,/Xform/Cube.clippingRange'"
+        )
+        self.assertEqual(len(fields), 2)
+        for field in fields:
+            await ui_test.emulate_mouse_move(field.center)
+            await ui_test.human_delay()
+            tooltips.add(field.widget.tooltip)
+        return tooltips
 
     @staticmethod
     def __find_item_by_attribute_path(widget: "_PropertyWidget", attribute_path: str) -> _USDAttributeItem | None:
@@ -658,3 +676,27 @@ class TestUSDPropertiesWidget(AsyncTestCase):
         self.assertIsNone(item.get_step_value())
 
         await self.__destroy(_window, _widget)
+
+    async def test_lookup_table_applies_vector_tooltip_channel_names(self):
+        """Lookup-table channel names should reach rendered vector fields."""
+        stage = omni.usd.get_context(_CONTEXT_NAME).get_stage()
+        prim = stage.GetPrimAtPath("/Xform/Cube")
+        attr = prim.CreateAttribute("clippingRange", Sdf.ValueTypeNames.Float2)
+        attr.Set(Gf.Vec2f(1.0, 1000.0))
+        lookup_table = {
+            "clippingRange": {
+                "name": "Clipping Range",
+                "tooltip_channel_names": ["Near", "Far"],
+            }
+        }
+        _window, _widget = await self.__setup_widget(lookup_table=lookup_table)
+        try:
+            # A user opens the cube's properties and hovers its rendered numeric fields.
+            _widget.refresh(["/Xform/Cube"])
+            await ui_test.human_delay()
+            tooltips = await self.__collect_float_drag_tooltips(_window.title)
+
+            self.assertIn("Clipping Range Near: 1.0", tooltips)
+            self.assertIn("Clipping Range Far: 1000.0", tooltips)
+        finally:
+            await self.__destroy(_window, _widget)
