@@ -75,7 +75,7 @@ _OVERRIDE_FAR_TOOLTIP = (
 # convention used in the mesh properties pane and gives the panel proper
 # title-case labels.
 _CAMERA_LOOKUP_TABLE = {
-    "clippingRange": {"name": "Clipping Range"},
+    "clippingRange": {"name": "Clipping Range", "tooltip_channel_names": ("Near", "Far")},
     "clippingPlanes": {"name": "Clipping Planes"},
     "exposure": {"name": "Exposure"},
     "focalLength": {"name": "Focal Length"},

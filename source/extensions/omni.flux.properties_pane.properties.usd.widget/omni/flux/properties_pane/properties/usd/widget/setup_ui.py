@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
 import omni.kit
 import omni.ui as ui
@@ -44,7 +45,7 @@ class PropertyWidget(_PropertyGroupExpansionMixin):
     def __init__(
         self,
         context_name: str,
-        lookup_table: dict[str, dict[str, str]] = None,
+        lookup_table: dict[str, dict[str, Any]] | None = None,
         specific_attributes: list[str] = None,
         field_builders: list[_FieldBuilder] | None = None,
         optional_attributes: list[tuple[Callable[[Usd.Prim], bool], dict[str, any]]] = None,
@@ -141,7 +142,7 @@ class PropertyWidget(_PropertyGroupExpansionMixin):
                 columns_resizable=self._columns_resizable,
             )
 
-    def set_lookup_table(self, lookup_table: dict[str, dict[str, str]]):
+    def set_lookup_table(self, lookup_table: dict[str, dict[str, Any]]):
         self._lookup_table = lookup_table
 
     def set_specific_attributes(self, specific_attributes: list[str]):
@@ -228,10 +229,12 @@ class PropertyWidget(_PropertyGroupExpansionMixin):
                 if display_name:
                     display_attr_names = [display_name]
                 display_read_only = False
+                tooltip_channel_names = None
                 if attr_name in self._lookup_table:
                     display_attr_names = [self._lookup_table[attr_name]["name"]]
                     display_read_only = self._lookup_table[attr_name].get("read_only", False)
                     group_name = self._lookup_table[attr_name].get("group")
+                    tooltip_channel_names = self._lookup_table[attr_name].get("tooltip_channel_names")
 
                 display_attr_names_tooltips = [attr_name]
                 if attribute_metadata_docs is not None:
@@ -251,6 +254,7 @@ class PropertyWidget(_PropertyGroupExpansionMixin):
                         read_only=display_read_only,
                         display_attr_names=display_attr_names,
                         display_attr_names_tooltip=display_attr_names_tooltips,
+                        tooltip_channel_names=tooltip_channel_names,
                         bounds_adapter=bounds_adapter,
                     )
                 elif isinstance(attr, _USDAttributeDef):
@@ -262,6 +266,7 @@ class PropertyWidget(_PropertyGroupExpansionMixin):
                         read_only=display_read_only,
                         display_attr_names=display_attr_names,
                         display_attr_names_tooltip=display_attr_names_tooltips,
+                        tooltip_channel_names=tooltip_channel_names,
                     )
                 else:
                     raise ValueError("Invalid type.")

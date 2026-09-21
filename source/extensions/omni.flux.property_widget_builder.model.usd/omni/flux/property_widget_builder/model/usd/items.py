@@ -576,6 +576,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         attribute_paths: the list of USD attribute(s) the item will represent
         display_attr_names: override the name(s) of the attribute(s) to show by those one
         display_attr_names_tooltip: tooltip to show on the attribute name
+        tooltip_channel_names: optional tooltip names for vector channels
         default_value: optional override for the default value
         read_only: show the attribute(s) as read only
         value_type_name: if None, the type name will be inferred
@@ -600,6 +601,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         related_override_paths: list[Sdf.Path] | None = None,
         ui_metadata: dict | None = None,
         bounds_adapter: _BoundsAdapter | None = None,
+        tooltip_channel_names: Sequence[str] | None = None,
     ):
         super().__init__(context_name, attribute_paths)
         # take only the first attribute name because the attribute name is the same for all values
@@ -622,6 +624,7 @@ class USDAttributeItem(_BaseUSDAttributeItem):
             read_only=read_only,
             value_type_name=value_type_name,
             display_attr_names=display_attr_names,
+            tooltip_channel_names=tooltip_channel_names,
             related_override_paths=related_override_paths,
         )
         self._ui_metadata = ui_metadata
@@ -694,8 +697,10 @@ class USDAttributeItem(_BaseUSDAttributeItem):
         value_type_name: Sdf.ValueTypeName | None = None,
         display_attr_names: list[str] | None = None,
         related_override_paths: list[Sdf.Path] | None = None,
+        tooltip_channel_names: Sequence[str] | None = None,
     ):
-        # Value tooltips use the base display name for every vector channel; the value model adds X/Y/Z/W suffixes.
+        """Initialize value models with configured channel names or axis-name fallbacks."""
+        # Value tooltips use the base display name; the value model adds configured names or X/Y/Z/W defaults.
         self._value_models = [
             _UsdAttributeValueModel(
                 context_name,
@@ -705,6 +710,9 @@ class USDAttributeItem(_BaseUSDAttributeItem):
                 read_only=read_only,
                 value_type_name=value_type_name,
                 tooltip_display_name=display_attr_names[0] if display_attr_names else None,
+                tooltip_channel_name=(
+                    tooltip_channel_names[i] if tooltip_channel_names and i < len(tooltip_channel_names) else None
+                ),
                 related_override_paths=related_override_paths,
             )
             for i in range(self._element_count)
@@ -883,6 +891,7 @@ class VirtualUSDAttributeItem(USDAttributeItem):
         metadata: dict | None = None,
         bounds_adapter: _BoundsAdapter | None = None,
         create_callback: Callable[[Any], None] | None = None,
+        tooltip_channel_names: Sequence[str] | None = None,
     ):
         """
         Args:
@@ -894,6 +903,7 @@ class VirtualUSDAttributeItem(USDAttributeItem):
                              By default, this simply adds the attribute to the prim
             display_attr_names: Display name for the attribute
             display_attr_names_tooltip: tooltip to show on the attribute name
+            tooltip_channel_names: Optional tooltip names for vector channels
             read_only: If the attribute is read-only
             metadata: Optional value-model metadata used by virtual attribute
                 behavior (for example type/context hints). This is not used for
@@ -912,6 +922,7 @@ class VirtualUSDAttributeItem(USDAttributeItem):
             attribute_paths,
             display_attr_names=display_attr_names,
             display_attr_names_tooltip=display_attr_names_tooltip,
+            tooltip_channel_names=tooltip_channel_names,
             read_only=read_only,
             value_type_name=value_type_name,
             bounds_adapter=bounds_adapter,
@@ -943,7 +954,9 @@ class VirtualUSDAttributeItem(USDAttributeItem):
         value_type_name: Sdf.ValueTypeName | None = None,
         display_attr_names: list[str] | None = None,
         related_override_paths: list[Sdf.Path] | None = None,
+        tooltip_channel_names: Sequence[str] | None = None,
     ):
+        """Initialize virtual value models with configured channel names or axis-name fallbacks."""
         # Note: VirtualUSDAttributeItem uses self._default_value from __init__, ignoring passed default_value
         if not value_type_name:
             raise ValueError("value_type_name is required for virtual attribute value models")
@@ -958,6 +971,9 @@ class VirtualUSDAttributeItem(USDAttributeItem):
                 metadata=self._metadata,
                 create_callback=self._create_callback,
                 tooltip_display_name=display_attr_names[0] if display_attr_names else None,
+                tooltip_channel_name=(
+                    tooltip_channel_names[i] if tooltip_channel_names and i < len(tooltip_channel_names) else None
+                ),
                 related_override_paths=related_override_paths,
             )
             for i in range(self._element_count)
@@ -1178,7 +1194,9 @@ class USDAttributeItemStub(USDAttributeItem):
         value_type_name: Sdf.ValueTypeName | None = None,
         display_attr_names: list[str] | None = None,
         related_override_paths: list[Sdf.Path] | None = None,
+        tooltip_channel_names: Sequence[str] | None = None,
     ):
+        """Leave the stub without value models while accepting the shared initialization contract."""
         self._value_models = []
 
     @omni.usd.handle_exception

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.36.9]
+### Added
+- Added optional semantic channel names for vector value tooltips.
+
 ## [2.36.8]
 ### Added
 - Added synchronized link toggles between three-axis USD transform fields that copy each represented object's X value to Y and Z when enabled, with state-aware tooltips, inline first-field keyboard focus, and one-step undo.

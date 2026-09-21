@@ -46,8 +46,9 @@ padding in adjacent widgets to communicate visual grouping.
 
 Shared USD property value tooltips should identify the field being edited as well as the current value. Scalar fields use
 `<Display Name>: <value>`, and generic vector fields use `<Display Name> <channel>: <value>` with channels derived from
-the value type as `X`, `Y`, `Z`, and `W`. Color value types are treated as single color-widget values rather than
-generic vector channels. Label tooltips remain reserved for schema/help documentation.
+the value type as `X`, `Y`, `Z`, and `W`. Lookup tables may provide `tooltip_channel_names` when components have
+semantic names such as `Near` and `Far`. Color value types are treated as single color-widget values rather than generic
+vector channels. Label tooltips remain reserved for schema/help documentation.
 
 ### Avoid hardcoded dimensions
 
