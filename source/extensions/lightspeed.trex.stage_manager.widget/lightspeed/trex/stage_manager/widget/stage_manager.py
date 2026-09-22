@@ -15,18 +15,23 @@
 * limitations under the License.
 """
 
+from lightspeed.trex.contexts.setup import Contexts
+from lightspeed.trex.hotkeys import TrexHotkeyEvent, get_global_hotkey_manager
 from lightspeed.trex.utils.widget import WorkspaceWidget as _WorkspaceWidget
 from omni.flux.stage_manager.widget import StageManagerWidget as _StageManagerWidget
 
+__all__ = ["StageManagerWidget"]
+
 
 class StageManagerWidget(_StageManagerWidget, _WorkspaceWidget):
-    # This extension is only used to:
-    # - Pull all the plugins required for the Lightspeed StageManager Widget
-    # - Define the schema path in the settings
+    """Compose the Remix Stage Manager and connect its app shortcuts."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _WorkspaceWidget.__init__(self)
+        self._select_all_hotkey_subscription = get_global_hotkey_manager().subscribe_hotkey_event(
+            TrexHotkeyEvent.CTRL_A, self._on_select_all_hotkey, context=Contexts.STAGE_CRAFT
+        )
 
     def show(self, visible: bool):
         """Implements WorkspaceWidget interface."""
@@ -53,4 +58,13 @@ class StageManagerWidget(_StageManagerWidget, _WorkspaceWidget):
 
     def destroy(self):
         """Implements WorkspaceWidget interface."""
+        self._select_all_hotkey_subscription = None
         super().destroy()
+
+    def _on_select_all_hotkey(self):
+        """Select all retained items in the active Stage Manager tab."""
+        if not self._core:
+            return
+        interaction = self._core.get_active_interaction()
+        if interaction:
+            interaction.select_all()

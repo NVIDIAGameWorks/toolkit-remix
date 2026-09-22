@@ -28,6 +28,8 @@ from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import WindowNames as _WindowNames
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
+from lightspeed.trex.contexts import get_instance as _get_context_manager
+from lightspeed.trex.contexts.setup import Contexts
 from lightspeed.trex.properties_pane.widget import AssetReplacementsPane as _AssetReplacementsPane
 from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni.flux.custom_tags.core import CustomTagsCore as _CustomTagsCore
@@ -94,6 +96,10 @@ _TARGET_MESH_INSTANCE_PATH = "/RootNode/instances/inst_FEE1DEADF00D0001_0/mesh"
 class TestStageManagerPropertiesInteraction(AsyncTestCase):
     async def setUp(self):
         # Open the full Stage Craft workspace so the test exercises the real Stage Manager and Properties panes.
+        context_manager = _get_context_manager()
+        previous_context = context_manager.get_current_context()
+        self.addCleanup(context_manager.set_current_context, previous_context)
+        context_manager.set_current_context(Contexts.STAGE_CRAFT)
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
         load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
         await ui_test.human_delay(10)
@@ -143,12 +149,22 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         self.fail(f"Stage Manager did not activate {interaction_name}")
         return None
 
-    async def _press_ctrl_a_in_stage_manager_tree(self):
-        """Focus the Stage Manager tree and press Ctrl+A."""
+    async def _press_ctrl_a_outside_stage_manager(self):
+        """Move from the Stage Manager tree to Properties before pressing Ctrl+A."""
         frame_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/ScrollingFrame[*].name=='TreePanelBackground'"
         frames = [frame for frame in ui_test.find_all(frame_selector) if frame.widget.visible]
         self.assertTrue(frames)
         await frames[-1].click()
+        await ui_test.human_delay()
+        properties_window = ui.Workspace.get_window(_WindowNames.PROPERTIES.value)
+        self.assertIsNotNone(properties_window)
+        self.assertTrue(properties_window.visible)
+        await ui_test.emulate_mouse_move(
+            Vec2(
+                properties_window.position_x + properties_window.width / 2,
+                properties_window.position_y + properties_window.height / 2,
+            )
+        )
         await ui_test.human_delay()
         await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
         await ui_test.human_delay()
@@ -655,11 +671,12 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         await self._input_stage_manager_search("", target_path)
         await self._wait_for_usd_selection([target_path])
 
-    async def test_select_all_with_ctrl_a_without_user_filters_selects_all_mesh_tab_prims(self):
+    async def test_ctrl_a_with_mouse_outside_stage_manager_selects_all_mesh_tab_prims(self):
+        """Select the active tab's published items after the pointer leaves its frame."""
         await self._select_stage_manager_tab("Meshes", "RemixAllMeshesInteractionPlugin")
 
         await self._input_stage_manager_search("", _TARGET_MESH_PATH)
-        await self._press_ctrl_a_in_stage_manager_tree()
+        await self._press_ctrl_a_outside_stage_manager()
 
         await self._wait_for_usd_selection(_MESH_TAB_SELECTION_PATHS)
 
@@ -673,7 +690,7 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
 
         try:
             await self._wait_for_stage_manager_selectable_paths(interaction, _LIGHT_FILTER_SELECTION_PATHS)
-            await self._press_ctrl_a_in_stage_manager_tree()
+            await self._press_ctrl_a_outside_stage_manager()
             await self._wait_for_usd_selection(_LIGHT_FILTER_SELECTION_PATHS)
         finally:
             await self._set_stage_manager_light_filter(interaction, False)
@@ -688,7 +705,7 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
             "definitelynomatchingprimname", _TARGET_MESH_PATH, expected_visible=False
         )
         try:
-            await self._press_ctrl_a_in_stage_manager_tree()
+            await self._press_ctrl_a_outside_stage_manager()
             await self._wait_for_usd_selection([])
         finally:
             await self._input_stage_manager_search("", _TARGET_MESH_PATH)
@@ -706,6 +723,7 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         await search_fields[0].click()
         await ui_test.human_delay()
         await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
+        await ui_test.human_delay()
         await ui_test.emulate_keyboard_press(KeyboardInput.DEL)
         await ui_test.human_delay()
         self.assertEqual("", search_fields[0].widget.model.get_value_as_string())
@@ -716,7 +734,7 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         await self._select_stage_manager_tab("Meshes", "RemixAllMeshesInteractionPlugin")
 
         await self._input_stage_manager_search("", _TARGET_MESH_PATH)
-        await self._press_ctrl_a_in_stage_manager_tree()
+        await self._press_ctrl_a_outside_stage_manager()
         await self._wait_for_usd_selection(_MESH_TAB_SELECTION_PATHS)
 
         await self._select_stage_manager_tab("Lights", "RemixAllLightsInteractionPlugin")

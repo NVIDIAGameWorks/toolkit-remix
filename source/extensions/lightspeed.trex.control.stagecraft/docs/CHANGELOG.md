@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.9]
+### Changed
+- Verify Stage Manager Ctrl+A selection while the pointer is outside its frame.
+
 ## [1.8.8]
 ### Added
 - Added Stage Manager E2E coverage for Ctrl+A selection respecting active tabs, filters, and search-field focus.

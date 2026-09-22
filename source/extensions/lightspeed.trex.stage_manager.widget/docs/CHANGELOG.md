@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.3]
+### Changed
+- Select the active Stage Manager tab's filtered items through the global Ctrl+A shortcut.
+- Added regression coverage for Ctrl+A when the Stage Manager has no core or active interaction.
+
 ## [1.4.2]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.
