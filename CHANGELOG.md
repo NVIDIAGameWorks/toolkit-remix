@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5971: Added Ctrl+A selection for selectable prim rows retained by the active Stage Manager tab and filters, including hierarchy parents and collapsed descendants.
 - REMIX-2698: Added linked Position, Rotation, and Scale XYZ editing that copies X across all axes and keeps subsequent edits synchronized.
 - Added runtime-gated **DLSS 3D-Guided Neural Generation [Experimental]** global controls, including Model A/B/C selection and advanced highlight and volumetric controls, to the viewport Render Settings pane and Edit > Preferences > HdRemix Renderer, plus capability-gated per-material control-mask settings in MDL material properties. Global controls are seeded from each current-schema capture's resolved runtime config without writing those values back, pre-release capture values are reset to the release defaults, and all related UI remains hidden when the feature is unavailable.
+- REMIX-6128: Added app-wide Ctrl+A selection using the active Stage Manager tab and filters, including when the mouse is outside the Stage Manager.
 
 ### Changed
 

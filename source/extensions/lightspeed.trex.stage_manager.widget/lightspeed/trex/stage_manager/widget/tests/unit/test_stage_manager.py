@@ -16,6 +16,7 @@
 """
 
 from types import SimpleNamespace
+from unittest.mock import Mock, call
 
 import omni.kit.app
 import omni.kit.test
@@ -45,6 +46,30 @@ class _Interaction:
 
 
 class TestStageManagerWidget(omni.kit.test.AsyncTestCase):
+    async def test_select_all_hotkey_without_active_interaction_does_not_select(self):
+        """Ignore the select-all shortcut when no active interaction exists."""
+        with self.subTest(title="missing core"):
+            # Arrange
+            widget = Mock(_core=None)
+
+            # Act
+            StageManagerWidget._on_select_all_hotkey(widget)
+
+            # Assert
+            self.assertEqual([], widget.mock_calls)
+
+        with self.subTest(title="no active interaction"):
+            # Arrange
+            core = Mock()
+            core.get_active_interaction.return_value = None
+            widget = Mock(_core=core)
+
+            # Act
+            StageManagerWidget._on_select_all_hotkey(widget)
+
+            # Assert
+            self.assertEqual([call.get_active_interaction()], core.mock_calls)
+
     async def test_show_false_cancels_pending_tab_selection_before_next_frame(self):
         # Arrange
         interaction = _Interaction()

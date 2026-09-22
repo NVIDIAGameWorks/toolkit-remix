@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [7.0.2]
+### Changed
+- Exposed interaction Select All behavior for app shortcuts and removed the tree-local Ctrl+A listener.
+
 ## [7.0.1]
 ### Added
 - Added Ctrl+A selection for selectable prim rows retained by the active Stage Manager tab and user filters,

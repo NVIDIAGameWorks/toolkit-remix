@@ -60,6 +60,7 @@ class HotkeyEvent(enum.Enum):
 class TrexHotkeyEvent(HotkeyEvent):
     """Trex Specific HotkeyEvents"""
 
+    CTRL_A = KeyCombination(carb.input.KeyboardInput.A, modifiers=carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
     # undo
     CTRL_Z = KeyCombination(carb.input.KeyboardInput.Z, modifiers=carb.input.KEYBOARD_MODIFIER_FLAG_CONTROL)
     # redo

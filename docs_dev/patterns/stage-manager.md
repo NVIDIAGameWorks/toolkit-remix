@@ -193,9 +193,10 @@ require another cache.
   The default recursive full-tree count uses the cached total, while explicit items or nonrecursive requests use the
   base traversal over the requested visible proxies. Base construction and projection periodically yield cooperatively
   while checking cancellation so long refreshes do not monopolize the worker.
-- Tree-focused Ctrl+A traverses the published model and selects retained data-backed rows except `RootNode`. Synthetic
-  virtual groups are excluded. This includes hierarchy parents and descendants under collapsed branches. Ctrl+A is not
-  intercepted while the search field has focus.
+- Remix's Stage Manager subscribes to the app-wide Ctrl+A event and invokes the active interaction's existing select-all
+  behavior, regardless of mouse position. Selection traverses the published model and selects retained data-backed rows
+  except `RootNode`. Synthetic virtual groups are excluded; hierarchy parents and descendants under collapsed branches
+  are included. Text fields retain their native Ctrl+A behavior.
 
 ### Selection and framing
 
