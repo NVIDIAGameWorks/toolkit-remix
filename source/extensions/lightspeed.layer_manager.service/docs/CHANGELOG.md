@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.3]
+### Fixed
+- Return layer mute state for REST and MCP readback, using the configured USD context for sublayer queries.
+- Return a clear 422 validation error for sublayer requests when the configured USD context has no open stage.
+
 ## [2.1.2]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

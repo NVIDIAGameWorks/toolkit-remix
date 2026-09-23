@@ -1,6 +1,25 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Changed
+- Changed the preferred port from `8000` to `18014`, with fallback limited to `18014–18019`. Update clients from `http://127.0.0.1:8000/mcp/` to `http://127.0.0.1:18014/mcp/`
+- MCP clients now see a smaller, more relevant tool list. The transport's own health, readiness, status and asyncapi endpoints, the OpenAPI metadata routes and the root-level UI-automation routes are dropped from the tool manifest; every other route is still exposed as a tool
+- Log the complete connection URL at warning level whenever port fallback selects a different endpoint
+- Document the current transports and bundled protocol support without planned upgrade or removal claims
+- Remove duplicated input-parameter prose from MCP tool descriptions while preserving authored guidance, response documentation and input schemas
+- Allow one second for graceful shutdown so an idle server can close without a spurious timeout error
+
+### Added
+- Publish a current-user-only Windows discovery manifest after successful MCP startup, including fallback endpoints, and remove it on clean shutdown without deleting a newer instance's record
+
+### Removed
+- MCP workflow prompts; the server exposes Toolkit operations as tools
+
+### Fixed
+- Reserve MCP listener addresses exclusively on Windows so another Toolkit instance selects a fallback port.
+- Publish loopback connection URLs for wildcard MCP and REST bind addresses.
+
 ## [1.2.7]
 ### Added
 - Added a `transport` setting to select the MCP transport, with the legacy `sse` transport still available.

@@ -84,3 +84,7 @@ include:
     file: 'templates/v3/windows/codesign.gitlab-ci.yml'
   - project: 'omniverse/sectools/vault'
     file: 'templates/v3/windows/nucleus/kit-extensions.ov.nvidia.com/kit-extension-svc.gitlab-ci.yml'
+
+# Skill validation consumes the commit directly, without build or test artifacts.
+.nvcarps-ci:external:
+  needs: []

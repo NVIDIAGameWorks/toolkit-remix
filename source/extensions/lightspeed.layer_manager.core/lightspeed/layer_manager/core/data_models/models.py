@@ -34,6 +34,7 @@ class LayerModel(BaseServiceModel):
 
     layer_id: Path = Field(description="The layer identifier (layer path for non-anonymous layers)")
     layer_type: LayerType | None = Field(default=None, description="The type of layer")
+    muted: bool = Field(default=False, description="Whether the layer is explicitly muted in the current stage")
     children: list["LayerModel"] = Field(default=[], description="The immediate sublayers of the layer")
 
 

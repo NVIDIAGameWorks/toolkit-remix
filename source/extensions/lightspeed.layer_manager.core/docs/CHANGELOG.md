@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.2]
+### Fixed
+- Expose explicit stage mute state in layer tree, type-filtered, and immediate-sublayer responses.
+- Reject layer-membership validation when the requested USD context has no open stage.
+
 ## [3.3.1]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

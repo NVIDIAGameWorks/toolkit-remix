@@ -19,6 +19,7 @@ __all__ = ["MassValidatorService"]
 
 import traceback
 from json import dumps, loads
+from typing import NotRequired, TypedDict
 
 import carb
 import omni.kit.app
@@ -30,6 +31,21 @@ from omni.flux.validator.mass.core.data_models import Executors, MassValidationR
 from omni.flux.validator.mass.queue.core import get_mass_validation_queue_instance
 from omni.flux.validator.mass.queue.core.data_models import UpdateSchemaRequestModel
 from pydantic import ValidationError, create_model
+
+
+class _ValidationSchemaRequest(TypedDict):
+    """Describe the JSON wire format without runtime callbacks or plugin instances."""
+
+    name: str
+    context_plugin: dict
+    check_plugins: list[dict]
+    uuid: NotRequired[str | None]
+    data: NotRequired[dict | None]
+    progress: NotRequired[float]
+    send_request: NotRequired[bool]
+    resultor_plugins: NotRequired[list[dict] | None]
+    validation_passed: NotRequired[bool]
+    finished: NotRequired[tuple[bool, str]]
 
 
 class MassValidatorService(ServiceBase):
@@ -70,7 +86,7 @@ class MassValidatorService(ServiceBase):
             ),
         )
         async def update_schema(
-            body: dict,
+            body: _ValidationSchemaRequest,
             queue_id: str = ServiceBase.describe_query_param(None, "ID to describe which queue should be updated"),
         ) -> str:
             return (

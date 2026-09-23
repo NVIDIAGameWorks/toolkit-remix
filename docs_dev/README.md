@@ -139,3 +139,11 @@ via your PR's comment page.
 | [PyCharm Setup](tools/ide-pycharm.md)        | Python path, run profiles, scope config, and external tools for format/lint.                                         |
 | [Debugging](tools/debugging.md)              | Attaching debuggers to Kit: debugpy (VSCode) and PyCharm Professional. The `break` flag trick for tests.             |
 | [Profiling](tools/profiling.md)              | Performance profiling with Tracy: app-start and on-demand (`F5`).                                                    |
+
+### Agentic Remix
+
+| Page                                                        | Description                                                                                                                                                        |
+|-------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Design Overview](agentic-remix/overview.md)                | The Toolkit's MCP and REST service architecture, current routes, and published modding skill. |
+| [Headless RTX Remix](agentic-remix/headless-remix.md)       | Running the windowless service host: launcher flags, the REST and MCP ports, and its limitations.                                                                   |
+| [Using AI Agents with MCP](../docs/howto/learning-mcp.md) | Client setup, endpoint discovery, and the bundled modding skill. |

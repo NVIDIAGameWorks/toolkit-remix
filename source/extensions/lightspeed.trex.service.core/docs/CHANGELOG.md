@@ -1,6 +1,16 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Added
+- `routes/` package tree — `ingestcraft/` and `stagecraft/{assets,layers,project,textures}/`, each stagecraft area with a co-located `data_models/`. The packages hold no route
+- `agentic_enabled` setting (default `false`) gating registration of `ROUTE_SERVICES` with the service factory
+
+### Changed
+- `CoreService` skips a configured service the factory does not hold, with an error log, instead of instantiating `None` and failing startup
+- Documented the extension's role, settings and routes architecture in `docs/README.md`
+- Clarified that the empty route registry adds no endpoints and existing services are independent of its registration setting
+
 ## [1.2.3]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

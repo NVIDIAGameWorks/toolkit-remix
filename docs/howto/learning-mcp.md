@@ -33,12 +33,22 @@ When the RTX Remix Toolkit starts, the MCP server automatically begins running w
 
 - **Protocol**: Streamable HTTP
 - **Host**: `127.0.0.1` or `localhost`
-- **Port**: `8000`
-- **Endpoint**: `http://127.0.0.1:8000/mcp`
+- **Preferred port**: `18014`
+- **Endpoint**: `http://127.0.0.1:18014/mcp/`
+
+On Windows, read `mcp_endpoint` from `%LOCALAPPDATA%\NVIDIA\RTX Remix\mcp.json` for the
+running server's address, including fallback ports. Check that its `pid` is still running and
+confirm readiness before connecting; a crash can leave a stale file. See the
+[discovery manifest details](../../source/extensions/lightspeed.trex.mcp.core/docs/README.md#discovery-manifest).
+
+If the port is occupied, the Toolkit tries the remaining ports through `18019` in order. If all
+six ports are unavailable, MCP startup logs an error and stops. Find `MCP_PORT_FALLBACK` in
+the Toolkit log and use its `endpoint=` URL in your client configuration. Wait for
+`SERVICE_READY service=mcp` with the matching host and port before connecting. Client settings
+do not update automatically when the port changes.
 
 Clients that cannot yet connect over Streamable HTTP can fall back to the protocol's legacy SSE transport by
-setting `/exts/lightspeed.trex.mcp.core/transport` to `sse`, which serves `http://127.0.0.1:8000/sse` instead.
-That transport is deprecated and will be removed in a future release.
+setting `/exts/lightspeed.trex.mcp.core/transport` to `sse`, which serves `http://127.0.0.1:18014/sse` instead.
 
 ***
 
@@ -92,11 +102,22 @@ usage and common issue resolution.
 
 ### Using MCP-Compatible Clients
 
-Many AI frameworks now support MCP. To connect them:
+Any MCP-compatible client can connect to the Toolkit. To connect:
 
-1) Configure the client with the SSE endpoint URL
+1) Configure the client for Streamable HTTP at `http://127.0.0.1:18014/mcp/`, or the fallback endpoint from the Toolkit log
 2) Ensure the RTX Remix Toolkit is running
 3) The client will automatically discover available tools through the MCP protocol
+
+***
+
+## Bundled modding skill
+
+The Toolkit includes the `rtx-remix-modding` skill and its reference files. Start your coding
+agent from the Toolkit installation directory, or open that directory as its workspace, to use
+its bundled skill discovery files. The skill's instructions are in `skills/rtx-remix-modding/SKILL.md`.
+
+[Connect the agent to MCP](#connecting-ai-agents-to-mcp) separately; loading the skill does not
+establish a connection to the Toolkit.
 
 ***
 
@@ -106,9 +127,8 @@ The RTX Remix MCP server operates as follows:
 
 1. **Automatic Startup**: The MCP server starts automatically when launching the RTX Remix Toolkit
 2. **REST API Translation**: It translates the Toolkit's REST API endpoints into MCP-compatible tools
-3. **Server-Sent Events (SSE)**: Uses SSE streams for real-time communication with AI agents
+3. **Streamable HTTP**: Carries MCP requests and responses between clients and the Toolkit
 4. **Tool Definitions**: Provides structured descriptions of available actions that LLMs can understand
-5. **MCP Prompts**: Defines reusable prompt recipes that guide agents through complex workflows
 
 ```{seealso}
 See the [REST API Documentation](./learning-restapi.md) for more information on the RTX Remix Toolkit's REST API.
@@ -118,40 +138,7 @@ See the [REST API Documentation](./learning-restapi.md) for more information on 
 
 ![MCP Architecture Diagram](../data/images/remix-mcp-architecture-diagram.png)
 
-***
-
-## Building Complex Workflows
-
-MCP **Prompts** are predefined recipe templates that guide AI agents through multi-step workflows. These prompts provide
-structured instructions to the agent's system context, specifying the exact sequence of operations and parameters needed
-to accomplish complex tasks.
-
-### How MCP Prompts Work
-
-MCP Prompts act as intelligent workflow templates that:
-
-- Define step-by-step procedures for common tasks
-- Specify which tools to use and in what order
-- Include parameter guidance for each operation
-- Handle conditional logic and error scenarios
-
-### Example: Asset Replacement Workflow
-
-When asking an agent to "replace the selected asset in the viewport," the MCP Prompt guides the agent through:
-
-1. **Get Current Selection**: Query the viewport to identify the currently selected asset
-2. **Retrieve Available Assets**: List all ingested assets that could serve as replacements
-3. **Perform Replacement**: Execute the replacement operation with the appropriate parameters
-
-The prompt ensures the agent uses the correct API endpoints, passes the right arguments, and handles the response
-appropriately.
-
-### Benefits of MCP Prompts
-
-- **Consistency**: Ensures agents follow best practices for common workflows
-- **Efficiency**: Reduces the need for lengthy natural language explanations
-- **Reliability**: Minimizes errors by providing explicit parameter specifications
-- **Reusability**: Allows sharing of workflow patterns across different AI agents
+The diagram labels the legacy SSE transport; the default transport is Streamable HTTP.
 
 ***
 
@@ -174,11 +161,11 @@ The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) is the re
     - Choose "Add Servers", then "Add manually"
     - Server ID: any name, for example `rtx-remix`
     - Transport: `streamable-http`
-    - URL: `http://127.0.0.1:8000/mcp`
+    - URL: `http://127.0.0.1:18014/mcp/` (use the logged endpoint if the preferred port is occupied)
     - Click "Add"
 5) Turn on the new server's Connect toggle. Once connected, the card reports the negotiated protocol
    revision.
-6) Use the Tools, Prompts, and Resources tabs to explore and invoke, and the Messages pane to inspect the
+6) Use the Tools tab to explore and invoke Toolkit operations, and the Messages pane to inspect the
    request and response traffic
 
 ***

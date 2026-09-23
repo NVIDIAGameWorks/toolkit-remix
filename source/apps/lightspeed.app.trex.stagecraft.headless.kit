@@ -1,0 +1,169 @@
+[package]
+version = "1.6.0-dev"
+category = "Application"
+title = "NVIDIA RTX Remix StageCraft Headless"
+description = "Long-lived headless RTX Remix process bound to MCP and REST. Boots without a window and holds the service stack alive for MCP clients and HTTP scripts."
+authors = ["Scott Fitzpatrick <scfitzpatric@nvidia.com>"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
+keywords = ["lightspeed", "rtx", "remix", "app", "stagecraft", "headless", "mcp"]
+readme = """
+# NVIDIA RTX Remix StageCraft Headless
+
+RTX Remix app that boots with no editor window and holds the MCP/REST servers alive.
+It inherits the base app's dependencies and excludes selected setup, splash and event extensions.
+External clients drive USD operations through the service stack.
+
+The endpoints reachable over MCP/REST are whatever `lightspeed.trex.service.core` mounts —
+the StageCraft and IngestCraft service routers.
+
+See `docs_dev/agentic-remix/`.
+"""
+
+[dependencies]
+# GUI-only pieces inherited from base are excluded below; lightspeed.trex.app.setup at the
+# launcher (see lightspeed.app.trex.stagecraft.headless.bat). MCP is also a direct dependency
+# so this app explicitly requests its service endpoint.
+"lightspeed.app.trex.base" = {}
+"lightspeed.trex.mcp.core" = {}
+
+# Schemas before HDRemix — matches stagecraft.kit pattern for ordering with pip_archive
+"lightspeed.trex.schemas" = { order = -9999 }
+
+# Core dependencies available to the service stack.
+"lightspeed.trex.stage.core.shared" = {}
+"lightspeed.trex.material.core.shared" = {}
+"lightspeed.trex.replacement.core.shared" = {}
+"lightspeed.trex.capture.core.shared" = {}
+"lightspeed.trex.packaging.core" = {}
+"lightspeed.trex.project_wizard.core" = {}
+"omni.flux.custom_tags.core" = {}
+
+# Stage manager — logic flavors only (no .widget / .window / column delegates)
+"omni.flux.stage_manager.core" = {}
+"omni.flux.stage_manager.factory" = {}
+"omni.flux.stage_manager.plugin.context.usd" = {}
+"omni.flux.stage_manager.plugin.filter.usd" = {}
+"omni.flux.stage_manager.plugin.listener.usd" = {}
+"omni.flux.stage_manager.plugin.tree.usd" = {}
+"omni.flux.stage_manager.plugin.interaction.usd" = {}
+
+# Headless-safe events — notification- and viewport-coupled ones are excluded below.
+# `lightspeed.event.autosave` is deliberately absent: it is driven by a GUI-modal prompt, so this
+# app performs no auto-save at all and clients save explicitly through the service stack.
+"lightspeed.event.events" = {}
+"lightspeed.event.app_start" = {}
+"lightspeed.event.app_shutdown" = {}
+"lightspeed.event.camera_light" = {}
+"lightspeed.event.capture_persp_to_persp" = {}
+"lightspeed.event.context_change" = {}
+"lightspeed.event.load_edit_target" = {}
+"lightspeed.event.save_recent" = {}
+"lightspeed.event.save_root_mod" = {}
+"lightspeed.event.save_global_muteness" = {}
+"lightspeed.event.copy_ref_to_override" = {}
+
+[settings]
+"@import@" = [
+    "./lightspeed.app.trex.app.settings.toml",
+    "./lightspeed.app.rendering.settings.toml",
+]
+
+# Basic Kit App
+################################
+app.name = "RTX Remix StageCraft Headless"
+
+[settings.app.window]
+title = "NVIDIA RTX Remix StageCraft Headless"
+
+# Every REST route here is unauthenticated, so loopback is the whole security model — don't leave it
+# to another extension's 0.0.0.0 default. The port comes from app.settings.toml; restating it here
+# would be silently ignored, since an @import@ overrides the .kit's own [settings.*] blocks.
+[settings.exts."omni.services.transport.server.http"]
+host = "127.0.0.1"
+
+# Prefer MCP 18014 with fallback within 18014-18019 in both hosts so another
+# Toolkit instance does not prevent startup; MCP_PORT_FALLBACK logs the replacement endpoint.
+[settings.exts."lightspeed.trex.mcp.core"]
+host = "127.0.0.1"
+port = 18014
+allow_port_range = true
+
+# base.kit pulls lightspeed.dependencies, which loads omni.kit.splash as a deferred_dependency at
+# runtime via loadExtension(). That bypasses both [settings.app.exts] excluded and
+# --/app/extensions/excluded/N=, so overriding the deferred list is the only way to suppress it.
+[settings.exts."lightspeed.dependencies"]
+deferred_dependencies = []
+
+# Default empty stagecraft context for the events that need it (matches stagecraft.kit)
+[settings.exts."lightspeed.event.capture_persp_to_persp"]
+context = ""
+
+[settings.exts."lightspeed.event.load_edit_target"]
+context = ""
+
+[settings.exts."lightspeed.event.save_global_muteness"]
+context = ""
+
+[settings.exts."lightspeed.event.save_recent"]
+context = ""
+
+[settings.exts."lightspeed.event.save_root_mod"]
+context = ""
+
+# Settings-level exclusions — GUI/notification/viewport pieces pulled in transitively.
+# KNOWN TRAP: `repo_precache_exts` appends a second `[settings.app.exts]` at the end of this file.
+# Kit merges the two and the exclusions below do take effect, but `tomllib` rejects the file. No
+# header form fixes it: `app.name` above already pins `settings.app` as a dotted-key table, so
+# `[settings.app]` is equally illegal.
+[settings.app.exts]
+excluded = [
+    # Transitive deps, not parent-.kit `[dependencies]` — which is what makes them excludable
+    # here. A boot log confirms none of them start.
+    "lightspeed.event.generate_thumbnail",
+    "lightspeed.event.layers_cleanup",
+    "lightspeed.event.switch_to_replacement",
+    "lightspeed.event.validate_project",
+]
+
+# `lightspeed.hydra.remix.core` and `omni.kit.window.title` cannot be excluded here: they are
+# direct `[dependencies]` of base, and this mechanism only reaches transitive ones — the same
+# reason `lightspeed.trex.app.setup` goes on the launcher instead. These remain inherited dependencies.
+
+[[test]]
+name = "startup"
+
+dependencies = [
+    "lightspeed.trex.tests.settings",
+]
+
+stdoutFailPatterns.exclude = [
+    # lightspeed.dependencies tries to import omni.kit.splash; the error is still printed
+    # even though the splash is excluded by design in headless mode.
+    "*[omni.ext.plugin] Failed to resolve extension dependencies.*",
+]
+
+
+########################################################################################################################
+# BEGIN GENERATED PART (Remove from 'BEGIN' to 'END' to regenerate)
+########################################################################################################################
+
+# Kit SDK Version: 110.1.1+production.305458.6312fa25.gl
+
+# Version lock for all dependencies:
+[settings.app.exts]
+enabled = [
+	"omni.kit.asset_converter-6.0.1",
+	"omni.kit.browser.asset-1.3.16",
+	"omni.kit.browser.core-2.3.18",
+	"omni.kit.browser.folder.core-2.0.3",
+	"omni.kit.core.collection-0.2.4",
+	"omni.kit.widget.zoombar-1.0.7",
+	"omni.services.core-1.11.3",
+	"omni.services.facilities.base-1.0.5",
+	"omni.services.transport.server.base-1.1.2",
+	"omni.services.transport.server.http-1.3.2",
+]
+
+########################################################################################################################
+# END GENERATED PART
+########################################################################################################################

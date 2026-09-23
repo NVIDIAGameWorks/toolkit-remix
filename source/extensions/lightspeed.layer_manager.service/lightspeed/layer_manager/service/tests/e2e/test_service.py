@@ -70,19 +70,23 @@ class TestLayerManagerService(AsyncTestCase):
                         {
                             "layer_id": str(project_dir / "combined.usda"),
                             "layer_type": "workfile",
+                            "muted": False,
                             "children": [
                                 {
                                     "layer_id": str(project_dir / "replacements.usda"),
                                     "layer_type": "replacement",
+                                    "muted": False,
                                     "children": [
                                         {
                                             "layer_id": str(project_dir / "transfer_workflow_target.usda"),
                                             "layer_type": None,
+                                            "muted": False,
                                             "children": [],
                                         },
                                         {
                                             "layer_id": str(project_dir / "transfer_workflow_particle_overrides.usda"),
                                             "layer_type": None,
+                                            "muted": False,
                                             "children": [],
                                         },
                                         {
@@ -90,6 +94,7 @@ class TestLayerManagerService(AsyncTestCase):
                                                 project_dir / "transfer_workflow_second_particle_overrides.usda"
                                             ),
                                             "layer_type": None,
+                                            "muted": False,
                                             "children": [],
                                         },
                                     ],
@@ -97,6 +102,7 @@ class TestLayerManagerService(AsyncTestCase):
                                 {
                                     "layer_id": str(project_dir / "deps" / "captures" / "capture.usda"),
                                     "layer_type": "capture",
+                                    "muted": False,
                                     "children": [],
                                 },
                             ],
@@ -122,11 +128,13 @@ class TestLayerManagerService(AsyncTestCase):
                     {
                         "layer_id": str(project_dir / "combined.usda"),
                         "layer_type": "workfile",
+                        "muted": False,
                         "children": [],
                     },
                     {
                         "layer_id": str(project_dir / "replacements.usda"),
                         "layer_type": "replacement",
+                        "muted": False,
                         "children": [],
                     },
                 ]
@@ -149,6 +157,7 @@ class TestLayerManagerService(AsyncTestCase):
                         {
                             "layer_id": str(project_dir / "combined.usda"),
                             "layer_type": "workfile",
+                            "muted": False,
                             "children": [],
                         }
                     ]
@@ -173,17 +182,98 @@ class TestLayerManagerService(AsyncTestCase):
                         {
                             "layer_id": str(project_dir / "replacements.usda"),
                             "layer_type": "replacement",
+                            "muted": False,
                             "children": [],
                         },
                         {
                             "layer_id": str(project_dir / "deps" / "captures" / "capture.usda"),
                             "layer_type": "capture",
+                            "muted": False,
                             "children": [],
                         },
                     ],
                 }
             ).lower(),
         )
+
+    async def test_get_sublayers_no_stage_in_named_context_returns_422(self):
+        """Reject a sublayer request when only another USD context has an open stage."""
+        # Arrange
+        context_name = "layer_manager_no_stage"
+        context = omni.usd.create_context(context_name)
+        self.addCleanup(omni.usd.destroy_context, context_name)
+        service = get_service_factory_instance().get_plugin_from_name("LayerManagerService")(context_name=context_name)
+        prefix = "/no-stage/layers"
+        main.register_router(router=service.router, prefix=prefix)
+        self.addCleanup(main.deregister_router, router=service.router, prefix=prefix)
+        project_layer = Path(self.project_path).as_posix().replace("/", "%2F")
+        self.assertIsNone(context.get_stage())
+        self.assertIsNotNone(self.context.get_stage())
+
+        # Act
+        response = await send_request("GET", f"{prefix}/{project_layer}/sublayers", raw_response=True)
+
+        # Assert
+        self.assertEqual(response.status_code, 422, msg=response.text)
+        self.assertIn("No stage is open", response.text)
+
+    async def test_mute_layer_named_context_listings_report_mute_and_unmute(self):
+        """Read back explicit layer mute state through every listing in the service's USD context."""
+        context_name = "layer_manager_mute_readback"
+        context = omni.usd.create_context(context_name)
+        self.addCleanup(omni.usd.destroy_context, context_name)
+        service = get_service_factory_instance().get_plugin_from_name("LayerManagerService")(context_name=context_name)
+        prefix = "/mute-readback/layers"
+        main.register_router(router=service.router, prefix=prefix)
+        self.addCleanup(main.deregister_router, router=service.router, prefix=prefix)
+
+        project_dir = Path(get_test_data("usd/project_example"))
+        replacement_path = project_dir / "replacements.usda"
+        project_layer = (project_dir / "combined.usda").as_posix().replace("/", "%2F")
+        replacement_layer = replacement_path.as_posix().replace("/", "%2F")
+        expected_children = {
+            "transfer_workflow_target.usda",
+            "transfer_workflow_particle_overrides.usda",
+            "transfer_workflow_second_particle_overrides.usda",
+        }
+
+        try:
+            await context.open_stage_async(self.project_path)
+            for muted in (True, False):
+                with self.subTest(title=f"muted={muted}"):
+                    response = await send_request(
+                        "PUT", f"{prefix}/{replacement_layer}/mute", json={"value": muted}, raw_response=True
+                    )
+                    self.assertEqual(response.status_code, 200, msg=response.json())
+
+                    response = await send_request("GET", f"{prefix}/")
+                    replacement = response["layers"][0]["children"][0]
+                    self.assertEqual(Path(replacement["layer_id"]), replacement_path)
+                    self.assertEqual(replacement["muted"], muted)
+                    self.assertEqual(
+                        {Path(child["layer_id"]).name for child in replacement["children"]}, expected_children
+                    )
+                    self.assertTrue(all(child["muted"] is False for child in replacement["children"]))
+
+                    response = await send_request("GET", f"{prefix}/?layer_types=replacement")
+                    self.assertEqual(len(response["layers"]), 1)
+                    self.assertEqual(Path(response["layers"][0]["layer_id"]), replacement_path)
+                    self.assertEqual(response["layers"][0]["muted"], muted)
+
+                    response = await send_request("GET", f"{prefix}/{project_layer}/sublayers")
+                    self.assertEqual(Path(response["layers"][0]["layer_id"]), replacement_path)
+                    self.assertEqual(response["layers"][0]["muted"], muted)
+
+                    response = await send_request("GET", f"{prefix}/{replacement_layer}/sublayers")
+                    self.assertEqual({Path(child["layer_id"]).name for child in response["layers"]}, expected_children)
+                    self.assertTrue(all(child["muted"] is False for child in response["layers"]))
+
+                    # The same layers in the default stage must retain their independent mute state.
+                    response = await send_request("GET", f"{self.service.prefix}/?layer_types=replacement")
+                    self.assertIs(response["layers"][0]["muted"], False)
+        finally:
+            if context.can_close_stage():
+                await context.close_stage_async()
 
     async def test_get_layer_types_returns_expected_layer_types(self):
         # Arrange

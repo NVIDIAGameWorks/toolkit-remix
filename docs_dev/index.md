@@ -18,4 +18,5 @@ code-quality/index
 patterns/index
 tools/index
 api-reference/index
+agentic-remix/index
 ```
