@@ -7,5 +7,8 @@ url = "http://kit-dev-mcp.nvidia.com/mcp"
 [mcp_servers.omni-ui-mcp]
 url = "http://omni-ui-mcp.nvidia.com/mcp"
 
+[mcp_servers.remix]
+url = "http://127.0.0.1:18014/mcp/"
+
 [mcp_servers.usd-code-mcp]
 url = "http://usd-code-mcp.nvidia.com/mcp"

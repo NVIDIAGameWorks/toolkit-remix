@@ -114,12 +114,18 @@ class LayerManagerCore:
         self.__context.close_stage()
 
     def get_layer_stack_with_data_models(self, query: GetLayersQueryModel) -> LayerStackResponseModel:
+        stage = self.__context.get_stage()
         if query.layer_types is not None:
             layers_dict = {}
             for layer_type in query.layer_types:
                 layers_dict[layer_type] = self.get_layers_of_type(layer_type, max_results=query.layer_count)
             layer_models = [
-                LayerModel(layer_id=layer.identifier, layer_type=layer_type, children=[])
+                LayerModel(
+                    layer_id=layer.identifier,
+                    layer_type=layer_type,
+                    muted=stage.IsLayerMuted(layer.identifier),
+                    children=[],
+                )
                 for layer_type, layers in layers_dict.items()
                 for layer in layers
             ]
@@ -134,18 +140,24 @@ class LayerManagerCore:
                 for sublayer_path in layer.subLayerPaths
                 if (sublayer := Sdf.Layer.FindOrOpenRelativeToLayer(layer, sublayer_path))
             ]
-            return LayerModel(layer_id=layer.identifier, layer_type=layer_type, children=children)
+            return LayerModel(
+                layer_id=layer.identifier,
+                layer_type=layer_type,
+                muted=stage.IsLayerMuted(layer.identifier),
+                children=children,
+            )
 
-        return LayerStackResponseModel(layers=[get_layer_info(self.__context.get_stage().GetRootLayer())])
+        return LayerStackResponseModel(layers=[get_layer_info(stage.GetRootLayer())])
 
     @staticmethod
     def get_sublayers_with_data_models(
-        params: GetLayerPathParamModel, query: GetLayersQueryModel
+        params: GetLayerPathParamModel, query: GetLayersQueryModel, context_name: str = ""
     ) -> LayerStackResponseModel:
         layer = Sdf.Layer.FindOrOpen(str(params.layer_id))
         if not layer:
             raise ValueError("The layer cannot be opened.")
 
+        stage = omni.usd.get_context(context_name).get_stage()
         children = []
         for sublayer_path in layer.subLayerPaths:
             sublayer = Sdf.Layer.FindOrOpenRelativeToLayer(layer, sublayer_path)
@@ -156,7 +168,14 @@ class LayerManagerCore:
                 sublayer_type = LayerType(sublayer_type)
             if query.layer_types and sublayer_type not in query.layer_types:
                 continue
-            children.append(LayerModel(layer_id=sublayer.identifier, layer_type=sublayer_type, children=[]))
+            children.append(
+                LayerModel(
+                    layer_id=sublayer.identifier,
+                    layer_type=sublayer_type,
+                    muted=stage.IsLayerMuted(sublayer.identifier),
+                    children=[],
+                )
+            )
 
         return LayerStackResponseModel(layers=children)
 

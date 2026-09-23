@@ -11,6 +11,10 @@
         "kit-dev-mcp": {
             "type": "http",
             "url": "http://kit-dev-mcp.nvidia.com/mcp"
+        },
+        "remix": {
+            "type": "http",
+            "url": "http://127.0.0.1:18014/mcp/"
         }
     }
 }

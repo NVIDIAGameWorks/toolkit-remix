@@ -31,10 +31,15 @@ repo_build.prebuild_copy {
 
 repo_build.prebuild_link {
     { "${root}/tools/migrations", bin_dir.."/tools/migrations" },
+    -- Preserve the canonical path used by Claude's skill shim and shared agent discovery.
+    { "${root}/skills", bin_dir.."/skills" },
+    { "${root}/skills", bin_dir.."/.agents/skills" },
+    { "${root}/.claude/skills/rtx-remix-modding", bin_dir.."/.claude/skills/rtx-remix-modding" },
 }
 
 define_app("lightspeed.app.trex")
 define_app("lightspeed.app.trex.full")
 define_app("lightspeed.app.trex.ingestcraft")
 define_app("lightspeed.app.trex.stagecraft")
+define_app("lightspeed.app.trex.stagecraft.headless")
 define_app("lightspeed.app.trex_dev")

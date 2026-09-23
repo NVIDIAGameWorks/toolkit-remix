@@ -15,7 +15,16 @@
 * limitations under the License.
 """
 
+from .unit.test_discovery import TestMCPDiscovery
 from .unit.test_extension import TestMCPCoreExtension
 from .unit.test_mcp import TestMCPCore
+from .e2e.test_manifest import TestMCPManifest
+from .unit.test_route_maps import TestCuratedRouteMaps
 
-__all__ = ["TestMCPCore", "TestMCPCoreExtension"]
+__all__ = [
+    "TestCuratedRouteMaps",
+    "TestMCPCore",
+    "TestMCPCoreExtension",
+    "TestMCPDiscovery",
+    "TestMCPManifest",
+]

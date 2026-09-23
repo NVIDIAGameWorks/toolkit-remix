@@ -9,7 +9,7 @@
 | `.agents/context/` | Project facts: overview, architecture, resources |
 | `.agents/rules/` | Agent behavior rules |
 | `.agents/commands/` | Multi-step workflows |
-| `.agents/skills/*/SKILL.md` | Shared skill wrappers, direct `@.agents/...` refs |
+| `.agents/skills/*/SKILL.md` | Shared skill wrappers, direct `@` refs to the canonical file |
 | `.agents/subagents/` | Canonical specialist role prompts |
 | `.agents/hooks/` | Portable hook targets only |
 | `.agents/scripts/` | Portable helper launchers; not hooks |
@@ -38,7 +38,10 @@ Python globs: `code-style`, `code-comments`, `license`, `engineering-standards`,
 ### Skills
 
 On-demand rules/commands -> `.agents/skills/*/SKILL.md`. Pi/Codex/Cursor use shared skills. Claude needs matching
-`.claude/skills/*/SKILL.md` wrappers. Skill body = direct `@.agents/...` ref, not prose path instruction. `AGENTS.md`
+`.claude/skills/*/SKILL.md` wrappers. Skill body = direct `@` ref to the canonical file, not prose path
+instruction. Canonical is usually `.agents/`; a skill published outward lives at `skills/<name>/SKILL.md`
+and the wrapper points there, repeating the description because that is what decides whether a harness
+loads it. `AGENTS.md`
 requires clients without native `@` expansion to read those references recursively. Keep auto model invocation on
 unless safety reason documented.
 

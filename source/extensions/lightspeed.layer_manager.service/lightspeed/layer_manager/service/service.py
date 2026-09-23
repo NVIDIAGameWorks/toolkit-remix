@@ -105,6 +105,7 @@ class LayerManagerService(ServiceBase):
                 return LayerManagerCore.get_sublayers_with_data_models(
                     layer_id,
                     GetLayersQueryModel(layer_types=self.__get_layer_types(layer_types)),
+                    context_name=context_name,
                 )
             except ValueError as e:
                 ServiceBase.raise_error(422, e)

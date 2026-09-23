@@ -320,6 +320,8 @@ files_exclude = [
     ["data/**"],
     ["logs/**"],
     ["apps/kit.portable"],
+    [".agents/skills/*/evals/results/**"],
+    ["skills/*/evals/results/**"],
 ]
 
 # package content
@@ -463,6 +465,7 @@ apps = [
     "${root}/source/apps/lightspeed.app.trex.kit",
     "${root}/source/apps/lightspeed.app.trex.full.kit",
     "${root}/source/apps/lightspeed.app.trex.stagecraft.kit",
+    "${root}/source/apps/lightspeed.app.trex.stagecraft.headless.kit",
     "${root}/source/apps/lightspeed.app.trex.validation_cli.kit",
     "${root}/source/apps/lightspeed.app.trex.validation_cli_generator.kit",
     "${root}/source/apps/lightspeed.app.trex_dev.kit",
@@ -708,6 +711,7 @@ sphinx_exclude_patterns = [
     # AI agent configuration — not documentation
     ####################################################################################################################
     ".agents",
+    "skills",
     ".pi",
     ".omp",
     ".claude",

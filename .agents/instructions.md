@@ -36,3 +36,4 @@ Shared skills live in `.agents/skills/`; key automatic skills: `completion-gates
 - `.agents/rules/extension-docs.md` - extension README required sections/template
 - `.agents/rules/documentation.md` - doc placement/update rules
 - `.agents/rules/agent-config.md` - multi-agent config maintenance
+- `.agents/rules/agent-skill-rules.md` - editing the behavioural rules in the published skill

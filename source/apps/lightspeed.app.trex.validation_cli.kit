@@ -1,5 +1,5 @@
 [package]
-version = "1.5.2-0"
+version = "1.6.0-dev"
 category = "Application"
 title = "NVIDIA RTX Remix IngestCraft CLI"
 description = "Experience used by the Mass Ingestion CLI. It defines everything we need for Lightspeed (materials, etc)"
@@ -20,9 +20,6 @@ A tool to ingest asset(s) for RTX Remix
 "omni.flux.validator.plugin.context.usd_stage" = { order = -10 } # to always start before the manager
 "omni.flux.validator.plugin.resultor.file" = { order = -10 } # to always start before the manager
 "omni.flux.validator.plugin.selector.usd" = { order = -10 } # to always start before the manager
-
-# in batch mode, we need an hydra engine to be loaded or load_mdl_parameters_for_prim_async will not work
-"omni.hydra.pxr" = {}
 
 [settings]
 "@import@" = [

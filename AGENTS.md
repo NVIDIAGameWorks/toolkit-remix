@@ -26,7 +26,7 @@ Skills in `.agents/skills/`:
 `add-pip-dep`, `agent-config`, `bump-exts-changelog`, `commit`, `completion-gates`, `create-branch`,
 `create-extension`, `crash-debug`, `debug-extension-load`, `documentation`, `extension-docs`, `kit-test`,
 `memory-promotion`, `prepare-mr`, `remix-review`, `remix-review-follow-up`, `remix-review-post-threads`,
-`remove-extension`.
+`remove-extension`, `rtx-remix-modding`.
 
 Auto-use `completion-gates` before done. Auto-use `memory-promotion` when durable project knowledge appears.
 

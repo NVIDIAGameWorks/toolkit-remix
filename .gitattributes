@@ -25,3 +25,10 @@
 # Documentation videos and zips
 docs/data/videos/** filter=lfs diff=lfs merge=lfs -text
 docs/data/zips/** filter=lfs diff=lfs merge=lfs -text
+
+# Written back by the NVCARPS skill validation pipeline under its service account. Collapsed in
+# merge request diffs so review lands on the skill, not on its validation output. Everything else
+# under skills/ is hand-written and is what review should land on.
+skills/*/BENCHMARK.md gitlab-generated
+skills/*/skill-card.md gitlab-generated
+skills/*/skill.oms.sig gitlab-generated

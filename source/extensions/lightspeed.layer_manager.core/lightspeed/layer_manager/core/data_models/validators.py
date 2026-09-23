@@ -58,8 +58,8 @@ class LayerManagerValidators:
         Pydantic models make the layer optional; type enforcement is done at the
         model level).
 
-        Raises ValueError if the layer cannot be opened or is not found in the
-        stage's recursive sublayer hierarchy.
+        Raises ValueError if no stage is open, the layer cannot be opened, or the layer
+        is not found in the stage's recursive sublayer hierarchy.
 
         Returns:
             The unchanged ``layer_id`` on success (Pydantic field_validator contract).
@@ -77,7 +77,10 @@ class LayerManagerValidators:
             raise ValueError(f"The layer does not exist: {layer_id}")
 
         # Make sure the layer is in the currently opened project
-        root_layer = omni.usd.get_context(context_name).get_stage().GetRootLayer()
+        stage = omni.usd.get_context(context_name).get_stage()
+        if stage is None:
+            raise ValueError("No stage is open in the requested USD context. Open a project in the Remix Toolkit.")
+        root_layer = stage.GetRootLayer()
         layer_identifiers = [layer.identifier for layer in LayerManagerValidators.iter_sublayer_tree(root_layer)]
         if layer.identifier not in layer_identifiers:
             raise ValueError(f"The layer is not present in the loaded project's layer stack: {layer_id}")

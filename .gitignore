@@ -173,3 +173,9 @@ docs/plans/**
 
 # Ignore Pi dependencies
 .pi/npm/
+
+# Skill Evaluator report output (skillevaluator validate --output-dir, default reports/).
+reports/
+
+# Skill Evaluator Tier 3 run output.
+skills/rtx-remix-modding/evals/results/

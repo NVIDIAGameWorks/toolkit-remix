@@ -16,9 +16,10 @@ emptyStageOnStart = true
 registryEnabled = true
 
 [exts."omni.services.transport.server.http"]
-# Let the Kit HTTP service auto-select a free port in its allowed range when the default
-# port is already occupied. This prevents startup from aborting with SystemExit during launch.
-port = 0
+# The transport extension's own default, restated so REST clients have a preferred address.
+# Falling back when it is busy is `allow_port_range`, left on; port 0 would not fall
+# back to 8011, it would skip 8011 and start somewhere random every launch.
+port = 8011
 
 [exts."omni.flux.telemetry.core".sentry_event_filter]
 enabled = true
