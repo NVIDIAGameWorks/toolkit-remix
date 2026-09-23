@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-6016: Improved Project Wizard capture discovery and capture activation.
 - Tightened test review scope to require evidence that the MR introduced or worsened each reported issue, excluding unrelated pre-existing test debt.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-5fcc864-main`
+- Update Remix target dependencies: hdremix and omni_core_materials to `ext-996fe27-main`
 
 ### Removed
 
