@@ -19,7 +19,7 @@ import asyncio
 import importlib
 import sys
 from types import SimpleNamespace
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import omni.kit.test
 
@@ -54,12 +54,13 @@ class TestIngestCraftLoader(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertNotIn(_INGEST_SETUP_MODULE, sys.modules)
 
-    async def test_ensure_ingestcraft_loaded_already_ready_returns_without_enabling_extensions(self) -> None:
-        """Avoid enabling runtime extensions when IngestCraft is already ready."""
+    async def test_ensure_ingestcraft_loaded_already_ready_does_not_preflight_or_enable_extensions(self) -> None:
+        """Keep package validation and extension enabling out of the ready-stage path."""
         # Arrange
         app, manager, context = _make_runtime(stage=MagicMock())
 
         with (
+            patch.object(importlib, "import_module", side_effect=AssertionError("unexpected package preflight")),
             patch.object(_loader.omni.kit.app, "get_app", return_value=app),
             patch.object(_loader.omni.usd, "get_context", return_value=context),
         ):
@@ -90,6 +91,32 @@ class TestIngestCraftLoader(omni.kit.test.AsyncTestCase):
                 call("lightspeed.trex.control.ingestcraft", True),
             ]
         )
+
+    async def test_ensure_ingestcraft_loaded_when_context_is_created_on_next_update_returns_true(self) -> None:
+        """Wait for deferred extension startup to create the IngestCraft context."""
+        # Arrange
+        app, _, context = _make_runtime(stage=MagicMock(), enabled=False)
+        context_ready = False
+
+        async def publish_context():
+            """Publish the context only after the simulated application update."""
+            nonlocal context_ready
+            context_ready = True
+
+        app.next_update_async = AsyncMock(side_effect=publish_context)
+
+        with (
+            patch.object(_loader.omni.kit.app, "get_app", return_value=app),
+            patch.object(
+                _loader.omni.usd, "get_context", side_effect=lambda *_args: context if context_ready else None
+            ),
+        ):
+            # Act
+            result = await _loader.ensure_ingestcraft_loaded(timeout_seconds=0.01)
+
+        # Assert
+        self.assertTrue(result)
+        app.next_update_async.assert_awaited_once()
 
     async def test_ensure_ingestcraft_loaded_when_stage_opened_event_fires_returns_true(self) -> None:
         """Return success when the IngestCraft context publishes its opened event."""

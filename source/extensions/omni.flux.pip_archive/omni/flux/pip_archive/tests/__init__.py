@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .e2e.test_pip_archive import TestPipArchiveE2E
 from .unit.test_pip_archive import TestPipArchive
 
-__all__ = ["TestPipArchive"]
+__all__ = ["TestPipArchive", "TestPipArchiveE2E"]

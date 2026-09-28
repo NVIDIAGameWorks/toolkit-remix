@@ -26,5 +26,5 @@ on-demand IngestCraft activation.
 - `RemixCategoriesDialog` sources category metadata from `lightspeed.trex.schemas`, omits deprecated categories from
   new assignments, and `TrexMessageDialog` provides shared message UI.
 - `asset_validation` owns replacement file-picker validation and routes accepted selections to caller callbacks.
-- `ingestcraft_loader` enables disabled runtime extensions without importing their modules eagerly and waits on the
-  IngestCraft context's native stage-opened event.
+- `ingestcraft_loader` enables disabled runtime extensions without importing their modules eagerly, waits for deferred
+  context creation, and then waits on the IngestCraft context's native stage-opened event.

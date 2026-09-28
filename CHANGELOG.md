@@ -164,6 +164,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-6083: Fixed Stage Manager Meshes, Materials, and Categories tabs highlighting related prims as selected while preserving related-item framing.
 - Fixed intermittent failures loading material properties and conversion menus.
 - REMIX-5614: Fixed camera clipping-range value tooltips to identify the Near and Far fields instead of X and Y axes.
+- REMIX-5621: Added shared pip archive consistency coverage.
+- REMIX-6062: Fixed first-click Ingestion activation.
 
 ## [1.5.2-0]
 

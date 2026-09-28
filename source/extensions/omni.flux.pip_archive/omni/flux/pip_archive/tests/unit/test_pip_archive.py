@@ -15,15 +15,18 @@
 * limitations under the License.
 """
 
+from importlib import import_module
+
 import omni.kit.pipapi
 import omni.kit.test
 
 
 class TestPipArchive(omni.kit.test.AsyncTestCase):
     async def test_pip_archive(self):
+        """Check that a package can be installed from the offline archive."""
         # Take one of packages from deps/pip.toml,
         # it should be prebundled and available without need for going into online index
         omni.kit.pipapi.install("numpy", version="1.19.0", use_online_index=False)
-        import numpy as np  # noqa: PLC0415
+        np = import_module("numpy")
 
         self.assertIsNotNone(np)

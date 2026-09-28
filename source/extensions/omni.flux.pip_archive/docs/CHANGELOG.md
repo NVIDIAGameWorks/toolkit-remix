@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.5]
+### Fixed
+- Added regression coverage for incompatible package files in the shared pip archive.
+
 ## [2.2.4]
 ### Removed
 - Removed unused Hugging Face dependencies from the shared pip archive.
