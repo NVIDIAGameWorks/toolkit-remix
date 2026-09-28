@@ -166,6 +166,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5614: Fixed camera clipping-range value tooltips to identify the Near and Far fields instead of X and Y axes.
 - REMIX-5621: Added shared pip archive consistency coverage.
 - REMIX-6062: Fixed first-click Ingestion activation.
+- Fixed Remix Review losing scores on uncertain concerns and conflicting worker instructions, retained MR-description
+  quality checks as advisory feedback without score penalties, added automatic MR/PR score comparisons that preserve
+  the previewed choice and support `--from-scratch`, carried verified rebuttals and explicit defect acceptances through
+  current-code rechecks, added changed-line scoring with severity ceilings and a whole-change pass for cross-component
+  bugs, design, and duplication with configurable reasoning, clarified cross-file evidence and duplication boundaries,
+  aligned readiness probes with worker models and reasoning, and matched extension version bumps and review checks
+  to change compatibility.
 
 ## [1.5.2-0]
 

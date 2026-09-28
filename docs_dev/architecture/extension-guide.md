@@ -135,7 +135,8 @@ dependencies = [
 
 **Notes:**
 
-- Only declare dependencies that are actually imported by this extension.
+- Declare dependencies with a demonstrated runtime or test purpose: imports, loading, settings, resources, or dependency
+  aggregation.
 - Add `"omni.flux.pip_archive" = {}` if the extension uses any third-party pip packages.
 - Never rely on transitive dependencies — if you import it, declare it.
 

@@ -20,7 +20,11 @@ command-only; invocation authorizes only these thread creations.
 
 ## Post
 
-- Use only result findings. Trim and lowercase the severity, then map it to the Jira-style priority: `critical` to
+- For schema 3, skip findings listed in the result's validated `score_exemptions`; report each skipped accepted
+  finding and its decision locally. Do not skip the whole result based on `CLEAN`, and do not treat acceptance as
+  evidence that the defect was fixed. Missing exemption fields in older results mean no exemptions.
+- Use only result findings; MR advisories in `gaps` are local report feedback, never inline threads. Trim and
+  lowercase the severity, then map it to the Jira-style priority: `critical` to
   `BLOCKER` (absolutely needed), `major`/`high` to `P0` (must have), `medium`/`moderate` to `P1` (should have), and
   `low`/`minor`/`nit` to `P2` (nice to have). Skip and report a severity that is still unknown after normalization.
 - For schema 3, deduplicate by `(run_id, finding_id)`. Create one thread at `primary_location`; include supporting

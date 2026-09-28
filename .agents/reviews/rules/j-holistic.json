@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "category": "J",
+  "name": "holistic",
+  "rules": [
+    {"id": "J01", "target": "global", "check": "Trace interactions among up to three changed production components with the most shared state. Check cancellation, no-op input, repeated or re-entrant calls, exceptions, teardown with pending work, and async ordering. Check resulting USD, cache, and undo state, and whether callers satisfy callee contracts. Verify external API assumptions using source evidence within the shared evidence boundaries. Report supported defects; record checked paths and the evidence that rules out a defect in notes.", "sources": []},
+    {"id": "J02", "target": "global", "check": "Compare each new or substantially changed production component with the existing component nearest in purpose. Check for duplicated ownership, bypassed or reimplemented services, helpers, or commands, misplaced responsibilities, and unnecessarily synchronized state. Support reported problems with concrete comparison evidence. Record rejected comparisons in notes.", "sources": []},
+    {"id": "J03", "target": "global", "check": "Compare production logic introduced or expanded by this change across changed files, including helpers, validation, naming conventions, and state transitions. Report supported duplicate groups. Duplication against behavior already present at the base belongs to D04, even when its file also changed; test duplication belongs to D15. Touching both files does not make existing duplication reviewable.", "sources": []}
+  ]
+}

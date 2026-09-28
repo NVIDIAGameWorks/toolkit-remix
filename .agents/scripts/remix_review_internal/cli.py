@@ -33,7 +33,7 @@ from .providers import (
     ProviderSetupRequired,
     SetupIssue,
 )
-from .review_pipeline import _git_root, doctor, prepare_review, progress, review, scope
+from .review_pipeline import HOLISTIC_LANE, _git_root, doctor, prepare_review, progress, review, scope
 from .review_scope import check_forge_cli
 
 
@@ -58,6 +58,10 @@ _PREFLIGHT_TIMEOUT_SECONDS = 30.0
 # `--reasoning` overrides this; a caller who passes nothing gets "medium" recorded in the run
 # metadata and every worker timing entry, so the resolved effort is auditable.
 _DEFAULT_REASONING = "medium"
+# The reasoning effort for whole-change (J category) scope-review packets. One packet reads every
+# changed file and must judge cross-file behavior and design, so it gets more reasoning than the
+# many cheap per-file packets. `--high-level-reasoning` overrides it.
+_DEFAULT_HIGH_LEVEL_REASONING = "high"
 
 # Setup codes that only the user can repair, by remedy. See `_setup_required_payload`.
 _INSTALL_SETUP_CODES = frozenset({"CLI_NOT_FOUND", "CLI_UNEXECUTABLE", "FORGE_CLI_NOT_FOUND", "FORGE_CLI_UNEXECUTABLE"})
@@ -99,17 +103,11 @@ def _parser() -> JsonArgumentParser:
     review_options += review_parser.add_argument("--deadline-seconds", type=int).option_strings
     review_options += review_parser.add_argument("--verify-model").option_strings
     review_options += _scope_args(review_parser)
-    review_options += [
-        option
-        for action in (
-            review_parser.add_argument("--previous-run"),
-            review_parser.add_argument("--feedback", type=Path),
-        )
-        for option in action.option_strings
-    ]
+    review_options += _comparison_args(review_parser)
+    review_options += review_parser.add_argument("--feedback", type=Path).option_strings
     parser.command_options["review"] = review_options
     scope_parser = subparsers.add_parser("scope", add_help=False)
-    parser.command_options["scope"] = _scope_args(scope_parser)
+    parser.command_options["scope"] = _scope_args(scope_parser) + _comparison_args(scope_parser)
     progress_parser = subparsers.add_parser("progress", add_help=False)
     parser.command_options["progress"] = [
         *progress_parser.add_argument("--run").option_strings,
@@ -126,6 +124,7 @@ def _provider_args(parser: argparse.ArgumentParser) -> list[str]:
             parser.add_argument("--agent", required=True, choices=PROVIDERS),
             parser.add_argument("--model"),
             parser.add_argument("--reasoning"),
+            parser.add_argument("--high-level-reasoning", default=_DEFAULT_HIGH_LEVEL_REASONING),
         )
         for option in action.option_strings
     ]
@@ -144,9 +143,30 @@ def _scope_args(parser: argparse.ArgumentParser) -> list[str]:
     ]
 
 
+def _comparison_args(parser: argparse.ArgumentParser) -> list[str]:
+    """Add previous-result overrides shared by scope previews and full reviews."""
+    comparison = parser.add_mutually_exclusive_group()
+    return [
+        option
+        for action in (
+            comparison.add_argument("--previous-run"),
+            comparison.add_argument("--from-scratch", action="store_true"),
+        )
+        for option in action.option_strings
+    ]
+
+
 def _selections(arguments: argparse.Namespace) -> tuple[ProviderSelection, ...]:
-    """Assign the single provider selection for the one review lane."""
-    return (_normalize_selection("primary", arguments.agent, arguments.model, arguments.reasoning),)
+    """Select the settings required by full review or feedback for provider preflight."""
+    if arguments.command == "review" and arguments.feedback is not None:
+        return (
+            _normalize_selection(
+                "primary", arguments.agent, arguments.verify_model or arguments.model, arguments.reasoning
+            ),
+        )
+    primary = _normalize_selection("primary", arguments.agent, arguments.model, arguments.reasoning)
+    holistic = _normalize_selection(HOLISTIC_LANE, arguments.agent, arguments.model, arguments.high_level_reasoning)
+    return (primary,) if holistic.reasoning == primary.reasoning else (primary, holistic)
 
 
 def _validate_scope(arguments: argparse.Namespace) -> None:
@@ -173,6 +193,10 @@ def _validate_review(arguments: argparse.Namespace) -> None:
         if not text or len(text) > 256 or text.startswith("-") or any(ord(character) < 32 for character in text):
             raise UsageError("--verify-model must be a nonempty provider identifier")
         arguments.verify_model = text
+    text = arguments.high_level_reasoning.strip()
+    if not text or len(text) > 256 or text.startswith("-") or any(ord(character) < 32 for character in text):
+        raise UsageError("--high-level-reasoning must be a nonempty reasoning identifier")
+    arguments.high_level_reasoning = text
 
 
 def _help_payload(parser: JsonArgumentParser, arguments: list[str]) -> dict:
@@ -298,10 +322,15 @@ def main(argv: list[str] | None = None) -> int:
         if parsed.command == "review":
             started_mono = time.monotonic()
             deadline_mono = started_mono + parsed.deadline_seconds if parsed.deadline_seconds is not None else None
-            prepared = prepare_review(parsed, deadline_mono=deadline_mono) if parsed.previous_run is not None else None
+            prepared = prepare_review(parsed, deadline_mono=deadline_mono)
         selections = _selections(parsed)
-        providers = _providers(selections)
-        readiness = _readiness(selections, providers, deadline_mono)
+        host_only = (
+            prepared is not None
+            and prepared.mode == "feedback"
+            and all(record["action"] != "challenge" for record in prepared.feedback_evidence)
+        )
+        providers = {} if host_only else _providers(selections)
+        readiness = {} if host_only else _readiness(selections, providers, deadline_mono)
         if parsed.command == "doctor":
             emit_json(doctor(selections, readiness, providers))
             return 0

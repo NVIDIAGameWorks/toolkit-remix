@@ -7,7 +7,8 @@ Full refs: `docs_dev/architecture/overview.md`, `docs_dev/architecture/extension
 - Feature entry ext wires `.core`, `.widget`/`.window`, `.menu`; match nearby naming/loading.
 - Dependency direction: entry -> `.widget` + `.core`. `.widget` <-> `.core` forbidden.
 - Generic -> `omni.flux.*`. Remix-specific -> `lightspeed.trex.*`.
-- `config/extension.toml` deps must match imports. Add `omni.flux.pip_archive` for third-party pip imports.
+- `config/extension.toml` deps need a runtime or test purpose: imports, loading, settings, resources, or dependency
+  aggregation. Add `omni.flux.pip_archive` for third-party pip imports.
 - USD contexts: `""` StageCraft, `"ingestcraft"` ingestion, `"texturecraft"` AI Tools. Always pass `context_name`;
   default causes silent wrong-layout failures.
 - Lifecycle: single instance -> module `_INSTANCE` + `get_instance()`. Stage-aware -> `_instances[context_name]`.

@@ -23,7 +23,15 @@ import re
 from fractions import Fraction
 from pathlib import PurePosixPath
 
-from .rules import SCORE_CATEGORY_BY_CLAIM_CLASS, SCORE_FORMULA_VERSION, SEVERITY_PENALTIES, WORKLOAD_METRIC_VERSION
+from .artifacts import canonical_hash
+from .rules import (
+    SCORE_CATEGORY_BY_CLAIM_CLASS,
+    SCORE_FORMULA_VERSION,
+    SEVERITY_CEILINGS,
+    SEVERITY_PENALTIES,
+    WORKLOAD_METRIC_VERSION,
+    point_pool_for_lines,
+)
 
 
 __all__ = [
@@ -35,7 +43,10 @@ __all__ = [
     "validate_candidate_ownership",
     "validate_feedback",
     "validate_feedback_dispositions",
+    "validate_feedback_operations",
     "validate_final_receipt",
+    "validate_review_decisions",
+    "validate_score_exemptions",
 ]
 
 
@@ -50,8 +61,22 @@ _CLAIM_CLASSES = frozenset(SCORE_CATEGORY_BY_CLAIM_CLASS) - {_RECOVERED_CLASS}
 _RECOVERED_BASIS = "The host restored a candidate omitted by final synthesis as a conservative singleton."
 _FINDING_ID = re.compile(r"F-(\d{4,})$")
 _HEX_DIGEST = re.compile(r"[0-9a-f]{64}$")
+_GIT_OBJECT_ID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?$")
+_REVIEW_RUN_ID = re.compile(r"review-[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?")
 _FEEDBACK_TOTAL_BYTES = 64 * 1024
 _FEEDBACK_TEXT_BYTES = 8 * 1024
+
+
+def _validate_feedback_text(text: object) -> None:
+    """Require one nonempty printable response within the feedback text limit."""
+    if (
+        not isinstance(text, str)
+        or not text
+        or text != text.strip()
+        or not text.isprintable()
+        or len(text.encode("utf-8")) > _FEEDBACK_TEXT_BYTES
+    ):
+        raise AssessmentError("feedback text is invalid")
 
 
 def _validated_feedback_records(value: object) -> list[dict]:
@@ -69,14 +94,7 @@ def _validated_feedback_records(value: object) -> list[dict]:
             raise AssessmentError("feedback finding_id is invalid")
         if finding_id in seen:
             raise AssessmentError(f"feedback repeats duplicate finding_id {finding_id}")
-        if (
-            not isinstance(text, str)
-            or not text
-            or text != text.strip()
-            or not text.isprintable()
-            or len(text.encode("utf-8")) > _FEEDBACK_TEXT_BYTES
-        ):
-            raise AssessmentError("feedback text is invalid")
+        _validate_feedback_text(text)
         seen.add(finding_id)
         records.append(copy.deepcopy(record))
     if (
@@ -90,6 +108,237 @@ def _validated_feedback_records(value: object) -> list[dict]:
 def validate_feedback(value: object) -> list[dict]:
     """Validate canonical accepted feedback records."""
     return _validated_feedback_records(value)
+
+
+def validate_feedback_operations(value: object, schema_version: int = 2) -> list[dict]:
+    """Normalize bounded feedback input into explicit operations.
+
+    Args:
+        value: Submitted operations, or schema-1 rebuttal records.
+        schema_version: Input schema; version 1 contains challenges only.
+
+    Returns:
+        Validated operations, with an action and exactly one target per record.
+
+    Raises:
+        AssessmentError: If fields, targets, text, duplicates, or size are invalid.
+    """
+    if type(schema_version) is not int or schema_version not in (1, 2):
+        raise AssessmentError("feedback schema version is invalid")
+    if schema_version == 1:
+        return [{"action": "challenge", **record} for record in validate_feedback(value)]
+    if not isinstance(value, (list, tuple)):
+        raise AssessmentError("feedback operations must be an array")
+    records, seen = [], set()
+    for record in value:
+        if not isinstance(record, dict):
+            raise AssessmentError("feedback operation is invalid")
+        action = record.get("action")
+        if action not in ("challenge", "accept_tradeoff", "revoke_acceptance"):
+            raise AssessmentError("feedback action is invalid")
+        target = "decision_id" if action == "revoke_acceptance" else "finding_id"
+        if set(record) != {"action", target, "text"}:
+            raise AssessmentError("feedback operation fields are not exact")
+        identifier = record[target]
+        pattern = _HEX_DIGEST if target == "decision_id" else _FINDING_ID
+        if not isinstance(identifier, str) or pattern.fullmatch(identifier) is None:
+            raise AssessmentError(f"feedback {target} is invalid")
+        if (target, identifier) in seen:
+            raise AssessmentError(f"feedback repeats or conflicts on {target} {identifier}")
+        _validate_feedback_text(record["text"])
+        seen.add((target, identifier))
+        records.append(copy.deepcopy(record))
+    if len(json.dumps(records, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > _FEEDBACK_TOTAL_BYTES:
+        raise AssessmentError("feedback exceeds 64 KiB")
+    return records
+
+
+def _decision_id(record: dict) -> str:
+    """Bind one decision identifier to its immutable source and explicit response."""
+    return canonical_hash(
+        {
+            "source_result_sha256": record["source_result_sha256"],
+            "source_run_id": record["source_run_id"],
+            "review_identity": record["review_identity"],
+            "finding_id": record["finding"]["finding_id"],
+            "kind": record["kind"],
+            "text": record["text"],
+        }
+    )
+
+
+def _decision_evidence(value: object, *, required: bool) -> None:
+    """Validate retained evidence locations without rereading a historical checkout."""
+    if not isinstance(value, list) or (required and not value):
+        raise AssessmentError("review decision evidence is invalid")
+    seen = set()
+    for location in value:
+        if not isinstance(location, dict) or set(location) != {"path", "line"}:
+            raise AssessmentError("review decision evidence location is invalid")
+        path, line = location["path"], location["line"]
+        if (
+            not isinstance(path, str)
+            or not path
+            or not path.isprintable()
+            or PurePosixPath(path).is_absolute()
+            or any(part in ("", ".", "..") for part in path.split("/"))
+            or "\\" in path
+            or ":" in path
+            or (line is not None and (type(line) is not int or line < 1))
+            or (path, line) in seen
+        ):
+            raise AssessmentError("review decision evidence location is invalid")
+        seen.add((path, line))
+
+
+def validate_review_decisions(value: object, *, review_identity: str | None = None) -> list[dict]:
+    """Validate self-contained historical decisions and their immutable identifiers.
+
+    Args:
+        value: Saved decision records; an absent collection is represented by an empty list.
+        review_identity: Expected canonical review identity, when validating a saved result.
+
+    Returns:
+        Independent copies of validated decisions in stable identifier order.
+
+    Raises:
+        AssessmentError: If source identity, evidence, state, or decision ownership is malformed.
+    """
+    if not isinstance(value, list):
+        raise AssessmentError("review_decisions must be an array")
+    fields = {
+        "decision_id",
+        "kind",
+        "state",
+        "source_run_id",
+        "source_result_sha256",
+        "review_identity",
+        "head",
+        "finding",
+        "text",
+        "verification",
+        "last_verification",
+        "revocation",
+    }
+    decisions, seen = [], set()
+    for record in value:
+        if not isinstance(record, dict) or set(record) != fields:
+            raise AssessmentError("review decision fields are not exact")
+        for name in ("decision_id", "source_result_sha256", "review_identity"):
+            if not isinstance(record[name], str) or _HEX_DIGEST.fullmatch(record[name]) is None:
+                raise AssessmentError(f"review decision {name} is invalid")
+        if review_identity is not None and record["review_identity"] != review_identity:
+            raise AssessmentError("review decision belongs to another review")
+        if not isinstance(record["source_run_id"], str) or _REVIEW_RUN_ID.fullmatch(record["source_run_id"]) is None:
+            raise AssessmentError("review decision source run is invalid")
+        if record["kind"] not in ("refuted", "accepted") or record["state"] not in ("active", "revoked"):
+            raise AssessmentError("review decision kind or state is invalid")
+        head = record["head"]
+        if (
+            not isinstance(head, dict)
+            or set(head) != {"base_sha", "head_sha", "head_tree_sha"}
+            or any(not isinstance(head[name], str) or _GIT_OBJECT_ID.fullmatch(head[name]) is None for name in head)
+        ):
+            raise AssessmentError("review decision source head is invalid")
+        finding = record["finding"]
+        if not isinstance(finding, dict):
+            raise AssessmentError("review decision source finding is invalid")
+        validate_feedback([{"finding_id": finding.get("finding_id"), "text": record["text"]}])
+        candidate_id = _candidate_id(finding)
+        source_ids = _string_list(finding.get("source_candidate_ids"), "review decision source candidates")
+        if candidate_id not in source_ids or len(set(source_ids)) != len(source_ids):
+            raise AssessmentError("review decision source finding provenance is invalid")
+        if not _string_list(finding.get("rule_ids"), "review decision rules"):
+            raise AssessmentError("review decision source finding has no rules")
+        if (
+            not isinstance(finding.get("claim_class"), str)
+            or finding["claim_class"] not in SCORE_CATEGORY_BY_CLAIM_CLASS
+        ):
+            raise AssessmentError("review decision source finding claim class is invalid")
+        _severity_debt(finding.get("severity"), finding["finding_id"])
+        _decision_evidence([finding.get("primary_location")], required=True)
+        if "locations" in finding:
+            _decision_evidence(finding["locations"], required=False)
+        if any(name in finding and not isinstance(finding[name], str) for name in ("title", "evidence")):
+            raise AssessmentError("review decision source finding text is invalid")
+        verification = record["verification"]
+        if record["kind"] == "refuted":
+            if (
+                record["state"] != "active"
+                or not isinstance(verification, dict)
+                or set(verification) != {"basis", "evidence"}
+            ):
+                raise AssessmentError("refutation verification is invalid")
+            if not isinstance(verification["basis"], str) or not verification["basis"].strip():
+                raise AssessmentError("refutation verification requires a basis")
+            _decision_evidence(verification["evidence"], required=True)
+        elif verification is not None:
+            raise AssessmentError("acceptance must not fabricate refutation verification")
+        revocation = record["revocation"]
+        if record["state"] == "revoked":
+            if not isinstance(revocation, dict) or set(revocation) != {"run_id", "text"}:
+                raise AssessmentError("review decision revocation is invalid")
+            if not isinstance(revocation["run_id"], str) or _REVIEW_RUN_ID.fullmatch(revocation["run_id"]) is None:
+                raise AssessmentError("review decision revocation run is invalid")
+            validate_feedback([{"finding_id": finding["finding_id"], "text": revocation["text"]}])
+        elif revocation is not None:
+            raise AssessmentError("active review decision has a revocation")
+        latest = record["last_verification"]
+        if latest is not None:
+            if not isinstance(latest, dict) or set(latest) != {
+                "run_id",
+                "head_sha",
+                "candidate_ids",
+                "status",
+                "basis",
+                "evidence",
+            }:
+                raise AssessmentError("review decision latest verification is invalid")
+            if (
+                not isinstance(latest["run_id"], str)
+                or _REVIEW_RUN_ID.fullmatch(latest["run_id"]) is None
+                or not isinstance(latest["head_sha"], str)
+                or _GIT_OBJECT_ID.fullmatch(latest["head_sha"]) is None
+                or latest["status"] not in ("applicable", "not_applicable", "uncertain")
+                or not isinstance(latest["basis"], str)
+                or not latest["basis"].strip()
+            ):
+                raise AssessmentError("review decision latest verification metadata is invalid")
+            candidate_ids = _string_list(latest["candidate_ids"], "review decision latest candidates")
+            if not candidate_ids or len(set(candidate_ids)) != len(candidate_ids):
+                raise AssessmentError("review decision latest candidates are invalid")
+            _decision_evidence(latest["evidence"], required=latest["status"] != "uncertain")
+        if record["decision_id"] in seen or record["decision_id"] != _decision_id(record):
+            raise AssessmentError("review decision identifier is inconsistent or duplicated")
+        seen.add(record["decision_id"])
+        decisions.append(copy.deepcopy(record))
+    return sorted(decisions, key=lambda decision: decision["decision_id"])
+
+
+def validate_score_exemptions(value: object, findings: list[dict], decisions: list[dict]) -> list[dict]:
+    """Validate current finding bindings to active explicit acceptances."""
+    if not isinstance(value, list):
+        raise AssessmentError("score_exemptions must be an array")
+    finding_ids = {finding["finding_id"] for finding in findings}
+    accepted_ids = {
+        record["decision_id"] for record in decisions if record["kind"] == "accepted" and record["state"] == "active"
+    }
+    records, seen = [], set()
+    for record in value:
+        if not isinstance(record, dict) or set(record) != {"finding_id", "decision_id"}:
+            raise AssessmentError("score exemption fields are not exact")
+        finding_id, decision_id = record["finding_id"], record["decision_id"]
+        if (
+            not isinstance(finding_id, str)
+            or finding_id not in finding_ids
+            or finding_id in seen
+            or not isinstance(decision_id, str)
+            or decision_id not in accepted_ids
+        ):
+            raise AssessmentError("score exemption must bind a current finding to one active acceptance")
+        seen.add(finding_id)
+        records.append(copy.deepcopy(record))
+    return sorted(records, key=lambda record: _finding_sequence(record["finding_id"]))
 
 
 def materialize_feedback_adjudication(
@@ -107,7 +356,7 @@ def materialize_feedback_adjudication(
         run_id: Immutable identifier for the adjudication run.
         previous_result: Validated source snapshot result.
         previous_result_sha256: SHA-256 of the source result bytes.
-        submitted_feedback: Bounded responses selected for adjudication.
+        submitted_feedback: Bounded explicit operations, or legacy challenge records.
         feedback_dispositions: Independently verified dispositions keyed by finding ID.
         reviewed_locations: Exact-head locations allowed as adjudication evidence.
 
@@ -133,7 +382,13 @@ def materialize_feedback_adjudication(
     if not isinstance(previous_result_sha256, str) or _HEX_DIGEST.fullmatch(previous_result_sha256) is None:
         raise AssessmentError("feedback adjudication previous result hash is invalid")
 
-    submitted = _validated_feedback_records(submitted_feedback)
+    schema_version = (
+        1
+        if isinstance(submitted_feedback, (list, tuple))
+        and all(isinstance(record, dict) and "action" not in record for record in submitted_feedback)
+        else 2
+    )
+    submitted = validate_feedback_operations(submitted_feedback, schema_version)
     if not submitted:
         raise AssessmentError("feedback adjudication requires submitted feedback")
     source_findings = previous_result.get("findings")
@@ -153,12 +408,29 @@ def materialize_feedback_adjudication(
         _severity_debt(finding.get("severity"), finding_id)
         findings_by_id[finding_id] = finding
 
-    selected_ids = sorted((record["finding_id"] for record in submitted), key=_finding_sequence)
+    selected_ids = sorted(
+        (record["finding_id"] for record in submitted if "finding_id" in record), key=_finding_sequence
+    )
     if any(finding_id not in findings_by_id for finding_id in selected_ids):
         raise AssessmentError("feedback adjudication must select a public source finding")
+    decisions = validate_review_decisions(
+        previous_result.get("review_decisions", []), review_identity=previous_result.get("review_identity")
+    )
+    exemptions = validate_score_exemptions(previous_result.get("score_exemptions", []), source_findings, decisions)
+    decisions_by_id = {decision["decision_id"]: decision for decision in decisions}
+    exempt_by_id = {record["finding_id"]: record["decision_id"] for record in exemptions}
+    revoked_ids = {record["decision_id"] for record in submitted if record["action"] == "revoke_acceptance"}
+    if any(
+        decision_id not in decisions_by_id or decisions_by_id[decision_id]["kind"] != "accepted"
+        for decision_id in revoked_ids
+    ):
+        raise AssessmentError("feedback revocation must select a saved acceptance")
+    if any(exempt_by_id.get(finding_id) in revoked_ids for finding_id in selected_ids):
+        raise AssessmentError("feedback operations conflict with acceptance revocation")
+    challenged_ids = [record["finding_id"] for record in submitted if record["action"] == "challenge"]
     dispositions = validate_feedback_dispositions(
         feedback_dispositions,
-        selected_ids,
+        challenged_ids,
         reviewed_locations,
     )
     refuted = {
@@ -166,25 +438,81 @@ def materialize_feedback_adjudication(
     }
     findings = [copy.deepcopy(finding) for finding in source_findings if finding["finding_id"] not in refuted]
     accepted = {record["finding_id"]: record for record in validate_feedback(previous_result.get("feedback", []))}
-    submitted_by_id = {record["finding_id"]: record for record in submitted}
-    accepted.update({finding_id: submitted_by_id[finding_id] for finding_id in refuted})
+    submitted_by_id = {record["finding_id"]: record for record in submitted if "finding_id" in record}
+    accepted.update(
+        {finding_id: {"finding_id": finding_id, "text": submitted_by_id[finding_id]["text"]} for finding_id in refuted}
+    )
     feedback = validate_feedback([accepted[finding_id] for finding_id in sorted(accepted, key=_finding_sequence)])
-    scorecard = _materialize_feedback_scorecard(previous_result, findings)
+    affected_decisions = set()
+    for operation in submitted:
+        if operation["action"] == "revoke_acceptance":
+            decision_id = operation["decision_id"]
+            decision = decisions_by_id[decision_id]
+            if decision["state"] != "revoked":
+                decision.update(state="revoked", revocation={"run_id": run_id, "text": operation["text"]})
+            exempt_by_id = {finding_id: owner for finding_id, owner in exempt_by_id.items() if owner != decision_id}
+            affected_decisions.add(decision_id)
+            continue
+        finding_id = operation["finding_id"]
+        if operation["action"] == "challenge" and finding_id not in refuted:
+            continue
+        kind = "refuted" if operation["action"] == "challenge" else "accepted"
+        decision = {
+            "kind": kind,
+            "state": "active",
+            "source_run_id": previous_run_id,
+            "source_result_sha256": previous_result_sha256,
+            "review_identity": previous_result.get("review_identity"),
+            "head": {name: previous_result["head"].get(name) for name in ("base_sha", "head_sha", "head_tree_sha")},
+            "finding": copy.deepcopy(findings_by_id[finding_id]),
+            "text": operation["text"],
+            "verification": {name: copy.deepcopy(dispositions[finding_id][name]) for name in ("basis", "evidence")}
+            if kind == "refuted"
+            else None,
+            "last_verification": None,
+            "revocation": None,
+        }
+        decision_id = decision["decision_id"] = _decision_id(decision)
+        old_id = exempt_by_id.pop(finding_id, None)
+        # A refutation does not withdraw the user's acceptance of a tradeoff. Only explicit
+        # revocation or revised acceptance does; future reuse still requires current verification.
+        if old_id is not None and kind == "accepted" and old_id != decision_id:
+            decisions_by_id[old_id].update(state="revoked", revocation={"run_id": run_id, "text": operation["text"]})
+            exempt_by_id = {identifier: owner for identifier, owner in exempt_by_id.items() if owner != old_id}
+            affected_decisions.add(old_id)
+        decisions_by_id[decision_id] = decision
+        affected_decisions.add(decision_id)
+        if kind == "accepted":
+            exempt_by_id[finding_id] = decision_id
+    decisions = validate_review_decisions(
+        list(decisions_by_id.values()), review_identity=previous_result.get("review_identity")
+    )
+    exemptions = validate_score_exemptions(
+        [{"finding_id": finding_id, "decision_id": decision_id} for finding_id, decision_id in exempt_by_id.items()],
+        findings,
+        decisions,
+    )
+    scorecard = _materialize_feedback_scorecard(previous_result, findings, exemptions)
     diagnostics = tuple(
         f"Finding {finding_id} could not be verified."
-        for finding_id in selected_ids
+        for finding_id in challenged_ids
         if dispositions[finding_id]["disposition"] == "cannot_verify"
     )
     return {
         "findings": findings,
         "feedback": feedback,
+        "review_decisions": decisions,
+        "score_exemptions": exemptions,
         "scorecard": scorecard,
-        "verdict": "CHANGES_REQUIRED" if findings else "CLEAN",
+        "verdict": "CHANGES_REQUIRED"
+        if any(finding["finding_id"] not in exempt_by_id for finding in findings)
+        else "CLEAN",
         "diagnostics": diagnostics,
         "adjudication": {
             "source_run_id": previous_run_id,
             "source_result_sha256": previous_result_sha256,
             "finding_ids": selected_ids,
+            "decision_ids": sorted(affected_decisions),
         },
     }
 
@@ -247,7 +575,7 @@ def validate_feedback_dispositions(
     return normalized
 
 
-def _materialize_feedback_scorecard(previous_result: dict, findings: list[dict]) -> dict:
+def _materialize_feedback_scorecard(previous_result: dict, findings: list[dict], exemptions: list[dict]) -> dict:
     """Recalculate snapshot scores after independently verified feedback."""
     scorecard = previous_result.get("scorecard")
     head = previous_result.get("head")
@@ -331,11 +659,16 @@ def _materialize_feedback_scorecard(previous_result: dict, findings: list[dict])
             },
         }
 
-    source = materialize_scorecard(receipt_for(source_findings), findings=source_findings, score_basis=basis)
+    source = materialize_scorecard(
+        receipt_for(source_findings),
+        findings=source_findings,
+        score_basis=basis,
+        exempt_finding_ids=[record["finding_id"] for record in previous_result.get("score_exemptions", [])],
+    )
     if source["overall_branch"] != scorecard.get("overall_branch") or any(
         source["categories"][name][key] != categories[name].get(key)
         for name in SCORE_CATEGORIES
-        for key in ("score", "penalty_points", "finding_ids")
+        for key in ("score", "penalty_points", "ceiling", "finding_ids")
     ):
         raise AssessmentError("feedback adjudication previous scorecard is not reproducible")
     previous = _previous_snapshot(
@@ -348,6 +681,7 @@ def _materialize_feedback_scorecard(previous_result: dict, findings: list[dict])
                 name: {
                     "score": categories[name]["score"],
                     "penalty_points": categories[name]["penalty_points"],
+                    "ceiling": categories[name]["ceiling"],
                 }
                 for name in SCORE_CATEGORIES
             },
@@ -359,6 +693,7 @@ def _materialize_feedback_scorecard(previous_result: dict, findings: list[dict])
         findings=findings,
         score_basis=basis,
         previous_scorecard=previous,
+        exempt_finding_ids=[record["finding_id"] for record in exemptions],
     )
 
 
@@ -853,6 +1188,7 @@ def materialize_scorecard(
     score_basis: dict | None = None,
     previous_scorecard: dict | None = None,
     comparison_reason: str | None = None,
+    exempt_finding_ids: tuple[str, ...] | list[str] | set[str] = (),
 ) -> dict:
     """Return host-owned scores for the current snapshot and an optional comparison."""
     if (
@@ -866,15 +1202,21 @@ def materialize_scorecard(
     workload = score_basis["workload"]
     if (
         not isinstance(workload, dict)
-        or set(workload) != {"metric", "units", "sha256"}
+        or set(workload) != {"metric", "units", "changes", "lines", "sha256"}
         or workload.get("metric") != WORKLOAD_METRIC_VERSION
         or type(workload.get("units")) is not int
         or workload["units"] < 0
+        or type(workload.get("changes")) is not int
+        or workload["changes"] < 0
+        or type(workload.get("lines")) is not int
+        or workload["lines"] < 0
         or not isinstance(workload.get("sha256"), str)
         or _HEX_DIGEST.fullmatch(workload["sha256"]) is None
     ):
         raise AssessmentError("score workload is invalid")
     point_pool = score_basis["point_pool"]
+    if point_pool != point_pool_for_lines(workload["lines"]):
+        raise AssessmentError("score point pool does not match workload lines")
     assessment = normalized_receipt.get("scorecard_assessment")
     categories = assessment.get("categories") if isinstance(assessment, dict) else None
     if not isinstance(categories, dict) or set(categories) != set(SCORE_CATEGORIES):
@@ -907,6 +1249,13 @@ def materialize_scorecard(
         finding_id: _severity_debt(finding.get("severity"), finding_id)
         for finding_id, finding in findings_by_id.items()
     }
+    if (
+        not isinstance(exempt_finding_ids, (list, tuple, set, frozenset))
+        or any(not isinstance(finding_id, str) or finding_id not in findings_by_id for finding_id in exempt_finding_ids)
+        or len(set(exempt_finding_ids)) != len(exempt_finding_ids)
+    ):
+        raise AssessmentError("score exemptions must reference unique current findings")
+    exempt_ids = set(exempt_finding_ids)
     finding_ids_by_category = {name: [] for name in SCORE_CATEGORIES}
     for name in SCORE_CATEGORIES:
         category = categories[name]
@@ -951,16 +1300,28 @@ def materialize_scorecard(
             for finding_id in finding_ids
             if isinstance(findings_by_id[finding_id].get("primary_location"), dict)
         ]
-        penalties[name] = sum(penalty_by_id[finding_id] for finding_id in finding_ids)
+        charged_ids = [finding_id for finding_id in finding_ids if finding_id not in exempt_ids]
+        penalties[name] = sum(penalty_by_id[finding_id] for finding_id in charged_ids)
+        ceiling = min(
+            (_severity_ceiling(findings_by_id[finding_id].get("severity")) for finding_id in charged_ids),
+            default=10,
+        )
         categories[name]["penalty_points"] = penalties[name]
-        categories[name]["score"] = _score_value(point_pool, penalties[name])
+        categories[name]["ceiling"] = ceiling
+        categories[name]["score"] = _score_value(point_pool, penalties[name], ceiling)
         categories[name]["finding_ids"] = finding_ids
     if comparison_reason not in (None, "assessment_changed"):
         raise AssessmentError("comparison reason is invalid")
     if previous is None and comparison_reason is not None:
         raise AssessmentError("comparison reason requires a previous scorecard")
+    if (
+        previous is not None
+        and "ceiling" not in previous["categories"][SCORE_CATEGORIES[0]]
+        and comparison_reason != "assessment_changed"
+    ):
+        raise AssessmentError("legacy score comparison requires assessment_changed")
     reason = "no_previous_run" if previous is None else comparison_reason
-    overall = _overall_score(point_pool, penalties)
+    overall = _overall_score([categories[name]["score"] for name in SCORE_CATEGORIES])
     comparable = previous is not None and reason is None
     delta = (
         {
@@ -1007,15 +1368,36 @@ def _severity_debt(value: object, finding_id: str) -> int:
     return penalty
 
 
-def _score_value(point_pool: int, penalty_points: int) -> float:
-    """Return the exact linear snapshot score rounded half-up to two decimal places."""
-    if type(point_pool) is not int or point_pool < 1 or type(penalty_points) is not int or penalty_points < 0:
+def _severity_ceiling(value: object) -> int:
+    """Return the category ceiling one charged severity imposes, or 10 when it imposes none."""
+    return SEVERITY_CEILINGS.get(value.strip().casefold(), 10) if isinstance(value, str) else 10
+
+
+def _score_value(point_pool: int, penalty_points: int, ceiling: int = 10) -> float:
+    """Return the density score scaled to the severity ceiling and rounded half-up to two decimal places."""
+    if (
+        type(point_pool) is not int
+        or point_pool < 1
+        or type(penalty_points) is not int
+        or penalty_points < 0
+        or type(ceiling) is not int
+        or not 0 <= ceiling <= 10
+    ):
         raise AssessmentError("score inputs are invalid")
-    return _rounded_score(Fraction(10 * max(point_pool - penalty_points, 0), point_pool))
+    return _rounded_score(Fraction(ceiling * max(point_pool - penalty_points, 0), point_pool))
 
 
-def _overall_score(point_pool: int, penalties_by_category: dict[str, int]) -> float:
-    """Return the exact mean category score rounded half-up to two decimal places."""
+def _overall_score(scores: list[int | float]) -> float:
+    """Return the exact mean of the published category scores rounded half-up to two decimal places."""
+    if len(scores) != len(SCORE_CATEGORIES) or any(
+        type(score) not in (int, float) or not 0 <= score <= 10 for score in scores
+    ):
+        raise AssessmentError("overall score inputs are invalid")
+    return _rounded_score(sum((Fraction(str(score)) for score in scores), Fraction()) / len(scores))
+
+
+def _legacy_overall_score(point_pool: int, penalties_by_category: dict[str, int]) -> float:
+    """Return the legacy mean of unrounded linear scores rounded half-up to two decimal places."""
     if not isinstance(penalties_by_category, dict) or set(penalties_by_category) != set(SCORE_CATEGORIES):
         raise AssessmentError("overall score penalties are invalid")
     scores = []
@@ -1088,23 +1470,29 @@ def _previous_snapshot(value: dict | None) -> dict | None:
     ):
         raise AssessmentError("previous scorecard is invalid")
     categories = value["categories"]
+    category_fields = {"score", "penalty_points"}
+    if any(isinstance(category, dict) and "ceiling" in category for category in categories.values()):
+        category_fields.add("ceiling")
     if set(categories) != set(SCORE_CATEGORIES) or any(
         not isinstance(categories[name], dict)
-        or set(categories[name]) != {"score", "penalty_points"}
+        or set(categories[name]) != category_fields
         or type(categories[name].get("score")) not in (int, float)
         or not 0 <= categories[name]["score"] <= 10
         or type(categories[name].get("penalty_points")) is not int
         or categories[name]["penalty_points"] < 0
-        or categories[name]["score"] != _score_value(value["point_pool"], categories[name]["penalty_points"])
+        or categories[name]["score"]
+        != _score_value(value["point_pool"], categories[name]["penalty_points"], categories[name].get("ceiling", 10))
         for name in SCORE_CATEGORIES
     ):
         raise AssessmentError("previous scorecard categories are invalid")
     overall = value.get("overall_branch")
-    penalties = {name: categories[name]["penalty_points"] for name in SCORE_CATEGORIES}
-    if (
-        type(overall) not in (int, float)
-        or not 0 <= overall <= 10
-        or overall != _overall_score(value["point_pool"], penalties)
-    ):
+    expected_overall = (
+        _overall_score([categories[name]["score"] for name in SCORE_CATEGORIES])
+        if "ceiling" in category_fields
+        else _legacy_overall_score(
+            value["point_pool"], {name: categories[name]["penalty_points"] for name in SCORE_CATEGORIES}
+        )
+    )
+    if type(overall) not in (int, float) or not 0 <= overall <= 10 or overall != expected_overall:
         raise AssessmentError("previous scorecard overall is invalid")
     return copy.deepcopy(value)
