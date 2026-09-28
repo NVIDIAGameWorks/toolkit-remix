@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.10]
+### Fixed
+- Covered first-click Ingestion activation in the isolated StageCraft startup test and declared the direct `omni.usd` dependency.
+
 ## [1.8.9]
 ### Changed
 - Verify Stage Manager Ctrl+A selection while the pointer is outside its frame.
