@@ -23,9 +23,9 @@ Before submitting your code for review, please ensure you have thoroughly evalua
       these docstrings.
 
 5. **Version Bumping and Dependency Updates**:
-    - Always bump the version of any extensions you modify.
-    - Add an entry to the `changelog.md` files for all modified extensions, as well as the central `CHANGELOG.md` file
-      in the root of the repository, to describe the changes that were made.
+    - Choose each modified extension's version from its complete change and compatibility impact; see
+      [Version Bumping and Dependency Updates](#version-bumping-and-dependency-updates).
+    - Record the changes in the extension's `docs/CHANGELOG.md` and the root `CHANGELOG.md`.
 
 ## Explanation of Terms
 
@@ -43,9 +43,8 @@ Before submitting your code for review, please ensure you have thoroughly evalua
 - **Documentation and Docstrings**: Public functions in the code should have descriptive docstrings that explain their
   purpose and usage. The documentation for the code will be generated from these docstrings.
 
-- **Version Bumping and Dependency Updates**: Incrementing the version of modified extensions ensures that changes are
-  tracked and managed properly. Additionally, updating the `changelog.md` files for all modified
-  extensions and the central `CHANGELOG.md` file in the repository provides a clear record of the changes made.
+- **Version Bumping and Dependency Updates**: Extension versions communicate compatibility; changelogs explain the
+  changes delivered by each version.
 
 ## Examples
 
@@ -107,13 +106,33 @@ Thoroughly document your code to improve maintainability and understanding:
 
 ### Version Bumping and Dependency Updates
 
-Maintain version control and update dependencies to ensure consistency:
+Compare each modified extension's complete change against the review base (`origin/<base>` when preparing an MR).
+Choose the highest required level across that change, based on supported behavior and contracts, not diff size,
+commit labels, or changelog headings:
 
-1. **Bump Extension Versions**: Always increment the version of any extensions you modify. This practice helps in
-   tracking changes and managing updates effectively.
+| Required level | Change |
+| --- | --- |
+| Patch | Compatible fixes, internal maintenance, documentation, or tests. |
+| Minor | New supported functionality or deprecations that preserve compatibility. |
+| Major | Incompatible changes to supported contracts, including APIs, events, settings, or persisted formats. |
 
-2. **Update Changelog**: Add an entry to the `changelog.md` files for all modified extensions, as well as the
-   central `CHANGELOG.md` file in the root of the repository, to describe the changes that were made.
+Increment the required component and reset lower components to zero. Keep one resulting version increase per MR:
+preserve an existing branch version only if it is newer than the base and sufficient for the aggregate change.
+Do not repeatedly increment for follow-up commits or downgrade an intentionally larger, sufficient increase.
+
+For existing `0.x` extensions, this repository uses patch increases for compatible fixes and maintenance, and minor
+increases for new functionality, deprecations, or breaking changes. Moving to `1.0.0` is a deliberate stable-contract
+milestone, not an automatic consequence of a breaking change. New extensions keep their declared initial release
+version (the [extension scaffold](../architecture/extension-guide.md) defaults to `1.0.0`); there is no prior version
+to bump. Removed extensions need no version increase; assess changes to surviving callers independently.
+
+A review finding about a missing or insufficient bump must identify the base and submitted versions, the required
+level, and the concrete delta that requires it. Claims that a feature or compatibility break requires a higher level
+must cite the changed supported behavior or contract. When compatibility cannot be established from the available
+evidence, report the uncertainty through the review's existing verification-gap handling.
+
+Add extension changelog entries under the resulting `config/extension.toml` version, appending entries last within
+their section. Keep one concise root `CHANGELOG.md` entry for the MR.
 
 ## Conclusion
 

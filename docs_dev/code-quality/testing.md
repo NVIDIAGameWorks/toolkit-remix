@@ -210,9 +210,12 @@ Do not also recommend removing those markers. A real UI E2E containing AAA secti
 
 ### Coverage by Boundary
 
-- Independently testable logic maps to one unit-test file per source file and one test class per source class.
-- Rendered interactions require E2E coverage. Do not demand artificial unit tests solely to duplicate that coverage.
-  Mixed modules need unit coverage for independent logic and E2E coverage for rendered behavior.
+- Prefer E2E tests that exercise real use cases through the real UI and real test fixtures. Keep the test diff small.
+- When an E2E test exercises a behavior, that behavior needs no unit test. Do not demand unit tests for callbacks,
+  cleanup, or failure paths only because the E2E test does not isolate them.
+- Add unit tests only for independently testable logic that no real workflow can reach, such as pure data
+  transforms, parsers, and error paths that a real fixture cannot trigger. Map them one unit-test file per source file
+  and one test class per source class.
 - Preserve the trivial-glue exception. Mechanical forwarding to an already-tested shared factory needs no additional
   test that only repeats its wiring. Existing tests suffice when they exercise the changed contract; new predicates,
   branches, callback semantics, or other behavior still need coverage at the appropriate boundary.

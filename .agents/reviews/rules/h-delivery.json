@@ -3,7 +3,7 @@
   "category": "H",
   "name": "delivery",
   "rules": [
-    {"id": "H01", "target": "global", "check": "Every modified extension has exactly one base-relative version bump.", "sources": [{"path": ".agents/rules/completion-gates.md", "section": "Completion Gates"}]},
+    {"id": "H01", "target": "global", "check": "Each changed extension's version follows the versioning policy for its aggregate base-to-head changes, including initial-version and removed-extension cases. A mismatch finding identifies the base and submitted versions, required bump level, and concrete delta establishing the mismatch.", "sources": [{"path": "docs_dev/getting-started/review-checklist.md", "section": "Version Bumping and Dependency Updates"}]},
     {"id": "H02", "target": "global", "check": "Each modified extension's changelog delta is one Jira-free final-state entry at the end of its applicable section.", "sources": [{"path": ".agents/rules/completion-gates.md", "section": "Completion Gates"}, {"path": ".agents/commands/bump-exts-changelog.md", "section": "Step 3 - Extension Version + Changelog"}]},
     {"id": "H03", "target": "global", "check": "Root changelog delta is one concise final-state entry at the end of its applicable Unreleased section, prefixed by supplied Jira only.", "sources": [{"path": ".agents/rules/completion-gates.md", "section": "Completion Gates"}, {"path": ".agents/commands/bump-exts-changelog.md", "section": "Step 4 - Root Changelog"}]},
     {"id": "H04", "target": "global", "check": "Changed behavior, setup, API, and workflow documentation describes the submitted final state.", "sources": [{"path": ".agents/rules/completion-gates.md", "section": "Completion Gates"}]},

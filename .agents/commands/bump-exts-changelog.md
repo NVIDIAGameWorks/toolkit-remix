@@ -27,7 +27,7 @@ POSIX:
 
 ## Step 2 - Inspect Each Ext
 
-For each pending ext:
+For each changed ext, including those whose version was already bumped:
 
 ```bash
 git --no-pager log --oneline origin/<base>..HEAD -- source/extensions/<ext-name> ; git --no-pager diff origin/<base>..HEAD -- source/extensions/<ext-name>
@@ -37,11 +37,11 @@ Batch up to 3 exts/run. Use real diff + commits; commit text may be low signal.
 
 ## Step 3 - Extension Version + Changelog
 
-For each changed ext:
+For each surviving changed ext:
 
-1. Compare against `origin/<base>:source/extensions/<ext-name>/config/extension.toml` and set
-   `config/extension.toml` to a version strictly greater than the published base version. Default to patch +1 from
-   `origin/<base>` unless the branch already has a higher intentional version.
+1. Compare against `origin/<base>:source/extensions/<ext-name>/config/extension.toml` and select the version for the
+   extension's complete change using `docs_dev/getting-started/review-checklist.md` -> Version Bumping and Dependency
+   Updates. Recheck any existing branch bump against that policy before keeping it.
 2. Append concise one-line entry as last item in the changelog section for the resolved extension version:
    Added/Changed/Fixed/Removed.
 3. Keep empty line below added section.
@@ -62,7 +62,6 @@ details in the modified extensions' `docs/CHANGELOG.md` files instead.
 
 - `list_changed_exts.py` can say 0 when branch already touched changelog/version. Cross-check:
   `git diff origin/<base>..HEAD --name-only -- source/extensions/`.
-- One version bump per MR, but the resolved version must still be strictly greater than `origin/<base>` because those
-  versions are already published. If version already bumped on branch, append to existing `## [X.Y.Z]` only when it is
-  above the published base version; otherwise raise it, defaulting to published patch +1.
+- Keep one resolved version per MR. If later changes require a higher bump, update the branch's version and its
+  existing changelog section together; never rename a published base-version section.
 - `lint_code.bat all` may auto-fix unrelated exts. Stage only current MR scope; split unrelated fixes.

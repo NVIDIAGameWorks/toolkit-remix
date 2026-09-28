@@ -19,9 +19,10 @@ Non-trivial/risky feature work -> plan tests before impl. Use Plan mode/approval
 - E2E must not replace workflow data or exercised components with mocks/fakes/stubs. A representative real in-memory
   stage is valid; a stage-independent workflow needs no stage. Only data-free interception of an irreversible external
   effect may replace its terminal boundary; verify the request after the real application path reaches it.
-- Test organization: independently testable logic maps to one unit-test file per source file and one test class per
-  source class. Rendered behavior needs E2E; mixed modules need both. Preserve the trivial-glue exception: existing
-  shared-contract coverage can suffice for mechanical forwarding, without duplicate wiring tests.
+- Test organization: prefer E2E tests of real use cases with real UI and real fixtures, and keep the test diff small.
+  A behavior that an E2E test exercises needs no unit test. Add unit tests only for logic that no real workflow can
+  reach; map those one unit-test file per source file and one test class per source class. Preserve the trivial-glue
+  exception. Test modules use fully-qualified imports, never relative imports.
 - Tests must detect a concrete regression. Remove fully redundant coverage or consolidate substantial repeated
   mechanics only with evidence that coverage, isolation, and failure diagnosis survive; syntax similarity is not enough.
 - E2E: do not run processes in parallel locally. No static appearance/layout checks; prove workflow/behavior. Known

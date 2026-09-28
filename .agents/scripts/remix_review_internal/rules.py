@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -34,30 +35,41 @@ __all__ = [
     "SCORE_DECIMAL_PLACES",
     "SCORE_FORMULA_VERSION",
     "SCORE_ROUNDING_MODE",
+    "SEVERITY_CEILINGS",
     "SEVERITY_PENALTIES",
     "WORKLOAD_METRIC_VERSION",
     "Rule",
     "load_rule_registry",
+    "point_pool_for_lines",
     "receipt_contract",
 ]
 
 
 RUBRIC_VERSION = "1"
-ASSESSMENT_POLICY_VERSION = "6"
-WORKLOAD_METRIC_VERSION = "rule_change_units_v1"
-SCORE_FORMULA_VERSION = "linear_snapshot_pool_v1"
+ASSESSMENT_POLICY_VERSION = "9"
+WORKLOAD_METRIC_VERSION = "rule_change_units_v3"
+SCORE_FORMULA_VERSION = "sqrt_pool_scaled_ceiling_v1"
 SCORE_ROUNDING_MODE = "half_up"
 SCORE_DECIMAL_PLACES = 2
 SEVERITY_PENALTIES = {
-    "critical": 3,
-    "high": 3,
-    "major": 3,
-    "medium": 2,
-    "moderate": 2,
+    "critical": 6,
+    "high": 6,
+    "major": 6,
+    "medium": 3,
+    "moderate": 3,
     "minor": 1,
     "low": 1,
     "nit": 1,
 }
+SEVERITY_CEILINGS = {
+    "critical": 6,
+    "high": 6,
+    "major": 6,
+    "medium": 8,
+    "moderate": 8,
+}
+POOL_SCALE = 1.5
+MINIMUM_POINT_POOL = 5
 SCORE_CATEGORY_BY_CLAIM_CLASS = {
     "behavioral_bug": "merge_readiness",
     "functional_gap": "merge_readiness",
@@ -78,9 +90,19 @@ ASSESSMENT_POLICY_HASH = canonical_hash(
         "score_formula": SCORE_FORMULA_VERSION,
         "score_categories": SCORE_CATEGORY_BY_CLAIM_CLASS,
         "severity_penalties": SEVERITY_PENALTIES,
+        "severity_ceilings": SEVERITY_CEILINGS,
+        "pool_scale": POOL_SCALE,
+        "minimum_point_pool": MINIMUM_POINT_POOL,
         "rounding": {"mode": SCORE_ROUNDING_MODE, "decimal_places": SCORE_DECIMAL_PLACES},
     }
 )
+
+
+def point_pool_for_lines(lines: int) -> int:
+    """Return the snapshot point pool for one count of changed lines (added plus removed)."""
+    if type(lines) is not int or lines < 0:
+        raise ValueError("workload lines must be a non-negative integer")
+    return max(MINIMUM_POINT_POOL, math.ceil(POOL_SCALE * math.sqrt(lines)))
 
 
 _EXPECTED_RULE_FILES = {
@@ -93,6 +115,7 @@ _EXPECTED_RULE_FILES = {
     "G": "g-domain.json",
     "H": "h-delivery.json",
     "I": "i-mr-description.json",
+    "J": "j-holistic.json",
 }
 
 _RULE_ID = re.compile(f"[{''.join(_EXPECTED_RULE_FILES)}][0-9]{{2,}}")
@@ -109,6 +132,7 @@ class Rule:
     category: str
     category_name: str
     evidence: str | None = None
+    advisory: bool = False
 
 
 def load_rule_registry(rules_dir: Path) -> tuple[list[Rule], str]:
@@ -121,8 +145,8 @@ def load_rule_registry(rules_dir: Path) -> tuple[list[Rule], str]:
         The normalized rules in file order, and the registry content hash.
 
     Raises:
-        ValueError: When a category file name, rule id, or evidence value is
-            invalid, when a rule id repeats, or when a category has no rules.
+        ValueError: When a category file name, rule id, evidence, or advisory value
+            is invalid, when a rule id repeats, or when a category has no rules.
     """
     rules = []
     seen = set()
@@ -137,6 +161,10 @@ def load_rule_registry(rules_dir: Path) -> tuple[list[Rule], str]:
                 raise ValueError(f"invalid rule id in {path.name}: {rule_id}")
             if rule.evidence not in (None, "description", "checks"):
                 raise ValueError(f"invalid evidence in {path.name}: {rule_id}")
+            if type(rule.advisory) is not bool or (
+                rule.advisory and (rule.evidence != "description" or rule.target != "global")
+            ):
+                raise ValueError(f"invalid description advisory in {path.name}: {rule_id}")
             if rule_id in seen:
                 raise ValueError(f"duplicate rule id: {rule_id}")
             seen.add(rule_id)
@@ -308,8 +336,19 @@ def receipt_contract(phase: str) -> dict:
                         "type": "string",
                         "enum": ["introduced_or_worsened", "pre_existing", "uncertain"],
                     },
+                    "history_match": {
+                        "type": ["object", "null"],
+                        "properties": {
+                            "decision_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                            "status": {"type": "string", "enum": ["applicable", "not_applicable", "uncertain"]},
+                            "basis": {"type": "string", "minLength": 1},
+                            "evidence": {"type": "array", "items": location},
+                        },
+                        "required": ["decision_id", "status", "basis", "evidence"],
+                        "additionalProperties": False,
+                    },
                 },
-                "required": ["candidate_id", "disposition", "evidence", "ownership"],
+                "required": ["candidate_id", "disposition", "evidence", "ownership", "history_match"],
                 "additionalProperties": False,
             },
         }

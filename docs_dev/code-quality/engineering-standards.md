@@ -87,8 +87,8 @@ of a single import line. They also hurt readability and make grep-based refactor
 
 ### Relative Imports Within an Extension
 
-When importing from the same extension, use **relative imports** (`from .module import Class`) instead of
-fully-qualified paths.
+When a source file imports from the same extension, use **relative imports** (`from .module import Class`) instead
+of fully-qualified paths.
 
 | Do                                                 | Don't                                                                                 |
 |----------------------------------------------------|---------------------------------------------------------------------------------------|
@@ -96,7 +96,10 @@ fully-qualified paths.
 | `from .display_adapter import JobDisplayAdapter`   | `from omni.flux.job_queue.widget.display_adapter import JobDisplayAdapter`            |
 
 Relative imports make it clear the dependency is internal to the extension and survive extension renames.
-Use absolute imports only for cross-extension dependencies.
+In source files, use absolute imports only for cross-extension dependencies.
+
+Tests are the exception. Test modules under `tests/` always use fully-qualified imports, also for the extension
+under test. A test imports the extension the same way a consumer does.
 
 ---
 
