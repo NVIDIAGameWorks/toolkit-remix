@@ -319,8 +319,9 @@ counted with the manifest's enumeration, `scope_line`, the selected `previous_ru
 `--jobs` defaults to 22 for Codex/Claude and 8 for Cursor, controls bounded packet sizing, and may decrease after an
 environment-limit failure. Timeouts split packets while conserving file, rule, or candidate coverage; an unsplittable
 part fails. `--deadline-seconds` has no default and covers preparation, provider readiness, forge resolution, scope
-setup, and workers. Planning reserves the serial tail and predicted compaction before worker start. At expiry, the host
-terminates workers and publishes no assessment.
+setup, and workers. The scheduler bounds its synthesis reservation and worker timeouts to the available budget; see
+[review scheduling](../../docs_dev/tools/ai-agents.md#review-scheduling) for budget and failure semantics. At expiry,
+the host terminates workers and publishes no assessment.
 
 `--verify-model` selects another model on the same provider. A separate context remains independent even with the same
 model. Current-candidate verification tries to falsify each claim against code, callers, and tests; terminal failure

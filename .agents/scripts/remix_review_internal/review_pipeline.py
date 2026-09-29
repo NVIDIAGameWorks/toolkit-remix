@@ -113,15 +113,10 @@ class PlanRefusedError(ValueError):
     """Report a plan that cannot fit the caller's deadline. The run never started."""
 
 
-# Three runs measured the deduplicated candidate volume per scoped file: MR 1352's real MR at
-# ~3.3KB/file, the 130-file defect fixture at ~7.3KB/file (953,849 bytes over 130 files), and the
-# 13-file defect fixture at ~25.1KB/file (326KB over 13 files). The constant drives only
-# predictions — the verification and synthesis reserve slices and the deadline-refusal gate — so
-# it takes the dense end: a reserve must cover the worst measured case, and over-reserving a
-# sparse run only makes its conservative estimate cautious. At 3.3KB the 13-file fixture planned
-# a 900s synthesis slice for a final pass that needed more than 15 minutes.
+# File-volume predictions inform progress estimates, never worker admission or reserved time.
 _MEASURED_CANDIDATE_BYTES_PER_FILE = 25000
 _FIXED_PROMPT_BYTES = 20 * 1024
+_SYNTHESIS_RESERVE_BUDGET_FRACTION = 0.25
 # A 317KB monolithic synthesis pass finished in 1110s, about 3.5s per prompt KB.
 _MEASURED_SECONDS_PER_PROMPT_KB = 3.5
 
@@ -272,6 +267,7 @@ class RunContext:
     pools: dict[str, ProviderPool] = field(default_factory=dict)
     active: dict[str, ReviewPacket] = field(default_factory=dict)
     worker_starts: dict[str, tuple[str, float, int, int]] = field(default_factory=dict)
+    worker_deadlines: dict[str, float] = field(default_factory=dict)
     worker_timings: list[WorkerTiming] = field(default_factory=list)
     receipts: list[dict] = field(default_factory=list)
     failures: list[PacketFailure] = field(default_factory=list)
@@ -292,8 +288,7 @@ class RunContext:
     deadline_seconds: float | None = None
     deadline_mono: float | None = None
     synthesis_reserve_seconds: float = 0.0
-    # The active drain stage's stop time. `_start_ready` uses it to refuse work that cannot
-    # finish inside the remaining budget.
+    # The active drain stage's stop time bounds every worker's maximum runtime.
     stage_stop_at: float | None = None
     # The verification stage between deduplication and synthesis: an optional model override on the
     # same provider, the falsification packets, and the reconciled dispositions keyed by candidate
@@ -1576,7 +1571,7 @@ def _run(context: RunContext) -> dict:
     context.planned_review_packet_ids = tuple(packet.packet_id for packet in packets)
     # Refuse only a physically impossible deadline here, before any worker starts.
     canaries = _canary_packets(context, packets)
-    _plan_deadline(context, packets, canaries)
+    _plan_deadline(context, canaries)
     context.expected_receipts = {
         lane: sum(packet.lane == lane for packet in packets)
         for lane in dict.fromkeys(packet.lane for packet in packets)
@@ -1610,7 +1605,7 @@ def _run(context: RunContext) -> dict:
         # safety net. Review still stops early enough to protect the final synthesis reserve.
         _progress(context, "running review workers", force=True)
         context.stage_starts[REVIEW_LANE] = time.monotonic()
-        _drain(context, list(packets), stop_at=_review_stop_at(context))
+        _drain(context, list(packets), reserve_synthesis=True)
         if any(failure.needs_user_action for failure in context.failures):
             return _finish(context)
         if _deadline_exceeded(context) and (not context.receipts or time.monotonic() >= context.deadline_mono):
@@ -1618,6 +1613,9 @@ def _run(context: RunContext) -> dict:
         # One forced line per finished stage leaves a permanent mark in the scrollback; none of
         # them prints when the stage was cut short, because the count would lie.
         review_done, review_total = _review_progress_counts(context)
+        if review_done != review_total or any(failure.lane == REVIEW_LANE for failure in context.failures):
+            _progress(context, "required review coverage is incomplete, stopping before synthesis", force=True)
+            return _finish(context)
         if review_done == review_total and not _deadline_exceeded(context):
             _progress(
                 context,
@@ -1637,7 +1635,7 @@ def _run(context: RunContext) -> dict:
         verification = _verification_packets(context)
         if verification:
             _progress(context, f"running {len(verification)} remaining verification passes", force=True)
-            _drain(context, list(verification), stop_at=_verification_stop_at(context))
+            _drain(context, list(verification), reserve_synthesis=True)
         if context.verification_packets:
             _verification_dispositions(context)
         (verify_done, verify_expected), _ = _tail_progress_counts(context)
@@ -1890,13 +1888,35 @@ def _progress(context: RunContext, message: str, *, force: bool = False) -> None
         print(status["line"], file=sys.stderr, flush=True)
 
 
-def _drain(context: RunContext, pending: list[ReviewPacket], stop_at: float | None = None) -> None:
+def _drain(
+    context: RunContext,
+    pending: list[ReviewPacket],
+    stop_at: float | None = None,
+    *,
+    reserve_synthesis: bool = False,
+) -> None:
+    """Run queued packets within a bounded stage, stopping immediately when progress is impossible."""
+    receipt_count = -1
     context.stage_stop_at = stop_at
     try:
         while pending or context.active:
+            if reserve_synthesis and receipt_count != len(context.receipts):
+                context.synthesis_reserve_seconds = _synthesis_reserve_seconds(context)
+                updated_stop_at = _review_stop_at(context)
+                if context.active and stop_at is not None and updated_stop_at is not None:
+                    # Evidence arriving mid-wave must not revoke already admitted worker time.
+                    updated_stop_at = max((updated_stop_at, *context.worker_deadlines.values()))
+                    context.synthesis_reserve_seconds = context.deadline_mono - updated_stop_at
+                stop_at = updated_stop_at
+                receipt_count = len(context.receipts)
+            if context.deadline_mono is not None:
+                stop_at = min(stop_at, context.deadline_mono) if stop_at is not None else context.deadline_mono
+            context.stage_stop_at = stop_at
             if stop_at is not None and time.monotonic() >= stop_at:
                 _stop_stage_at_deadline(context, pending)
                 return
+            queued_before = tuple(pending)
+            completed_before = len(context.worker_timings)
             _start_ready(context, pending)
             _collect(context, pending)
             # A canary failure or a failure that needs user action ends the run at once: no
@@ -1909,6 +1929,28 @@ def _drain(context: RunContext, pending: list[ReviewPacket], stop_at: float | No
                 for pool in context.pools.values():
                     pool.terminate_all()
                 _cancel_in_flight(context, "cancelled")
+                return
+            if (
+                pending
+                and not context.active
+                and tuple(pending) == queued_before
+                and len(context.worker_timings) == completed_before
+            ):
+                if stop_at is not None and time.monotonic() >= stop_at:
+                    _stop_stage_at_deadline(context, pending)
+                else:
+                    context.failures.append(
+                        PacketFailure(
+                            pending[0].packet_id,
+                            pending[0].lane,
+                            "queued packets could not start with no active workers",
+                            code="SCHEDULER_STALLED",
+                        )
+                    )
+                    for pool in context.pools.values():
+                        pool.terminate_all()
+                    pending.clear()
+                    _progress(context, "scheduler cannot make progress, stopping the stage", force=True)
                 return
             _progress(
                 context,
@@ -3018,17 +3060,10 @@ def _run_synthesis(context: RunContext) -> None:
         return
     terminal_reserve = max(_SYNTHESIS_TIMEOUT_FLOOR_SECONDS, _scaled_timeout(_SYNTHESIS_PROMPT_MAX_BYTES))
     if context.deadline_mono is not None:
-        compaction_seconds = _compaction_wave_seconds(context, compaction)
         remaining = max(context.deadline_mono - time.monotonic(), 0.0)
-        if remaining < compaction_seconds + terminal_reserve:
-            _fail_synthesis(
-                context,
-                "synthesis-deadline",
-                f"the remaining {remaining:.0f}s deadline cannot fit every bounded compaction wave and the "
-                "reserved final-synthesis pass",
-                DEADLINE_FAILURE_CODE,
-            )
-            return
+        # A timeout is an upper bound, so let compaction use its share of the remaining budget.
+        compaction_seconds = _compaction_wave_seconds(context, compaction)
+        terminal_reserve = min(terminal_reserve, remaining * terminal_reserve / (compaction_seconds + terminal_reserve))
     context.expected_receipts[SYNTHESIS_LANE] += len(compaction)
     _progress(context, f"running {len(compaction)} bounded synthesis compaction passes", force=True)
     context.stage_starts["synthesis-compaction"] = time.monotonic()
@@ -4088,18 +4123,24 @@ def _synthesis_prompt_bytes(file_count: int) -> int:
 
 
 def _synthesis_reserve_seconds(context: RunContext) -> float:
-    """Return the final reserve plus every predicted compaction wave at initial concurrency."""
-    file_count = len(context.files)
-    predicted = _synthesis_prompt_bytes(file_count)
-    final = max(_SYNTHESIS_TIMEOUT_FLOOR_SECONDS, _scaled_timeout(min(predicted, _SYNTHESIS_PROMPT_MAX_BYTES)))
-    if predicted <= _SYNTHESIS_PROMPT_MAX_BYTES:
-        return final
-    candidate_bytes = max(predicted - _FIXED_PROMPT_BYTES, 1)
-    usable_packet_bytes = max(_SYNTHESIS_COMPACTION_TARGET_BYTES - _FIXED_PROMPT_BYTES, 1)
-    packet_count = -(-candidate_bytes // usable_packet_bytes)
-    provider = _selection(context, SYNTHESIS_LANE).provider
-    wave_count = -(-packet_count // max(_worker_limit(context, provider), 1))
-    return final + wave_count * _scaled_timeout(_SYNTHESIS_COMPACTION_TARGET_BYTES)
+    """Reserve time for observed evidence without starving the work that produces it."""
+    candidate_bytes = len(
+        json.dumps([context.tail_candidates, context.verification_merged or {}], ensure_ascii=False).encode("utf-8")
+    )
+    prompt_bytes = _FIXED_PROMPT_BYTES + candidate_bytes
+    reserve = max(_SYNTHESIS_TIMEOUT_FLOOR_SECONDS, _scaled_timeout(min(prompt_bytes, _SYNTHESIS_PROMPT_MAX_BYTES)))
+    if prompt_bytes > _SYNTHESIS_PROMPT_MAX_BYTES:
+        usable_packet_bytes = _SYNTHESIS_COMPACTION_TARGET_BYTES - _FIXED_PROMPT_BYTES
+        packet_count = math.ceil(candidate_bytes / usable_packet_bytes)
+        provider = _selection(context, SYNTHESIS_LANE).provider
+        wave_count = math.ceil(packet_count / max(_worker_limit(context, provider), 1))
+        reserve += wave_count * _scaled_timeout(_SYNTHESIS_COMPACTION_TARGET_BYTES)
+    if context.deadline_seconds is not None:
+        reserve = min(
+            reserve,
+            max(_SYNTHESIS_TIMEOUT_FLOOR_SECONDS, context.deadline_seconds * _SYNTHESIS_RESERVE_BUDGET_FRACTION),
+        )
+    return reserve
 
 
 def _tail_chain_seconds(file_count: int) -> float:
@@ -4144,20 +4185,16 @@ def _serial_depth_seconds(context: RunContext, canary_seconds: float) -> float:
     )
 
 
-def _plan_deadline(context: RunContext, packets: list[ReviewPacket], canaries: list[ReviewPacket]) -> None:
+def _plan_deadline(context: RunContext, canaries: list[ReviewPacket]) -> None:
     """Set the synthesis reserve and reject a deadline that leaves no viable upstream window.
 
-    This is not a whole-run prediction. The gate accounts for measured upstream minimums and
-    the full packet timeout required by the scheduler before the reserved synthesis cutoff.
+    This is not a whole-run prediction. Admission uses measured upstream minimums; packet
+    timeouts remain maximum runtimes and can be clipped to the available window.
     The packet plan and lane counts are printed by the caller.
     """
     if context.deadline_seconds is None:
         return
     context.synthesis_reserve_seconds = _synthesis_reserve_seconds(context)
-    review_timeout = max(
-        (_worker_timeout(packet, _packet_prompt_size(context, packet)[1]) for packet in packets),
-        default=0.0,
-    )
     canary_counts: dict[str, int] = {}
     for packet in canaries:
         provider = _packet_selection(context, packet).provider
@@ -4165,10 +4202,7 @@ def _plan_deadline(context: RunContext, packets: list[ReviewPacket], canaries: l
     canary_seconds = _SERIAL_DEPTH_CANARY_SECONDS * max(
         (math.ceil(count / _worker_limit(context, provider)) for provider, count in canary_counts.items()), default=0
     )
-    serial_depth = max(
-        _serial_depth_seconds(context, canary_seconds),
-        canary_seconds + review_timeout + context.synthesis_reserve_seconds,
-    )
+    serial_depth = _serial_depth_seconds(context, canary_seconds)
     remaining = (
         max(context.deadline_mono - time.monotonic(), 0.0)
         if context.deadline_mono is not None
@@ -4178,7 +4212,7 @@ def _plan_deadline(context: RunContext, packets: list[ReviewPacket], canaries: l
         raise PlanRefusedError(
             f"the {context.deadline_seconds:.0f}s deadline has {remaining:.0f}s remaining after preparation, below "
             "the review's minimum schedulable depth of "
-            f"about {serial_depth:.0f}s. The canary and review packet timeout must fit before the reserved "
+            f"about {serial_depth:.0f}s. The measured canary, review and verification minimums must fit before the reserved "
             f"final-synthesis slice. Raise --deadline-seconds above {int(-(-serial_depth // 1))}."
         )
 
@@ -4214,17 +4248,6 @@ def _review_stop_at(context: RunContext) -> float | None:
     return context.deadline_mono - context.synthesis_reserve_seconds
 
 
-def _verification_stop_at(context: RunContext) -> float | None:
-    """Return when verification must stop so the synthesis stage keeps its full reserved slice.
-
-    Streaming verification shares the upstream window with review and ends where synthesis
-    must start. Missing required current-candidate dispositions make the review incomplete.
-    """
-    if context.deadline_mono is None:
-        return None
-    return context.deadline_mono - context.synthesis_reserve_seconds
-
-
 def _canary_failed(context: RunContext) -> bool:
     """Report whether a provider canary failed terminally."""
     return any("provider-canary" in failure.packet_id for failure in context.failures)
@@ -4247,7 +4270,12 @@ def _stop_stage_at_deadline(context: RunContext, pending: list[ReviewPacket]) ->
         lane = pending[0].lane
     elif context.active:
         lane = next(iter(context.active.values())).lane
-    _progress(context, "deadline arrived, stopping the stage", force=True)
+    now = time.monotonic()
+    whole_deadline = context.deadline_mono is not None and now >= context.deadline_mono
+    boundary = "whole-run deadline" if whole_deadline else "stage budget cutoff"
+    remaining = max(context.deadline_mono - now, 0.0) if context.deadline_mono is not None else 0.0
+    detail = f"the {boundary} arrived with {remaining:.0f}s left in the run; some required packets did not finish"
+    _progress(context, f"{boundary} arrived, stopping the stage", force=True)
     for pool in context.pools.values():
         pool.terminate_all()
     _cancel_in_flight(context, "deadline")
@@ -4270,11 +4298,11 @@ def _stop_stage_at_deadline(context: RunContext, pending: list[ReviewPacket]) ->
         PacketFailure(
             "run-deadline",
             lane,
-            f"the {context.deadline_seconds:.0f}s deadline arrived and the run stopped before every packet finished",
+            detail,
             None,
             DEADLINE_FAILURE_CODE,
             False,
-            "Re-run with a larger --deadline-seconds, a higher --jobs value, or a smaller scope.",
+            "Inspect worker timings and unfinished coverage before rerunning the review.",
         )
     )
 
@@ -4311,6 +4339,7 @@ def _cancel_in_flight(context: RunContext, outcome: str) -> None:
             )
         )
         del context.active[worker_id]
+        context.worker_deadlines.pop(worker_id, None)
 
 
 def _abort_moving_snapshot(context: RunContext, packet: ReviewPacket, changed_paths: list[str]) -> None:
@@ -4367,6 +4396,7 @@ def _packet_selection(context: RunContext, packet: ReviewPacket) -> ProviderSele
 
 
 def _start_ready(context: RunContext, pending: list[ReviewPacket]) -> None:
+    """Start available packets with timeouts bounded by the remaining stage budget."""
     for packet in tuple(pending):
         selection = _packet_selection(context, packet)
         pool = context.pools[selection.provider]
@@ -4404,16 +4434,9 @@ def _start_ready(context: RunContext, pending: list[ReviewPacket]) -> None:
         timeout = _worker_timeout(packet, prompt_bytes)
         if context.stage_stop_at is not None:
             remaining = context.stage_stop_at - time.monotonic()
-            if packet.phase in ("provider-canary", "final-synthesis") or (
-                context.review_mode == "feedback" and packet.phase == "verification"
-            ):
-                # The mandatory canary and synthesis passes get whatever budget their serial
-                # slices hold instead of being rejected by the ordinary 600-second timeout.
-                timeout = max(1.0, min(timeout, remaining))
-            elif timeout > remaining:
-                # This worker cannot finish inside the remaining budget, so starting it only
-                # wastes a spawn. It stays pending and the `_drain` deadline path reports it.
-                continue
+            if remaining <= 0:
+                return
+            timeout = min(timeout, remaining)
         pending.remove(packet)
         packet.attempt += 1
         worker_id = f"{packet.packet_id}-{packet.attempt}-{uuid.uuid4().hex[:8]}"
@@ -4441,13 +4464,26 @@ def _start_ready(context: RunContext, pending: list[ReviewPacket]) -> None:
         provider = context.providers[selection.provider]
         provider.prepare_workspace(request)
         spec = provider.build_worker(context.readiness[selection.provider], request)
+        if context.stage_stop_at is not None:
+            remaining = context.stage_stop_at - time.monotonic()
+            if remaining <= 0:
+                pending.insert(0, packet)
+                packet.attempt -= 1
+                return
+            timeout = min(timeout, remaining)
         spec = replace(spec, timeout_seconds=timeout)
         pool.start(spec)
+        started_mono = time.monotonic()
         packet.before_hashes = current
         context.active[worker_id] = packet
+        context.worker_deadlines[worker_id] = (
+            min(started_mono + timeout, context.stage_stop_at)
+            if context.stage_stop_at is not None
+            else started_mono + timeout
+        )
         context.worker_starts[worker_id] = (
             datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),  # noqa: UP017
-            time.monotonic(),
+            started_mono,
             prompt_bytes,
             prompt_characters,
         )
@@ -4457,6 +4493,7 @@ def _collect(context: RunContext, pending: list[ReviewPacket]) -> None:
     for provider_name, pool in context.pools.items():
         for completion in pool.poll():
             packet = context.active.pop(completion.spec.worker_id)
+            context.worker_deadlines.pop(completion.spec.worker_id, None)
             _handle_completion(context, provider_name, completion, packet, pending)
 
 
@@ -4931,6 +4968,17 @@ def _retry_or_fail(
         _progress(context, "provider rejected a deterministic oversized prompt", force=True)
         return True
     if timed_out:
+        if context.stage_stop_at is not None and time.monotonic() >= context.stage_stop_at:
+            context.failures.append(
+                PacketFailure(
+                    packet.packet_id,
+                    packet.lane,
+                    f"{error}; the stage budget is exhausted, so split packets cannot run",
+                    selection.provider,
+                    DEADLINE_FAILURE_CODE,
+                )
+            )
+            return True
         # A timeout kill means the packet is too large for its wall: the same packet with the
         # same prompt hits the same wall, so a plain retry only burns the budget. The measured
         # MR 1352 run spent three identical 729s attempts on one packet this way. Split the
