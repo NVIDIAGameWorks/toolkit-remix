@@ -143,6 +143,28 @@ the relevant `.agents/rules/` file first, then update wrappers only when discove
 Internal-only procedures live under `.agents/commands/internal/` and are indexed from that directory's README. They are
 not listed in the public command tables or shared skill discovery unless a tool needs a deliberate internal wrapper.
 
+### Review Scheduling
+
+These scheduling rules apply to every caller of the review CLI, including direct local use. `--deadline-seconds`
+remains optional: omitting it imposes no whole-run or synthesis-reservation cutoff, while the normal per-worker
+timeouts still apply. With an explicit deadline, all callers use the budget rules below. Provider defaults and
+`--jobs` remain the source of concurrency; no Coworker environment variables, 100-minute cap, or 16-worker cap are
+required or imposed by this scheduler.
+
+The scripted Remix review reserves synthesis time from the candidate evidence already produced. It starts with a
+900-second reserve and caps growth at 25% of the caller's budget, or 900 seconds for a shorter budget. Planning
+rejects budgets that cannot fit the measured minimum upstream stages plus that floor. File count does not reserve
+speculative compaction waves. New evidence cannot shorten the window of workers already in flight.
+
+Worker timeouts are maximum runtimes. A queued packet can start with less time left than its normal timeout; its
+timeout is clipped to the remaining stage budget. Compaction shares the remaining synthesis time with the final
+pass. All stages remain bounded by the absolute whole-run deadline, including time spent preparing workers.
+
+A queue with pending packets, no active workers, and no admission or completion progress fails immediately with
+`SCHEDULER_STALLED`. A stage cutoff reports time still available in the whole run; it is distinct from whole-run
+deadline expiry. Deadline-exhausted packets do not split into retries. Missing required review or verification
+receipts still prevent publication of an assessment, and the immutable-checkout checks remain mandatory.
+
 ### Specialist Roles
 
 Specialist role instructions live in `.agents/subagents/`. Use them when a task matches the domain: documentation,
