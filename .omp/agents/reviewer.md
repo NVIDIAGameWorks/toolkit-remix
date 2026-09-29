@@ -1,6 +1,7 @@
 ---
 name: reviewer
 description: Reviews lightspeed-kit changes against project architecture, quality, testing, and completion rules.
+model: ["@slow", "@default"]
 tools: read, grep, find, ls, bash, contact_supervisor
 systemPromptMode: replace
 inheritProjectContext: true

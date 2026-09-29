@@ -83,7 +83,8 @@ and document reason here. Cursor skill discovery version-sensitive.
 - Project `.pi/settings.json` and `.omp/settings.json` stay ignored. Users own packages, credentials, trust, model
   defaults, UI preferences, and built-in hook configuration locally. The repo ships no Pi/OMP hook adapter.
 - `.omp/` mirrors the Pi wrapper set for OMP, which reads `.omp/` and ignores `.pi/`: `.omp/agents/<name>.md` are
-  byte-identical copies of the Pi wrappers. Add or rename a Pi wrapper -> make the same change under `.omp/`.
+  copies of the Pi wrappers plus an OMP `model` role alias with an `"@default"` fallback. Add or rename a Pi wrapper ->
+  make the same change under `.omp/`.
 - Permissions/trust boundaries are agent-specific, not `.agents/`; Claude permissions in `.claude/settings.json`.
 - Plans/specs -> `docs/plans/` (gitignored). Not `docs/superpowers/`. If using new plan dir, ignore it first or Sphinx
   fails on unlinked docs.

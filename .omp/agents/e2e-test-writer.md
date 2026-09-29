@@ -1,6 +1,7 @@
 ---
 name: e2e-test-writer
 description: Writes real Kit end-to-end tests for complete lightspeed-kit user workflows.
+model: ["@task", "@default"]
 tools: read, grep, find, ls, bash, edit, write, contact_supervisor
 systemPromptMode: replace
 inheritProjectContext: true

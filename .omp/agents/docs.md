@@ -1,6 +1,7 @@
 ---
 name: docs
 description: Writes and updates lightspeed-kit developer, user, and extension documentation.
+model: ["@task", "@default"]
 tools: read, grep, find, ls, bash, edit, write, contact_supervisor
 systemPromptMode: replace
 inheritProjectContext: true
