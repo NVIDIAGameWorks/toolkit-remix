@@ -16,5 +16,6 @@
 """
 
 from .e2e.test_window import TestWizardWindow
+from .unit.test_setup_ui import TestProjectWizardFeedback
 
-__all__ = ["TestWizardWindow"]
+__all__ = ["TestProjectWizardFeedback", "TestWizardWindow"]

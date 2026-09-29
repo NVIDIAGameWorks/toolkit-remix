@@ -7,7 +7,7 @@ logic used by toolkit packaging and project-open flows.
 
 - Resolve the packaged `RtxIoResourcePackager.exe` and
   `RtxIoResourceExtractor.exe` paths for toolkit code.
-- Detect extractable RTX IO root package files below a mod or project directory.
+- Detect extractable RTX IO root package files below a mod or project directory without entering nested linked folders.
 - Scan USD stages for broken authored texture references before open/edit
   decides whether extraction is required.
 - Run RTX IO compression and extraction subprocesses while surfacing progress and

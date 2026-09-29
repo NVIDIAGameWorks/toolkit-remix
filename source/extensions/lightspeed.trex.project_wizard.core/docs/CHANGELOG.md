@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.7]
+### Fixed
+- Reported existing-project capture progress throughout stage loading, capture insertion, and saving.
+- Released temporary helper cores before destroying the isolated Project Wizard context on every exit path.
+
 ## [2.1.6]
 ### Changed
 - Apply and save a selected capture in the isolated Project Wizard context before opening an existing project in StageCraft.

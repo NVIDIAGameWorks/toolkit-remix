@@ -117,6 +117,81 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             False,
         )
         mock.save_project_layer_mock.assert_called_once_with(mock.layer_manager_mock.return_value, False)
+        self.assertEqual(
+            [call(0), call(10), call(20), call(30), call(50), call(75), call(90), call(100)],
+            mock.progress_mock.call_args_list,
+        )
+
+    @staticmethod
+    def _record_cleanup_order(mock, cleanup_order):
+        """Record helper destruction in the supplied list."""
+        helpers = (
+            (mock.replacement_core_mock, "replacement"),
+            (mock.capture_core_mock, "capture"),
+            (mock.layer_manager_mock, "layers"),
+        )
+        for helper, label in helpers:
+            helper.return_value.destroy.side_effect = lambda label=label: cleanup_order.append(label)
+
+    async def test_setup_project_success_destroys_helpers_before_context(self):
+        """Release context-bound helpers before their USD context after success."""
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
+        schema = ProjectWizardSchemaMock(existing_project=True, project_file=project_file)
+        cleanup_order = []
+
+        with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
+            self._record_cleanup_order(mock, cleanup_order)
+            with patch.object(self.core, "_destroy_context", side_effect=lambda: cleanup_order.append("context")):
+                # Act
+                await self.core.setup_project_async_with_exceptions({})
+
+        # Assert
+        self.assertEqual(["replacement", "capture", "layers", "context"], cleanup_order)
+
+    async def test_setup_project_failure_destroys_helpers_before_context(self):
+        """Release context-bound helpers before their USD context after failure."""
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=self.base_dir / constants.REMIX_FOLDER,
+        )
+        cleanup_order = []
+
+        with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
+            mock.create_symlinks_mock.return_value = "Test Error"
+            self._record_cleanup_order(mock, cleanup_order)
+            with patch.object(self.core, "_destroy_context", side_effect=lambda: cleanup_order.append("context")):
+                # Act
+                result = await self.core.setup_project_async_with_exceptions({})
+
+        # Assert
+        self.assertEqual((False, "Test Error"), result)
+        self.assertEqual(["replacement", "capture", "layers", "context"], cleanup_order)
+
+    async def test_setup_project_cancellation_destroys_helpers_before_context(self):
+        """Release context-bound helpers before their USD context after cancellation."""
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=self.base_dir / constants.REMIX_FOLDER,
+        )
+        cleanup_order = []
+
+        with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
+            mock.create_symlinks_mock.side_effect = asyncio.CancelledError
+            self._record_cleanup_order(mock, cleanup_order)
+            with patch.object(self.core, "_destroy_context", side_effect=lambda: cleanup_order.append("context")):
+                # Act
+                with self.assertRaises(asyncio.CancelledError):
+                    await self.core.setup_project_async_with_exceptions({})
+
+        # Assert
+        self.assertEqual(["replacement", "capture", "layers", "context"], cleanup_order)
 
     async def test_setup_project_existing_project_open_failure_destroys_context(self):
         """Destroy the isolated USD context when an existing project cannot be opened."""
@@ -239,6 +314,38 @@ class TestWizard(omni.kit.test.AsyncTestCase):
             mock.extract_rtxio_packages_mock.call_args,
         )
         self.assertEqual(call(True), mock.finished_mock.call_args)
+
+    async def test_setup_project_existing_project_with_capture_should_reserve_progress_after_extraction(self):
+        # Arrange
+        project_file = self.base_dir / "projects" / "My Project" / "My Project.usda"
+        remix_dir = self.base_dir / constants.REMIX_FOLDER
+        schema = ProjectWizardSchemaMock(
+            existing_project=True,
+            project_file=project_file,
+            remix_directory=remix_dir,
+            capture_file=remix_dir / constants.REMIX_CAPTURE_FOLDER / "capture.usda",
+            extract_rtxio_packages=True,
+        )
+
+        with WizardMockContext(schema_mock=schema, mock_wizard_methods=True) as mock:
+            context = Mock()
+            context.open_stage_async = AsyncMock(return_value=(True, None))
+            mock.setup_usd_mock.return_value = (context, Mock())
+
+            # Act
+            await self.core.setup_project_async_with_exceptions({})
+
+        # Assert
+        self.assertEqual(
+            call(
+                project_file.parent,
+                False,
+                overwrite_existing=False,
+                progress_start=30,
+                progress_end=45,
+            ),
+            mock.extract_rtxio_packages_mock.call_args,
+        )
 
     async def test_probe_rtxio_project_existing_project_should_probe_project_file(self):
         # Arrange

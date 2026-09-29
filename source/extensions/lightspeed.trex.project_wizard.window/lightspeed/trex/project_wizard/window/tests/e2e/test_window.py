@@ -28,12 +28,16 @@ from lightspeed.layer_manager.core.data_models import LayerType, LayerTypeKeys
 from lightspeed.trex.project_wizard.core import SETTING_JUNCTION_NAME as _SETTING_JUNCTION_NAME
 from lightspeed.trex.project_wizard.window import CreateProjectWizardWindow as _ProjectWizardWindow
 from omni import ui, usd
+from omni.flux.utils.widget.resources import get_test_data
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
 from pxr import Sdf
 
+from ... import OpenProjectWizardWindow
+
 _RTXIO_PACKAGE_MAGIC = b"\x0d\xd0\xad\xba"
+_OPENING_PROJECT_TITLE = "Opening Project"
 
 
 class TestComponents(Enum):
@@ -72,12 +76,14 @@ class TestWizardWindow(AsyncTestCase):
 
         self.project_path, self.remix_dir = await self.__setup_directories()
         self.window, self.wizard = await self.__setup_widget()
+        self.completion_subscription = None
 
     # After running each test
     async def tearDown(self):
         if usd.get_context().get_stage():
             await usd.get_context().close_stage_async()
 
+        self.completion_subscription = None
         self.wizard.hide_project_wizard()
         self.wizard.destroy()
         self.window.destroy()
@@ -159,6 +165,19 @@ class TestWizardWindow(AsyncTestCase):
     def __write_fake_rtxio_package(path: Path):
         path.write_bytes(_RTXIO_PACKAGE_MAGIC + b"\x00" * 8)
 
+    async def __write_valid_rtxio_package(self, directory: Path):
+        """Create a package from a representative DDS with the production packager."""
+        if next(directory.glob("*.pkg"), None):
+            return
+        texture_path = Path(
+            get_test_data(
+                "usd/project_example/sources/textures/ingested/16px_Diffuse.dds",
+                ext_name="lightspeed.trex.app.resources",
+            )
+        )
+        shutil.copy(texture_path, directory / texture_path.name)
+        self.assertListEqual([], await self.wizard._wizard_core._rtxio_core.compress_directory(directory))
+
     @staticmethod
     def __write_missing_texture_mod_file(path: Path):
         path.unlink(missing_ok=True)
@@ -182,8 +201,83 @@ class TestWizardWindow(AsyncTestCase):
             await ui_test.human_delay()
         return None
 
+    async def __wait_for_stage(
+        self, project_path: Path, timeout_steps: int = 100, expect_no_opening_progress: bool = False
+    ):
+        """Wait for the requested project while optionally rejecting capture-opening feedback."""
+        context = usd.get_context(self.wizard.context_name)
+        for _ in range(timeout_steps):
+            if expect_no_opening_progress:
+                self.assertFalse(
+                    any(
+                        window.visible and window.title == _OPENING_PROJECT_TITLE
+                        for window in ui.Workspace.get_windows()
+                    )
+                )
+            stage = context.get_stage()
+            if stage:
+                root_layer = stage.GetRootLayer()
+                if (
+                    root_layer
+                    and not root_layer.anonymous
+                    and Path(root_layer.realPath).resolve() == project_path.resolve()
+                    and context.can_close_stage()
+                ):
+                    return stage
+            await ui_test.human_delay()
+        return None
+
     async def __find_prompt_button(self, window_title: str, text: str):
         return ui_test.find(f"{window_title}//Frame/**/Button[*].text=='{text}'")
+
+    async def __setup_open_project_with_capture(self):
+        """Open the capture picker for a real existing project with a cancellable RTX IO probe."""
+        project_layer = Sdf.Layer.FindOrOpen(str(self.project_path)) or Sdf.Layer.CreateNew(str(self.project_path))
+        project_layer.customLayerData = {LayerTypeKeys.layer_type.value: LayerType.workfile.value}
+        with Sdf.ChangeBlock():
+            for prim_index in range(1024):
+                Sdf.CreatePrimInLayer(project_layer, f"/RootNode/Prim_{prim_index}")
+        project_layer.Save()
+        await self.__write_valid_rtxio_package(self.project_path.parent)
+
+        self.wizard.destroy()
+        self.wizard = OpenProjectWizardWindow(width=1000, height=800)
+        self.wizard.set_payload({"project_file": self.project_path, "remix_directory": self.remix_dir})
+        self.wizard.show_capture_picker = True
+        self.wizard.create_wizard_window()
+        wizard_window = self.wizard._wizard_window._window
+        wizard_window.title = f"{wizard_window.title}_{id(self.wizard)}"
+        self.wizard.show_project_wizard(reset_page=True)
+        await ui_test.human_delay(50)
+
+        capture_labels = ui_test.find_all(f"{wizard_window.title}//Frame/**/Label[*].identifier=='item_title'")
+        self.assertGreater(len(capture_labels), 0)
+        await capture_labels[0].click()
+        await ui_test.human_delay()
+
+        capture_labels = ui_test.find_all(f"{wizard_window.title}//Frame/**/Label[*].identifier=='item_title'")
+        open_button = ui_test.find(f"{wizard_window.title}//Frame/**/Button[*].identifier=='NextButton'")
+        self.assertIsNotNone(open_button)
+        self.assertEqual("Open", open_button.widget.text)
+        return wizard_window, capture_labels[0], open_button
+
+    async def __assert_opening_progress_can_cancel(self, wizard_window):
+        """Verify real modal feedback and cancel the in-progress RTX IO probe."""
+        await ui_test.human_delay()
+
+        progress_window = ui_test.find(_OPENING_PROJECT_TITLE)
+        cancel_button = ui_test.find(f"{_OPENING_PROJECT_TITLE}//Frame/**/Button[*].text=='Cancel'")
+        self.assertIsNotNone(progress_window)
+        self.assertTrue(progress_window.window.visible)
+        self.assertIsNotNone(cancel_button)
+        self.assertTrue(cancel_button.widget.enabled)
+        self.assertFalse(wizard_window.visible)
+
+        await cancel_button.click()
+        await ui_test.human_delay(10)
+
+        self.assertFalse(progress_window.window.visible)
+        self.assertTrue(wizard_window.visible)
 
     async def __navigate_to_edit_mod_selection(self, wizard_window):
         self.wizard.show_project_wizard(reset_page=True)
@@ -526,6 +620,118 @@ class TestWizardWindow(AsyncTestCase):
         self.assertEqual(expected_mod_file, omni_layers_data.get("authoring_layer", None))
         self.assertDictEqual({expected_capture_file: True}, omni_layers_data.get("locked", None))
 
+    async def test_open_project_with_capture_via_open_button_should_show_progress_and_restore_wizard_on_cancel(self):
+        """Show cancellable preparation feedback after pressing Open."""
+        wizard_window, _, open_button = await self.__setup_open_project_with_capture()
+
+        await open_button.click()
+
+        await self.__assert_opening_progress_can_cancel(wizard_window)
+
+    async def test_open_project_with_capture_via_double_click_should_show_progress_and_restore_wizard_on_cancel(self):
+        """Show cancellable preparation feedback after double-clicking a capture."""
+        wizard_window, capture_label, _ = await self.__setup_open_project_with_capture()
+
+        await capture_label.double_click()
+
+        await self.__assert_opening_progress_can_cancel(wizard_window)
+
+    async def test_open_project_with_capture_should_keep_progress_until_stage_handoff(self):
+        """Keep feedback through handoff and support reopening in the same app session."""
+        # Repeat the real capture-open workflow to verify state is released between requests.
+        for attempt in range(2):
+            if attempt:
+                await usd.get_context(self.wizard.context_name).close_stage_async()
+                self.completion_subscription = None
+
+            # Select a capture and submit the project from the wizard.
+            wizard_window, _, open_button = await self.__setup_open_project_with_capture()
+            handoff_feedback = []
+
+            def record_handoff_feedback(_, feedback=handoff_feedback):
+                popup = self.wizard._progress_popup
+                feedback.append((popup.is_visible(), popup.status_text))
+
+            self.completion_subscription = self.wizard.subscribe_wizard_completed(record_handoff_feedback)
+
+            await open_button.click()
+            await ui_test.human_delay()
+
+            # Continue without extracting the package and observe the preparation feedback.
+            package_prompt = await self.__wait_for_window("RTX IO Packages Detected")
+            continue_button = await self.__find_prompt_button("RTX IO Packages Detected", "Continue")
+            self.assertIsNotNone(package_prompt)
+            self.assertIsNotNone(continue_button)
+            await continue_button.click()
+            await ui_test.human_delay(1)
+
+            progress_popup = self.wizard._progress_popup
+            self.assertTrue(progress_popup.is_visible())
+            if not attempt:
+                progress_window = ui_test.find(_OPENING_PROJECT_TITLE)
+                cancel_button = ui_test.find(f"{_OPENING_PROJECT_TITLE}//Frame/**/Button[*].text=='Cancel'")
+                self.assertIsNotNone(progress_window)
+                self.assertTrue(progress_window.window.visible)
+                self.assertIsNotNone(cancel_button)
+                self.assertFalse(cancel_button.widget.enabled)
+            setup_statuses = ("Preparing project...", "Loading project data...")
+            for _ in range(100):
+                if progress_popup.status_text in setup_statuses:
+                    break
+                await ui_test.human_delay()
+            self.assertIn(progress_popup.status_text, setup_statuses)
+            self.assertFalse(wizard_window.visible)
+
+            await ui_test.human_delay(1)
+            self.assertTrue(progress_popup.is_visible())
+
+            # Wait for StageCraft handoff and verify the popup closes only after the capture is saved.
+            opened_stage = await self.__wait_for_stage(self.project_path)
+
+            self.assertIsNotNone(opened_stage)
+            self.assertEqual([(True, "Opening project...")], handoff_feedback)
+            self.assertIsNone(self.wizard._progress_popup)
+            expected_capture_file = (
+                f"./{constants.REMIX_DEPENDENCIES_FOLDER}/{constants.REMIX_CAPTURE_FOLDER}/capture.usda"
+            )
+            self.assertIn(expected_capture_file, opened_stage.GetRootLayer().subLayerPaths)
+            self.assertIsNotNone(self.completion_subscription)
+            await self.__destroy_prompt_dialogs()
+
+    async def test_open_project_without_capture_should_open_stage_without_progress_popup(self):
+        """Open an existing project without showing capture-preparation feedback."""
+        project_layer = Sdf.Layer.CreateNew(str(self.project_path))
+        project_layer.customLayerData = {LayerTypeKeys.layer_type.value: LayerType.workfile.value}
+        project_layer.Save()
+
+        self.wizard.destroy()
+        self.wizard = OpenProjectWizardWindow(width=1000, height=800)
+        self.wizard.set_payload({"project_file": self.project_path, "remix_directory": self.remix_dir})
+        self.wizard.create_wizard_window()
+        wizard_window = self.wizard._wizard_window._window
+        self.wizard.show_project_wizard(reset_page=True)
+        await ui_test.human_delay()
+
+        open_button = ui_test.find(f"{wizard_window.title}//Frame/**/Button[*].identifier=='NextButton'")
+        self.assertIsNotNone(open_button)
+        self.assertEqual("Open", open_button.widget.text)
+
+        await open_button.click()
+
+        # Normal Open must not synchronously create the capture-preparation popup.
+        self.assertFalse(
+            any(window.visible and window.title == _OPENING_PROJECT_TITLE for window in ui.Workspace.get_windows())
+        )
+
+        opened_stage = await self.__wait_for_stage(self.project_path, expect_no_opening_progress=True)
+
+        self.assertIsNotNone(opened_stage)
+        self.assertFalse(wizard_window.visible)
+        self.assertEqual(
+            self.project_path,
+            Path(opened_stage.GetRootLayer().realPath).resolve(),
+        )
+
     async def test_edit_project_should_create_project_and_copy_mod(self):
         # Setup the test
         wizard_window = self.wizard._wizard_window._window
@@ -580,7 +786,15 @@ class TestWizardWindow(AsyncTestCase):
 
         # Create the project
         await nav_buttons[TestComponents.NEXT_BUTTON].click()
-        await ui_test.human_delay(50)
+
+        # Edit must not synchronously create the capture-preparation popup.
+        self.assertFalse(
+            any(window.visible and window.title == _OPENING_PROJECT_TITLE for window in ui.Workspace.get_windows())
+        )
+
+        opened_stage = await self.__wait_for_stage(self.project_path, expect_no_opening_progress=True)
+
+        self.assertIsNotNone(opened_stage)
 
         # Make sure the project and symlinks were created
         remix_project = self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem
@@ -657,7 +871,7 @@ class TestWizardWindow(AsyncTestCase):
         await cancel_button.click()
         await ui_test.human_delay(10)
 
-        self.assertFalse(wizard_window.visible)
+        self.assertTrue(wizard_window.visible)
         self.assertFalse(self.project_path.exists())
 
     # async def test_remaster_project_should_create_project_with_dependencies(self):

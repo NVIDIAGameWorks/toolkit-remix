@@ -148,7 +148,14 @@ class RtxIoCore:
         path = Path(directory)
         if not path.exists() or not path.is_dir():
             return []
-        return [pkg for pkg in path.rglob("*.pkg") if cls.is_rtxio_package_file(pkg)]
+        packages = []
+        for root, directories, filenames in path.walk():
+            directories[:] = [name for name in directories if not (root / name).is_junction()]
+            for name in filenames:
+                package = root / name
+                if cls.is_rtxio_package_file(package):
+                    packages.append(package)
+        return packages
 
     @staticmethod
     def _normalize_packaging_absolute_path(absolute_path: str) -> str:

@@ -19,3 +19,4 @@ Provides project-wizard schemas and project creation or repair services shared b
 - `ProjectWizardSchema` validates wizard inputs and raises `ProjectFileMetadataError` for missing project metadata.
 - `ProjectWizardCore` creates or repairs project files from validated wizard data. Existing-project capture changes run
   in its isolated USD context so the selected capture is saved before the StageCraft context opens the project.
+- Context-bound helper cores are released before that isolated context is destroyed on success, failure, or cancellation.

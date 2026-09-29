@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.3]
+### Fixed
+- Prevented RTX IO package discovery from entering nested symlink and junction directories.
+
 ## [1.0.2]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.
