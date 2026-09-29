@@ -173,6 +173,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bugs, design, and duplication with configurable reasoning, clarified cross-file evidence and duplication boundaries,
   aligned readiness probes with worker models and reasoning, and matched extension version bumps and review checks
   to change compatibility.
+- REMIX-6104: Fixed delayed Open-with-Capture feedback and repeated input by showing progress after wizard dismissal, blocking duplicate requests, and logging preparation failures.
 
 ## [1.5.2-0]
 

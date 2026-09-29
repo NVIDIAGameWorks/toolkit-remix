@@ -16,6 +16,7 @@
 """
 
 __all__ = [
+    "PROJECT_LOADING_PROGRESS_START",
     "SETTING_JUNCTION_NAME",
     "ProjectFileMetadataError",
     "ProjectWizardCore",
@@ -24,4 +25,4 @@ __all__ = [
 ]
 
 from .items import ProjectFileMetadataError, ProjectWizardKeys, ProjectWizardSchema
-from .wizard import SETTING_JUNCTION_NAME, ProjectWizardCore
+from .wizard import PROJECT_LOADING_PROGRESS_START, SETTING_JUNCTION_NAME, ProjectWizardCore

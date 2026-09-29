@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.6]
+### Fixed
+- Fixed delayed Open-with-Capture feedback and repeated input with progress, duplicate-submit protection, failure recovery, and diagnostic logging.
+- Kept project-loading feedback progressing through stage handoff and covered reopening a capture in one app session.
+
 ## [2.2.5]
 ### Changed
 - Updated Project Wizard Create workflow coverage to exercise capture double-click as the primary action.

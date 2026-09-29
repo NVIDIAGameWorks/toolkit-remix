@@ -23,6 +23,7 @@ from unittest.mock import Mock, patch
 
 import omni.kit.test
 from lightspeed.trex.rtxio.core import RtxIoCore
+from omni.flux.utils.common.symlink import create_folder_symlinks as _create_folder_symlinks
 from pxr import Sdf, Usd
 
 _RTXIO_PACKAGE_MAGIC = b"\x0d\xd0\xad\xba"
@@ -329,3 +330,40 @@ class TestRtxIoCoreE2E(omni.kit.test.AsyncTestCase):
             result = RtxIoCore.find_rtxio_package_files(mod_directory)
 
         self.assertEqual(sorted([nested_pkg, root_pkg]), sorted(result))
+
+    async def test_find_rtxio_package_files_should_skip_nested_junction_directories(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_directory = Path(tmp_dir)
+            mod_directory = temp_directory / "mod"
+            dependency_directory = temp_directory / "dependency"
+            junction_directory = mod_directory / "dependencies"
+            mod_directory.mkdir()
+            dependency_directory.mkdir()
+            root_pkg = mod_directory / "mod.pkg"
+            linked_pkg = dependency_directory / "linked.pkg"
+            self._write_fake_rtxio_package(root_pkg)
+            self._write_fake_rtxio_package(linked_pkg)
+            _create_folder_symlinks([(junction_directory, dependency_directory)], create_junction=True)
+
+            try:
+                result = RtxIoCore.find_rtxio_package_files(mod_directory)
+            finally:
+                junction_directory.rmdir()
+
+        self.assertEqual([root_pkg], result)
+
+    async def test_find_rtxio_package_files_should_allow_root_junction(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_directory = Path(tmp_dir)
+            target_directory = temp_directory / "target"
+            junction_directory = temp_directory / "root"
+            target_directory.mkdir()
+            self._write_fake_rtxio_package(target_directory / "mod.pkg")
+            _create_folder_symlinks([(junction_directory, target_directory)], create_junction=True)
+
+            try:
+                result = RtxIoCore.find_rtxio_package_files(junction_directory)
+            finally:
+                junction_directory.rmdir()
+
+        self.assertEqual([junction_directory / "mod.pkg"], result)

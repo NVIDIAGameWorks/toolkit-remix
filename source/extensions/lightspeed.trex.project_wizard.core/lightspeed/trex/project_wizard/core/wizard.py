@@ -48,6 +48,7 @@ if TYPE_CHECKING:
 
 
 SETTING_JUNCTION_NAME = "/exts/lightspeed.trex.project_wizard.core/force_use_junction"
+PROJECT_LOADING_PROGRESS_START = 30
 
 
 class ProjectWizardCore:
@@ -129,6 +130,9 @@ class ProjectWizardCore:
         """
         Asynchronous implementation of setup_project, but async without error handling.  This is meant for testing.
         """
+        layer_manager = None
+        capture_core = None
+        replacement_core = None
         try:
             self._on_run_progress(0)
             self._log_info("Starting project setup")
@@ -175,7 +179,7 @@ class ProjectWizardCore:
                 self._log_error(symlink_error)
                 self._on_run_finished(False, error=symlink_error)
                 return False, symlink_error
-            self._on_run_progress(30)
+            self._on_run_progress(PROJECT_LOADING_PROGRESS_START)
 
             if model.existing_project:
                 if model.extract_rtxio_packages:
@@ -183,8 +187,8 @@ class ProjectWizardCore:
                         model.project_file.parent,
                         dry_run,
                         overwrite_existing=model.extract_rtxio_overwrite_existing,
-                        progress_start=30,
-                        progress_end=95,
+                        progress_start=PROJECT_LOADING_PROGRESS_START,
+                        progress_end=45 if model.capture_file else 95,
                     )
                     if extract_error:
                         self._log_error(extract_error)
@@ -197,11 +201,12 @@ class ProjectWizardCore:
                             error_message = f"Could not open stage for the project file ({model.project_file})."
                             self._log_error(error_message)
                             self._on_run_finished(False, error=error_message)
-                            self._destroy_context()
                             return False, error_message
+                    self._on_run_progress(50)
                     await self._insert_capture_layer(capture_core, captures_directory, model.capture_file, dry_run)
+                    self._on_run_progress(75)
                     await self._save_project_layer(layer_manager, dry_run)
-                self._destroy_context()
+                    self._on_run_progress(90)
                 self._log_info(f"Project is ready: {model.project_file}")
                 self._on_run_progress(100)
                 self._on_run_finished(True)
@@ -243,8 +248,6 @@ class ProjectWizardCore:
             await self._save_project_layer(layer_manager, dry_run)
             self._on_run_progress(90)
 
-            self._destroy_context()
-
             self._log_info(f"Project is ready: {model.project_file}")
             self._on_run_progress(100)
             self._on_run_finished(True)
@@ -256,6 +259,11 @@ class ProjectWizardCore:
             self._on_run_finished(False, error=error_message)
 
             return False, error_message
+        finally:
+            for helper in (replacement_core, capture_core, layer_manager):
+                if helper is not None:
+                    helper.destroy()
+            self._destroy_context()
 
     def _create_mods_dir(self, remix_directory, dry_run):
         # Mod dir validation should check if mods dir exists, if not create
