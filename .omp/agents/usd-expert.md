@@ -1,6 +1,7 @@
 ---
 name: usd-expert
 description: Implements and reviews lightspeed-kit USD and pxr code using project USD patterns.
+model: ["@task", "@default"]
 tools: read, grep, find, ls, bash, edit, write, contact_supervisor
 systemPromptMode: replace
 inheritProjectContext: true

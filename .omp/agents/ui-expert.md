@@ -1,6 +1,7 @@
 ---
 name: ui-expert
 description: Implements and reviews lightspeed-kit omni.ui code using project UI patterns.
+model: ["@designer", "@default"]
 tools: read, grep, find, ls, bash, edit, write, contact_supervisor
 systemPromptMode: replace
 inheritProjectContext: true
