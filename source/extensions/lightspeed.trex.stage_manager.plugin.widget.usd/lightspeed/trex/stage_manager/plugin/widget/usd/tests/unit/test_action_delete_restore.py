@@ -149,3 +149,24 @@ class TestDeleteRestoreActionWidgetPluginUnit(omni.kit.test.AsyncTestCase):
             "Some selected assets can't be deleted.", status=NotificationStatus.WARNING
         )
         plugin._delete_prim_cb.assert_called_once_with(paths=["/RootNode/Regular"], use_undo_group=False)
+
+    async def test_get_prim_action_type_with_closed_stage_returns_restore_disabled(self):
+        """A non-capture prim classified after its stage closed is RESTOREDISABLED instead of an error."""
+        # Arrange
+        plugin = self._make_plugin([], [])
+        plugin._core = Mock()
+        plugin._core.prim_is_from_a_capture_reference.return_value = False
+        prim = MagicMock()
+        prim.GetPath.return_value = "/RootNode/meshes/mesh_0"
+        context = MagicMock()
+        context.get_stage.return_value = None
+
+        with (
+            patch.object(action_delete_restore.omni.usd, "get_context", return_value=context),
+            patch.object(action_delete_restore.prim_utils, "get_prototype", return_value=None),
+        ):
+            # Act
+            action_type = plugin._get_prim_action_type(prim)
+
+        # Assert
+        self.assertIs(action_type, plugin.ActionType.RESTOREDISABLED)

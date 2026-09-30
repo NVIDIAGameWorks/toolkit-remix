@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-__all__ = ["TextureProcessingJob"]
+__all__ = ["TextureOptimizationJob"]
 
 import pathlib
 from dataclasses import dataclass
@@ -34,7 +34,13 @@ from omni.flux.job_queue.core.job import (
 )
 from omni.flux.utils.common.path_utils import hash_file
 
-from .models import ProcessedTexture, TextureProcessingItem, TextureProcessingRequest, TextureProcessingResult
+from .models import (
+    NO_TEXTURES_REASON,
+    ProcessedTexture,
+    TextureOptimizationItem,
+    TextureOptimizationRequest,
+    TextureOptimizationResult,
+)
 from ..pipeline import (
     RemixAssetItem,
     RemixAssetPipelineConfig,
@@ -47,7 +53,7 @@ from ..worker import run_in_worker_thread
 
 
 @dataclass
-class TextureProcessingJob(Job):
+class TextureOptimizationJob(Job):
     """Run the canonical Remix texture pipeline as one reusable typed queue job.
 
     Metadata sidecars are not written here. A caller binds ``apply_binding`` to a metadata-writing Apply handler
@@ -59,11 +65,11 @@ class TextureProcessingJob(Job):
         PROCESSED_TEXTURES: Immutable processed-textures output port.
     """
 
-    SOURCE_TEXTURES: ClassVar[JobInputPort[TextureProcessingRequest]] = JobInputPort(
-        "source_textures", TextureProcessingRequest
+    SOURCE_TEXTURES: ClassVar[JobInputPort[TextureOptimizationRequest]] = JobInputPort(
+        "source_textures", TextureOptimizationRequest
     )
-    PROCESSED_TEXTURES: ClassVar[JobOutputPort[TextureProcessingResult]] = JobOutputPort(
-        "processed_textures", TextureProcessingResult
+    PROCESSED_TEXTURES: ClassVar[JobOutputPort[TextureOptimizationResult]] = JobOutputPort(
+        "processed_textures", TextureOptimizationResult
     )
     input_ports: ClassVar[tuple[JobInputPort[Any], ...]] = (SOURCE_TEXTURES,)
     output_ports: ClassVar[tuple[JobOutputPort[Any], ...]] = (PROCESSED_TEXTURES,)
@@ -90,6 +96,12 @@ class TextureProcessingJob(Job):
             RuntimeError: If remote publication or pipeline output validation fails.
         """
         request = inputs[self.SOURCE_TEXTURES]
+        if not request.items:
+            # A model without textures, or an already-optimized asset, hands over an empty batch. Settle as skipped
+            # with an empty result so the mesh job still receives its texture input.
+            return JobOutputs(
+                {self.PROCESSED_TEXTURES: TextureOptimizationResult(items=())}, skip_reason=NO_TEXTURES_REASON
+            )
         texture_count = len(request.items)
         processed_count = 0
 
@@ -115,9 +127,12 @@ class TextureProcessingJob(Job):
             """
             nonlocal processed_count
             processed_count = completed
-            await progress_callback(JobProgress(completed=completed, total=total, detail="Optimize textures"))
+            await progress_callback(JobProgress(completed=completed, total=total, detail="Optimizing textures"))
 
         remix_items = [RemixAssetItem.from_texture(item.path, item.texture_type) for item in request.items]
+        for remix_item, request_item in zip(remix_items, request.items, strict=True):
+            remix_item.textures[0].channel = request_item.channel
+            remix_item.textures[0].factor = request_item.factor
         local_output_dir, is_remote_output = resolve_local_output_dir(job_directory, request.output_url)
 
         config = RemixAssetPipelineConfig(output_dir=local_output_dir, texture_type=None)
@@ -162,7 +177,7 @@ class TextureProcessingJob(Job):
                 raise RuntimeError(f"Cannot hash texture lineage entry: {source_path}")
             lineage_entries.append((source_path, output_url, source_hash))
 
-        result = TextureProcessingResult(
+        result = TextureOptimizationResult(
             items=tuple(
                 self._to_processed_texture(request_item, remix_item, output_url)
                 for request_item, remix_item, output_url in zip(request.items, remix_items, output_urls)
@@ -197,7 +212,7 @@ class TextureProcessingJob(Job):
 
     @staticmethod
     def _to_processed_texture(
-        request_item: TextureProcessingItem,
+        request_item: TextureOptimizationItem,
         remix_item: RemixAssetItem,
         output_url: str,
     ) -> ProcessedTexture:

@@ -18,7 +18,12 @@
 __all__ = [
     "ComfyUIApplyReceipt",
     "ComfyUIApplyTarget",
+    "ComfyUIAssetApplyTarget",
+    "ComfyUIFileResult",
+    "ComfyUIInputBinding",
     "ComfyUIWorkflowRequest",
+    "MeshCandidate",
+    "ReferenceTarget",
     "ResolverParameter",
     "ValueResolver",
     "Workflow",
@@ -33,11 +38,18 @@ import pathlib
 from copy import deepcopy
 from typing import Any, Generic, TypeVar
 
-import carb
 from lightspeed.trex.asset_pipeline.core.metadata import MetadataApplyReceipt
+
+import carb
 from pxr import Sdf
 
-from .enums import RemixType, WorkflowCategory, WorkflowSourceType, WorkflowType
+from .enums import (
+    OutputApplyBehavior,
+    RemixType,
+    WorkflowCategory,
+    WorkflowSourceType,
+    WorkflowType,
+)
 from .maps import OUTPUT_TEXTURE_TYPE_MAP, TYPE_MAP
 from .preset import Preset
 from .resolvers import (
@@ -52,12 +64,15 @@ from .resolvers import (
 InputValueT = TypeVar("InputValueT")
 
 
-def _validate_nonblank_string(field_name: str, value: object) -> None:
+def _validate_nonblank_string(field_name: str, value: object) -> str:
     """Validate one exact persisted identity string.
 
     Args:
         field_name: Field name used in validation errors.
         value: Persisted value to validate.
+
+    Returns:
+        The validated exact string.
 
     Raises:
         TypeError: If the value is not an exact string.
@@ -67,9 +82,10 @@ def _validate_nonblank_string(field_name: str, value: object) -> None:
         raise TypeError(f"{field_name} must be a str")
     if not value.strip():
         raise ValueError(f"{field_name} must not be blank")
+    return value
 
 
-def _validate_receipt_values(field_name: str, values: object) -> set[str]:
+def _validate_receipt_values(field_name: str, values: object, *, allow_empty: bool = False) -> set[str]:
     """Validate one exact receipt snapshot and return its target paths.
 
     Args:
@@ -85,7 +101,7 @@ def _validate_receipt_values(field_name: str, values: object) -> set[str]:
     """
     if type(values) is not tuple:
         raise TypeError(f"{field_name} must be a tuple")
-    if not values:
+    if not values and not allow_empty:
         raise ValueError(f"{field_name} must not be empty")
     paths = []
     for item in values:
@@ -164,6 +180,85 @@ class ComfyUIApplyTarget:
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
+class ReferenceTarget:
+    """Identify one reference owner and the source reference that Replace removes."""
+
+    owner_prim_path: str
+    source_reference: Sdf.Reference | None
+    source_layer_identifier: str | None
+
+    def __post_init__(self) -> None:
+        """Validate the exact owner and source identities."""
+        _validate_nonblank_string("owner_prim_path", self.owner_prim_path)
+        sdf_path = Sdf.Path(self.owner_prim_path)
+        if not sdf_path.IsAbsolutePath() or not sdf_path.IsPrimPath():
+            raise ValueError("owner_prim_path must be an absolute USD prim path")
+        if self.source_reference is not None and not isinstance(self.source_reference, Sdf.Reference):
+            raise TypeError("source_reference must be an Sdf.Reference or None")
+        if self.source_layer_identifier is not None:
+            _validate_nonblank_string("source_layer_identifier", self.source_layer_identifier)
+        if (self.source_reference is None) is not (self.source_layer_identifier is None):
+            raise ValueError("source reference and layer identifier must both be set or both be None")
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class MeshCandidate:
+    """Carry one URL-preserving model source and every stage owner that uses it.
+
+    Attributes:
+        source_path: Model URL, or ``None`` when the workflow has no mesh input.
+        owners: Stage owners that receive the generated model. Empty for a processing-only Constant model.
+        input_prim_path: Prim that the other workflow inputs resolve from when there is no owner.
+        resolved_inputs: Input values, bindings, skip reason, and exclusion flag already resolved for this candidate.
+    """
+
+    source_path: str | None
+    owners: tuple[ReferenceTarget, ...]
+    input_prim_path: str | None = None
+    resolved_inputs: tuple[dict[str, Any], tuple["ComfyUIInputBinding", ...], str | None, bool] | None = None
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class ComfyUIAssetApplyTarget:
+    """Identify the exact references and textures changed by one asset Apply."""
+
+    context_name: str
+    project_path: str
+    edit_target_layer: str
+    reference_targets: tuple[ReferenceTarget, ...]
+    texture_targets: tuple[tuple[str, str], ...]
+    mesh_apply_behavior: OutputApplyBehavior
+
+    def __post_init__(self) -> None:
+        """Validate one durable asset Apply target."""
+        if type(self.context_name) is not str:
+            raise TypeError("context_name must be a str")
+        _validate_nonblank_string("project_path", self.project_path)
+        _validate_nonblank_string("edit_target_layer", self.edit_target_layer)
+        if type(self.reference_targets) is not tuple or not all(
+            type(target) is ReferenceTarget for target in self.reference_targets
+        ):
+            raise TypeError("reference_targets must be a tuple of ReferenceTarget values")
+        if type(self.texture_targets) is not tuple:
+            raise TypeError("texture_targets must be a tuple")
+        texture_paths = []
+        for target in self.texture_targets:
+            if type(target) is not tuple or len(target) != 2 or not all(type(value) is str for value in target):
+                raise TypeError("texture_targets entries must be key-path string pairs")
+            key, path = target
+            if not key.strip() or not path.strip():
+                raise ValueError("texture target keys and paths must not be blank")
+            sdf_path = Sdf.Path(path)
+            if not sdf_path.IsAbsolutePath() or not sdf_path.IsPropertyPath():
+                raise ValueError("texture target paths must be absolute USD property paths")
+            texture_paths.append(path)
+        if len(texture_paths) != len(set(texture_paths)):
+            raise ValueError("texture target paths must be unique")
+        if type(self.mesh_apply_behavior) is not OutputApplyBehavior:
+            raise TypeError("mesh_apply_behavior must be an OutputApplyBehavior")
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
 class ComfyUIApplyReceipt:
     """Keep exact authored values separately from canonical comparison values.
 
@@ -171,26 +266,89 @@ class ComfyUIApplyReceipt:
         original_authored_values: Shader inputs paired with their exact prior target-layer spellings.
         original_compare_values: Shader inputs paired with canonical prior values used for comparisons.
         applied_compare_values: Shader inputs paired with canonical values expected after Apply.
-        prior_metadata: Prior sidecar content for every local output texture, captured before Apply.
+        metadata_receipt: Prior metadata sidecar content for every output.
     """
 
     original_authored_values: tuple[tuple[str, str | None], ...]
     original_compare_values: tuple[tuple[str, str | None], ...]
     applied_compare_values: tuple[tuple[str, str | None], ...]
-    prior_metadata: MetadataApplyReceipt = MetadataApplyReceipt(prior_meta=())
+    metadata_receipt: MetadataApplyReceipt
 
     def __post_init__(self) -> None:
         """Validate paired original and applied snapshots for one exact target set.
 
+        All three snapshots may be empty together: a mesh-only receipt carries only the metadata receipt.
+
         Raises:
             TypeError: If a snapshot or path-value entry has the wrong exact type.
-            ValueError: If paths are blank, invalid, duplicated, empty, or differ between snapshots.
+            ValueError: If paths are blank, invalid, duplicated, or differ between snapshots.
         """
-        authored_paths = _validate_receipt_values("original_authored_values", self.original_authored_values)
-        original_paths = _validate_receipt_values("original_compare_values", self.original_compare_values)
-        applied_paths = _validate_receipt_values("applied_compare_values", self.applied_compare_values)
+        authored_paths = _validate_receipt_values(
+            "original_authored_values", self.original_authored_values, allow_empty=True
+        )
+        original_paths = _validate_receipt_values(
+            "original_compare_values", self.original_compare_values, allow_empty=True
+        )
+        applied_paths = _validate_receipt_values(
+            "applied_compare_values", self.applied_compare_values, allow_empty=True
+        )
+        if type(self.metadata_receipt) is not MetadataApplyReceipt:
+            raise TypeError("metadata_receipt must be a MetadataApplyReceipt")
         if authored_paths != original_paths or original_paths != applied_paths:
             raise ValueError("Apply receipt snapshots must describe the same paths")
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class ComfyUIInputBinding:
+    """Bind one semantic workflow port to one source file URL."""
+
+    port_id: str
+    remix_type: RemixType
+    source: str
+
+    def __post_init__(self) -> None:
+        """Validate one persisted semantic input binding."""
+        _validate_nonblank_string("port_id", self.port_id)
+        if not isinstance(self.remix_type, RemixType) or self.remix_type not in {
+            RemixType.TEXTURE_FILE_PATH,
+            RemixType.MESH_FILE_PATH,
+        }:
+            raise ValueError("remix_type must identify a supported file input")
+        _validate_nonblank_string("source", self.source)
+
+
+@dataclasses.dataclass
+class ComfyUIFileResult:
+    """Describe one declared file output from a ComfyUI execution."""
+
+    filename: str
+    key: str
+    remix_type: RemixType
+    order: int = 0
+    subfolder: str = ""
+    texture_type: str | None = None
+    path: pathlib.Path | None = None
+
+    def __post_init__(self) -> None:
+        """Validate one downloaded output descriptor."""
+        _validate_nonblank_string("filename", self.filename)
+        _validate_nonblank_string("key", self.key)
+        if not isinstance(self.remix_type, RemixType) or self.remix_type not in {
+            RemixType.TEXTURE_FILE_PATH,
+            RemixType.MESH_FILE_PATH,
+        }:
+            raise ValueError("remix_type must identify a supported file output")
+        if type(self.order) is not int:
+            raise TypeError("order must be an int")
+        if type(self.subfolder) is not str:
+            raise TypeError("subfolder must be a str")
+        if self.remix_type is RemixType.TEXTURE_FILE_PATH:
+            if type(self.texture_type) is not str or self.texture_type not in OUTPUT_TEXTURE_TYPE_MAP:
+                raise ValueError("texture_type must identify a supported texture output")
+        elif self.texture_type is not None:
+            raise ValueError("texture_type must be None for a mesh output")
+        if self.path is not None and not isinstance(self.path, pathlib.Path):
+            raise TypeError("path must be a pathlib.Path or None")
 
 
 @dataclasses.dataclass
@@ -273,7 +431,7 @@ class WorkflowInput(Generic[InputValueT]):
         if not isinstance(type_str, str) or type_str not in TYPE_MAP:
             carb.log_warn(f"Skipping input '{node_id}.{port_name}': missing rtx-remix input type")
             return None
-        if remix_type is RemixType.TEXTURE_FILE_PATH:
+        if remix_type in {RemixType.TEXTURE_FILE_PATH, RemixType.MESH_FILE_PATH}:
             native_type = pathlib.Path
         else:
             native_type = TYPE_MAP.get(type_str, str)
@@ -316,11 +474,42 @@ class WorkflowInput(Generic[InputValueT]):
 
 @dataclasses.dataclass
 class WorkflowOutput:
-    """Parsed rtx-remix output metadata for a workflow node."""
+    """Describe one tagged workflow output and its persisted Apply settings."""
 
     node_id: str
-    texture_type: str
+    remix_type: RemixType
     order: int = 0
+    texture_type: str | None = None
+    apply_behavior: OutputApplyBehavior = OutputApplyBehavior.NONE
+    name: str = ""
+    group: str = ""
+
+    def __post_init__(self) -> None:
+        """Validate the output semantic and its permitted Apply settings."""
+        _validate_nonblank_string("node_id", self.node_id)
+        if "." in self.node_id:
+            raise ValueError("node_id must not contain a dot")
+        if type(self.remix_type) is not RemixType:
+            raise TypeError("remix_type must be a RemixType")
+        if type(self.order) is not int:
+            raise TypeError("order must be an int")
+        if type(self.apply_behavior) is not OutputApplyBehavior:
+            raise TypeError("apply_behavior must be an OutputApplyBehavior")
+        if type(self.name) is not str or type(self.group) is not str:
+            raise TypeError("name and group must be str")
+        if self.remix_type is RemixType.TEXTURE_FILE_PATH:
+            if type(self.texture_type) is not str or self.texture_type not in OUTPUT_TEXTURE_TYPE_MAP:
+                raise ValueError("texture_type must identify a supported texture output")
+            if self.apply_behavior not in {OutputApplyBehavior.NONE, OutputApplyBehavior.REPLACE}:
+                raise ValueError("texture outputs support Replace or Do Nothing")
+        elif self.remix_type is RemixType.MESH_FILE_PATH:
+            if self.texture_type is not None:
+                raise ValueError("texture_type must be None for a mesh output")
+        else:
+            if self.texture_type is not None:
+                raise ValueError("texture_type is supported only for texture outputs")
+            if self.apply_behavior is not OutputApplyBehavior.NONE:
+                raise ValueError("this output supports only Do Nothing")
 
     @classmethod
     def from_dict(cls, node_id: str, raw: dict[str, Any]) -> "WorkflowOutput | None":
@@ -333,8 +522,8 @@ class WorkflowOutput:
         Returns:
             Parsed workflow output, or ``None`` when the metadata is malformed or unsupported.
         """
-        if not isinstance(node_id, str) or not node_id or "." in node_id:
-            carb.log_warn("Skipping malformed output metadata: node_id must be a non-empty string")
+        if not isinstance(node_id, str) or not node_id.strip() or "." in node_id:
+            carb.log_warn("Skipping malformed output metadata: node_id must be a non-blank string without dots")
             return None
         if not isinstance(raw, dict):
             carb.log_warn(f"Skipping malformed output metadata for node '{node_id}': expected dict")
@@ -348,27 +537,65 @@ class WorkflowOutput:
         if not isinstance(name, str) or not name:
             carb.log_warn(f"Skipping malformed output metadata for node '{node_id}': name must be a string")
             return None
-        if raw.get("type") != "str":
-            carb.log_warn(f"Skipping unsupported output metadata for node '{node_id}': type must be 'str'")
+        remix_type_value = raw.get("remix_type")
+        if not isinstance(remix_type_value, str):
+            carb.log_warn(f"Skipping malformed output metadata for node '{node_id}': remix_type must be a string")
             return None
-        if raw.get("remix_type") != RemixType.TEXTURE_FILE_PATH.value:
+        try:
+            remix_type = RemixType(remix_type_value)
+        except ValueError:
             carb.log_warn(
-                f"Skipping unsupported output metadata for node '{node_id}': remix_type must be 'texture_file_path'"
+                f"Skipping unsupported output metadata for node '{node_id}': unknown remix_type '{remix_type_value}'"
             )
             return None
         additional = raw.get("additional_data", {})
         if not isinstance(additional, dict):
             carb.log_warn(f"Skipping malformed output metadata for node '{node_id}': additional_data must be a dict")
             return None
-        texture_type = additional.get("texture_type")
-        if not isinstance(texture_type, str) or texture_type not in OUTPUT_TEXTURE_TYPE_MAP:
-            carb.log_warn(f"Skipping malformed output metadata for node '{node_id}': texture_type must be a string")
-            return None
         order = raw.get("order", 0)
         if not isinstance(order, int) or isinstance(order, bool):
             carb.log_warn(f"Skipping malformed output metadata for node '{node_id}': order must be an integer")
             return None
-        return cls(node_id=node_id, texture_type=texture_type, order=order)
+        if remix_type in {RemixType.TEXTURE_FILE_PATH, RemixType.MESH_FILE_PATH} and raw.get("type") != "str":
+            carb.log_warn(f"Skipping unsupported output metadata for node '{node_id}': type must be 'str'")
+            return None
+        group = additional.get("group", "")
+        if not isinstance(group, str):
+            carb.log_warn(f"Skipping malformed output metadata for node '{node_id}': group must be a string")
+            return None
+        if remix_type is RemixType.TEXTURE_FILE_PATH:
+            texture_type = additional.get("texture_type")
+            if not isinstance(texture_type, str) or texture_type not in OUTPUT_TEXTURE_TYPE_MAP:
+                carb.log_warn(
+                    f"Skipping malformed output metadata for node '{node_id}': "
+                    "texture_type must identify a supported texture"
+                )
+                return None
+            return cls(
+                node_id=node_id,
+                remix_type=remix_type,
+                order=order,
+                texture_type=texture_type,
+                apply_behavior=OutputApplyBehavior.REPLACE,
+                name=name,
+                group=group,
+            )
+        if remix_type is RemixType.MESH_FILE_PATH:
+            if "texture_type" in additional:
+                carb.log_warn(
+                    f"Skipping malformed output metadata for node '{node_id}': "
+                    "mesh outputs must not declare texture_type"
+                )
+                return None
+            return cls(
+                node_id=node_id,
+                remix_type=remix_type,
+                order=order,
+                apply_behavior=OutputApplyBehavior.REPLACE,
+                name=name,
+                group=group,
+            )
+        return cls(node_id=node_id, remix_type=remix_type, order=order, name=name, group=group)
 
 
 def _get_workflow_remix_metadata(workflow_data: dict[str, Any]) -> dict[str, Any]:
@@ -403,7 +630,9 @@ class Workflow:
     active_preset: str | None = None
     group_order: list[str] = dataclasses.field(default_factory=list)
     workflow_defaults: dict[str, ValueResolver] = dataclasses.field(default_factory=dict)
-    # Catalog display metadata stays last: persisted Workflow payloads decode positionally.
+    # Persisted Workflow payloads decode positionally: append new persisted fields at the end, after
+    # workflow_type, and extend the codec's released-shape decoder.
+    output_group_order: list[str] = dataclasses.field(default_factory=list)
     display_name: str = ""
     description: str = ""
     workflow_type: WorkflowType | None = None
@@ -439,7 +668,7 @@ class Workflow:
             ValueError: If the entry name is blank.
         """
         name = payload.get("name")
-        _validate_nonblank_string("name", name)
+        name = _validate_nonblank_string("name", name)
         raw_display_name = payload.get("displayName")
         display_name = raw_display_name if isinstance(raw_display_name, str) and raw_display_name.strip() else ""
         raw_description = payload.get("description")
@@ -533,6 +762,7 @@ class Workflow:
         """
         inputs: list[WorkflowInput] = []
         output_specs: list[WorkflowOutput] = []
+        declares_mesh_input = False
 
         for node_id, node in data.items():
             if not isinstance(node_id, str) or not node_id:
@@ -565,6 +795,10 @@ class Workflow:
             if not isinstance(remix_inputs, dict):
                 carb.log_warn(f"Skipping malformed input metadata for node '{node_id}': expected dict")
                 continue
+            declares_mesh_input = declares_mesh_input or any(
+                isinstance(raw_input, dict) and raw_input.get("remix_type") == RemixType.MESH_FILE_PATH
+                for raw_input in remix_inputs.values()
+            )
 
             node_inputs = node.get("inputs", {})
             if not isinstance(node_inputs, dict):
@@ -585,6 +819,13 @@ class Workflow:
                 if workflow_input is not None:
                     inputs.append(workflow_input)
 
+        # Replace needs a stage reference to replace. A text- or image-to-mesh workflow declares no mesh input, so
+        # its generated model can only be added beside the selected prim. The declaration decides, not the parsed
+        # inputs: a declared mesh input that failed to parse keeps Replace, and submission then rejects the workflow.
+        if not declares_mesh_input:
+            for output_spec in output_specs:
+                if output_spec.remix_type is RemixType.MESH_FILE_PATH:
+                    output_spec.apply_behavior = OutputApplyBehavior.APPEND
         return cls(api=data, name=name, inputs=inputs, output_specs=output_specs)
 
     @classmethod
@@ -627,12 +868,13 @@ class Workflow:
             if preset is not None:
                 workflow.presets[preset_name] = preset
 
-        # Parse group ordering
-        group_order = remix_meta.get("groupOrder", [])
-        if isinstance(group_order, list) and all(isinstance(group, str) for group in group_order):
-            workflow.group_order = group_order
-        elif group_order:
-            carb.log_warn("Ignoring malformed workflow groupOrder: expected a list of strings")
+        # Parse group ordering. Inputs and outputs keep separate lists.
+        for key, attribute in (("groupOrder", "group_order"), ("outputGroupOrder", "output_group_order")):
+            order = remix_meta.get(key, [])
+            if isinstance(order, list) and all(isinstance(group, str) for group in order):
+                setattr(workflow, attribute, order)
+            elif order:
+                carb.log_warn(f"Ignoring malformed workflow {key}: expected a list of strings")
 
         # Apply only the workflow author's explicit selection.
         active = remix_meta.get("activePreset")
@@ -728,7 +970,7 @@ class ComfyUIWorkflowRequest:
 
     Attributes:
         prompt: Resolved API-format workflow submitted to ComfyUI.
-        input_bindings: Workflow port and source texture pairs uploaded before submission.
+        input_bindings: Semantic workflow file bindings uploaded before submission.
         client_id: ComfyUI client identifier stored with the submitted prompt.
         timeout: Maximum seconds to wait for the submitted prompt.
         output_url: Project-owned destination, or ``None`` for queue-owned project-independent outputs.
@@ -736,7 +978,7 @@ class ComfyUIWorkflowRequest:
     """
 
     prompt: dict[str, Any]
-    input_bindings: tuple[tuple[str, str], ...]
+    input_bindings: tuple[ComfyUIInputBinding, ...]
     client_id: str
     timeout: float
     output_url: str | None
@@ -751,18 +993,15 @@ class ComfyUIWorkflowRequest:
         """
         if type(self.prompt) is not dict:
             raise TypeError("prompt must be a dictionary")
-        if type(self.input_bindings) is not tuple:
-            raise TypeError("input_bindings must be a tuple")
+        if type(self.input_bindings) is not tuple or not all(
+            type(binding) is ComfyUIInputBinding for binding in self.input_bindings
+        ):
+            raise TypeError("input_bindings must be a tuple of ComfyUIInputBinding values")
         ports: set[str] = set()
         for binding in self.input_bindings:
-            if type(binding) is not tuple or len(binding) != 2 or not all(type(value) is str for value in binding):
-                raise TypeError("input_bindings must contain string pairs")
-            port_id, source_path = binding
-            if not port_id.strip() or not source_path.strip():
-                raise ValueError("input binding values must be non-empty")
-            if port_id in ports:
-                raise ValueError(f"Workflow input port is bound more than once: {port_id}")
-            ports.add(port_id)
+            if binding.port_id in ports:
+                raise ValueError(f"Workflow input port is bound more than once: {binding.port_id}")
+            ports.add(binding.port_id)
         if type(self.client_id) is not str:
             raise TypeError("client_id must be a string")
         if type(self.timeout) is not float:

@@ -18,6 +18,7 @@
 import pathlib
 import tempfile
 
+import carb.tokens
 import omni.kit.app
 import omni.kit.test
 from omni.flux.asset_importer.core.data_models import TextureTypes
@@ -34,6 +35,38 @@ from lightspeed.trex.asset_pipeline.core import (
 
 
 class TestPipelineRunnerE2E(omni.kit.test.AsyncTestCase):
+    async def test_dds_udim_pipeline_publishes_unchanged_tiles(self):
+        """Publish encoded DDS tiles unchanged from a tile ledger or a UDIM pattern."""
+        resource_root = pathlib.Path(carb.tokens.get_tokens_interface().resolve("${lightspeed.trex.app.resources}"))
+        fixture = resource_root / "data/tests/usd/project_example/sources/textures/ingested/16px_metallic.m.rtex.dds"
+        source_bytes = fixture.read_bytes()
+        for use_ledger in (False, True):
+            with self.subTest(use_ledger=use_ledger), tempfile.TemporaryDirectory() as temp_dir:
+                root = pathlib.Path(temp_dir)
+                source_tiles = tuple(root / f"metallic.{tile}.dds" for tile in (1001, 1002))
+                for tile in source_tiles:
+                    tile.write_bytes(source_bytes)
+                source_pattern = root / "metallic.<UDIM>.dds"
+                item = RemixAssetItem.from_texture(source_pattern, TextureTypes.METALLIC)
+                if use_ledger:
+                    item.textures[0].path = source_tiles[0]
+                    item.textures[0].udim_tiles = source_tiles
+                context = RemixAssetPipelineContext(items=[item])
+                output_dir = root / "processed"
+
+                # Publish both input representations through the production texture pipeline.
+                await run_remix_asset_pipeline(
+                    RemixAssetPipelineConfig(output_dir=output_dir, texture_type=TextureTypes.METALLIC),
+                    context,
+                    steps=build_remix_texture_pipeline(),
+                )
+
+                expected_tiles = tuple(output_dir / tile.name for tile in source_tiles)
+                self.assertEqual(item.textures[0].udim_tiles, expected_tiles)
+                self.assertEqual(item.textures[0].path, expected_tiles[0])
+                for tile in expected_tiles:
+                    self.assertEqual(tile.read_bytes(), source_bytes)
+
     async def test_texture_pipeline_processes_real_normal_map_to_final_dds(self):
         """The canonical pipeline processes a real normal texture into final published outputs."""
         with tempfile.TemporaryDirectory() as temp_dir:

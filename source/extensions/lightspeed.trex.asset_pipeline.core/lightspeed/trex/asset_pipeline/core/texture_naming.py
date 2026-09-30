@@ -20,7 +20,6 @@ from __future__ import annotations
 __all__ = [
     "DDS_SUFFIX",
     "get_dds_stem_suffix",
-    "get_legacy_dds_suffixes",
     "get_octahedral_stem",
     "is_octahedral_source_type",
 ]
@@ -83,15 +82,3 @@ def get_dds_stem_suffix(texture_type: TextureTypes) -> str:
         if mapped_type is lookup_type:
             return f".{letter}"
     return ""
-
-
-def get_legacy_dds_suffixes(texture_type: TextureTypes) -> str:
-    """Return the full trailing suffix that a converted DDS file carries.
-
-    Args:
-        texture_type: Texture semantic selecting the output letter.
-
-    Returns:
-        A suffix such as ``.n.rtex.dds``, or ``.rtex.dds`` when the semantic has no letter.
-    """
-    return f"{get_dds_stem_suffix(texture_type)}{DDS_SUFFIX}"

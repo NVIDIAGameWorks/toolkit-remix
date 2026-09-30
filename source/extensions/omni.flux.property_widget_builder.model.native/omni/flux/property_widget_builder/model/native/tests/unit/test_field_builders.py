@@ -153,6 +153,29 @@ class TestNativeFieldBuilders(omni.kit.test.AsyncTestCase):
         self.assertEqual(value_model.get_value(), "second")
         self.assertEqual(choice_model.get_value(), "second")
 
+    async def test_native_choice_labels_are_titled(self):
+        """Choices show `Normal Ogl` for `normal_ogl`."""
+        # Arrange
+        choice_model = NativeChoiceModel(_ValueModel("first"), ("first", "normal_ogl"))
+
+        # Act
+        labels = [choice_model.get_item_value_model(item).as_string for item in choice_model.get_item_children()]
+
+        # Assert
+        self.assertEqual(labels, ["First", "Normal Ogl"])
+
+    async def test_native_choice_selection_writes_raw_value_not_titled_label(self):
+        """Selecting a titled choice writes the raw `normal_ogl` value, not the label."""
+        # Arrange
+        value_model = _ValueModel("first")
+        choice_model = NativeChoiceModel(value_model, ("first", "normal_ogl"))
+
+        # Act
+        choice_model.get_item_value_model().set_value(1)
+
+        # Assert
+        self.assertEqual(value_model.get_value(), "normal_ogl")
+
     async def test_native_choice_refresh_reads_external_value(self):
         """Refreshing a native choice reads an externally changed value."""
         # Arrange

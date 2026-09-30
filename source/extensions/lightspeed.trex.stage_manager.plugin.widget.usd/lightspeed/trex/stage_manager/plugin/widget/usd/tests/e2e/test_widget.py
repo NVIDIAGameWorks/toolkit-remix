@@ -229,7 +229,8 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         )
         model.selection = [_StageManagerTreeItemProxy(item), _StageManagerTreeItemProxy(second_item)]
         core = MagicMock(is_ready=True)
-        core.workflow.name = "Upscale"
+        core.workflow.name = "upscale_4x"
+        core.workflow.display_name = "Upscale"
         submission = ComfyUISubmission((), 0)
         core.prepare_submission = AsyncMock(return_value=submission)
         core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(0, 0))

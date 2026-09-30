@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.2]
+### Changed
+- Renamed `TextureProcessingDisplayAdapter` to `TextureOptimizationDisplayAdapter` (registry name `texture_optimization`) to match the asset pipeline's `TextureOptimizationJob`.
+- The processed textures folder action opens the deepest directory that holds every texture, so textures published in sub-folders such as `textures/` and `_external/` still show the button. Before, the button was hidden unless every texture was in one folder.
+
+### Fixed
+- Released each registered display adapter when a later registration fails during startup.
+- Registered `PrepareOptimizationDisplayAdapter` and `MeshOptimizationDisplayAdapter`, so the Optimization preparation and Mesh optimization stages show a source instead of "Unknown".
+
 ## [1.1.1]
 ### Changed
 - Kept the texture display adapter compatible with the asset pipeline's `core.jobs` module paths and switched it to the shared `path_utils.get_local_path`.

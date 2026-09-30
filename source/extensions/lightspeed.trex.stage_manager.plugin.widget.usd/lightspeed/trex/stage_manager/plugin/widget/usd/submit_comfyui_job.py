@@ -77,7 +77,7 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
             icon = "AIToolsDisabled"
             tooltip = "ComfyUI is not connected, or no workflow is selected. Select to open AI Tools."
         else:
-            workflow_name = core.workflow.name if core.workflow else "Unknown"
+            workflow_name = core.workflow.display_name if core.workflow else "Unknown"
             icon = "AITools"
             tooltip = f"Run '{workflow_name}' for this selection using the current AI Tools settings."
 

@@ -25,7 +25,7 @@ from omni.flux.job_queue.widget import get_display_adapter_registry
 from omni.ext import IExt
 from omni.ui import Workspace
 
-from .display_adapter import ComfyUIDisplayAdapter
+from .display_adapter import ComfyUIAssetDisplayAdapter, ComfyUIDisplayAdapter
 from .workspace import ComfySetupWorkspace, WorkflowSetupWorkspace
 
 
@@ -39,6 +39,7 @@ class ComfyUIWidgetExtension(IExt):
         self._comfy_setup_workspace: ComfySetupWorkspace | None = None
         self._workflow_setup_workspace: WorkflowSetupWorkspace | None = None
         self._adapter_registered = False
+        self._asset_adapter_registered = False
         self._started = False
 
     def on_startup(self, ext_id: str) -> None:
@@ -55,6 +56,8 @@ class ComfyUIWidgetExtension(IExt):
         registry.register(ComfyUIDisplayAdapter)
         self._adapter_registered = True
         try:
+            registry.register(ComfyUIAssetDisplayAdapter)
+            self._asset_adapter_registered = True
             context_name = Contexts.STAGE_CRAFT.value
             self._comfy_setup_workspace = ComfySetupWorkspace(context_name)
             self._workflow_setup_workspace = WorkflowSetupWorkspace(context_name)
@@ -89,6 +92,8 @@ class ComfyUIWidgetExtension(IExt):
         cleanup = ExitStack()
         if self._adapter_registered:
             cleanup.callback(registry.unregister, ComfyUIDisplayAdapter)
+        if self._asset_adapter_registered:
+            cleanup.callback(registry.unregister, ComfyUIAssetDisplayAdapter)
         cleanup.callback(ComfyUIDisplayAdapter.set_workspaces, None, None)
         if setup_workspace:
             cleanup.callback(Workspace.set_show_window_fn, setup_workspace.title, lambda *_: None)
@@ -100,4 +105,5 @@ class ComfyUIWidgetExtension(IExt):
         self._comfy_setup_workspace = None
         self._workflow_setup_workspace = None
         self._adapter_registered = False
+        self._asset_adapter_registered = False
         self._started = False

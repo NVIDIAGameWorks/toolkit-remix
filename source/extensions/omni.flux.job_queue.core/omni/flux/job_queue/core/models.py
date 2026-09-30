@@ -66,6 +66,7 @@ class QueueJobSnapshot:
     apply_handler_id: str | None
     apply_reason: str | None
     apply_error: JobError | None
+    has_outputs: bool = False
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -147,7 +148,7 @@ class QueueJob:
 
         Raises:
             KeyError: If the job is deleted while waiting.
-            RuntimeError: If the job fails or is skipped.
+            RuntimeError: If the job fails or is skipped without outputs.
             TimeoutError: If the timeout expires.
         """
         changed = asyncio.Event()
@@ -186,12 +187,12 @@ class QueueJob:
 
             Raises:
                 KeyError: If the job is deleted while waiting.
-                RuntimeError: If the job fails or is skipped.
+                RuntimeError: If the job fails or is skipped without outputs.
             """
             while True:
                 changed.clear()
                 snapshot = self.snapshot()
-                if snapshot.state is JobState.DONE:
+                if snapshot.state is JobState.DONE or (snapshot.state is JobState.SKIPPED and snapshot.has_outputs):
                     return self.interface.get_job_outputs(self.job_id)
                 if snapshot.state is JobState.FAILED:
                     if snapshot.error is not None:

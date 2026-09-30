@@ -17,13 +17,14 @@
 
 from __future__ import annotations
 
-__all__ = ["get_authoring_spec", "publish_remote_outputs", "resolve_local_output_dir"]
+__all__ = ["get_authoring_spec", "get_material_shader_prim", "publish_remote_outputs", "resolve_local_output_dir"]
 
 import asyncio
 import pathlib
 import uuid
 
 import carb
+from omni.usd import get_shader_from_material
 from omni.client import CopyBehavior, Result as ClientResult
 from omni.client import (
     break_url,
@@ -54,6 +55,22 @@ def resolve_local_output_dir(job_directory: pathlib.Path, output_url: str | None
         if local_output_dir is not None:
             return local_output_dir, False
     return job_directory / PROCESSED_OUTPUT_DIR_NAME, output_url is not None
+
+
+def get_material_shader_prim(material_prim: Usd.Prim) -> Usd.Prim | None:
+    """Return the surface shader prim of a material, or ``None`` when the material has none.
+
+    ``omni.usd.get_shader_from_material`` returns an invalid ``UsdShade.Shader`` schema, not ``None``, for a
+    material without a surface output. ``IsValid()`` on that schema raises, so this helper only tests truth.
+
+    Args:
+        material_prim: Material prim whose surface shader is requested.
+
+    Returns:
+        The valid shader prim, or ``None``.
+    """
+    shader_prim = get_shader_from_material(material_prim, get_prim=True)
+    return shader_prim or None
 
 
 def get_authoring_spec(attr: Usd.Attribute, model_parent: pathlib.Path) -> Sdf.AttributeSpec:

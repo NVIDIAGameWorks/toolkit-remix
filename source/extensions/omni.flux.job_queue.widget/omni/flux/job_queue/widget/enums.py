@@ -187,6 +187,12 @@ class DisplayState(StrEnum):
         "StatusWaiting",
         "This job was skipped.",
     )
+    SKIPPED_WITH_OUTPUTS = (
+        "skipped_with_outputs",
+        "Skipped",
+        "StatusApplied",
+        "This job was skipped. Its results are available.",
+    )
     CORRUPTED = (
         "corrupted",
         "Unavailable",

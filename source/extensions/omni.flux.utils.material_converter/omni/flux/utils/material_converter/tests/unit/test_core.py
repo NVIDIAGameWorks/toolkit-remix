@@ -27,6 +27,9 @@ from omni.flux.utils.material_converter.base.converter_base import ConverterBase
 from omni.flux.utils.material_converter.base.converter_builder_base import ConverterBuilderBase
 from pxr import Sdf, Usd
 
+from ... import core as _core_module
+from ...utils import SupportedShaderInputs
+
 
 class TestConverterBuilder(ConverterBuilderBase):
     def build(self, input_material_prim: Usd.Prim, output_mdl_subidentifier: str) -> ConverterBase:
@@ -309,6 +312,107 @@ class TestCore(omni.kit.test.AsyncTestCase):
     ):
         await self.__run_create_material_attributes(False)
 
+    async def test_find_matching_supported_material_builds_each_registry_entry_with_its_selected_output(self):
+        """Matching builds each registered converter with the output its builder selects, not the input name."""
+        # Arrange
+        shader_mock = Mock()
+        shader_mock.HasAttribute.side_effect = lambda name: name == "inputs:omni_pbr"
+
+        def _registry_entry(input_attr_name: str, shader_input: SupportedShaderInputs):
+            builder_mock = Mock()
+            builder_mock.select_output.return_value.value = f"{shader_input.name}_OUTPUT"
+            builder_mock.build.return_value.attributes = [
+                Mock(fake_attribute=True, input_attr_name="inputs:fake"),
+                Mock(fake_attribute=False, input_attr_name=input_attr_name),
+            ]
+            builder_cls = Mock(return_value=builder_mock)
+            return Mock(value=(builder_cls, shader_input)), builder_mock
+
+        gltf_entry, gltf_builder = _registry_entry("inputs:gltf", SupportedShaderInputs.GLTF)
+        omni_pbr_entry, omni_pbr_builder = _registry_entry("inputs:omni_pbr", SupportedShaderInputs.OMNI_PBR)
+
+        with patch.object(_core_module, "_ConvertersEnum", [gltf_entry, omni_pbr_entry]):
+            # Act
+            converter, shader_input = await MaterialConverterCore.find_matching_supported_material(shader_mock)
+
+        # Assert
+        self.assertIs(converter, omni_pbr_entry.value[0])
+        self.assertEqual(shader_input, SupportedShaderInputs.OMNI_PBR)
+        self.assertEqual(call(shader_mock, "GLTF_OUTPUT"), gltf_builder.build.call_args)
+        self.assertEqual(call(shader_mock, "OMNI_PBR_OUTPUT"), omni_pbr_builder.build.call_args)
+
+    async def test_create_material_attributes_should_preserve_channel_metadata(self):
+        """Channel metadata is written on both copied-value and default-value output attributes.
+
+        A copied input keeps its ``output_custom_data`` on the translated output. A missing input that
+        falls back to ``output_default_value`` also receives its ``output_custom_data``.
+        """
+        # Arrange
+        context_name_mock = Mock()
+        copied_attribute = Mock(
+            input_attr_name="inputs:texture",
+            output_attr_name="inputs:reflectionroughness_texture",
+            output_default_value=None,
+            output_custom_data={"remix:sourceChannel": "G"},
+        )
+        copied_attribute.translate_fn.return_value = (Sdf.ValueTypeNames.Asset, Sdf.AssetPath("packed.png"))
+        default_attribute = Mock(
+            input_attr_name="inputs:missing",
+            output_attr_name="inputs:metallic_texture",
+            output_attr_type=Sdf.ValueTypeNames.Asset,
+            output_default_value=Sdf.AssetPath("default.png"),
+            output_custom_data={"remix:sourceChannel": "B"},
+        )
+        converter_mock = Mock(attributes=[copied_attribute, default_attribute])
+
+        input_shader_prim_mock = Mock()
+        input_shader_prim_mock.HasAttribute.side_effect = lambda name: name == "inputs:texture"
+        input_shader_prim_mock.GetAttribute.return_value.Get.return_value = Sdf.AssetPath("packed.png")
+        output_shader_prim_mock = Mock()
+        output_shader_prim_mock.GetPath.return_value = Sdf.Path("/Material/Output")
+
+        root_layer_mock = Mock()
+        root_layer_mock.GetAttributeAtPath.return_value = Mock()
+        output_attrs = {
+            path: Mock(name=path)
+            for path in (
+                "/Material/Output.inputs:reflectionroughness_texture",
+                "/Material/Output.inputs:metallic_texture",
+            )
+        }
+        stage_mock = Mock()
+        stage_mock.GetRootLayer.return_value = root_layer_mock
+        stage_mock.GetAttributeAtPath.side_effect = output_attrs.__getitem__
+
+        with (
+            patch.object(omni.usd, "get_context") as get_context_mock,
+            patch.object(omni.kit.commands, "execute") as command_mock,
+            patch.object(Usd, "EditContext"),
+        ):
+            get_context_mock.return_value.get_stage.return_value = stage_mock
+
+            # Act
+            await MaterialConverterCore._create_material_attributes(
+                context_name_mock, converter_mock, input_shader_prim_mock, output_shader_prim_mock
+            )
+
+        # Assert
+        self.assertEqual(
+            [
+                ("/Material/Output.inputs:reflectionroughness_texture", Sdf.AssetPath("packed.png")),
+                ("/Material/Output.inputs:metallic_texture", Sdf.AssetPath("default.png")),
+            ],
+            [(c.kwargs["prop_path"], c.kwargs["value"]) for c in command_mock.call_args_list],
+        )
+        self.assertEqual(
+            [call("remix:sourceChannel", "G")],
+            output_attrs["/Material/Output.inputs:reflectionroughness_texture"].SetCustomDataByKey.call_args_list,
+        )
+        self.assertEqual(
+            [call("remix:sourceChannel", "B")],
+            output_attrs["/Material/Output.inputs:metallic_texture"].SetCustomDataByKey.call_args_list,
+        )
+
     async def __run_convert_has_source_prop_spec(self, has_prop_spec: bool):
         # Arrange
         context_name_mock = Mock()
@@ -473,14 +577,14 @@ class TestCore(omni.kit.test.AsyncTestCase):
         input_attr_mock.GetPath.return_value = input_attr_path_mock
         input_attr_mock.Get.return_value = input_value
 
-        attribute_mock = Mock()
+        attribute_mock = Mock(output_custom_data=None)
         attribute_mock.input_attr_name = input_attr_name_mock
         attribute_mock.output_attr_name = output_attr_name_mock
         attribute_mock.output_attr_type = output_default_type
         attribute_mock.output_default_value = output_default_value
         attribute_mock.translate_fn.side_effect = test_translate_fn
 
-        attributes_mock = [Mock(), Mock(), attribute_mock]
+        attributes_mock = [Mock(output_custom_data=None), Mock(output_custom_data=None), attribute_mock]
 
         converter_mock = Mock()
         converter_mock.attributes = attributes_mock
@@ -568,14 +672,14 @@ class TestCore(omni.kit.test.AsyncTestCase):
         input_attr_mock.GetPath.return_value = input_attr_path_mock
         input_attr_mock.Get.return_value = input_value
 
-        attribute_mock = Mock()
+        attribute_mock = Mock(output_custom_data=None)
         attribute_mock.input_attr_name = input_attr_name_mock
         attribute_mock.output_attr_name = output_attr_name_mock
         attribute_mock.output_attr_type = output_default_type
         attribute_mock.output_default_value = output_default_value
         attribute_mock.translate_fn.side_effect = test_translate_fn
 
-        attributes_mock = [Mock(), attribute_mock]
+        attributes_mock = [Mock(output_custom_data=None), attribute_mock]
 
         converter_mock = Mock()
         converter_mock.attributes = attributes_mock

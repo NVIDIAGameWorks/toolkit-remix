@@ -16,11 +16,11 @@
 """
 
 from .e2e.test_workspace import TestJobQueueWorkspace
-from .unit.test_display_adapter import TestTextureProcessingDisplayAdapter
+from .unit.test_display_adapter import TestTextureOptimizationDisplayAdapter
 from .unit.test_extension import TestJobQueueWidgetExtension
 
 __all__ = (
     "TestJobQueueWidgetExtension",
     "TestJobQueueWorkspace",
-    "TestTextureProcessingDisplayAdapter",
+    "TestTextureOptimizationDisplayAdapter",
 )

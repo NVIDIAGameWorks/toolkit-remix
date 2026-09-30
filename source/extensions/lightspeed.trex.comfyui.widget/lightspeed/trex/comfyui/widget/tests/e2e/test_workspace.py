@@ -27,8 +27,12 @@ from lightspeed.trex.comfyui.widget.setup.widget import ComfySetupAdvancedWidget
 from lightspeed.trex.comfyui.widget.workspace import ComfySetupWorkspace
 from lightspeed.trex.utils.widget.quicklayout import LAYOUT_LOADED_EVENT_NAME, subscribe_layout_loaded
 from omni import ui
+from omni.flux.job_queue.widget.display_adapter_registry import DisplayAdapterRegistry
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
+
+from ... import extension as widget_extension
+from ...display_adapter import ComfyUIAssetDisplayAdapter, ComfyUIDisplayAdapter
 
 # USD context that only this test owns, so its core and its stage cannot reach another test.
 _CONTEXT_NAME = "comfyui_workspace_e2e"
@@ -64,6 +68,31 @@ class _TestSetupWorkspace(ComfySetupWorkspace):
 
 class TestComfySetupWorkspaceE2E(AsyncTestCase):
     """Test the real setup window and the real panel against the real ComfyUI core."""
+
+    async def test_startup_asset_adapter_collision_preserves_existing_registration(self):
+        """Failed startup preserves the adapter that owns the conflicting name."""
+
+        # Arrange
+        class ExistingAssetAdapter(ComfyUIAssetDisplayAdapter):
+            """Own the asset adapter name before this extension starts."""
+
+        registry = DisplayAdapterRegistry()
+        self.addCleanup(registry.destroy)
+        registry.register(ExistingAssetAdapter)
+        extension = widget_extension.ComfyUIWidgetExtension()
+
+        with (
+            patch.object(widget_extension, "get_display_adapter_registry", return_value=registry),
+            patch.object(ComfyUIDisplayAdapter, "set_workspaces"),
+        ):
+            # Act
+            with self.assertRaisesRegex(ValueError, "already registered"):
+                extension.on_startup("lightspeed.trex.comfyui.widget")
+            extension.on_shutdown()
+
+        # Assert
+        self.assertIs(registry.get_plugin_from_name(ComfyUIAssetDisplayAdapter.name), ExistingAssetAdapter)
+        self.assertIsNone(registry.get_plugin_from_name(ComfyUIDisplayAdapter.name))
 
     def _create_core(self) -> ComfyUICore:
         """Create a real core of a USD context that only this test owns.

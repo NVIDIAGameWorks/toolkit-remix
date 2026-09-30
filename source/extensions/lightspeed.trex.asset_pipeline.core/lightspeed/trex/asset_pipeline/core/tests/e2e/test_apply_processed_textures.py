@@ -31,14 +31,16 @@ from lightspeed.trex.asset_pipeline.core import (
 from lightspeed.trex.asset_pipeline.core.jobs.models import (
     ProcessedTexture,
     TextureLedgerEntry,
-    TextureProcessingResult,
+    TextureOptimizationResult,
     derive_texture_key,
     resolve_processed_textures,
 )
 from lightspeed.trex.asset_pipeline.core.steps import ApplyProcessedTexturesStep
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.utils.common.path_utils import get_absolute_path_from_relative, is_udim_texture
+from omni.flux.utils.material_converter.utils import TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY
 from omni.flux.utils.tests.context_managers import open_test_project
+from PIL import Image
 from pxr import Sdf, Usd, UsdShade
 
 
@@ -85,6 +87,49 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
     The step merges what were previously three separate steps into one pass that walks
     model stages directly and writes processed texture paths onto authoring layers.
     """
+
+    async def test_source_channels_survive_only_without_processed_replacements(self):
+        """Retained packed textures keep channels, but processed replacements clear them."""
+        shader_path = "/Root/Material/Shader"
+        packed_texture_filename = "packed.png"
+        for replace in (False, True):
+            with self.subTest(replace=replace), tempfile.TemporaryDirectory() as temporary_directory:
+                root = pathlib.Path(temporary_directory)
+                source = root / packed_texture_filename
+                Image.new("RGB", (2, 2), (17, 64, 192)).save(source)
+                model = root / "model.usda"
+                slots = {
+                    "reflectionroughness_texture": (TextureTypes.ROUGHNESS, "G"),
+                    "metallic_texture": (TextureTypes.METALLIC, "B"),
+                }
+                stage = _build_minimal_stage(model, dict.fromkeys(slots, packed_texture_filename))
+                shader = stage.GetPrimAtPath(shader_path)
+                UsdShade.Shader(shader).SetSourceAsset("AperturePBR_Opacity.mdl", "mdl")
+                UsdShade.Shader(shader).SetSourceAssetSubIdentifier("AperturePBR_Opacity", "mdl")
+                processed = {}
+                for name, (texture_type, channel) in slots.items():
+                    shader.GetAttribute(f"inputs:{name}").SetCustomDataByKey(
+                        TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY, channel
+                    )
+                    if replace:
+                        output = root / f"{channel}.dds"
+                        output.write_bytes(b"DDS ")
+                        processed[("/Root/Material", texture_type)] = ProcessedTexture(
+                            key=channel, source_path=source, asset_url=str(output), texture_type=texture_type
+                        )
+                stage.Save()
+                stage = None
+                item = RemixAssetItem.from_model(model)
+                async with RemixAssetPipelineContext(items=[item], work_dir=root, output_dir=root) as context:
+                    await ApplyProcessedTexturesStep(processed).run(context)
+                    await context.close_stage()
+                    result = await context.open_stage(model)
+                    for name, (_, channel) in slots.items():
+                        attribute = result.GetPrimAtPath(shader_path).GetAttribute(f"inputs:{name}")
+                        self.assertEqual(
+                            attribute.GetCustomDataByKey(TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY),
+                            None if replace else channel,
+                        )
 
     async def test_apply_processed_textures_creates_texture_records_and_bindings(self):
         """Texture collection reads shader input names and records typed model bindings."""
@@ -189,7 +234,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                     texture_key=texture_key,
                 )
                 processed_textures = resolve_processed_textures(
-                    (ledger_entry,), TextureProcessingResult(items=(processed,))
+                    (ledger_entry,), TextureOptimizationResult(items=(processed,))
                 )
                 step = ApplyProcessedTexturesStep(processed_textures)
                 await step.run(context)
@@ -238,7 +283,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                 texture_key="tex_0",
             )
             processed_textures = resolve_processed_textures(
-                (ledger_entry,), TextureProcessingResult(items=(processed,))
+                (ledger_entry,), TextureOptimizationResult(items=(processed,))
             )
             step = ApplyProcessedTexturesStep(processed_textures)
 
@@ -293,7 +338,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                 texture_key="tex_0",
             )
             processed_textures = resolve_processed_textures(
-                (ledger_a, ledger_b), TextureProcessingResult(items=(processed,))
+                (ledger_a, ledger_b), TextureOptimizationResult(items=(processed,))
             )
             step = ApplyProcessedTexturesStep(processed_textures)
 
@@ -340,7 +385,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                 texture_key="tex_0",
             )
             processed_textures = resolve_processed_textures(
-                (ledger_entry,), TextureProcessingResult(items=(processed,))
+                (ledger_entry,), TextureOptimizationResult(items=(processed,))
             )
             step = ApplyProcessedTexturesStep(processed_textures)
 
@@ -386,7 +431,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                 texture_key="tex_0",
             )
             processed_textures = resolve_processed_textures(
-                (ledger_entry,), TextureProcessingResult(items=(processed,))
+                (ledger_entry,), TextureOptimizationResult(items=(processed,))
             )
             step = ApplyProcessedTexturesStep(processed_textures)
 
@@ -435,7 +480,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                 texture_key="tex_0",
             )
             processed_textures = resolve_processed_textures(
-                (ledger_entry,), TextureProcessingResult(items=(processed,))
+                (ledger_entry,), TextureOptimizationResult(items=(processed,))
             )
             step = ApplyProcessedTexturesStep(processed_textures)
 
@@ -481,7 +526,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                 texture_key="tex_0",
             )
             processed_textures = resolve_processed_textures(
-                (ledger_entry,), TextureProcessingResult(items=(processed,))
+                (ledger_entry,), TextureOptimizationResult(items=(processed,))
             )
             step = ApplyProcessedTexturesStep(processed_textures)
 
@@ -546,7 +591,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                 texture_key="texture_0",
             )
             processed_textures = resolve_processed_textures(
-                (ledger_entry,), TextureProcessingResult(items=(processed,))
+                (ledger_entry,), TextureOptimizationResult(items=(processed,))
             )
             step = ApplyProcessedTexturesStep(processed_textures)
 
@@ -609,7 +654,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                 texture_key="texture_0",
             )
             processed_textures = resolve_processed_textures(
-                (ledger_entry,), TextureProcessingResult(items=(processed,))
+                (ledger_entry,), TextureOptimizationResult(items=(processed,))
             )
             step = ApplyProcessedTexturesStep(processed_textures)
 
@@ -674,7 +719,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                 texture_key="texture_0",
             )
             processed_textures = resolve_processed_textures(
-                (ledger_entry,), TextureProcessingResult(items=(processed,))
+                (ledger_entry,), TextureOptimizationResult(items=(processed,))
             )
             step = ApplyProcessedTexturesStep(processed_textures)
 
@@ -753,7 +798,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                 texture_key="texture_0",
             )
             processed_textures = resolve_processed_textures(
-                (ledger_entry,), TextureProcessingResult(items=(processed,))
+                (ledger_entry,), TextureOptimizationResult(items=(processed,))
             )
             step = ApplyProcessedTexturesStep(processed_textures)
 
@@ -833,7 +878,7 @@ class TestApplyProcessedTexturesE2E(omni.kit.test.AsyncTestCase):
                 texture_key="texture_0",
             )
             processed_textures = resolve_processed_textures(
-                (ledger_entry,), TextureProcessingResult(items=(processed,))
+                (ledger_entry,), TextureOptimizationResult(items=(processed,))
             )
             step = ApplyProcessedTexturesStep(processed_textures)
 

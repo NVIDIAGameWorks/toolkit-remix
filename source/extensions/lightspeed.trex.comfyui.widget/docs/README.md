@@ -6,13 +6,12 @@ server setup, workflow configuration, and the ComfyUI workspace window.
 ## Responsibilities
 
 - Create and register server setup and workflow workspaces with Managed/External setup tabs.
-- Render connection controls that split a complete URL pasted into Host across the Protocol, Host, and Port fields,
-  plus a persistent connection banner, workflow selection, presets, and typed workflow input editors.
+- Render connection controls that split a complete URL across Protocol, Host, and Port.
+- Render workflow selection, presets, and typed input and output editors.
 - Show the exact verified endpoint and **Open Browser** only while ComfyUI is connected; expose **Show Logs** only
   after a connection failure to open an in-app modal with the exact endpoint and captured connection error in a
   selectable, copyable, read-only multiline field.
-- Keep setup and persisted queue work available without a project while disabling Run with exact guidance until a
-  live stage can resolve the selected materials.
+- Keep setup and queued work available without a project. Disable Run until a live stage can resolve new candidates.
 - Adapt ComfyUI jobs for the shared queue, contributing Focus over live, effectively visible owner objects in the
   job's saved USD context, Open Workflow, and Retarget to the material graph row and saved/connected
   server information before the generation job's Inputs. Context-qualified core visibility events refresh Focus
@@ -44,7 +43,7 @@ ComfyUI workspace window
         v
 +---------------------+      events      +------------------+
 | ComfyUICore         |<---------------->| Workflow widgets |
-| settings + prepare  |                  | presets + inputs |
+| settings + prepare  |                  | presets + items  |
 +---------------------+                  +------------------+
                                                | edits generic
                                                | Python values
@@ -67,17 +66,25 @@ Core visibility event --> ComfyUI adapter subscription --> ComfyUI queue rows re
   methods to prepare an immutable submission, confirm any skipped jobs, submit the accepted request, resolve saved
   workflows, and retarget queued jobs. Widgets only render the returned state and react to context-qualified shared
   events.
+- **Mesh input settings**: Selected Mesh and All Meshes expose Reference Selection in Item Properties.
+  All uses every reference of the mesh. Selected uses only the one that composes the picked prim. Selected Mesh
+  defaults to Selected, and All Meshes defaults to All. Constant uses one model file.
+- **Output settings**: The item list edits Apply Behavior on every output. Texture outputs also edit Texture Type.
+  Mesh outputs offer Replace, Append, or Do Nothing. Replace is the default when the workflow has a mesh input and
+  requires one. A workflow without a mesh input defaults to Append, which needs no reference choice. Output setting
+  changes run through `SetComfyUIOutputFieldCommand`, so they are in the undo history. Texture Type changes also
+  refresh the output row and breadcrumb.
 - **Context-aware**: All widgets accept `context_name` to support multi-context scenarios.
 - **Project boundary**: Workflow selection and queue access remain available without a stage. Run listens to stage
-  lifecycle changes because only new material resolution needs a live stage; submitted generation and processing
-  continue independently, while Apply validates the exact captured project later.
+  lifecycle changes because only new candidate resolution needs a live stage. Submitted generation and processing
+  continue independently. Apply validates the exact captured project later.
 
 ### Key Classes
 
 - `ComfyUIWidgetExtension` owns workspace registration and the ComfyUI job display adapter lifecycle.
 - `ComfySetupWorkspace` and `WorkflowSetupWorkspace` host the two AI Tools workspace windows.
 - `ComfySetupAdvancedWidget` renders the setup tabs plus external-server connection settings and state.
-- `WorkflowSetupWidget` coordinates workflow refresh, selection, presets, and typed inputs.
+- `WorkflowSetupWidget` coordinates workflow refresh, selection, presets, and typed input and output items.
 - `ComfyUIDisplayAdapter` maps ComfyUI generation into the shared queue presentation. Its workflow actions belong to
   the parent material graph; the generation child remains free of duplicate action icons and owns a dedicated
   ComfyUI server details section before its typed Inputs. While the queue is visible, its adapter subscription refreshes

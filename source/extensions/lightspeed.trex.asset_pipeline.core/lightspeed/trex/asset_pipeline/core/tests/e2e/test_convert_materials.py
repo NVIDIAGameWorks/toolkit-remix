@@ -22,7 +22,7 @@ import tempfile
 import omni.kit.app
 import omni.kit.test
 from omni.flux.utils.tests.context_managers import open_test_project
-from pxr import Usd, UsdShade
+from pxr import Sdf, Usd, UsdShade
 
 from lightspeed.trex.asset_pipeline.core import RemixAssetItem, RemixAssetPipelineContext
 from lightspeed.trex.asset_pipeline.core.steps import ConvertMaterialsStep
@@ -35,21 +35,43 @@ _RESOURCE_CONTEXT = "asset_pipeline_resource_project"
 class TestConvertMaterialsE2E(omni.kit.test.AsyncTestCase):
     """Test material conversion against authored USD resources."""
 
-    async def test_material_names_do_not_select_shader_output(self):
-        """Material names do not override authored shader identifiers."""
+    async def test_material_names_select_legacy_shader_outputs(self):
+        """Preserve the legacy name rule for supported model shaders."""
+        for identifier in (None, "OmniPBR", "OmniPBR_Opacity", "OmniGlass", "UsdPreviewSurface"):
+            with self.subTest(identifier=identifier), tempfile.TemporaryDirectory() as temp_dir:
+                model_path = _write_model_stage(temp_dir, ["M_Glass", "M_Wall"], identifier)
+                item = RemixAssetItem.from_model(model_path)
+
+                async with RemixAssetPipelineContext(items=[item]) as context:
+                    await ConvertMaterialsStep().run(context)
+
+                    stage = await context.open_stage(model_path)
+                    self.assertEqual(
+                        _collect_shader_subidentifiers_by_material(stage),
+                        {"M_Glass": "AperturePBR_Translucent", "M_Wall": "AperturePBR_Opacity"},
+                    )
+
+    async def test_material_without_shader_receives_a_default_aperture_pbr_shader(self):
+        """A material whose reference no longer resolves has no shader; conversion gives it AperturePBR_Opacity.
+
+        A captured Remix mesh copied out of its project hits this: its material references a sibling
+        ``../materials/mat_*.usda`` file that does not exist next to the copy. The legacy ``MaterialShaders``
+        plugin converted such a material through the None converter, so the mesh still renders with a material.
+        """
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create OmniPBR materials with names that suggest different shader outputs.
-            model_path = _write_model_stage(temp_dir, ["GlassMat", "TranslucentWindow", "BodyPaint"])
+            model_path = _write_model_stage(temp_dir, ["BodyPaint"])
+            with open(model_path, "a", encoding="utf-8") as model_file:
+                model_file.write(_DANGLING_MATERIAL)
             item = RemixAssetItem.from_model(model_path)
 
             async with RemixAssetPipelineContext(items=[item]) as context:
-                # Convert the model through the asset pipeline.
                 await ConvertMaterialsStep().run(context)
 
-                # Check that the authored shader identifiers take precedence over the material names.
                 stage = await context.open_stage(model_path)
                 subidentifiers = _collect_shader_subidentifiers_by_material(stage)
-                self.assertEqual(set(subidentifiers.values()), {"AperturePBR_Opacity"})
+                self.assertEqual(
+                    subidentifiers, {"BodyPaint": "AperturePBR_Opacity", "mat_missing": "AperturePBR_Opacity"}
+                )
 
     async def test_convert_materials_should_run_for_model_items(self):
         """Material conversion lets run handle exact authored shader resolution."""
@@ -99,46 +121,42 @@ class TestConvertMaterialsE2E(omni.kit.test.AsyncTestCase):
                 )
 
 
-def _write_model_stage(temp_dir: str, material_names: list[str]) -> pathlib.Path:
-    """Write a minimal on-disk USD stage with OmniPBR materials."""
+def _write_model_stage(
+    temp_dir: str, material_names: list[str], shader_identifier: str | None = "OmniPBR"
+) -> pathlib.Path:
+    """Write a USD stage with the specified material shader."""
     model_path = pathlib.Path(temp_dir) / "model.usda"
-    materials_text = ""
+    stage = Usd.Stage.CreateNew(str(model_path))
+    stage.SetDefaultPrim(stage.DefinePrim("/World", "Xform"))
+    stage.SetMetadata("metersPerUnit", 1.0)
+    stage.SetMetadata("upAxis", "Y")
+    stage.DefinePrim("/World/Looks", "Scope")
     for name in material_names:
-        materials_text += _MATERIAL_TEMPLATE.format(name=name)
-    usda_text = _STAGE_TEMPLATE.format(materials=materials_text)
-    model_path.write_text(usda_text)
+        material = UsdShade.Material.Define(stage, f"/World/Looks/{name}")
+        if shader_identifier is None:
+            continue
+        shader = UsdShade.Shader.Define(stage, f"/World/Looks/{name}/{name}")
+        if shader_identifier == "UsdPreviewSurface":
+            shader.CreateIdAttr(shader_identifier)
+            material.CreateSurfaceOutput().ConnectToSource(shader.CreateOutput("surface", Sdf.ValueTypeNames.Token))
+        else:
+            shader.SetSourceAsset(Sdf.AssetPath(f"{shader_identifier}.mdl"), "mdl")
+            shader.SetSourceAssetSubIdentifier(shader_identifier, "mdl")
+            material.CreateSurfaceOutput("mdl").ConnectToSource(shader.CreateOutput("out", Sdf.ValueTypeNames.Token))
+    stage.GetRootLayer().Save()
     return model_path
 
 
-_STAGE_TEMPLATE = """#usda 1.0
-(
-    defaultPrim = "World"
-    metersPerUnit = 1.0
-    upAxis = "Y"
-)
-
-def Xform "World"
-{{
-    def Scope "Looks"
-    {{
-{materials}
-    }}
-}}
-"""
-
-_MATERIAL_TEMPLATE = """        def Material "{name}"
-        {{
-            token outputs:mdl:displacement.connect = </World/Looks/{name}/{name}.outputs:out>
-            token outputs:mdl:surface.connect = </World/Looks/{name}/{name}.outputs:out>
-            token outputs:mdl:volume.connect = </World/Looks/{name}/{name}.outputs:out>
-            def Shader "{name}"
-            {{
-                uniform token info:implementationSource = "sourceAsset"
-                uniform asset info:mdl:sourceAsset = @OmniPBR.mdl@
-                uniform token info:mdl:sourceAsset:subIdentifier = "OmniPBR"
-                token outputs:out
-            }}
-        }}
+# A material that references a sibling file that does not exist, like a captured mesh copied out of its project.
+_DANGLING_MATERIAL = """
+def Scope "Looks"
+{
+    def Material "mat_missing" (
+        prepend references = @../materials/mat_missing.usda@</Looks/mat_missing>
+    )
+    {
+    }
+}
 """
 
 

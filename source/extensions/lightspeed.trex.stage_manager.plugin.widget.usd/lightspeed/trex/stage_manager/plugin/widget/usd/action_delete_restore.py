@@ -123,7 +123,11 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         if proto:
             prim = proto
 
-        edit_target_layer = omni.usd.get_context(self._context_name).get_stage().GetEditTarget().GetLayer()
+        stage = omni.usd.get_context(self._context_name).get_stage()
+        if stage is None:
+            # The stage closed while a refresh was classifying its prims. Nothing is left to delete or restore.
+            return self.ActionType.RESTOREDISABLED
+        edit_target_layer = stage.GetEditTarget().GetLayer()
         if edit_target_layer.GetPrimAtPath(prim.GetPath()):
             return self.ActionType.DELETE
 

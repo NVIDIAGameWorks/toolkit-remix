@@ -38,6 +38,8 @@ class _ChoiceItem(ui.AbstractItem):
         super().__init__()
         self.value = value
         label = value.value if isinstance(value, enum.Enum) else value
+        if isinstance(label, str):
+            label = label.replace("_", " ").title()
         self.model = ui.SimpleStringModel(str(label))
 
 
@@ -68,6 +70,11 @@ class NativeChoiceModel(ItemModel):
         self._current_index.add_value_changed_fn(self._on_index_changed)
         self._updating_index = False
         self._read_only = value_model.read_only
+        self._value_subscription = value_model.subscribe_value_changed_fn(lambda _: self.refresh())
+
+    def destroy(self) -> None:
+        """Release the wrapped value-change subscription."""
+        self._value_subscription = None
 
     def get_value(self) -> Any:
         """Return the current typed value.

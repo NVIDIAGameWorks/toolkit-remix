@@ -20,7 +20,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import carb
-import omni.kit
+import omni.kit.commands
 import omni.usd
 from pxr import Sdf, Usd, UsdShade
 
@@ -279,7 +279,9 @@ class MaterialConverterCore:
             all_valid = []
             if converter.value[1].value is None:
                 continue
-            converter_instance = converter.value[0]().build(input_shader_prim, converter.value[1].value)
+            builder = converter.value[0]()
+            # Build with the output the builder selects. The input identifier is not always a valid output shader.
+            converter_instance = builder.build(input_shader_prim, builder.select_output(input_shader_prim).value)
             for attr in converter_instance.attributes:
                 if attr.fake_attribute:
                     continue
@@ -315,6 +317,11 @@ class MaterialConverterCore:
                         type_to_create_if_not_exist=attr.output_attr_type,
                         usd_context_name=context_name,
                     )
+                    if attr.output_custom_data:
+                        with Usd.EditContext(stage, root_layer):
+                            output_attr = stage.GetAttributeAtPath(output_attr_path)
+                            for key, value in attr.output_custom_data.items():
+                                output_attr.SetCustomDataByKey(key, value)
                 continue
 
             input_attr = input_shader_prim.GetAttribute(attr.input_attr_name)
@@ -344,6 +351,11 @@ class MaterialConverterCore:
                 type_to_create_if_not_exist=translated_type,
                 usd_context_name=context_name,
             )
+            if attr.output_custom_data:
+                with Usd.EditContext(stage, root_layer):
+                    output_attr = stage.GetAttributeAtPath(output_attr_path)
+                    for key, value in attr.output_custom_data.items():
+                        output_attr.SetCustomDataByKey(key, value)
 
     @staticmethod
     def _get_default_value(usd_property):

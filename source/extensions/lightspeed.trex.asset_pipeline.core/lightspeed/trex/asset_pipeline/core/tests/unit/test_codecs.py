@@ -23,16 +23,16 @@ import json
 import pathlib
 
 import omni.kit.test
-from lightspeed.trex.asset_pipeline.core.jobs import MeshOptimizationJob, PrepareOptimizationJob, TextureProcessingJob
+from lightspeed.trex.asset_pipeline.core.jobs import MeshOptimizationJob, PrepareOptimizationJob, TextureOptimizationJob
 from lightspeed.trex.asset_pipeline.core.jobs.models import (
     MeshOptimizationRequest,
     MeshOptimizationResult,
     PrepareOptimizationResult,
     ProcessedTexture,
     TextureLedgerEntry,
-    TextureProcessingItem,
-    TextureProcessingRequest,
-    TextureProcessingResult,
+    TextureOptimizationItem,
+    TextureOptimizationRequest,
+    TextureOptimizationResult,
 )
 from lightspeed.trex.asset_pipeline.core.metadata import MetadataApplyReceipt
 from omni.flux.asset_importer.core.data_models import TextureTypes
@@ -63,21 +63,21 @@ class TestCodecAssemblies(omni.kit.test.AsyncTestCase):
 
     async def test_every_persisted_type_round_trips_a_non_default_value(self):
         """Every persisted type keeps a non-default value, lineage, false flags, and identity intact."""
-        texture_item = TextureProcessingItem(
-            key="texture_0", path=pathlib.Path("textures/albedo.png"), texture_type=TextureTypes.ROUGHNESS
+        texture_item = TextureOptimizationItem(
+            key="texture_0", path=pathlib.Path("textures/albedo.png"), texture_type=TextureTypes.ROUGHNESS, channel="G"
         )
         processed = _processed_texture()
-        texture_request = TextureProcessingRequest(
+        texture_request = TextureOptimizationRequest(
             items=(texture_item,),
             source_root=pathlib.Path("models"),
             output_url="omniverse://server/project/processed",
         )
-        texture_result = TextureProcessingResult(
+        texture_result = TextureOptimizationResult(
             items=(processed,),
             lineage=((str(processed.source_path), processed.asset_url, "tex_hash"),),
             validation_passed=False,
         )
-        texture_job = TextureProcessingJob(name="Process chair textures")
+        texture_job = TextureOptimizationJob(name="Process chair textures")
         ledger_entry = TextureLedgerEntry(
             material_path="/Root/Material/Shader", texture_type=TextureTypes.DIFFUSE, texture_key="texture_0"
         )
@@ -86,6 +86,7 @@ class TestCodecAssemblies(omni.kit.test.AsyncTestCase):
             source_root=pathlib.Path("models"),
             output_url="omniverse://server/project/assets/ingested",
             replace_udim_textures_by_empty=False,
+            extra_textures=(texture_item,),
         )
         prepare_result = PrepareOptimizationResult(
             model_work_path=pathlib.Path("processed/model.usd"),
@@ -145,7 +146,7 @@ class TestCodecAssemblies(omni.kit.test.AsyncTestCase):
         self.assertEqual(deserialize(serialize(mesh_result)).lineage, mesh_result.lineage)
 
     async def test_released_texture_payloads_decode_with_field_defaults(self):
-        """Released 1.1.x ProcessedTexture and TextureProcessingResult payloads decode with new-field defaults."""
+        """Released 1.1.x ProcessedTexture and TextureOptimizationResult payloads decode with new-field defaults."""
         processed = _processed_texture()
         texture_envelope = json.loads(serialize(processed))
         texture_envelope["value"]["value"] = texture_envelope["value"]["value"][:-1]  # drop udim_tiles: 1.1.x shape
@@ -160,21 +161,65 @@ class TestCodecAssemblies(omni.kit.test.AsyncTestCase):
             ),
         )
 
-        result = TextureProcessingResult(items=(processed,), lineage=(("a", "b", "c"),), validation_passed=False)
+        result = TextureOptimizationResult(items=(processed,), lineage=(("a", "b", "c"),), validation_passed=False)
         result_envelope = json.loads(serialize(result))
         result_envelope["value"]["value"] = result_envelope["value"]["value"][:1]  # drop lineage/validation: 1.1.x
         legacy_result = deserialize(json.dumps(result_envelope))
-        self.assertEqual(legacy_result, TextureProcessingResult(items=(processed,)))
+        self.assertEqual(legacy_result, TextureOptimizationResult(items=(processed,)))
+
+    async def test_released_texture_item_payload_decodes_without_channel(self):
+        """A released three-field TextureOptimizationItem payload decodes with no channel."""
+        # Arrange
+        item = TextureOptimizationItem("packed", pathlib.Path("packed.png"), TextureTypes.ROUGHNESS, channel="G")
+        item_envelope = json.loads(serialize(item))
+        item_envelope["value"]["value"] = item_envelope["value"]["value"][:3]
+
+        # Act
+        legacy_item = deserialize(json.dumps(item_envelope))
+
+        # Assert
+        self.assertEqual(
+            legacy_item, TextureOptimizationItem("packed", pathlib.Path("packed.png"), TextureTypes.ROUGHNESS)
+        )
+        self.assertIsNone(legacy_item.channel)
+
+    async def test_released_mesh_request_payload_decodes_without_extra_textures(self):
+        """A released four-field MeshOptimizationRequest payload decodes with no extra textures."""
+        # Arrange
+        request = MeshOptimizationRequest(pathlib.Path("model.usd"), pathlib.Path("."))
+        request_envelope = json.loads(serialize(request))
+        request_envelope["value"]["value"] = request_envelope["value"]["value"][:4]
+
+        # Act
+        restored = deserialize(json.dumps(request_envelope))
+
+        # Assert
+        self.assertEqual(restored, request)
+
+    async def test_released_prepare_result_payload_decodes_without_already_optimized_flag(self):
+        """A released eight-field PrepareOptimizationResult payload decodes with already_optimized False."""
+        # Arrange
+        result = PrepareOptimizationResult(
+            pathlib.Path("processed/model.usd"), (), pathlib.Path("model.usd"), pathlib.Path("."), (), ()
+        )
+        result_envelope = json.loads(serialize(result))
+        result_envelope["value"]["value"] = result_envelope["value"]["value"][:8]
+
+        # Act
+        restored = deserialize(json.dumps(result_envelope))
+
+        # Assert
+        self.assertEqual(restored, result)
 
     async def test_texture_payload_arity_outside_released_and_current_shapes_raises(self):
-        """A ProcessedTexture or TextureProcessingResult payload of any other length raises ValueError."""
+        """A ProcessedTexture or TextureOptimizationResult payload of any other length raises ValueError."""
         processed = _processed_texture()
         texture_envelope = json.loads(serialize(processed))
         texture_envelope["value"]["value"] = texture_envelope["value"]["value"][:3]  # neither 4 nor 5 values
         with self.assertRaises(ValueError):
             deserialize(json.dumps(texture_envelope))
 
-        result = TextureProcessingResult(items=(processed,))
+        result = TextureOptimizationResult(items=(processed,))
         result_envelope = json.loads(serialize(result))
         result_envelope["value"]["value"] = result_envelope["value"]["value"] * 2  # neither 1 nor 3 values
         with self.assertRaises(ValueError):

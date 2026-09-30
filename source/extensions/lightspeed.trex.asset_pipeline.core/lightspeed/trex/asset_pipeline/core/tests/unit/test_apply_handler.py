@@ -35,7 +35,7 @@ from lightspeed.trex.asset_pipeline.core.jobs.apply_handler import (
 from lightspeed.trex.asset_pipeline.core.jobs.models import (
     MeshOptimizationResult,
     ProcessedTexture,
-    TextureProcessingResult,
+    TextureOptimizationResult,
 )
 
 
@@ -43,7 +43,7 @@ def _texture_result(
     temp_path: pathlib.Path,
     output_paths: tuple[pathlib.Path, ...],
     validation_passed: bool = True,
-) -> TextureProcessingResult:
+) -> TextureOptimizationResult:
     """Build one texture batch result with the given outputs and pipeline outcome.
 
     Args:
@@ -54,7 +54,7 @@ def _texture_result(
     Returns:
         Immutable texture batch result.
     """
-    return TextureProcessingResult(
+    return TextureOptimizationResult(
         items=tuple(
             ProcessedTexture(
                 key=f"texture_{index}",
@@ -75,7 +75,7 @@ class TestApplyHandler(omni.kit.test.AsyncTestCase):
         """SaveTextureMetadataHandler exposes the exact queue registry fields."""
         # Assert
         self.assertEqual(SaveTextureMetadataHandler.name, "SaveTextureMetadataHandler")
-        self.assertEqual(SaveTextureMetadataHandler.input_type, TextureProcessingResult)
+        self.assertEqual(SaveTextureMetadataHandler.input_type, TextureOptimizationResult)
         self.assertIs(SaveTextureMetadataHandler.target_type, type(None))
         self.assertEqual(SaveTextureMetadataHandler.receipt_type.__name__, "MetadataApplyReceipt")
         self.assertEqual(SaveTextureMetadataHandler.apply_policy.value, "always_automatic")
@@ -180,7 +180,7 @@ class TestApplyHandler(omni.kit.test.AsyncTestCase):
                 remote_files.pop(url, None)
                 return metadata_module.omni.client.Result.OK
 
-            result = TextureProcessingResult(
+            result = TextureOptimizationResult(
                 items=(
                     ProcessedTexture(
                         key="texture_0",
@@ -251,7 +251,7 @@ class TestApplyHandler(omni.kit.test.AsyncTestCase):
 
         result = MeshOptimizationResult(
             asset_url=mesh_url,
-            texture_result=TextureProcessingResult(
+            texture_result=TextureOptimizationResult(
                 items=(
                     ProcessedTexture(
                         key="albedo",

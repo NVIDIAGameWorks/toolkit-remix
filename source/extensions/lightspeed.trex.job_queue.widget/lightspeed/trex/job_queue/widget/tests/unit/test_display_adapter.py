@@ -18,14 +18,14 @@
 import pathlib
 from unittest.mock import MagicMock, patch
 
-from lightspeed.trex.asset_pipeline.core.jobs import TextureProcessingJob
+from lightspeed.trex.asset_pipeline.core.jobs import TextureOptimizationJob
 from lightspeed.trex.asset_pipeline.core.jobs.models import (
     ProcessedTexture,
-    TextureProcessingItem,
-    TextureProcessingRequest,
-    TextureProcessingResult,
+    TextureOptimizationItem,
+    TextureOptimizationRequest,
+    TextureOptimizationResult,
 )
-from lightspeed.trex.job_queue.widget.display_adapter import TextureProcessingDisplayAdapter
+from lightspeed.trex.job_queue.widget.display_adapter import TextureOptimizationDisplayAdapter
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.job_queue.core.job import JobProgress
 from omni.flux.job_queue.widget.display_adapter_base import (
@@ -39,39 +39,39 @@ from omni.flux.job_queue.widget.enums import DisplayState, JobDetailSectionPlace
 from omni.kit.test import AsyncTestCase
 
 
-class TestTextureProcessingDisplayAdapter(AsyncTestCase):
-    """Test product-neutral shared texture-processing presentation."""
+class TestTextureOptimizationDisplayAdapter(AsyncTestCase):
+    """Test product-neutral shared texture-optimization presentation."""
 
     async def test_targets_exact_shared_job_type(self):
-        """Registry dispatch uses the exact reusable texture-processing class."""
+        """Registry dispatch uses the exact reusable texture-optimization class."""
         # Arrange
-        adapter_type = TextureProcessingDisplayAdapter
+        adapter_type = TextureOptimizationDisplayAdapter
 
         # Act
         contract = (adapter_type.name, adapter_type.job_type)
 
         # Assert
-        self.assertEqual(contract[0], "texture_processing")
-        self.assertIs(contract[1], TextureProcessingJob)
+        self.assertEqual(contract[0], "texture_optimization")
+        self.assertIs(contract[1], TextureOptimizationJob)
 
     async def test_registers_with_real_exact_type_registry(self):
         """The production registry accepts and resolves the explicit adapter contract."""
         # Arrange
         registry = DisplayAdapterRegistry()
-        job = TextureProcessingJob()
+        job = TextureOptimizationJob()
 
         # Act
-        registry.register(TextureProcessingDisplayAdapter)
+        registry.register(TextureOptimizationDisplayAdapter)
         adapter = registry.get_adapter(job)
 
         # Assert
-        self.assertIs(type(adapter), TextureProcessingDisplayAdapter)
+        self.assertIs(type(adapter), TextureOptimizationDisplayAdapter)
 
     async def test_describes_texture_optimization(self):
         """The reusable adapter provides one consistent texture-optimization name."""
         # Arrange
-        adapter = TextureProcessingDisplayAdapter()
-        job = TextureProcessingJob(name="Texture optimization")
+        adapter = TextureOptimizationDisplayAdapter()
+        job = TextureOptimizationJob(name="Texture optimization")
 
         # Act
         result = (
@@ -84,7 +84,7 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
         self.assertEqual(
             result,
             (
-                "Texture Processing",
+                "Texture Optimization",
                 "Texture optimization",
                 "Prepare, optimize, and publish textures for efficient use in RTX Remix.",
             ),
@@ -93,8 +93,8 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_active_labels_use_structured_texture_progress(self):
         """Active graph aggregation receives product-facing processing labels."""
         # Arrange
-        adapter = TextureProcessingDisplayAdapter()
-        job = TextureProcessingJob()
+        adapter = TextureOptimizationDisplayAdapter()
+        job = TextureOptimizationJob()
         progress = JobProgress(completed=1, total=3, detail="Converting textures")
 
         # Act
@@ -110,10 +110,10 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_job_action_opens_local_processed_texture_directory(self):
         """The child-owned processed-texture action opens its shared local directory."""
         # Arrange
-        job = TextureProcessingJob()
+        job = TextureOptimizationJob()
         queue = MagicMock()
         queue.get_job_details.return_value.outputs = {
-            job.PROCESSED_TEXTURES: TextureProcessingResult(
+            job.PROCESSED_TEXTURES: TextureOptimizationResult(
                 items=(
                     ProcessedTexture(
                         key="albedo",
@@ -130,7 +130,7 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
             patch("lightspeed.trex.job_queue.widget.display_adapter.get_job_queue", return_value=queue),
             patch("lightspeed.trex.job_queue.widget.display_adapter.open_file_using_os_default") as reveal,
         ):
-            adapter = TextureProcessingDisplayAdapter()
+            adapter = TextureOptimizationDisplayAdapter()
             actions = adapter.get_job_actions(job, "")
             adapter.execute_action("open_processed_texture_directory", job, "")
 
@@ -154,8 +154,8 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_processed_texture_action_is_owned_only_by_child_job(self):
         """Texture processing never promotes its file reveal action to the graph row."""
         # Arrange
-        adapter = TextureProcessingDisplayAdapter()
-        job = TextureProcessingJob()
+        adapter = TextureOptimizationDisplayAdapter()
+        job = TextureOptimizationJob()
 
         # Act
         actions = adapter.get_graph_actions(job, "stagecraft")
@@ -166,10 +166,10 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_open_action_reopens_shared_directory_without_cycling_textures(self):
         """Repeated activation always opens the one directory containing every output."""
         # Arrange
-        job = TextureProcessingJob()
+        job = TextureOptimizationJob()
         queue = MagicMock()
         queue.get_job_details.return_value.outputs = {
-            job.PROCESSED_TEXTURES: TextureProcessingResult(
+            job.PROCESSED_TEXTURES: TextureOptimizationResult(
                 items=(
                     ProcessedTexture(
                         key="albedo",
@@ -186,7 +186,7 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
                 )
             )
         }
-        adapter = TextureProcessingDisplayAdapter()
+        adapter = TextureOptimizationDisplayAdapter()
 
         # Act
         with (
@@ -213,10 +213,10 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_detail_sections_expose_local_and_remote_processed_textures(self):
         """Processed textures retain every published value and own their local folder action."""
         # Arrange
-        job = TextureProcessingJob()
+        job = TextureOptimizationJob()
         details = MagicMock()
         details.outputs = {
-            job.PROCESSED_TEXTURES: TextureProcessingResult(
+            job.PROCESSED_TEXTURES: TextureOptimizationResult(
                 items=(
                     ProcessedTexture(
                         key="albedo",
@@ -235,7 +235,7 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
         }
 
         # Act
-        result = TextureProcessingDisplayAdapter().get_detail_sections(job, details, "")
+        result = TextureOptimizationDisplayAdapter().get_detail_sections(job, details, "")
 
         # Assert
         self.assertEqual(
@@ -246,13 +246,13 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
                     "Processed textures",
                     (
                         JobDetailField(
-                            "texture_processing.output.0",
+                            "texture_optimization.output.0",
                             "Albedo",
                             "C:/processed/albedo.dds",
                             "Processed texture published by the reusable asset pipeline.",
                         ),
                         JobDetailField(
-                            "texture_processing.output.1",
+                            "texture_optimization.output.1",
                             "Normal Ogl",
                             "omniverse://server/project/normal.dds",
                             "Processed texture published by the reusable asset pipeline.",
@@ -267,17 +267,17 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_detail_directories_expose_only_generic_input_values(self):
         """Generic Inputs own their folder while processed textures use their product section."""
         # Arrange
-        job = TextureProcessingJob()
+        job = TextureOptimizationJob()
         details = MagicMock()
         details.inputs = {
-            job.SOURCE_TEXTURES: TextureProcessingRequest(
+            job.SOURCE_TEXTURES: TextureOptimizationRequest(
                 items=(
-                    TextureProcessingItem(
+                    TextureOptimizationItem(
                         key="albedo",
                         path=pathlib.Path("C:/generated/albedo.png"),
                         texture_type=TextureTypes.DIFFUSE,
                     ),
-                    TextureProcessingItem(
+                    TextureOptimizationItem(
                         key="normal_ogl",
                         path=pathlib.Path("C:/generated/normal.png"),
                         texture_type=TextureTypes.NORMAL_OGL,
@@ -288,7 +288,7 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
             )
         }
         details.outputs = {
-            job.PROCESSED_TEXTURES: TextureProcessingResult(
+            job.PROCESSED_TEXTURES: TextureOptimizationResult(
                 items=(
                     ProcessedTexture(
                         key="albedo",
@@ -307,7 +307,7 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
         }
 
         # Act
-        result = TextureProcessingDisplayAdapter().get_detail_directories(job, details, "")
+        result = TextureOptimizationDisplayAdapter().get_detail_directories(job, details, "")
 
         # Assert
         self.assertEqual(
@@ -318,10 +318,10 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_remote_processed_texture_remains_details_only(self):
         """A remote output keeps its stable disabled action and remains visible in details."""
         # Arrange
-        job = TextureProcessingJob()
+        job = TextureOptimizationJob()
         queue = MagicMock()
         queue.get_job_details.return_value.outputs = {
-            job.PROCESSED_TEXTURES: TextureProcessingResult(
+            job.PROCESSED_TEXTURES: TextureOptimizationResult(
                 items=(
                     ProcessedTexture(
                         key="albedo",
@@ -338,7 +338,7 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
             patch("lightspeed.trex.job_queue.widget.display_adapter.get_job_queue", return_value=queue),
             patch("lightspeed.trex.job_queue.widget.display_adapter.open_file_using_os_default") as reveal,
         ):
-            actions = TextureProcessingDisplayAdapter().get_job_actions(job, "")
+            actions = TextureOptimizationDisplayAdapter().get_job_actions(job, "")
 
         # Assert
         self.assertEqual(
@@ -358,13 +358,13 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_missing_processed_texture_disables_reveal(self):
         """A queued or unsuccessful processing job has no reveal target before values exist."""
         # Arrange
-        job = TextureProcessingJob()
+        job = TextureOptimizationJob()
         queue = MagicMock()
         queue.get_job_details.return_value.outputs = None
 
         # Act
         with patch("lightspeed.trex.job_queue.widget.display_adapter.get_job_queue", return_value=queue):
-            actions = TextureProcessingDisplayAdapter().get_job_actions(job, "")
+            actions = TextureOptimizationDisplayAdapter().get_job_actions(job, "")
 
         # Assert
         self.assertEqual(
@@ -383,13 +383,13 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_unavailable_processed_texture_state_keeps_disabled_reveal(self):
         """A details read failure cannot remove the child action's stable slot."""
         # Arrange
-        job = TextureProcessingJob()
+        job = TextureOptimizationJob()
         queue = MagicMock()
         queue.get_job_details.side_effect = RuntimeError("queue unavailable")
 
         # Act
         with patch("lightspeed.trex.job_queue.widget.display_adapter.get_job_queue", return_value=queue):
-            actions = TextureProcessingDisplayAdapter().get_job_actions(job, "")
+            actions = TextureOptimizationDisplayAdapter().get_job_actions(job, "")
 
         # Assert
         self.assertEqual(
@@ -408,10 +408,10 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_mixed_processed_texture_locations_explain_disabled_reveal(self):
         """A mixed local and remote result explains why one folder cannot represent the job."""
         # Arrange
-        job = TextureProcessingJob()
+        job = TextureOptimizationJob()
         queue = MagicMock()
         queue.get_job_details.return_value.outputs = {
-            job.PROCESSED_TEXTURES: TextureProcessingResult(
+            job.PROCESSED_TEXTURES: TextureOptimizationResult(
                 items=(
                     ProcessedTexture(
                         key="albedo",
@@ -431,7 +431,7 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
 
         # Act
         with patch("lightspeed.trex.job_queue.widget.display_adapter.get_job_queue", return_value=queue):
-            action = TextureProcessingDisplayAdapter().get_job_actions(job, "")[0]
+            action = TextureOptimizationDisplayAdapter().get_job_actions(job, "")[0]
 
         # Assert
         self.assertFalse(action.enabled)
@@ -440,10 +440,10 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_multiple_processed_texture_directories_explain_disabled_reveal(self):
         """A result spanning local folders explains why one folder cannot represent the job."""
         # Arrange
-        job = TextureProcessingJob()
+        job = TextureOptimizationJob()
         queue = MagicMock()
         queue.get_job_details.return_value.outputs = {
-            job.PROCESSED_TEXTURES: TextureProcessingResult(
+            job.PROCESSED_TEXTURES: TextureOptimizationResult(
                 items=(
                     ProcessedTexture(
                         key="albedo",
@@ -463,17 +463,55 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
 
         # Act
         with patch("lightspeed.trex.job_queue.widget.display_adapter.get_job_queue", return_value=queue):
-            action = TextureProcessingDisplayAdapter().get_job_actions(job, "")[0]
+            action = TextureOptimizationDisplayAdapter().get_job_actions(job, "")[0]
 
         # Assert
         self.assertFalse(action.enabled)
         self.assertEqual(action.tooltip, "Processed textures are stored in multiple local directories.")
 
+    async def test_nested_processed_texture_directories_reveal_the_common_directory(self):
+        """Textures published in sub-folders of one output directory open that directory."""
+        # Arrange
+        job = TextureOptimizationJob()
+        queue = MagicMock()
+        queue.get_job_details.return_value.outputs = {
+            job.PROCESSED_TEXTURES: TextureOptimizationResult(
+                items=(
+                    ProcessedTexture(
+                        key="albedo",
+                        source_path=pathlib.Path("C:/generated/albedo.png"),
+                        asset_url="C:/jobs/1/processed/albedo.dds",
+                        texture_type=TextureTypes.DIFFUSE,
+                    ),
+                    ProcessedTexture(
+                        key="emissive",
+                        source_path=pathlib.Path("C:/generated/emissive.dds"),
+                        asset_url="C:/jobs/1/processed/_external/abc/emissive.dds",
+                        texture_type=TextureTypes.EMISSIVE,
+                    ),
+                )
+            )
+        }
+
+        with (
+            patch("lightspeed.trex.job_queue.widget.display_adapter.get_job_queue", return_value=queue),
+            patch("lightspeed.trex.job_queue.widget.display_adapter.open_file_using_os_default") as reveal,
+        ):
+            adapter = TextureOptimizationDisplayAdapter()
+            action = adapter.get_job_actions(job, "")[0]
+
+            # Act
+            adapter.execute_action("open_processed_texture_directory", job, "")
+
+        # Assert
+        self.assertTrue(action.enabled)
+        reveal.assert_called_once_with(str(pathlib.Path("C:/jobs/1/processed")), highlight=False)
+
     async def test_describes_processing_and_apply_states(self):
         """The shared child owns generic progress and Apply guidance."""
         # Arrange
-        adapter = TextureProcessingDisplayAdapter()
-        job = TextureProcessingJob()
+        adapter = TextureOptimizationDisplayAdapter()
+        job = TextureOptimizationJob()
         cases = (
             (DisplayState.WAITING_FOR_DEPENDENCIES, "Waiting for generated textures."),
             (DisplayState.IN_PROGRESS, "Optimizing and publishing textures for RTX Remix."),
@@ -492,8 +530,8 @@ class TestTextureProcessingDisplayAdapter(AsyncTestCase):
     async def test_uses_only_sanitized_queue_skip_and_apply_reasons(self):
         """Adapters display the queue's safe reason channel without reading diagnostic errors."""
         # Arrange
-        adapter = TextureProcessingDisplayAdapter()
-        job = TextureProcessingJob()
+        adapter = TextureOptimizationDisplayAdapter()
+        job = TextureOptimizationJob()
         cases = (
             (
                 DisplayState.SKIPPED,

@@ -21,17 +21,33 @@ import carb
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 
 
+__all__ = [
+    "TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY",
+    "TEXTURE_SOURCE_FACTOR_CUSTOM_DATA_KEY",
+    "MaterialConverterUtils",
+    "SupportedShaderInputs",
+    "SupportedShaderOutputs",
+]
+
+
 class SupportedShaderInputs(Enum):
     OMNI_PBR = "OmniPBR"
     OMNI_PBR_OPACITY = "OmniPBR_Opacity"
     OMNI_GLASS = "OmniGlass"
     USD_PREVIEW_SURFACE = "UsdPreviewSurface"
+    GLTF = "gltf_material"
     NONE = None
 
 
 class SupportedShaderOutputs(Enum):
     APERTURE_PBR_OPACITY = "AperturePBR_Opacity"
     APERTURE_PBR_TRANSLUCENT = "AperturePBR_Translucent"
+
+
+TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY: str = "remix:sourceChannel"
+# Per-channel multipliers to bake into the texture. One value for a mono texture. Three or four
+# values for a color texture, which the pipeline multiplies in linear space and stores as sRGB.
+TEXTURE_SOURCE_FACTOR_CUSTOM_DATA_KEY: str = "remix:sourceFactor"
 
 
 class MaterialConverterUtils:

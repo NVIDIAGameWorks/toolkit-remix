@@ -21,16 +21,19 @@ __all__ = ["DiscoverTexturesStep"]
 
 import pathlib
 
-import omni.usd
-from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.asset_pipeline.core import PipelineContext, PipelineStep
 from omni.flux.utils.common.path_utils import get_absolute_path_from_relative, get_udim_sequence, is_udim_texture
+from omni.flux.utils.material_converter.utils import (
+    TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY,
+    TEXTURE_SOURCE_FACTOR_CUSTOM_DATA_KEY,
+)
 from pxr import Sdf, UsdShade, UsdUtils
 
 from ..jobs.models import TextureLedgerEntry, derive_texture_key
 from ..pipeline.context import RemixAssetPipelineContext
 from ..pipeline.item import AssetKind, RemixAssetItem, TextureAsset
 from ..pipeline.texture_inputs import get_source_texture_paths, get_texture_source_identity, iter_texture_inputs
+from ..utils import get_material_shader_prim
 from ..worker import run_in_worker_thread
 
 
@@ -106,14 +109,15 @@ class DiscoverTexturesStep(PipelineStep):
             context.referenced_layers = tuple(layer.identifier for layer in layers)
 
             item.textures.clear()
-            texture_by_key: dict[tuple[pathlib.Path, TextureTypes], TextureAsset] = {}
+            # Keyed by (resolved path, texture type, channel, factor).
+            texture_by_key: dict[tuple, TextureAsset] = {}
             texture_ledger: list = []
 
             for prim in stage.Traverse():
                 if not prim.IsA(UsdShade.Material):
                     continue
-                shader_prim = omni.usd.get_shader_from_material(prim, get_prim=True)
-                if shader_prim is None or not shader_prim.IsValid():
+                shader_prim = get_material_shader_prim(prim)
+                if shader_prim is None:
                     continue
 
                 material_path = str(prim.GetPath())
@@ -141,13 +145,18 @@ class DiscoverTexturesStep(PipelineStep):
                             f"{original_asset_path.path}"
                         )
 
-                    texture_key_pair = (resolved_path, texture_type)
+                    channel = attr.GetCustomDataByKey(TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY)
+                    raw_factor = attr.GetCustomDataByKey(TEXTURE_SOURCE_FACTOR_CUSTOM_DATA_KEY)
+                    factor = tuple(float(component) for component in raw_factor) if raw_factor is not None else None
+                    texture_key_pair = (resolved_path, texture_type, channel, factor)
                     texture = texture_by_key.get(texture_key_pair)
                     if texture is None:
                         texture = TextureAsset(
                             path=resolved_path,
                             texture_type=texture_type,
                             key=derive_texture_key(material_path, texture_type),
+                            channel=channel,
+                            factor=factor,
                             original_path=get_texture_source_identity(item, resolved_path, source_texture_paths),
                         )
                         texture_by_key[texture_key_pair] = texture

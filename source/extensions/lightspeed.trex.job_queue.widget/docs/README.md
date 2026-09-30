@@ -6,7 +6,7 @@ Lightspeed workspace extension that exposes `omni.flux.job_queue.widget` through
 
 - Register the RTX Remix job queue and job details workspace windows.
 - Wire the Flux `QueueWidget` to the shared queue and `ApplyExecutor`.
-- Register generic presentation for the reusable `TextureProcessingJob`; product-specific producer details remain in
+- Register generic presentation for the reusable `TextureOptimizationJob`; product-specific producer details remain in
   their owning extensions.
 
 ## Non-Responsibilities
@@ -21,7 +21,7 @@ Lightspeed workspace extension that exposes `omni.flux.job_queue.widget` through
 - **`JobQueueWorkspace`** creates the docked queue workspace, builds `QueueWidget`, and passes the Stagecraft
   `context_name` into the shared Flux UI.
 - **`JobDetailsWindow`** embeds the Flux details panel and receives the queue model after the queue workspace creates it.
-- **`TextureProcessingDisplayAdapter`** describes shared processing, publication, and Apply lifecycle states. It derives
+- **`TextureOptimizationDisplayAdapter`** describes shared processing, publication, and Apply lifecycle states. It derives
   an exact local input directory for Inputs and a processed-texture directory for the product section placed after
   Outputs. Each section opens only the directory it represents, without importing any producer product or promoting
   file actions to the graph row.

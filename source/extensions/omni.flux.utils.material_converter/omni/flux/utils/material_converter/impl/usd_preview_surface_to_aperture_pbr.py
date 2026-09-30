@@ -76,7 +76,18 @@ class USDPreviewSurfaceToAperturePBRConverterBuilder(ConverterBuilderBase):
                 output_attr_name="inputs:emissive_mask_texture",
                 translate_fn=self._convert_connection_to_texture,
             ),
-            AttributeBase(input_attr_name="inputs:encoding", output_attr_name="inputs:encoding", fake_attribute=True),
+            AttributeBase(
+                input_attr_name="inputs:normal",
+                output_attr_name="inputs:normalmap_texture",
+                translate_fn=self._convert_connection_to_texture,
+            ),
+            AttributeBase(
+                input_attr_name="inputs:encoding",
+                output_attr_name="inputs:encoding",
+                output_attr_type=Sdf.ValueTypeNames.Int,
+                output_default_value=_NormalMapEncodings.TANGENT_SPACE_OGL.value,
+                fake_attribute=True,
+            ),
         ]
         return ConverterBase(
             input_material_prim=input_material_prim,
@@ -110,7 +121,6 @@ class USDPreviewSurfaceToAperturePBRConverterBuilder(ConverterBuilderBase):
             connected_shader = UsdShade.Shader(connected_source[0].GetPrim())
             if connected_shader.GetShaderId() == "UsdUVTexture":
                 file_input = connected_shader.GetInput("file")
-                outputs = connected_source[0].GetOutputs()
-                if outputs[0].GetBaseName() == "rgb" and file_input:
+                if str(connected_source[1]) == "rgb" and file_input:
                     return Sdf.ValueTypeNames.Asset, file_input.Get()
         return Sdf.ValueTypeNames.Asset, Sdf.AssetPath()

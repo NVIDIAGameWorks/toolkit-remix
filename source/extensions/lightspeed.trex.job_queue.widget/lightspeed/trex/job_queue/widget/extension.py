@@ -27,7 +27,7 @@ from omni.flux.job_queue.widget import get_display_adapter_registry
 from omni.flux.job_queue.widget.model import QueueModel
 
 from .details_workspace import JobDetailsWindow
-from .display_adapter import TextureProcessingDisplayAdapter
+from .display_adapter import DISPLAY_ADAPTERS
 from .workspace import JobQueueWorkspace
 
 
@@ -39,7 +39,7 @@ class JobQueueWidgetExtension(omni.ext.IExt):
 
         self._job_queue_workspace: JobQueueWorkspace | None = None
         self._job_details_workspace: JobDetailsWindow | None = None
-        self._adapter_registered = False
+        self._registered_adapters = []
         self._started = False
 
     def on_startup(self, _ext_id: str) -> None:
@@ -52,9 +52,10 @@ class JobQueueWidgetExtension(omni.ext.IExt):
         if self._started:
             return
         registry = get_display_adapter_registry()
-        registry.register(TextureProcessingDisplayAdapter)
-        self._adapter_registered = True
         try:
+            for adapter in DISPLAY_ADAPTERS:
+                registry.register(adapter)
+                self._registered_adapters.append(adapter)
             # Details must exist before the queue publishes its model.
             self._job_details_workspace = JobDetailsWindow()
             self._job_details_workspace.create_window()
@@ -90,7 +91,7 @@ class JobQueueWidgetExtension(omni.ext.IExt):
         self._cleanup()
 
     def _cleanup(self) -> None:
-        """Unregister the adapter and release any workspace objects created during startup."""
+        """Unregister the adapters and release any workspace objects created during startup."""
 
         registry = get_display_adapter_registry()
         details_workspace = self._job_details_workspace
@@ -99,9 +100,9 @@ class JobQueueWidgetExtension(omni.ext.IExt):
         self._job_queue_workspace = None
         self._started = False
         cleanup = ExitStack()
-        if self._adapter_registered:
-            self._adapter_registered = False
-            cleanup.callback(registry.unregister, TextureProcessingDisplayAdapter)
+        for adapter in self._registered_adapters:
+            cleanup.callback(registry.unregister, adapter)
+        self._registered_adapters.clear()
         if details_workspace:
             cleanup.callback(omni.ui.Workspace.set_show_window_fn, details_workspace.title, lambda *_: None)
             cleanup.callback(details_workspace.cleanup)

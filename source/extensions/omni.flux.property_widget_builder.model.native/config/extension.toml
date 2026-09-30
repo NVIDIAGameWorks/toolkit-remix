@@ -1,5 +1,5 @@
 [package]
-version = "2.0.0"
+version = "2.0.1"
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "Property Widget Builder - Native Type Model"
 description = "Delegate and field builders for property widgets displaying native Python-typed data"

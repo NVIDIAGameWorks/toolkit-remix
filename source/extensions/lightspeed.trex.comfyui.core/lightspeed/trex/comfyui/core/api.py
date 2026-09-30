@@ -15,10 +15,9 @@
 * limitations under the License.
 """
 
-__all__ = ["ComfyUIAPI", "ComfyUIImageResult"]
+__all__ = ["ComfyUIAPI", "ComfyUIExecutionError"]
 
 import asyncio
-import dataclasses
 import mimetypes
 import pathlib
 import tempfile
@@ -32,9 +31,35 @@ from omni.flux.utils.common.omni_url import OmniUrl
 from PIL import Image
 from requests import RequestException, Response, request
 
+from .constants import COMFYUI_WORKFLOWS_ROUTE
 from .enums import WorkflowCategory, WorkflowSourceType
-from .models import Workflow, WorkflowTypeCategory
+from .models import ComfyUIFileResult, Workflow, WorkflowTypeCategory
 from .url import build_url, is_valid_local_leaf
+
+
+class ComfyUIExecutionError(RuntimeError):
+    """A submitted prompt failed inside a ComfyUI node.
+
+    Args:
+        prompt_id: Server-assigned prompt identifier.
+        details: ComfyUI ``execution_error`` payload, or any other status payload.
+    """
+
+    def __init__(self, prompt_id: str, details: Any):
+        payload = details if isinstance(details, dict) else {}
+        self.node_id = str(payload.get("node_id", ""))
+        self.node_type = str(payload.get("node_type", ""))
+        self.exception_message = str(payload.get("exception_message", "")).strip()
+        super().__init__(f"ComfyUI execution failed for prompt {prompt_id}: {details}")
+
+    @property
+    def user_message(self) -> str:
+        """Return a short message naming the failing node and its error."""
+        if not self.node_type:
+            return "ComfyUI stopped the workflow with an error. Check the ComfyUI server log and try again."
+        node = f"{self.node_type} (node {self.node_id})" if self.node_id else self.node_type
+        reason = self.exception_message or "no error message"
+        return f"ComfyUI node {node} failed: {reason}. Fix the workflow in ComfyUI and try again."
 
 
 def _is_valid_workflow_name(name: object) -> bool:
@@ -75,17 +100,6 @@ def _write_download(destination: pathlib.Path, response: Response) -> None:
                     output.write(chunk)
     finally:
         response.close()
-
-
-@dataclasses.dataclass
-class ComfyUIImageResult:
-    """Describe one declared texture output from a ComfyUI execution."""
-
-    filename: str
-    texture_type: str
-    order: int = 0
-    subfolder: str = ""
-    path: pathlib.Path | None = None
 
 
 class ComfyUIAPI:
@@ -184,7 +198,7 @@ class ComfyUIAPI:
         Raises:
             RuntimeError: If the request fails or the workflow catalog is malformed.
         """
-        result = await self._send_request("GET", "/rtx-remix/v1/workflows")
+        result = await self._send_request("GET", COMFYUI_WORKFLOWS_ROUTE)
         if not isinstance(result, dict):
             raise RuntimeError("Invalid ComfyUI workflows response")
         results: list[Workflow] = []
@@ -223,7 +237,7 @@ class ComfyUIAPI:
         Raises:
             RuntimeError: If the request fails or the response is not a JSON object.
         """
-        result = await self._send_request("GET", "/rtx-remix/v1/workflows/types")
+        result = await self._send_request("GET", f"{COMFYUI_WORKFLOWS_ROUTE}/types")
         if not isinstance(result, dict):
             return []
         return WorkflowTypeCategory.list_from_payload(result.get("categories"))
@@ -274,7 +288,7 @@ class ComfyUIAPI:
             raise ValueError(f"Invalid ComfyUI workflow name: {name!r}")
         result = await self._send_request(
             "GET",
-            f"/rtx-remix/v1/workflows/{category.value}/{source_type.value}/{quote(name, safe='')}",
+            f"{COMFYUI_WORKFLOWS_ROUTE}/{category.value}/{source_type.value}/{quote(name, safe='')}",
         )
         if not isinstance(result, dict):
             raise RuntimeError("Invalid ComfyUI workflow data response")
@@ -283,15 +297,22 @@ class ComfyUIAPI:
             raise RuntimeError("Invalid ComfyUI workflow data response")
         return data
 
-    async def upload_image(self, file_path: str, *, subfolder: str = "") -> dict[str, Any]:
-        """Upload an image file to the ComfyUI server.
+    async def upload_file(
+        self,
+        file_path: str,
+        *,
+        subfolder: str,
+        convert_dds: bool,
+    ) -> dict[str, Any]:
+        """Localize and upload one semantic file through ComfyUI's input image endpoint.
 
         Args:
-            file_path: Local or Omniverse path to the image to upload.
-            subfolder: Server input subfolder used to isolate this job's files.
+            file_path: Local or Omniverse URL to upload.
+            subfolder: Server input subfolder used to isolate this job's file.
+            convert_dds: Whether a DDS source must become PNG before upload.
 
         Returns:
-            Validated server metadata for the uploaded input image.
+            Validated server metadata for the uploaded file.
 
         Raises:
             OSError: If the input cannot be localized, read, converted, or cleaned up.
@@ -307,7 +328,7 @@ class ComfyUIAPI:
                 if copy_result != client.Result.OK:
                     raise OSError(f"Cannot localize ComfyUI input {file_path}: {copy_result}")
 
-            if source_url.suffix.lower() == ".dds":
+            if convert_dds and source_url.suffix.lower() == ".dds":
                 converted_path = str(pathlib.Path(temporary_directory) / "converted.png")
                 await run_in_worker_thread(_convert_dds_to_png, upload_path, converted_path)
                 upload_path = converted_path
@@ -332,15 +353,15 @@ class ComfyUIAPI:
             raise RuntimeError("Invalid ComfyUI upload response")
         return result
 
-    async def download_image(
+    async def download_file(
         self,
-        image: ComfyUIImageResult,
+        file_result: ComfyUIFileResult,
         destination: pathlib.Path,
     ) -> pathlib.Path:
-        """Download one typed output image to an explicit local artifact path.
+        """Download one typed output file to an explicit local artifact path.
 
         Args:
-            image: Server image metadata returned in prompt history.
+            file_result: Server file metadata returned in prompt history.
             destination: Exact local output path.
 
         Returns:
@@ -353,7 +374,11 @@ class ComfyUIAPI:
         response = await self._request(
             "GET",
             "/view",
-            params={"filename": image.filename, "subfolder": image.subfolder, "type": "output"},
+            params={
+                "filename": file_result.filename,
+                "subfolder": file_result.subfolder,
+                "type": "output",
+            },
             stream=True,
         )
         await run_in_worker_thread(_write_download, destination, response)
@@ -383,9 +408,10 @@ class ComfyUIAPI:
         if extra_data is not None:
             request_data["extra_data"] = extra_data
         response = await self._send_request("POST", "/prompt", json=request_data)
-        if not isinstance(response, dict) or not is_valid_local_leaf(response.get("prompt_id")):
+        prompt_id = response.get("prompt_id") if isinstance(response, dict) else None
+        if not isinstance(prompt_id, str) or not is_valid_local_leaf(prompt_id):
             raise RuntimeError("Invalid ComfyUI prompt response")
-        return response["prompt_id"]
+        return prompt_id
 
     async def get_history(self, prompt_id: str) -> dict[str, Any]:
         """Fetch execution history for a prompt.
@@ -472,7 +498,7 @@ class ComfyUIAPI:
                 continue
             message_type = message[0]
             if message_type in ("execution_error", "execution_interrupted"):
-                raise RuntimeError(f"ComfyUI execution failed for prompt {prompt_id}: {message[1]}")
+                raise ComfyUIExecutionError(prompt_id, message[1])
 
         status_str = status.get("status_str")
         if status_str == "error":

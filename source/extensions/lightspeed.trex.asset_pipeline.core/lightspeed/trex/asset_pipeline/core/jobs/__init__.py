@@ -20,7 +20,7 @@ from __future__ import annotations
 __all__ = [
     "MeshOptimizationJob",
     "PrepareOptimizationJob",
-    "TextureProcessingJob",
+    "TextureOptimizationJob",
     "add_asset_optimization_jobs",
     "build_asset_optimization_graph",
     "build_texture_optimization_graph",
@@ -29,5 +29,5 @@ __all__ = [
 
 from .mesh_optimization import MeshOptimizationJob
 from .prepare_optimization import PrepareOptimizationJob
-from .texture_processing import TextureProcessingJob
+from .texture_optimization import TextureOptimizationJob
 from .graphs import add_asset_optimization_jobs, build_asset_optimization_graph, build_texture_optimization_graph

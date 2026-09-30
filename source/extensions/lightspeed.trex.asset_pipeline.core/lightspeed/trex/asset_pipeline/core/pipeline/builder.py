@@ -62,7 +62,7 @@ def build_prepare_optimization_steps(config: RemixAssetPipelineConfig) -> list[P
 def build_remix_texture_pipeline() -> list[PipelineStep]:
     """Build the texture-processing step list for one standalone batch.
 
-    Normal conversion and DDS encoding are the only steps that do real work for a texture item.
+    Channel extraction, normal conversion, and DDS encoding process each texture item.
     The model-only steps are omitted rather than relied on to skip themselves.
 
     Returns:
@@ -70,6 +70,7 @@ def build_remix_texture_pipeline() -> list[PipelineStep]:
     """
     step_types = import_module("..steps", __package__)
     return [
+        step_types.ExtractTextureChannelStep(),
         step_types.ConvertNormalStep(),
         step_types.ConvertDDSStep(),
     ]

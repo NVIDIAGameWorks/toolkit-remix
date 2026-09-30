@@ -77,9 +77,14 @@ endpoint to fan one value out to another input. Port value types must match exac
 submission, and skips propagate recursively to descendants with the immediate upstream reason. `input_ports`,
 `output_ports`, and `max_concurrency` are type declarations and cannot be shadowed on an instance.
 `try_update_queued_job()` conditionally replaces a payload only while the scheduler has not claimed it.
+
+Return `JobOutputs(values, skip_reason="Reason")` to complete execution as `SKIPPED` and retain the outputs.
+The reason must be a nonblank string. These outputs satisfy dependencies and support Apply exactly as `DONE` outputs.
+`QueueJob.outputs()` returns them. Submission skips, `skip_job()`, and failure propagation still omit outputs and skip descendants.
+
 Use `iter_snapshot()` for lazy ordered full-queue inspection and `get_job_snapshot(job_id)` for targeted updates; snapshot
 queries never load persisted job payloads, outputs, or Apply receipts. Snapshots expose `submitted_at` plus
-nullable `started_at` and `completed_at` lifecycle timestamps.
+nullable `started_at` and `completed_at` lifecycle timestamps. `has_outputs` reports whether stored outputs exist without decoding them.
 Use `get_job_details(job_id)` for typed declared ports and related data/control edges without loading the job payload.
 Pass `include_values=True` only when the caller needs decoded available inputs, literal values, or completed outputs.
 
@@ -100,7 +105,7 @@ Persisted execution states are:
 ```text
 QUEUED -> SCHEDULED -> IN_PROGRESS -> DONE
                               |       FAILED
-                              +-----> SKIPPED (descendants)
+                              +-----> SKIPPED
 ```
 
 `WAITING_FOR_DEPENDENCIES` and `UNKNOWN` are derived display states and cannot be stored. The scheduler is enabled by

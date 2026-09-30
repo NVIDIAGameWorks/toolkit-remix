@@ -1,6 +1,17 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.8]
+### Added
+- Added texture and mesh output settings in Workflow Outputs and Item Properties, split Workflow Inputs and Workflow Outputs into separate sections with one shared selection, put Reference Selection in mesh input properties with the All Meshes getter, used the same queue display, actions, and schedule updates for texture and asset generation jobs, and made Focus in Viewport frame the visible instances of an invisible prototype mesh.
+- Workflow Outputs rows are grouped by the output's group and ordered by the workflow's output group order, exactly like Workflow Inputs use theirs; outputs without a group show under "Ungrouped".
+
+### Fixed
+- Preserved existing display adapters after a failed startup, and restored the Selection panel height after tests.
+- The Workflow refresh button now reloads the selected workflow from the server, so Workflow Inputs and Workflow Outputs show the inputs and outputs of a re-exported workflow.
+- Workflow Outputs rows show the export name of each output (for example "Merged Mesh") with its kind in the tooltip, so a re-exported workflow shows its new outputs instead of the same type labels.
+- Restored Workflow Outputs row names and tooltips on undo after the output controls close.
+
 ## [2.1.5]
 ### Changed
 - Updated the pipeline stub in the typed product workflow test to accept the runner's `steps` argument.

@@ -24,11 +24,19 @@ from typing import TYPE_CHECKING
 
 from pxr import Usd
 
+from ..utils import SupportedShaderOutputs
+
 if TYPE_CHECKING:
     from .converter_base import ConverterBase
 
+__all__ = ["ConverterBuilderBase"]
+
 
 class ConverterBuilderBase:
+    def select_output(self, shader_prim: Usd.Prim) -> SupportedShaderOutputs:
+        """Select the output shader for the input shader."""
+        return SupportedShaderOutputs.APERTURE_PBR_OPACITY
+
     @abc.abstractmethod
     def build(self, input_material_prim: Usd.Prim, output_mdl_path: str) -> ConverterBase:
         raise NotImplementedError

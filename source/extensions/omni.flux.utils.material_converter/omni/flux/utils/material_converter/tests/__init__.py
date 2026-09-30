@@ -17,10 +17,13 @@
 
 from .e2e.impl.test_omni_glass_to_aperture_pbr import TestOmniGlassToAperturePBRConverterBuilderE2E
 from .e2e.impl.test_omni_pbr_to_aperture_pbr import TestOmniPBRToAperturePBRConverterBuilderE2E
+from .e2e.test_core import TestMaterialConverterCoreE2E
 from .e2e.test_utils import TestUtils
 from .unit.base.test_attribute_base import TestAttributeBase
 from .unit.base.test_converter_base import TestConverterBase
+from .unit.impl.test_gltf_to_aperture_pbr import TestGltfToAperturePBRConverterBuilderUnit
 from .unit.impl.test_omni_pbr_to_aperture_pbr import TestOmniPBRToAperturePBRConverterBuilderUnit
+from .unit.impl.test_usd_preview_surface_to_aperture_pbr import TestUSDPreviewSurfaceToAperturePBRConverterBuilderUnit
 from .unit.test_core import TestConverterBuilder, TestCore
 
 __all__ = [
@@ -28,8 +31,11 @@ __all__ = [
     "TestConverterBase",
     "TestConverterBuilder",
     "TestCore",
+    "TestGltfToAperturePBRConverterBuilderUnit",
+    "TestMaterialConverterCoreE2E",
     "TestOmniGlassToAperturePBRConverterBuilderE2E",
     "TestOmniPBRToAperturePBRConverterBuilderE2E",
     "TestOmniPBRToAperturePBRConverterBuilderUnit",
+    "TestUSDPreviewSurfaceToAperturePBRConverterBuilderUnit",
     "TestUtils",
 ]

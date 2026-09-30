@@ -20,15 +20,18 @@ from unittest.mock import MagicMock, call, patch
 from lightspeed.trex.comfyui.core.core import ComfyUIRetargetState
 from lightspeed.trex.comfyui.core.enums import ComfyUIEventType, ComfyUIRetargetResult
 from lightspeed.trex.comfyui.core.events import ComfyUIEventPayload
-from lightspeed.trex.comfyui.core.job import ComfyUIJob
+from lightspeed.trex.comfyui.core.job import ComfyUIAssetJob, ComfyUIJob
 from lightspeed.trex.comfyui.core.models import ComfyUIWorkflowRequest, Workflow
-from lightspeed.trex.comfyui.widget.display_adapter import ComfyUIDisplayAdapter
 from omni.flux.job_queue.core.job import JobProgress
 from omni.flux.job_queue.widget.display_adapter_base import JobAction, JobDetailField, JobDetailSection
 from omni.flux.job_queue.widget.display_adapter_registry import DisplayAdapterRegistry
 from omni.flux.job_queue.widget.enums import DisplayState, JobDetailSectionPlacement
 from omni.kit.test import AsyncTestCase
 from pxr import UsdGeom
+from ...display_adapter import ComfyUIAssetDisplayAdapter, ComfyUIDisplayAdapter
+
+_PROTOTYPE_PATH = "/RootNode/meshes/mesh_0AB745B8BEE1F16B"
+_PROTOTYPE_MESH_PATH = f"{_PROTOTYPE_PATH}/mesh"
 
 
 def _request_for_workflow(workflow: Workflow) -> ComfyUIWorkflowRequest:
@@ -55,30 +58,34 @@ class TestComfyUIDisplayAdapter(AsyncTestCase):
 
     async def test_state_tooltip_describes_generation_only(self):
         """The producer child describes ComfyUI generation without Apply guidance."""
-        # Arrange
-        adapter = ComfyUIDisplayAdapter()
-        job = ComfyUIJob()
+        for title, adapter, job in (
+            ("generation adapter", ComfyUIDisplayAdapter(), ComfyUIJob()),
+            ("asset adapter", ComfyUIAssetDisplayAdapter(), ComfyUIAssetJob()),
+        ):
+            with self.subTest(title=title):
+                # Arrange
+                connection_error = (
+                    "The ComfyUI connection stopped before generation finished. Check the server and try again."
+                )
 
-        # Act
-        result = (
-            adapter.get_state_tooltip(job, DisplayState.IN_PROGRESS, "Technical details"),
-            adapter.get_state_tooltip(
-                job,
-                DisplayState.FAILED,
-                "The ComfyUI connection stopped before generation finished. Check the server and try again.",
-            ),
-            adapter.get_state_tooltip(job, DisplayState.SKIPPED, "This material has no albedo texture."),
-        )
+                # Act
+                result = (
+                    adapter.get_state_tooltip(job, DisplayState.IN_PROGRESS, "Technical details"),
+                    adapter.get_state_tooltip(job, DisplayState.FAILED, connection_error),
+                    adapter.get_state_tooltip(job, DisplayState.SKIPPED, "This material has no albedo texture."),
+                    adapter.get_state_tooltip(job, DisplayState.FAILED, None),
+                )
 
-        # Assert
-        self.assertEqual(
-            result,
-            (
-                "ComfyUI is generating textures.",
-                "The ComfyUI connection stopped before generation finished. Check the server and try again.",
-                "This material has no albedo texture.",
-            ),
-        )
+                # Assert
+                self.assertEqual(
+                    result,
+                    (
+                        "ComfyUI is generating outputs.",
+                        connection_error,
+                        "This material has no albedo texture.",
+                        "ComfyUI could not generate these outputs. Edit and submit this step again.",
+                    ),
+                )
 
     async def test_display_contract_identifies_generation_job(self):
         """The adapter provides stable product-facing identity for the exact generation type."""
@@ -108,37 +115,44 @@ class TestComfyUIDisplayAdapter(AsyncTestCase):
 
         # Act
         registry.register(ComfyUIDisplayAdapter)
+        registry.register(ComfyUIAssetDisplayAdapter)
         adapter = registry.get_adapter(job)
+        asset_adapter = registry.get_adapter(ComfyUIAssetJob())
 
         # Assert
         self.assertIs(type(adapter), ComfyUIDisplayAdapter)
+        self.assertIsInstance(asset_adapter, ComfyUIDisplayAdapter)
+        self.assertEqual(asset_adapter.display_name, adapter.display_name)
 
     async def test_visibility_event_refreshes_only_comfyui_schedule_conditions(self):
-        """The adapter directly requests a ComfyUI row refresh only for visibility changes."""
-        # Arrange
-        core_subscription = MagicMock()
-        model = MagicMock(context_name="texturecraft")
-
-        # Act
-        with (
-            patch("lightspeed.trex.comfyui.widget.display_adapter.get_comfyui_core_instance") as get_core,
-            patch(
-                "lightspeed.trex.comfyui.widget.display_adapter.subscribe_comfyui_event",
-                return_value=core_subscription,
-            ) as subscribe_event,
+        """Only visibility changes refresh schedule conditions for both ComfyUI job types."""
+        for title, event_type, expected_calls in (
+            ("settings change", ComfyUIEventType.SETTINGS_CHANGED, []),
+            ("visibility change", ComfyUIEventType.STAGE_VISIBILITY_CHANGED, [call({ComfyUIJob, ComfyUIAssetJob})]),
         ):
-            adapter = ComfyUIDisplayAdapter()
-            action_subscription = adapter.subscribe_action_events(model)
-            event_callback = subscribe_event.call_args.args[1]
-            event_callback(ComfyUIEventPayload("texturecraft", ComfyUIEventType.SETTINGS_CHANGED))
-            event_callback(ComfyUIEventPayload("texturecraft", ComfyUIEventType.STAGE_VISIBILITY_CHANGED))
+            with self.subTest(title=title):
+                # Arrange
+                subscription = MagicMock()
+                model = MagicMock(context_name="texturecraft")
+                with (
+                    patch("lightspeed.trex.comfyui.widget.display_adapter.get_comfyui_core_instance") as get_core,
+                    patch(
+                        "lightspeed.trex.comfyui.widget.display_adapter.subscribe_comfyui_event",
+                        return_value=subscription,
+                    ) as subscribe_event,
+                ):
+                    action_subscription = ComfyUIDisplayAdapter().subscribe_action_events(model)
+                    event_callback = subscribe_event.call_args.args[1]
 
-        # Assert
-        self.assertIs(action_subscription, core_subscription)
-        get_core.assert_called_once_with("texturecraft")
-        subscribe_event.assert_called_once()
-        self.assertEqual(subscribe_event.call_args.args[0], "texturecraft")
-        model.refresh_schedule_conditions.assert_called_once_with({ComfyUIJob})
+                    # Act
+                    event_callback(ComfyUIEventPayload("texturecraft", event_type))
+
+                # Assert
+                self.assertIs(action_subscription, subscription)
+                get_core.assert_called_once_with("texturecraft")
+                subscribe_event.assert_called_once()
+                self.assertEqual(subscribe_event.call_args.args[0], "texturecraft")
+                self.assertEqual(model.refresh_schedule_conditions.call_args_list, expected_calls)
 
     async def test_active_labels_use_structured_generation_progress(self):
         """Active graph aggregation receives product-facing generation labels."""
@@ -155,7 +169,7 @@ class TestComfyUIDisplayAdapter(AsyncTestCase):
         )
 
         # Assert
-        self.assertEqual(result, ("Generating textures", "2 of 4 generation steps", None))
+        self.assertEqual(result, ("Generating files", "2 of 4 generation steps", None))
 
     async def test_waiting_reason_uses_saved_job_context(self):
         """Queue scheduling describes the exact ComfyUI server required by the job."""
@@ -357,7 +371,8 @@ class TestComfyUIDisplayAdapter(AsyncTestCase):
         for prim in (hidden_object, visible_object):
             prim.IsA.return_value = True
         scope.IsA.return_value = False
-        stage.GetPrimAtPath.side_effect = (hidden_object, visible_object, scope)
+        # The first lookup is the /RootNode/instances root. This stage has none.
+        stage.GetPrimAtPath.side_effect = (None, hidden_object, visible_object, scope)
         hidden_imageable = MagicMock()
         hidden_imageable.ComputeVisibility.return_value = UsdGeom.Tokens.invisible
         visible_imageable = MagicMock()
@@ -387,6 +402,48 @@ class TestComfyUIDisplayAdapter(AsyncTestCase):
         self.assertTrue(action.enabled)
         self.assertEqual(action.tooltip, "Focus this visible object in the viewport.")
         mock_get_context.assert_called_once_with("saved-context")
+
+    @patch("lightspeed.trex.comfyui.widget.display_adapter._get_active_viewport")
+    @patch("lightspeed.trex.comfyui.widget.display_adapter.get_context")
+    async def test_focus_frames_the_visible_instances_of_an_invisible_prototype_owner(
+        self, mock_get_context, _mock_get_active_viewport
+    ):
+        """A prototype owner is invisible by design. Focus offers its visible instances instead.
+
+        Args:
+            mock_get_context: Patched USD context lookup.
+            _mock_get_active_viewport: Patched active-viewport lookup.
+        """
+        # Arrange: one prototype owner, two instances of its hash (one hidden), and one instance of another hash.
+        prims = {}
+        for path, visibility in (
+            (_PROTOTYPE_MESH_PATH, UsdGeom.Tokens.invisible),
+            ("/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh", UsdGeom.Tokens.inherited),
+            ("/RootNode/instances/inst_0AB745B8BEE1F16B_1/mesh", UsdGeom.Tokens.invisible),
+            ("/RootNode/instances/inst_FFFFFFFFFFFFFFFF_0/mesh", UsdGeom.Tokens.inherited),
+        ):
+            prims[path] = MagicMock(visibility=visibility)
+            prims[path].IsA.return_value = True
+        instances_root = MagicMock()
+        instances_root.GetChildren.return_value = [
+            MagicMock(**{"GetName.return_value": name, "GetPath.return_value": f"/RootNode/instances/{name}"})
+            for name in ("inst_0AB745B8BEE1F16B_0", "inst_0AB745B8BEE1F16B_1", "inst_FFFFFFFFFFFFFFFF_0")
+        ]
+        prims["/RootNode/instances"] = instances_root
+        stage = mock_get_context.return_value.get_stage.return_value
+        stage.GetPrimAtPath.side_effect = prims.get
+        job = ComfyUIJob(context_name="", prim_paths=[_PROTOTYPE_MESH_PATH])
+
+        # Act
+        with patch(
+            "lightspeed.trex.comfyui.widget.display_adapter.UsdGeom.Imageable",
+            side_effect=lambda prim: MagicMock(**{"ComputeVisibility.return_value": prim.visibility}),
+        ):
+            paths = ComfyUIDisplayAdapter._get_xformable_paths(job)
+
+        # Assert: only the visible instance of the same hash, at the same child path, is focusable.
+        self.assertEqual(paths, ["/RootNode/instances/inst_0AB745B8BEE1F16B_0/mesh"])
+        instances_root.GetChildren.assert_called_once()
 
     @patch("lightspeed.trex.comfyui.widget.display_adapter._get_active_viewport")
     @patch("lightspeed.trex.comfyui.widget.display_adapter.get_context")

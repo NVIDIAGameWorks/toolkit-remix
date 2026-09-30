@@ -842,17 +842,18 @@ class QueueInterface:
         if set(outputs) != set(type(job).output_ports):
             raise TypeError("Job outputs must exactly match all declared output ports")
         payload = serialize({port.name: outputs[port] for port in outputs})
+        state = JobState.SKIPPED if outputs.skip_reason is not None else JobState.DONE
         disposition = ApplyDisposition.NOT_APPLICABLE if job.apply_binding is None else ApplyDisposition.PENDING
         with self.connection() as connection:
             connection.execute("BEGIN IMMEDIATE")
             cursor = connection.execute(
                 """
                 UPDATE jobs
-                SET state = ?, state_reason = NULL, outputs = ?,
+                SET state = ?, state_reason = ?, outputs = ?,
                     progress_completed = progress_total, completed_at = CURRENT_TIMESTAMP
                 WHERE job_id = ? AND state = ?
                 """,
-                (JobState.DONE.value, payload, str(job_id), JobState.IN_PROGRESS.value),
+                (state.value, outputs.skip_reason, payload, str(job_id), JobState.IN_PROGRESS.value),
             )
             if cursor.rowcount:
                 connection.execute(
@@ -979,11 +980,12 @@ class QueueInterface:
                             FROM job_control_edges WHERE target_job_id = jobs.job_id
                         ) edges
                         JOIN jobs AS predecessor_jobs ON predecessor_jobs.job_id = edges.predecessor
-                        WHERE predecessor_jobs.state != ?
+                        WHERE NOT (predecessor_jobs.state = ?
+                        OR (predecessor_jobs.state = ? AND predecessor_jobs.outputs IS NOT NULL))
                     )
                 ORDER BY job_graphs.position, jobs.position
                 """,
-                (JobState.QUEUED.value, JobState.DONE.value),
+                (JobState.QUEUED.value, JobState.DONE.value, JobState.SKIPPED.value),
             ).fetchall()
             source_type_rows = connection.execute(
                 """
@@ -1074,7 +1076,8 @@ class QueueInterface:
                                         FROM job_control_edges WHERE target_job_id = ?
                                     ) edges
                                     JOIN jobs AS predecessor_jobs ON predecessor_jobs.job_id = edges.predecessor
-                                    WHERE predecessor_jobs.state != ?
+                                    WHERE NOT (predecessor_jobs.state = ?
+                                    OR (predecessor_jobs.state = ? AND predecessor_jobs.outputs IS NOT NULL))
                                 )
                             """,
                             (
@@ -1086,6 +1089,7 @@ class QueueInterface:
                                 str(job_id),
                                 str(job_id),
                                 JobState.DONE.value,
+                                JobState.SKIPPED.value,
                             ),
                         )
                         if cursor.rowcount:
@@ -1887,7 +1891,8 @@ class QueueInterface:
             f"""
                 WITH dependency_states AS (
                     SELECT edges.target_job_id,
-                        MIN(CASE WHEN predecessor.state = ? THEN 1 ELSE 0 END) AS dependencies_done
+                        MIN(CASE WHEN predecessor.state = ?
+                        OR (predecessor.state = ? AND predecessor.outputs IS NOT NULL) THEN 1 ELSE 0 END) AS dependencies_done
                     FROM (
                         SELECT target_job_id, source_job_id AS predecessor_job_id FROM job_connections
                         UNION
@@ -1900,6 +1905,7 @@ class QueueInterface:
                     job_graphs.position AS graph_position,
                     jobs.job_id, jobs.name, jobs.job_type, jobs.position, job_graphs.submitted_at,
                     jobs.state, jobs.state_reason, jobs.started_at, jobs.completed_at,
+                   jobs.outputs IS NOT NULL AS has_outputs,
                     jobs.progress_completed, jobs.progress_total, jobs.progress_detail,
                     jobs.error_type, jobs.error_message, jobs.error_traceback,
                     jobs.apply_disposition, jobs.apply_operation, jobs.apply_handler_id,
@@ -1912,7 +1918,7 @@ class QueueInterface:
                 {where}
                 ORDER BY job_graphs.position, jobs.position
                 """,
-            (JobState.DONE.value, *parameters),
+            (JobState.DONE.value, JobState.SKIPPED.value, *parameters),
         )
         for row in rows:
             state = JobState(row["state"])
@@ -1941,6 +1947,7 @@ class QueueInterface:
                 apply_handler_id=row["apply_handler_id"],
                 apply_reason=row["apply_reason"],
                 apply_error=_row_error(row, "apply_error"),
+                has_outputs=bool(row["has_outputs"]),
             )
 
     def _skip_descendants(
@@ -2156,7 +2163,7 @@ def _port_by_name(ports: Sequence[Any], name: str) -> Any:
 
 
 def _decode_outputs(payload: str, output_ports: tuple[JobOutputPort[Any], ...]) -> JobOutputs:
-    """Decode outputs and require their names to exactly match declared metadata.
+    """Decode outputs and require names to exactly match declared metadata.
 
     Args:
         payload: Serialized output mapping keyed by stable port name.
@@ -2170,7 +2177,7 @@ def _decode_outputs(payload: str, output_ports: tuple[JobOutputPort[Any], ...]) 
         TypeError: If a decoded value violates its declared exact type.
     """
     values_by_name = deserialize(payload)
-    if type(values_by_name) is not dict or set(values_by_name) != {port.name for port in output_ports}:
-        raise ValueError("Persisted output names do not exactly match declared output ports")
     ports_by_name = {port.name: port for port in output_ports}
+    if type(values_by_name) is not dict or set(values_by_name) != set(ports_by_name):
+        raise ValueError("Persisted output names do not exactly match declared output ports")
     return JobOutputs({ports_by_name[name]: value for name, value in values_by_name.items()})

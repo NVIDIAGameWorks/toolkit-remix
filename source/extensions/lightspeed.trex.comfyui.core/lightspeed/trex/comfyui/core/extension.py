@@ -18,8 +18,10 @@
 __all__ = ["ComfyUICoreExtension", "get_comfyui_core_instance"]
 
 import contextlib
+from functools import partial
 
 import carb
+import omni.kit.commands
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from omni import usd
 from omni.ext import IExt
@@ -27,10 +29,12 @@ from omni.flux.job_queue.core import handlers
 from omni.flux.job_queue.core.extension import get_job_queue
 from omni.flux.job_queue.core.persistence import get_registry
 
-from .apply_handler import ComfyUIJobApplyHandler
+from . import commands
+from .apply_handler import ComfyUIAssetApplyHandler, ComfyUIJobApplyHandler, ComfyUITextureApplyHandler
 from .core import ComfyUICore
 from .events import COMFYUI_EVENT_NAME
 from .persistence_codecs import COMFYUI_CODECS
+from .models import ComfyUIApplyTarget, ComfyUIAssetApplyTarget
 from .resolvers import RESOLVER_PLUGINS, get_resolver_factory
 
 _instances: dict[str, ComfyUICore] = {}
@@ -67,6 +71,7 @@ def get_comfyui_core_instance(context_name: str) -> ComfyUICore:
         _instances[context_name] = ComfyUICore(
             context_name=context_name,
             settings_changed_callback=_broadcast_settings_changed,
+            stage_event_callback=partial(ComfyUICoreExtension.on_stage_event, context_name),
         )
     return _instances[context_name]
 
@@ -74,12 +79,7 @@ def get_comfyui_core_instance(context_name: str) -> ComfyUICore:
 class ComfyUICoreExtension(IExt):
     """Register ComfyUI persistence and job handlers with the Kit lifecycle."""
 
-    _PLUGINS = [ComfyUIJobApplyHandler]
-
-    def __init__(self) -> None:
-        """Initialize extension-owned subscription references."""
-        super().__init__()
-        self._stage_event_subscription = None
+    _PLUGINS = [ComfyUITextureApplyHandler, ComfyUIAssetApplyHandler, ComfyUIJobApplyHandler]
 
     def on_startup(self, ext_id: str) -> None:
         """Register ComfyUI persisted types and apply handlers.
@@ -96,6 +96,8 @@ class ComfyUICoreExtension(IExt):
         registry = get_registry()
         event_manager = _get_event_manager_instance()
         with contextlib.ExitStack() as rollback:
+            omni.kit.commands.register_all_commands_in_module(commands)
+            rollback.callback(omni.kit.commands.unregister_module_commands, commands)
             resolver_factory.register_plugins(RESOLVER_PLUGINS)
             rollback.callback(resolver_factory.unregister_plugins, RESOLVER_PLUGINS)
             registry.register_codecs(COMFYUI_CODECS)
@@ -104,15 +106,6 @@ class ComfyUICoreExtension(IExt):
             rollback.callback(handlers.unregister_plugins, self._PLUGINS)
             event_manager.register_global_custom_event(COMFYUI_EVENT_NAME)
             rollback.callback(event_manager.unregister_global_custom_event, COMFYUI_EVENT_NAME)
-            self._stage_event_subscription = (
-                usd.get_context()
-                .get_stage_event_stream()
-                .create_subscription_to_pop(
-                    self._on_stage_event,
-                    name="ComfyUIApplyProjectState",
-                )
-            )
-            rollback.callback(self._clear_stage_event_subscription)
             rollback.pop_all()
         _started = True
         _shutting_down = False
@@ -124,8 +117,8 @@ class ComfyUICoreExtension(IExt):
         if not _started:
             return
         _shutting_down = True
-        self._clear_stage_event_subscription()
         cleanup = contextlib.ExitStack()
+        cleanup.callback(omni.kit.commands.unregister_module_commands, commands)
         cleanup.callback(get_resolver_factory().unregister_plugins, RESOLVER_PLUGINS)
         cleanup.callback(_get_event_manager_instance().unregister_global_custom_event, COMFYUI_EVENT_NAME)
         for instance in reversed(tuple(_instances.copy().values())):
@@ -135,16 +128,13 @@ class ComfyUICoreExtension(IExt):
         _instances.clear()
         _started = False
 
-    def _clear_stage_event_subscription(self) -> None:
-        """Release the stage lifecycle listener."""
-        self._stage_event_subscription = None
-
     @staticmethod
-    def _on_stage_event(event) -> None:
-        """Refresh Apply availability after a project closes or finishes opening.
+    def on_stage_event(context_name: str, event) -> None:
+        """Refresh only jobs that target the USD context whose stage changed.
 
         Args:
-            event: USD stage lifecycle event for the interactive context.
+            context_name: USD context that emitted the stage event.
+            event: USD stage lifecycle event.
         """
         if event.type not in {int(usd.StageEventType.CLOSED), int(usd.StageEventType.OPENED)}:
             return
@@ -153,6 +143,20 @@ class ComfyUICoreExtension(IExt):
         if event.type != int(usd.StageEventType.OPENED):
             return
         executor = handlers.get_apply_executor()
+        handler_ids = {handler.name for handler in ComfyUICoreExtension._PLUGINS}
         for snapshot in queue.iter_snapshot():
-            if snapshot.apply_handler_id == ComfyUIJobApplyHandler.name:
+            if snapshot.apply_handler_id not in handler_ids:
+                continue
+            try:
+                job = queue.get_job(snapshot.job_id)
+            except (KeyError, RuntimeError, TypeError, ValueError) as error:
+                carb.log_warn(f"Could not inspect ComfyUI Apply target for {snapshot.job_id}: {error}")
+                continue
+            binding = job.apply_binding
+            if binding is None:
+                continue
+            target = binding.target
+            if type(target) not in {ComfyUIApplyTarget, ComfyUIAssetApplyTarget}:
+                continue
+            if target.context_name == context_name:
                 executor.request_reconcile(snapshot.job_id)

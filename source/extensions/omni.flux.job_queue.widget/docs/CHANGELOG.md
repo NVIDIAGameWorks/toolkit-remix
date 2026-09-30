@@ -2,6 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.3]
+### Changed
+- Added regression coverage for skipped-job details and the Skipped status filter.
+- A skipped job that produced outputs now shows as a neutral "Skipped" state, uses its state reason as the tooltip
+  and as a "Reason" row in the Job Details overview, and exposes the same Apply controls and Apply display states as
+  a done job. A skipped job without outputs keeps its problem presentation.
+
+### Fixed
+- Separated the edges in the Topology section of graph and job details. Each edge is one three-line block, and a
+  larger gap divides one edge from the next, so several connections no longer read as one chain.
+
 ## [3.2.2]
 ### Fixed
 - Fixed the Job Queue and Job Details windows showing no jobs: the queue widget and the job details panel now report their `destroyed` state, which an owning workspace window reads before it shows or cleans up its content.

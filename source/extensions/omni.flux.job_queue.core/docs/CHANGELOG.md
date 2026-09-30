@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.1.1]
+### Changed
+- Retained skipped outputs now have manual and automatic Apply coverage, and saved outputs require every declared port.
+- Jobs can return a skip reason with retained outputs that satisfy dependencies and support Apply. The job log records `Skipped: <reason>` instead of `Completed successfully`.
+
 ## [4.1.0]
 ### Added
 - Added targeted progress and external-readiness events, handler-owned Apply readiness guidance, and atomic multi-graph submission with one structural-change notification.

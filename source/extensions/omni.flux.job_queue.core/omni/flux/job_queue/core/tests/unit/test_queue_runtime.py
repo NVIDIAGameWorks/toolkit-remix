@@ -18,6 +18,7 @@
 import asyncio
 import dataclasses
 import pathlib
+import re
 import sqlite3
 import threading
 import uuid
@@ -180,6 +181,8 @@ class _FailureJob(Job):
 class _DetailJob(Job):
     """Expose typed input and output metadata for targeted detail queries."""
 
+    output_skip_reason: str | None = None
+
     input_ports = (INPUT,)
     output_ports = (RESULT,)
 
@@ -191,7 +194,7 @@ class _DetailJob(Job):
     ) -> JobOutputs:
         """Return the exact persisted input value."""
         del job_directory, progress_callback
-        return JobOutputs({RESULT: inputs[INPUT]})
+        return JobOutputs({RESULT: inputs[INPUT]}, skip_reason=self.output_skip_reason)
 
 
 _BLOCKING_READINESS_CODEC = PersistenceCodec(
@@ -203,7 +206,7 @@ _BLOCKING_READINESS_CODEC = PersistenceCodec(
 _DETAIL_CODEC = PersistenceCodec(
     "test.DetailJob",
     _DetailJob,
-    lambda value: (value.job_id, value.name, value.skip_reason, value.apply_binding),
+    lambda value: (value.job_id, value.name, value.skip_reason, value.apply_binding, value.output_skip_reason),
     lambda value: _DetailJob(*value),
 )
 _FAILING_READINESS_CODEC = PersistenceCodec(
@@ -307,6 +310,44 @@ class TestQueueModuleBoundaries(omni.kit.test.AsyncTestCase):
 
 class TestQueuePersistence(omni.kit.test.AsyncTestCase):
     """Validate fresh typed graph persistence and atomic transitions."""
+
+    async def test_returned_skip_preserves_outputs_and_runs_descendants(self):
+        """A returned skip supplies durable outputs to data and control descendants."""
+        async with temp_db_path() as db_path:
+            interface = QueueInterface(db_path)
+            source = _DetailJob(output_skip_reason="The result already exists.")
+            child = _DetailJob()
+            grandchild = _DetailJob()
+            graph = JobGraph(jobs=[source, child, grandchild])
+            graph.bind(source, INPUT, 7)
+            graph.connect(source.output(RESULT), child.input(INPUT))
+            graph.bind(grandchild, INPUT, 9)
+            graph.depends_on(grandchild, child)
+            graph.depends_on(grandchild, source)
+            queue_jobs = interface.submit(graph)
+            executor = JobExecutor(interface)
+
+            self.assertEqual(interface.claim_runnable_jobs(), [source.job_id])
+            await executor.execute(source.job_id)
+            self.assertIs(interface.get_job_snapshot(child.job_id).state, JobState.QUEUED)
+            for job in (child, grandchild):
+                self.assertEqual(interface.claim_runnable_jobs(), [job.job_id])
+                await executor.execute(job.job_id)
+
+            snapshot = interface.get_job_snapshot(source.job_id)
+            self.assertIs(snapshot.state, JobState.SKIPPED)
+            self.assertEqual(snapshot.state_reason, source.output_skip_reason)
+            self.assertTrue(snapshot.has_outputs)
+            self.assertIs(snapshot.apply_disposition, ApplyDisposition.NOT_APPLICABLE)
+            self.assertEqual(interface.get_job_outputs(source.job_id)[RESULT], 7)
+            source_handle = next(job for job in queue_jobs if job.job_id == source.job_id)
+            self.assertEqual((await source_handle.outputs(timeout=2))[RESULT], 7)
+            self.assertIs(interface.get_job_snapshot(child.job_id).state, JobState.DONE)
+            self.assertEqual(interface.get_job_outputs(child.job_id)[RESULT], 7)
+            self.assertIs(interface.get_job_snapshot(grandchild.job_id).state, JobState.DONE)
+            log = (interface.get_job_directory(source.job_id) / "logs" / "stdout.log").read_text(encoding="utf-8")
+            self.assertIn(f"Skipped: {source.output_skip_reason}", log)
+            self.assertNotIn("Completed successfully", log)
 
     async def setUp(self):
         """Register exact test job codecs."""
@@ -554,7 +595,7 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
             self.assertEqual(version, QUEUE_SCHEMA_VERSION)
 
     async def test_snapshot_query_does_not_read_payload_or_output_blobs(self):
-        """Snapshot reads select only immutable display and lifecycle columns."""
+        """Snapshot reads select only immutable display and lifecycle columns; a blob may only be tested for NULL."""
         # Arrange
         async with temp_db_path() as db_path:
             interface = _TracingQueueInterface(db_path)
@@ -566,9 +607,8 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
 
             # Assert
             select = next(statement.lower() for statement in interface.statements if "from jobs" in statement.lower())
-            self.assertNotIn("job_data", select)
-            self.assertNotIn("outputs", select)
-            self.assertNotIn("apply_receipt", select)
+            blob_read = re.compile(r"\b(job_data|outputs|apply_receipt)\b(?!\s+is\s+not\s+null)")
+            self.assertIsNone(blob_read.search(select), select)
 
     async def test_snapshot_iterator_is_lazy_until_consumed(self):
         """Creating the full-queue iterator does not open SQLite or materialize rows."""
@@ -1317,6 +1357,13 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
             self.assertIsNotNone(third_snapshot.completed_at)
             self.assertIs(second_snapshot.apply_disposition, ApplyDisposition.NOT_APPLICABLE)
             self.assertIs(third_snapshot.apply_disposition, ApplyDisposition.NOT_APPLICABLE)
+            self.assertFalse(second_snapshot.has_outputs)
+            with self.assertRaises(KeyError):
+                interface.get_job_outputs(second.job_id)
+            second_handle = QueueJob(interface, second_snapshot.graph_id, second.job_id)
+            with self.assertRaises(RuntimeError) as error:
+                await second_handle.outputs(timeout=2)
+            self.assertIn(second_snapshot.state_reason, str(error.exception))
 
     async def test_domain_execution_failure_retains_diagnostic_and_surfaces_friendly_reason(self):
         """Explicit product failure text is separate from the retained underlying diagnostic."""
@@ -1449,6 +1496,12 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
             # Assert
             child_snapshot = interface.get_job_snapshot(child.job_id)
             root_snapshot = interface.get_job_snapshot(root.job_id)
+            self.assertFalse(root_snapshot.has_outputs)
+            with self.assertRaises(KeyError):
+                interface.get_job_outputs(root.job_id)
+            root_handle = QueueJob(interface, root_snapshot.graph_id, root.job_id)
+            with self.assertRaises(RuntimeError):
+                await root_handle.outputs(timeout=2)
             self.assertIs(child_snapshot.state, JobState.SKIPPED)
             self.assertEqual(
                 child_snapshot.state_reason,
@@ -1494,8 +1547,8 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
             # Assert
             self.assertEqual(len(list(interface.iter_snapshot())), 1)
 
-    async def test_job_output_load_rejects_wrong_exact_port_name_set(self):
-        """Persisted output names must exactly match declared output metadata at every read."""
+    async def test_job_output_load_rejects_undeclared_port(self):
+        """A persisted output name must be a declared port."""
         # Arrange
         async with temp_db_path() as db_path:
             interface = QueueInterface(db_path)
@@ -1511,7 +1564,27 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
                 connection.commit()
 
             # Act
-            with self.assertRaisesRegex(ValueError, "names do not exactly match"):
+            with self.assertRaises(ValueError):
+                interface.get_job_outputs(job.job_id)
+
+            # Assert
+            self.assertIs(interface.get_job_snapshot(job.job_id).state, JobState.DONE)
+
+    async def test_job_output_load_rejects_record_that_omits_a_port(self):
+        """Reject incomplete saved results instead of hiding a missing output."""
+        # Arrange
+        async with temp_db_path() as db_path:
+            interface = QueueInterface(db_path)
+            job = _LaneA(value=2)
+            interface.submit(job)
+            self._claim_and_start(interface, job.job_id)
+            interface.complete_job(job.job_id, JobOutputs({RESULT: 2}))
+            with interface.connection() as connection:
+                connection.execute("UPDATE jobs SET outputs = ? WHERE job_id = ?", (serialize({}), str(job.job_id)))
+                connection.commit()
+
+            # Act
+            with self.assertRaises(ValueError):
                 interface.get_job_outputs(job.job_id)
 
             # Assert

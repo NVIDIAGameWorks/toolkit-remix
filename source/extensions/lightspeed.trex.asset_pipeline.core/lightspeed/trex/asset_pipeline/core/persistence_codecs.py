@@ -23,7 +23,7 @@ from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.job_queue.core.persistence import PersistenceCodec
 from omni.flux.job_queue.core.persistence_codec import decode_positional_payload
 
-from .jobs import MeshOptimizationJob, PrepareOptimizationJob, TextureProcessingJob
+from .jobs import MeshOptimizationJob, PrepareOptimizationJob, TextureOptimizationJob
 from .jobs.apply_handler import SaveMeshMetadataHandler, SaveTextureMetadataHandler
 from .jobs.models import (
     MeshOptimizationRequest,
@@ -31,9 +31,9 @@ from .jobs.models import (
     PrepareOptimizationResult,
     ProcessedTexture,
     TextureLedgerEntry,
-    TextureProcessingItem,
-    TextureProcessingRequest,
-    TextureProcessingResult,
+    TextureOptimizationItem,
+    TextureOptimizationRequest,
+    TextureOptimizationResult,
 )
 from .metadata import MetadataApplyReceipt
 
@@ -66,6 +66,27 @@ def _dataclass_codec(name: str, value_type: type, decoder: Callable[[Any], Any] 
     )
 
 
+def _decode_mesh_optimization_request(payload: Any) -> MeshOptimizationRequest:
+    """Decode current requests and released requests without extra textures."""
+    if type(payload) is tuple and len(payload) == 4:
+        payload = (*payload, ())
+    return decode_positional_payload(MeshOptimizationRequest, payload, 5)
+
+
+def _decode_prepare_optimization_result(payload: Any) -> PrepareOptimizationResult:
+    """Decode current results and released results without the already-optimized flag."""
+    if type(payload) is tuple and len(payload) == 8:
+        payload = (*payload, False)
+    return decode_positional_payload(PrepareOptimizationResult, payload, 9)
+
+
+def _decode_texture_optimization_item(payload: Any) -> TextureOptimizationItem:
+    """Decode texture requests that predate source-channel extraction or factor baking."""
+    if type(payload) is tuple and 3 <= len(payload) < 5:
+        payload = (*payload, *((None,) * (5 - len(payload))))
+    return decode_positional_payload(TextureOptimizationItem, payload, 5)
+
+
 def _decode_processed_texture(payload: Any) -> ProcessedTexture:
     """Decode a ProcessedTexture payload, accepting the released 1.1.x shape without udim_tiles.
 
@@ -84,14 +105,14 @@ def _decode_processed_texture(payload: Any) -> ProcessedTexture:
     return decode_positional_payload(ProcessedTexture, payload, 5)
 
 
-def _decode_texture_processing_result(payload: Any) -> TextureProcessingResult:
-    """Decode a TextureProcessingResult payload, accepting the released 1.1.x shape without lineage.
+def _decode_texture_optimization_result(payload: Any) -> TextureOptimizationResult:
+    """Decode a TextureOptimizationResult payload, accepting the released 1.1.x shape without lineage.
 
     Args:
         payload: Decoded custom payload: a 1-tuple (released 1.1.x) or a 3-tuple (current).
 
     Returns:
-        Constructed TextureProcessingResult value, with lineage and validation_passed defaulted for
+        Constructed TextureOptimizationResult value, with lineage and validation_passed defaulted for
         the legacy shape.
 
     Raises:
@@ -100,18 +121,18 @@ def _decode_texture_processing_result(payload: Any) -> TextureProcessingResult:
     """
     if type(payload) is tuple and len(payload) == 1:
         payload = (*payload, (), True)
-    return decode_positional_payload(TextureProcessingResult, payload, 3)
+    return decode_positional_payload(TextureOptimizationResult, payload, 3)
 
 
 TEXTURE_PROCESSING_CODECS = (
     PersistenceCodec("remix_texture.TextureTypes", TextureTypes),
-    _dataclass_codec("remix_texture.TextureProcessingItem", TextureProcessingItem),
+    _dataclass_codec("remix_texture.TextureProcessingItem", TextureOptimizationItem, _decode_texture_optimization_item),
     _dataclass_codec("remix_texture.ProcessedTexture", ProcessedTexture, decoder=_decode_processed_texture),
-    _dataclass_codec("remix_texture.TextureProcessingRequest", TextureProcessingRequest),
+    _dataclass_codec("remix_texture.TextureProcessingRequest", TextureOptimizationRequest),
     _dataclass_codec(
-        "remix_texture.TextureProcessingResult", TextureProcessingResult, decoder=_decode_texture_processing_result
+        "remix_texture.TextureProcessingResult", TextureOptimizationResult, decoder=_decode_texture_optimization_result
     ),
-    _dataclass_codec("remix_texture.TextureProcessingJob", TextureProcessingJob),
+    _dataclass_codec("remix_texture.TextureProcessingJob", TextureOptimizationJob),
 )
 
 
@@ -119,8 +140,12 @@ MESH_OPTIMIZATION_CODECS = (
     PersistenceCodec("NoneType", type(None)),
     _dataclass_codec("remix_mesh.MetadataApplyReceipt", MetadataApplyReceipt),
     _dataclass_codec("remix_mesh.TextureLedgerEntry", TextureLedgerEntry),
-    _dataclass_codec("remix_mesh.MeshOptimizationRequest", MeshOptimizationRequest),
-    _dataclass_codec("remix_mesh.PrepareOptimizationResult", PrepareOptimizationResult),
+    _dataclass_codec(
+        "remix_mesh.MeshOptimizationRequest", MeshOptimizationRequest, decoder=_decode_mesh_optimization_request
+    ),
+    _dataclass_codec(
+        "remix_mesh.PrepareOptimizationResult", PrepareOptimizationResult, decoder=_decode_prepare_optimization_result
+    ),
     _dataclass_codec("remix_mesh.MeshOptimizationResult", MeshOptimizationResult),
     _dataclass_codec("remix_mesh.MeshOptimizationJob", MeshOptimizationJob),
     _dataclass_codec("remix_mesh.PrepareOptimizationJob", PrepareOptimizationJob),

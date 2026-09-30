@@ -20,23 +20,25 @@ from copy import deepcopy
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from carb.input import MouseEventType
-from omni.kit import ui_test
+from omni.kit import ui_test, undo
 from omni.kit.test import AsyncTestCase
 from lightspeed.trex.comfyui.core.api import ComfyUIAPI
 from lightspeed.trex.comfyui.core.core import ComfyUICore
 from lightspeed.trex.comfyui.core.enums import (
     ComfyUIEventType,
     ComfyUIState,
+    OutputApplyBehavior,
     RemixType,
     WorkflowCategory,
     WorkflowSourceType,
     WorkflowType,
 )
 from lightspeed.trex.comfyui.core.events import ComfyUIEventPayload
-from lightspeed.trex.comfyui.core.models import Workflow, WorkflowInput
+from lightspeed.trex.comfyui.core.models import Workflow, WorkflowInput, WorkflowOutput
 from lightspeed.trex.comfyui.core.preset import Preset
 from lightspeed.trex.comfyui.core.resolvers import ConstantResolver, SelectedTextureResolver
-from lightspeed.trex.comfyui.widget.workflow.widget import WorkflowSetupWidget
+from ...workflow.widget import WorkflowSetupWidget
+from .combo import combo_labels, select_combo_item
 from omni import ui, usd
 from omni.flux.utils.widget.resources import get_icons
 
@@ -300,6 +302,7 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
 
     async def setUp(self):
         """Create a visible UI window for each workflow-widget test."""
+        self.addCleanup(undo.clear_stack)
         self._context = usd.get_context("texturecraft")
         self._owns_context = self._context is None
         self._context = self._context or usd.create_context("texturecraft")
@@ -412,6 +415,46 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
                 await ui_test.human_delay()
         return core
 
+    async def _build_core_widget(self, workflow: Workflow) -> ComfyUICore:
+        """Build the workflow widget on a real core that publishes one prepared workflow through the real event path.
+
+        The setUp event patch stops first so the widget subscribes through the application event manager. The
+        core connects to a stubbed HTTP boundary with an empty catalog, then publishes the workflow through
+        ``set_workflow``.
+
+        Args:
+            workflow: Workflow the core publishes to the rendered widget.
+
+        Returns:
+            The real core that backs the rendered widget.
+        """
+        self._event_subscription_patch.stop()
+        if self._real_widget is not None:
+            self._real_widget.destroy()
+            self._real_widget = None
+            await ui_test.human_delay()
+
+        core = ComfyUICore("texturecraft")
+        self.addCleanup(core.destroy)
+        with (
+            patch(
+                "lightspeed.trex.comfyui.widget.workflow.widget.get_comfyui_core_instance",
+                return_value=core,
+            ),
+            patch.object(ComfyUIAPI, "ping", new=AsyncMock(return_value={})),
+            patch.object(ComfyUIAPI, "_send_request", new=AsyncMock(side_effect=_route_payloads({}))),
+        ):
+            with self._window.frame:
+                self._real_widget = WorkflowSetupWidget(context_name="texturecraft")
+            await core.connect()
+        core.set_workflow(workflow)
+        await ui_test.human_delay()
+        return core
+
+    def _find_output_combos(self) -> list:
+        """Return the rendered property combo boxes of the selected output row, in display order."""
+        return ui_test.find_all(f"{self._window.title}//Frame/**/ComboBox[*].identifier=='NativePropertyValue'")
+
     async def _click_input(self, label: str) -> None:
         """Select one rendered workflow-input row by its user-facing label.
 
@@ -427,6 +470,13 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
             None,
         )
         self.assertIsNotNone(input_label)
+        # Rows below the fixed panel height are reached the way a user does it: by scrolling the panel.
+        scroll = ui_test.find(
+            f"{self._window.title}//Frame/**/ScrollingFrame[*].identifier=='ComfyWorkflowItemsScroll'"
+        )
+        if scroll is not None:
+            scroll.widget.scroll_y += input_label.center.y - scroll.center.y
+            await ui_test.human_delay()
         await input_label.click()
         await ui_test.human_delay()
 
@@ -452,6 +502,114 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
         branch = min(branches, key=lambda candidate: abs(candidate.center.y - group_label.center.y))
         await branch.click()
         await ui_test.human_delay()
+
+    async def test_apply_behavior_controls_save_output_settings_and_keep_preset(self):
+        """Picking Apply Behavior in each output popup saves the output without changing the active input preset."""
+        workflow = _make_workflow()
+        workflow.active_preset = "High Quality"
+        texture = WorkflowOutput(node_id="20", remix_type=RemixType.TEXTURE_FILE_PATH, texture_type="albedo")
+        mesh = WorkflowOutput(node_id="21", remix_type=RemixType.MESH_FILE_PATH)
+        workflow.output_specs = [texture, mesh]
+        await self._build_core_widget(workflow)
+
+        # Select the texture output row and pick Do Nothing from its rendered Apply Behavior popup.
+        await self._click_input("Albedo")
+        apply_combo, _texture_combo = self._find_output_combos()
+        self.assertEqual(combo_labels(apply_combo), ["Replace", "Do Nothing"])
+        await select_combo_item(apply_combo, "Do Nothing")
+        self.assertIs(texture.apply_behavior, OutputApplyBehavior.NONE)
+
+        # Select the mesh output row and pick Replace from its popup.
+        await self._click_input("Mesh")
+        (apply_combo,) = self._find_output_combos()
+        await select_combo_item(apply_combo, "Replace")
+        self.assertIs(mesh.apply_behavior, OutputApplyBehavior.REPLACE)
+        self.assertEqual(workflow.active_preset, "High Quality")
+
+    async def test_texture_type_control_saves_output_and_relabels_row_and_breadcrumb(self):
+        """Picking a Texture Type in its popup persists the output and relabels its row and the breadcrumb."""
+        workflow = _make_workflow()
+        texture = WorkflowOutput(node_id="20", remix_type=RemixType.TEXTURE_FILE_PATH, texture_type="albedo")
+        workflow.output_specs = [texture]
+        await self._build_core_widget(workflow)
+
+        # Select the Albedo output row and pick Roughness from the rendered Texture Type popup.
+        await self._click_input("Albedo")
+        _apply_combo, texture_combo = self._find_output_combos()
+        self.assertEqual(combo_labels(texture_combo)[:2], ["Albedo", "Roughness"])
+        await select_combo_item(texture_combo, "Roughness")
+
+        # The output persists the choice, and the row and breadcrumb follow the new label.
+        self.assertEqual(texture.texture_type, "roughness")
+        rows = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].name=='WorkflowInputName'")
+        self.assertIn("Roughness", [label.widget.text for label in rows])
+        self.assertNotIn("Albedo", [label.widget.text for label in rows])
+        breadcrumb = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].name=='Breadcrumb'")
+        self.assertIn("Roughness", [label.widget.text for label in breadcrumb])
+
+    async def test_undo_texture_type_after_input_selection_restores_output_row(self):
+        """Undo restores the output row after input selection closes the output controls."""
+        workflow = _make_workflow()
+        texture = WorkflowOutput(node_id="20", remix_type=RemixType.TEXTURE_FILE_PATH, texture_type="albedo")
+        workflow.output_specs = [texture]
+        await self._build_core_widget(workflow)
+
+        # Change the output through its controls before selecting an input.
+        await self._click_input("Albedo")
+        _apply_combo, texture_combo = self._find_output_combos()
+        await select_combo_item(texture_combo, "Roughness")
+        await self._click_input("Enabled")
+        row_selector = f"{self._window.title}//Frame/**/Label[*].name=='WorkflowInputName'"
+        row = next(label for label in ui_test.find_all(row_selector) if label.widget.text == "Roughness")
+        self.assertEqual(row.widget.text, "Roughness")
+        self.assertIn("Roughness", row.widget.tooltip)
+        self.assertNotIn("Albedo", row.widget.tooltip)
+
+        # Undo with the output controls closed must also restore the retained output row.
+        undo.undo()
+        await ui_test.human_delay()
+        row = next(label for label in ui_test.find_all(row_selector) if label.widget.text == "Albedo")
+        self.assertEqual(texture.texture_type, "albedo")
+        self.assertEqual(row.widget.text, "Albedo")
+        self.assertIn("Albedo", row.widget.tooltip)
+        self.assertNotIn("Roughness", row.widget.tooltip)
+
+    async def test_inputs_and_outputs_render_in_separate_sections_with_one_selection(self):
+        """Inputs and outputs live in their own sections and only one row is selected at a time."""
+        workflow = _make_workflow()
+        workflow.output_specs = [WorkflowOutput(node_id="21", remix_type=RemixType.MESH_FILE_PATH)]
+        await self._build_core_widget(workflow)
+
+        inputs_tree, outputs_tree = (widget.tree_view for widget in self._real_widget._inputs_property_widgets)
+        self.assertEqual(
+            [inputs_tree.identifier, outputs_tree.identifier], ["ComfyWorkflowInputs", "ComfyWorkflowOutputs"]
+        )
+        titles = [
+            frame.widget.title
+            for frame in ui_test.find_all(f"{self._window.title}//Frame/**/CollapsableFrame[*]")
+            if frame.widget.title.startswith("WORKFLOW ")
+        ]
+        self.assertEqual(titles, ["WORKFLOW INPUTS", "WORKFLOW OUTPUTS"])
+        self.assertEqual(
+            [item.name_models[0].get_value_as_string() for item in inputs_tree.model.get_item_children(None)],
+            ["Ungrouped", "Material"],
+        )
+        self.assertEqual(
+            [item.name_models[0].get_value_as_string() for item in outputs_tree.model.get_item_children(None)],
+            ["Ungrouped"],
+        )
+        # Every visible input row keeps its getter dropdown when the outputs tree is present too.
+        await self._expand_group("Material")
+        getters = ui_test.find_all(f"{self._window.title}//Frame/**/ComboBox[*].identifier=='ComfyGetterPicker'")
+        self.assertEqual(len(getters), len(workflow.inputs))
+
+        # Selecting an input then an output moves the single selection across the two trees.
+        await self._click_input("Enabled")
+        self.assertEqual([item.workflow_input.label for item in inputs_tree.selection], ["Enabled"])
+        await self._click_input("Mesh")
+        self.assertEqual(inputs_tree.selection, [])
+        self.assertEqual([item.workflow_output for item in outputs_tree.selection], workflow.output_specs)
+        self.assertIsNotNone(ui_test.find(f"{self._window.title}//Frame/**/Label[*].text=='Apply Behavior'"))
 
     async def test_build_real_widget_uses_context_and_builds_inputs(self):
         """A user sees the workflow inputs and stable workflow controls."""
@@ -524,6 +682,20 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
         self.assertEqual(labels, ["Selected Texture", "All Textures", "File Path Constant"])
         self.assertNotIn("File Path", labels)
 
+    async def test_clicking_getter_keeps_widget_alive_and_selects_row(self):
+        """Clicking a getter opens its popup on the same widget and selects the input row."""
+        # A rebuilt row would destroy the ComboBox under the open popup and leave it empty.
+        await self._build_core_widget(_make_texture_workflow())
+        getter = await _wait_for_widget(f"{self._window.title}//Frame/**/ComboBox[*].identifier=='ComfyGetterPicker'")
+        getter.widget.identifier = "ClickedGetter"
+
+        await ui_test.emulate_mouse_move(getter.center)
+        await ui_test.emulate_mouse_click()
+        await ui_test.human_delay()
+
+        self.assertIsNotNone(ui_test.find(f"{self._window.title}//Frame/**/ComboBox[*].identifier=='ClickedGetter'"))
+        self.assertIsNotNone(ui_test.find(f"{self._window.title}//Frame/**/Label[*].text=='Texture Type'"))
+
     async def test_getter_columns_restore_proportions_after_window_resize(self):
         """The getter returns to its proportional column after a narrow-window layout."""
         # Capture the rendered two-column proportions at the normal panel width.
@@ -572,7 +744,7 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
         # Selection follows the changed row and the native path editor replaces getter properties.
         self.assertIsInstance(core.workflow.inputs[0].value, ConstantResolver)
         self.assertEqual(core.workflow.inputs[0].value.value, pathlib.Path())
-        selected_rows = self._real_widget._inputs_property_widget.tree_view.selection
+        selected_rows = self._real_widget._inputs_property_widgets[0].tree_view.selection
         self.assertEqual([item.workflow_input for item in selected_rows], [core.workflow.inputs[0]])
         self.assertEqual(
             [
@@ -652,11 +824,8 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
         await self._build_real_widget(_make_workflow(), core)
 
         # The rendered panel explains the next user action instead of showing an empty tree.
-        self.assertTrue(
-            ui_test.find_all(
-                f"{self._window.title}//Frame/**/Label[*].text=='Select a workflow above to configure its inputs'"
-            )
-        )
+        empty_message = "Select a workflow above to configure its inputs and outputs"
+        self.assertTrue(ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].text=='{empty_message}'"))
 
     async def test_workflow_metadata_filters_and_labels_real_window(self):
         """The real core and window show typed filters, display names, source sections, and descriptions."""

@@ -187,7 +187,10 @@ class JobExecutor:
             outputs = await job.execute(job_directory, inputs, update_progress)
             if not isinstance(outputs, JobOutputs):
                 raise TypeError(f"{type(job).__name__}.execute must return JobOutputs")
-            await _write_job_log(stdout_path, "Completed successfully")
+            await _write_job_log(
+                stdout_path,
+                "Completed successfully" if outputs.skip_reason is None else f"Skipped: {outputs.skip_reason}",
+            )
             completion_task = asyncio.create_task(asyncio.to_thread(self.interface.complete_job, job_id, outputs))
             try:
                 completed = await asyncio.shield(completion_task)

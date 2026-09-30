@@ -20,23 +20,27 @@ import pathlib
 from typing import Any, ClassVar
 from unittest.mock import MagicMock, patch
 
+from omni.kit import undo
 from omni.kit.test import AsyncTestCase
-from lightspeed.trex.comfyui.core.enums import RemixType
-from lightspeed.trex.comfyui.core.models import WorkflowInput
+from lightspeed.trex.comfyui.core.enums import MeshReferenceSelection, OutputApplyBehavior, RemixType
+from lightspeed.trex.comfyui.core.maps import OUTPUT_TEXTURE_TYPE_MAP
+from lightspeed.trex.comfyui.core.models import WorkflowInput, WorkflowOutput
 from lightspeed.trex.comfyui.core.resolvers import (
+    AllStageMeshesResolver,
     ConstantResolver,
     ResolverParameter,
+    SelectedMeshResolver,
     SelectedTextureResolver,
     ValueResolver,
 )
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.property_widget_builder.model.native import NativeChoiceModel
-from lightspeed.trex.comfyui.widget.workflow.items import (
+from ...workflow.items import (
     InputItemGroup,
     ResolverParamItem,
     WorkflowGroupItem,
 )
-from lightspeed.trex.comfyui.widget.workflow.model import GetterValueModel, SimpleComboModel
+from ...workflow.model import GetterValueModel, _WorkflowOutputFieldValueModel
 
 
 @dataclasses.dataclass
@@ -393,15 +397,209 @@ class TestWorkflowModel(AsyncTestCase):
         self.assertFalse(input_group.can_have_children)
         self.assertEqual(input_group.tooltip, "Texture")
 
-    async def test_simple_combo_model_notifies_subscribers_on_index_change(self):
-        """Changing the selected index emits an item-change event."""
+    async def test_texture_output_properties_expose_supported_labels_and_choices(self):
+        """Texture output properties expose Replace and Do Nothing actions."""
         # Arrange
-        model = SimpleComboModel(["Default", "High Quality"])
-        callback = MagicMock()
-        model.add_item_changed_fn(callback)
+        workflow_output = WorkflowOutput(
+            node_id="20",
+            remix_type=RemixType.TEXTURE_FILE_PATH,
+            texture_type="albedo",
+        )
 
         # Act
-        model.get_item_value_model().set_value(1)
+        items = ResolverParamItem.from_workflow_output(workflow_output)
 
         # Assert
-        callback.assert_called_once_with(model, None)
+        self.assertEqual(
+            [item.name_models[0].get_value_as_string() for item in items],
+            ["Apply Behavior", "Texture Type"],
+        )
+        apply_model = items[0].value_models[0]
+        self.assertEqual(
+            tuple(choice.value for choice in apply_model.get_item_children()),
+            (OutputApplyBehavior.REPLACE, OutputApplyBehavior.NONE),
+        )
+        self.assertEqual(
+            [apply_model.get_item_value_model(choice).as_string for choice in apply_model.get_item_children()],
+            ["Replace", "Do Nothing"],
+        )
+        texture_model = items[1].value_models[0]
+        texture_labels = [
+            texture_model.get_item_value_model(choice).as_string for choice in texture_model.get_item_children()
+        ]
+        self.assertIn("Normal - OpenGL", texture_labels)
+        self.assertNotIn("normal_ogl", texture_labels)
+
+    async def test_mesh_output_properties_expose_supported_labels_and_choices(self):
+        """Mesh output properties expose only Apply Behavior."""
+        # Arrange
+        workflow_output = WorkflowOutput(
+            node_id="20",
+            remix_type=RemixType.MESH_FILE_PATH,
+        )
+
+        # Act
+        items = ResolverParamItem.from_workflow_output(workflow_output)
+
+        # Assert
+        self.assertEqual(
+            [item.name_models[0].get_value_as_string() for item in items],
+            ["Apply Behavior"],
+        )
+        apply_model = items[0].value_models[0]
+        self.assertEqual(
+            tuple(choice.value for choice in apply_model.get_item_children()),
+            (
+                OutputApplyBehavior.REPLACE,
+                OutputApplyBehavior.APPEND,
+                OutputApplyBehavior.NONE,
+            ),
+        )
+        self.assertEqual(
+            [apply_model.get_item_value_model(choice).as_string for choice in apply_model.get_item_children()],
+            ["Replace", "Append", "Do Nothing"],
+        )
+
+    async def test_output_apply_choice_mutates_persisted_workflow_output(self):
+        """Changing Apply Behavior edits the same WorkflowOutput object."""
+        # Arrange
+        workflow_output = WorkflowOutput(
+            node_id="20",
+            remix_type=RemixType.TEXTURE_FILE_PATH,
+            texture_type="albedo",
+            apply_behavior=OutputApplyBehavior.REPLACE,
+        )
+        apply_model = ResolverParamItem.from_workflow_output(workflow_output)[0].value_models[0]
+
+        # Act
+        with undo.disabled():
+            apply_model.get_item_value_model().set_value(1)
+
+        # Assert
+        self.assertIs(workflow_output.apply_behavior, OutputApplyBehavior.NONE)
+
+    async def test_output_texture_type_choice_mutates_persisted_workflow_output(self):
+        """Changing Texture Type edits the same WorkflowOutput object."""
+        # Arrange
+        workflow_output = WorkflowOutput(
+            node_id="20",
+            remix_type=RemixType.TEXTURE_FILE_PATH,
+            texture_type="albedo",
+        )
+        texture_model = ResolverParamItem.from_workflow_output(workflow_output)[1].value_models[0]
+        normal_index = tuple(OUTPUT_TEXTURE_TYPE_MAP).index("normal_ogl")
+
+        # Act
+        with undo.disabled():
+            texture_model.get_item_value_model().set_value(normal_index)
+
+        # Assert
+        self.assertEqual(workflow_output.texture_type, "normal_ogl")
+
+    async def test_mesh_getter_replaces_selected_mesh_resolver(self):
+        """A mesh getter replaces the selected-mesh resolver."""
+        # Arrange
+        workflow_input = _make_input(value=SelectedMeshResolver(), remix_type=RemixType.MESH_FILE_PATH)
+        getter = GetterValueModel(workflow_input, context_name="texturecraft")
+        labels = [getter.get_item_value_model(item).as_string for item in getter.get_item_children()]
+
+        # Act
+        getter.get_item_value_model().set_value(labels.index("All Meshes"))
+
+        # Assert
+        self.assertIsInstance(workflow_input.value, AllStageMeshesResolver)
+        self.assertEqual(workflow_input.value.context_name, "texturecraft")
+
+    async def test_mesh_reference_choice_changes_reference_selection(self):
+        """Reference Selection edits the mesh resolver."""
+        # Arrange
+        resolver = AllStageMeshesResolver()
+        items = ResolverParamItem.from_resolver(resolver, fallback_value_type=pathlib.Path)
+        reference_model = next(
+            item.value_models[0] for item in items if item.name_models[0].get_value_as_string() == "Reference Selection"
+        )
+        choices = reference_model.get_item_children()
+        selected_index = next(i for i, choice in enumerate(choices) if choice.value is MeshReferenceSelection.SELECTED)
+
+        # Act
+        reference_model.get_item_value_model().set_value(selected_index)
+
+        # Assert
+        self.assertEqual(
+            [reference_model.get_item_value_model(choice).as_string for choice in choices], ["All", "Selected"]
+        )
+        self.assertIs(resolver.reference_selection, MeshReferenceSelection.SELECTED)
+
+    async def test_output_choices_undo_and_redo_refresh_recreated_controls(self):
+        """Undo and redo restore output values and current control selections."""
+        for field_name, property_index, edited_value in (
+            ("apply_behavior", 0, OutputApplyBehavior.NONE),
+            ("texture_type", 1, "normal_ogl"),
+        ):
+            with self.subTest(field=field_name):
+                # Arrange
+                undo.clear_stack()
+                output = WorkflowOutput(node_id="20", remix_type=RemixType.TEXTURE_FILE_PATH, texture_type="albedo")
+                original_value = getattr(output, field_name)
+                choice_model = ResolverParamItem.from_workflow_output(output)[property_index].value_models[0]
+                choices = tuple(item.value for item in choice_model.get_item_children())
+                original_index = choices.index(original_value)
+                edited_index = choices.index(edited_value)
+                try:
+                    # Act
+                    choice_model.get_item_value_model().set_value(edited_index)
+                    edited_state = (getattr(output, field_name), choice_model.get_item_value_model().as_int)
+                    choice_model = ResolverParamItem.from_workflow_output(output)[property_index].value_models[0]
+                    undo.undo()
+                    undone_state = (getattr(output, field_name), choice_model.get_item_value_model().as_int)
+                    undo.redo()
+                    redone_state = (getattr(output, field_name), choice_model.get_item_value_model().as_int)
+
+                    # Assert
+                    self.assertEqual(edited_state, (edited_value, edited_index))
+                    self.assertEqual(undone_state, (original_value, original_index))
+                    self.assertEqual(redone_state, (edited_value, edited_index))
+                finally:
+                    undo.clear_stack()
+
+    async def test_destroyed_output_item_stops_following_undo(self):
+        """A destroyed output item releases its undo subscription and no longer refreshes."""
+        # Arrange
+        undo.clear_stack()
+        output = WorkflowOutput(node_id="20", remix_type=RemixType.TEXTURE_FILE_PATH, texture_type="albedo")
+        item = ResolverParamItem.from_workflow_output(output)[0]
+        choice_model = item.value_models[0]
+        choices = tuple(choice.value for choice in choice_model.get_item_children())
+        original_index = choices.index(output.apply_behavior)
+        edited_index = choices.index(OutputApplyBehavior.NONE)
+        try:
+            choice_model.get_item_value_model().set_value(edited_index)
+
+            # Act
+            item.destroy()
+            undo.undo()
+
+            # Assert
+            self.assertEqual(output.apply_behavior, choices[original_index])
+            self.assertEqual(choice_model.get_item_value_model().as_int, edited_index)
+        finally:
+            undo.clear_stack()
+
+    async def test_output_fields_reject_invalid_types_without_mutation(self):
+        """Invalid values cannot change persisted output settings."""
+        for field_name, invalid_value in (
+            ("apply_behavior", "replace"),
+            ("texture_type", 7),
+        ):
+            with self.subTest(title=field_name):
+                # Arrange
+                output = WorkflowOutput(node_id="20", remix_type=RemixType.TEXTURE_FILE_PATH, texture_type="albedo")
+                model = _WorkflowOutputFieldValueModel(output, field_name)
+                previous = model.get_value()
+
+                # Act
+                with self.assertRaises(TypeError):
+                    model.set_value(invalid_value)
+
+                # Assert
+                self.assertEqual(model.get_value(), previous)

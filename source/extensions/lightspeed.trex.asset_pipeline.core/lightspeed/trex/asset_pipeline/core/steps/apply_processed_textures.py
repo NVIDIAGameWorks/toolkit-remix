@@ -23,12 +23,15 @@ import pathlib
 
 import carb
 import omni.client
-import omni.usd
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.asset_pipeline.core import PipelineContext, PipelineStep
 from omni.flux.utils.common.path_utils import (
     get_absolute_path_from_relative,
     texture_to_udim as _texture_to_udim,
+)
+from omni.flux.utils.material_converter.utils import (
+    TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY,
+    TEXTURE_SOURCE_FACTOR_CUSTOM_DATA_KEY,
 )
 from pxr import Sdf, Usd, UsdShade
 
@@ -36,7 +39,7 @@ from ..jobs.models import ProcessedTexture
 from ..pipeline.context import RemixAssetPipelineContext
 from ..pipeline.item import AssetKind, RemixAssetItem, TextureAsset, TextureBinding
 from ..pipeline.texture_inputs import get_source_texture_paths, get_texture_source_identity, iter_texture_inputs
-from ..utils import get_authoring_spec
+from ..utils import get_authoring_spec, get_material_shader_prim
 from ..worker import run_in_worker_thread
 
 
@@ -125,6 +128,7 @@ class ApplyProcessedTexturesStep(PipelineStep):
             item.textures.clear()
             item.texture_bindings.clear()
             texture_by_key: dict[str, TextureAsset] = {}
+            processed_bindings: set[Sdf.Path] = set()
 
             # Collision-safe local-key space when the ledger is empty (no processed textures).
             local_seq = 0
@@ -134,8 +138,8 @@ class ApplyProcessedTexturesStep(PipelineStep):
                 if not prim.IsA(UsdShade.Material):
                     continue
 
-                shader_prim = omni.usd.get_shader_from_material(prim, get_prim=True)
-                if shader_prim is None or not shader_prim.IsValid():
+                shader_prim = get_material_shader_prim(prim)
+                if shader_prim is None:
                     continue
 
                 material_path = str(prim.GetPath())
@@ -167,6 +171,7 @@ class ApplyProcessedTexturesStep(PipelineStep):
                     identity = (material_path, texture_type)
                     processed = self._processed_textures.get(identity)
                     if processed is not None:
+                        processed_bindings.add(attr.GetPath())
                         texture = texture_by_key.get(processed.key)
                         if texture is None:
                             texture = TextureAsset(
@@ -249,7 +254,20 @@ class ApplyProcessedTexturesStep(PipelineStep):
                         authoring_spec.default = new_asset_path
                         changed_layers[authoring_layer.identifier] = authoring_layer
 
-                    # Author the octahedral encoding attribute when the texture is a converted normal.
+                    namespace, channel_key = TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY.split(":", 1)
+                    factor_key = TEXTURE_SOURCE_FACTOR_CUSTOM_DATA_KEY.split(":", 1)[1]
+                    custom_data = authoring_spec.customData.get(namespace, {})
+                    has_marker = channel_key in custom_data or factor_key in custom_data
+                    if attr.GetPath() in processed_bindings and has_marker:
+                        custom_data.pop(channel_key, None)
+                        custom_data.pop(factor_key, None)
+                        if custom_data:
+                            authoring_spec.customData[namespace] = custom_data
+                        else:
+                            del authoring_spec.customData[namespace]
+                        changed_layers[authoring_layer.identifier] = authoring_layer
+
+                    # Author octahedral encoding when the texture is a converted normal.
                     if binding.texture.texture_type is TextureTypes.NORMAL_OTH:
                         encoding_attr = shader_prim.GetAttribute("inputs:encoding")
                         if encoding_attr:

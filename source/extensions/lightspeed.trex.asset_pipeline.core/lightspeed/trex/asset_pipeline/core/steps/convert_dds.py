@@ -38,7 +38,7 @@ from omni.flux.utils.common.path_utils import (
 from ..constants import DDS_SOURCE_HASH_METADATA_KEY
 from ..pipeline.context import RemixAssetPipelineContext
 from ..pipeline.item import RemixAssetItem
-from ..texture_naming import DDS_SUFFIX, get_dds_stem_suffix, get_legacy_dds_suffixes
+from ..texture_naming import DDS_SUFFIX, get_dds_stem_suffix
 from ..worker import run_in_worker_thread
 
 
@@ -61,6 +61,19 @@ def _convert_texture(input_path: str, output_path: str, texture_info: TextureInf
         gamma_encoded=texture_info.gamma_encoded,
         mip_filter=MipmapFilter[texture_info.mip_filter.name],
     )
+
+
+def _is_encoded_dds(path: pathlib.Path, context: RemixAssetPipelineContext) -> bool:
+    """Return whether a source file is an encoded DDS the step copies unchanged.
+
+    Args:
+        path: Source texture or UDIM tile path.
+        context: Pipeline context carrying ``force_dds_reencode``.
+
+    Returns:
+        True for a ``.dds`` source unless the context forces a re-encode.
+    """
+    return path.suffix.lower() == ".dds" and not context.force_dds_reencode
 
 
 def _get_texture_info(texture_type: TextureTypes) -> TextureInfo:
@@ -145,15 +158,15 @@ class ConvertDDSStep(PipelineStep):
         """Return true when any texture record still needs a workspace DDS output.
 
         A UDIM texture (detected by its path pattern or a non-empty ledger) always needs
-        processing because its concrete tiles must be converted.
+        processing because its concrete tiles must be converted or copied.
         """
         for texture in context.textures:
             if texture.udim_tiles:
                 return True
             if _is_udim_texture(str(texture.path)):
                 return True
-            # A DDS that lacks its semantic suffix still needs a re-encode, as in the legacy plugin.
-            if not texture.path.name.endswith(get_legacy_dds_suffixes(texture.texture_type)):
+            # An encoded DDS is copied, never re-encoded, unless the context forces it.
+            if not _is_encoded_dds(texture.path, context):
                 return True
             if context.work_dir and not context.is_in_work_dir(texture.path):
                 return True
@@ -194,6 +207,9 @@ class ConvertDDSStep(PipelineStep):
                 udim_source = texture.original_path or texture.path
                 tile_dds_paths: list[pathlib.Path] = []
                 for tile_path in texture.udim_tiles:
+                    if _is_encoded_dds(tile_path, context):
+                        tile_dds_paths.append(await self._copy_tile(context, udim_source, tile_path))
+                        continue
                     source_hash = await run_in_worker_thread(_hash_existing_file, str(tile_path))
                     texture_info = _get_texture_info(texture.texture_type)
                     tile_dds_work = context.get_work_path(
@@ -241,6 +257,9 @@ class ConvertDDSStep(PipelineStep):
                 tile_dds_paths = []
                 for tile_path_str in tiles:
                     tile_path = pathlib.Path(tile_path_str)
+                    if _is_encoded_dds(tile_path, context):
+                        tile_dds_paths.append(await self._copy_tile(context, udim_source, tile_path))
+                        continue
                     source_hash = await run_in_worker_thread(_hash_existing_file, tile_path_str)
                     texture_info = _get_texture_info(texture.texture_type)
                     tile_dds_work = context.get_work_path(
@@ -275,9 +294,10 @@ class ConvertDDSStep(PipelineStep):
                 texture.udim_tiles = tuple(tile_dds_paths)
                 continue
 
-            # ---- Non-UDIM single-texture path (unchanged) ----
+            # ---- Non-UDIM single-texture path ----
             semantic_suffix = get_dds_stem_suffix(texture.texture_type)
-            if texture.path.name.endswith(get_legacy_dds_suffixes(texture.texture_type)):
+            if _is_encoded_dds(texture.path, context):
+                # Already encoded: publish the file unchanged, so it is never compressed twice.
                 output_path = context.reserve_output_path(
                     texture.path,
                     source_path=texture.source_path,
@@ -323,3 +343,23 @@ class ConvertDDSStep(PipelineStep):
             )
 
             texture.path = new_path
+
+    @staticmethod
+    async def _copy_tile(
+        context: RemixAssetPipelineContext, udim_source: pathlib.Path, tile_path: pathlib.Path
+    ) -> pathlib.Path:
+        """Copy one encoded DDS UDIM tile to the workspace unchanged.
+
+        Args:
+            context: Pipeline context owning the workspace.
+            udim_source: UDIM source path the tiles belong to.
+            tile_path: Concrete encoded tile.
+
+        Returns:
+            The workspace path of the copied tile.
+        """
+        tile_work = context.get_work_path(udim_source, stem=tile_path.stem, stem_suffix="", suffix=tile_path.suffix)
+        if tile_path == tile_work:
+            return tile_work
+        carb.log_info(f"[ConvertDDS] Copying encoded DDS tile {tile_path} -> {tile_work}")
+        return await run_in_worker_thread(context.copy_to_work_path, tile_path, tile_work)

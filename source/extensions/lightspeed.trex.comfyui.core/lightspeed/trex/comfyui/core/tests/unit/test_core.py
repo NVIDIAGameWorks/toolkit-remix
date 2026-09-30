@@ -19,52 +19,62 @@ import asyncio
 import pathlib
 import tempfile
 import threading
+import weakref
 from unittest import mock
 
-import lightspeed.trex.comfyui.core.extension as extension
-import lightspeed.trex.comfyui.core.core as core_module
-import lightspeed.trex.comfyui.core.settings as settings
-from lightspeed.trex.asset_pipeline.core.jobs.texture_processing import TextureProcessingJob
-from lightspeed.trex.asset_pipeline.core.jobs.models import TextureProcessingItem, TextureProcessingRequest
-from lightspeed.trex.comfyui.core.apply_handler import ComfyUIJobApplyHandler
-from lightspeed.trex.comfyui.core.connection import get_connected_endpoint, set_connected_endpoint
-from lightspeed.trex.comfyui.core.core import (
+from ... import extension
+from ... import core as core_module
+from ... import settings
+from lightspeed.trex.asset_pipeline.core.jobs import TextureOptimizationJob
+from lightspeed.trex.asset_pipeline.core.jobs.models import TextureOptimizationRequest
+from lightspeed.trex.asset_pipeline.core.jobs.apply_handler import SaveTextureMetadataHandler
+from ...apply_handler import ComfyUIAssetApplyHandler, ComfyUITextureApplyHandler
+from ...connection import get_connected_endpoint, set_connected_endpoint
+from ...core import (
     ComfyUICore,
-    ComfyUIRetargetResult,
     ComfyUISubmission,
 )
-from lightspeed.trex.comfyui.core.enums import (
+from ...enums import (
     WORKFLOW_TYPES_BY_CATEGORY,
     ComfyUIEventType,
     ComfyUIOperation,
     ComfyUIState,
     IntroducingLayer,
+    MeshReferenceSelection,
+    OutputApplyBehavior,
     RemixType,
     WorkflowCategory,
     WorkflowSourceType,
     WorkflowType,
 )
-from lightspeed.trex.comfyui.core.events import publish_comfyui_event, subscribe_comfyui_event
-from lightspeed.trex.comfyui.core.job import ComfyUIJob
-from lightspeed.trex.comfyui.core.models import (
+from ...events import publish_comfyui_event, subscribe_comfyui_event
+from ...job import ComfyUIJob
+from ...models import (
+    ComfyUIApplyTarget,
+    ComfyUIAssetApplyTarget,
+    ComfyUIInputBinding,
     ComfyUIWorkflowRequest,
+    ReferenceTarget,
     Workflow,
     WorkflowInput,
     WorkflowOutput,
     WorkflowTypeCategory,
     WorkflowTypeOption,
 )
-from lightspeed.trex.comfyui.core.resolvers import (
+from ...resolvers import (
     AllStageTexturesResolver,
     ConstantResolver,
     ResolverConfigurationError,
     ResolverValueError,
+    SelectedPrimPathResolver,
+    SelectedTextureResolver,
+    AllStageMeshesResolver,
+    SelectedMeshResolver,
     StageExpandingResolver,
     ValueResolver,
 )
-from lightspeed.trex.comfyui.core.tests.unit.fixtures import get_test_workflow_pair
+from ...tests.unit.fixtures import get_test_workflow_pair
 from omni import usd
-from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.job_queue.core.enums import JobState
 from omni.flux.job_queue.core.errors import QueueSubmissionError
 from omni.flux.job_queue.core.interface import QueueInterface
@@ -149,6 +159,108 @@ def _get_workflow_request(graph: JobGraph, job: ComfyUIJob) -> ComfyUIWorkflowRe
     return bindings[0].value
 
 
+def _get_graph_shape(graph: JobGraph) -> tuple[tuple[str, object, str, object], ...]:
+    """Return exact job names and typed ports for every graph connection.
+
+    Args:
+        graph: Job graph whose connections are inspected.
+
+    Returns:
+        Ordered source name, source port, target name, and target port tuples.
+    """
+    jobs_by_id = {job.job_id: job for job in graph.jobs}
+    return tuple(
+        (
+            jobs_by_id[connection.source_job_id].name,
+            connection.source_port,
+            jobs_by_id[connection.target_job_id].name,
+            connection.target_port,
+        )
+        for connection in graph.connections
+    )
+
+
+def _build_texture_graphs(
+    core: ComfyUICore,
+    candidates: list[tuple[mock.MagicMock, list[str]]],
+    project_path: str = "/project/project.usda",
+    edit_target_layer: str = "/project/mod.usda",
+) -> list[JobGraph]:
+    """Build texture graphs for material mocks through the shared builder.
+
+    Args:
+        core: Core whose selected workflow is built.
+        candidates: Material mocks paired with their owner prim paths.
+        project_path: Root-layer identifier captured for the Apply target.
+        edit_target_layer: Edit-layer identifier captured for the Apply target.
+
+    Returns:
+        One graph per accepted material.
+    """
+    return core._create_job_graphs_for_candidates(
+        [(material, material.GetPrim(), owner_paths, (), {}) for material, owner_paths in candidates],
+        core._workflow,
+        None,
+        project_path,
+        edit_target_layer,
+        ("http", "127.0.0.1", 8188),
+        core._client_id,
+        stage=core_module.get_context(core.context_name).get_stage(),
+    )
+
+
+def _texture_output(
+    node_id: str,
+    texture_type: str = "albedo",
+    *,
+    order: int = 0,
+    apply_behavior: OutputApplyBehavior = OutputApplyBehavior.REPLACE,
+) -> WorkflowOutput:
+    """Create one typed texture output with explicit persisted settings.
+
+    Args:
+        node_id: ComfyUI node that owns the output.
+        texture_type: Canonical texture metadata key.
+        order: Stable output order.
+        apply_behavior: Replace or Do Nothing behavior.
+
+    Returns:
+        A fully typed texture workflow output.
+    """
+    return WorkflowOutput(
+        node_id=node_id,
+        remix_type=RemixType.TEXTURE_FILE_PATH,
+        order=order,
+        texture_type=texture_type,
+        apply_behavior=apply_behavior,
+    )
+
+
+def _mesh_output(
+    node_id: str,
+    *,
+    order: int = 0,
+    apply_behavior: OutputApplyBehavior = OutputApplyBehavior.APPEND,
+) -> WorkflowOutput:
+    """Create one typed mesh output with explicit persisted settings.
+
+    Args:
+        node_id: ComfyUI node that owns the output.
+        order: Stable output order.
+        apply_behavior: Append, Replace, or Do Nothing behavior.
+
+    Returns:
+        A fully typed mesh workflow output.
+    """
+    return WorkflowOutput(
+        node_id=node_id,
+        remix_type=RemixType.MESH_FILE_PATH,
+        order=order,
+        texture_type=None,
+        apply_behavior=apply_behavior,
+    )
+
+
 def _workflow_input(
     port_id: str,
     value: ValueResolver,
@@ -217,6 +329,12 @@ class TestComfyUICore(AsyncTestCase):
         self._tf = self._tf_patch.start()
         self._tf.Notice.Register.return_value = self._notice_listener
         self.addCleanup(self._tf_patch.stop)
+        register_commands_patch = mock.patch.object(extension.omni.kit.commands, "register_all_commands_in_module")
+        self._register_commands = register_commands_patch.start()
+        self.addCleanup(register_commands_patch.stop)
+        unregister_commands_patch = mock.patch.object(extension.omni.kit.commands, "unregister_module_commands")
+        self._unregister_commands = unregister_commands_patch.start()
+        self.addCleanup(unregister_commands_patch.stop)
         self._saved_instances = extension._instances
         self._saved_shutting_down = extension._shutting_down
         self._saved_started = extension._started
@@ -319,74 +437,158 @@ class TestComfyUICore(AsyncTestCase):
                 # Assert
                 self.assertEqual(reason, expected_reason)
 
-    async def test_create_graphs_keeps_one_two_stage_graph_per_material_when_inputs_match(self) -> None:
-        """Distinct materials become distinct generation-processing graphs."""
+    async def test_create_job_graphs_with_constant_file_preserves_selected_prim_input(self) -> None:
+        """A Constant file does not remove the context of another input."""
+        for file_type, output, expected_prim in (
+            (RemixType.TEXTURE_FILE_PATH, _texture_output("99"), "/World/Looks/Selected"),
+            (RemixType.MESH_FILE_PATH, _mesh_output("99"), "/World/Selected"),
+        ):
+            with self.subTest(title=file_type.value):
+                # Arrange
+                core = ComfyUICore("texturecraft")
+                core._workflow = Workflow(
+                    api={"1": {"inputs": {"file": "", "prim": ""}}},
+                    inputs=[
+                        _workflow_input(
+                            "1.inputs.file",
+                            ConstantResolver(pathlib.Path(__file__)),
+                            native_type=pathlib.Path,
+                            remix_type=file_type,
+                        ),
+                        _workflow_input("1.inputs.prim", SelectedPrimPathResolver()),
+                    ],
+                    output_specs=[output],
+                )
+                context = _make_context()
+                stage = context.get_stage.return_value
+                stage.GetPrimAtPath.side_effect = _make_prim
+                material = _make_material("/World/Looks/Selected")
+                run_worker = mock.AsyncMock(side_effect=lambda worker, **_kwargs: worker(mock.MagicMock()))
+                with (
+                    mock.patch.object(core, "_get_submission_target", return_value=(stage, "/root.usda", "/edit.usda")),
+                    mock.patch.object(core_module, "get_context", return_value=context),
+                    mock.patch.object(core_module, "run_worker_with_latest_progress", run_worker),
+                    mock.patch.object(core, "_get_material_candidates", return_value=[(material, ["/World/Selected"])]),
+                    mock.patch.object(core, "_capture_texture_targets", return_value=()),
+                ):
+                    # Act
+                    graphs = await core._create_job_graphs(prim_paths=["/World/Selected"])
+
+                # Assert
+                graph = graphs[0]
+                generation_job = next(job for job in graph.jobs if isinstance(job, ComfyUIJob))
+                request = _get_workflow_request(graph, generation_job)
+                self.assertEqual(request.prompt["1"]["inputs"]["prim"], expected_prim)
+
+    async def test_create_texture_constant_graph_ends_at_metadata_apply(self) -> None:
+        """A Constant texture lane is one generation job and one texture job that applies metadata."""
         # Arrange
         core = ComfyUICore("texturecraft")
-        core._workflow = Workflow(
+        source_path = pathlib.Path(__file__)
+        workflow = Workflow(
             name="Upscale",
-            active_preset="Cinematic",
-            api={"1": {"inputs": {"strength": 0.5}}},
-            inputs=[_workflow_input("1.inputs.strength", ConstantResolver(0.75), default=0.5, native_type=float)],
-            output_specs=[
-                WorkflowOutput("99", "albedo", order=1),
-                WorkflowOutput("100", "normal_ogl", order=2),
-                WorkflowOutput("101", "roughness", order=3),
-                WorkflowOutput("102", "metallic", order=4),
+            api={"1": {"inputs": {"image": ""}}},
+            inputs=[
+                _workflow_input(
+                    "1.inputs.image",
+                    ConstantResolver(source_path),
+                    default=pathlib.Path(),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                )
             ],
+            output_specs=[_texture_output("99")],
         )
+        stage = _make_context().get_stage.return_value
 
-        candidates = [
-            (_make_material("/World/Looks/First"), ["/World/First"]),
-            (_make_material("/World/Looks/Second"), ["/World/Second"]),
-        ]
-
-        with (
-            mock.patch("lightspeed.trex.comfyui.core.core.get_context", return_value=_make_context()),
-            mock.patch.object(
-                core,
-                "_capture_texture_targets",
-                return_value={
-                    "albedo": "/Shader.inputs:albedo",
-                    "normal_ogl": "/Shader.inputs:normal",
-                    "roughness": "/Shader.inputs:roughness",
-                    "metallic": "/Shader.inputs:metallic",
-                },
-            ),
-        ):
-            # Act
-            graphs = core._create_job_graphs_for_candidates(
-                candidates,
-                core._workflow,
-                "/project/project.usda",
-                "/project/mod.usda",
-                ("http", "127.0.0.1", 8188),
-                core._client_id,
-            )
+        # Act
+        graph = core._create_job_graphs_for_candidates(
+            [(None, stage.GetPseudoRoot(), [], (), {})],
+            workflow,
+            None,
+            "/project/project.usda",
+            "/project/mod.usda",
+            ("http", "127.0.0.1", 8188),
+            core._client_id,
+            stage=stage,
+        )[0]
 
         # Assert
-        self.assertEqual(len(graphs), 2)
-        generation_jobs = [graph.jobs[0] for graph in graphs]
-        processing_jobs = [graph.jobs[1] for graph in graphs]
-        self.assertTrue(all(type(job) is ComfyUIJob for job in generation_jobs))
-        self.assertTrue(all(type(job) is TextureProcessingJob for job in processing_jobs))
-        self.assertEqual([job.material_path for job in generation_jobs], ["/World/Looks/First", "/World/Looks/Second"])
-        self.assertEqual([job.prim_paths for job in generation_jobs], [["/World/First"], ["/World/Second"]])
-        self.assertTrue(all(job.apply_binding is None for job in generation_jobs))
-        self.assertTrue(all(job.apply_binding.handler_type is ComfyUIJobApplyHandler for job in processing_jobs))
-        self.assertTrue(all(len(job.apply_binding.target.texture_targets) == 4 for job in processing_jobs))
-        requests = [_get_workflow_request(graph, job) for graph, job in zip(graphs, generation_jobs, strict=True)]
-        self.assertTrue(all(request.prompt["1"]["inputs"]["strength"] == 0.75 for request in requests))
-        self.assertEqual([graph.name for graph in graphs], ["Upscale - Cinematic", "Upscale - Cinematic"])
-        self.assertEqual([job.name for job in generation_jobs], ["ComfyUI generation", "ComfyUI generation"])
-        self.assertEqual([job.name for job in processing_jobs], ["Texture optimization", "Texture optimization"])
-        for graph, generation_job, processing_job in zip(graphs, generation_jobs, processing_jobs, strict=True):
-            self.assertEqual(len(graph.connections), 1)
-            connection = graph.connections[0]
-            self.assertEqual(connection.source_job_id, generation_job.job_id)
-            self.assertIs(connection.source_port, ComfyUIJob.GENERATED_TEXTURES)
-            self.assertEqual(connection.target_job_id, processing_job.job_id)
-            self.assertIs(connection.target_port, TextureProcessingJob.SOURCE_TEXTURES)
+        self.assertEqual([type(job) for job in graph.jobs], [ComfyUIJob, TextureOptimizationJob])
+        generation_job, processing_job = graph.jobs
+        self.assertEqual(
+            _get_graph_shape(graph),
+            (
+                (
+                    "ComfyUI generation",
+                    ComfyUIJob.GENERATED_TEXTURES,
+                    "Texture optimization",
+                    TextureOptimizationJob.SOURCE_TEXTURES,
+                ),
+            ),
+        )
+        self.assertIsNone(generation_job.apply_binding)
+        self.assertIs(processing_job.apply_binding.output_port, TextureOptimizationJob.PROCESSED_TEXTURES)
+        self.assertIs(processing_job.apply_binding.handler_type, SaveTextureMetadataHandler)
+        self.assertIsNone(processing_job.apply_binding.target)
+        request = _get_workflow_request(graph, generation_job)
+        self.assertEqual(
+            request.input_bindings,
+            (
+                ComfyUIInputBinding(
+                    port_id="1.inputs.image",
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                    source=str(core_module.OmniUrl(source_path)),
+                ),
+            ),
+        )
+
+    async def test_create_asset_constant_graph_preserves_mesh_input_binding(self) -> None:
+        """A constant asset request preserves the source mesh binding."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        source_path = pathlib.Path(__file__)
+        mesh_output = _mesh_output("200")
+        workflow = Workflow(
+            name="Generate Asset",
+            api={"1": {"inputs": {"model": ""}}},
+            inputs=[
+                _workflow_input(
+                    "1.inputs.model",
+                    ConstantResolver(source_path),
+                    default=pathlib.Path(),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.MESH_FILE_PATH,
+                )
+            ],
+            output_specs=[mesh_output],
+        )
+        stage = _make_context().get_stage.return_value
+
+        # Act
+        graph = core._create_job_graphs_for_candidates(
+            [(None, stage.GetPseudoRoot(), [], (), {"1.inputs.model": source_path.as_posix()})],
+            workflow,
+            mesh_output,
+            "/project/project.usda",
+            "/project/mod.usda",
+            ("http", "127.0.0.1", 8188),
+            core._client_id,
+            stage=stage,
+        )[0]
+
+        # Assert
+        request = _get_workflow_request(graph, graph.jobs[0])
+        self.assertEqual(
+            request.input_bindings,
+            (
+                ComfyUIInputBinding(
+                    port_id="1.inputs.model",
+                    remix_type=RemixType.MESH_FILE_PATH,
+                    source=source_path.as_posix(),
+                ),
+            ),
+        )
 
     async def test_create_jobs_marks_material_skipped_with_exact_resolver_reason(self) -> None:
         """An unresolved required texture remains visible as one skipped material job."""
@@ -402,6 +604,7 @@ class TestComfyUICore(AsyncTestCase):
                     remix_type=RemixType.TEXTURE_FILE_PATH,
                 )
             ],
+            output_specs=[_texture_output("99")],
         )
         core._workflow = workflow
 
@@ -409,14 +612,7 @@ class TestComfyUICore(AsyncTestCase):
 
         with mock.patch("lightspeed.trex.comfyui.core.core.get_context", return_value=_make_context()):
             # Act
-            graph = core._create_job_graphs_for_candidates(
-                [(material, ["/World/Wall"])],
-                core._workflow,
-                "/project/project.usda",
-                "/project/mod.usda",
-                ("http", "127.0.0.1", 8188),
-                core._client_id,
-            )[0]
+            graph = _build_texture_graphs(core, [(material, ["/World/Wall"])])[0]
 
         # Assert
         generation_job, processing_job = graph.jobs
@@ -427,10 +623,10 @@ class TestComfyUICore(AsyncTestCase):
         request = _get_workflow_request(graph, generation_job)
         self.assertEqual(request.input_bindings, ())
         self.assertIsNot(request.workflow, workflow)
-        self.assertEqual(graph.name, "Upscale - Custom Settings")
+        self.assertEqual(graph.name, workflow.display_name)
         self.assertIsNone(generation_job.apply_binding)
-        self.assertIs(processing_job.apply_binding.handler_type, ComfyUIJobApplyHandler)
-        self.assertEqual(len(graph.connections), 1)
+        self.assertIs(processing_job.apply_binding.handler_type, ComfyUITextureApplyHandler)
+        self.assertEqual(processing_job.apply_binding.target.texture_targets, ())
 
     async def test_create_jobs_captures_project_and_edit_target(self) -> None:
         """Jobs retain the project and edit target active at submission time."""
@@ -439,7 +635,7 @@ class TestComfyUICore(AsyncTestCase):
         core._workflow = Workflow(
             api={"1": {"inputs": {"strength": 0.5}}},
             inputs=[_workflow_input("1.inputs.strength", ConstantResolver(0.5), native_type=float)],
-            output_specs=[WorkflowOutput("99", "albedo")],
+            output_specs=[_texture_output("99")],
         )
         material = _make_material("/World/Looks/Wall")
 
@@ -452,26 +648,21 @@ class TestComfyUICore(AsyncTestCase):
             mock.patch.object(
                 core,
                 "_capture_texture_targets",
-                return_value={"albedo": "/World/Looks/Shader.inputs:diffuse_texture"},
+                return_value=(("99", "/World/Looks/Shader.inputs:diffuse_texture"),),
             ),
         ):
-            graph = core._create_job_graphs_for_candidates(
-                [(material, ["/World/Mesh"])],
-                core._workflow,
-                "/projects/scene.usda",
-                "/projects/mod.usda",
-                ("http", "127.0.0.1", 8188),
-                core._client_id,
+            graph = _build_texture_graphs(
+                core, [(material, ["/World/Mesh"])], "/projects/scene.usda", "/projects/mod.usda"
             )[0]
 
         # Assert
-        generation_job, processing_job = graph.jobs
-        target = processing_job.apply_binding.target
+        generation_job, terminal_job = graph.jobs
+        target = terminal_job.apply_binding.target
         self.assertEqual(target.project_path, "/projects/scene.usda")
         self.assertEqual(target.edit_target_layer, "/projects/mod.usda")
         self.assertEqual(
             dict(target.texture_targets),
-            {"albedo": "/World/Looks/Shader.inputs:diffuse_texture"},
+            {"99": "/World/Looks/Shader.inputs:diffuse_texture"},
         )
         request = _get_workflow_request(graph, generation_job)
         self.assertIn("/assets/ingested/comfyui/", request.output_url.replace("\\", "/"))
@@ -508,21 +699,15 @@ class TestComfyUICore(AsyncTestCase):
                 _workflow_input("1.inputs.path", ConstantResolver(readable_path), native_type=pathlib.Path),
                 _workflow_input("1.inputs.optional", ConstantResolver(None)),
             ],
+            output_specs=[_texture_output("99")],
         )
 
         # Act
         with (
             mock.patch("lightspeed.trex.comfyui.core.core.get_context", return_value=_make_context()),
-            mock.patch.object(core, "_capture_texture_targets", return_value={"albedo": "/Shader.inputs:albedo"}),
+            mock.patch.object(core, "_capture_texture_targets", return_value=(("99", "/Shader.inputs:albedo"),)),
         ):
-            graph = core._create_job_graphs_for_candidates(
-                [(_make_material("/World/Looks/Wall"), ["/World/Mesh"])],
-                core._workflow,
-                "/project/project.usda",
-                "/project/mod.usda",
-                ("http", "127.0.0.1", 8188),
-                core._client_id,
-            )[0]
+            graph = _build_texture_graphs(core, [(_make_material("/World/Looks/Wall"), ["/World/Mesh"])])[0]
 
         # Assert
         job = graph.jobs[0]
@@ -550,14 +735,7 @@ class TestComfyUICore(AsyncTestCase):
         # Act
         with mock.patch("lightspeed.trex.comfyui.core.core.get_context", return_value=_make_context()):
             with self.assertRaisesRegex(ResolverConfigurationError, "Select a valid file"):
-                core._create_job_graphs_for_candidates(
-                    [(_make_material("/World/Looks/Wall"), ["/World/Mesh"])],
-                    core._workflow,
-                    "/project/project.usda",
-                    "/project/mod.usda",
-                    ("http", "127.0.0.1", 8188),
-                    core._client_id,
-                )
+                _build_texture_graphs(core, [(_make_material("/World/Looks/Wall"), ["/World/Mesh"])])
 
     async def test_create_jobs_skips_non_finite_json_values(self) -> None:
         """NaN and infinity cannot enter a JSON prompt payload."""
@@ -574,14 +752,7 @@ class TestComfyUICore(AsyncTestCase):
 
                 # Act
                 with mock.patch("lightspeed.trex.comfyui.core.core.get_context", return_value=_make_context()):
-                    graph = core._create_job_graphs_for_candidates(
-                        [(_make_material("/World/Looks/Wall"), ["/World/Mesh"])],
-                        core._workflow,
-                        "/project/project.usda",
-                        "/project/mod.usda",
-                        ("http", "127.0.0.1", 8188),
-                        core._client_id,
-                    )[0]
+                    graph = _build_texture_graphs(core, [(_make_material("/World/Looks/Wall"), ["/World/Mesh"])])[0]
 
                 # Assert
                 job = graph.jobs[0]
@@ -632,17 +803,449 @@ class TestComfyUICore(AsyncTestCase):
         # Assert
         self.assertEqual(candidates, [(material, ["/Asset/First", "/Asset/Second"])])
 
+    async def test_get_mesh_candidates_selected_keeps_only_the_reference_of_the_picked_prim(self) -> None:
+        """Selected keeps the reference that composes the picked prim, and rejects a prim under none."""
+        core = ComfyUICore("texturecraft")
+        stage = mock.MagicMock()
+        owner_prim = _make_prim("/World/Asset")
+        first_layer = mock.MagicMock(identifier="/project/layers/first.usda")
+        last_layer = mock.MagicMock(identifier="/project/layers/last.usda")
+        references = [(Sdf.Reference("../models/first.glb"), first_layer), (Sdf.Reference("./last.glb"), last_layer)]
+        workflow = Workflow(
+            inputs=[
+                _workflow_input(
+                    "1.inputs.model",
+                    SelectedMeshResolver(
+                        context_name="texturecraft", reference_selection=MeshReferenceSelection.SELECTED
+                    ),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.MESH_FILE_PATH,
+                )
+            ]
+        )
+        selected = (owner_prim, references[1][0], last_layer)
+
+        with (
+            mock.patch.object(
+                core_module.AssetReplacementsValidators, "get_prim_references", return_value=(owner_prim, references)
+            ),
+            mock.patch.object(Sdf, "ComputeAssetPathRelativeToLayer", return_value="/project/models/last.glb"),
+            mock.patch.object(SelectedMeshResolver, "select_references", return_value=(selected,)) as select,
+        ):
+            # Act
+            candidates = core._get_mesh_candidates(stage, ["/World/Asset/Cube"], workflow)
+
+        # Assert
+        self.assertEqual(select.call_args.args[1], MeshReferenceSelection.SELECTED)
+        self.assertIs(select.call_args.args[2], stage.GetPrimAtPath.return_value)
+        self.assertEqual([candidate.source_path for candidate in candidates], ["/project/models/last.glb"])
+        self.assertEqual(candidates[0].owners[0].source_reference, references[1][0])
+        self.assertEqual(candidates[0].owners[0].source_layer_identifier, last_layer.identifier)
+
+        with (
+            mock.patch.object(
+                core_module.AssetReplacementsValidators, "get_prim_references", return_value=(owner_prim, references)
+            ),
+            mock.patch.object(SelectedMeshResolver, "select_references", return_value=()),
+            self.assertRaisesRegex(ResolverValueError, "not under one reference"),
+        ):
+            core._get_mesh_candidates(stage, ["/World/Asset"], workflow)
+
+    async def test_get_mesh_candidates_all_groups_owners_by_normalized_source_in_first_seen_order(self) -> None:
+        """All groups relative references by normalized source while it keeps composed source order."""
+        for resolver_type, selected_paths in (
+            (SelectedMeshResolver, ["/World/A", "/World/B"]),
+            (AllStageMeshesResolver, []),
+        ):
+            with self.subTest(resolver=resolver_type.__name__):
+                # Arrange
+                core = ComfyUICore("texturecraft")
+                stage = mock.MagicMock()
+                workflow = Workflow(
+                    inputs=[
+                        _workflow_input(
+                            "1.inputs.model",
+                            resolver_type(context_name="texturecraft", reference_selection=MeshReferenceSelection.ALL),
+                            native_type=pathlib.Path,
+                            remix_type=RemixType.MESH_FILE_PATH,
+                        )
+                    ]
+                )
+                shared_from_a = Sdf.Reference("../models/shared.glb")
+                unique_from_a = Sdf.Reference("../models/unique.glb")
+                shared_from_b = Sdf.Reference("./shared.glb")
+                layer_a = mock.MagicMock()
+                layer_a.identifier = "/project/scenes/a.usda"
+                layer_b = mock.MagicMock()
+                layer_b.identifier = "/project/models/b.usda"
+                references_by_path = {
+                    "/World/A": (
+                        _make_prim("/World/A"),
+                        [(shared_from_a, layer_a), (unique_from_a, layer_a)],
+                    ),
+                    "/World/B": (
+                        _make_prim("/World/B"),
+                        [(shared_from_b, layer_b)],
+                    ),
+                }
+                normalized_sources = {
+                    "../models/shared.glb": "omniverse://server/project/models/shared.glb",
+                    "../models/unique.glb": "omniverse://server/project/models/unique.glb",
+                    "./shared.glb": "omniverse://server/project/models/shared.glb",
+                }
+
+                with (
+                    mock.patch.object(
+                        AllStageMeshesResolver, "iter_stage_prim_paths", return_value=iter(("/World/A", "/World/B"))
+                    ),
+                    mock.patch.object(
+                        core_module.AssetReplacementsValidators,
+                        "get_prim_references",
+                        side_effect=lambda prim_path, _context_name, references=references_by_path, **_: references[
+                            prim_path
+                        ],
+                    ),
+                    mock.patch.object(
+                        Sdf,
+                        "ComputeAssetPathRelativeToLayer",
+                        side_effect=lambda _layer, path, sources=normalized_sources: sources[path],
+                    ),
+                ):
+                    # Act
+                    candidates = core._get_mesh_candidates(
+                        stage,
+                        selected_paths,
+                        workflow,
+                    )
+
+                # Assert
+                self.assertEqual(
+                    [candidate.source_path for candidate in candidates],
+                    [
+                        "omniverse://server/project/models/shared.glb",
+                        "omniverse://server/project/models/unique.glb",
+                    ],
+                )
+                self.assertEqual(
+                    [owner.owner_prim_path for owner in candidates[0].owners],
+                    ["/World/A", "/World/B"],
+                )
+                self.assertEqual(
+                    [owner.source_reference for owner in candidates[0].owners],
+                    [shared_from_a, shared_from_b],
+                )
+                self.assertEqual(
+                    [owner.owner_prim_path for owner in candidates[1].owners],
+                    ["/World/A"],
+                )
+
+    async def test_get_mesh_candidates_caches_child_scans_but_resolves_each_selected_prim(self) -> None:
+        """Each discovery scans a shared owner's children once and preserves each selected prim's inputs."""
+        core = ComfyUICore("texturecraft")
+        stage = Usd.Stage.CreateInMemory()
+        owner = stage.DefinePrim("/World/Asset")
+        child = stage.DefinePrim("/World/Asset/ref_added")
+        selected_paths = ["/World/Asset/A", "/World/Asset/B"]
+        for path in selected_paths:
+            stage.DefinePrim(path)
+        layer = stage.GetRootLayer()
+        reference = Sdf.Reference("/models/source.usda")
+        added_reference = Sdf.Reference("/models/added.usda")
+        workflow = Workflow(
+            inputs=[
+                _workflow_input(
+                    "1.inputs.model",
+                    AllStageMeshesResolver(context_name="texturecraft", reference_selection=MeshReferenceSelection.ALL),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.MESH_FILE_PATH,
+                )
+            ]
+        )
+        with (
+            mock.patch.object(
+                AllStageMeshesResolver, "iter_stage_prim_paths", side_effect=lambda *args: iter(selected_paths)
+            ),
+            mock.patch.object(core, "_get_reference_owner", return_value=(owner, [(reference, layer)])),
+            mock.patch.object(core_module, "is_remix_reference", side_effect=lambda prim: prim == child),
+            mock.patch.object(
+                core_module, "_stage_references", return_value=[(added_reference, layer)]
+            ) as read_references,
+            mock.patch.object(
+                core,
+                "_resolve_workflow_inputs",
+                side_effect=lambda workflow, prim, **kwargs: ({"selected": str(prim.GetPath())}, (), None, ()),
+            ),
+        ):
+            for pass_index in range(2):
+                candidates = core._get_mesh_candidates(stage, [], workflow)
+                self.assertEqual(
+                    {(candidate.source_path, candidate.resolved_inputs[0]["selected"]) for candidate in candidates},
+                    {
+                        (source, path)
+                        for source in (reference.assetPath, added_reference.assetPath)
+                        for path in selected_paths
+                    },
+                )
+                self.assertEqual(read_references.call_count, pass_index + 1)
+                self.assertEqual(read_references.call_args.args[0], child)
+
+    async def test_get_mesh_candidates_all_meshes_reads_references_once_per_prototype(self) -> None:
+        """All Meshes maps an instance path to its prototype and reads that prototype's references once."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        prototype_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B"
+        instance_path = "/RootNode/instances/inst_0AB745B8BEE1F16B_0"
+        prototype = _make_prim(prototype_path)
+        stage = mock.MagicMock()
+        workflow = Workflow(
+            inputs=[
+                _workflow_input(
+                    "1.inputs.model",
+                    AllStageMeshesResolver(context_name="texturecraft", reference_selection=MeshReferenceSelection.ALL),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.MESH_FILE_PATH,
+                )
+            ]
+        )
+        layer = mock.MagicMock(identifier="/project/models/a.usda")
+        reference = Sdf.Reference("./model.glb")
+
+        with (
+            mock.patch.object(
+                AllStageMeshesResolver, "iter_stage_prim_paths", return_value=iter((instance_path, prototype_path))
+            ),
+            mock.patch.object(core_module, "get_prototype", return_value=prototype),
+            mock.patch.object(
+                core_module.AssetReplacementsValidators,
+                "get_prim_references",
+                return_value=(prototype, [(reference, layer)]),
+            ) as get_prim_references,
+            mock.patch.object(Sdf, "ComputeAssetPathRelativeToLayer", return_value="/project/models/model.glb"),
+        ):
+            # Act
+            candidates = core._get_mesh_candidates(stage, [], workflow)
+
+        # Assert
+        self.assertEqual(
+            get_prim_references.call_args_list,
+            [mock.call(prototype_path, "texturecraft", stage=mock.ANY, ancestor_cache={})],
+        )
+        self.assertEqual(
+            [
+                (candidate.source_path, [owner.owner_prim_path for owner in candidate.owners])
+                for candidate in candidates
+            ],
+            [("/project/models/model.glb", [prototype_path])],
+        )
+
+    async def test_get_reference_owner_walks_to_the_ancestor_that_introduces_stage_references(self) -> None:
+        """A reference child with its own prim specs still resolves to the mesh prim and all of its references."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        mod_layer, capture_layer, model_layer = (
+            mock.MagicMock(identifier=name) for name in ("mod.usda", "capture.usda", "5090.usda")
+        )
+        stage = mock.MagicMock()
+        stage.GetLayerStack.return_value = [mod_layer, capture_layer]
+        mesh = _make_prim("/RootNode/meshes/mesh_9858949B5B49CCDC")
+        world = _make_prim("/RootNode/meshes/mesh_9858949B5B49CCDC/XForms/World")
+        child = _make_prim("/RootNode/meshes/mesh_9858949B5B49CCDC/XForms/World/blades_004")
+        child.GetParent.return_value = world
+        world.GetParent.return_value = mesh
+        for prim in (child, world, mesh):
+            prim.IsPseudoRoot.return_value = False
+        stage.GetPrimAtPath.return_value = child
+        mesh_references = [
+            (Sdf.Reference("./mesh_9858949B5B49CCDC.usda"), capture_layer),
+            (Sdf.Reference("./5090.usda"), mod_layer),
+        ]
+        composed = {
+            # The child's only reference comes from inside the referenced model; it is not a stage reference.
+            child: [(Sdf.Reference("./nested.usda"), model_layer)],
+            world: [],
+            mesh: mesh_references,
+        }
+        cache = {}
+
+        with (
+            mock.patch.object(core_module, "get_composed_references_from_prim", side_effect=composed.get),
+            mock.patch.object(core_module.AssetReplacementsValidators, "get_prim_references") as fallback,
+        ):
+            # Act
+            owner, references = core._get_reference_owner(stage, str(child.GetPath()), cache)
+
+        # Assert
+        self.assertIs(owner, mesh)
+        self.assertEqual(references, mesh_references)
+        self.assertEqual(set(cache), {child.GetPath(), world.GetPath(), mesh.GetPath()})
+        fallback.assert_not_called()
+
+    async def test_capture_mesh_owners_deduplicates_references_and_ignores_invalid_prims(self) -> None:
+        """Owner capture preserves unique references and valid empty destinations."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        owner = _make_prim("/World/Owner")
+        layer = mock.MagicMock(identifier="/project/mod.usda")
+        reference = Sdf.Reference("model.usd")
+        context = _make_context()
+        context.get_stage.return_value.GetPrimAtPath.side_effect = lambda path: mock.Mock(
+            IsValid=lambda: path == "/World/Empty"
+        )
+        with (
+            mock.patch.object(core_module, "get_context", return_value=context),
+            mock.patch.object(
+                core_module.AssetReplacementsValidators,
+                "get_prim_references",
+                side_effect=[(owner, [(reference, layer)]), (owner, [(reference, layer)]), (None, []), (None, [])],
+            ),
+        ):
+            # Act
+            owners = core._capture_mesh_owners(
+                ["/World/Owner/A", "/World/Owner/B", "/World/Empty", "/World/Invalid"],
+                MeshReferenceSelection.ALL,
+                include_missing=True,
+            )
+
+        # Assert
+        self.assertEqual(
+            owners,
+            (
+                ReferenceTarget("/World/Owner", reference, "/project/mod.usda"),
+                ReferenceTarget("/World/Empty", None, None),
+            ),
+        )
+
+    async def test_replace_mesh_graph_skips_texture_targets_inside_the_replaced_reference(self) -> None:
+        """A material composed by the replaced source model is not a texture target; a capture material is."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        core._workflow = Workflow(
+            output_specs=[
+                _mesh_output("99", apply_behavior=OutputApplyBehavior.REPLACE),
+                _texture_output("7", "emissive_mask"),
+            ]
+        )
+        owner = "/RootNode/meshes/mesh_A/ref_1"
+        inside = _make_material(f"{owner}/XForms/World/Looks/M_Lens")
+        outside = _make_material("/RootNode/Looks/mat_B")
+        owners = (ReferenceTarget(owner, Sdf.Reference("model.usd"), "/project/mod.usda"),)
+        candidates = [(None, _make_prim("/RootNode/meshes/mesh_A"), ["/RootNode/meshes/mesh_A"], owners, {})]
+
+        with (
+            mock.patch.object(core_module, "get_context", return_value=_make_context()),
+            mock.patch.object(core, "_get_material_candidates", return_value=[(inside, []), (outside, [])]),
+            mock.patch.object(core, "_capture_texture_targets", return_value=()) as capture,
+            mock.patch.object(core_module, "add_asset_optimization_jobs"),
+            mock.patch.object(core, "_resolve_workflow_inputs", return_value=({}, (), None, False)),
+        ):
+            # Act
+            core._create_job_graphs_for_candidates(
+                candidates,
+                core._workflow,
+                core._workflow.output_specs[0],
+                "/project/project.usda",
+                "/project/mod.usda",
+                ("http", "127.0.0.1", 8188),
+                core._client_id,
+                stage=mock.MagicMock(),
+            )
+
+        # Assert
+        capture.assert_called_once_with([outside], core._workflow)
+
+    async def test_create_job_graphs_rejects_replace_without_mesh_input(self) -> None:
+        """Replace requires a mesh input before graph preparation starts."""
+        core = ComfyUICore("texturecraft")
+        core._workflow = Workflow(output_specs=[_mesh_output("99", apply_behavior=OutputApplyBehavior.REPLACE)])
+
+        with self.assertRaisesRegex(RuntimeError, "Replace needs a mesh input"):
+            await core._create_job_graphs(["/World/Asset"])
+
+    async def test_create_job_graphs_rejects_replace_with_constant_mesh_input(self) -> None:
+        """Replace requires a mesh input that reads stage references, not a fixed file."""
+        core = ComfyUICore("texturecraft")
+        core._workflow = Workflow(
+            inputs=[
+                _workflow_input(
+                    "1.inputs.model",
+                    ConstantResolver(pathlib.Path(__file__)),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.MESH_FILE_PATH,
+                )
+            ],
+            output_specs=[_mesh_output("99", apply_behavior=OutputApplyBehavior.REPLACE)],
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "reads stage references"):
+            await core._create_job_graphs(["/World/Asset"])
+
+    async def test_get_mesh_candidates_rejects_more_than_one_mesh_input(self) -> None:
+        """Asset preparation rejects workflows that bind more than one source mesh."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        workflow = Workflow(
+            inputs=[
+                _workflow_input(
+                    "1.inputs.model",
+                    SelectedMeshResolver(context_name="texturecraft"),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.MESH_FILE_PATH,
+                ),
+                _workflow_input(
+                    "2.inputs.model",
+                    SelectedMeshResolver(context_name="texturecraft"),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.MESH_FILE_PATH,
+                ),
+            ]
+        )
+
+        # Act
+        with self.assertRaisesRegex(ResolverConfigurationError, "at most one mesh input"):
+            core._get_mesh_candidates(
+                mock.MagicMock(),
+                ["/World/Asset"],
+                workflow,
+            )
+
+    async def test_get_mesh_candidates_stops_reference_discovery_when_cancelled(self) -> None:
+        """Cancellation stops selected-mesh discovery before the next prim's references are read."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        workflow = Workflow(
+            inputs=[
+                _workflow_input(
+                    "1.inputs.model",
+                    SelectedMeshResolver(context_name="texturecraft", reference_selection=MeshReferenceSelection.ALL),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.MESH_FILE_PATH,
+                )
+            ]
+        )
+        cancelled = iter((False, True))
+        with mock.patch.object(
+            core_module.AssetReplacementsValidators, "get_prim_references", return_value=(_make_prim("/World/A"), [])
+        ) as get_references:
+            # Act
+            candidates = core._get_mesh_candidates(
+                mock.MagicMock(), ["/World/A", "/World/B", "/World/C"], workflow, is_cancelled=lambda: next(cancelled)
+            )
+
+        # Assert
+        self.assertEqual(candidates, [])
+        get_references.assert_called_once_with("/World/A", "texturecraft", stage=mock.ANY, ancestor_cache={})
+
     async def test_capture_texture_targets_rejects_inconsistent_texture_maps(self) -> None:
         """A missing shader-input mapping is reported as an unsupported workflow output."""
         # Arrange
         core = ComfyUICore("texturecraft")
-        workflow = Workflow(output_specs=[WorkflowOutput("99", "albedo")])
+        workflow = Workflow(output_specs=[_texture_output("99")])
         material = _make_material("/World/Looks/Wall")
 
         with mock.patch.dict("lightspeed.trex.comfyui.core.core.TEXTURE_TYPE_INPUT_MAP", {}, clear=True):
             # Act
             with self.assertRaisesRegex(ValueError, "unsupported texture type: albedo"):
-                core._capture_texture_targets(material, workflow)
+                core._capture_texture_targets([material], workflow)
 
     async def test_stage_prim_paths_collects_meshes_subsets_and_materials(self) -> None:
         """Stage-expanding submissions seed candidates from every mesh, subset, and material prim."""
@@ -667,25 +1270,41 @@ class TestComfyUICore(AsyncTestCase):
         # Assert
         self.assertEqual(paths, ["/World/Mesh", "/World/Mesh/Subset", "/World/Looks/Material"])
 
-    async def test_create_job_graphs_expands_candidates_to_all_stage_materials(self) -> None:
-        """Selecting a stage-expanding getter submits one job per stage material, not the selection."""
+    async def test_create_job_graphs_uses_texture_outputs_when_workflow_type_names_an_asset(self) -> None:
+        """Texture outputs select the texture lane even when picker metadata names an asset workflow."""
         # Arrange
         core = ComfyUICore("texturecraft")
         resolver = AllStageTexturesResolver(context_name="texturecraft")
-        core._workflow = Workflow(name="Upscale", inputs=[_workflow_input("node.inputs.image", resolver)])
+        core._workflow = Workflow(
+            name="Upscale",
+            workflow_type=WorkflowType.ASSET_GENERATION,
+            inputs=[
+                _workflow_input(
+                    "node.inputs.image",
+                    resolver,
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                )
+            ],
+            output_specs=[_texture_output("99")],
+        )
         graph = mock.MagicMock()
         context = _make_context()
         stage = context.get_stage.return_value
         context.get_selection.return_value.get_selected_prim_paths.return_value = ["/World/Selected"]
         workflow = core._workflow
+        run_worker = mock.AsyncMock(side_effect=lambda worker, **_kwargs: worker(mock.MagicMock()))
 
         with (
             mock.patch.object(core, "_get_submission_target", return_value=(stage, "/root.usda", "/edit.usda")),
-            mock.patch("lightspeed.trex.comfyui.core.core.get_context", return_value=context),
+            mock.patch.object(core_module, "get_context", return_value=context),
+            mock.patch.object(core_module, "run_worker_with_latest_progress", run_worker),
             mock.patch.object(
                 core, "_stage_expansion_prim_paths", return_value=["/World/A", "/World/B"]
             ) as stage_paths,
-            mock.patch.object(core, "_get_material_candidates", return_value=[("material", [])]) as material_candidates,
+            mock.patch.object(
+                core, "_get_material_candidates", return_value=[(_make_material("/World/Looks/Material"), [])]
+            ) as material_candidates,
             mock.patch.object(core, "_create_job_graphs_for_candidates", return_value=[graph]) as create_graphs,
         ):
             # Act
@@ -699,34 +1318,112 @@ class TestComfyUICore(AsyncTestCase):
             is_cancelled=None,
         )
         material_candidates.assert_called_once_with(["/World/A", "/World/B"])
+        create_graphs.assert_called_once()
+        self.assertIsNone(create_graphs.call_args.args[2])
         workflow_snapshot = create_graphs.call_args.args[1]
         self.assertIsNot(workflow_snapshot, workflow)
-        self.assertEqual(workflow_snapshot, workflow)
+        self.assertIs(workflow_snapshot.workflow_type, WorkflowType.ASSET_GENERATION)
+        self.assertEqual(
+            [output.remix_type for output in workflow_snapshot.output_specs],
+            [RemixType.TEXTURE_FILE_PATH],
+        )
         self.assertEqual(graphs, [graph])
 
-    async def test_create_job_graphs_keeps_selection_without_stage_expanding_getter(self) -> None:
-        """Without a stage-expanding getter the submission stays scoped to the selection."""
+    async def test_all_constant_texture_inputs_ignore_selected_material_targets(self) -> None:
+        """All Constant texture sources create one metadata-only graph despite stage selection."""
         # Arrange
         core = ComfyUICore("texturecraft")
-        core._workflow = Workflow(name="Upscale")
-        graph = mock.MagicMock()
+        core._workflow = Workflow(
+            name="Constant",
+            api={"1": {"inputs": {"image": ""}}},
+            inputs=[
+                _workflow_input(
+                    "1.inputs.image",
+                    ConstantResolver(pathlib.Path(__file__)),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                )
+            ],
+            output_specs=[_texture_output("99")],
+        )
         context = _make_context()
         stage = context.get_stage.return_value
-        context.get_selection.return_value.get_selected_prim_paths.return_value = ["/World/Selected"]
+        context.get_selection.return_value.get_selected_prim_paths.return_value = ["/World/SelectedMaterial"]
+        run_worker = mock.AsyncMock(side_effect=lambda worker, **_kwargs: worker(mock.MagicMock()))
 
         with (
             mock.patch.object(core, "_get_submission_target", return_value=(stage, "/root.usda", "/edit.usda")),
-            mock.patch("lightspeed.trex.comfyui.core.core.get_context", return_value=context),
-            mock.patch.object(core, "_stage_expansion_prim_paths") as stage_paths,
-            mock.patch.object(core, "_get_material_candidates", return_value=[("material", [])]) as material_candidates,
-            mock.patch.object(core, "_create_job_graphs_for_candidates", return_value=[graph]),
+            mock.patch.object(core_module, "get_context", return_value=context),
+            mock.patch.object(core_module, "run_worker_with_latest_progress", run_worker),
+            mock.patch.object(core, "_get_material_candidates") as material_candidates,
         ):
             # Act
-            await core._create_job_graphs()
+            graph = (await core._create_job_graphs())[0]
 
         # Assert
-        stage_paths.assert_not_called()
-        material_candidates.assert_called_once_with(["/World/Selected"])
+        material_candidates.assert_not_called()
+        self.assertEqual([type(job) for job in graph.jobs], [ComfyUIJob, TextureOptimizationJob])
+        self.assertIs(graph.jobs[-1].apply_binding.handler_type, SaveTextureMetadataHandler)
+        self.assertIsNone(graph.jobs[-1].apply_binding.target)
+
+    async def test_constant_texture_is_auxiliary_to_selected_texture_candidate(self) -> None:
+        """A Constant input does not suppress Apply when another texture getter supplies stage owners."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        core._workflow = Workflow(
+            inputs=[
+                _workflow_input(
+                    "1.inputs.selected",
+                    SelectedTextureResolver(context_name="texturecraft"),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                ),
+                _workflow_input(
+                    "1.inputs.constant",
+                    ConstantResolver(pathlib.Path(__file__)),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                ),
+            ],
+            output_specs=[_texture_output("99")],
+        )
+        context = _make_context()
+        stage = context.get_stage.return_value
+        selected_paths = ["/World/Selected"]
+        context.get_selection.return_value.get_selected_prim_paths.return_value = selected_paths
+        material = _make_material("/World/Looks/Material")
+        graph = mock.MagicMock()
+        run_worker = mock.AsyncMock(side_effect=lambda worker, **_kwargs: worker(mock.MagicMock()))
+
+        with (
+            mock.patch.object(core, "_get_submission_target", return_value=(stage, "/root.usda", "/edit.usda")),
+            mock.patch.object(core_module, "get_context", return_value=context),
+            mock.patch.object(core_module, "run_worker_with_latest_progress", run_worker),
+            mock.patch.object(
+                core, "_get_material_candidates", return_value=[(material, ["/World/Owner"])]
+            ) as material_candidates,
+            mock.patch.object(core, "_create_job_graphs_for_candidates", return_value=[graph]) as create_graphs,
+        ):
+            # Act
+            graphs = await core._create_job_graphs()
+
+        # Assert
+        material_candidates.assert_called_once_with(selected_paths)
+        self.assertEqual(
+            create_graphs.call_args.args[0],
+            [(material, material.GetPrim.return_value, ["/World/Owner"], (), {})],
+        )
+        self.assertEqual(graphs, [graph])
+
+    async def test_create_job_graphs_rejects_more_than_one_mesh_output(self) -> None:
+        """Output routing rejects an ambiguous asset lane before stage inspection."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        core._workflow = Workflow(output_specs=[_mesh_output("99"), _mesh_output("100")])
+
+        # Act
+        with self.assertRaisesRegex(RuntimeError, "exactly one mesh output"):
+            await core._create_job_graphs()
 
     async def test_create_graphs_stage_expansion_resolves_each_material_once_and_filters_by_value(self) -> None:
         """Stage expansion filters the single resolved value without repeating material resolution."""
@@ -755,16 +1452,9 @@ class TestComfyUICore(AsyncTestCase):
                 "lightspeed.trex.comfyui.core.resolvers.textures.all_stage.is_texture_from_capture",
                 side_effect=(True, False),
             ),
-            mock.patch.object(core, "_capture_texture_targets", return_value={}),
+            mock.patch.object(core, "_capture_texture_targets", return_value=()),
         ):
-            graphs = core._create_job_graphs_for_candidates(
-                [(kept_material, ["/World/A"]), (dropped_material, ["/World/B"])],
-                core._workflow,
-                "/project/project.usda",
-                "/project/mod.usda",
-                ("http", "127.0.0.1", 8188),
-                core._client_id,
-            )
+            graphs = _build_texture_graphs(core, [(kept_material, ["/World/A"]), (dropped_material, ["/World/B"])])
 
         # Assert
         self.assertEqual(resolve.call_count, 2)
@@ -794,7 +1484,7 @@ class TestComfyUICore(AsyncTestCase):
         """Every workflow output captures one stable shader input or skips the material."""
         # Arrange
         core = ComfyUICore("texturecraft")
-        core._workflow = Workflow(output_specs=[WorkflowOutput("99", "albedo")])
+        core._workflow = Workflow(output_specs=[_texture_output("99")])
         material = _make_material("/World/Looks/Wall")
         replacements_core = mock.MagicMock()
         cases = (
@@ -817,7 +1507,7 @@ class TestComfyUICore(AsyncTestCase):
                 ):
                     # Act
                     with self.assertRaises(ValueError) as error_context:
-                        core._capture_texture_targets(material, core._workflow)
+                        core._capture_texture_targets([material], core._workflow)
 
                 # Assert
                 self.assertEqual(str(error_context.exception), message)
@@ -1530,27 +2220,6 @@ class TestComfyUICore(AsyncTestCase):
         self.assertIs(resolved, request)
         queue.resolve_job_inputs.assert_called_once_with(job.job_id)
 
-    async def test_retarget_job_persists_copy_only_for_expected_connection(self) -> None:
-        """Core atomically retargets a queued copy against the expected connection."""
-        # Arrange
-        core = ComfyUICore("texturecraft")
-        job = ComfyUIJob(context_name="texturecraft", scheme="http", host="old.example", port=8188)
-        endpoint = ("https", "new.example", 443)
-        set_connected_endpoint("texturecraft", endpoint)
-        queue = mock.MagicMock()
-        queue.try_update_queued_job.return_value = True
-
-        with mock.patch("lightspeed.trex.comfyui.core.core.get_job_queue", return_value=queue):
-            # Act
-            result = core.retarget_job(job, endpoint)
-
-        # Assert
-        self.assertIs(result, ComfyUIRetargetResult.UPDATED)
-        updated_job = queue.try_update_queued_job.call_args.args[0]
-        self.assertIsNot(updated_job, job)
-        self.assertEqual((updated_job.scheme, updated_job.host, updated_job.port), endpoint)
-        self.assertEqual((job.scheme, job.host, job.port), ("http", "old.example", 8188))
-
     async def test_get_retarget_state_returns_queue_and_endpoint_state_for_rendering(self) -> None:
         """Core returns the domain state needed to render the Retarget action."""
         # Arrange
@@ -1611,29 +2280,28 @@ class TestComfyUICore(AsyncTestCase):
         self.assertEqual(extension._instances, {})
         self.assertFalse(extension._started)
 
-    async def test_extension_registers_fixed_plugins_codecs_and_apply_handler(self) -> None:
-        """Extension startup registers exact resolver plugins, persistence codecs, and Apply handler."""
+    async def test_destroy_releases_context_stage_subscription(self) -> None:
+        """A destroyed core no longer retains its stage event subscription."""
+
         # Arrange
-        registry = mock.MagicMock()
-        resolver_factory = mock.MagicMock()
-        event_manager = mock.MagicMock()
+        class Subscription:
+            pass
+
+        subscription = Subscription()
+        subscription_ref = weakref.ref(subscription)
+        context = mock.MagicMock()
+        subscribe = context.get_stage_event_stream.return_value.create_subscription_to_pop
+        subscribe.return_value = subscription
+        with mock.patch.object(core_module, "get_context", return_value=context):
+            core = ComfyUICore("texturecraft", stage_event_callback=mock.Mock())
+        subscribe.return_value = None
+        del subscription
 
         # Act
-        with (
-            mock.patch.object(extension.handlers, "register_plugins") as register_plugins,
-            mock.patch.object(extension, "get_registry", return_value=registry),
-            mock.patch.object(extension, "get_resolver_factory", return_value=resolver_factory),
-            mock.patch.object(extension, "_get_event_manager_instance", return_value=event_manager),
-        ):
-            extension.ComfyUICoreExtension().on_startup("lightspeed.trex.comfyui.core")
+        core.destroy()
 
         # Assert
-        resolver_factory.register_plugins.assert_called_once_with(extension.RESOLVER_PLUGINS)
-        registry.register_codecs.assert_called_once_with(extension.COMFYUI_CODECS)
-        register_plugins.assert_called_once_with([ComfyUIJobApplyHandler])
-        event_manager.register_global_custom_event.assert_called_once_with(extension.COMFYUI_EVENT_NAME)
-        self.assertFalse(extension._shutting_down)
-        self.assertTrue(extension._started)
+        self.assertIsNone(subscription_ref())
 
     async def test_extension_lifecycle_is_idempotent(self) -> None:
         """Repeated startup and shutdown retain one exact registration owner."""
@@ -1657,8 +2325,10 @@ class TestComfyUICore(AsyncTestCase):
             core_extension.on_shutdown()
 
         # Assert
-        register_handlers.assert_called_once_with([ComfyUIJobApplyHandler])
-        unregister_handlers.assert_called_once_with([ComfyUIJobApplyHandler])
+        register_handlers.assert_called_once_with(extension.ComfyUICoreExtension._PLUGINS)
+        unregister_handlers.assert_called_once_with(extension.ComfyUICoreExtension._PLUGINS)
+        self._register_commands.assert_called_once_with(extension.commands)
+        self._unregister_commands.assert_called_once_with(extension.commands)
         registry.register_codecs.assert_called_once_with(extension.COMFYUI_CODECS)
         registry.unregister_codecs.assert_not_called()
         self.assertFalse(extension._started)
@@ -1678,17 +2348,7 @@ class TestComfyUICore(AsyncTestCase):
         graph = JobGraph(name="Material generation")
         graph.add_job(generation_job)
         graph.bind(generation_job, ComfyUIJob.WORKFLOW_REQUEST, workflow_request)
-        generation_output = TextureProcessingRequest(
-            items=(
-                TextureProcessingItem(
-                    key="albedo",
-                    path=pathlib.Path("C:/queue/albedo.png"),
-                    texture_type=TextureTypes.DIFFUSE,
-                ),
-            ),
-            source_root=pathlib.Path("C:/queue"),
-            output_url=None,
-        )
+        generation_output = TextureOptimizationRequest(items=(), source_root=pathlib.Path("C:/queue"), output_url=None)
         extension._started = True
         set_connected_endpoint("texturecraft", ("http", "127.0.0.1", 8188))
 
@@ -1709,7 +2369,11 @@ class TestComfyUICore(AsyncTestCase):
             # Finish through the real queue persistence boundary after product shutdown.
             completed = interface.complete_job(
                 generation_job.job_id,
-                JobOutputs({ComfyUIJob.GENERATED_TEXTURES: generation_output}),
+                JobOutputs(
+                    {
+                        ComfyUIJob.GENERATED_TEXTURES: generation_output,
+                    }
+                ),
             )
             snapshot = interface.get_job_snapshot(generation_job.job_id)
 
@@ -1717,16 +2381,37 @@ class TestComfyUICore(AsyncTestCase):
         self.assertTrue(completed)
         self.assertEqual(snapshot.state, JobState.DONE)
 
-    async def test_opening_a_stage_reconciles_only_pending_comfyui_apply_work(self) -> None:
-        """Opening a project wakes exact ComfyUI Apply bindings that may now match their captured stage."""
+    async def test_opening_a_stage_reconciles_only_matching_context_apply_work(self) -> None:
+        """Opening one context wakes only Apply bindings that target that context."""
         # Arrange
-        comfy_job_id = mock.sentinel.comfy_job_id
-        other_job_id = mock.sentinel.other_job_id
+        texture_job_id = mock.sentinel.texture_job_id
+        asset_job_id = mock.sentinel.asset_job_id
+        metadata_job_id = mock.sentinel.metadata_job_id
         queue = mock.MagicMock()
         queue.iter_snapshot.return_value = [
-            mock.MagicMock(job_id=comfy_job_id, apply_handler_id=ComfyUIJobApplyHandler.name),
-            mock.MagicMock(job_id=other_job_id, apply_handler_id="OtherHandler"),
+            mock.MagicMock(job_id=texture_job_id, apply_handler_id="ComfyUIJobApplyHandler"),
+            mock.MagicMock(job_id=asset_job_id, apply_handler_id=ComfyUIAssetApplyHandler.name),
+            mock.MagicMock(job_id=metadata_job_id, apply_handler_id=SaveTextureMetadataHandler.name),
         ]
+        texture_target = ComfyUIApplyTarget(
+            context_name="texturecraft",
+            project_path="/project/project.usda",
+            edit_target_layer="/project/mod.usda",
+            material_path="/World/Looks/Material",
+            texture_targets=(),
+        )
+        asset_target = ComfyUIAssetApplyTarget(
+            context_name="ingestcraft",
+            project_path="/project/project.usda",
+            edit_target_layer="/project/mod.usda",
+            reference_targets=(),
+            texture_targets=(),
+            mesh_apply_behavior=OutputApplyBehavior.APPEND,
+        )
+        queue.get_job.side_effect = (
+            mock.MagicMock(apply_binding=mock.MagicMock(target=texture_target)),
+            mock.MagicMock(apply_binding=mock.MagicMock(target=asset_target)),
+        )
         executor = mock.MagicMock()
 
         with (
@@ -1734,11 +2419,55 @@ class TestComfyUICore(AsyncTestCase):
             mock.patch.object(extension.handlers, "get_apply_executor", return_value=executor),
         ):
             # Act
-            extension.ComfyUICoreExtension()._on_stage_event(mock.MagicMock(type=int(usd.StageEventType.OPENED)))
+            extension.ComfyUICoreExtension().on_stage_event(
+                "texturecraft", mock.MagicMock(type=int(usd.StageEventType.OPENED))
+            )
 
         # Assert
         queue.notify_schedule_conditions_changed.assert_called_once_with()
-        executor.request_reconcile.assert_called_once_with(comfy_job_id)
+        executor.request_reconcile.assert_called_once_with(texture_job_id)
+
+    async def test_opening_a_stage_skips_unreadable_and_unbound_jobs_and_reconciles_later_valid_job(self) -> None:
+        """One unreadable, unbound, or foreign-target job does not stop reconciliation of a later valid job."""
+        # Arrange
+        valid_job_id = mock.sentinel.valid_job_id
+        queue = mock.MagicMock()
+        queue.iter_snapshot.return_value = [
+            mock.MagicMock(job_id=mock.sentinel.missing_job_id, apply_handler_id=ComfyUITextureApplyHandler.name),
+            mock.MagicMock(job_id=mock.sentinel.unavailable_job_id, apply_handler_id=ComfyUITextureApplyHandler.name),
+            mock.MagicMock(job_id=mock.sentinel.unbound_job_id, apply_handler_id=ComfyUITextureApplyHandler.name),
+            mock.MagicMock(job_id=mock.sentinel.foreign_job_id, apply_handler_id=ComfyUITextureApplyHandler.name),
+            mock.MagicMock(job_id=valid_job_id, apply_handler_id=ComfyUITextureApplyHandler.name),
+        ]
+        texture_target = ComfyUIApplyTarget(
+            context_name="texturecraft",
+            project_path="/project/project.usda",
+            edit_target_layer="/project/mod.usda",
+            material_path="/World/Looks/Material",
+            texture_targets=(),
+        )
+        queue.get_job.side_effect = (
+            KeyError("missing"),
+            TypeError("unavailable persisted type"),
+            mock.MagicMock(apply_binding=None),
+            mock.MagicMock(apply_binding=mock.MagicMock(target=mock.MagicMock(context_name="texturecraft"))),
+            mock.MagicMock(apply_binding=mock.MagicMock(target=texture_target)),
+        )
+        executor = mock.MagicMock()
+
+        with (
+            mock.patch.object(extension, "get_job_queue", return_value=queue),
+            mock.patch.object(extension.handlers, "get_apply_executor", return_value=executor),
+            mock.patch.object(extension.carb, "log_warn") as log_warn,
+        ):
+            # Act
+            extension.ComfyUICoreExtension().on_stage_event(
+                "texturecraft", mock.MagicMock(type=int(usd.StageEventType.OPENED))
+            )
+
+        # Assert
+        executor.request_reconcile.assert_called_once_with(valid_job_id)
+        self.assertEqual(log_warn.call_count, 2)
 
     async def test_closed_stage_refreshes_apply_availability_without_reconciling(self) -> None:
         """A fully closed project disables stale Apply actions without starting work."""
@@ -1750,7 +2479,9 @@ class TestComfyUICore(AsyncTestCase):
             mock.patch.object(extension.handlers, "get_apply_executor") as get_apply_executor,
         ):
             # Act
-            extension.ComfyUICoreExtension()._on_stage_event(mock.MagicMock(type=int(usd.StageEventType.CLOSED)))
+            extension.ComfyUICoreExtension().on_stage_event(
+                "texturecraft", mock.MagicMock(type=int(usd.StageEventType.CLOSED))
+            )
 
         # Assert
         queue.notify_schedule_conditions_changed.assert_called_once_with()
@@ -1900,8 +2631,8 @@ class TestComfyUICore(AsyncTestCase):
 
         # Assert
         self.assertIs(error_context.exception, registration_error)
-        register_handlers.assert_called_once_with([ComfyUIJobApplyHandler])
-        unregister_handlers.assert_called_once_with([ComfyUIJobApplyHandler])
+        register_handlers.assert_called_once_with(extension.ComfyUICoreExtension._PLUGINS)
+        unregister_handlers.assert_called_once_with(extension.ComfyUICoreExtension._PLUGINS)
         registry.unregister_codecs.assert_called_once_with(extension.COMFYUI_CODECS)
         resolver_factory.unregister_plugins.assert_called_once_with(extension.RESOLVER_PLUGINS)
         event_manager.unregister_global_custom_event.assert_not_called()
@@ -1933,7 +2664,7 @@ class TestComfyUICore(AsyncTestCase):
             extension.ComfyUICoreExtension().on_shutdown()
 
         # Assert
-        unregister_plugins.assert_called_once_with([ComfyUIJobApplyHandler])
+        unregister_plugins.assert_called_once_with(extension.ComfyUICoreExtension._PLUGINS)
         resolver_factory.unregister_plugins.assert_called_once_with(extension.RESOLVER_PLUGINS)
         event_manager.unregister_global_custom_event.assert_called_once_with(extension.COMFYUI_EVENT_NAME)
         instance.destroy.assert_called_once_with()

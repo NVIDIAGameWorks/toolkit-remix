@@ -1016,6 +1016,7 @@ class Setup:
         remove_if_remix_ref: bool = True,
         create_if_remix_ref: bool = True,
         use_undo_group: bool = True,
+        preserve_other_references: bool = False,
     ) -> tuple[Sdf.Reference, str]:
         """Remove one authored reference and add a replacement reference.
 
@@ -1030,6 +1031,7 @@ class Setup:
             create_if_remix_ref: Whether replacement references on Remix reference prims should be authored on a new child.
             use_undo_group: Whether to wrap the remove and add operations in one undo group. Disable this when the caller
                 already owns the outer undo group.
+            preserve_other_references: Whether to preserve the owner and all references except the selected reference.
 
         Returns:
             The replacement reference and the prim path where it was authored.
@@ -1039,7 +1041,12 @@ class Setup:
                 or adding the replacement reference.
         """
         with omni.kit.undo.group() if use_undo_group else nullcontext():
-            self.remove_reference(stage, prim_path, current_ref, current_layer, remove_if_remix_ref=remove_if_remix_ref)
+            if preserve_other_references:
+                self.remove_selected_reference(stage, prim_path, current_ref, current_layer)
+            else:
+                self.remove_reference(
+                    stage, prim_path, current_ref, current_layer, remove_if_remix_ref=remove_if_remix_ref
+                )
             ref_prim_path = self.get_reference_prim_path_from_asset_path(
                 asset_path, current_layer, edit_target_layer, current_ref
             )
@@ -1379,6 +1386,24 @@ class Setup:
     def __has_reference(layer: Sdf.Layer, prim_path: Sdf.Path, reference: Sdf.Reference) -> bool:
         prim_spec = layer.GetPrimAtPath(prim_path)
         return bool(prim_spec and prim_spec.hasReferences and prim_spec.referenceList.ContainsItemEdit(reference))
+
+    def remove_selected_reference(
+        self, stage: Usd.Stage, prim_path: Sdf.Path, ref: Sdf.Reference, intro_layer: Sdf.Layer
+    ) -> None:
+        """Remove only the selected reference. Preserve the owner, its children, and unrelated references."""
+        edit_target_layer = stage.GetEditTarget().GetLayer()
+        references = [
+            self.__anchor_reference_asset_path_to_layer(reference, layer, edit_target_layer)
+            for reference, layer in omni.usd.get_composed_references_from_prim(stage.GetPrimAtPath(prim_path))
+            if (reference, layer) != (ref, intro_layer)
+        ]
+        omni.kit.commands.execute(
+            "SetExplicitReferencesCommand",
+            stage=stage,
+            prim_path=str(prim_path),
+            reference=ref,
+            to_set=references,
+        )
 
     def remove_reference(
         self,

@@ -6,7 +6,7 @@
 * you may not use this file except in compliance with the License.
 * You may obtain a copy of the License at
 *
-* http://www.apache.org/licenses/LICENSE-2.0
+* https://www.apache.org/licenses/LICENSE-2.0
 *
 * Unless required by applicable law or agreed to in writing, software
 * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,15 +21,21 @@ from copy import deepcopy
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from lightspeed.trex.comfyui.core.core import ComfyUISubmission, ComfyUISubmissionResult
-from lightspeed.trex.comfyui.core.enums import ComfyUIEventType, ComfyUIState, WorkflowCategory, WorkflowSourceType
+from lightspeed.trex.comfyui.core.enums import (
+    ComfyUIEventType,
+    ComfyUIState,
+    RemixType,
+    WorkflowCategory,
+    WorkflowSourceType,
+)
 from lightspeed.trex.comfyui.core.events import ComfyUIEventPayload
 from lightspeed.trex.comfyui.core.job import ComfyUIJob
-from lightspeed.trex.comfyui.core.models import ComfyUIWorkflowRequest, Workflow, WorkflowInput
+from lightspeed.trex.comfyui.core.models import ComfyUIWorkflowRequest, Workflow, WorkflowInput, WorkflowOutput
 from lightspeed.trex.comfyui.core.preset import Preset
 from lightspeed.trex.comfyui.core.resolvers import ConstantResolver, ResolverConfigurationError
-from lightspeed.trex.comfyui.widget.display_adapter import ComfyUIDisplayAdapter
-from lightspeed.trex.comfyui.widget.workflow.items import InputItemGroup
-from lightspeed.trex.comfyui.widget.workflow.widget import WorkflowSetupWidget
+from ...display_adapter import ComfyUIDisplayAdapter
+from ...workflow.items import InputItemGroup, OutputItemGroup
+from ...workflow.widget import WorkflowSetupWidget
 from omni import usd
 from omni.flux.job_queue.widget.display_adapter_base import JobAction
 from omni.kit.test import AsyncTestCase
@@ -143,19 +149,48 @@ def _make_bare_widget(core=None) -> WorkflowSetupWidget:
 class TestWorkflowSetupWidgetUnit(AsyncTestCase):
     """Test workflow-widget branching without constructing rendered controls."""
 
-    async def test_create_input_items_sorts_groups_and_passes_context(self):
-        """Input items are grouped in display order with the widget context."""
-        # Arrange
+    async def test_create_workflow_items_sorts_inputs_and_outputs(self):
+        """Workflow items group inputs and outputs by their own group orders and sort each group by order."""
+        # Arrange: inputs order groups by group_order ["Material"]; outputs by output_group_order ["Textures"],
+        # so the output group "Material" is undeclared for outputs and sorts after "Textures".
         workflow = _make_workflow()
+        workflow.output_group_order = ["Textures"]
+        workflow.output_specs = [
+            WorkflowOutput(
+                node_id="21", remix_type=RemixType.TEXTURE_FILE_PATH, order=2, texture_type="albedo", group="Textures"
+            ),
+            WorkflowOutput(node_id="20", remix_type=RemixType.MESH_FILE_PATH, order=1),
+            WorkflowOutput(
+                node_id="22",
+                remix_type=RemixType.TEXTURE_FILE_PATH,
+                order=1,
+                texture_type="roughness",
+                group="Textures",
+            ),
+            WorkflowOutput(
+                node_id="23", remix_type=RemixType.TEXTURE_FILE_PATH, texture_type="height", group="Material"
+            ),
+        ]
         widget = _make_bare_widget(_make_core(workflow))
 
         # Act
-        items = widget._create_input_items(workflow)
+        input_items = widget._create_input_items(workflow)
+        output_items = widget._create_output_items(workflow)
 
         # Assert
-        self.assertEqual([item.name_models[0].get_value_as_string() for item in items], ["Ungrouped", "Material"])
-        self.assertTrue(items[0].expanded)
-        self.assertEqual(items[0].children[0].workflow_input.label, "Enabled")
+        self.assertEqual(
+            [item.name_models[0].get_value_as_string() for item in input_items],
+            ["Ungrouped", "Material"],
+        )
+        self.assertTrue(input_items[0].expanded)
+        self.assertEqual(input_items[0].children[0].workflow_input.label, "Enabled")
+        self.assertEqual(
+            [item.name_models[0].get_value_as_string() for item in output_items], ["Ungrouped", "Textures", "Material"]
+        )
+        self.assertEqual(
+            [[child.workflow_output.node_id for child in item.children] for item in output_items],
+            [["20"], ["22", "21"], ["23"]],
+        )
         self.assertEqual(len(widget._getter_subscriptions), 2)
 
     async def test_project_requirement_disables_only_new_graph_submission(self) -> None:
@@ -263,66 +298,102 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         self.assertIsNone(items[0].data)
         show_workflow.assert_called_once_with(True)
 
-    async def test_selection_change_selects_matching_input(self):
-        """Selecting an input group stores its sorted workflow index."""
+    async def test_selection_change_selects_matching_output(self):
+        """Selecting an output group stores that group as the active item."""
         # Arrange
         workflow = _make_workflow()
+        workflow_output = WorkflowOutput(
+            node_id="20",
+            remix_type=RemixType.TEXTURE_FILE_PATH,
+            texture_type="albedo",
+        )
+        workflow.output_specs = [workflow_output]
         widget = _make_bare_widget(_make_core(workflow))
-        selected = InputItemGroup(workflow.inputs[0])
+        selected = OutputItemGroup(workflow_output)
         widget._rebuild_properties_panel = MagicMock()
 
         # Act
-        widget._on_input_selection_changed([selected])
+        widget._on_item_selection_changed([selected])
 
         # Assert
-        self.assertEqual(widget._selected_input_index, 1)
+        self.assertIs(widget._selected_item, selected)
         widget._rebuild_properties_panel.assert_called_once_with()
 
-    async def test_selection_change_clears_stale_input(self):
-        """Selecting an input absent from the workflow clears stale detail state."""
-        # Arrange
-        workflow = _make_workflow()
-        widget = _make_bare_widget(_make_core(workflow))
-        stale = InputItemGroup(_make_input("Stale", 1))
-        widget._selected_input_index = 1
-        widget._rebuild_properties_panel = MagicMock()
+    async def test_selection_change_clears_stale_item(self):
+        """Selecting an input or output absent from the active workflow clears stale detail state."""
+        stale_output = WorkflowOutput(node_id="99", remix_type=RemixType.TEXTURE_FILE_PATH, texture_type="albedo")
+        for title, stale in (
+            ("input", InputItemGroup(_make_input("Stale", 1))),
+            ("output", OutputItemGroup(stale_output)),
+        ):
+            with self.subTest(title=title):
+                # Arrange
+                workflow = _make_workflow()
+                widget = _make_bare_widget(_make_core(workflow))
+                widget._selected_item = InputItemGroup(workflow.inputs[0])
+                widget._rebuild_properties_panel = MagicMock()
 
-        # Act
-        widget._on_input_selection_changed([stale])
+                # Act
+                widget._on_item_selection_changed([stale])
 
-        # Assert
-        self.assertIsNone(widget._selected_input_index)
-        widget._rebuild_properties_panel.assert_called_once_with()
+                # Assert
+                self.assertIsNone(widget._selected_item)
+                widget._rebuild_properties_panel.assert_called_once_with()
 
     async def test_selection_change_ignores_group(self):
-        """Selecting a container group clears the input detail selection."""
+        """Selecting a container group clears the item detail selection."""
         # Arrange
         workflow = _make_workflow()
         widget = _make_bare_widget(_make_core(workflow))
-        widget._selected_input_index = 0
+        widget._selected_item = InputItemGroup(workflow.inputs[0])
         widget._rebuild_properties_panel = MagicMock()
-
+        selected_items = [MagicMock()]
+        widget._inputs_property_widgets = [MagicMock(tree_view=MagicMock(selection=selected_items))]
         # Act
-        widget._on_input_selection_changed([MagicMock()])
+        widget._on_item_selection_changed(selected_items)
 
         # Assert
-        self.assertIsNone(widget._selected_input_index)
+        self.assertIsNone(widget._selected_item)
         widget._rebuild_properties_panel.assert_called_once_with()
 
     async def test_selection_change_ignores_empty_selection(self):
-        """Clearing the tree selection clears the input detail selection."""
+        """Clearing the tree selection clears the item detail selection."""
         # Arrange
         workflow = _make_workflow()
         widget = _make_bare_widget(_make_core(workflow))
-        widget._selected_input_index = 0
+        widget._selected_item = InputItemGroup(workflow.inputs[0])
         widget._rebuild_properties_panel = MagicMock()
 
         # Act
-        widget._on_input_selection_changed([])
+        widget._on_item_selection_changed([])
 
         # Assert
-        self.assertIsNone(widget._selected_input_index)
+        self.assertIsNone(widget._selected_item)
         widget._rebuild_properties_panel.assert_called_once_with()
+
+    async def test_selection_change_preserves_other_tree_details(self):
+        """A cleared tree does not clear details for a row selected in another tree."""
+        for title, selected_items in (("cleared tree", []), ("group row in this tree", [MagicMock()])):
+            with self.subTest(title=title):
+                # Arrange
+                workflow = _make_workflow()
+                widget = _make_bare_widget(_make_core(workflow))
+                selected = InputItemGroup(workflow.inputs[0])
+                widget._selected_item = selected
+                widget._rebuild_properties_panel = MagicMock()
+                other_tree = MagicMock(selection=[selected])
+                widget._inputs_property_widgets = [
+                    MagicMock(tree_view=MagicMock(selection=selected_items)),
+                    MagicMock(tree_view=other_tree),
+                ]
+
+                # Act
+                widget._on_item_selection_changed(selected_items)
+
+                # Assert
+                self.assertIs(widget._selected_item, selected)
+                self.assertEqual(other_tree.selection, [selected])
+                widget._rebuild_properties_panel.assert_not_called()
 
     async def test_getter_change_rebuilds_only_selected_input(self):
         """A resolver change rebuilds details only for the selected input."""
@@ -330,7 +401,7 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         workflow = _make_workflow()
         widget = _make_bare_widget(_make_core(workflow))
         group = InputItemGroup(workflow.inputs[0])
-        widget._selected_input_index = 1
+        widget._selected_item = group
         widget._rebuild_properties_panel = MagicMock()
 
         # Act
@@ -574,7 +645,7 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         workflow.presets = {"quality": preset}
         widget = _make_bare_widget(_make_core(workflow))
         widget._preset_names = ["quality"]
-        widget._selected_input_index = 1
+        widget._selected_item = MagicMock()
         widget._rebuild_inputs_property_widget = MagicMock()
         widget._rebuild_properties_panel = MagicMock()
         model = MagicMock()
@@ -586,7 +657,7 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         # Assert
         workflow.apply_preset.assert_called_once_with(preset)
         self.assertEqual(workflow.active_preset, "quality")
-        self.assertIsNone(widget._selected_input_index)
+        self.assertIsNone(widget._selected_item)
         widget._rebuild_inputs_property_widget.assert_called_once_with()
         widget._rebuild_properties_panel.assert_called_once_with()
 
@@ -600,7 +671,8 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         workflow.apply_preset.side_effect = TypeError("wrong value type")
         widget = _make_bare_widget(_make_core(workflow))
         widget._preset_names = ["broken"]
-        widget._selected_input_index = 1
+        selected_item = MagicMock()
+        widget._selected_item = selected_item
         widget._rebuild_inputs_property_widget = MagicMock()
         widget._rebuild_properties_panel = MagicMock()
         model = MagicMock()
@@ -615,7 +687,7 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
 
         # Assert
         self.assertEqual(workflow.active_preset, "current")
-        self.assertEqual(widget._selected_input_index, 1)
+        self.assertIs(widget._selected_item, selected_item)
         widget._rebuild_inputs_property_widget.assert_not_called()
         widget._rebuild_properties_panel.assert_not_called()
         self.assertEqual(dialog.call_args.args[1], "ComfyUI Preset Not Applied")
@@ -735,6 +807,37 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         ensure_future.assert_called_once_with(owner_coroutine)
         refresh_task.set_name.assert_called_once_with("ComfyUIWorkflowRefresh")
         self.assertIs(widget._workflow_refresh_task, refresh_task)
+
+    async def test_refresh_reloads_the_selected_workflow_from_the_refreshed_catalog(self):
+        """A re-exported workflow keeps its catalog identity, so refresh must reload its graph, not only the list."""
+        # Arrange
+        core = _make_core(_make_workflow())
+        core.fetch_available_workflows = AsyncMock()
+        widget = _make_bare_widget(core)
+
+        # Act
+        with patch.object(widget, "_schedule_workflow_load") as schedule_load:
+            await widget._refresh_workflows()
+
+        # Assert
+        core.fetch_available_workflows.assert_awaited_once_with()
+        schedule_load.assert_called_once_with(core.available_workflows[0])
+
+    async def test_refresh_does_not_reload_when_nothing_is_selected_or_the_workflow_left_the_catalog(self):
+        """No selection, or a selection the server no longer lists, leaves the current state alone."""
+        for title, workflow in (("no selection", None), ("removed from catalog", _make_workflow("Deleted"))):
+            with self.subTest(title=title):
+                # Arrange
+                core = _make_core(workflow)
+                core.fetch_available_workflows = AsyncMock()
+                widget = _make_bare_widget(core)
+
+                # Act
+                with patch.object(widget, "_schedule_workflow_load") as schedule_load:
+                    await widget._refresh_workflows()
+
+                # Assert
+                schedule_load.assert_not_called()
 
     async def test_submit_prepares_current_selection_when_enabled(self):
         """An enabled submit action retains one named owner task."""
@@ -1055,9 +1158,11 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         self.assertEqual(
             dialog.call_args.args,
             (
-                "2 prepared jobs were added to the queue.\n\n"
-                "1 prepared job was not added. To avoid duplicates, select only the failed material before "
-                "submitting again.",
+                (
+                    "2 prepared jobs were added to the queue.\n\n"
+                    "1 prepared job was not added. To avoid duplicates, select only the failed material before "
+                    "submitting again."
+                ),
                 "Some ComfyUI Jobs Not Submitted",
             ),
         )
@@ -1188,28 +1293,6 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         self.assertIsNone(widget._submit_task)
         self.assertFalse(widget._submission_confirmation_open)
 
-    async def test_workflow_change_resets_selection_and_rebuilds_all_sections(self):
-        """A workflow change clears selection and rebuilds every dependent section."""
-        # Arrange
-        widget = _make_bare_widget(_make_core(_make_workflow()))
-        widget._selected_input_index = 1
-        widget._update_workflow_combo = MagicMock()
-        widget._update_preset_combo = MagicMock()
-        widget._rebuild_inputs_property_widget = MagicMock()
-        widget._rebuild_properties_panel = MagicMock()
-        widget._update_submit_button_state = MagicMock()
-
-        # Act
-        widget._on_workflow_changed()
-
-        # Assert
-        self.assertIsNone(widget._selected_input_index)
-        widget._update_workflow_combo.assert_called_once_with()
-        widget._update_preset_combo.assert_called_once_with()
-        widget._rebuild_inputs_property_widget.assert_called_once_with()
-        widget._rebuild_properties_panel.assert_called_once_with()
-        widget._update_submit_button_state.assert_called_once_with()
-
     async def test_destroy_cancels_tasks_and_releases_widgets(self):
         """Destroy cancels retained work and clears owned widget references."""
         # Arrange
@@ -1217,7 +1300,10 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         tasks = [MagicMock(), MagicMock(), MagicMock()]
         widget._workflow_refresh_task, widget._workflow_load_task, widget._submit_task = tasks
         widget._event_subscription = MagicMock()
-        widget._inputs_property_widget = MagicMock()
+        inputs_widget = MagicMock()
+        widget._inputs_property_widgets = [inputs_widget]
+        section = MagicMock()
+        widget._item_sections = [section]
         widget._property_widget = MagicMock()
         widget._workflow_dropdown = MagicMock()
         widget._getter_subscriptions = [MagicMock()]
@@ -1232,6 +1318,9 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         self.assertIsNone(widget._workflow_load_task)
         self.assertIsNone(widget._submit_task)
         self.assertIsNone(widget._event_subscription)
-        self.assertIsNone(widget._inputs_property_widget)
+        inputs_widget.destroy.assert_called_once_with()
+        self.assertEqual(widget._inputs_property_widgets, [])
+        section.destroy.assert_called_once_with()
+        self.assertEqual(widget._item_sections, [])
         self.assertIsNone(widget._property_widget)
         self.assertIsNone(widget._workflow_dropdown)

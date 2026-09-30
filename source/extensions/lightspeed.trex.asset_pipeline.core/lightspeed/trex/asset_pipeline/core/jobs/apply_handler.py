@@ -39,9 +39,9 @@ from ..metadata import (
     write_metadata_for_paths,
 )
 from ..worker import run_in_worker_thread
-from .models import MeshOptimizationResult, TextureProcessingResult
+from .models import MeshOptimizationResult, TextureOptimizationResult
 
-_ResultT = TypeVar("_ResultT", TextureProcessingResult, MeshOptimizationResult)
+_ResultT = TypeVar("_ResultT", TextureOptimizationResult, MeshOptimizationResult)
 
 
 class _SaveMetadataHandler(ApplyHandler[_ResultT, None, MetadataApplyReceipt], Generic[_ResultT]):
@@ -127,24 +127,24 @@ class _SaveMetadataHandler(ApplyHandler[_ResultT, None, MetadataApplyReceipt], G
         await run_in_worker_thread(revert_metadata, receipt)
 
 
-class SaveTextureMetadataHandler(_SaveMetadataHandler[TextureProcessingResult]):
+class SaveTextureMetadataHandler(_SaveMetadataHandler[TextureOptimizationResult]):
     """Write deterministic metadata sidecars for a completed texture batch's outputs.
 
-    Bind this handler only on the terminal job of a graph (a standalone ``TextureProcessingJob``), never on a
-    ``TextureProcessingJob`` feeding a downstream ``MeshOptimizationJob``: applying textures before the mesh
+    Bind this handler only on the terminal job of a graph (a standalone ``TextureOptimizationJob``), never on a
+    ``TextureOptimizationJob`` feeding a downstream ``MeshOptimizationJob``: applying textures before the mesh
     completes would write metadata for outputs the mesh job's own Apply has not yet finished consuming.
     """
 
     name = "SaveTextureMetadataHandler"
-    input_type = TextureProcessingResult
+    input_type = TextureOptimizationResult
 
     @staticmethod
-    def _local_output_paths(value: TextureProcessingResult) -> list[pathlib.Path | str]:
+    def _local_output_paths(value: TextureOptimizationResult) -> list[pathlib.Path | str]:
         """Return all processed texture output URLs."""
         return [item.asset_url for item in value.items]
 
     @staticmethod
-    def _input_paths(value: TextureProcessingResult) -> list[pathlib.Path]:
+    def _input_paths(value: TextureOptimizationResult) -> list[pathlib.Path]:
         """Return the local source texture inputs."""
         return [item.source_path for item in value.items if is_local_url(str(item.source_path))]
 
@@ -153,8 +153,8 @@ class SaveMeshMetadataHandler(_SaveMetadataHandler[MeshOptimizationResult]):
     """Write deterministic metadata sidecars for a completed mesh's output and its processed textures.
 
     Bind this handler only on the terminal ``MeshOptimizationJob`` of a graph, not on the model graph's inner
-    ``TextureProcessingJob``: this handler is the single place metadata is written for a whole model graph, so
-    the mesh result carries the consumed ``TextureProcessingResult`` for exactly this purpose.
+    ``TextureOptimizationJob``: this handler is the single place metadata is written for a whole model graph, so
+    the mesh result carries the consumed ``TextureOptimizationResult`` for exactly this purpose.
     """
 
     name = "SaveMeshMetadataHandler"

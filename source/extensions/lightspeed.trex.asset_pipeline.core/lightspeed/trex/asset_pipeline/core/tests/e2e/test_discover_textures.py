@@ -23,8 +23,13 @@ import tempfile
 import omni.kit.test
 from lightspeed.common.constants import MATERIAL_INPUTS_NORMALMAP_ENCODING
 from omni.flux.asset_importer.core.data_models import TextureTypes
+from omni.flux.utils.material_converter.utils import (
+    TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY,
+    TEXTURE_SOURCE_FACTOR_CUSTOM_DATA_KEY,
+)
 from omni.flux.utils.tests.context_managers import open_test_project
-from pxr import Sdf, Usd, UsdShade
+from PIL import Image
+from pxr import Sdf, Usd, UsdShade, Vt
 
 from lightspeed.trex.asset_pipeline.core import RemixAssetItem
 from lightspeed.trex.asset_pipeline.core.pipeline.context import RemixAssetPipelineContext
@@ -63,6 +68,49 @@ def _create_textured_stage(stage_path: pathlib.Path, texture_file: pathlib.Path,
 
 class TestDiscoverTexturesE2E(omni.kit.test.AsyncTestCase):
     """Test DiscoverTexturesStep against real model stages."""
+
+    async def test_discovery_separates_channel_and_factor_variants_and_shares_equal_identities(self):
+        """Keep channel and factor variants separate while equal identities share a texture record."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = pathlib.Path(temp_dir)
+            stage_path = temp_path / "model.usda"
+            texture_path = temp_path / "packed.png"
+            Image.new("RGB", (1, 1), (32, 64, 128)).save(texture_path)
+            identities = {
+                "/Model/First": ("G", (0.5,)),
+                "/Model/OtherChannel": ("B", (0.5,)),
+                "/Model/OtherFactor": ("G", (0.25,)),
+                "/Model/Shared": ("G", (0.5,)),
+            }
+            stage = Usd.Stage.CreateNew(str(stage_path))
+            for material_path, (channel, factor) in identities.items():
+                material = UsdShade.Material.Define(stage, material_path)
+                shader = UsdShade.Shader.Define(stage, material.GetPath().AppendChild("Shader"))
+                shader.CreateIdAttr("AperturePBR_Opacity")
+                material.CreateSurfaceOutput("mdl").ConnectToSource(shader.ConnectableAPI(), "out")
+                attribute = shader.CreateInput("reflectionroughness_texture", Sdf.ValueTypeNames.Asset).GetAttr()
+                attribute.Set(Sdf.AssetPath(str(texture_path)))
+                attribute.SetCustomDataByKey(TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY, channel)
+                attribute.SetCustomDataByKey(TEXTURE_SOURCE_FACTOR_CUSTOM_DATA_KEY, Vt.DoubleArray(factor))
+            stage.GetRootLayer().Save()
+            item = RemixAssetItem.from_model(stage_path)
+            item.value = stage_path
+
+            async with RemixAssetPipelineContext(items=[item], source_root=temp_path) as context:
+                await DiscoverTexturesStep().run(context)
+
+                self.assertEqual(len(item.textures), 3)
+                self.assertEqual(len(context.texture_ledger), len(identities))
+                textures_by_key = {texture.key: texture for texture in item.textures}
+                keys_by_material = {entry.material_path: entry.texture_key for entry in context.texture_ledger}
+                self.assertEqual(set(keys_by_material), set(identities))
+                self.assertEqual(keys_by_material["/Model/First"], keys_by_material["/Model/Shared"])
+                self.assertEqual(len(set(keys_by_material.values())), 3)
+                for material_path, identity in identities.items():
+                    texture = textures_by_key[keys_by_material[material_path]]
+                    self.assertEqual(texture.path, texture_path)
+                    self.assertEqual(texture.texture_type, TextureTypes.ROUGHNESS)
+                    self.assertEqual((texture.channel, texture.factor), identity)
 
     async def test_discovers_normal_map_as_normal_type(self):
         """A shader with a normal-map input is typed as a normal texture, not DIFFUSE or OTHER."""

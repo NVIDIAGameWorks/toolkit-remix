@@ -174,17 +174,26 @@ class JobInputs(Mapping[JobInputPort[Any], Any]):
 class JobOutputs(Mapping[JobOutputPort[Any], Any]):
     """Expose an immutable exact typed output mapping from a completed job."""
 
-    __slots__ = ("_values",)
+    __slots__ = ("_values", "_skip_reason")
 
-    def __init__(self, values: Mapping[JobOutputPort[Any], Any] | None = None) -> None:
+    def __init__(
+        self, values: Mapping[JobOutputPort[Any], Any] | None = None, *, skip_reason: str | None = None
+    ) -> None:
         """Copy and validate typed output values.
 
         Args:
             values: Output values keyed by their declared ports.
+            skip_reason: Reason to complete the job as skipped with its outputs.
 
         Raises:
             TypeError: If a key is not an output port or a value has the wrong exact type.
+            TypeError: If the skip reason is not a string or None.
+            ValueError: If the skip reason is blank.
         """
+        if skip_reason is not None and not isinstance(skip_reason, str):
+            raise TypeError("skip_reason must be str or None")
+        if skip_reason is not None and not skip_reason.strip():
+            raise ValueError("skip_reason must not be blank")
         if values is None:
             copied = {}
         elif not isinstance(values, Mapping):
@@ -197,6 +206,16 @@ class JobOutputs(Mapping[JobOutputPort[Any], Any]):
             if not value_matches_type(value, port.value_type):
                 raise TypeError(f"Output {port.name} must be exactly {port.value_type.__name__}")
         self._values = types.MappingProxyType(copied)
+        self._skip_reason = skip_reason
+
+    @property
+    def skip_reason(self) -> str | None:
+        """Return the reason to complete the job as skipped, if supplied.
+
+        Returns:
+            The skip reason or None for normal completion.
+        """
+        return self._skip_reason
 
     def __getitem__(self, port: JobOutputPort[PortValueT]) -> PortValueT:
         """Return the value produced for one typed output port.

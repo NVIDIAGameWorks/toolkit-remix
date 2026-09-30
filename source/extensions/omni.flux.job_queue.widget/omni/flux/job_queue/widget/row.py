@@ -59,6 +59,7 @@ class Row:
     apply_operation: ApplyOperation
     apply_reason: str | None
     apply_error: JobError | None
+    has_outputs: bool
     interface: QueueInterface = dataclasses.field(repr=False, compare=False)
     job: Job | None = dataclasses.field(default=None, repr=False, compare=False)
     adapter: JobDisplayAdapter | None = dataclasses.field(default=None, repr=False, compare=False)
@@ -148,6 +149,7 @@ class Row:
             apply_operation=snapshot.apply_operation,
             apply_reason=snapshot.apply_reason,
             apply_error=snapshot.apply_error,
+            has_outputs=snapshot.has_outputs,
             interface=interface,
             job=job,
             adapter=adapter,
@@ -181,6 +183,7 @@ class Row:
             self.apply_operation,
             self.apply_reason,
             self.apply_error,
+            self.has_outputs,
             self.source,
             self.is_corrupted,
         ) != (
@@ -200,6 +203,7 @@ class Row:
             other.apply_operation,
             other.apply_reason,
             other.apply_error,
+            other.has_outputs,
             other.source,
             other.is_corrupted,
         )
@@ -219,6 +223,7 @@ class Row:
         self.apply_operation = other.apply_operation
         self.apply_reason = other.apply_reason
         self.apply_error = other.apply_error
+        self.has_outputs = other.has_outputs
         self.job = other.job
         self.adapter = other.adapter
         self.source = other.source
