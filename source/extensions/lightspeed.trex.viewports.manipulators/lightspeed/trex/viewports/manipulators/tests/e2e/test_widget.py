@@ -95,6 +95,8 @@ class TestViewportManipulators(OmniUiTest):
         await self.__show_workspace_layout()
 
     async def tearDown(self):
+        ui.Workspace.show_window(_STAGE_MANAGER_WINDOW, False)
+        await ui_test.human_delay()
         usd_context = omni.usd.get_context("")
         if usd_context.can_close_stage():
             await usd_context.close_stage_async()

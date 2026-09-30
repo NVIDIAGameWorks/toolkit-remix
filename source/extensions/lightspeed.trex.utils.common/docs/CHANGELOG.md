@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.3]
+### Fixed
+- Avoided redundant prim-stack and parent-reference reads during traversal.
+
 ## [2.5.2]
 ### Changed
 - Allowed shared prim classifiers to reuse a caller-precomputed prim path.

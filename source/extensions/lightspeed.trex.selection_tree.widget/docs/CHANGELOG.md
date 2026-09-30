@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.10.2]
+### Fixed
+- Reduced repeated selection-tree lookups and discarded obsolete deferred selections.
+
 ## [1.10.1]
 ### Fixed
 - Fixed replacement light selection to survive Kit 110 tree refreshes and asset row clicks.

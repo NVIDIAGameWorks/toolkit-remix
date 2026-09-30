@@ -778,13 +778,12 @@ class Setup:
         return children_prims
 
     def get_scope_prims_without_imageable_children(self, prims) -> list[Usd.Prim]:
+        """Return scopes without Imageable or Subset descendants."""
         result = []
-        scoped_children = self.filter_scope_prims(prims)
-        for scope in scoped_children:
-            scope_children = self.get_children_from_prim(scope)
-            imageable_children = self.filter_imageable_prims(scope_children)
-            # if this is a scope prim, and this scope prim doesn't have any imageable prim, we keep it
-            if not imageable_children:
+        for scope in self.filter_scope_prims(prims):
+            descendants = iter(Usd.PrimRange(scope, Usd.PrimAllPrimsPredicate))
+            next(descendants)
+            if not any(UsdGeom.Imageable(child) or child.IsA(UsdGeom.Subset) for child in descendants):
                 result.append(scope)
         return result
 
@@ -1579,6 +1578,7 @@ class Setup:
         prim paths so that transformations will act on all instances.
         """
         transformable = []
+        capture_layer_cache = {}
         regex_in_instance = re.compile(constants.REGEX_IN_INSTANCE_PATH)
         regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         for path in paths:
@@ -1594,7 +1594,7 @@ class Setup:
                 # we don't allow moving prim in mesh directly, a prim in an instance has to be selected
                 # we don't allow moving an instance directly
                 # enable also for live light in mesh
-                if self.prim_is_from_a_capture_reference(prim):
+                if self.prim_is_from_a_capture_reference(prim, capture_layer_cache):
                     # in a case we duplicated a captured prim
                     parent = prim.GetParent()
                     if parent and parent.GetAttribute(constants.IS_REMIX_REF_ATTR):
@@ -1613,11 +1613,17 @@ class Setup:
 
     @staticmethod
     def get_instance_from_mesh(mesh_paths: list[str], instance_paths: list[str]) -> list[str]:
+        """Map mesh paths to supplied instances sharing the same Remix hash."""
+        if not mesh_paths or not instance_paths:
+            return []
+
+        instances_by_hash: dict[str, list[str]] = {}
+        for instance_path in instance_paths:
+            instances_by_hash.setdefault(Setup.get_prim_hash(instance_path), []).append(instance_path)
+
         instances = set()
         for mesh_path in mesh_paths:
-            for instance_path in instance_paths:
-                if Setup.get_prim_hash(instance_path) != Setup.get_prim_hash(mesh_path):
-                    continue
+            for instance_path in instances_by_hash.get(Setup.get_prim_hash(mesh_path), ()):
                 instances.add(constants.COMPILED_REGEX_MESH_TO_INSTANCE_SUB.sub(instance_path, mesh_path))
         return list(instances)
 

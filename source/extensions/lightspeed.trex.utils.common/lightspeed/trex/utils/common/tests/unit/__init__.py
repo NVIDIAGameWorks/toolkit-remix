@@ -17,6 +17,7 @@
 
 from .test_prim_utils import (
     TestFindPrimWithReferences,
+    TestGetChildrenPrims,
     TestGetPrototype,
     TestGetReferenceFilePaths,
     TestHasReplacementRefEdits,
@@ -30,6 +31,7 @@ from .test_user_utils import TestUserUtils
 __all__ = [
     "TestCameraAuthority",
     "TestFindPrimWithReferences",
+    "TestGetChildrenPrims",
     "TestGetPrototype",
     "TestGetReferenceFilePaths",
     "TestHasReplacementRefEdits",

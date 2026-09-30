@@ -22,6 +22,7 @@ import enum
 import functools
 import re
 import typing
+from bisect import bisect_left
 from collections.abc import Callable
 from typing import Any
 
@@ -457,6 +458,7 @@ class SetupUI:
 
     @omni.usd.handle_exception
     async def _on_deferred_tree_model_changed(self):
+        """Synchronize tree rows with the stage selection using callback-local lookups."""
         # set selection
         if not self._tree_model:
             return
@@ -466,25 +468,32 @@ class SetupUI:
         all_items_by_types = self._tree_model.get_all_items_by_type()
 
         # select the item prim
-        prototypes_stage_selected_paths = self._core.get_corresponding_prototype_prims_from_path(stage_selection)
+        prototypes_stage_selected_paths = set(self._core.get_corresponding_prototype_prims_from_path(stage_selection))
         item_prims = all_items_by_types.get(_ItemPrim, [])
         item_group_instances = all_items_by_types.get(_ItemInstancesGroup, [])
         selection.extend(item for item in item_prims if item.path in prototypes_stage_selected_paths)
 
         # we select the instance in the tree
+        sorted_paths = sorted(stage_selection)
+        selected_items = set(selection)
         for item in all_items_by_types.get(_ItemInstance, []):
-            if item in selection:
+            if item in selected_items:
                 continue
-            for stage_selection_path in stage_selection:
-                if stage_selection_path.startswith(item.path) and item not in selection:
-                    selection.append(item)
+            prefix = item.path
+            index = bisect_left(sorted_paths, prefix)
+            if index < len(sorted_paths) and sorted_paths[index].startswith(prefix):
+                selection.append(item)
+                selected_items.add(item)
 
         # if this is a light, there is no instance/prototype
+        item_prims_by_path: dict[str, list[_ItemPrim]] = {}
+        for item in item_prims:
+            item_prims_by_path.setdefault(item.path, []).append(item)
         regex_sub_light_pattern = re.compile(constants.REGEX_SUB_LIGHT_PATH)
         regex_light_pattern = re.compile(constants.REGEX_LIGHT_PATH)
         for stage_selection_path in stage_selection:
             if regex_sub_light_pattern.match(stage_selection_path):
-                selection.extend(item for item in item_prims if item.path == stage_selection_path)
+                selection.extend(item_prims_by_path.get(stage_selection_path, []))
             # but if this is a light, we select the group instance because a light doesn't have instances
             if regex_light_pattern.match(stage_selection_path):
                 selection.extend(item_group_instances)
@@ -518,6 +527,8 @@ class SetupUI:
             selection = list(dict.fromkeys(selection))
 
             all_visible_items = await self.__deferred_expand(selection)
+            if stage_selection != self._context.get_selection().get_selected_prim_paths():
+                return
             if self._tree_view is not None:
                 if self._tree_view.selection != selection:
                     # this will trigger _on_tree_selection_changed()
@@ -1037,7 +1048,7 @@ class SetupUI:
                     yield sel.parent
                     yield from get_items_to_expand([sel.parent])
 
-        items_to_expand = list(set(get_items_to_expand(selection)))
+        items_to_expand = set(get_items_to_expand(selection))
         all_visible_items = set()
 
         def set_expanded(items):

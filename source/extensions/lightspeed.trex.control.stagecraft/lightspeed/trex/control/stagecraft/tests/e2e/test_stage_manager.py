@@ -41,7 +41,7 @@ from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage
 from omni.kit.ui_test.query import WidgetRef
 from omni.kit.ui_test import Vec2
-from pxr import Sdf, Usd
+from pxr import Sdf, Usd, UsdShade
 
 
 _MESH_TAB_SELECTION_PATHS = {
@@ -686,6 +686,47 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         await self._wait_for_stage_manager_selectable_path(interaction, _TARGET_MESH_PATH)
         unfiltered_paths = {item.original_tree_item.path for item in interaction.tree.model.iter_selectable_items()}
         self.assertTrue(unfiltered_paths)
+
+        tree = ui_test.find(
+            f"{_WindowNames.PROPERTIES.value}//Frame/**/TreeView[*].identifier=='LiveSelectionTreeView'"
+        )
+        self.assertIsNotNone(tree)
+
+        async def wait_for_properties_selection(minimum_count):
+            for _ in range(80):
+                count = len(tree.widget.selection)
+                if count == minimum_count or (minimum_count > 0 and count > minimum_count):
+                    return
+                await ui_test.human_delay()
+            self.fail(f"Properties selection did not reach {minimum_count} rows; got {count}")
+
+        # Captured reference meshes have a corresponding Properties selection row.
+        mesh_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"
+        row = await self._input_stage_manager_search(mesh_path, mesh_path)
+        await row.click()
+        await ui_test.human_delay()
+        await self._wait_for_usd_selection([mesh_path])
+        await wait_for_properties_selection(1)
+        await self._set_stage_manager_search("")
+        await self._wait_for_stage_manager_selectable_paths(interaction, unfiltered_paths)
+        initial_count = len(tree.widget.selection)
+        await self._press_ctrl_a_outside_stage_manager()
+        await self._wait_for_usd_selection(unfiltered_paths)
+        await wait_for_properties_selection(initial_count + 1)
+
+        # Clearing and selecting again must update both panes after the unfiltered bulk selection.
+        await ui_test.emulate_keyboard_press(KeyboardInput.ESCAPE)
+        await ui_test.human_delay()
+        await self._wait_for_usd_selection([])
+        await wait_for_properties_selection(0)
+        row = await self._input_stage_manager_search(mesh_path, mesh_path)
+        await row.click()
+        await ui_test.human_delay()
+        await self._wait_for_usd_selection([mesh_path])
+        await wait_for_properties_selection(1)
+        await self._set_stage_manager_search("")
+        await self._wait_for_stage_manager_selectable_paths(interaction, unfiltered_paths)
+
         await self._set_stage_manager_light_filter(interaction, True)
 
         try:
@@ -739,6 +780,69 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
 
         await self._select_stage_manager_tab("Lights", "RemixAllLightsInteractionPlugin")
         await self._wait_for_usd_selection(_MESH_TAB_SELECTION_PATHS)
+
+    async def test_select_shaderless_material_preserves_empty_editor_and_watches(self):
+        """Select mixed materials through Stage Manager while retaining material watches."""
+        stage = usd.get_context("").get_stage()
+        material_path = Sdf.Path("/RootNode/Looks/mat_BC868CE5A075ABB1")
+        shaderless_path = Sdf.Path("/RootNode/Looks/mat_BC868CE5A075ABB2")
+        shader_path = material_path.AppendChild("Shader")
+        self.assertFalse(stage.GetPrimAtPath(shaderless_path))
+        with Usd.EditContext(stage, stage.GetSessionLayer()):
+            UsdShade.Material.Define(stage, shaderless_path)
+
+        try:
+            # Selecting the existing material must populate the actual Properties editor.
+            await self._select_stage_manager_tab("Materials", "RemixAllMaterialsInteractionPlugin")
+            row = await self._input_stage_manager_search("mat_BC868CE5A075ABB", str(material_path))
+            await row.click()
+            await ui_test.human_delay()
+            await self._wait_for_usd_selection([str(material_path)])
+            pane = self._get_properties_pane()
+            self.assertIsNotNone(pane)
+            self.assertFalse(pane._material_properties_collapsable_frame.root.collapsed)
+            model = pane._material_properties_widget._material_properties_widget.property_model
+            for _ in range(120):
+                if model.prim_paths == [shader_path, material_path] and model.get_all_items(include_hidden=True):
+                    break
+                await ui_test.human_delay(1)
+            else:
+                self.fail("Selected material did not populate the Properties editor")
+
+            # Ctrl-click the shaderless material to edit both through the real selection path.
+            rows = [
+                row
+                for row in ui_test.find_all(
+                    f"{_WindowNames.STAGE_MANAGER}//Frame/**/Label[*].identifier=='nickname_field'"
+                )
+                if row.widget.visible and row.widget.tooltip == str(shaderless_path)
+            ]
+            self.assertEqual(len(rows), 1)
+            async with ui_test.KeyDownScope(KeyboardInput.LEFT_CONTROL):
+                await rows[0].click()
+                await ui_test.human_delay()
+            await ui_test.human_delay()
+            await self._wait_for_usd_selection([str(material_path), str(shaderless_path)])
+            expected_paths = [shader_path, material_path, shaderless_path]
+            for _ in range(120):
+                if set(model.prim_paths) == set(expected_paths) and not model.get_all_items(include_hidden=True):
+                    break
+                await ui_test.human_delay(1)
+            else:
+                self.fail("Mixed material selection did not clear the editor and retain material watches")
+
+            self.assertEqual(model.get_all_items(include_hidden=True), [])
+            self.assertCountEqual(model.prim_paths, expected_paths)
+            self.assertEqual(model.prim_paths.index(shader_path) + 1, model.prim_paths.index(material_path))
+        finally:
+            try:
+                usd.get_context("").get_selection().clear_selected_prim_paths()
+                await ui_test.human_delay()
+                await self._set_stage_manager_search("")
+            finally:
+                with Usd.EditContext(stage, stage.GetSessionLayer()):
+                    stage.RemovePrim(shaderless_path)
+                await ui_test.human_delay()
 
     async def test_material_properties_update_stage_manager_should_not_refresh(self):
         selection_prim_path = (

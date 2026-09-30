@@ -18,6 +18,7 @@
 from .e2e.test_widget import TestViewportManipulators
 from .unit.test_camera_default import TestCameraDefault
 from .unit.test_global_selection import TestGlobalSelection
+from .unit.test_prim_transform_default import TestPrimTransformDefault
 from .unit.test_prim_transform_manipulator import TestPrimTransformManipulator
 from .unit.test_prim_transform_model import TestPrimTransformModel
 from .unit.test_selection_default import TestSelectionDefault
@@ -26,6 +27,7 @@ from .unit.test_zoom import TestZoom, TestZoomOperation
 __all__ = [
     "TestCameraDefault",
     "TestGlobalSelection",
+    "TestPrimTransformDefault",
     "TestPrimTransformManipulator",
     "TestPrimTransformModel",
     "TestSelectionDefault",

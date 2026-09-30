@@ -595,30 +595,40 @@ class ListModel(ui.AbstractItemModel):
 
         return prim_paths
 
-    def __get_model_from_prototype_path(self, path):
-        if not path.startswith(constants.MESH_PATH) and not path.startswith(constants.LIGHT_PATH):
-            return None
+    def __get_model_from_prototype_path(self, path: str, roots_by_path: dict[str, str | None]) -> str | None:
+        visited_paths = []
+        root = None
+        while True:
+            if path in roots_by_path:
+                root = roots_by_path[path]
+                break
+            visited_paths.append(path)
+            if not path.startswith(constants.MESH_PATH) and not path.startswith(constants.LIGHT_PATH):
+                break
 
-        # ensure prim is valid and not simultaneously a material
-        prim = self.stage.GetPrimAtPath(path)
-        if not prim.IsValid():
-            return None
-        if prim.IsA(UsdShade.Material):
-            return None
+            prim = self.stage.GetPrimAtPath(path)
+            if not prim.IsValid():
+                break
+            if prim.IsA(UsdShade.Material):
+                break
 
-        # return input path if is regex mesh or light match
-        regex_pattern = re.compile(constants.REGEX_MESH_PATH)
-        if regex_pattern.match(prim.GetName()):
-            return path
-        regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
-        if path.startswith(constants.LIGHT_PATH) and regex_pattern.match(prim.GetName()):
-            return path
+            regex_pattern = re.compile(constants.REGEX_MESH_PATH)
+            if regex_pattern.match(prim.GetName()):
+                root = path
+                break
+            regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
+            if path.startswith(constants.LIGHT_PATH) and regex_pattern.match(prim.GetName()):
+                root = path
+                break
 
-        # get and return parent
-        parent = prim.GetParent()
-        if not parent or not parent.IsValid():
-            return None
-        return self.__get_model_from_prototype_path(str(parent.GetPath()))
+            parent = prim.GetParent()
+            if not parent or not parent.IsValid():
+                break
+            path = str(parent.GetPath())
+
+        for visited_path in visited_paths:
+            roots_by_path[visited_path] = root
+        return root
 
     def __get_instances_by_mesh(self, paths: list[str]) -> dict[Sdf.Path, list[Usd.Prim]]:
         if not self.stage:
@@ -705,15 +715,18 @@ class ListModel(ui.AbstractItemModel):
             if paths:
                 instances_data = self.__get_instances_by_mesh(paths)
                 meshes = []
+                seen_meshes = set()
+                roots_by_path = {}
                 for path in paths:
                     # first, we try to find the mesh_ from the selection
                     mesh = self.__get_prototype_from_path(path)
-                    if not mesh or mesh in meshes:
+                    if not mesh or mesh in seen_meshes:
                         continue
-                    mesh_model = self.__get_model_from_prototype_path(mesh)
-                    if not mesh_model or mesh_model in meshes:
+                    mesh_model = self.__get_model_from_prototype_path(mesh, roots_by_path)
+                    if not mesh_model or mesh_model in seen_meshes:
                         continue
                     meshes.append(mesh_model)
+                    seen_meshes.add(mesh_model)
                 for mesh in meshes:
                     mesh_prim = self.stage.GetPrimAtPath(mesh)
                     sdf_mesh_path = mesh_prim.GetPath()

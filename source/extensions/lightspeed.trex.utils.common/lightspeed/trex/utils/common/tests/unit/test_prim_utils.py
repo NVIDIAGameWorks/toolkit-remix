@@ -16,11 +16,13 @@
 """
 
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 import omni.kit.test
+from lightspeed.trex.utils.common import prim_utils
 from lightspeed.trex.utils.common.prim_utils import (
     find_prim_with_references,
+    get_children_prims,
     get_reference_file_paths,
     get_prototype,
     get_transferable_prim_specs,
@@ -36,6 +38,76 @@ from lightspeed.trex.utils.common.prim_utils import (
 from pxr import Sdf
 
 _MODULE = "lightspeed.trex.utils.common.prim_utils"
+
+
+class TestGetChildrenPrims(omni.kit.test.AsyncTestCase):
+    """Verify traversal order and bounded reference reads."""
+
+    def test_get_children_prims_unfiltered_preserves_order_without_reference_reads(self):
+        """Traverse in depth-first order without reading unused reference information."""
+        # Arrange
+        root, first, grandchild, second = [Mock() for _ in range(4)]
+        for prim in (root, first, grandchild, second):
+            prim.GetFilteredChildren.return_value = []
+            prim.GetPrimStack.side_effect = AssertionError("Unexpected prim-stack read")
+        root.GetFilteredChildren.return_value = [first, second]
+        first.GetFilteredChildren.return_value = [grandchild]
+        with patch.object(
+            prim_utils.omni.usd,
+            "get_composed_references_from_prim",
+            side_effect=AssertionError("Unexpected reference read"),
+        ):
+            # Act
+            result = get_children_prims(root)
+
+        # Assert
+        self.assertEqual(result, [first, grandchild, second])
+
+    def test_get_children_prims_filtered_reuses_references_within_each_parent(self):
+        """Reuse parent references while keeping sibling groups independent."""
+        # Arrange
+        root, parent_a, parent_b, hidden_a, kept_a, hidden_b, kept_b = [Mock() for _ in range(7)]
+        for prim in (root, parent_a, parent_b, hidden_a, kept_a, hidden_b, kept_b):
+            prim.GetFilteredChildren.return_value = []
+            prim.GetParent.return_value = None
+            prim.IsValid.return_value = True
+            prim.GetPrimStack.return_value = []
+        root.GetFilteredChildren.return_value = [parent_a, parent_b]
+        parent_a.GetFilteredChildren.return_value = [hidden_a, kept_a]
+        parent_b.GetFilteredChildren.return_value = [hidden_b, kept_b]
+        parent_a.GetParent.return_value = root
+        parent_b.GetParent.return_value = root
+        for prim, path in (
+            (hidden_a, "A.usda"),
+            (kept_a, "B.usda"),
+            (hidden_b, "B.usda"),
+            (kept_b, "A.usda"),
+        ):
+            prim.GetPrimStack.return_value = [SimpleNamespace(layer=SimpleNamespace(realPath=path))]
+        layer = Mock()
+        layer.ComputeAbsolutePath.side_effect = lambda path: path
+        references_by_prim = {
+            root: [],
+            parent_a: [(Sdf.Reference("A.usda"), layer)],
+            parent_b: [(Sdf.Reference("B.usda"), layer)],
+        }
+        with (
+            patch.object(prim_utils.omni.client, "normalize_url", side_effect=lambda path: path),
+            patch.object(
+                prim_utils.omni.usd,
+                "get_composed_references_from_prim",
+                side_effect=lambda prim: references_by_prim[prim],
+            ) as references,
+        ):
+            # Act
+            result = get_children_prims(root, only_prim_not_from_ref=True)
+
+        # Assert
+        self.assertEqual(result, [parent_a, kept_a, parent_b, kept_b])
+        self.assertEqual(
+            references.call_args_list,
+            [call(root), call(parent_a), call(root), call(parent_b), call(root)],
+        )
 
 
 class TestTransferableSpecs(omni.kit.test.AsyncTestCase):

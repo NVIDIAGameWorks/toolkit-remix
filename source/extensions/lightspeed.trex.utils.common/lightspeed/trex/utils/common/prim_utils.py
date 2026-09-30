@@ -430,6 +430,7 @@ def get_children_prims(
         if level is not None and _current_level == level:
             return
         _current_level += 1
+        parent_reference_layers = None
         for child in _prim.GetFilteredChildren(Usd.PrimAllPrimsPredicate):
             # it can happen that we added the same reference multiple time. But USD can't do that.
             # As a workaround, we had to create a xform child and add the reference to it.
@@ -440,10 +441,14 @@ def get_children_prims(
                 if is_remix_ref.IsValid():
                     _current_level -= 1
 
-            layer_stack = [omni.client.normalize_url(stack.layer.realPath) for stack in child.GetPrimStack()]
-            if only_prim_not_from_ref and set(layer_stack).intersection(set(get_parent_ref_layers(_prim))):
-                yield from traverse_instanced_children(child, _current_level, _skip_remix_ref)
-                continue
+            if only_prim_not_from_ref or from_reference_layer_path is not None:
+                layer_stack = [omni.client.normalize_url(stack.layer.realPath) for stack in child.GetPrimStack()]
+            if only_prim_not_from_ref:
+                if parent_reference_layers is None:
+                    parent_reference_layers = set(get_parent_ref_layers(_prim))
+                if not parent_reference_layers.isdisjoint(layer_stack):
+                    yield from traverse_instanced_children(child, _current_level, _skip_remix_ref)
+                    continue
 
             if (
                 from_reference_layer_path is not None

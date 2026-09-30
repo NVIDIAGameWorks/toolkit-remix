@@ -9,3 +9,7 @@ available on the first selection.
 
 The **DLSS 3D-Guided Neural Generation [Experimental]** material group is shown only when the active Remix runtime
 reports feature support. Legacy DLSS Neural Rendering group names remain recognized for older materials.
+
+The material action menu builds on opening and shows a loading entry until ready. Each open reads the current selection.
+Selection changes, dismissal, hiding, and destruction cancel pending menu work.
+Material labels and MDL paths remain available before the menu opens.

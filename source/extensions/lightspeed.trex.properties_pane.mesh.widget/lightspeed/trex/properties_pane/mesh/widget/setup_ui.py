@@ -934,16 +934,16 @@ class SetupUI(_PropertyGroupExpansionMixin):
         )
         changes = []
         for mesh_prim in mesh_prims:
-            attribute_values = {attribute.GetName(): attribute.Get() for attribute in mesh_prim.GetAttributes()}
             active_deprecated_attributes = [
                 attribute_name
                 for attribute_name in deprecated_attribute_names
-                if attribute_values.get(attribute_name, False)
+                if (attribute := mesh_prim.GetAttribute(attribute_name)) and attribute.Get()
             ]
             if not active_deprecated_attributes:
                 continue
 
-            if not attribute_values.get(decal_name, False):
+            decal_attribute = mesh_prim.GetAttribute(decal_name)
+            if not decal_attribute or not decal_attribute.Get():
                 changes.append((mesh_prim, decal_name, True))
             changes.extend((mesh_prim, attribute_name, False) for attribute_name in active_deprecated_attributes)
 

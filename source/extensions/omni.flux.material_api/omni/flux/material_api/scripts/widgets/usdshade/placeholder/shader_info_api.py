@@ -21,6 +21,7 @@ __all__ = ["ShaderInfoAPI"]
 
 import ast
 import math
+from copy import deepcopy
 from typing import Any
 
 import carb
@@ -62,9 +63,17 @@ class ShaderInfoAPI:
 
     RENDER_CONTEXTS_SETTING_PATH = PERSISTENT_SETTINGS_PREFIX + "/app/hydra/material/renderContexts"
 
-    def __init__(self, prim: Usd.Prim, overlay_property_metadata: bool | None = True):
+    def __init__(
+        self,
+        prim: Usd.Prim,
+        overlay_property_metadata: bool | None = True,
+        *,
+        property_metadata_cache: dict[tuple[str, str, str], dict] | None = None,
+    ):
+        """Optionally reuse parsed SDR definitions within one caller-owned refresh."""
         self._prim = prim
         self._overlay_property_metadata = overlay_property_metadata
+        self._property_metadata_cache = property_metadata_cache
         self._prim_path = prim.GetPath()
         self._prim_properties_metadata = {p.GetName(): p.GetAllMetadata() for p in prim.GetProperties()}
         self._sdr_node = None
@@ -224,9 +233,21 @@ class ShaderInfoAPI:
 
         placeholder_properties = []
         for sdr_shader_property in filtered:
-            metadata = self._get_property_metadata(sdr_shader_property)
-
             full_name = f"{property_name_prefix}{sdr_shader_property.GetName()}"
+            if self._property_metadata_cache is None:
+                metadata = self._get_property_metadata(sdr_shader_property)
+            else:
+                key = (self._sdr_node.GetIdentifier(), self._sdr_node.GetSourceType(), full_name)
+                if key not in self._property_metadata_cache:
+                    self._property_metadata_cache[key] = self._get_property_metadata(sdr_shader_property)
+                metadata = deepcopy(self._property_metadata_cache[key])
+
+            # Native USD values cannot all be deep-copied; fetch them after copying the parsed definition.
+            metadata["variability"] = Sdf.VariabilityVarying
+            metadata[Sdf.AttributeSpec.CustomDataKey].setdefault(
+                Sdf.AttributeSpec.DefaultValueKey,
+                get_sdr_shader_property_default_value(sdr_shader_property, metadata),
+            )
 
             # overlay the metadata from property on the underlying prim if requested
             if self._overlay_property_metadata:
@@ -238,7 +259,7 @@ class ShaderInfoAPI:
 
     def _get_property_metadata(self, sdr_shader_property: Sdr.ShaderProperty) -> dict:
         """
-        Convert Sdr.ShaderProperty metadata into property metadata.
+        Convert SDR definition metadata, leaving native variability and defaults to the caller.
         """
 
         def set_display_group(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:
@@ -274,10 +295,6 @@ class ShaderInfoAPI:
                 type_name = str(sdf_type)
 
             metadata[Sdf.PrimSpec.TypeNameKey] = type_name
-
-        def set_default_value(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:
-            default_value = get_sdr_shader_property_default_value(sdr_shader_property, metadata)
-            metadata[Sdf.AttributeSpec.CustomDataKey][Sdf.AttributeSpec.DefaultValueKey] = default_value
 
         def set_allowed_tokens(sdr_shader_property: Sdr.ShaderProperty, metadata: dict) -> None:
             options = sdr_shader_property.GetOptions()
@@ -471,8 +488,6 @@ class ShaderInfoAPI:
         # Is this a custom property
         metadata[Sdf.AttributeSpec.CustomKey] = False
 
-        metadata["variability"] = Sdf.VariabilityVarying
-
         metadata[UsdShade.Tokens.sdrMetadata] = {}
         metadata[Sdf.AttributeSpec.CustomDataKey] = {}
 
@@ -481,8 +496,6 @@ class ShaderInfoAPI:
         set_type_name(sdr_shader_property, metadata)
         set_sdr_metadata(sdr_shader_property, metadata)
         set_documentation(sdr_shader_property, metadata)
-        set_default_value(sdr_shader_property, metadata)
-
         if not sdr_shader_property.IsOutput():
             set_allowed_tokens(sdr_shader_property, metadata)
             promote_hints(sdr_shader_property, metadata)

@@ -697,6 +697,8 @@ class AssetReplacementsPane(_WorkspaceWidget):
             Valid selected prims in last-occurrence order.
         """
         stage = self._usd_context.get_stage()
+        if not stage:
+            return []
         prims = [
             stage.GetPrimAtPath(prim_path) for prim_path in self._usd_context.get_selection().get_selected_prim_paths()
         ]
@@ -752,14 +754,30 @@ class AssetReplacementsPane(_WorkspaceWidget):
             f"{self._format_prim_names_for_pin(particle_prims)}"
         )
 
-    def _get_particle_selection_prims(self, prototypes_only: bool = False) -> tuple[list[Usd.Prim], list[Usd.Prim]]:
+    def _get_particle_selection_prims(
+        self, prototypes_only: bool = False, *, selected_prims: list[Usd.Prim] | None = None
+    ) -> tuple[list[Usd.Prim], list[Usd.Prim]]:
+        """Resolve selected prims to particle systems and valid targets.
+
+        Args:
+            prototypes_only: Whether to normalize selected prims to prototypes first.
+            selected_prims: Selected prims to reuse, or ``None`` to read the current selection.
+
+        Returns:
+            Particle systems and valid targets, each in last-occurrence order.
+        """
         stage = self._usd_context.get_stage()
         if not stage:
             return [], []
 
+        if selected_prims is None:
+            selected_prims = self._get_prims_from_selection(prototypes_only=prototypes_only)
+        elif prototypes_only:
+            selected_prims = _unique_prim_sequence(selected_prims, prototypes_only=True)
+
         particle_system_prims: list[Usd.Prim] = []
         valid_target_prims: list[Usd.Prim] = []
-        for prim in self._get_prims_from_selection(prototypes_only=prototypes_only):
+        for prim in selected_prims:
             normalized_target = self._normalize_particle_selection_target(prim)
             if normalized_target is None:
                 continue
@@ -874,19 +892,43 @@ class AssetReplacementsPane(_WorkspaceWidget):
         """Tree selection changed callback - skipped when window invisible."""
         if not self._window_visible:
             return
-        if not self._mesh_properties_collapsable_frame.root.collapsed:
-            self._refresh_mesh_properties_widget()
-        if not self._material_properties_collapsable_frame.root.collapsed:
-            self._refresh_material_properties_widget()
-        if not self._particle_properties_collapsable_frame.root.collapsed:
-            self._refresh_particle_properties_widget()
-        if not self._logic_properties_collapsable_frame.root.collapsed:
-            self._refresh_logic_properties_widget()
+        self.__refresh_property_widgets()
         # Rebuild all collapsible frames to update pin labels
         self._mesh_properties_collapsable_frame.root.rebuild()
         self._material_properties_collapsable_frame.root.rebuild()
         self._particle_properties_collapsable_frame.root.rebuild()
         self._logic_properties_collapsable_frame.root.rebuild()
+
+    def __refresh_property_widgets(self, *, include_collapsed: bool = False) -> None:
+        if include_collapsed or not self._mesh_properties_collapsable_frame.root.collapsed:
+            self._refresh_mesh_properties_widget()
+
+        selected_prims = None
+        if (
+            (include_collapsed or not self._material_properties_collapsable_frame.root.collapsed)
+            and self._window_visible
+            and not self._material_properties_collapsable_frame.pinned
+        ):
+            selected_prims = self._get_prims_from_selection()
+            self._refresh_material_properties_widget(selected_prims=selected_prims)
+        if (
+            (include_collapsed or not self._particle_properties_collapsable_frame.root.collapsed)
+            and not self._particle_properties_collapsable_frame.pinned
+            and self._particle_properties_widget
+        ):
+            if selected_prims is None:
+                selected_prims = self._get_prims_from_selection()
+            self._refresh_particle_properties_widget(selected_prims=selected_prims)
+        if (
+            (include_collapsed or not self._logic_properties_collapsable_frame.root.collapsed)
+            and not self._logic_properties_collapsable_frame.pinned
+            and self._logic_properties_widget
+        ):
+            if selected_prims is None:
+                selected_prims = self._get_prims_from_selection()
+            self._refresh_logic_properties_widget(
+                prototype_prims=_unique_prim_sequence(selected_prims, prototypes_only=True)
+            )
 
     def _refresh_mesh_properties_widget(self):
         if self._mesh_properties_collapsable_frame.pinned:
@@ -894,26 +936,35 @@ class AssetReplacementsPane(_WorkspaceWidget):
         items = self._selection_tree_widget.get_selection()
         self._mesh_properties_widget.refresh(items)
 
-    def _refresh_material_properties_widget(self):
-        """Refresh material properties widget - skipped when window invisible."""
+    def _refresh_material_properties_widget(self, *, selected_prims: list[Usd.Prim] | None = None):
+        """Refresh material properties widget - skipped when window invisible.
+
+        Args:
+            selected_prims: Selected prims to reuse, or ``None`` to read the current selection.
+        """
         if not self._window_visible:
             return
         if self._material_properties_collapsable_frame.pinned:
             return
 
         # Grab the selection prims and refresh the properties
-        items = self._get_prims_from_selection()
-        self._material_properties_widget.refresh(items)
+        if selected_prims is None:
+            selected_prims = self._get_prims_from_selection()
+        self._material_properties_widget.refresh(selected_prims)
 
-    def _refresh_particle_properties_widget(self):
-        """Refresh the particle properties widget based on current selection"""
+    def _refresh_particle_properties_widget(self, *, selected_prims: list[Usd.Prim] | None = None):
+        """Refresh the particle properties widget based on selection.
+
+        Args:
+            selected_prims: Selected prims to reuse, or ``None`` to read the current selection.
+        """
         if self._particle_properties_collapsable_frame.pinned:
             return
 
         if not self._particle_properties_widget:
             return
 
-        particle_system_prims, valid_target_prims = self._get_particle_selection_prims()
+        particle_system_prims, valid_target_prims = self._get_particle_selection_prims(selected_prims=selected_prims)
         particle_system_paths = [str(prim.GetPath()) for prim in particle_system_prims]
         particle_system_path_set = set(particle_system_paths)
         valid_target_paths = [
@@ -928,22 +979,28 @@ class AssetReplacementsPane(_WorkspaceWidget):
         if viewport:
             viewport.frame_viewport_selection([str(prim.GetPath())])
 
-    def _refresh_logic_properties_widget(self):
-        """Refresh the logic properties widget based on current selection"""
+    def _refresh_logic_properties_widget(self, *, prototype_prims: list[Usd.Prim] | None = None):
+        """Refresh the logic properties widget based on prototype selection.
+
+        Args:
+            prototype_prims: Prototype prims to reuse, or ``None`` to resolve the current selection.
+        """
         if self._logic_properties_collapsable_frame.pinned:
             return
 
         if not self._logic_properties_widget:
             return
 
-        selected_prims = self._get_prims_from_selection(prototypes_only=True)
+        if prototype_prims is None:
+            prototype_prims = self._get_prims_from_selection(prototypes_only=True)
         items: list[Usd.Prim] = []
         valid_target_prims: list[Usd.Prim] = []
-        for prim in selected_prims:
+        roots_by_path: dict[Sdf.Path, Usd.Prim | None] = {}
+        for prim in prototype_prims:
             if prim.GetTypeName() == OMNI_GRAPH_NODE_TYPE:
                 items.append(prim)
             # Get asset path from prim
-            parent = LogicGraphCore.get_graph_root_prim(prim)
+            parent = LogicGraphCore.get_graph_root_prim(prim, roots_by_path)
             if parent:
                 valid_target_prims.append(parent)
 
@@ -954,10 +1011,7 @@ class AssetReplacementsPane(_WorkspaceWidget):
             return
 
         self._selection_tree_widget.refresh()
-        self._refresh_mesh_properties_widget()
-        self._refresh_material_properties_widget()
-        self._refresh_particle_properties_widget()
-        self._refresh_logic_properties_widget()
+        self.__refresh_property_widgets(include_collapsed=True)
 
     def show(self, visible: bool):
         super().show(visible)

@@ -16,3 +16,6 @@ properties_create_ui.refresh(usd_paths)
 
 The material widget forwards `expand_all_groups()` and `collapse_all_groups()` to its underlying property tree so callers
 can bulk-expand or bulk-collapse material property groups without reaching into private widget state.
+
+`PropertyWidget` owns one pending refresh; a new refresh or destruction cancels it. `refresh(None)` reuses the latest paths.
+Material and shader paths remain watched when a mixed selection has no common editable inputs.

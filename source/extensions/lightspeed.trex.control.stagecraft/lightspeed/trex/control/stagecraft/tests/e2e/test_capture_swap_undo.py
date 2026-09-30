@@ -590,7 +590,5 @@ class TestCaptureSwapUndo(AsyncTestCase):
         if usd_context and usd_context.can_close_stage():
             usd_context.get_selection().clear_selected_prim_paths()
             await ui_test.wait_n_updates(10)
-            omni.usd.release_all_hydra_engines(self._usd_context)
-            await ui_test.wait_n_updates(10)
             await usd_context.close_stage_async()
             await ui_test.wait_n_updates(10)

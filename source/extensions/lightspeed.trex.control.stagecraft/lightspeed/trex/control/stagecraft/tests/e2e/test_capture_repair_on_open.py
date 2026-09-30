@@ -197,8 +197,6 @@ class TestCaptureRepairOnOpen(AsyncTestCase):
         if self._usd_context is not None and self._usd_context.can_close_stage():
             self._usd_context.get_selection().clear_selected_prim_paths()
             await ui_test.wait_n_updates(5)
-            omni.usd.release_all_hydra_engines(self._usd_context)
-            await ui_test.wait_n_updates(5)
             await self._usd_context.close_stage_async()
             await ui_test.wait_n_updates(5)
 

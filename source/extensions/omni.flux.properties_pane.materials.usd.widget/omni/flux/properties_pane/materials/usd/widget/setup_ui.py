@@ -43,6 +43,8 @@ from .material_visibility_orchestrator import MaterialVisibilityOrchestrator as 
 from .lookup_table import LOOKUP_TABLE
 
 
+_USD_UV_TEXTURE_SHADER_ID = "UsdUVTexture"
+
 SHADER_ATTR_IGNORE_LIST = [
     "outputs:out",
     "info:id",
@@ -107,6 +109,7 @@ class MaterialPropertyWidget(_PropertyGroupExpansionMixin):
         self.__usd_listener_instance = _get_usd_listener_instance()
 
         self._paths = []
+        self._refresh_task: asyncio.Task | None = None
         self._lookup_table = lookup_table or LOOKUP_TABLE
 
         self._create_color_space_attributes = create_color_space_attributes
@@ -154,19 +157,15 @@ class MaterialPropertyWidget(_PropertyGroupExpansionMixin):
         Args:
             paths: the USD prim paths to use
         """
-        asyncio.ensure_future(self._deferred_refresh(paths))
-
-    @omni.usd.handle_exception
-    async def _deferred_refresh(self, paths: list[str | Sdf.Path] | None = None):
-        """
-        Deferred because we need to handle attribute(s) generated on fly by the mdl
-
-        Args:
-            paths: the paths of material
-        """
         if paths is not None:
             self._paths = paths
+        if self._refresh_task is not None:
+            self._refresh_task.cancel()
+        self._refresh_task = asyncio.ensure_future(self._deferred_refresh())
 
+    @omni.usd.handle_exception
+    async def _deferred_refresh(self):
+        """Refresh material properties after deferred MDL attributes become available."""
         # Wait 1 frame to make sure the USD it up-to-date
         await omni.kit.app.get_app().next_update_async()
 
@@ -184,26 +183,40 @@ class MaterialPropertyWidget(_PropertyGroupExpansionMixin):
         if stage is not None:
             prims = [stage.GetPrimAtPath(path) for path in self._paths]
 
-            shader_paths = []
             # relative attr name to item
             attr_added: dict[
                 str, list[tuple[Usd.Prim, Usd.Attribute | UsdShadePropertyPlaceholder, UsdShadePropertyPlaceholder]]
             ] = {}
+            property_metadata_cache = {}
 
             with _USDDisableAllListenersBlock(self.__usd_listener_instance):
+                material_shaders: list[tuple[Usd.Prim, Usd.Prim | None, bool]] = []
+                missing_input_source = False
+                has_uv_texture = False
                 for prim in prims:
-                    if not prim.IsValid():
+                    if not prim.IsValid() or not prim.IsA(UsdShade.Material):
+                        missing_input_source = True
                         continue
-                    # if this is not a material, skip
-                    if not prim.IsA(UsdShade.Material):
-                        continue
-                    # grab shader prims
                     shader_prim = omni.usd.get_shader_from_material(prim, True)
+                    is_uv_texture = bool(shader_prim) and (
+                        UsdShade.Shader(shader_prim).GetShaderId() == _USD_UV_TEXTURE_SHADER_ID
+                    )
+                    material_shaders.append((prim, shader_prim, is_uv_texture))
                     if shader_prim:
-                        shader_paths.append(shader_prim.GetPath())
+                        has_uv_texture = has_uv_texture or is_uv_texture
+                        valid_paths.append(shader_prim.GetPath())
+                    else:
+                        missing_input_source = True
+                    valid_paths.append(prim.GetPath())
 
+                # Missing contributors prevent common inputs; UV textures retain their additional color-space entries.
+                skip_inputs = len(prims) > 1 and missing_input_source and not has_uv_texture
+                for prim, shader_prim, is_uv_texture in material_shaders:
+                    if shader_prim and not skip_inputs:
                         # iterate over input parameters defined in mdls as well as attributes:
-                        for shader_attr in ShaderInfoAPI(shader_prim).get_input_properties():
+                        for shader_attr in ShaderInfoAPI(
+                            shader_prim, property_metadata_cache=property_metadata_cache
+                        ).get_input_properties():
                             if shader_attr.IsHidden():
                                 continue
                             attr_name = shader_attr.GetName()
@@ -219,18 +232,13 @@ class MaterialPropertyWidget(_PropertyGroupExpansionMixin):
                             if any(ignore_name in attr_name for ignore_name in SHADER_ATTR_IGNORE_LIST):
                                 continue
 
-                            # add paths to usd_changed watch list
-                            prim_path = shader_prim.GetPath()
-                            if prim_path not in valid_paths:
-                                valid_paths.append(prim_path)
-
                             # Tuple layout is (shader_prim, value_source, metadata_source). When the material has no
                             # authored attribute yet, the MDL placeholder supplies both the virtual value and metadata.
                             attr_added.setdefault(attr_name, []).append((shader_prim, shader_attr, shader_attr))
 
                         # add source color space
-                        shader = UsdShade.Shader(shader_prim)
-                        if shader.GetShaderId() == "UsdUVTexture":
+                        if is_uv_texture:
+                            shader = UsdShade.Shader(shader_prim)
                             attr_name = "inputs:sourceColorSpace"
                             attr_mat = prim.GetAttribute(attr_name)
                             attr_shader = shader.GetAttribute(attr_name)
@@ -246,10 +254,6 @@ class MaterialPropertyWidget(_PropertyGroupExpansionMixin):
                                     attr_mat.SetMetadata("allowedTokens", ["auto", "raw", "sRGB"])
                             attr_placeholder = UsdShadePropertyPlaceholder(attr_name, attr_mat.GetAllMetadata(), True)
                             attr_added.setdefault(attr_name, []).append((shader_prim, attr_mat, attr_placeholder))
-
-                        valid_paths.append(shader_prim.GetPath())
-
-                    valid_paths.append(prim.GetPath())
 
                 num_prims = len(prims)
                 self._conditional_visibility_orchestrator = _MaterialVisibilityOrchestrator()
@@ -406,6 +410,9 @@ class MaterialPropertyWidget(_PropertyGroupExpansionMixin):
             self._property_delegate.reset()
 
     def destroy(self):
+        if self._refresh_task is not None:
+            self._refresh_task.cancel()
+        self._refresh_task = None
         if self._root_frame:
             self._root_frame.clear()
         if self.__usd_listener_instance and self._property_model:
