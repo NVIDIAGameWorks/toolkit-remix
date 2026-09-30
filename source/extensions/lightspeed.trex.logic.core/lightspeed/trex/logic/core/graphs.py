@@ -36,18 +36,42 @@ class LogicGraphCore:
     """
 
     @staticmethod
-    def get_graph_root_prim(selected_prim: Usd.Prim) -> Usd.Prim | None:
+    def get_graph_root_prim(
+        selected_prim: Usd.Prim, roots_by_path: dict[Sdf.Path, Usd.Prim | None] | None = None
+    ) -> Usd.Prim | None:
+        """Resolve the nearest mesh or light asset for a selected prim.
+
+        Args:
+            selected_prim: Prim to resolve through its Remix prototype.
+            roots_by_path: Optional caller-owned lookup shared within one query on an unchanged stage.
+                Discard it after the query so later edits or stage changes are observed.
+
+        Returns:
+            The nearest asset prim, or None when no valid asset owns the selection.
+        """
         prim = get_prototype(selected_prim)
         if not prim or not (is_in_mesh_group(prim) or is_in_light_group(prim)):
             return None
 
+        if roots_by_path is None:
+            roots_by_path = {}
+        visited_paths = []
+        root = None
         parent = prim
         while parent:
+            path = parent.GetPath()
+            if path in roots_by_path:
+                root = roots_by_path[path]
+                break
+            visited_paths.append(path)
             if is_mesh_asset(parent) or is_light_asset(parent):
-                return parent
+                root = parent
+                break
             parent = parent.GetParent()
 
-        return None
+        for path in visited_paths:
+            roots_by_path[path] = root
+        return root
 
     @staticmethod
     def is_graph_prim_editable(graph: Usd.Prim) -> bool:
@@ -82,7 +106,7 @@ class LogicGraphCore:
     def get_existing_logic_graphs(stage: Usd.Stage, paths: list[Sdf.Path]) -> list[Usd.Prim]:
         """Get the names of the existing logic graphs under provided paths"""
         existing_graphs: set[Usd.Prim] = set()
-        for path in paths:
+        for path in dict.fromkeys(paths):
             root_prim = stage.GetPrimAtPath(path)
             for prim in Usd.PrimRange(root_prim):
                 if prim.GetTypeName() == OMNI_GRAPH_TYPE:

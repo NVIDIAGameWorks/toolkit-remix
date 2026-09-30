@@ -18,6 +18,7 @@
 from .unit import (
     TestCameraAuthority,
     TestFindPrimWithReferences,
+    TestGetChildrenPrims,
     TestGetPrototype,
     TestGetReferenceFilePaths,
     TestHasReplacementRefEdits,
@@ -30,6 +31,7 @@ from .unit import (
 __all__ = [
     "TestCameraAuthority",
     "TestFindPrimWithReferences",
+    "TestGetChildrenPrims",
     "TestGetPrototype",
     "TestGetReferenceFilePaths",
     "TestHasReplacementRefEdits",

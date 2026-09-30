@@ -23,19 +23,6 @@ from .interface.i_manipulator import IManipulator
 
 
 class PrimTransformDefault(IManipulator):
-    def _create_manipulator(self):
-        manipulator_prim_transform_model = _ManipulatorPrimTransformModel(
-            usd_context_name=self.viewport_api.usd_context_name
-        )
-        return _PrimTransformManipulator(
-            usd_context_name=self.viewport_api.usd_context_name,
-            viewport_api=self.viewport_api,
-            model=manipulator_prim_transform_model,
-        )
-
-    def _model_changed(self, model, item):
-        pass
-
     @property
     def categories(self):
         return ["manipulator"]
@@ -50,6 +37,31 @@ class PrimTransformDefault(IManipulator):
 
     @visible.setter
     def visible(self, value):
+        pass
+
+    def destroy(self):
+        """Release the owned transform manipulator and external model."""
+        manipulator = self.manipulator()
+        model = manipulator.model if manipulator is not None else None
+        super().destroy()
+        try:
+            if manipulator is not None:
+                manipulator.destroy()
+        finally:
+            if model is not None:
+                model.destroy()
+
+    def _create_manipulator(self):
+        manipulator_prim_transform_model = _ManipulatorPrimTransformModel(
+            usd_context_name=self.viewport_api.usd_context_name
+        )
+        return _PrimTransformManipulator(
+            usd_context_name=self.viewport_api.usd_context_name,
+            viewport_api=self.viewport_api,
+            model=manipulator_prim_transform_model,
+        )
+
+    def _model_changed(self, model, item):
         pass
 
 

@@ -1,3 +1,20 @@
+"""
+* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-License-Identifier: Apache-2.0
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* https://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+"""
+
 __all__ = ("TestMaterialPropertyWidget",)
 
 import asyncio
@@ -14,6 +31,7 @@ import omni.kit.test_suite.helpers
 import omni.kit.ui_test
 import omni.ui as ui
 import omni.usd
+from omni.flux.material_api import ShaderInfoAPI
 from omni.flux.properties_pane.materials.usd.widget import MaterialPropertyWidget
 from omni.flux.utils.common.omni_url import OmniUrl
 from pxr import UsdShade
@@ -134,6 +152,19 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
 
     async def test_enable_emission_updates_emissive_row_visibility(self):
         mat_path = "/World/Looks/OmniPBR_EnableEmission"
+        shader = omni.usd.get_context().get_stage().GetPrimAtPath(f"{mat_path}/Shader")
+        cache = {}
+        first = ShaderInfoAPI(shader, property_metadata_cache=cache).get_input_properties(
+            ["reflection_roughness_constant"]
+        )[0]
+        default = first.GetDefaultValue()
+        first.GetMetadata("customData")["default"] = -1.0
+        second = ShaderInfoAPI(shader, property_metadata_cache=cache).get_input_properties(
+            ["reflection_roughness_constant"]
+        )[0]
+        self.assertEqual(len(cache), 1)
+        self.assertIsNot(first.GetMetadata("customData"), second.GetMetadata("customData"))
+        self.assertEqual(second.GetDefaultValue(), default)
 
         async with AsyncTestMeterialPropertyHelper() as helper:
             await helper.set_paths([mat_path])

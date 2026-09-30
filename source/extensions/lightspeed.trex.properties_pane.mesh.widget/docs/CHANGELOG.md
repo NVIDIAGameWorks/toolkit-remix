@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.5]
+### Fixed
+- Avoided reading unrelated mesh attributes during category migration.
+
 ## [1.5.4]
 ### Changed
 - Sourced Remix category names and attributes from the authoritative USD schema.

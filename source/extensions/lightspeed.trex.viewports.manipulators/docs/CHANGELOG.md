@@ -1,6 +1,10 @@
 ï»¿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.3]
+### Fixed
+- Released owned transform manipulators and models when viewport layers are removed.
+
 ## [1.7.2]
 ### Fixed
 - Kept camera pointer drags moving beyond screen edges by using native cursor capture and restoring the prior cursor mode afterward.

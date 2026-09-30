@@ -9,3 +9,6 @@ Camera pointer drags use native cursor capture for continuous navigation beyond 
 the manipulator restores the cursor mode that was active before the drag. If reading the initial cursor mode fails,
 the gesture ends its notice interaction without attempting to change the cursor mode.
 Repeated capture requests before cleanup preserve the originally saved cursor mode.
+
+`PrimTransformDefault.destroy()` releases its owned transform manipulator and the model it passes to Kit.
+Viewport-layer replacement must call it so obsolete manipulators stop receiving selection events.

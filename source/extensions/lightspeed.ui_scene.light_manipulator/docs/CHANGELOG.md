@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.2]
+### Fixed
+- Used native light-selection membership instead of copying the selected-path list.
+
 ## [1.3.1]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

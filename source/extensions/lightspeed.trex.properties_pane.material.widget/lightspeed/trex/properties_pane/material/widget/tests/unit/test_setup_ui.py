@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import asyncio
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -136,6 +137,8 @@ class TestSetupUI(AsyncTestCase):
         setup._dlss_availability_subscription = subscription
         setup._external_drag_and_drop = None
         setup._unfiltered_selected_prims = []
+        setup._material_menu_task = None
+        setup._SetupUI__menu = None
 
         with patch.object(_setup_ui, "_reset_default_attrs") as reset_default_attrs:
             # Act
@@ -146,3 +149,42 @@ class TestSetupUI(AsyncTestCase):
             self.assertIsNone(setup._settings)
             self.assertIsNone(setup._dlss_availability_subscription)
             reset_default_attrs.assert_called_once_with(setup)
+
+    async def test_clear_material_menu_cancels_without_publishing_or_clearing_replacement_task(self):
+        """Cancelled menu work must not publish or release a newer request's ownership."""
+        # Arrange
+        entered, release = asyncio.Event(), asyncio.Event()
+
+        async def next_update():
+            entered.set()
+            await release.wait()
+
+        setup = SetupUI.__new__(SetupUI)
+        menu = MagicMock(shown=True)
+        setup._SetupUI__menu = menu
+        replacement = asyncio.get_running_loop().create_future()
+        with patch.object(_setup_ui, "omni") as omni_module:
+            omni_module.kit.app.get_app.return_value.next_update_async = next_update
+            task = asyncio.create_task(setup._refresh_material_menu(menu, [], (), None))
+            setup._material_menu_task = task
+            try:
+                await entered.wait()
+
+                # Act
+                setup._SetupUI__clear_material_menu()
+                cancellation_count = task.cancelling()
+                setup._material_menu_task = replacement
+                release.set()
+                await task
+
+                # Assert
+                self.assertGreater(cancellation_count, 0)
+                menu.clear.assert_not_called()
+                menu.hide.assert_called_once_with()
+                menu.destroy.assert_called_once_with()
+                self.assertIs(setup._material_menu_task, replacement)
+            finally:
+                release.set()
+                replacement.cancel()
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)

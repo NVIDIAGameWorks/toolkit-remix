@@ -177,6 +177,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to change compatibility.
 - REMIX-6104: Fixed delayed Open-with-Capture feedback and repeated input by showing progress after wizard dismissal, blocking duplicate requests, and logging preparation failures.
 - Fixed Remix Review spending its review budget on speculative synthesis reservations and idle worker queues while preserving required coverage and deadline enforcement.
+- REMIX-6129: Reduced large-selection stalls in Properties and the viewport.
 
 ## [1.5.2-0]
 

@@ -411,6 +411,7 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
         return prim_path
 
     def _on_kit_selection_changed(self):
+        """Refresh the light using native selection membership for its instance path."""
         # selection change, reset it for now
         self._light = None
 
@@ -422,12 +423,11 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
         if not stage:
             return self._invalidate_object()
 
-        prim_paths = usd_context.get_selection().get_selected_prim_paths()
-        if not prim_paths:
+        if not self._prim:
             return self._invalidate_object()
 
         prim_path = self._prim.GetPath().pathString
-        if prim_path not in prim_paths:
+        if not usd_context.get_selection().is_prim_path_selected(prim_path):
             return self._invalidate_object()
 
         # transform should still get selected prim path, so that it's correctly placed.

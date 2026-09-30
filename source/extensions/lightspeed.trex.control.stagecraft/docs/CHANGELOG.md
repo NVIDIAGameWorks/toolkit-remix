@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.11]
+### Added
+- Extended Ctrl+A coverage and corrected viewport ownership in test cleanup.
+
 ## [1.8.10]
 ### Fixed
 - Covered first-click Ingestion activation in the isolated StageCraft startup test and declared the direct `omni.usd` dependency.
