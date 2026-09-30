@@ -33,6 +33,9 @@ build-package-windows-mr:
     - build-package-windows
   needs: []
   rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "dependabot/update-rtx-remix-target-deps"
+      when: on_success
+      allow_failure: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: manual
       allow_failure: true
