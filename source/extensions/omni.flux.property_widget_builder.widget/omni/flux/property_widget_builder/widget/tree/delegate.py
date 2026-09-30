@@ -189,7 +189,7 @@ class Delegate(_TreeDelegateBase):
         self._apply_item_expanded_fn = callback
 
     def _apply_item_expanded(self, button: int, item: Item, expanded: bool) -> None:
-        if button != 0:
+        if button != 0 or not item.can_have_children:
             return
         if self._apply_item_expanded_fn is not None:
             self._apply_item_expanded_fn(item, expanded)
@@ -295,7 +295,7 @@ class Delegate(_TreeDelegateBase):
         if item is None:
             return
 
-        if isinstance(item, ItemGroup):
+        if isinstance(item, ItemGroup) and item.can_have_children:
             with ui.Frame(
                 mouse_pressed_fn=lambda _x, _y, b, _m: self._item_clicked(b, b == 1, model, item),
                 mouse_released_fn=lambda _x, _y, b, _m: self._apply_item_expanded(b, item, not expanded),

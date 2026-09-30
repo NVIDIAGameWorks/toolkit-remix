@@ -17,6 +17,9 @@
 
 from enum import Enum as _Enum
 
+from .base.converter_builder_base import ConverterBuilderBase
+from .impl.gltf_to_aperture_pbr import GltfToAperturePBRConverterBuilder
+
 from .impl.none_to_aperture_pbr import NoneToAperturePBRConverterBuilder as _NoneToAperturePBRConverterBuilder
 from .impl.omni_glass_to_aperture_pbr import (
     OmniGlassToAperturePBRConverterBuilder as _OmniGlassToAperturePBRConverterBuilder,
@@ -28,7 +31,11 @@ from .impl.usd_preview_surface_to_aperture_pbr import (
 from .utils import SupportedShaderInputs as _SupportedShaderInputs
 
 
+__all__ = ["Converters", "get_converter_builder"]
+
+
 class Converters(_Enum):
+    GLTF_TO_APERTURE_PBRCONVERTER_BUILDER = (GltfToAperturePBRConverterBuilder, _SupportedShaderInputs.GLTF)
     NONE_TO_APERTURE_PBRCONVERTER_BUILDER = (_NoneToAperturePBRConverterBuilder, _SupportedShaderInputs.NONE)
     OMNI_GLASS_TO_APERTURE_PBRCONVERTER_BUILDER = (
         _OmniGlassToAperturePBRConverterBuilder,
@@ -43,3 +50,14 @@ class Converters(_Enum):
         _USDPreviewSurfaceToAperturePBRConverterBuilder,
         _SupportedShaderInputs.USD_PREVIEW_SURFACE,
     )
+
+
+_CONVERTER_BUILDERS = {
+    shader_input.value: builder for builder, shader_input in (converter.value for converter in Converters)
+}
+
+
+def get_converter_builder(input_subidentifier: str | None) -> ConverterBuilderBase | None:
+    """Create the registered builder for an input shader identifier."""
+    builder = _CONVERTER_BUILDERS.get(input_subidentifier)
+    return builder() if builder else None

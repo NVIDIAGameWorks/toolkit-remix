@@ -91,6 +91,7 @@ _FULL_WORKFLOW = {
                 "Soft": {"inputs": {"10.strength": {"value": 0.25}}},
             },
             "groupOrder": ["Input", "Material"],
+            "outputGroupOrder": ["Textures"],
             "activePreset": "Strong",
         }
     }

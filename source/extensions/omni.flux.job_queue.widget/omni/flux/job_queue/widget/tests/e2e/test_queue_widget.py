@@ -790,6 +790,40 @@ class TestQueueWidget(AsyncTestCase):
         self.assertEqual(job_status.widget.text, "Generating textures · 2 of 4 textures")
         self.assertEqual(completed.widget.text, "")
 
+    async def test_skipped_job_details_show_reason_only_with_outputs(self):
+        """Selecting skipped jobs shows the output completion reason only when outputs exist."""
+        with_outputs = _WidgetJob(name="Existing outputs", value=1)
+        without_outputs = _WidgetJob(name="Unavailable outputs", value=2)
+        self._submit_graph("Skipped workflow", with_outputs, without_outputs)
+        self.assertIn(with_outputs.job_id, self._interface.claim_runnable_jobs())
+        self.assertTrue(self._interface.start_job(with_outputs.job_id))
+        reason = "The requested outputs already exist."
+        self.assertTrue(
+            self._interface.complete_job(
+                with_outputs.job_id,
+                JobOutputs({RESULT: with_outputs.value, DETAILS: with_outputs.details}, skip_reason=reason),
+            )
+        )
+        self.assertTrue(self._interface.skip_job(without_outputs.job_id, "The input is unavailable."))
+        await ui_test.human_delay()
+        await self._find("Image[*].identifier=='queue_graph_branch'").click()
+        await ui_test.human_delay()
+
+        for job, expected_reason in ((with_outputs, reason), (without_outputs, None)):
+            with self.subTest(job=job.name):
+                job_label = next(
+                    label for label in self._find_all("Label[*].name=='CellLabel'") if label.widget.text == job.name
+                )
+                await job_label.click()
+                await ui_test.human_delay()
+                self.assertEqual(self._find("Label[*].identifier=='job_details_title'").widget.text, job.name)
+                reason_label = self._find("Label[*].identifier=='job_details_skip_reason'")
+                if expected_reason is None:
+                    self.assertIsNone(reason_label)
+                else:
+                    self.assertIsNotNone(reason_label)
+                    self.assertEqual(reason_label.widget.text, expected_reason)
+
     async def test_active_job_details_render_before_first_progress_update(self):
         """An active child remains inspectable before its worker reports structured progress."""
         # Start a real job without publishing progress, expand its graph, and select the child.
@@ -1396,15 +1430,17 @@ class TestQueueWidget(AsyncTestCase):
         self.assertIsNotNone(copy_technical)
         self.assertGreater(copy_technical.center.y, technical.center.y - (technical.widget.computed_height / 2))
 
-    async def test_graph_details_topology_uses_relationship_text_without_unsupported_marker(self):
-        """Topology direction stays readable without relying on a font-specific arrow glyph."""
-        # Submit a dependent graph, select it, and read the topology shown in graph details.
+    async def test_graph_details_topology_separates_edges_and_uses_relationship_text(self):
+        """Each topology edge is one readable three-line block, and blocks stand apart from each other."""
+        # Submit a graph with two control edges, select it, and read the topology shown in graph details.
         first = _WidgetJob(name="ComfyUI generation")
         second = _WidgetJob(name="Asset processing")
-        graph = JobGraph(name="Material topology", jobs=[first, second])
-        graph.bind(first, REQUEST, first.request)
-        graph.bind(second, REQUEST, second.request)
+        third = _WidgetJob(name="Mesh optimization")
+        graph = JobGraph(name="Material topology", jobs=[first, second, third])
+        for job in (first, second, third):
+            graph.bind(job, REQUEST, job.request)
         graph.depends_on(second, first)
+        graph.depends_on(third, second)
         self._interface.submit(graph)
         await ui_test.human_delay()
 
@@ -1413,10 +1449,17 @@ class TestQueueWidget(AsyncTestCase):
         await root_label.click()
         await ui_test.human_delay()
 
-        relationship = self._find("Label[*].text=='Runs before'")
-        topology_marker = self._find("Label[*].name=='QueueDetailTopologyArrow'")
-        self.assertIsNotNone(relationship)
-        self.assertIsNone(topology_marker)
+        relationships = sorted(self._find_all("Label[*].text=='Runs before'"), key=lambda label: label.center.y)
+        job_lines = sorted(self._find_all("Label[*].name=='QueueDetailTopologyJob'"), key=lambda label: label.center.y)
+        self.assertEqual(len(relationships), 2)
+        self.assertEqual(len(job_lines), 4)
+        self.assertIsNone(self._find("Label[*].name=='QueueDetailTopologyArrow'"))
+        # Within one edge: source, relationship, target. The gap between the first target and the second source is
+        # larger than the gap between lines of one edge, so two edges never read as one chain.
+        within_edge = relationships[0].center.y - job_lines[0].center.y
+        between_edges = job_lines[2].center.y - job_lines[1].center.y
+        self.assertGreater(within_edge, 0)
+        self.assertGreater(between_edges, within_edge)
 
     async def test_job_stage_filter_popup_filters_custom_adapter_rows(self):
         """The centralized native popup filters graph and custom-adapter stage labels together."""

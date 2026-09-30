@@ -20,12 +20,14 @@ import tempfile
 from unittest.mock import AsyncMock, patch
 
 import omni.usd
-from lightspeed.trex.comfyui.core.api import ComfyUIAPI
-from lightspeed.trex.comfyui.core.core import ComfyUICore
-from lightspeed.trex.comfyui.core.job import ComfyUIJob
-from lightspeed.trex.comfyui.core.models import ComfyUIWorkflowRequest, Workflow
 from omni.kit.test import AsyncTestCase
 from pxr import Sdf, UsdGeom, UsdShade
+
+from ...api import ComfyUIAPI
+from ...core import ComfyUICore
+from ...enums import RemixType
+from ...job import ComfyUIJob
+from ...models import ComfyUIWorkflowRequest, Workflow, WorkflowOutput
 
 
 class TestUsdMaterialCandidatesE2E(AsyncTestCase):
@@ -66,7 +68,18 @@ class TestUsdMaterialCandidatesE2E(AsyncTestCase):
             patch.object(ComfyUIAPI, "get_workflow_list", new=AsyncMock(return_value=[])),
         ):
             await self._core.connect()
-        self._core.set_workflow(Workflow(name="Material candidates"))
+        self._core.set_workflow(
+            Workflow(
+                name="Material candidates",
+                output_specs=[
+                    WorkflowOutput(
+                        node_id="texture_output",
+                        remix_type=RemixType.TEXTURE_FILE_PATH,
+                        texture_type="albedo",
+                    )
+                ],
+            )
+        )
 
     async def tearDown(self) -> None:
         """Close the live test stage and release its core subscriptions."""
@@ -86,9 +99,7 @@ class TestUsdMaterialCandidatesE2E(AsyncTestCase):
         """
         submission = await self._core.prepare_submission([prim_path, prim_path])
         self.assertEqual(len(submission.graphs), 1)
-        generation_job = submission.graphs[0].jobs[0]
-        self.assertIsInstance(generation_job, ComfyUIJob)
-        return generation_job
+        return submission.graphs[0].jobs[0]
 
     async def test_parent_xform_resolves_bound_material(self) -> None:
         """A selected parent resolves each mesh owner once."""
@@ -150,7 +161,7 @@ class TestUsdMaterialCandidatesE2E(AsyncTestCase):
             if binding.job_id == generation_job.job_id and binding.port is ComfyUIJob.WORKFLOW_REQUEST
         )
 
-        # The texture-processing child will use its durable queue job directory instead of an invalid anon URL.
+        # The typed adapter graph keeps its processed outputs in the durable queue directory.
         self.assertIsInstance(workflow_request, ComfyUIWorkflowRequest)
         self.assertIsNone(workflow_request.output_url)
 

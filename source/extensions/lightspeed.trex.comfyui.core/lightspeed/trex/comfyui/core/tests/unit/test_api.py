@@ -20,11 +20,63 @@ import pathlib
 import threading
 from unittest.mock import AsyncMock, MagicMock, call, mock_open, patch
 
-from lightspeed.trex.comfyui.core.api import ComfyUIAPI, ComfyUIImageResult, _convert_dds_to_png
-from lightspeed.trex.comfyui.core.enums import WorkflowCategory, WorkflowSourceType, WorkflowType
-from lightspeed.trex.comfyui.core.models import Workflow, WorkflowTypeCategory, WorkflowTypeOption
 from omni import client
 from omni.kit.test import AsyncTestCase
+
+from ... import api as api_module
+from ...api import ComfyUIAPI, ComfyUIExecutionError, _convert_dds_to_png
+from ...enums import RemixType, WorkflowCategory, WorkflowSourceType, WorkflowType
+from ...models import ComfyUIFileResult, Workflow, WorkflowTypeCategory, WorkflowTypeOption
+
+
+class TestComfyUIExecutionError(AsyncTestCase):
+    """Test messages for incomplete server error details."""
+
+    async def test_missing_node_type_directs_user_to_server_log(self):
+        # Arrange
+        error = ComfyUIExecutionError("prompt-id", {"node_id": "42", "exception_message": "private detail"})
+
+        # Act
+        message = error.user_message
+
+        # Assert
+        self.assertIn("server log", message)
+        self.assertNotIn("private detail", message)
+
+    async def test_missing_node_id_preserves_node_type_and_reason(self):
+        # Arrange
+        error = ComfyUIExecutionError("prompt-id", {"node_type": "MeshLoader", "exception_message": "bad mesh"})
+
+        # Act
+        message = error.user_message
+
+        # Assert
+        self.assertIn("MeshLoader", message)
+        self.assertIn("bad mesh", message)
+        self.assertNotIn("(node", message)
+
+    async def test_missing_exception_message_reports_absent_reason(self):
+        # Arrange
+        error = ComfyUIExecutionError("prompt-id", {"node_type": "MeshLoader", "node_id": 42})
+
+        # Act
+        message = error.user_message
+
+        # Assert
+        self.assertIn("MeshLoader (node 42)", message)
+        self.assertIn("no error message", message)
+
+    async def test_non_dictionary_payload_directs_user_to_server_log(self):
+        # Arrange
+        details = ["invalid server payload"]
+
+        # Act
+        error = ComfyUIExecutionError("prompt-id", details)
+
+        # Assert
+        self.assertIn("server log", error.user_message)
+        self.assertIn("prompt-id", str(error))
+        self.assertIn(str(details), str(error))
 
 
 class TestComfyUIAPI(AsyncTestCase):
@@ -116,8 +168,8 @@ class TestComfyUIAPI(AsyncTestCase):
             with self.assertRaises(asyncio.CancelledError):
                 await task
 
-    async def test_upload_dds_converts_and_preserves_server_location(self):
-        """DDS uploads use PNG data and explicit ComfyUI input location fields."""
+    async def test_upload_texture_with_dds_converts_and_preserves_server_location(self):
+        """DDS texture uploads use PNG data and explicit ComfyUI input location fields."""
         # Arrange
         api = ComfyUIAPI("http", "127.0.0.1", 8188)
         api._send_request = AsyncMock(
@@ -139,7 +191,7 @@ class TestComfyUIAPI(AsyncTestCase):
         ):
             image_open.return_value.__enter__.return_value = converted_image
             # Act
-            result = await api.upload_image("C:/textures/source.dds", subfolder="rtx-remix/job-1")
+            result = await api.upload_file("C:/textures/source.dds", subfolder="rtx-remix/job-1", convert_dds=True)
 
         # Assert
         request_call = api._send_request.await_args
@@ -153,8 +205,8 @@ class TestComfyUIAPI(AsyncTestCase):
         run_in_worker_thread.assert_any_await(_convert_dds_to_png, "C:/textures/source.dds", converted_path)
         temporary_directory.__exit__.assert_called_once()
 
-    async def test_upload_localizes_omniverse_input(self):
-        """Nucleus-hosted workflow inputs are copied locally before HTTP upload."""
+    async def test_upload_texture_with_omniverse_source_localizes_input(self):
+        """A remote texture input is copied locally before HTTP upload."""
         # Arrange
         api = ComfyUIAPI("http", "127.0.0.1", 8188)
         api._send_request = AsyncMock(
@@ -173,9 +225,10 @@ class TestComfyUIAPI(AsyncTestCase):
             ) as copy,
             patch("builtins.open", file_handle),
         ):
-            result = await api.upload_image(
+            result = await api.upload_file(
                 "omniverse://server/Projects/Scene/albedo.png",
                 subfolder="rtx-remix/job-1",
+                convert_dds=True,
             )
 
         # Assert
@@ -187,6 +240,45 @@ class TestComfyUIAPI(AsyncTestCase):
         self.assertEqual(api._send_request.await_args.kwargs["files"]["image"][0], "albedo.png")
         self.assertEqual(result["name"], "albedo.png")
         temporary_directory.__exit__.assert_called_once()
+
+    async def test_upload_mesh_preserves_bytes_and_extension_on_image_endpoint(self):
+        """A mesh upload sends unchanged model bytes through ComfyUI's image endpoint."""
+        # Arrange
+        api = ComfyUIAPI("http", "127.0.0.1", 8188)
+        model_bytes = b"glTF-model-bytes"
+        uploaded_bytes = None
+
+        async def send_upload(_method, _endpoint, **kwargs):
+            """Capture the multipart model bytes and return valid server metadata."""
+            nonlocal uploaded_bytes
+            uploaded_bytes = kwargs["files"]["image"][1].read()
+            return {"name": "source.glb", "subfolder": "rtx-remix/job-1", "type": "input"}
+
+        api._send_request = AsyncMock(side_effect=send_upload)
+        file_handle = mock_open(read_data=model_bytes)
+
+        with (
+            patch("builtins.open", file_handle),
+            patch.object(api_module, "_convert_dds_to_png") as convert_dds,
+            # Host MIME registries may know .glb; pin the unknown-type fallback the test asserts.
+            patch.object(api_module.mimetypes, "guess_type", return_value=(None, None)),
+        ):
+            # Act
+            result = await api.upload_file("C:/models/source.glb", subfolder="rtx-remix/job-1", convert_dds=False)
+
+        # Assert
+        self.assertEqual(uploaded_bytes, model_bytes)
+        self.assertEqual(result, {"name": "source.glb", "subfolder": "rtx-remix/job-1", "type": "input"})
+        file_handle.assert_called_once_with("C:/models/source.glb", "rb")
+        convert_dds.assert_not_called()
+        request_call = api._send_request.await_args
+        self.assertEqual(request_call.args, ("POST", "/upload/image"))
+        self.assertEqual(
+            request_call.kwargs["data"],
+            {"overwrite": "true", "subfolder": "rtx-remix/job-1", "type": "input"},
+        )
+        self.assertEqual(request_call.kwargs["files"]["image"][0], "source.glb")
+        self.assertEqual(request_call.kwargs["files"]["image"][2], "application/octet-stream")
 
     async def test_upload_dds_cleans_temporary_directory_when_conversion_fails(self):
         """A failed DDS conversion cleans its temporary directory."""
@@ -200,7 +292,7 @@ class TestComfyUIAPI(AsyncTestCase):
             self.assertRaises(OSError) as error,
         ):
             # Act
-            await api.upload_image("C:/textures/invalid.dds")
+            await api.upload_file("C:/textures/invalid.dds", subfolder="rtx-remix/job-1", convert_dds=True)
 
         # Assert
         self.assertIn("conversion failed", str(error.exception))
@@ -295,15 +387,20 @@ class TestComfyUIAPI(AsyncTestCase):
         # Assert
         api._send_request.assert_awaited_once_with("GET", "/history/prompt%20%2B%40")
 
-    async def test_download_image_writes_typed_output(self):
-        """A typed image result downloads to the requested local artifact path."""
+    async def test_download_file_with_mesh_writes_generic_typed_output(self):
+        """A mesh file result downloads unchanged through the generic view endpoint."""
         # Arrange
         api = ComfyUIAPI("http", "127.0.0.1", 8188)
         response = MagicMock()
-        response.iter_content.return_value = (b"image-", b"bytes")
+        response.iter_content.return_value = (b"model-", b"bytes")
         api._request = AsyncMock(return_value=response)
-        image = ComfyUIImageResult(filename="result.png", texture_type="albedo", subfolder="nested")
-        destination = pathlib.Path("C:/jobs/result.png")
+        file_result = ComfyUIFileResult(
+            filename="result.glb",
+            key="mesh-output",
+            remix_type=RemixType.MESH_FILE_PATH,
+            subfolder="nested",
+        )
+        destination = pathlib.Path("C:/jobs/result.glb")
 
         with (
             patch.object(pathlib.Path, "mkdir") as mkdir,
@@ -314,7 +411,7 @@ class TestComfyUIAPI(AsyncTestCase):
             ) as run_in_worker_thread,
         ):
             # Act
-            result = await api.download_image(image, destination)
+            result = await api.download_file(file_result, destination)
 
         # Assert
         self.assertEqual(result, destination)
@@ -322,14 +419,14 @@ class TestComfyUIAPI(AsyncTestCase):
         open_file.assert_called_once_with("wb")
         self.assertEqual(
             open_file().write.call_args_list,
-            [call(b"image-"), call(b"bytes")],
+            [call(b"model-"), call(b"bytes")],
         )
         response.close.assert_called_once_with()
         run_in_worker_thread.assert_awaited_once()
         api._request.assert_awaited_once_with(
             "GET",
             "/view",
-            params={"filename": "result.png", "subfolder": "nested", "type": "output"},
+            params={"filename": "result.glb", "subfolder": "nested", "type": "output"},
             stream=True,
         )
 

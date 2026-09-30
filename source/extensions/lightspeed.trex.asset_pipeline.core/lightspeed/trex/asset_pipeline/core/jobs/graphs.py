@@ -30,18 +30,18 @@ from omni.flux.job_queue.core.job import ApplyBinding, JobGraph, JobOutputEndpoi
 
 from .apply_handler import SaveMeshMetadataHandler, SaveTextureMetadataHandler
 from .mesh_optimization import MeshOptimizationJob
-from .models import MeshOptimizationRequest, TextureProcessingRequest
+from .models import MeshOptimizationRequest, TextureOptimizationRequest
 from .prepare_optimization import PrepareOptimizationJob
-from .texture_processing import TextureProcessingJob
+from .texture_optimization import TextureOptimizationJob
 
 
 def build_texture_optimization_graph(
-    request: TextureProcessingRequest,
+    request: TextureOptimizationRequest,
     *,
     name: str = "Texture optimization",
     handler_type: type[ApplyHandler] = SaveTextureMetadataHandler,
     target: Any = None,
-) -> tuple[JobGraph, TextureProcessingJob]:
+) -> tuple[JobGraph, TextureOptimizationJob]:
     """Build a standalone graph that optimizes one texture batch.
 
     A caller submits the returned graph and reads the terminal job's outputs.
@@ -51,7 +51,7 @@ def build_texture_optimization_graph(
     The parameter keeps the dependency one way: this extension never imports its products.
 
     A caller that already owns an upstream job, such as one that generates the source textures,
-    adds its own ``TextureProcessingJob`` to its own graph instead of calling this function: build
+    adds its own ``TextureOptimizationJob`` to its own graph instead of calling this function: build
     the job, add it, and connect the upstream job's output to ``SOURCE_TEXTURES`` directly.
 
     Args:
@@ -64,16 +64,16 @@ def build_texture_optimization_graph(
         The graph and its terminal texture job.
     """
     graph = JobGraph(name=name)
-    texture_job = TextureProcessingJob(
+    texture_job = TextureOptimizationJob(
         name=name,
         apply_binding=ApplyBinding(
-            output_port=TextureProcessingJob.PROCESSED_TEXTURES,
+            output_port=TextureOptimizationJob.PROCESSED_TEXTURES,
             handler_type=handler_type,
             target=target,
         ),
     )
     graph.add_job(texture_job)
-    graph.bind(texture_job, TextureProcessingJob.SOURCE_TEXTURES, request)
+    graph.bind(texture_job, TextureOptimizationJob.SOURCE_TEXTURES, request)
     return graph, texture_job
 
 
@@ -95,18 +95,18 @@ def add_asset_optimization_jobs(
     Returns:
         The terminal mesh job.
     """
-    prepare_job = PrepareOptimizationJob(name="Prepare optimization")
+    prepare_job = PrepareOptimizationJob(name="Optimization preparation")
     graph.add_job(prepare_job)
     if isinstance(source, MeshOptimizationRequest):
         graph.bind(prepare_job, PrepareOptimizationJob.SOURCE_MODEL, source)
     else:
         graph.connect(source, prepare_job.input(PrepareOptimizationJob.SOURCE_MODEL))
 
-    texture_job = TextureProcessingJob(name="Optimize textures")
+    texture_job = TextureOptimizationJob(name="Texture optimization")
     graph.add_job(texture_job)
     graph.connect(
         prepare_job.output(PrepareOptimizationJob.TEXTURE_REQUEST),
-        texture_job.input(TextureProcessingJob.SOURCE_TEXTURES),
+        texture_job.input(TextureOptimizationJob.SOURCE_TEXTURES),
     )
 
     apply_binding = None
@@ -116,14 +116,14 @@ def add_asset_optimization_jobs(
             handler_type=handler_type,
             target=target,
         )
-    mesh_job = MeshOptimizationJob(name="Optimize mesh", apply_binding=apply_binding)
+    mesh_job = MeshOptimizationJob(name="Mesh optimization", apply_binding=apply_binding)
     graph.add_job(mesh_job)
     graph.connect(
         prepare_job.output(PrepareOptimizationJob.PREPARED_MESH),
         mesh_job.input(MeshOptimizationJob.SOURCE_MODEL),
     )
     graph.connect(
-        texture_job.output(TextureProcessingJob.PROCESSED_TEXTURES),
+        texture_job.output(TextureOptimizationJob.PROCESSED_TEXTURES),
         mesh_job.input(MeshOptimizationJob.TEXTURE_INPUT),
     )
     return mesh_job

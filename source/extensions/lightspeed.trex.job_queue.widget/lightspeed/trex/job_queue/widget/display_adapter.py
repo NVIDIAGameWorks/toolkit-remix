@@ -15,15 +15,21 @@
 * limitations under the License.
 """
 
-__all__ = ["TextureProcessingDisplayAdapter"]
+__all__ = [
+    "DISPLAY_ADAPTERS",
+    "MeshOptimizationDisplayAdapter",
+    "PrepareOptimizationDisplayAdapter",
+    "TextureOptimizationDisplayAdapter",
+]
 
+import os
 import pathlib
 
 import carb
-from lightspeed.trex.asset_pipeline.core.jobs import TextureProcessingJob
+from lightspeed.trex.asset_pipeline.core.jobs import MeshOptimizationJob, PrepareOptimizationJob, TextureOptimizationJob
 from lightspeed.trex.asset_pipeline.core.jobs.models import (
-    TextureProcessingRequest,
-    TextureProcessingResult,
+    TextureOptimizationRequest,
+    TextureOptimizationResult,
 )
 from omni.flux.job_queue.core import get_job_queue
 from omni.flux.job_queue.core.models import QueueJobDetailsSnapshot
@@ -40,17 +46,37 @@ from omni.flux.job_queue.widget.enums import DisplayState, JobDetailSectionPlace
 from omni.flux.utils.common.path_utils import get_local_path, open_file_using_os_default
 
 
-class TextureProcessingDisplayAdapter(JobDisplayAdapter):
-    """Present the shared texture-processing job without product-specific assumptions."""
+class PrepareOptimizationDisplayAdapter(JobDisplayAdapter):
+    """Present the shared optimization preparation job."""
 
-    name = "texture_processing"
-    job_type = TextureProcessingJob
-    source_name = "Texture Processing"
+    name = "prepare_optimization"
+    job_type = PrepareOptimizationJob
+    source_name = "Optimization Preparation"
+    display_name = "Optimization preparation"
+    active_status_label = "Preparing the model"
+
+
+class MeshOptimizationDisplayAdapter(JobDisplayAdapter):
+    """Present the shared mesh optimization job."""
+
+    name = "mesh_optimization"
+    job_type = MeshOptimizationJob
+    source_name = "Mesh Optimization"
+    display_name = "Mesh optimization"
+    active_status_label = "Optimizing the mesh"
+
+
+class TextureOptimizationDisplayAdapter(JobDisplayAdapter):
+    """Present the shared texture-optimization job without product-specific assumptions."""
+
+    name = "texture_optimization"
+    job_type = TextureOptimizationJob
+    source_name = "Texture Optimization"
     display_name = "Texture optimization"
     active_status_label = "Optimizing textures"
     _OPEN_TEXTURE_DIRECTORY_ACTION_ID = "open_processed_texture_directory"
 
-    def get_name_tooltip(self, job: TextureProcessingJob) -> str:
+    def get_name_tooltip(self, job: TextureOptimizationJob) -> str:
         """Describe the reusable processing and publication step.
 
         Args:
@@ -61,11 +87,11 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
         """
         return "Prepare, optimize, and publish textures for efficient use in RTX Remix."
 
-    def get_active_status_label(self, job: TextureProcessingJob, progress: JobProgress | None) -> str | None:
+    def get_active_status_label(self, job: TextureOptimizationJob, progress: JobProgress | None) -> str | None:
         """Show the exact active pipeline phase when one is available.
 
         Args:
-            job: Active texture-processing job.
+            job: Active texture-optimization job.
             progress: Latest structured pipeline progress.
 
         Returns:
@@ -75,11 +101,11 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
             return progress.detail
         return self.active_status_label
 
-    def get_active_progress_label(self, job: TextureProcessingJob, progress: JobProgress | None) -> str | None:
+    def get_active_progress_label(self, job: TextureOptimizationJob, progress: JobProgress | None) -> str | None:
         """Format structured texture-count progress.
 
         Args:
-            job: Active texture-processing job.
+            job: Active texture-optimization job.
             progress: Latest structured processing progress.
 
         Returns:
@@ -89,7 +115,7 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
             return None
         return f"{progress.completed} of {progress.total} textures"
 
-    def _get_output_action_state(self, job: TextureProcessingJob) -> tuple[pathlib.Path | None, str]:
+    def _get_output_action_state(self, job: TextureOptimizationJob) -> tuple[pathlib.Path | None, str]:
         """Return the processed-output directory action's current state.
 
         Args:
@@ -105,7 +131,7 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
             return None, "Processed texture information is unavailable."
 
         result = details.outputs.get(job.PROCESSED_TEXTURES) if details.outputs is not None else None
-        if type(result) is not TextureProcessingResult or not result.items:
+        if type(result) is not TextureOptimizationResult or not result.items:
             return None, "Processed textures are not available yet."
 
         local_paths = tuple(path for item in result.items if (path := get_local_path(item.asset_url)) is not None)
@@ -120,7 +146,7 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
 
     def _get_result_output_directory(
         self,
-        job: TextureProcessingJob,
+        job: TextureOptimizationJob,
         details: QueueJobDetailsSnapshot,
     ) -> pathlib.Path | None:
         """Resolve the exact shared local parent represented by processed textures.
@@ -133,27 +159,32 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
             Shared local processed-texture directory, or None when unavailable or remote-only.
         """
         result = details.outputs.get(job.PROCESSED_TEXTURES) if details.outputs is not None else None
-        if type(result) is not TextureProcessingResult:
+        if type(result) is not TextureOptimizationResult:
             return None
         output_paths = tuple(path for item in result.items if (path := get_local_path(item.asset_url)) is not None)
         return self._shared_parent(output_paths)
 
     @staticmethod
     def _shared_parent(paths: tuple[pathlib.Path, ...]) -> pathlib.Path | None:
-        """Return one exact shared parent without guessing a broader directory.
+        """Return the deepest directory that holds every path.
 
         Args:
             paths: Local texture paths represented by one typed port value.
 
         Returns:
-            The exact common parent, or None when the textures span directories.
+            The deepest common directory, or None when the paths share only a filesystem root or no root.
         """
-        parents = {path.parent for path in paths}
-        return next(iter(parents)) if len(parents) == 1 else None
+        if not paths:
+            return None
+        try:
+            common = pathlib.Path(os.path.commonpath([str(path.parent) for path in paths]))
+        except ValueError:
+            return None
+        return None if common.parent == common else common
 
     def get_detail_directories(
         self,
-        job: TextureProcessingJob,
+        job: TextureOptimizationJob,
         details: QueueJobDetailsSnapshot,
         context_name: str,
     ) -> JobDetailDirectories:
@@ -168,10 +199,10 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
             Shared input directory when it has one exact local parent.
         """
         request = details.inputs.get(job.SOURCE_TEXTURES) if details.inputs is not None else None
-        input_paths = tuple(item.path for item in request.items) if type(request) is TextureProcessingRequest else ()
+        input_paths = tuple(item.path for item in request.items) if type(request) is TextureOptimizationRequest else ()
         return JobDetailDirectories(self._shared_parent(input_paths))
 
-    def get_job_actions(self, job: TextureProcessingJob, context_name: str) -> tuple[JobAction, ...]:
+    def get_job_actions(self, job: TextureOptimizationJob, context_name: str) -> tuple[JobAction, ...]:
         """Expose one stable child-owned directory action.
 
         Args:
@@ -192,7 +223,7 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
             ),
         )
 
-    def execute_action(self, action_id: str, job: TextureProcessingJob, context_name: str) -> None:
+    def execute_action(self, action_id: str, job: TextureOptimizationJob, context_name: str) -> None:
         """Open the directory containing this job's local processed textures.
 
         Args:
@@ -209,7 +240,7 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
 
     def get_detail_sections(
         self,
-        job: TextureProcessingJob,
+        job: TextureOptimizationJob,
         details: QueueJobDetailsSnapshot,
         context_name: str,
     ) -> tuple[JobDetailSection, ...]:
@@ -224,11 +255,11 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
             One processed-texture section, including remote outputs that cannot be revealed locally.
         """
         result = details.outputs.get(job.PROCESSED_TEXTURES) if details.outputs is not None else None
-        if type(result) is not TextureProcessingResult:
+        if type(result) is not TextureOptimizationResult:
             return ()
         fields = tuple(
             JobDetailField(
-                f"texture_processing.output.{index}",
+                f"texture_optimization.output.{index}",
                 item.key.replace("_", " ").title(),
                 item.asset_url,
                 "Processed texture published by the reusable asset pipeline.",
@@ -249,7 +280,7 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
 
     def get_state_tooltip(
         self,
-        job: TextureProcessingJob,
+        job: TextureOptimizationJob,
         state: DisplayState,
         state_reason: str | None,
     ) -> str | None:
@@ -286,3 +317,10 @@ class TextureProcessingDisplayAdapter(JobDisplayAdapter):
         if state is DisplayState.FAILED:
             return state_reason or "The generated textures could not be optimized or published."
         return None
+
+
+DISPLAY_ADAPTERS = (
+    PrepareOptimizationDisplayAdapter,
+    TextureOptimizationDisplayAdapter,
+    MeshOptimizationDisplayAdapter,
+)

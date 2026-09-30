@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ["ComfyUICoreExtension", "get_comfyui_core_instance"]
+__all__ = ["ComfyUICoreExtension", "SetComfyUIOutputFieldCommand", "get_comfyui_core_instance"]
 
+from .commands import SetComfyUIOutputFieldCommand
 from .extension import ComfyUICoreExtension, get_comfyui_core_instance

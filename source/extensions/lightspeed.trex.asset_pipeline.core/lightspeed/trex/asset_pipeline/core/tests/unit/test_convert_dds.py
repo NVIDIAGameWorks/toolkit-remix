@@ -147,8 +147,32 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             self.assertEqual(item.textures[0].path.read_bytes(), b"dds")
             mock_nvtt.assert_not_called()
 
-    async def test_run_reencodes_noncanonical_dds_input(self):
-        """A DDS without its semantic suffix is re-encoded, matching the legacy plugin."""
+    async def test_run_passes_through_dds_input_without_semantic_suffix(self):
+        """An encoded DDS is copied unchanged, whatever its name, so it is never compressed twice."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Arrange
+            temp_path = pathlib.Path(temp_dir)
+            source_path = temp_path / "emissive_bc7_abc.dds"
+            source_path.write_bytes(b"dds")
+            output_dir = temp_path / "processed"
+            output_dir.mkdir()
+            work_dir = temp_path / "work"
+            work_dir.mkdir()
+            item = RemixAssetItem.from_texture(source_path, TextureTypes.EMISSIVE)
+            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=output_dir)
+
+            with patch.object(convert_dds_module, "_convert_texture") as mock_nvtt:
+                # Act
+                await ConvertDDSStep().run(context)
+
+            # Assert
+            mock_nvtt.assert_not_called()
+            self.assertEqual(item.textures[0].path.name, "emissive_bc7_abc.dds")
+            self.assertEqual(item.textures[0].path.parent.parent, work_dir)
+            self.assertEqual(item.textures[0].path.read_bytes(), b"dds")
+
+    async def test_run_reencodes_dds_input_when_forced(self):
+        """force_dds_reencode re-encodes a DDS source to the semantic output name."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Arrange
             temp_path = pathlib.Path(temp_dir)
@@ -159,7 +183,9 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             work_dir = temp_path / "work"
             work_dir.mkdir()
             item = RemixAssetItem.from_texture(source_path, TextureTypes.DIFFUSE)
-            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=output_dir)
+            context = RemixAssetPipelineContext(
+                items=[item], work_dir=work_dir, output_dir=output_dir, force_dds_reencode=True
+            )
 
             with patch.object(convert_dds_module, "_convert_texture") as mock_nvtt:
                 # Act
@@ -264,10 +290,10 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             self.assertEqual(second_item.textures[0].path.parent.parent, work_dir)
             self.assertNotEqual(first_item.textures[0].path, second_item.textures[0].path)
 
-    async def test_should_run_returns_false_when_all_texture_records_are_canonical_dds(self):
-        """should_run returns False only when every record already carries its semantic suffix."""
+    async def test_should_run_returns_false_when_all_texture_records_are_dds(self):
+        """should_run returns False when every record is already an encoded DDS."""
         # Arrange
-        item = RemixAssetItem.from_texture(pathlib.Path("/textures/albedo.a.rtex.dds"), TextureTypes.DIFFUSE)
+        item = RemixAssetItem.from_texture(pathlib.Path("/textures/albedo.dds"), TextureTypes.DIFFUSE)
         context = RemixAssetPipelineContext(items=[item])
 
         # Act
@@ -276,11 +302,11 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertFalse(should_run)
 
-    async def test_should_run_returns_true_for_noncanonical_dds_record(self):
-        """A DDS without its semantic suffix still needs a re-encode."""
+    async def test_should_run_returns_true_for_dds_record_when_forced(self):
+        """force_dds_reencode makes an encoded DDS need work again."""
         # Arrange
         item = RemixAssetItem.from_texture(pathlib.Path("/textures/albedo.dds"), TextureTypes.DIFFUSE)
-        context = RemixAssetPipelineContext(items=[item])
+        context = RemixAssetPipelineContext(items=[item], force_dds_reencode=True)
 
         # Act
         should_run = ConvertDDSStep().should_run(context)

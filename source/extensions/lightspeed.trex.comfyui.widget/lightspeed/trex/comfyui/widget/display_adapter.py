@@ -17,13 +17,15 @@
 
 from __future__ import annotations
 
-__all__ = ["ComfyUIDisplayAdapter"]
+__all__ = ["ComfyUIAssetDisplayAdapter", "ComfyUIDisplayAdapter"]
 
+import re
 from copy import deepcopy
 from functools import partial
 from typing import TYPE_CHECKING, ClassVar
 
 import carb
+from lightspeed.common import constants
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from omni.flux.job_queue.core.job import JobProgress
 from omni.flux.job_queue.core.models import QueueJobDetailsSnapshot
@@ -58,8 +60,13 @@ from lightspeed.trex.comfyui.core.core import ComfyUICore
 from lightspeed.trex.comfyui.core.enums import ComfyUIEventType, ComfyUIRetargetResult
 from lightspeed.trex.comfyui.core.events import ComfyUIEventPayload, subscribe_comfyui_event
 from lightspeed.trex.comfyui.core.extension import get_comfyui_core_instance
-from lightspeed.trex.comfyui.core.job import ComfyUIJob
+from lightspeed.trex.comfyui.core.job import ComfyUIAssetJob, ComfyUIJob
 from lightspeed.trex.comfyui.core.url import Endpoint, build_url, canonical_endpoint
+
+# Prototype owners are invisible by design. The hash and the child path map each owner to the instance paths
+# that the viewport can frame.
+_PROTOTYPE_PATH_PATTERN = re.compile(rf"^{re.escape(constants.MESH_PATH)}([A-Z0-9]{{16}})(/.*)?$")
+_INSTANCE_NAME_PATTERN = re.compile(rf"^{re.escape(constants.INSTANCE_NAME_PREFIX)}([A-Z0-9]{{16}})_")
 
 
 class ComfyUIDisplayAdapter(JobDisplayAdapter):
@@ -69,7 +76,7 @@ class ComfyUIDisplayAdapter(JobDisplayAdapter):
     job_type = ComfyUIJob
     source_name = "ComfyUI"
     display_name = "ComfyUI generation"
-    active_status_label = "Generating textures"
+    active_status_label = "Generating files"
     _FOCUS_ACTION_ID = "focus_in_viewport"
     _OPEN_WORKFLOW_ACTION_ID = "open_workflow"
     _RETARGET_ACTION_ID = "retarget_comfyui"
@@ -137,7 +144,7 @@ class ComfyUIDisplayAdapter(JobDisplayAdapter):
             payload: Typed ComfyUI event from the core extension.
         """
         if payload.event_type is ComfyUIEventType.STAGE_VISIBILITY_CHANGED:
-            model.refresh_schedule_conditions({ComfyUIJob})
+            model.refresh_schedule_conditions({ComfyUIJob, ComfyUIAssetJob})
 
     def get_waiting_reason(self, job: ComfyUIJob, context_name: str) -> str | None:
         """Return the job-owned reason its saved ComfyUI server is unavailable.
@@ -196,11 +203,11 @@ class ComfyUIDisplayAdapter(JobDisplayAdapter):
             Product-specific status guidance, or None when the queue's generic guidance is sufficient.
         """
         if state is DisplayState.IN_PROGRESS:
-            return "ComfyUI is generating textures."
+            return "ComfyUI is generating outputs."
         if state is DisplayState.SKIPPED:
             return state_reason or "ComfyUI generation was skipped because a required input was unavailable."
         if state is DisplayState.FAILED:
-            return state_reason or "ComfyUI could not generate these textures. Edit and submit this step again."
+            return state_reason or "ComfyUI could not generate these outputs. Edit and submit this step again."
         return None
 
     def get_graph_actions(self, job: ComfyUIJob, context_name: str) -> tuple[JobAction, ...]:
@@ -453,7 +460,11 @@ class ComfyUIDisplayAdapter(JobDisplayAdapter):
 
     @staticmethod
     def _get_xformable_paths(job: ComfyUIJob) -> list[str]:
-        """Return live, effectively visible Xformable owner paths that the viewport can frame.
+        """Return live, effectively visible Xformable paths that the viewport can frame for one job.
+
+        A prototype owner (``/RootNode/meshes/mesh_<hash>/...``) is invisible by design. The viewport shows its
+        instances (``/RootNode/instances/inst_<hash>_N/...``), so each prototype path expands to the matching
+        path under every live instance of that hash.
 
         Args:
             job: Job containing candidate prim paths.
@@ -468,9 +479,27 @@ class ComfyUIDisplayAdapter(JobDisplayAdapter):
         if not stage:
             return []
 
+        instances_root = stage.GetPrimAtPath(constants.ROOTNODE_INSTANCES)
+        instances_by_hash: dict[str, list[str]] | None = None
+        candidates: dict[str, None] = {}
+        for path in job.prim_paths:
+            candidates[path] = None
+            match = _PROTOTYPE_PATH_PATTERN.match(path)
+            if match is None or not instances_root:
+                continue
+            if instances_by_hash is None:
+                instances_by_hash = {}
+                for instance in instances_root.GetChildren():
+                    instance_match = _INSTANCE_NAME_PATTERN.match(instance.GetName())
+                    if instance_match is not None:
+                        instances_by_hash.setdefault(instance_match.group(1), []).append(str(instance.GetPath()))
+            mesh_hash, suffix = match.group(1), match.group(2) or ""
+            for instance_path in instances_by_hash.get(mesh_hash, ()):
+                candidates[f"{instance_path}{suffix}"] = None
+
         return [
             path
-            for path in job.prim_paths
+            for path in candidates
             if (prim := stage.GetPrimAtPath(path))
             and prim.IsA(UsdGeom.Xformable)
             and UsdGeom.Imageable(prim).ComputeVisibility() != UsdGeom.Tokens.invisible
@@ -541,3 +570,10 @@ class ComfyUIDisplayAdapter(JobDisplayAdapter):
             self._workflow_workspace.show_window_fn(True)
         except RuntimeError as error:
             carb.log_warn(f"Failed to edit job: {error}")
+
+
+class ComfyUIAssetDisplayAdapter(ComfyUIDisplayAdapter):
+    """Use the same queue presentation for asset generation."""
+
+    name = "comfyui_asset"
+    job_type = ComfyUIAssetJob

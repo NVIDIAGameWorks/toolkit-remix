@@ -37,9 +37,10 @@ from omni.flux.utils.common.path_utils import hash_file
 from pxr import UsdUtils
 
 from .models import (
+    ALREADY_OPTIMIZED_REASON,
     MeshOptimizationResult,
     PrepareOptimizationResult,
-    TextureProcessingResult,
+    TextureOptimizationResult,
     resolve_processed_textures,
 )
 from ..pipeline import (
@@ -50,6 +51,7 @@ from ..pipeline import (
     run_remix_asset_pipeline,
 )
 from ..pipeline.builder import build_remix_mesh_pipeline
+from ..pipeline.item import TextureAsset
 from ..utils import publish_remote_outputs, resolve_local_output_dir
 from ..worker import run_in_worker_thread
 
@@ -59,7 +61,7 @@ class MeshOptimizationJob(Job):
     """Run the mesh-optimization phase as one typed queue job.
 
     The job restores the prepared model state published by a ``PrepareOptimizationJob``, copies the textures
-    published by a ``TextureProcessingJob`` into its own output at their source-relative layout (``textures/<name>``
+    published by a ``TextureOptimizationJob`` into its own output at their source-relative layout (``textures/<name>``
     for an imported FBX, as legacy wrote it), and rewrites the model's texture references to those copies.
     Metadata is not written here; a caller binds ``apply_binding`` to a metadata-writing Apply handler on this job.
 
@@ -72,8 +74,8 @@ class MeshOptimizationJob(Job):
     SOURCE_MODEL: ClassVar[JobInputPort[PrepareOptimizationResult]] = JobInputPort(
         "source_model", PrepareOptimizationResult
     )
-    TEXTURE_INPUT: ClassVar[JobInputPort[TextureProcessingResult]] = JobInputPort(
-        "processed_textures", TextureProcessingResult
+    TEXTURE_INPUT: ClassVar[JobInputPort[TextureOptimizationResult]] = JobInputPort(
+        "processed_textures", TextureOptimizationResult
     )
     OPTIMIZED_MESH: ClassVar[JobOutputPort[MeshOptimizationResult]] = JobOutputPort(
         "optimized_mesh", MeshOptimizationResult
@@ -105,6 +107,25 @@ class MeshOptimizationJob(Job):
         """
         prepared = inputs[self.SOURCE_MODEL]
         texture_result = inputs[self.TEXTURE_INPUT]
+        if prepared.already_optimized:
+            # The prepare job found a valid .meta sidecar on the source. Publish it in place with no step and
+            # settle as skipped with outputs, so the Apply handler still consumes it (ComfyUI Replace today,
+            # asset library later).
+            # ponytail: lineage lists the model only; add its layers and textures when the asset library moves files.
+            model_hash = await run_in_worker_thread(hash_file, str(prepared.source_path))
+            if model_hash is None:
+                raise RuntimeError(f"Cannot hash model lineage entry: {prepared.source_path}")
+            return JobOutputs(
+                {
+                    self.OPTIMIZED_MESH: MeshOptimizationResult(
+                        asset_url=str(prepared.source_path),
+                        texture_result=texture_result,
+                        lineage=((str(prepared.source_path), str(prepared.source_path), model_hash),),
+                        source_path=prepared.source_path,
+                    )
+                },
+                skip_reason=ALREADY_OPTIMIZED_REASON,
+            )
 
         async def on_step_started(step, _index: int, _total: int) -> None:
             """Bridge pipeline phase updates to structured job progress.
@@ -116,15 +137,31 @@ class MeshOptimizationJob(Job):
             """
             await progress_callback(JobProgress(completed=0, total=1, detail=step.description))
 
-        async def on_item_completed(_item: RemixAssetItem, completed: int, total: int) -> None:
-            """Report one genuinely completed source item.
+        async def on_item_completed(item: RemixAssetItem, completed: int, total: int) -> None:
+            """Attach the unbound processed textures to the finished item, then report progress.
+
+            The runner awaits this after the processing steps and before its publish step. Textures that no
+            model binding consumed (``MeshOptimizationRequest.extra_textures``) join the item here, so the
+            publish step copies them beside the model without the processing steps touching them again.
 
             Args:
-                _item: Processed pipeline item; identity is already retained by request order.
+                item: Processed pipeline item; identity is already retained by request order.
                 completed: Number of source items that finished processing.
                 total: Total source-item count for the batch.
             """
-            await progress_callback(JobProgress(completed=completed, total=total, detail="Optimize mesh"))
+            bound_keys = {texture.key for texture in item.textures}
+            item.textures.extend(
+                TextureAsset(
+                    path=pathlib.Path(texture.asset_url),
+                    texture_type=texture.texture_type,
+                    key=texture.key,
+                    original_path=texture.source_path,
+                    udim_tiles=tuple(pathlib.Path(tile) for tile in texture.udim_tiles),
+                )
+                for texture in texture_result.items
+                if texture.key not in bound_keys
+            )
+            await progress_callback(JobProgress(completed=completed, total=total, detail="Optimizing mesh"))
 
         remix_item = RemixAssetItem(
             value=prepared.model_work_path,
@@ -222,7 +259,7 @@ class MeshOptimizationJob(Job):
                 for texture in remix_item.textures
                 for path in (texture.path, *texture.udim_tiles)
             }
-            published_textures = TextureProcessingResult(
+            published_textures = TextureOptimizationResult(
                 items=tuple(
                     replace(
                         item,

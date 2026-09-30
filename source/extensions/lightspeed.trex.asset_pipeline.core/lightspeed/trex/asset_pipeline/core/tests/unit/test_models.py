@@ -25,9 +25,9 @@ from lightspeed.trex.asset_pipeline.core.jobs.models import (
     PrepareOptimizationResult,
     ProcessedTexture,
     TextureLedgerEntry,
-    TextureProcessingItem,
-    TextureProcessingRequest,
-    TextureProcessingResult,
+    TextureOptimizationItem,
+    TextureOptimizationRequest,
+    TextureOptimizationResult,
     resolve_processed_textures,
 )
 from lightspeed.trex.asset_pipeline.core.pipeline.item import TextureAsset
@@ -53,7 +53,7 @@ _LINEAGE_CASES = (
 
 
 def _texture_item(key="texture_0"):
-    return TextureProcessingItem(key, pathlib.Path(f"textures/{key}.png"), TextureTypes.DIFFUSE)
+    return TextureOptimizationItem(key, pathlib.Path(f"textures/{key}.png"), TextureTypes.DIFFUSE)
 
 
 def _processed_texture(key="texture_0"):
@@ -87,7 +87,7 @@ def _assert_invalid(test, valid_model, *cases):
             test.assertIn(message, str(error.exception))
 
 
-class TestTextureProcessingItem(omni.kit.test.AsyncTestCase):
+class TestTextureOptimizationItem(omni.kit.test.AsyncTestCase):
     def test_texture_models_invalid_fields_raise(self):
         _assert_invalid(self, _texture_item(), *_TEXTURE_FIELD_CASES)
         cases = tuple(
@@ -104,8 +104,8 @@ class TestTextureProcessingItem(omni.kit.test.AsyncTestCase):
     def test_immutable_models_keep_exact_values(self):
         # Arrange
         item, processed = _texture_item(), _processed_texture()
-        request = TextureProcessingRequest((item,), pathlib.Path("models"), "/out")
-        texture_result = TextureProcessingResult((processed,), (("source", "output", "hash"),), False)
+        request = TextureOptimizationRequest((item,), pathlib.Path("models"), "/out")
+        texture_result = TextureOptimizationResult((processed,), (("source", "output", "hash"),), False)
         ledger = TextureLedgerEntry("/Root/Material", TextureTypes.DIFFUSE, "texture_0")
         mesh_request = MeshOptimizationRequest(
             pathlib.Path("model.fbx"),
@@ -206,19 +206,19 @@ class TestTextureProcessingItem(omni.kit.test.AsyncTestCase):
             prepared.replace_udim_textures_by_empty,
         ):
             self.assertIs(value, False)
-        empty_request = TextureProcessingRequest((), pathlib.Path("."), None)
-        empty_result = TextureProcessingResult(())
+        empty_request = TextureOptimizationRequest((), pathlib.Path("."), None)
+        empty_result = TextureOptimizationResult(())
         self.assertEqual((empty_request.items, empty_result.items), ((), ()))
         self.assertIs(empty_result.validation_passed, True)
 
 
-class TestTextureProcessingRequest(omni.kit.test.AsyncTestCase):
-    def test_texture_processing_request_invalid_fields_raise(self):
+class TestTextureOptimizationRequest(omni.kit.test.AsyncTestCase):
+    def test_texture_optimization_request_invalid_fields_raise(self):
         item = _texture_item()
         _assert_invalid(
             self,
-            TextureProcessingRequest((item,), pathlib.Path("."), None),
-            ("items tuple type", "items", [item], TypeError, "items must be a tuple of TextureProcessingItem values"),
+            TextureOptimizationRequest((item,), pathlib.Path("."), None),
+            ("items tuple type", "items", [item], TypeError, "items must be a tuple of TextureOptimizationItem values"),
             ("duplicate keys", "items", (item, item), ValueError, "item keys must be unique within one request"),
             ("source root type", "source_root", ".", TypeError, "source_root must be a pathlib.Path"),
             ("output URL type", "output_url", pathlib.Path("."), TypeError, "output_url must be a str or None"),
@@ -226,12 +226,12 @@ class TestTextureProcessingRequest(omni.kit.test.AsyncTestCase):
         )
 
 
-class TestTextureProcessingResult(omni.kit.test.AsyncTestCase):
-    def test_texture_processing_result_invalid_fields_raise(self):
+class TestTextureOptimizationResult(omni.kit.test.AsyncTestCase):
+    def test_texture_optimization_result_invalid_fields_raise(self):
         processed = _processed_texture()
         _assert_invalid(
             self,
-            TextureProcessingResult((processed,)),
+            TextureOptimizationResult((processed,)),
             ("items tuple type", "items", [processed], TypeError, "items must be a tuple of ProcessedTexture values"),
             (
                 "duplicate keys",
@@ -245,7 +245,7 @@ class TestTextureProcessingResult(omni.kit.test.AsyncTestCase):
 
     def test_rebased_onto_points_matched_items_and_lineage_at_published_copies(self):
         # Arrange
-        result = TextureProcessingResult(
+        result = TextureOptimizationResult(
             (_processed_texture("albedo"), _processed_texture("unused")),
             lineage=(
                 ("textures/albedo.png", "processed/albedo.dds", "hash-a"),
@@ -272,9 +272,47 @@ class TestTextureProcessingResult(omni.kit.test.AsyncTestCase):
         self.assertEqual(rebased.lineage[1], result.lineage[1])
         self.assertIs(rebased.validation_passed, False)
 
+    def test_rebased_onto_points_tile_lineage_at_published_tiles(self):
+        # Arrange
+        item = ProcessedTexture(
+            key="albedo",
+            source_path=pathlib.Path("textures/albedo.<UDIM>.png"),
+            asset_url="processed/albedo.<UDIM>.dds",
+            texture_type=TextureTypes.DIFFUSE,
+            udim_tiles=("processed/albedo.1001.dds", "processed/albedo.1002.dds"),
+        )
+        result = TextureOptimizationResult(
+            (item,),
+            lineage=(
+                ("textures/albedo.1001.png", "processed/albedo.1001.dds", "hash-1"),
+                ("textures/albedo.1002.png", "processed/albedo.1002.dds", "hash-2"),
+            ),
+        )
+        published = TextureAsset(
+            path=pathlib.Path("model/textures/albedo.<UDIM>.a.rtex.dds"),
+            texture_type=TextureTypes.DIFFUSE,
+            key="albedo",
+            udim_tiles=(
+                pathlib.Path("model/textures/albedo.1001.a.rtex.dds"),
+                pathlib.Path("model/textures/albedo.1002.a.rtex.dds"),
+            ),
+        )
+
+        # Act
+        rebased = result.rebased_onto([published])
+
+        # Assert
+        self.assertEqual(
+            rebased.lineage,
+            (
+                ("textures/albedo.1001.png", str(published.udim_tiles[0]), "hash-1"),
+                ("textures/albedo.1002.png", str(published.udim_tiles[1]), "hash-2"),
+            ),
+        )
+
     def test_rebased_onto_without_published_copies_returns_equal_result(self):
         # Arrange
-        result = TextureProcessingResult((_processed_texture(),))
+        result = TextureOptimizationResult((_processed_texture(),))
 
         # Act
         rebased = result.rebased_onto([])
@@ -292,6 +330,20 @@ class TestMeshOptimizationRequest(omni.kit.test.AsyncTestCase):
             ("output URL type", "output_url", pathlib.Path("processed"), TypeError, "output_url must be a str or None"),
             ("blank output URL", "output_url", " ", ValueError, "output_url must not be blank"),
             ("source root type", "source_root", ".", TypeError, "source_root must be a pathlib.Path"),
+            (
+                "extra textures tuple type",
+                "extra_textures",
+                [_texture_item()],
+                TypeError,
+                "extra_textures must be a tuple of TextureOptimizationItem values",
+            ),
+            (
+                "duplicate extra texture keys",
+                "extra_textures",
+                (_texture_item(), _texture_item()),
+                ValueError,
+                "extra texture keys must be unique",
+            ),
         )
 
 
@@ -299,7 +351,7 @@ class TestMeshOptimizationResult(omni.kit.test.AsyncTestCase):
     def test_mesh_optimization_result_invalid_fields_raise(self):
         _assert_invalid(
             self,
-            MeshOptimizationResult("processed/model.usd", TextureProcessingResult(())),
+            MeshOptimizationResult("processed/model.usd", TextureOptimizationResult(())),
             ("asset URL type", "asset_url", pathlib.Path("model.usd"), TypeError, "asset_url must be a str"),
             ("blank asset URL", "asset_url", " ", ValueError, "asset_url must not be blank"),
             (
@@ -307,7 +359,7 @@ class TestMeshOptimizationResult(omni.kit.test.AsyncTestCase):
                 "texture_result",
                 None,
                 TypeError,
-                "texture_result must be a TextureProcessingResult",
+                "texture_result must be a TextureOptimizationResult",
             ),
             *_LINEAGE_CASES,
         )
@@ -335,7 +387,7 @@ class TestPrepareOptimizationResult(omni.kit.test.AsyncTestCase):
                 "texture_items",
                 [item],
                 TypeError,
-                "texture_items must be a tuple of TextureProcessingItem values",
+                "texture_items must be a tuple of TextureOptimizationItem values",
             ),
             (
                 "duplicate keys",
@@ -373,7 +425,7 @@ class TestResolveProcessedTextures(omni.kit.test.AsyncTestCase):
         with self.assertRaisesRegex(
             ValueError, r"/Root/Material.*DIFFUSE.*missing_key.*has no matching processed texture"
         ):
-            resolve_processed_textures((ledger,), TextureProcessingResult(()))
+            resolve_processed_textures((ledger,), TextureOptimizationResult(()))
 
     def test_resolve_processed_textures_raises_on_conflicting_keys(self):
         # Arrange
@@ -384,4 +436,4 @@ class TestResolveProcessedTextures(omni.kit.test.AsyncTestCase):
         )
         # Act / Assert
         with self.assertRaisesRegex(ValueError, r"Conflicting ledger entries.*key_a.*key_b"):
-            resolve_processed_textures(ledger, TextureProcessingResult(processed))
+            resolve_processed_textures(ledger, TextureOptimizationResult(processed))

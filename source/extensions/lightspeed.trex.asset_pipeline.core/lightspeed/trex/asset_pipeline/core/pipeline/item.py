@@ -58,6 +58,8 @@ class TextureAsset:
     key: str = ""
     original_path: pathlib.Path | None = None
     udim_tiles: tuple[pathlib.Path, ...] = ()
+    channel: str | None = None
+    factor: tuple[float, ...] | None = None
 
     @property
     def source_path(self) -> pathlib.Path:

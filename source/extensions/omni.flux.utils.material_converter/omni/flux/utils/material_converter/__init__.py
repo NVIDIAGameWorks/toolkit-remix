@@ -16,14 +16,18 @@
 """
 
 __all__ = [
+    "GltfToAperturePBRConverterBuilder",
     "MaterialConverterCore",
     "NoneToAperturePBRConverterBuilder",
     "OmniGlassToAperturePBRConverterBuilder",
     "OmniPBRToAperturePBRConverterBuilder",
     "USDPreviewSurfaceToAperturePBRConverterBuilder",
+    "get_converter_builder",
 ]
 
 from .core import MaterialConverterCore
+from .impl.gltf_to_aperture_pbr import GltfToAperturePBRConverterBuilder
+from .mapping import get_converter_builder
 from .impl.none_to_aperture_pbr import NoneToAperturePBRConverterBuilder
 from .impl.omni_glass_to_aperture_pbr import OmniGlassToAperturePBRConverterBuilder
 from .impl.omni_pbr_to_aperture_pbr import OmniPBRToAperturePBRConverterBuilder

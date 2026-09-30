@@ -49,6 +49,7 @@ class AttributeBase(BaseModel):
     output_attr_type: Sdf.ValueTypeName | None = None
     # Value used when the input attribute does not exist
     output_default_value: Any | None = None
+    output_custom_data: dict[str, Any] | None = None
     # Function used to translate the input attribute into the output type and value
     translate_fn: Callable[[Any, Usd.Attribute], tuple[Sdf.ValueTypeName, Any]] = Field(default=_translate)
     # tell if the attribute is a real attribute that exists by default, or if this is a fake one that was created

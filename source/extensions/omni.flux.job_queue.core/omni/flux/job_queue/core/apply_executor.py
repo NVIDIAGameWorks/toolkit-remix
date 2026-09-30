@@ -315,7 +315,7 @@ class ApplyExecutor:
         """
         job_id = request.job_id
         snapshot = await asyncio.to_thread(self.interface.get_job_snapshot, job_id)
-        if snapshot.state is not JobState.DONE:
+        if snapshot.state is not JobState.DONE and not (snapshot.state is JobState.SKIPPED and snapshot.has_outputs):
             raise RuntimeError(f"Job {job_id} is not complete")
         handler_id = snapshot.apply_handler_id
         if handler_id is None:
@@ -545,7 +545,7 @@ class ApplyExecutor:
             await self._apply(request)
             return
         if (
-            snapshot.state is not JobState.DONE
+            (snapshot.state is not JobState.DONE and not (snapshot.state is JobState.SKIPPED and snapshot.has_outputs))
             or snapshot.apply_disposition is not ApplyDisposition.PENDING
             or snapshot.apply_operation is not ApplyOperation.IDLE
         ):

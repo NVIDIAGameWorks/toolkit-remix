@@ -32,14 +32,16 @@ from omni.flux.job_queue.core.job import (
     JobProgress,
     JobProgressCallback,
 )
+from omni.flux.utils.common.path_utils import hash_match_metadata, read_metadata
 
 from .models import (
+    ALREADY_OPTIMIZED_REASON,
     MeshOptimizationRequest,
     PrepareOptimizationResult,
-    TextureProcessingItem,
-    TextureProcessingRequest,
+    TextureOptimizationItem,
+    TextureOptimizationRequest,
 )
-from ..constants import PROCESSED_OUTPUT_DIR_NAME
+from ..constants import BASE_HASH_KEY, PROCESSED_OUTPUT_DIR_NAME, VALIDATION_PASSED_KEY
 from ..pipeline import (
     RemixAssetItem,
     RemixAssetPipelineConfig,
@@ -47,6 +49,7 @@ from ..pipeline import (
     run_remix_asset_pipeline,
 )
 from ..pipeline.builder import build_prepare_optimization_steps
+from ..worker import run_in_worker_thread
 
 
 @dataclass
@@ -56,7 +59,7 @@ class PrepareOptimizationJob(Job):
     The job imports the source model, then discovers its texture bindings and composed layers without editing
     or saving the stage. Material conversion belongs to the mesh phase; the ledger is keyed by
     ``(material_path, texture_type)`` so bindings survive that later rewrite. Its outputs feed a
-    ``TextureProcessingJob`` (the discovered texture batch) and a ``MeshOptimizationJob`` (the prepared model
+    ``TextureOptimizationJob`` (the discovered texture batch) and a ``MeshOptimizationJob`` (the prepared model
     state).
 
     Attributes:
@@ -68,8 +71,8 @@ class PrepareOptimizationJob(Job):
     SOURCE_MODEL: ClassVar[JobInputPort[MeshOptimizationRequest]] = JobInputPort(
         "source_model", MeshOptimizationRequest
     )
-    TEXTURE_REQUEST: ClassVar[JobOutputPort[TextureProcessingRequest]] = JobOutputPort(
-        "texture_request", TextureProcessingRequest
+    TEXTURE_REQUEST: ClassVar[JobOutputPort[TextureOptimizationRequest]] = JobOutputPort(
+        "texture_request", TextureOptimizationRequest
     )
     PREPARED_MESH: ClassVar[JobOutputPort[PrepareOptimizationResult]] = JobOutputPort(
         "prepared_mesh", PrepareOptimizationResult
@@ -98,6 +101,34 @@ class PrepareOptimizationJob(Job):
             OSError: If local processing fails.
         """
         request = inputs[self.SOURCE_MODEL]
+        if not request.extra_textures and await run_in_worker_thread(
+            lambda: (
+                hash_match_metadata(str(request.source_path), key=BASE_HASH_KEY)
+                and read_metadata(str(request.source_path), VALIDATION_PASSED_KEY)
+            )
+        ):
+            # The source has a valid .meta sidecar whose hash matches the file: it is an ingested asset. There
+            # is nothing to prepare or optimize. The job settles as skipped with its outputs, so the texture and
+            # mesh jobs run, skip in turn, and the mesh job publishes the source in place for Apply.
+            return JobOutputs(
+                {
+                    self.TEXTURE_REQUEST: TextureOptimizationRequest(
+                        items=(), source_root=request.source_root, output_url=None
+                    ),
+                    self.PREPARED_MESH: PrepareOptimizationResult(
+                        model_work_path=request.source_path,
+                        texture_items=(),
+                        referenced_layers=(),
+                        texture_ledger=(),
+                        replace_udim_textures_by_empty=request.replace_udim_textures_by_empty,
+                        source_path=request.source_path,
+                        source_root=request.source_root,
+                        output_url=request.output_url,
+                        already_optimized=True,
+                    ),
+                },
+                skip_reason=ALREADY_OPTIMIZED_REASON,
+            )
         processed_count = 0
 
         async def on_step_started(step, _index: int, _total: int) -> None:
@@ -139,14 +170,21 @@ class PrepareOptimizationJob(Job):
 
         # Discovery already assigned each texture its deterministic identity key, so the request
         # items and the ledger agree without any positional counter.
-        texture_items = tuple(
-            TextureProcessingItem(
-                key=texture.key,
-                path=texture.path,
-                texture_type=texture.texture_type,
+        texture_items = (
+            tuple(
+                TextureOptimizationItem(
+                    key=texture.key,
+                    path=texture.path,
+                    texture_type=texture.texture_type,
+                    channel=texture.channel,
+                    factor=texture.factor,
+                )
+                for texture in remix_item.textures
             )
-            for texture in remix_item.textures
+            + request.extra_textures
         )
+        if len({item.key for item in texture_items}) != len(texture_items):
+            raise ValueError("Extra texture keys collide with discovered texture keys")
         texture_ledger = tuple(context.texture_ledger)
         result = PrepareOptimizationResult(
             model_work_path=remix_item.value,
@@ -159,7 +197,7 @@ class PrepareOptimizationJob(Job):
             output_url=request.output_url,
         )
         # Keep intermediate textures local. The mesh job publishes the complete asset.
-        texture_request = TextureProcessingRequest(
+        texture_request = TextureOptimizationRequest(
             items=texture_items,
             source_root=request.source_root,
             output_url=None,

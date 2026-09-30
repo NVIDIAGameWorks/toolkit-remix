@@ -53,7 +53,7 @@ from lightspeed.trex.asset_pipeline.core.extension import AssetPipelineCoreExten
 from lightspeed.trex.asset_pipeline.core.jobs import (
     MeshOptimizationJob,
     PrepareOptimizationJob,
-    TextureProcessingJob,
+    TextureOptimizationJob,
     build_asset_optimization_graph,
 )
 from lightspeed.trex.asset_pipeline.core.metadata import (
@@ -65,12 +65,13 @@ from lightspeed.trex.asset_pipeline.core.constants import (
     VALIDATION_PASSED_KEY,
 )
 from lightspeed.trex.asset_pipeline.core.jobs.models import (
+    NO_TEXTURES_REASON,
     MeshOptimizationRequest,
     MeshOptimizationResult,
     PrepareOptimizationResult,
-    TextureProcessingItem,
-    TextureProcessingRequest,
-    TextureProcessingResult,
+    TextureOptimizationItem,
+    TextureOptimizationRequest,
+    TextureOptimizationResult,
 )
 from lightspeed.trex.asset_pipeline.core.pipeline.item import AssetKind
 from lightspeed.trex.asset_pipeline.core.steps import ConvertDDSStep, ConvertNormalStep
@@ -95,8 +96,8 @@ def _json_round_trip(value):
 class _RequestProducer(Job):
     """Return a bound texture request through a real typed graph connection."""
 
-    REQUEST = JobInputPort("request", TextureProcessingRequest)
-    RESULT = JobOutputPort("result", TextureProcessingRequest)
+    REQUEST = JobInputPort("request", TextureOptimizationRequest)
+    RESULT = JobOutputPort("result", TextureOptimizationRequest)
     input_ports = (REQUEST,)
     output_ports = (RESULT,)
 
@@ -159,7 +160,7 @@ _REQUEST_PRODUCER_CODEC = PersistenceCodec(
 )
 
 
-class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
+class TestTextureOptimizationJobE2E(omni.kit.test.AsyncTestCase):
     """Exercise the reusable texture job through real queue and client boundaries."""
 
     async def setUp(self) -> None:
@@ -169,6 +170,23 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
     async def tearDown(self) -> None:
         """Unregister the test-only producer job."""
         get_registry().unregister_codecs([_REQUEST_PRODUCER_CODEC])
+
+    async def test_empty_request_settles_skipped_with_an_empty_result(self):
+        """An empty batch runs no pipeline: the job skips with a reason and still hands an empty result downstream."""
+        # Arrange
+        request = TextureOptimizationRequest(items=(), source_root=pathlib.Path("."), output_url=None)
+
+        async def report_progress(value: JobProgress) -> None:
+            """Discard progress updates."""
+
+        # Act
+        outputs = await TextureOptimizationJob().execute(
+            pathlib.Path("."), JobInputs({TextureOptimizationJob.SOURCE_TEXTURES: request}), report_progress
+        )
+
+        # Assert
+        self.assertEqual(outputs.skip_reason, NO_TEXTURES_REASON)
+        self.assertEqual(outputs[TextureOptimizationJob.PROCESSED_TEXTURES], TextureOptimizationResult(items=()))
 
     async def test_literal_request_persists_real_outputs_and_per_asset_progress(self):
         """A literal request reports completed textures and monotonic per-texture progress."""
@@ -181,9 +199,9 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
             request = _make_texture_request(source_paths, temp_path / "processed")
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Literal texture optimization")
-            job = TextureProcessingJob(name="Process two textures")
+            job = TextureOptimizationJob(name="Process two textures")
             graph.add_job(job)
-            graph.bind(job, TextureProcessingJob.SOURCE_TEXTURES, request)
+            graph.bind(job, TextureOptimizationJob.SOURCE_TEXTURES, request)
             queue_job = interface.submit(graph)[0]
             progress: list[JobProgress] = []
 
@@ -205,7 +223,7 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
             del subscription
 
             # The typed result contains both textures and progress advances monotonically to the complete batch.
-            result = outputs[TextureProcessingJob.PROCESSED_TEXTURES]
+            result = outputs[TextureOptimizationJob.PROCESSED_TEXTURES]
             self.assertEqual(len(result.items), 2)
             self.assertTrue(result.validation_passed)
             self.assertTrue(all(pathlib.Path(item.asset_url).is_file() for item in result.items))
@@ -222,9 +240,9 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
             temp_path = pathlib.Path(temp_dir)
             source_path = temp_path / "normal.png"
             shutil.copy2(_get_normal_fixture_path(), source_path)
-            request = TextureProcessingRequest(
+            request = TextureOptimizationRequest(
                 items=(
-                    TextureProcessingItem(
+                    TextureOptimizationItem(
                         key="normal",
                         path=source_path,
                         texture_type=TextureTypes.NORMAL_DX,
@@ -235,21 +253,21 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
             )
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Project-independent texture optimization")
-            job = TextureProcessingJob(name="Optimize one texture")
+            job = TextureOptimizationJob(name="Optimize one texture")
             graph.add_job(job)
-            graph.bind(job, TextureProcessingJob.SOURCE_TEXTURES, request)
+            graph.bind(job, TextureOptimizationJob.SOURCE_TEXTURES, request)
             queue_job = interface.submit(graph)[0]
 
             # Run the real scheduler and pipeline without a project-owned publication URL.
             outputs = await _run_until_outputs(queue_job, interface)
 
             # The durable result stays below the queue-owned job directory and survives output reconstruction.
-            output = pathlib.Path(outputs[TextureProcessingJob.PROCESSED_TEXTURES].items[0].asset_url)
+            output = pathlib.Path(outputs[TextureOptimizationJob.PROCESSED_TEXTURES].items[0].asset_url)
             self.assertTrue(output.is_file())
             self.assertEqual(output.parent, interface.get_job_directory(job.job_id) / PROCESSED_OUTPUT_DIR_NAME)
             self.assertEqual(
-                interface.get_job_outputs(job.job_id)[TextureProcessingJob.PROCESSED_TEXTURES],
-                outputs[TextureProcessingJob.PROCESSED_TEXTURES],
+                interface.get_job_outputs(job.job_id)[TextureOptimizationJob.PROCESSED_TEXTURES],
+                outputs[TextureOptimizationJob.PROCESSED_TEXTURES],
             )
 
     async def test_completed_outputs_reconstruct_through_fresh_queue_interface(self):
@@ -259,9 +277,9 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
             request = _make_texture_request((_get_normal_fixture_path(),), temp_path / "processed")
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Durable texture optimization")
-            job = TextureProcessingJob(name="Process durable texture")
+            job = TextureOptimizationJob(name="Process durable texture")
             graph.add_job(job)
-            graph.bind(job, TextureProcessingJob.SOURCE_TEXTURES, request)
+            graph.bind(job, TextureOptimizationJob.SOURCE_TEXTURES, request)
             queue_job = interface.submit(graph)[0]
 
             # Complete the texture job, then reopen its SQLite database through a fresh queue interface.
@@ -289,11 +307,11 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
             results = []
             for name, source_path in (("Table", table_source), ("Chair", chair_source)):
                 graph = JobGraph(name=name)
-                job = TextureProcessingJob(name=f"Process {name}")
+                job = TextureOptimizationJob(name=f"Process {name}")
                 graph.add_job(job)
                 graph.bind(
                     job,
-                    TextureProcessingJob.SOURCE_TEXTURES,
+                    TextureOptimizationJob.SOURCE_TEXTURES,
                     _make_texture_request((source_path,), output_dir, source_root=source_root),
                 )
                 results.append(
@@ -316,9 +334,9 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
             request = _make_texture_request((_get_normal_fixture_path(),), temp_path / "processed")
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Drain texture optimization")
-            job = TextureProcessingJob(name="Finish active processing")
+            job = TextureOptimizationJob(name="Finish active processing")
             graph.add_job(job)
-            graph.bind(job, TextureProcessingJob.SOURCE_TEXTURES, request)
+            graph.bind(job, TextureOptimizationJob.SOURCE_TEXTURES, request)
             queue_job = interface.submit(graph)[0]
 
             # Product shutdown runs before the core queue drains work during application shutdown.
@@ -327,7 +345,7 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
 
             # The active job completes and persists its typed output before core-owned registry teardown.
             self.assertIs(queue_job.snapshot().state, JobState.DONE)
-            self.assertEqual(len(outputs[TextureProcessingJob.PROCESSED_TEXTURES].items), 1)
+            self.assertEqual(len(outputs[TextureOptimizationJob.PROCESSED_TEXTURES].items), 1)
 
     async def test_connected_request_reaches_texture_job_through_real_scheduler(self):
         """A producer output supplies the exact connected texture-processing input."""
@@ -337,13 +355,13 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Connected texture optimization")
             producer = _RequestProducer(name="Prepare request")
-            processor = TextureProcessingJob(name="Process request")
+            processor = TextureOptimizationJob(name="Process request")
             graph.add_job(producer)
             graph.add_job(processor)
             graph.bind(producer, _RequestProducer.REQUEST, request)
             graph.connect(
                 producer.output(_RequestProducer.RESULT),
-                processor.input(TextureProcessingJob.SOURCE_TEXTURES),
+                processor.input(TextureOptimizationJob.SOURCE_TEXTURES),
             )
             producer_queue_job, processor_queue_job = interface.submit(graph)
 
@@ -352,7 +370,7 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
 
             # Both stages settle and the processor publishes the texture represented by the connected request.
             self.assertIs(producer_queue_job.snapshot().state, JobState.DONE)
-            result = outputs[TextureProcessingJob.PROCESSED_TEXTURES]
+            result = outputs[TextureOptimizationJob.PROCESSED_TEXTURES]
             self.assertEqual(len(result.items), 1)
             self.assertEqual(result.items[0].key, "texture_1")
 
@@ -366,9 +384,9 @@ class TestTextureProcessingJobE2E(omni.kit.test.AsyncTestCase):
             )
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Failed texture publication")
-            job = TextureProcessingJob(name="Publish processed texture")
+            job = TextureOptimizationJob(name="Publish processed texture")
             graph.add_job(job)
-            graph.bind(job, TextureProcessingJob.SOURCE_TEXTURES, request)
+            graph.bind(job, TextureOptimizationJob.SOURCE_TEXTURES, request)
             queue_job = interface.submit(graph)[0]
 
             # Fail at the real publication boundary after the queue has claimed and executed the job.
@@ -443,6 +461,9 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
                             source_path=source_model,
                             source_root=source_model.parent,
                             output_url=output_url,
+                            extra_textures=(
+                                TextureOptimizationItem("extra", _get_normal_fixture_path(), TextureTypes.DIFFUSE),
+                            ),
                         )
                     }
                 ),
@@ -454,6 +475,36 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             self.assertIsNone(texture_request.output_url)
             self.assertEqual(texture_request.items, prepared.texture_items)
             self.assertTrue(prepared.model_work_path.is_file())
+
+            self.assertNotIn("extra", {entry.texture_key for entry in prepared.texture_ledger})
+
+    async def test_prepare_rejects_extra_texture_key_that_collides_with_a_discovered_texture(self):
+        """An extra texture cannot reuse the key of a texture discovered on the model."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_model = _get_textured_fbx_fixture_path()
+
+            def request(extra_textures):
+                return JobInputs(
+                    {
+                        PrepareOptimizationJob.SOURCE_MODEL: MeshOptimizationRequest(
+                            source_path=source_model, source_root=source_model.parent, extra_textures=extra_textures
+                        )
+                    }
+                )
+
+            outputs = await PrepareOptimizationJob().execute(
+                pathlib.Path(temp_dir) / "first", request(()), mock.AsyncMock()
+            )
+            discovered_key = outputs[PrepareOptimizationJob.PREPARED_MESH].texture_items[0].key
+
+            with self.assertRaisesRegex(ValueError, "Extra texture keys collide"):
+                await PrepareOptimizationJob().execute(
+                    pathlib.Path(temp_dir) / "second",
+                    request(
+                        (TextureOptimizationItem(discovered_key, _get_normal_fixture_path(), TextureTypes.DIFFUSE),)
+                    ),
+                    mock.AsyncMock(),
+                )
 
     async def test_connected_graph_converts_omni_glass_textures_to_final_dds(self):
         """Convert every OmniGlass texture before the mesh job renames its shader inputs."""
@@ -591,7 +642,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Texture-first model processing")
             prepare_job = PrepareOptimizationJob(name="Prepare optimization")
-            texture_job = TextureProcessingJob(name="Optimize textures")
+            texture_job = TextureOptimizationJob(name="Optimize textures")
             mesh_job = MeshOptimizationJob(name="Optimize mesh")
             graph.add_job(prepare_job)
             graph.add_job(texture_job)
@@ -606,21 +657,21 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.TEXTURE_REQUEST),
-                texture_job.input(TextureProcessingJob.SOURCE_TEXTURES),
+                texture_job.input(TextureOptimizationJob.SOURCE_TEXTURES),
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.PREPARED_MESH),
                 mesh_job.input(MeshOptimizationJob.SOURCE_MODEL),
             )
             graph.connect(
-                texture_job.output(TextureProcessingJob.PROCESSED_TEXTURES),
+                texture_job.output(TextureOptimizationJob.PROCESSED_TEXTURES),
                 mesh_job.input(MeshOptimizationJob.TEXTURE_INPUT),
             )
 
             # The graph carries the three exact job types and their three typed dependencies.
             self.assertEqual(
                 [type(job) for job in graph.jobs],
-                [PrepareOptimizationJob, TextureProcessingJob, MeshOptimizationJob],
+                [PrepareOptimizationJob, TextureOptimizationJob, MeshOptimizationJob],
             )
             self.assertEqual(
                 {(connection.source_job_id, connection.target_job_id) for connection in graph.connections},
@@ -703,7 +754,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             self.assertEqual(_reopen_outputs(queue_jobs[prepare_job.job_id], interface), prepare_outputs)
 
             # The texture job published exactly the collected texture batch, correlated by stable keys.
-            processed = interface.get_job_outputs(texture_job.job_id)[TextureProcessingJob.PROCESSED_TEXTURES]
+            processed = interface.get_job_outputs(texture_job.job_id)[TextureOptimizationJob.PROCESSED_TEXTURES]
             self.assertEqual(
                 {item.key for item in processed.items},
                 {item.key for item in prepared.texture_items},
@@ -734,7 +785,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             # The texture job's published batch also reconstructs through a fresh queue interface,
             # proving the connected graph's texture output survives a restart, not just the mesh output.
             reopened_texture_outputs = _reopen_outputs(queue_jobs[texture_job.job_id], interface)
-            self.assertEqual(reopened_texture_outputs[TextureProcessingJob.PROCESSED_TEXTURES], processed)
+            self.assertEqual(reopened_texture_outputs[TextureOptimizationJob.PROCESSED_TEXTURES], processed)
 
             # The published model's texture bindings resolve to exactly the DDS copies the mesh result names.
             _layers, assets, unresolved_paths = UsdUtils.ComputeAllDependencies(str(final_model))
@@ -783,7 +834,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
                     source_root=temp_path,
                 ),
             )
-            graph.bind(mesh_job, MeshOptimizationJob.TEXTURE_INPUT, TextureProcessingResult(items=()))
+            graph.bind(mesh_job, MeshOptimizationJob.TEXTURE_INPUT, TextureOptimizationResult(items=()))
             queue_job = interface.submit(graph)[0]
 
             # Run the real scheduler through the standalone mesh-optimization job.
@@ -812,6 +863,10 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             tex_path = textures_dir / "albedo.png"
             shutil.copy2(_get_normal_fixture_path(), tex_path)
 
+            extra_path = textures_dir / "extra.<UDIM>.png"
+            for tile in (1001, 1002):
+                shutil.copy2(_get_normal_fixture_path(), textures_dir / f"extra.{tile}.png")
+
             sub_layer_path = temp_path / "sub_layer.usda"
             sub_layer_path.write_text(
                 _make_model_usda(tex_path),
@@ -832,7 +887,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Multi-layer lineage processing")
             prepare_job = PrepareOptimizationJob(name="Prepare model")
-            texture_job = TextureProcessingJob(name="Optimize textures")
+            texture_job = TextureOptimizationJob(name="Optimize textures")
             mesh_job = MeshOptimizationJob(name="Optimize mesh")
             graph.add_job(prepare_job)
             graph.add_job(texture_job)
@@ -843,18 +898,19 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
                 MeshOptimizationRequest(
                     source_path=model_path,
                     source_root=temp_path,
+                    extra_textures=(TextureOptimizationItem("extra", extra_path, TextureTypes.DIFFUSE),),
                 ),
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.TEXTURE_REQUEST),
-                texture_job.input(TextureProcessingJob.SOURCE_TEXTURES),
+                texture_job.input(TextureOptimizationJob.SOURCE_TEXTURES),
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.PREPARED_MESH),
                 mesh_job.input(MeshOptimizationJob.SOURCE_MODEL),
             )
             graph.connect(
-                texture_job.output(TextureProcessingJob.PROCESSED_TEXTURES),
+                texture_job.output(TextureOptimizationJob.PROCESSED_TEXTURES),
                 mesh_job.input(MeshOptimizationJob.TEXTURE_INPUT),
             )
 
@@ -916,7 +972,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
 
             # Every texture lineage entry is carried up with its source and hash intact, and its output
             # re-based onto the copy published beside the model.
-            texture_outputs = interface.get_job_outputs(texture_job.job_id)[TextureProcessingJob.PROCESSED_TEXTURES]
+            texture_outputs = interface.get_job_outputs(texture_job.job_id)[TextureOptimizationJob.PROCESSED_TEXTURES]
             self.assertTrue(texture_outputs.lineage)
             texture_lineage_in_mesh = [
                 entry for entry in result.lineage if entry[0] in {e[0] for e in texture_outputs.lineage}
@@ -929,6 +985,14 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
                 self.assertTrue(pathlib.Path(entry[1]).is_relative_to(model_output.parent), entry[1])
                 self.assertTrue(pathlib.Path(entry[1]).is_file(), entry[1])
 
+            extra = next(item for item in result.texture_result.items if item.key == "extra")
+            self.assertEqual(len(extra.udim_tiles), 2)
+            for tile in extra.udim_tiles:
+                self.assertTrue(pathlib.Path(tile).is_file())
+                self.assertTrue(pathlib.Path(tile).is_relative_to(model_output.parent))
+            self.assertIn(extra.asset_url, {entry[1] for entry in result.lineage})
+            self.assertNotIn("extra", {entry.texture_key for entry in prepared.texture_ledger})
+
     async def test_graph_publishes_model_with_dds_bindings(self):
         """A published model stage keeps its authored topology and carries final DDS bindings."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -937,7 +1001,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Textured FBX publication")
             prepare_job = PrepareOptimizationJob(name="Prepare optimization")
-            texture_job = TextureProcessingJob(name="Optimize textures")
+            texture_job = TextureOptimizationJob(name="Optimize textures")
             mesh_job = MeshOptimizationJob(name="Optimize mesh")
             graph.add_job(prepare_job)
             graph.add_job(texture_job)
@@ -952,14 +1016,14 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.TEXTURE_REQUEST),
-                texture_job.input(TextureProcessingJob.SOURCE_TEXTURES),
+                texture_job.input(TextureOptimizationJob.SOURCE_TEXTURES),
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.PREPARED_MESH),
                 mesh_job.input(MeshOptimizationJob.SOURCE_MODEL),
             )
             graph.connect(
-                texture_job.output(TextureProcessingJob.PROCESSED_TEXTURES),
+                texture_job.output(TextureOptimizationJob.PROCESSED_TEXTURES),
                 mesh_job.input(MeshOptimizationJob.TEXTURE_INPUT),
             )
 
@@ -991,7 +1055,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Sub-USD dependency collection")
             prepare_job = PrepareOptimizationJob(name="Prepare optimization")
-            texture_job = TextureProcessingJob(name="Optimize textures")
+            texture_job = TextureOptimizationJob(name="Optimize textures")
             mesh_job = MeshOptimizationJob(name="Optimize mesh")
             graph.add_job(prepare_job)
             graph.add_job(texture_job)
@@ -1006,14 +1070,14 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.TEXTURE_REQUEST),
-                texture_job.input(TextureProcessingJob.SOURCE_TEXTURES),
+                texture_job.input(TextureOptimizationJob.SOURCE_TEXTURES),
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.PREPARED_MESH),
                 mesh_job.input(MeshOptimizationJob.SOURCE_MODEL),
             )
             graph.connect(
-                texture_job.output(TextureProcessingJob.PROCESSED_TEXTURES),
+                texture_job.output(TextureOptimizationJob.PROCESSED_TEXTURES),
                 mesh_job.input(MeshOptimizationJob.TEXTURE_INPUT),
             )
 
@@ -1053,7 +1117,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
                 interface = QueueInterface(str(temp_path / f"queue_{_run_index}.sqlite"))
                 graph = JobGraph(name=f"FBX run {_run_index}")
                 prepare_job = PrepareOptimizationJob(name="Prepare optimization")
-                texture_job = TextureProcessingJob(name="Optimize textures")
+                texture_job = TextureOptimizationJob(name="Optimize textures")
                 mesh_job = MeshOptimizationJob(name="Optimize mesh")
                 graph.add_job(prepare_job)
                 graph.add_job(texture_job)
@@ -1068,14 +1132,14 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
                 )
                 graph.connect(
                     prepare_job.output(PrepareOptimizationJob.TEXTURE_REQUEST),
-                    texture_job.input(TextureProcessingJob.SOURCE_TEXTURES),
+                    texture_job.input(TextureOptimizationJob.SOURCE_TEXTURES),
                 )
                 graph.connect(
                     prepare_job.output(PrepareOptimizationJob.PREPARED_MESH),
                     mesh_job.input(MeshOptimizationJob.SOURCE_MODEL),
                 )
                 graph.connect(
-                    texture_job.output(TextureProcessingJob.PROCESSED_TEXTURES),
+                    texture_job.output(TextureOptimizationJob.PROCESSED_TEXTURES),
                     mesh_job.input(MeshOptimizationJob.TEXTURE_INPUT),
                 )
                 queue_jobs = {queue_job.job_id: queue_job for queue_job in interface.submit(graph)}
@@ -1107,7 +1171,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
                     interface = QueueInterface(str(pathlib.Path(temp_dir) / f"queue_{_run_index}.sqlite"))
                     graph = JobGraph(name=f"USD run {_run_index}")
                     prepare_job = PrepareOptimizationJob(name="Prepare optimization")
-                    texture_job = TextureProcessingJob(name="Optimize textures")
+                    texture_job = TextureOptimizationJob(name="Optimize textures")
                     mesh_job = MeshOptimizationJob(name="Optimize mesh")
                     graph.add_job(prepare_job)
                     graph.add_job(texture_job)
@@ -1122,14 +1186,14 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
                     )
                     graph.connect(
                         prepare_job.output(PrepareOptimizationJob.TEXTURE_REQUEST),
-                        texture_job.input(TextureProcessingJob.SOURCE_TEXTURES),
+                        texture_job.input(TextureOptimizationJob.SOURCE_TEXTURES),
                     )
                     graph.connect(
                         prepare_job.output(PrepareOptimizationJob.PREPARED_MESH),
                         mesh_job.input(MeshOptimizationJob.SOURCE_MODEL),
                     )
                     graph.connect(
-                        texture_job.output(TextureProcessingJob.PROCESSED_TEXTURES),
+                        texture_job.output(TextureOptimizationJob.PROCESSED_TEXTURES),
                         mesh_job.input(MeshOptimizationJob.TEXTURE_INPUT),
                     )
                     queue_jobs = {queue_job.job_id: queue_job for queue_job in interface.submit(graph)}
@@ -1153,7 +1217,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Textured FBX publication")
             prepare_job = PrepareOptimizationJob(name="Prepare optimization")
-            texture_job = TextureProcessingJob(name="Optimize textures")
+            texture_job = TextureOptimizationJob(name="Optimize textures")
             mesh_job = MeshOptimizationJob(name="Optimize mesh")
             graph.add_job(prepare_job)
             graph.add_job(texture_job)
@@ -1168,14 +1232,14 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.TEXTURE_REQUEST),
-                texture_job.input(TextureProcessingJob.SOURCE_TEXTURES),
+                texture_job.input(TextureOptimizationJob.SOURCE_TEXTURES),
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.PREPARED_MESH),
                 mesh_job.input(MeshOptimizationJob.SOURCE_MODEL),
             )
             graph.connect(
-                texture_job.output(TextureProcessingJob.PROCESSED_TEXTURES),
+                texture_job.output(TextureOptimizationJob.PROCESSED_TEXTURES),
                 mesh_job.input(MeshOptimizationJob.TEXTURE_INPUT),
             )
 
@@ -1207,7 +1271,7 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             interface = QueueInterface(str(temp_path / "queue.sqlite"))
             graph = JobGraph(name="Three-phase FBX optimization")
             prepare_job = PrepareOptimizationJob(name="Prepare optimization")
-            texture_job = TextureProcessingJob(name="Optimize textures")
+            texture_job = TextureOptimizationJob(name="Optimize textures")
             mesh_job = MeshOptimizationJob(name="Optimize mesh")
             graph.add_job(prepare_job)
             graph.add_job(texture_job)
@@ -1222,14 +1286,14 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.TEXTURE_REQUEST),
-                texture_job.input(TextureProcessingJob.SOURCE_TEXTURES),
+                texture_job.input(TextureOptimizationJob.SOURCE_TEXTURES),
             )
             graph.connect(
                 prepare_job.output(PrepareOptimizationJob.PREPARED_MESH),
                 mesh_job.input(MeshOptimizationJob.SOURCE_MODEL),
             )
             graph.connect(
-                texture_job.output(TextureProcessingJob.PROCESSED_TEXTURES),
+                texture_job.output(TextureOptimizationJob.PROCESSED_TEXTURES),
                 mesh_job.input(MeshOptimizationJob.TEXTURE_INPUT),
             )
 
@@ -1249,8 +1313,8 @@ class TestMeshOptimizationGraphE2E(omni.kit.test.AsyncTestCase):
             self.assertTrue(prepared.referenced_layers)
 
             # The texture job published DDS outputs.
-            texture_job_id = next(job.job_id for job in graph.jobs if isinstance(job, TextureProcessingJob))
-            processed = interface.get_job_outputs(texture_job_id)[TextureProcessingJob.PROCESSED_TEXTURES]
+            texture_job_id = next(job.job_id for job in graph.jobs if isinstance(job, TextureOptimizationJob))
+            processed = interface.get_job_outputs(texture_job_id)[TextureOptimizationJob.PROCESSED_TEXTURES]
             self.assertTrue(processed.items)
             for item in processed.items:
                 self.assertTrue(pathlib.Path(item.asset_url).is_file())
@@ -1426,7 +1490,7 @@ def _make_texture_request(
     output_dir: pathlib.Path | str,
     *,
     source_root: pathlib.Path | None = None,
-) -> TextureProcessingRequest:
+) -> TextureOptimizationRequest:
     """Create one real texture-processing request for E2E queue runs.
 
     Args:
@@ -1437,9 +1501,9 @@ def _make_texture_request(
     Returns:
         Immutable request containing every source texture.
     """
-    return TextureProcessingRequest(
+    return TextureOptimizationRequest(
         items=tuple(
-            TextureProcessingItem(
+            TextureOptimizationItem(
                 key=f"texture_{index}",
                 path=source_path,
                 texture_type=TextureTypes.NORMAL_DX,

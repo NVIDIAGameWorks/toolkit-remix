@@ -29,8 +29,8 @@ from omni.flux.job_queue.core.execute import JobScheduler
 from omni.flux.job_queue.core.interface import QueueInterface
 from omni.flux.utils.common.path_utils import hash_file
 
-from lightspeed.trex.asset_pipeline.core.jobs import TextureProcessingJob, build_texture_optimization_graph
-from lightspeed.trex.asset_pipeline.core.jobs.models import TextureProcessingItem, TextureProcessingRequest
+from lightspeed.trex.asset_pipeline.core.jobs import TextureOptimizationJob, build_texture_optimization_graph
+from lightspeed.trex.asset_pipeline.core.jobs.models import TextureOptimizationItem, TextureOptimizationRequest
 
 # Output the retired validator produced from a 16px_metallic.png whose bytes are the committed 16px.png.
 # Its DDS payload comes from an older NVTT build, so it is the oracle for names, sidecar keys, and hashes,
@@ -86,8 +86,8 @@ class TestLegacyFixtureParityE2E(omni.kit.test.AsyncTestCase):
 async def _process(source: pathlib.Path, output_dir: pathlib.Path, temp_path: pathlib.Path) -> pathlib.Path:
     """Run one METALLIC texture through the real queue graph and Apply; return the published DDS path."""
     interface = QueueInterface(str(temp_path / "queue.sqlite"))
-    request = TextureProcessingRequest(
-        items=(TextureProcessingItem(key="metallic", path=source, texture_type=TextureTypes.METALLIC),),
+    request = TextureOptimizationRequest(
+        items=(TextureOptimizationItem(key="metallic", path=source, texture_type=TextureTypes.METALLIC),),
         source_root=temp_path,
         output_url=str(output_dir),
     )
@@ -104,7 +104,7 @@ async def _process(source: pathlib.Path, output_dir: pathlib.Path, temp_path: pa
         await executor.apply(texture_job.job_id)
     finally:
         await executor.shutdown()
-    return pathlib.Path(outputs[TextureProcessingJob.PROCESSED_TEXTURES].items[0].asset_url)
+    return pathlib.Path(outputs[TextureOptimizationJob.PROCESSED_TEXTURES].items[0].asset_url)
 
 
 def _legacy_fixture() -> tuple[pathlib.Path, dict]:

@@ -23,6 +23,8 @@ __all__ = [
     "ComfyUIRetargetResult",
     "ComfyUIState",
     "IntroducingLayer",
+    "MeshReferenceSelection",
+    "OutputApplyBehavior",
     "RemixType",
     "WorkflowCategory",
     "WorkflowSourceType",
@@ -112,10 +114,30 @@ class IntroducingLayer(Enum):
     ANY = "Any"
 
 
+class MeshReferenceSelection(StrEnum):
+    """Select which references of the mesh one workflow uses.
+
+    ``ALL`` uses every reference of the mesh, on the ``mesh_<hash>`` prim and its marked ``ref_<id>`` children.
+    ``SELECTED`` uses only the reference that composes the selected prim.
+    """
+
+    ALL = "all"
+    SELECTED = "selected"
+
+
+class OutputApplyBehavior(StrEnum):
+    """Select how one generated workflow output changes the stage."""
+
+    NONE = "none"
+    REPLACE = "replace"
+    APPEND = "append"
+
+
 class RemixType(StrEnum):
     """Canonical Remix port tags emitted by the ComfyUI node pack."""
 
     TEXTURE_FILE_PATH = "texture_file_path"
+    MESH_FILE_PATH = "mesh_file_path"
 
 
 class WorkflowCategory(Enum):

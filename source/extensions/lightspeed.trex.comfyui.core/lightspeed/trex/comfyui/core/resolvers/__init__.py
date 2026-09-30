@@ -18,6 +18,7 @@
 __all__ = [
     "RESOLVER_PLUGINS",
     "TEXTURE_RESOLVER_PLUGINS",
+    "AllStageMeshesResolver",
     "AllStageTexturesResolver",
     "ConstantResolver",
     "LayerIdentifierResolver",
@@ -26,6 +27,7 @@ __all__ = [
     "ResolverParameter",
     "ResolverRule",
     "ResolverValueError",
+    "SelectedMeshResolver",
     "SelectedPrimPathResolver",
     "SelectedTextureResolver",
     "StageExpandingResolver",
@@ -35,6 +37,7 @@ __all__ = [
     "create_resolver",
     "get_resolver_factory",
     "get_resolver_rule",
+    "is_remix_reference",
     "normalize_native_value",
 ]
 
@@ -49,6 +52,7 @@ from .base import (
     normalize_native_value,
 )
 from .builtin import ConstantResolver, LayerIdentifierResolver, SelectedPrimPathResolver
+from .meshes import AllStageMeshesResolver, SelectedMeshResolver, is_remix_reference
 from .textures import (
     TEXTURE_RESOLVER_PLUGINS,
     AllStageTexturesResolver,
@@ -57,10 +61,11 @@ from .textures import (
 )
 from ..enums import RemixType
 
-# Semantic texture getters lead the catalog (first entry stays the default), then
-# native getters, then the Constant fallback.
+# Semantic file getters lead the catalog, followed by native getters and the Constant fallback.
 RESOLVER_PLUGINS = [
     *TEXTURE_RESOLVER_PLUGINS,
+    SelectedMeshResolver,
+    AllStageMeshesResolver,
     SelectedPrimPathResolver,
     LayerIdentifierResolver,
     ConstantResolver,

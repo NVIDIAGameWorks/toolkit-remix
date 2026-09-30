@@ -28,7 +28,7 @@ from omni.flux.job_queue.core.enums import ApplyDisposition, ApplyOperation, Job
 from omni.flux.job_queue.core.errors import JobError
 from omni.flux.job_queue.core.models import QueueGraphSnapshot, QueueJobSnapshot
 from omni.flux.job_queue.core.job import Job, JobInputs, JobOutputs, JobProgress, JobProgressCallback
-from omni.flux.job_queue.widget.constants import APPLY_FILTER_OPTIONS
+from omni.flux.job_queue.widget.constants import APPLY_FILTER_OPTIONS, PROBLEM_DISPLAY_STATES
 from omni.flux.job_queue.widget.enums import DisplayState
 from omni.flux.job_queue.widget.model import QueueModel
 from omni.kit.test import AsyncTestCase
@@ -81,6 +81,7 @@ def _snapshot(
     apply_handler_id: str | None = None,
     started_at: datetime.datetime | None = None,
     completed_at: datetime.datetime | None = None,
+    has_outputs: bool = False,
 ) -> QueueJobSnapshot:
     """Build one frozen core snapshot with readable defaults.
 
@@ -102,6 +103,7 @@ def _snapshot(
         apply_handler_id: Stable exact Apply handler identity.
         started_at: Optional execution start time.
         completed_at: Optional execution completion time.
+        has_outputs: Whether persisted outputs exist for the job.
 
     Returns:
         Frozen job snapshot.
@@ -127,6 +129,7 @@ def _snapshot(
         apply_handler_id=apply_handler_id,
         apply_reason=apply_reason,
         apply_error=apply_error,
+        has_outputs=has_outputs,
     )
 
 
@@ -251,6 +254,27 @@ class TestQueueModel(AsyncTestCase):
         self.assertIn(("structure", None), events[1:])
         self.assertIsNotNone(selection_subscription)
         self.assertIsNotNone(model_changed_subscription)
+
+    async def test_skipped_status_filter_includes_jobs_with_and_without_outputs(self):
+        """The Skipped filter includes both skipped states and excludes completed siblings."""
+        # Arrange
+        graph_id = uuid.uuid4()
+        skipped = _snapshot(graph_id=graph_id, job_name="Skipped", state=JobState.SKIPPED, position=0)
+        with_outputs = _snapshot(
+            graph_id=graph_id, job_name="Skipped with outputs", state=JobState.SKIPPED, has_outputs=True, position=1
+        )
+        done = _snapshot(graph_id=graph_id, job_name="Done", state=JobState.DONE, position=2)
+        model = _model([_graph(skipped, with_outputs, done)])
+
+        # Act
+        model.set_status_filter({DisplayState.SKIPPED})
+
+        # Assert
+        roots = model.get_item_children(None)
+        self.assertEqual(len(roots), 1)
+        self.assertEqual(
+            [item.row.name for item in model.get_item_children(roots[0])], ["Skipped", "Skipped with outputs"]
+        )
 
     async def test_status_filter_retains_root_and_only_matching_children(self):
         """A matching child retains its root without exposing non-matching siblings."""
@@ -510,6 +534,60 @@ class TestQueueModel(AsyncTestCase):
         # Assert
         self.assertNotIn(str(prerequisite_id), tooltip)
         self.assertIn("another job", tooltip)
+
+    async def test_skipped_job_with_outputs_is_displayed_as_completed(self):
+        """A skipped job that produced outputs is a neutral completed state that exposes Apply controls."""
+        # Arrange
+        skipped = _snapshot(
+            graph_id=uuid.uuid4(),
+            state=JobState.SKIPPED,
+            state_reason="Nothing to generate.",
+            has_outputs=True,
+        )
+        pending = _snapshot(
+            graph_id=uuid.uuid4(),
+            graph_position=1,
+            state=JobState.SKIPPED,
+            state_reason="Nothing to generate.",
+            has_outputs=True,
+            disposition=ApplyDisposition.PENDING,
+        )
+        model = _model([_graph(skipped), _graph(pending)])
+        skipped_item, pending_item = model.all_items
+
+        # Act
+        skipped_state = model.resolve_display_state(skipped_item.row)
+        pending_state = model.resolve_display_state(pending_item.row)
+
+        # Assert
+        self.assertEqual(skipped_state, DisplayState.SKIPPED_WITH_OUTPUTS)
+        self.assertEqual(skipped_state.label, "Skipped")
+        self.assertNotIn(skipped_state, PROBLEM_DISPLAY_STATES)
+        self.assertEqual(model.get_state_tooltip(skipped_item.row, skipped_state), "Nothing to generate.")
+        self.assertEqual(pending_state, DisplayState.READY_TO_APPLY)
+        self.assertTrue(model.can_check_item(pending_item, allow_reapply=False))
+        self.assertEqual(model.resolve_graph_display_state(model.get_item_children(None)[0]), DisplayState.DONE)
+
+    async def test_skipped_job_without_outputs_keeps_skipped_presentation(self):
+        """A skipped job without outputs stays a problem state even when Apply is pending."""
+        # Arrange
+        snapshot = _snapshot(
+            graph_id=uuid.uuid4(),
+            state=JobState.SKIPPED,
+            state_reason="A prerequisite failed.",
+            disposition=ApplyDisposition.PENDING,
+        )
+        model = _model([_graph(snapshot)])
+        row = model.all_items[0].row
+
+        # Act
+        state = model.resolve_display_state(row)
+
+        # Assert
+        self.assertEqual(state, DisplayState.SKIPPED)
+        self.assertIn(state, PROBLEM_DISPLAY_STATES)
+        self.assertEqual(model.get_state_tooltip(row, state), "A prerequisite failed.")
+        self.assertEqual(model.resolve_graph_display_state(model.get_item_children(None)[0]), DisplayState.SKIPPED)
 
     async def test_apply_failure_tooltip_uses_safe_apply_reason(self):
         """Apply status help uses the sanitized Apply reason, not diagnostics."""

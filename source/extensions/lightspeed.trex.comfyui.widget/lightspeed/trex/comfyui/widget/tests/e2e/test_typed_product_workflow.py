@@ -6,7 +6,7 @@
 * you may not use this file except in compliance with the License.
 * You may obtain a copy of the License at
 *
-* http://www.apache.org/licenses/LICENSE-2.0
+* https://www.apache.org/licenses/LICENSE-2.0
 *
 * Unless required by applicable law or agreed to in writing, software
 * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,21 +19,30 @@ from __future__ import annotations
 
 import asyncio
 import pathlib
+import shutil
 import tempfile
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import omni.kit.app
 import omni.usd
-from lightspeed.trex.asset_pipeline.core.jobs.texture_processing import TextureProcessingJob
+from lightspeed.trex.asset_pipeline.core.jobs.texture_optimization import TextureOptimizationJob
 from lightspeed.trex.comfyui.core.api import ComfyUIAPI
+from lightspeed.trex.comfyui.core.apply_handler import ComfyUITextureApplyHandler
 from lightspeed.trex.comfyui.core.connection import set_connected_endpoint
 from lightspeed.trex.comfyui.core.core import ComfyUICore
-from lightspeed.trex.comfyui.core.enums import RemixType
-from lightspeed.trex.comfyui.core.apply_handler import ComfyUIJobApplyHandler
+from lightspeed.trex.comfyui.core.enums import OutputApplyBehavior, RemixType
 from lightspeed.trex.comfyui.core.job import ComfyUIJob
-from lightspeed.trex.comfyui.core.models import ComfyUIWorkflowRequest, Workflow, WorkflowInput, WorkflowOutput
+from lightspeed.trex.comfyui.core.models import (
+    ComfyUIFileResult,
+    ComfyUIInputBinding,
+    ComfyUIWorkflowRequest,
+    Workflow,
+    WorkflowInput,
+    WorkflowOutput,
+)
 from lightspeed.trex.comfyui.core.resolvers import SelectedTextureResolver
-from lightspeed.trex.comfyui.widget.display_adapter import ComfyUIDisplayAdapter
+from ...display_adapter import ComfyUIDisplayAdapter
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni import ui
 from omni.flux.job_queue.core.apply_executor import ApplyExecutor
@@ -57,6 +66,29 @@ _CONNECTED_ENDPOINT = ("http", "127.0.0.1", 8188)
 _RETARGET_ENDPOINT = ("https", "replacement.example.com", 443)
 
 
+def _get_normal_fixture_path() -> pathlib.Path:
+    """Return the repository's real DirectX normal-map fixture.
+
+    Returns:
+        Absolute fixture path.
+    """
+    extension_root = pathlib.Path(
+        omni.kit.app.get_app()
+        .get_extension_manager()
+        .get_extension_path_by_module("omni.flux.utils.octahedral_converter")
+    )
+    return extension_root / "data" / "tests" / "textures" / "Normal_Map_Test_DirectX.png"
+
+
+async def _download_fixture_texture(
+    _api: ComfyUIAPI, _file_result: ComfyUIFileResult, destination: pathlib.Path
+) -> pathlib.Path:
+    """Stand in for the ComfyUI server download by copying the real fixture PNG into the queue-owned destination."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(_get_normal_fixture_path(), destination)
+    return destination
+
+
 class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
     """Exercise product-created ComfyUI graphs through the real typed scheduler."""
 
@@ -75,10 +107,12 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
         self._core = ComfyUICore(_CONTEXT_NAME)
         self._interface = QueueInterface(str(self._temporary_path / "queue.sqlite"))
         self._scheduler: JobScheduler | None = None
+        self._overlap_subscription = None
         set_connected_endpoint(_CONTEXT_NAME, None)
 
     async def tearDown(self) -> None:
         """Settle scheduling and release the queue, core, stage, and temporary files."""
+        self._overlap_subscription = None
         if self._scheduler is not None:
             await self._scheduler.stop()
         self._core.destroy()
@@ -131,7 +165,7 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
                     label="Normal input",
                     native_type=pathlib.Path,
                     default_value=pathlib.Path(),
-                    value=SelectedTextureResolver(TextureTypes.NORMAL_OGL, _CONTEXT_NAME),
+                    value=SelectedTextureResolver(TextureTypes.NORMAL_OGL, context_name=_CONTEXT_NAME),
                     remix_type=RemixType.TEXTURE_FILE_PATH,
                 )
             )
@@ -139,7 +173,14 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
             api=prompt,
             name="Generate diffuse",
             inputs=inputs,
-            output_specs=[WorkflowOutput("99", "albedo")],
+            output_specs=[
+                WorkflowOutput(
+                    node_id="99",
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                    texture_type="albedo",
+                    apply_behavior=OutputApplyBehavior.REPLACE,
+                )
+            ],
         )
 
     async def _prepare_graphs(self, prim_paths: list[str], workflow: Workflow) -> list:
@@ -161,10 +202,10 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
         return list((await self._core.prepare_submission(prim_paths)).graphs)
 
     async def _run_overlap_scenario(self, graphs: list) -> dict[str, object]:
-        """Run two product graphs through controlled server and pipeline boundaries.
+        """Run two product graphs through a controlled server and the real texture pipeline.
 
         Args:
-            graphs: Product-created two-stage material graphs.
+            graphs: Product-created terminal texture graphs.
 
         Returns:
             Observed concurrency, dependency, capacity, and Apply evidence.
@@ -173,11 +214,7 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
         first_generation_release = asyncio.Event()
         second_generation_started = asyncio.Event()
         overlap_release = asyncio.Event()
-        first_processing_started = asyncio.Event()
-        second_processing_started = asyncio.Event()
         prompt_count = 0
-        processing_count = 0
-        processing_sources: list[tuple[pathlib.Path, ...]] = []
 
         async def submit_prompt(*_args, **_kwargs) -> str:
             """Assign deterministic prompt identifiers in submission order."""
@@ -199,91 +236,87 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
                 }
             }
 
-        async def download_image(_api: ComfyUIAPI, _image, destination: pathlib.Path) -> pathlib.Path:
-            """Materialize one controlled server output in its queue-owned directory."""
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(b"generated")
-            return destination
-
-        async def run_pipeline(config, context, steps=None, *, on_step_started: object, on_item_completed) -> None:
-            """Publish deterministic DDS files while exposing pipeline overlap signals."""
-            del on_step_started, steps
-            nonlocal processing_count
-            processing_count += 1
-            current = processing_count
-            processing_sources.append(tuple(item.source_path for item in context.items))
-            if current == 1:
-                first_processing_started.set()
-                await overlap_release.wait()
-            else:
-                second_processing_started.set()
-            config.output_dir.mkdir(parents=True, exist_ok=True)
-            total = len(context.items)
-            for index, item in enumerate(context.items, start=1):
-                output = config.output_dir / f"{item.source_path.stem}.dds"
-                output.write_bytes(b"processed")
-                item.textures[0].path = output
-                await on_item_completed(item, index, total)
-
         handles = [self._interface.submit(graph) for graph in graphs]
         generation_jobs = [graph.jobs[0] for graph in graphs]
         processing_jobs = [graph.jobs[1] for graph in graphs]
+        overlap_snapshots: dict = {}
+        overlap_captured = asyncio.Event()
+        loop = asyncio.get_running_loop()
+
+        def on_job_changed(_job_id) -> None:
+            """Snapshot every job on the first queue change where processing and the held generation overlap.
+
+            The queue notifies subscribers synchronously, possibly from the worker thread that starts a job, so the
+            snapshots are captured here and the event is signalled on the owning loop.
+            """
+            if overlap_snapshots:
+                return
+            snapshots = {
+                job.job_id: self._interface.get_job_snapshot(job.job_id) for job in (*generation_jobs, *processing_jobs)
+            }
+            if (
+                snapshots[processing_jobs[0].job_id].state is JobState.IN_PROGRESS
+                and snapshots[generation_jobs[1].job_id].state is JobState.IN_PROGRESS
+            ):
+                overlap_snapshots.update(snapshots)
+                loop.call_soon_threadsafe(overlap_captured.set)
+
+        self._overlap_subscription = self._interface.subscribe_job_changed(on_job_changed)
         with (
             patch.object(ComfyUIAPI, "submit_prompt", new=submit_prompt),
             patch.object(ComfyUIAPI, "wait_for_prompt_completion", new=wait_for_prompt),
-            patch.object(ComfyUIAPI, "download_image", new=download_image),
-            patch(
-                "lightspeed.trex.asset_pipeline.core.jobs.texture_processing.run_remix_asset_pipeline",
-                new=run_pipeline,
-            ),
+            patch.object(ComfyUIAPI, "download_file", new=_download_fixture_texture),
         ):
             self._scheduler = JobScheduler(self._interface)
             self._scheduler.start()
             await asyncio.wait_for(first_generation_started.wait(), 2)
             second_started_before_release = second_generation_started.is_set()
             first_generation_release.set()
-            await asyncio.wait_for(first_processing_started.wait(), 2)
-            await asyncio.wait_for(second_generation_started.wait(), 2)
-            overlap_snapshots = {
-                job.job_id: self._interface.get_job_snapshot(job.job_id) for job in (*generation_jobs, *processing_jobs)
-            }
-            second_processing_started_during_first = second_processing_started.is_set()
+            # The real pipeline now converts the first image while the second generation is held at the controlled
+            # server. The queue notification captures that overlap synchronously, before either job can move on.
+            await asyncio.wait_for(overlap_captured.wait(), 10)
+            self._overlap_subscription = None
             overlap_release.set()
-            await asyncio.gather(*(handle.outputs(10) for group in handles for handle in group))
+            await asyncio.gather(*(handle.outputs(120) for group in handles for handle in group))
             await self._scheduler.stop()
             self._scheduler = None
 
         return {
             "second_started_before_release": second_started_before_release,
-            "second_processing_started_during_first": second_processing_started_during_first,
             "overlap_snapshots": overlap_snapshots,
-            "processing_sources": processing_sources,
+            "processed_results": [
+                self._interface.get_job_outputs(job.job_id)[TextureOptimizationJob.PROCESSED_TEXTURES]
+                for job in processing_jobs
+            ],
             "final_processing": [self._interface.get_job_snapshot(job.job_id) for job in processing_jobs],
         }
 
     async def test_product_graphs_overlap_exact_types_and_gate_apply_on_processed_output(self) -> None:
-        """Generation and processing overlap across exact one-worker lanes with typed dependency flow."""
+        """Generation and processing overlap before one terminal Apply boundary becomes ready."""
         # Resolve two selected materials into independent generation-to-processing graphs.
         graphs = await self._prepare_graphs(self._mesh_paths, self._workflow())
         generation_jobs = [graph.jobs[0] for graph in graphs]
         processing_jobs = [graph.jobs[1] for graph in graphs]
 
-        # Hold each real lane at controlled boundaries so their overlap can be observed without timing guesses.
+        # Hold the server lane at controlled boundaries so its overlap with real processing can be observed.
         evidence = await self._run_overlap_scenario(graphs)
 
         # Each exact type remains serial while generation and processing from different graphs overlap.
-        self.assertEqual(len(graphs), 2)
-        self.assertTrue(all(len(graph.jobs) == 2 for graph in graphs))
-        self.assertTrue(all(type(job) is ComfyUIJob for job in generation_jobs))
-        self.assertTrue(all(type(job) is TextureProcessingJob for job in processing_jobs))
         self.assertFalse(evidence["second_started_before_release"])
-        self.assertFalse(evidence["second_processing_started_during_first"])
         snapshots = evidence["overlap_snapshots"]
         self.assertIs(snapshots[generation_jobs[1].job_id].state, JobState.IN_PROGRESS)
         self.assertIs(snapshots[processing_jobs[0].job_id].state, JobState.IN_PROGRESS)
         self.assertIs(snapshots[processing_jobs[1].job_id].state, JobState.WAITING_FOR_DEPENDENCIES)
         self.assertIs(snapshots[processing_jobs[0].job_id].apply_disposition, ApplyDisposition.NOT_READY)
-        self.assertTrue(all(path.exists() for sources in evidence["processing_sources"] for path in sources))
+
+        # The real pipeline published one albedo DDS per downloaded image, named after the server file.
+        for index, result in enumerate(evidence["processed_results"], start=1):
+            self.assertEqual(len(result.items), 1)
+            output = pathlib.Path(result.items[0].asset_url)
+            self.assertEqual(output.name, f"prompt-{index}.a.rtex.dds")
+            self.assertEqual(output.read_bytes()[:4], b"DDS ")
+            self.assertTrue(result.items[0].source_path.exists())
+        # The processing job is the terminal Apply job. It waits for the user once its outputs are published.
         self.assertTrue(
             all(snapshot.apply_disposition is ApplyDisposition.PENDING for snapshot in evidence["final_processing"])
         )
@@ -295,10 +328,10 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
         source_image = Image.new("RGB", (16, 16), (64, 128, 255))
         source_image.save(source_path)
         texture_targets = {
-            "albedo": "diffuse_texture",
-            "roughness": "reflectionroughness_texture",
-            "height": "height_texture",
-            "normal_ogl": "normalmap_texture",
+            "10": "diffuse_texture",
+            "11": "reflectionroughness_texture",
+            "12": "height_texture",
+            "13": "normalmap_texture",
         }
         for input_name in texture_targets.values():
             shader.CreateInput(input_name, Sdf.ValueTypeNames.Asset).Set(
@@ -318,19 +351,47 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
                     label="Source texture",
                     native_type=pathlib.Path,
                     default_value=pathlib.Path(),
-                    value=SelectedTextureResolver(TextureTypes.DIFFUSE, _CONTEXT_NAME),
+                    value=SelectedTextureResolver(TextureTypes.DIFFUSE, context_name=_CONTEXT_NAME),
                     remix_type=RemixType.TEXTURE_FILE_PATH,
                 )
             ],
             output_specs=[
-                WorkflowOutput("10", "albedo", 0),
-                WorkflowOutput("11", "roughness", 1),
-                WorkflowOutput("12", "height", 2),
-                WorkflowOutput("13", "normal_ogl", 3),
+                WorkflowOutput(
+                    node_id="10",
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                    order=0,
+                    texture_type="albedo",
+                    apply_behavior=OutputApplyBehavior.REPLACE,
+                ),
+                WorkflowOutput(
+                    node_id="11",
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                    order=1,
+                    texture_type="roughness",
+                    apply_behavior=OutputApplyBehavior.REPLACE,
+                ),
+                WorkflowOutput(
+                    node_id="12",
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                    order=2,
+                    texture_type="height",
+                    apply_behavior=OutputApplyBehavior.REPLACE,
+                ),
+                WorkflowOutput(
+                    node_id="13",
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                    order=3,
+                    texture_type="normal_ogl",
+                    apply_behavior=OutputApplyBehavior.REPLACE,
+                ),
             ],
         )
         graph = (await self._prepare_graphs(self._mesh_paths[:1], workflow))[0]
-        generation_job, processing_job = graph.jobs
+        generation_job, terminal_job = graph.jobs
+        request = next(literal.value for literal in graph.literal_inputs if literal.port is ComfyUIJob.WORKFLOW_REQUEST)
+        self.assertIs(type(request), ComfyUIWorkflowRequest)
+        self.assertTrue(request.input_bindings)
+        self.assertTrue(all(type(binding) is ComfyUIInputBinding for binding in request.input_bindings))
         queue_jobs = self._interface.submit(graph)
         project_path = str(self._stage.GetRootLayer().identifier)
 
@@ -347,9 +408,11 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
             "normal_ogl.png": Image.merge("RGB", (red, green, blue)),
         }
 
-        async def download_image(_api: ComfyUIAPI, image, destination: pathlib.Path) -> pathlib.Path:
+        async def download_file(
+            _api: ComfyUIAPI, file_result: ComfyUIFileResult, destination: pathlib.Path
+        ) -> pathlib.Path:
             destination.parent.mkdir(parents=True, exist_ok=True)
-            generated_images[image.filename].save(destination)
+            generated_images[file_result.filename].save(destination)
             return destination
 
         history = {
@@ -363,15 +426,15 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
                 }
             }
         }
-        upload_image = AsyncMock(return_value={"name": source_path.name, "subfolder": "uploaded"})
+        upload_file = AsyncMock(return_value={"name": source_path.name, "subfolder": "uploaded"})
         apply_registry = ApplyHandlerRegistry()
-        apply_registry.register_plugins([ComfyUIJobApplyHandler])
+        apply_registry.register_plugins([ComfyUITextureApplyHandler])
         apply_executor = ApplyExecutor(self._interface, apply_registry, auto_apply_enabled=lambda: True)
         with (
-            patch.object(ComfyUIAPI, "upload_image", new=upload_image),
+            patch.object(ComfyUIAPI, "upload_file", new=upload_file),
             patch.object(ComfyUIAPI, "submit_prompt", new=AsyncMock(return_value="pbr-prompt")),
             patch.object(ComfyUIAPI, "wait_for_prompt_completion", new=AsyncMock(return_value=history)),
-            patch.object(ComfyUIAPI, "download_image", new=download_image),
+            patch.object(ComfyUIAPI, "download_file", new=download_file),
         ):
             # Run generation and the connected real texture-processing job while no interactive project is open.
             self._scheduler = JobScheduler(self._interface)
@@ -381,16 +444,13 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
             self._scheduler = None
             await apply_executor.wait_idle()
 
-        # Processing publishes the complete PBR set before the job becomes Apply-ready.
-        processed_result = self._interface.get_job_outputs(processing_job.job_id)[
-            TextureProcessingJob.PROCESSED_TEXTURES
+        # Processing publishes the complete PBR set. The same job then waits for the user to Apply.
+        processed_result = self._interface.get_job_outputs(terminal_job.job_id)[
+            TextureOptimizationJob.PROCESSED_TEXTURES
         ]
         self.assertEqual(len(processed_result.items), 4)
-        normal_result = next(item for item in processed_result.items if item.key == "normal_ogl")
-        self.assertIs(normal_result.texture_type, TextureTypes.NORMAL_OTH)
-        upload_image.assert_awaited_once()
         self.assertIsNone(self._context.get_stage())
-        waiting_snapshot = self._interface.get_job_snapshot(processing_job.job_id)
+        waiting_snapshot = self._interface.get_job_snapshot(terminal_job.job_id)
         self.assertIs(waiting_snapshot.apply_disposition, ApplyDisposition.PENDING)
         self.assertIs(waiting_snapshot.apply_operation, ApplyOperation.IDLE)
         self.assertIsNone(waiting_snapshot.apply_error)
@@ -399,14 +459,14 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
         await self._context.new_stage_async()
         self._stage = self._context.get_stage()
         with self.assertRaises(ApplyExecutionError) as error_context:
-            await apply_executor.apply(processing_job.job_id)
+            await apply_executor.apply(terminal_job.job_id)
         self.assertEqual(
             error_context.exception.reason,
-            "This job belongs to a different project. Open the project used to create it before applying its processed textures.\n"
+            "This job belongs to a different project. Open the project used to create it before applying its outputs.\n"
             f"Job project: {project_path}\n"
             f"Opened project: {self._stage.GetRootLayer().identifier}",
         )
-        wrong_project_snapshot = self._interface.get_job_snapshot(processing_job.job_id)
+        wrong_project_snapshot = self._interface.get_job_snapshot(terminal_job.job_id)
         self.assertIs(wrong_project_snapshot.apply_disposition, ApplyDisposition.PENDING)
         self.assertIs(wrong_project_snapshot.apply_operation, ApplyOperation.IDLE)
         self.assertIsNone(wrong_project_snapshot.apply_error)
@@ -416,18 +476,18 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
         await self._context.open_stage_async(project_path)
         self._stage = self._context.get_stage()
         shader = UsdShade.Shader(self._stage.GetPrimAtPath("/World/Looks/Material1/Shader"))
-        apply_block_reason = apply_executor.get_apply_block_reason(processing_job.job_id, ApplyOperation.APPLYING)
+        apply_block_reason = apply_executor.get_apply_block_reason(terminal_job.job_id, ApplyOperation.APPLYING)
         self.assertIsNone(apply_block_reason, apply_block_reason)
 
         try:
             # Reconcile the pending handler that the stage-open integration targets, without rerunning expensive work.
-            await apply_executor.reconcile(processing_job.job_id)
+            await apply_executor.reconcile(terminal_job.job_id)
         finally:
             await apply_executor.shutdown()
             apply_registry.destroy()
 
-        # Both stages remain Done and every authored material input resolves to its processed DDS output.
-        snapshot = self._interface.get_job_snapshot(processing_job.job_id)
+        # Every child remains Done and each authored material input resolves to its processed DDS output.
+        snapshot = self._interface.get_job_snapshot(terminal_job.job_id)
         failure = snapshot.apply_error.message if snapshot.apply_error is not None else snapshot.apply_reason
         self.assertIs(snapshot.apply_disposition, ApplyDisposition.APPLIED, failure)
         self.assertIs(self._interface.get_job_snapshot(generation_job.job_id).state, JobState.DONE)
@@ -442,8 +502,7 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
 
     async def _run_retarget_scenario(self, graph) -> tuple:
         """Start a blocked scheduler and retarget its queued generation row through the adapter action."""
-        generation_job = graph.jobs[0]
-        processing_job = graph.jobs[1]
+        generation_job, terminal_job = graph.jobs
         handles = self._interface.submit(graph)
         set_connected_endpoint(_CONTEXT_NAME, None)
         waiting_reason = generation_job.get_schedule_block_reason()
@@ -452,22 +511,6 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
         def capture_dialog(*_args, **kwargs) -> None:
             """Capture and confirm the row action without replacing queue behavior."""
             dialog_arguments.update(kwargs)
-
-        async def download_image(_api: ComfyUIAPI, _image, destination: pathlib.Path) -> pathlib.Path:
-            """Materialize the retargeted server output."""
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(b"generated")
-            return destination
-
-        async def run_pipeline(config, context, steps=None, *, on_step_started: object, on_item_completed) -> None:
-            """Publish one deterministic processed texture for the retargeted graph."""
-            del on_step_started, steps
-            config.output_dir.mkdir(parents=True, exist_ok=True)
-            for index, item in enumerate(context.items, start=1):
-                output = config.output_dir / f"{item.source_path.stem}.dds"
-                output.write_bytes(b"processed")
-                item.textures[0].path = output
-                await on_item_completed(item, index, len(context.items))
 
         with (
             patch("lightspeed.trex.comfyui.widget.display_adapter.get_comfyui_core_instance", return_value=self._core),
@@ -485,10 +528,7 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
                     }
                 ),
             ),
-            patch.object(ComfyUIAPI, "download_image", new=download_image),
-            patch(
-                "lightspeed.trex.asset_pipeline.core.jobs.texture_processing.run_remix_asset_pipeline", new=run_pipeline
-            ),
+            patch.object(ComfyUIAPI, "download_file", new=_download_fixture_texture),
         ):
             self._scheduler = JobScheduler(self._interface)
             self._scheduler.start()
@@ -505,7 +545,7 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
             )
             adapter.execute_action(action.action_id, generation_job, _CONTEXT_NAME)
             dialog_arguments["ok_handler"]()
-            await asyncio.gather(*(handle.outputs(10) for handle in handles))
+            await asyncio.gather(*(handle.outputs(120) for handle in handles))
             await self._scheduler.stop()
             self._scheduler = None
         updated_job = self._interface.get_job(generation_job.job_id)
@@ -514,7 +554,7 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
             blocked_snapshot,
             action,
             updated_job,
-            self._interface.get_job_snapshot(processing_job.job_id),
+            self._interface.get_job_snapshot(terminal_job.job_id),
         )
 
     async def test_disconnected_job_waits_and_row_action_retargets_only_queued_generation(self) -> None:
@@ -522,19 +562,23 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
         # Submit against the saved endpoint, disconnect it, and exercise the rendered row-level Retarget flow.
         graph = (await self._prepare_graphs(self._mesh_paths[:1], self._workflow()))[0]
 
-        waiting_reason, blocked_snapshot, action, updated_job, processing_snapshot = await self._run_retarget_scenario(
-            graph
-        )
+        (
+            waiting_reason,
+            blocked_snapshot,
+            action,
+            updated_job,
+            terminal_snapshot,
+        ) = await self._run_retarget_scenario(graph)
 
-        # Only the queued generation child changes endpoint; processing then consumes its completed output.
+        # Only the queued generation child changes endpoint; the typed pipeline then reaches its terminal Apply row.
         self.assertIn("Connect to the ComfyUI server", waiting_reason)
         self.assertIs(blocked_snapshot.state, JobState.QUEUED)
         self.assertTrue(action.enabled)
         self.assertEqual(action.action_id, "retarget_comfyui")
         self.assertEqual((updated_job.scheme, updated_job.host, updated_job.port), _RETARGET_ENDPOINT)
         self.assertIs(self._interface.get_job_snapshot(updated_job.job_id).state, JobState.DONE)
-        self.assertIs(processing_snapshot.state, JobState.DONE)
-        self.assertIs(processing_snapshot.apply_disposition, ApplyDisposition.PENDING)
+        self.assertIs(terminal_snapshot.state, JobState.DONE)
+        self.assertIs(terminal_snapshot.apply_disposition, ApplyDisposition.PENDING)
 
     async def test_disconnect_refreshes_graph_actions_and_uses_target_icon(self) -> None:
         """Disconnecting ComfyUI disables graph actions while Retarget keeps the MDI target icon."""
@@ -680,16 +724,17 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
         # Resolve a material that cannot provide the workflow's required normal texture.
         graph = (await self._prepare_graphs(self._mesh_paths[:1], self._workflow(missing_normal_input=True)))[0]
 
-        # Submission persists the skipped producer and lets dependency propagation settle its processing child.
+        # Submission persists the skipped producer and propagates the reason through every typed adapter.
         self._interface.submit(graph)
 
-        # Each row explains its own cause and neither row becomes applicable.
+        # Each row explains its direct cause, and no row becomes applicable.
         graph_snapshot = self._interface.get_graph_snapshots()[0]
-        generation, processing = graph_snapshot.jobs
+        generation, terminal = graph_snapshot.jobs
         self.assertIs(generation.state, JobState.SKIPPED)
         self.assertEqual(generation.state_reason, "This material has no normal (OpenGL) texture.")
-        self.assertIs(processing.state, JobState.SKIPPED)
-        self.assertIn(f'Prerequisite "{graph.jobs[0].name}"', processing.state_reason)
-        self.assertIn("This material has no normal (OpenGL) texture.", processing.state_reason)
-        self.assertIs(generation.apply_disposition, ApplyDisposition.NOT_APPLICABLE)
-        self.assertIs(processing.apply_disposition, ApplyDisposition.NOT_APPLICABLE)
+        self.assertIs(terminal.state, JobState.SKIPPED)
+        self.assertIn(f'Prerequisite "{graph.jobs[0].name}"', terminal.state_reason)
+        self.assertIn("This material has no normal (OpenGL) texture.", terminal.state_reason)
+        self.assertTrue(
+            all(snapshot.apply_disposition is ApplyDisposition.NOT_APPLICABLE for snapshot in (generation, terminal))
+        )

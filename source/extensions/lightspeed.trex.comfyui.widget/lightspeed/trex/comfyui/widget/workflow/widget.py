@@ -22,6 +22,7 @@ import functools
 import threading
 
 import carb
+import omni.kit.undo
 from lightspeed.trex.comfyui.core.core import ComfyUISubmission
 from lightspeed.trex.comfyui.core.enums import (
     ComfyUIEventType,
@@ -46,9 +47,10 @@ from omni.flux.utils.widget.hover import CursorShapesEnum, hover_helper
 from omni.kit.app import get_app
 
 from .constants import WORKFLOW_SOURCE_LABELS, get_native_constant_label
-from .delegate import WorkflowInputDelegate
+from .delegate import WorkflowItemDelegate
 from .items import (
     InputItemGroup,
+    OutputItemGroup,
     ResolverParamItem,
     WorkflowGroupItem,
 )
@@ -56,7 +58,7 @@ from .model import SimpleComboModel
 
 
 class WorkflowSetupWidget(WorkspaceWidget):
-    """Master-detail widget for selecting a ComfyUI workflow and configuring its inputs."""
+    """Master-detail widget for selecting a ComfyUI workflow and configuring its items."""
 
     _CONTENT_PADDING = ui.Pixel(5)
     _SECTION_SPACING = ui.Pixel(16)
@@ -78,8 +80,8 @@ class WorkflowSetupWidget(WorkspaceWidget):
 
     _DEFAULT_GROUP_NAME = "Ungrouped"
 
-    _EMPTY_WORKFLOW_TEXT = "Select a workflow above to configure its inputs"
-    _EMPTY_SELECTION_TEXT = "Select an input above to view its properties"
+    _EMPTY_WORKFLOW_TEXT = "Select a workflow above to configure its inputs and outputs"
+    _EMPTY_SELECTION_TEXT = "Select an item above to view its properties"
     _NO_PROPERTIES_TEXT = "No properties to configure"
     _NO_WORKFLOWS_TEXT = "No workflows available"
     _ALL_WORKFLOW_TYPES_TEXT = "All"
@@ -97,16 +99,16 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._context_name = context_name
         self._core = get_comfyui_core_instance(context_name=context_name)
 
-        self._selected_input_index: int | None = None
+        self._selected_item: InputItemGroup | OutputItemGroup | None = None
 
         self._inputs_frame: ui.Frame | None = None
         self._inputs_panel_frame: ui.Frame | None = None
         self._properties_panel_frame: ui.Frame | None = None
-        self._inputs_section: PropertyCollapsableFrameWithInfoPopup | None = None
-        self._inputs_property_widget: PropertyWidget | None = None
-        self._inputs_model: Model | None = None
-        self._inputs_delegate: WorkflowInputDelegate | None = None
+        self._inputs_property_widgets: list[PropertyWidget] = []
+        self._item_sections: list[PropertyCollapsableFrameWithInfoPopup] = []
+        self._inputs_models: list[Model] = []
         self._getter_subscriptions: list = []
+        self._output_undo_callback = None
 
         self._properties_container: ui.VStack | None = None
         self._properties_section: PropertyCollapsableFrameWithInfoPopup | None = None
@@ -216,25 +218,14 @@ class WorkflowSetupWidget(WorkspaceWidget):
                                 identifier="ComfyWorkflowInputsPanel",
                             )
                             with self._inputs_panel_frame:
-                                self._inputs_section = PropertyCollapsableFrameWithInfoPopup(
-                                    "WORKFLOW INPUTS",
-                                    info_text=(
-                                        "Each row is a workflow parameter. Use the dropdown to choose how its "
-                                        "value is resolved."
-                                    ),
-                                )
-                                self._inputs_section.root.height = ui.Fraction(1)
-                                self._inputs_section.root.set_collapsed_changed_fn(
-                                    functools.partial(self._on_collapsable_section_changed, self._inputs_section.root)
-                                )
-                                with self._inputs_section:
-                                    with ui.ScrollingFrame(
-                                        name="PropertiesPaneSection",
-                                        horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                                    ):
-                                        self._inputs_frame = ui.Frame()
-                                        with self._inputs_frame:
-                                            self._build_empty_inputs_state()
+                                with ui.ScrollingFrame(
+                                    name="PropertiesPaneSection",
+                                    identifier="ComfyWorkflowItemsScroll",
+                                    horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                                ):
+                                    self._inputs_frame = ui.Frame()
+                                    with self._inputs_frame:
+                                        self._build_empty_inputs_state()
 
                             ui.Spacer(height=ui.Pixel(self._SPLITTER_TOP_SPACING + self._SPLITTER_HEIGHT))
                             ui.Spacer(height=self._SECTION_SPACING)
@@ -245,8 +236,8 @@ class WorkflowSetupWidget(WorkspaceWidget):
                             )
                             with self._properties_panel_frame:
                                 self._properties_section = PropertyCollapsableFrameWithInfoPopup(
-                                    "INPUT PROPERTIES",
-                                    info_text="Fine-tune the parameters of the selected input's value resolver.",
+                                    "ITEM PROPERTIES",
+                                    info_text="Configure the selected workflow input or output.",
                                     header_actions_fn=self._build_properties_breadcrumb,
                                 )
                                 self._properties_section.root.height = ui.Fraction(1)
@@ -492,11 +483,9 @@ class WorkflowSetupWidget(WorkspaceWidget):
         ui.Spacer(width=self._FORM_SPACING)
 
     def _build_properties_breadcrumb(self):
-        """Build the breadcrumb container inline with the INPUT PROPERTIES header.
+        """Build the breadcrumb container inline with the ITEM PROPERTIES header.
 
-        Called on every header build/rebuild (collapse/expand). The container
-        uses ``Fraction(1)`` to claim the space the Spacer would have taken.
-        Reads from stored text state so the breadcrumb survives header rebuilds.
+        The container reads stored text so the breadcrumb survives header rebuilds.
         """
         self._breadcrumb_container = ui.HStack(width=ui.Fraction(1), spacing=self._BREADCRUMB_SPACING)
         with self._breadcrumb_container:
@@ -544,53 +533,87 @@ class WorkflowSetupWidget(WorkspaceWidget):
         )
 
     def _rebuild_inputs_property_widget(self):
-        """Rebuild the inputs PropertyWidget from the current workflow."""
+        """Rebuild the WORKFLOW INPUTS and WORKFLOW OUTPUTS sections."""
         self._destroy_inputs_property_widget()
         self._getter_subscriptions.clear()
 
         workflow = self._core.workflow
-        if workflow is None or not workflow.inputs:
-            if self._inputs_frame is not None:
-                self._inputs_frame.clear()
-                with self._inputs_frame:
-                    self._build_empty_inputs_state()
+        if self._inputs_frame is None:
+            return
+        self._inputs_frame.clear()
+        if workflow is None or (not workflow.inputs and not workflow.output_specs):
+            with self._inputs_frame:
+                self._build_empty_inputs_state()
             return
 
-        items = self._create_input_items(workflow)
+        with self._inputs_frame, ui.VStack(height=0, spacing=self._SECTION_SPACING):
+            self._build_item_section(
+                "WORKFLOW INPUTS",
+                "Each row is a workflow input. Configure how it gets its value.",
+                "ComfyWorkflowInputs",
+                self._create_input_items(workflow),
+                "This workflow has no inputs",
+            )
+            self._build_item_section(
+                "WORKFLOW OUTPUTS",
+                "Each row is a workflow output. Configure how it changes the current project.",
+                "ComfyWorkflowOutputs",
+                self._create_output_items(workflow),
+                "This workflow has no outputs",
+            )
+        self._output_undo_callback = lambda _commands: self._on_output_changed()
+        omni.kit.undo.subscribe_on_change(self._output_undo_callback)
 
-        self._inputs_model = Model()
-        self._inputs_delegate = WorkflowInputDelegate(self._select_input_group)
-        self._inputs_model.set_items(items)
-        self._inputs_delegate.resolve_claims(self._inputs_model)
+    def _build_item_section(
+        self, title: str, info_text: str, identifier: str, items: list[WorkflowGroupItem], empty_text: str
+    ) -> None:
+        """Build one collapsible section holding a PropertyWidget tree of workflow items.
 
-        if self._inputs_frame is not None:
-            self._inputs_frame.clear()
-            with self._inputs_frame:
-                self._inputs_property_widget = PropertyWidget(
-                    model=self._inputs_model,
-                    delegate=self._inputs_delegate,
-                    tree_column_widths=[ui.Percent(self._NAME_COLUMN_PERCENT), ui.Fraction(1)],
-                    tree_min_column_widths=[ui.Pixel(0), ui.Pixel(0)],
-                    select_all_children=False,
-                )
-                self._inputs_property_widget.tree_view.identifier = "ComfyWorkflowInputs"
-                self._inputs_property_widget.tree_view.set_selection_changed_fn(self._on_input_selection_changed)
+        Args:
+            title: Section header title.
+            info_text: Header info popup text.
+            identifier: Identifier of the section's tree view.
+            items: Workflow groups shown in the tree.
+            empty_text: Label shown when there are no items.
+        """
+        section = PropertyCollapsableFrameWithInfoPopup(title, info_text=info_text)
+        self._item_sections.append(section)
+        with section:
+            if not items:
+                ui.Label(empty_text, name="QueueDetailEmptyLabel", alignment=ui.Alignment.CENTER, height=0)
+                return
+            # One delegate per tree: resolve_claims() clears the delegate's builder map, so a shared
+            # delegate loses the input getter builders when the outputs tree is resolved.
+            model = Model()
+            delegate = WorkflowItemDelegate(self._select_item_group)
+            model.set_items(items)
+            delegate.resolve_claims(model)
+            property_widget = PropertyWidget(
+                model=model,
+                delegate=delegate,
+                tree_column_widths=[ui.Percent(self._NAME_COLUMN_PERCENT), ui.Fraction(1)],
+                tree_min_column_widths=[ui.Pixel(0), ui.Pixel(0)],
+                select_all_children=False,
+            )
+            property_widget.tree_view.identifier = identifier
+            property_widget.tree_view.set_selection_changed_fn(self._on_item_selection_changed)
+            self._inputs_models.append(model)
+            self._inputs_property_widgets.append(property_widget)
 
-    def _create_input_items(self, workflow) -> list[WorkflowGroupItem]:
+    def _create_input_items(self, workflow: Workflow) -> list[WorkflowGroupItem]:
         """Create grouped property items for a workflow's inputs.
 
         Args:
-            workflow: Workflow whose inputs should populate the master list.
+            workflow: Workflow whose inputs should populate the inputs tree.
 
         Returns:
-            Ordered workflow groups containing input rows without detail-panel properties.
+            Ordered workflow groups containing input rows.
         """
-        grouped_inputs = self._get_sorted_grouped_inputs(workflow)
+        grouped_inputs = self._group_by_name(workflow.inputs, workflow.group_order)
         items: list[WorkflowGroupItem] = []
 
         for group_index, (group_name, group_inputs) in enumerate(grouped_inputs.items()):
-            is_first_group = group_index == 0
-            workflow_group = WorkflowGroupItem(group_name, expanded=is_first_group)
+            workflow_group = WorkflowGroupItem(group_name, expanded=group_index == 0)
 
             for workflow_input in group_inputs:
                 tooltip = workflow_input.tooltip or workflow_input.label
@@ -601,11 +624,28 @@ class WorkflowSetupWidget(WorkspaceWidget):
                     context_name=self._context_name,
                 )
                 input_group.parent = workflow_group
-
                 self._subscribe_getter_change(input_group)
 
             items.append(workflow_group)
 
+        return items
+
+    @classmethod
+    def _create_output_items(cls, workflow: Workflow) -> list[WorkflowGroupItem]:
+        """Create grouped property items for a workflow's outputs.
+
+        Args:
+            workflow: Workflow whose outputs should populate the outputs tree.
+
+        Returns:
+            Ordered workflow groups containing output rows, or an empty list when the workflow has no outputs.
+        """
+        items: list[WorkflowGroupItem] = []
+        for group_name, outputs in cls._group_by_name(workflow.output_specs, workflow.output_group_order).items():
+            workflow_group = WorkflowGroupItem(group_name, expanded=True)
+            for workflow_output in outputs:
+                OutputItemGroup(workflow_output).parent = workflow_group
+            items.append(workflow_group)
         return items
 
     def _subscribe_getter_change(self, group: InputItemGroup):
@@ -621,19 +661,27 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._getter_subscriptions.append(subscription)
 
     def _destroy_inputs_property_widget(self):
-        """Destroy the inputs PropertyWidget and its model/delegate."""
-        if self._inputs_property_widget is not None:
-            self._inputs_property_widget.destroy()
-            self._inputs_property_widget = None
-        self._inputs_model = None
-        self._inputs_delegate = None
+        """Destroy workflow item PropertyWidgets and their models and delegate."""
+        if self._output_undo_callback is not None:
+            omni.kit.undo.unsubscribe_on_change(self._output_undo_callback)
+            self._output_undo_callback = None
+        for property_widget in self._inputs_property_widgets:
+            property_widget.destroy()
+        self._inputs_property_widgets.clear()
+        self._inputs_models.clear()
+        for section in self._item_sections:
+            section.destroy()
+        self._item_sections.clear()
 
     def _rebuild_properties_panel(self):
-        """Rebuild the properties detail panel for the currently selected input."""
+        """Rebuild the detail panel for the selected workflow item."""
         self._property_subscriptions.clear()
         if self._property_widget is not None:
             self._property_widget.destroy()
             self._property_widget = None
+        if self._property_model is not None:
+            for item in self._property_model.get_all_items(include_hidden=True):
+                item.destroy()
         self._property_model = None
         self._property_delegate = None
 
@@ -641,12 +689,10 @@ class WorkflowSetupWidget(WorkspaceWidget):
             return
 
         self._properties_container.clear()
-
-        # Update breadcrumb in header
         self._update_properties_breadcrumb()
 
         workflow = self._core.workflow
-        if workflow is None or not workflow.inputs:
+        if workflow is None or (not workflow.inputs and not workflow.output_specs):
             with self._properties_container:
                 ui.Label(
                     self._EMPTY_WORKFLOW_TEXT,
@@ -656,7 +702,7 @@ class WorkflowSetupWidget(WorkspaceWidget):
                 )
             return
 
-        if self._selected_input_index is None:
+        if self._selected_item is None:
             with self._properties_container:
                 ui.Label(
                     self._EMPTY_SELECTION_TEXT,
@@ -666,11 +712,10 @@ class WorkflowSetupWidget(WorkspaceWidget):
                 )
             return
 
-        sorted_inputs = self._get_sorted_inputs(workflow)
-        selected_input = sorted_inputs[self._selected_input_index]
-        resolver = selected_input.value
-
-        with self._properties_container:
+        if isinstance(self._selected_item, InputItemGroup):
+            invalidate_preset = True
+            selected_input = self._selected_item.workflow_input
+            resolver = selected_input.value
             field_label = selected_input.label
             if type(resolver) is ConstantResolver:
                 field_label = get_native_constant_label(selected_input.native_type)
@@ -679,6 +724,11 @@ class WorkflowSetupWidget(WorkspaceWidget):
                 field_labels={"value": field_label},
                 fallback_value_type=selected_input.native_type,
             )
+        else:
+            invalidate_preset = False
+            items = ResolverParamItem.from_workflow_output(self._selected_item.workflow_output)
+
+        with self._properties_container:
             if items:
                 self._property_model = Model()
                 self._property_delegate = NativeDelegate(right_aligned_labels=False)
@@ -691,8 +741,9 @@ class WorkflowSetupWidget(WorkspaceWidget):
                     tree_min_column_widths=[ui.Pixel(0), ui.Pixel(0)],
                 )
                 self._property_widget.tree_view.identifier = "ComfyInputProperties"
+                on_changed = self._invalidate_active_preset if invalidate_preset else self._on_output_changed
                 self._property_subscriptions = [
-                    value_model.subscribe_value_changed_fn(lambda _: self._invalidate_active_preset())
+                    value_model.subscribe_value_changed_fn(lambda _: on_changed())
                     for item in items
                     for value_model in item.value_models
                 ]
@@ -704,87 +755,97 @@ class WorkflowSetupWidget(WorkspaceWidget):
                     height=0,
                 )
 
+    def _on_output_changed(self) -> None:
+        """Refresh output rows and the breadcrumb after an output setting changes."""
+        for model in self._inputs_models:
+            model.refresh()
+        self._update_properties_breadcrumb()
+
     def _update_properties_breadcrumb(self):
-        """Update the breadcrumb state and re-render the frame content."""
-        workflow = self._core.workflow
-        if workflow is None or self._selected_input_index is None:
+        """Update the selected-item breadcrumb and re-render the frame content."""
+        if self._core.workflow is None or self._selected_item is None:
             self._breadcrumb_input_text = ""
             self._breadcrumb_getter_text = ""
-        else:
-            sorted_inputs = self._get_sorted_inputs(workflow)
-            selected_input = sorted_inputs[self._selected_input_index]
+        elif isinstance(self._selected_item, InputItemGroup):
+            selected_input = self._selected_item.workflow_input
             self._breadcrumb_input_text = selected_input.label
             self._breadcrumb_getter_text = (
                 get_native_constant_label(selected_input.native_type)
                 if type(selected_input.value) is ConstantResolver
                 else selected_input.value.label
             )
+        else:
+            self._breadcrumb_input_text = self._selected_item.name_models[0].get_value_as_string()
+            self._breadcrumb_getter_text = "Output"
 
         if self._breadcrumb_container is not None:
             self._breadcrumb_container.clear()
             with self._breadcrumb_container:
                 self._render_breadcrumb()
 
-    def _on_input_selection_changed(self, selected_items):
-        """Handle tree selection changes to update the properties panel.
+    def _on_item_selection_changed(self, selected_items):
+        """Show details for the first selected workflow input or output row.
 
-        Shows properties for the first InputItemGroup in the selection.
-        Group items (WorkflowGroupItem) are ignored.
+        Only one row is selected across the input and output trees. Selecting a row in one tree
+        clears the other tree. A cleared tree does not clear the detail panel while another tree
+        still holds the selection.
 
         Args:
-            selected_items: List of selected tree items from the TreeView.
+            selected_items: Selected tree items from the PropertyWidget whose selection changed.
         """
-        if not selected_items:
-            self._selected_input_index = None
-            self._rebuild_properties_panel()
+        selected = next(
+            (item for item in selected_items if isinstance(item, (InputItemGroup, OutputItemGroup))),
+            None,
+        )
+        other_trees = [
+            widget.tree_view
+            for widget in self._inputs_property_widgets
+            if widget.tree_view.selection and widget.tree_view.selection != selected_items
+        ]
+        if selected is None and any(
+            isinstance(item, (InputItemGroup, OutputItemGroup))
+            for tree_view in other_trees
+            for item in tree_view.selection
+        ):
             return
-
-        # Find the first InputItemGroup in the selection
-        selected = None
-        for item in selected_items:
-            if isinstance(item, InputItemGroup):
-                selected = item
-                break
-
-        if selected is None:
-            self._selected_input_index = None
-            self._rebuild_properties_panel()
-            return
-
-        sorted_inputs = self._get_sorted_inputs(self._core.workflow) if self._core.workflow else []
-        for index, workflow_input in enumerate(sorted_inputs):
-            if workflow_input is selected.workflow_input:
-                self._selected_input_index = index
-                self._rebuild_properties_panel()
-                return
-
-        self._selected_input_index = None
+        for tree_view in other_trees:
+            tree_view.selection = []
+        workflow = self._core.workflow
+        if workflow is None or selected is None:
+            self._selected_item = None
+        elif isinstance(selected, InputItemGroup):
+            self._selected_item = selected if any(item is selected.workflow_input for item in workflow.inputs) else None
+        else:
+            self._selected_item = (
+                selected if any(item is selected.workflow_output for item in workflow.output_specs) else None
+            )
         self._rebuild_properties_panel()
 
     def _on_getter_changed(self, group: InputItemGroup):
         """Refresh the properties panel when a resolver type changes.
 
         Args:
-            group: The InputItemGroup whose resolver type changed.
+            group: Input group whose resolver type changed.
         """
-        sorted_inputs = self._get_sorted_inputs(self._core.workflow) if self._core.workflow else []
-        for workflow_input in sorted_inputs:
-            if workflow_input is group.workflow_input:
-                self._invalidate_active_preset()
-                self._select_input_group(group)
-                break
+        workflow = self._core.workflow
+        if workflow is not None and any(item is group.workflow_input for item in workflow.inputs):
+            self._invalidate_active_preset()
+            self._select_item_group(group)
 
-    def _select_input_group(self, group: InputItemGroup) -> None:
-        """Select the workflow input whose getter picker is being used.
+    def _select_item_group(self, group: InputItemGroup | OutputItemGroup) -> None:
+        """Select a workflow item and show its properties.
 
         Args:
-            group: Workflow input row to select and show in Input Properties.
+            group: Workflow item row to select.
         """
-        tree_view = self._inputs_property_widget.tree_view if self._inputs_property_widget else None
-        if tree_view is not None and tree_view.selection != [group]:
-            tree_view.selection = [group]
-        else:
-            self._on_input_selection_changed([group])
+        for widget in self._inputs_property_widgets:
+            tree_view = widget.tree_view
+            if group in tree_view.model.get_all_items():
+                if tree_view.selection != [group]:
+                    tree_view.selection = [group]
+            elif tree_view.selection:
+                tree_view.selection = []
+        self._on_item_selection_changed([group])
 
     def _invalidate_active_preset(self) -> None:
         """Clear a preset selection after the user changes an input."""
@@ -822,7 +883,7 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._update_workflow_combo()
 
     def _on_preset_changed(self, model, item):
-        """Apply the selected preset and rebuild inputs.
+        """Apply the selected input preset and rebuild the workflow item panels.
 
         Args:
             model: The ComboBox item model.
@@ -849,7 +910,7 @@ class WorkflowSetupWidget(WorkspaceWidget):
                 )
                 return
             workflow.active_preset = preset_name
-            self._selected_input_index = None
+            self._selected_item = None
             self._rebuild_inputs_property_widget()
             self._rebuild_properties_panel()
 
@@ -861,12 +922,20 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._workflow_refresh_task.set_name("ComfyUIWorkflowRefresh")
 
     async def _refresh_workflows(self) -> None:
-        """Refresh workflow discovery and release task ownership."""
+        """Refresh workflow discovery, reload the selected workflow, and release task ownership."""
         task = asyncio.current_task()
         try:
             await self._core.fetch_available_workflows()
         except (OSError, RuntimeError, ValueError) as error:
             carb.log_error(f"Failed to refresh ComfyUI workflows: {error}")
+        else:
+            # The catalog identifies a workflow by name only. A re-exported workflow keeps its identity but
+            # changes its inputs and outputs, so the selected one is reloaded from the server.
+            current = self._core.workflow
+            if current is not None:
+                selected = next((w for w in self._core.available_workflows if self._is_same_workflow(w, current)), None)
+                if selected is not None:
+                    self._schedule_workflow_load(selected)
         finally:
             if self._workflow_refresh_task is task:
                 self._workflow_refresh_task = None
@@ -1105,7 +1174,7 @@ class WorkflowSetupWidget(WorkspaceWidget):
         """Respond to a workflow change by rebuilding all dynamic sections."""
         if self._core.workflow is not None:
             self._workflow_load_failed = False
-        self._selected_input_index = None
+        self._selected_item = None
         self._update_workflow_combo()
         self._update_preset_combo()
         self._rebuild_inputs_property_widget()
@@ -1385,52 +1454,50 @@ class WorkflowSetupWidget(WorkspaceWidget):
         return None
 
     @staticmethod
-    def _get_sorted_inputs(workflow) -> list:
-        """Sort workflow inputs by group order, then by input order within each group.
+    def _sort_by_group(entries: list, group_order: list[str]) -> list:
+        """Sort workflow inputs or outputs by group order, then by item order within each group.
 
         Args:
-            workflow: The Workflow instance whose inputs to sort.
+            entries: Workflow inputs or outputs, each with a ``group`` and an ``order``.
+            group_order: Group names in the order the workflow declares them.
 
         Returns:
-            A list of WorkflowInput instances sorted by group and order.
+            The entries sorted by group and order. Ungrouped entries come first.
         """
-        ordered = {name: index for index, name in enumerate(workflow.group_order)}
+        ordered = {name: index for index, name in enumerate(group_order)}
         unordered = len(ordered) + 1
 
-        def sort_key(workflow_input):
-            """Return a stable group and item order tuple for one workflow input.
+        def sort_key(entry):
+            """Return a stable group and item order tuple for one entry.
 
             Args:
-                workflow_input: Input whose declared group and item order should be ranked.
+                entry: Input or output whose declared group and item order should be ranked.
 
             Returns:
-                Group-order and input-order values used by the stable sort.
+                Group-order and item-order values used by the stable sort.
             """
-            if not workflow_input.group:
-                return (-1, workflow_input.order)
-            return (ordered.get(workflow_input.group, unordered), workflow_input.order)
+            if not entry.group:
+                return (-1, entry.order)
+            return (ordered.get(entry.group, unordered), entry.order)
 
-        return sorted(workflow.inputs, key=sort_key)
+        return sorted(entries, key=sort_key)
 
     @classmethod
-    def _get_sorted_grouped_inputs(cls, workflow) -> dict:
-        """Sort workflow inputs by group order and return them grouped by name.
+    def _group_by_name(cls, entries: list, group_order: list[str]) -> dict[str, list]:
+        """Sort entries by group order and return them grouped by name.
 
-        Inputs with an empty group string are placed under an "Ungrouped" group.
+        Entries with an empty group string are placed under an "Ungrouped" group.
 
         Args:
-            workflow: The Workflow instance whose inputs to sort.
+            entries: Workflow inputs or outputs, each with a ``group`` and an ``order``.
+            group_order: Group names in the order the workflow declares them.
 
         Returns:
-            An ordered dict of group_name to list of WorkflowInput instances.
+            An ordered dict of group_name to list of entries.
         """
-        sorted_inputs = cls._get_sorted_inputs(workflow)
         groups: dict[str, list] = {}
-        for workflow_input in sorted_inputs:
-            group_name = workflow_input.group or cls._DEFAULT_GROUP_NAME
-            if group_name not in groups:
-                groups[group_name] = []
-            groups[group_name].append(workflow_input)
+        for entry in cls._sort_by_group(entries, group_order):
+            groups.setdefault(entry.group or cls._DEFAULT_GROUP_NAME, []).append(entry)
         return groups
 
     def destroy(self):
@@ -1441,6 +1508,7 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._selected_workflow_identity = None
         self._workflow_load_failed = False
         self._submission_confirmation_open = False
+        self._selected_item = None
         self._getter_subscriptions.clear()
         self._destroy_inputs_property_widget()
 
@@ -1449,15 +1517,14 @@ class WorkflowSetupWidget(WorkspaceWidget):
             self._property_widget.destroy()
             self._property_widget = None
 
+        if self._property_model is not None:
+            for item in self._property_model.get_all_items(include_hidden=True):
+                item.destroy()
         self._property_model = None
         self._property_delegate = None
         self._inputs_frame = None
         self._inputs_panel_frame = None
         self._properties_panel_frame = None
-        if self._inputs_section is not None:
-            self._inputs_section.root.set_collapsed_changed_fn(None)
-            self._inputs_section.destroy()
-            self._inputs_section = None
         self._properties_container = None
         if self._properties_section is not None:
             self._properties_section.root.set_collapsed_changed_fn(None)

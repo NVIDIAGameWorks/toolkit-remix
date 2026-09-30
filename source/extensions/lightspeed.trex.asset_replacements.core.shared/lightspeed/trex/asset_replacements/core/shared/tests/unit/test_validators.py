@@ -19,6 +19,8 @@ from contextlib import nullcontext
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from pxr import Sdf, Usd, UsdGeom
+
 import omni.usd
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared.data_models import AssetReplacementsValidators, ReplacementAssetType
@@ -122,3 +124,44 @@ class TestAssetReplacementsValidators(AsyncTestCase):
 
                     # Assert
                     self.assertTrue(result)
+
+    async def test_get_prim_references_walks_to_the_referencing_ancestor_and_fills_the_cache(self):
+        """A descendant resolves to the ancestor that introduces the reference. The cache records every visited path."""
+        with TemporaryDirectory() as temp_dir:
+            # Arrange: a model layer referenced by /World/mesh; /World/other has no reference anywhere above it.
+            model_path = Path(temp_dir) / "model.usda"
+            model = Usd.Stage.CreateNew(str(model_path))
+            model.SetDefaultPrim(UsdGeom.Xform.Define(model, "/Root").GetPrim())
+            UsdGeom.Mesh.Define(model, "/Root/Shape")
+            model.GetRootLayer().Save()
+            stage = self.context.get_stage()
+            UsdGeom.Xform.Define(stage, "/World")
+            mesh = UsdGeom.Xform.Define(stage, "/World/mesh").GetPrim()
+            mesh.GetReferences().AddReference(str(model_path))
+            UsdGeom.Xform.Define(stage, "/World/other/leaf")
+            cache = {}
+
+            # Act
+            owner, references = AssetReplacementsValidators.get_prim_references(
+                "/World/mesh/Shape", "", stage=stage, ancestor_cache=cache
+            )
+            other, other_references = AssetReplacementsValidators.get_prim_references(
+                "/World/other/leaf", "", stage=stage, ancestor_cache=cache
+            )
+            # A seeded ancestor entry wins over the stage walk and is back-filled onto the visited descendant.
+            marker = (stage.GetPrimAtPath("/World"), [])
+            seeded = {Sdf.Path("/World/mesh"): marker}
+            hit = AssetReplacementsValidators.get_prim_references(
+                "/World/mesh/Shape", "", stage=stage, ancestor_cache=seeded
+            )
+
+            # Assert
+            self.assertEqual(owner, mesh)
+            self.assertEqual([reference.assetPath for reference, _ in references], [model_path.as_posix()])
+            self.assertEqual(hit, marker)
+            self.assertEqual(seeded[Sdf.Path("/World/mesh/Shape")], marker)
+            self.assertEqual(other_references, [])
+            self.assertEqual(cache[Sdf.Path("/World/mesh/Shape")], (mesh, references))
+            self.assertEqual(cache[Sdf.Path("/World/mesh")], (mesh, references))
+            for path in ("/World/other/leaf", "/World/other", "/World"):
+                self.assertEqual(cache[Sdf.Path(path)][1], [], path)

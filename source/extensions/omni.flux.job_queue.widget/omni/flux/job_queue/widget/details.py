@@ -57,6 +57,9 @@ from .queue_item import QueueGraphItem, QueueItem
 
 __all__ = ("JobDetailsPanel",)
 
+_DATA_EDGE_LABEL = "Provides data to"
+_CONTROL_EDGE_LABEL = "Runs before"
+
 
 class JobDetailsPanel(ui.Frame):
     """Show typed graph and job details while the containing window is visible."""
@@ -396,13 +399,22 @@ class JobDetailsPanel(ui.Frame):
         if not data_edges and not control_edges:
             return
         with self._section("Topology", "graph_details_topology"):
-            for source, source_port, target, target_port in sorted(data_edges, key=lambda edge: tuple(map(str, edge))):
-                self._topology_row(
-                    f"{names.get(source, str(source))} · {source_port}",
-                    f"{names.get(target, str(target))} · {target_port}",
-                )
-            for source, target in sorted(control_edges, key=lambda edge: tuple(map(str, edge))):
-                self._topology_row(names.get(source, str(source)), names.get(target, str(target)), "Runs before")
+            self._topology_rows(
+                [
+                    (
+                        f"{names.get(source, str(source))} · {source_port}",
+                        f"{names.get(target, str(target))} · {target_port}",
+                        _DATA_EDGE_LABEL,
+                    )
+                    for source, source_port, target, target_port in sorted(
+                        data_edges, key=lambda edge: tuple(map(str, edge))
+                    )
+                ]
+                + [
+                    (names.get(source, str(source)), names.get(target, str(target)), _CONTROL_EDGE_LABEL)
+                    for source, target in sorted(control_edges, key=lambda edge: tuple(map(str, edge)))
+                ]
+            )
 
     def _build_job_details(self, item: QueueItem) -> None:
         """Build one selected job from a targeted typed details snapshot.
@@ -429,6 +441,8 @@ class JobDetailsPanel(ui.Frame):
                 self._overview_status_label = self._field(
                     "Status", model.get_status_label(row, state), model.get_state_tooltip(row, state)
                 )
+                if state is DisplayState.SKIPPED_WITH_OUTPUTS and row.state_reason:
+                    self._field("Reason", model.get_state_tooltip(row, state), identifier="job_details_skip_reason")
                 if row.progress is not None or state is DisplayState.IN_PROGRESS:
                     active_label = model.get_active_progress_label(row)
                     count = (
@@ -558,17 +572,24 @@ class JobDetailsPanel(ui.Frame):
             return
         names = {child.row.job_id: child.row.name for child in graph.children} if graph is not None else {}
         with self._section("Topology", "job_details_topology"):
-            for edge in details.connections:
-                self._topology_row(
-                    f"{names.get(edge.source_job_id, str(edge.source_job_id))} · {edge.source_port.name}",
-                    f"{names.get(edge.target_job_id, str(edge.target_job_id))} · {edge.target_port.name}",
-                )
-            for edge in details.control_edges:
-                self._topology_row(
-                    names.get(edge.prerequisite_job_id, str(edge.prerequisite_job_id)),
-                    names.get(edge.target_job_id, str(edge.target_job_id)),
-                    "Runs before",
-                )
+            self._topology_rows(
+                [
+                    (
+                        f"{names.get(edge.source_job_id, str(edge.source_job_id))} · {edge.source_port.name}",
+                        f"{names.get(edge.target_job_id, str(edge.target_job_id))} · {edge.target_port.name}",
+                        _DATA_EDGE_LABEL,
+                    )
+                    for edge in details.connections
+                ]
+                + [
+                    (
+                        names.get(edge.prerequisite_job_id, str(edge.prerequisite_job_id)),
+                        names.get(edge.target_job_id, str(edge.target_job_id)),
+                        _CONTROL_EDGE_LABEL,
+                    )
+                    for edge in details.control_edges
+                ]
+            )
 
     def _build_logs(
         self,
@@ -1124,18 +1145,21 @@ class JobDetailsPanel(ui.Frame):
             )
 
     @staticmethod
-    def _topology_row(source: str, target: str, relationship: str = "Provides data to") -> None:
-        """Build one readable directed graph relationship.
+    def _topology_rows(rows: list[tuple[str, str, str]]) -> None:
+        """Build readable directed graph relationships, one block per edge.
+
+        Each edge is three lines. A gap larger than the line spacing separates one edge from the next, so a
+        target line and the next source line do not read as one relationship.
 
         Args:
-            source: Readable producer or prerequisite name.
-            target: Readable consumer or dependent name.
-            relationship: User-facing description of the directed edge.
+            rows: ``(source, target, relationship)`` per edge, in display order.
         """
-        with ui.VStack(height=0, spacing=PADDING_SMALL):
-            ui.Label(source, name="QueueDetailTopologyJob", height=0, word_wrap=True)
-            ui.Label(relationship, name="QueueDetailMeta", height=0)
-            ui.Label(target, name="QueueDetailTopologyJob", height=0, word_wrap=True)
+        with ui.VStack(height=0, spacing=PADDING_LARGE):
+            for source, target, relationship in rows:
+                with ui.VStack(height=0, spacing=PADDING_SMALL):
+                    ui.Label(source, name="QueueDetailTopologyJob", height=0, word_wrap=True)
+                    ui.Label(relationship, name="QueueDetailMeta", height=0)
+                    ui.Label(target, name="QueueDetailTopologyJob", height=0, word_wrap=True)
 
     @staticmethod
     def _format_timestamp(value: datetime.datetime | None) -> str:

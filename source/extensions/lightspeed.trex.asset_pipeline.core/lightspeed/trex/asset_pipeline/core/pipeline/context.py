@@ -118,6 +118,8 @@ class RemixAssetPipelineContext(PipelineContext[RemixAssetItem]):
         replace_udim_textures_by_empty: Author an empty asset path for a UDIM texture instead of a
             ``<UDIM>`` pattern. Model ingestion sets this to ``True`` to match the legacy
             ``model_ingestion.json`` schema. Standalone texture optimization leaves it ``False``.
+        force_dds_reencode: Re-encode a source texture that is already a ``.dds`` file. By default a DDS
+            source is copied to its output unchanged, so an encoded texture is never compressed twice.
         referenced_layers: Every layer identifier the model composes, recorded by the discovery step.
         texture_ledger: Every texture binding discovered, stored so the prepare job can
             freeze it into :class:`PrepareOptimizationResult`.
@@ -130,6 +132,7 @@ class RemixAssetPipelineContext(PipelineContext[RemixAssetItem]):
     work_dir: pathlib.Path | None = None
     output_dir: pathlib.Path | None = None
     replace_udim_textures_by_empty: bool = False
+    force_dds_reencode: bool = False
     referenced_layers: tuple[str, ...] = ()
     texture_ledger: tuple[TextureLedgerEntry, ...] = ()
     stage_context_name: str = field(default="", init=False)

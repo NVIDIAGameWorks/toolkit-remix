@@ -48,20 +48,6 @@ class TextureResolverBase(ValueResolver[pathlib.Path]):
 
     remix_types: ClassVar[tuple[RemixType, ...]] = (RemixType.TEXTURE_FILE_PATH,)
     texture_type: TextureTypes = TextureTypes.DIFFUSE
-    context_name: str | None = None
-
-    @classmethod
-    def create(cls, default_value: object, context_name: str | None = None) -> "TextureResolverBase":
-        """Create a texture resolver bound to its owning USD context.
-
-        Args:
-            default_value: Authored workflow value unused by semantic texture resolution.
-            context_name: USD context containing the selected material.
-
-        Returns:
-            Texture resolver bound to the supplied context.
-        """
-        return cls(context_name=context_name)
 
     @property
     def parameters(self) -> tuple[ResolverParameter[TextureTypes], ...]:

@@ -64,6 +64,7 @@ __all__ = (
     "ROW_COLUMNS",
     "ROW_HEIGHT",
     "SCROLLBAR_SPACING",
+    "SKIPPED_FILTER_STATES",
     "SNAPSHOT_READ_ERRORS",
     "STANDALONE_APP_NAMES",
     "STATUS_COLUMN_WIDTH",
@@ -154,6 +155,7 @@ FAILED_FILTER_STATES = frozenset(
         DisplayState.CORRUPTED,
     )
 )
+SKIPPED_FILTER_STATES = frozenset((DisplayState.SKIPPED, DisplayState.SKIPPED_WITH_OUTPUTS))
 AGGREGATE_PRECEDENCE = (
     DisplayState.CORRUPTED,
     DisplayState.FAILED,

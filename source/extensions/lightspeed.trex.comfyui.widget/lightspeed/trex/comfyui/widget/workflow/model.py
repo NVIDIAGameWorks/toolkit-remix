@@ -21,9 +21,14 @@ __all__ = [
 ]
 
 import pathlib
-from typing import Generic, TypeVar
+import weakref
+from typing import Generic, Literal, TypeVar
 
-from lightspeed.trex.comfyui.core.models import WorkflowInput
+import omni.kit.commands
+import omni.kit.undo
+
+from lightspeed.trex.comfyui.core.enums import OutputApplyBehavior
+from lightspeed.trex.comfyui.core.models import WorkflowInput, WorkflowOutput
 from lightspeed.trex.comfyui.core.resolvers import (
     ConstantResolver,
     ResolverParameter,
@@ -190,6 +195,99 @@ class GetterValueModel(SimpleComboModel):
             self._workflow_input.default_value,
             self._context_name,
         )
+
+
+class _WorkflowOutputFieldValueModel(ItemValueModel):
+    """Value model bound to one persisted workflow output field."""
+
+    def __init__(
+        self,
+        workflow_output: WorkflowOutput,
+        field_name: Literal["apply_behavior", "texture_type"],
+    ):
+        """Initialize a model for one editable workflow output field.
+
+        Args:
+            workflow_output: Persisted output whose field the model edits.
+            field_name: Name of the editable output field.
+        """
+        super().__init__()
+        self._workflow_output = workflow_output
+        self._field_name = field_name
+        self._read_only = False
+        model_ref = weakref.ref(self)
+
+        def on_undo_changed(_commands):
+            model = model_ref()
+            if model is not None:
+                model.refresh()
+
+        omni.kit.undo.subscribe_on_change(on_undo_changed)
+        self._undo_finalizer = weakref.finalize(self, omni.kit.undo.unsubscribe_on_change, on_undo_changed)
+
+    def destroy(self) -> None:
+        """Release the global undo subscription."""
+        self._undo_finalizer()
+
+    def get_value(self) -> OutputApplyBehavior | str | None:
+        """Return the current persisted output field value."""
+        if self._field_name == "apply_behavior":
+            return self._workflow_output.apply_behavior
+        return self._workflow_output.texture_type
+
+    def _set_value(self, value: OutputApplyBehavior | str | None) -> None:
+        """Persist a new output field value.
+
+        Args:
+            value: Typed output value selected in the property widget.
+
+        Raises:
+            TypeError: If the value does not match the selected output field.
+        """
+        if self._field_name == "apply_behavior":
+            if not isinstance(value, OutputApplyBehavior):
+                raise TypeError("Apply Behavior requires an OutputApplyBehavior value")
+        elif value is not None and not isinstance(value, str):
+            raise TypeError("Texture Type requires a string value")
+        if value == self.get_value():
+            return
+        omni.kit.commands.execute(
+            "SetComfyUIOutputFieldCommand",
+            workflow_output=self._workflow_output,
+            field_name=self._field_name,
+            value=value,
+        )
+
+    def _on_dirty(self) -> None:
+        """Notify listeners that the persisted output field changed."""
+        self._value_changed()
+
+    def refresh(self) -> None:
+        """Re-read the persisted output field and notify listeners."""
+        self._value_changed()
+
+    def _get_value_as_string(self) -> str:
+        """Return the output field value as a string."""
+        value = self.get_value()
+        return "" if value is None else str(value)
+
+    def _get_value_as_float(self) -> float:
+        """Return the output field value as a float when possible."""
+        try:
+            return float(self.get_value())
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _get_value_as_bool(self) -> bool:
+        """Return the truth value of the output field."""
+        return bool(self.get_value())
+
+    def _get_value_as_int(self) -> int:
+        """Return the output field value as an integer when possible."""
+        try:
+            return int(self.get_value())
+        except (TypeError, ValueError):
+            return 0
 
 
 class _ResolverFieldValueModel(ItemValueModel, Generic[FieldValueT]):

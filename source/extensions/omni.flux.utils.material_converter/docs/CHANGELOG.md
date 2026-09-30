@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.7]
+### Added
+- Added glTF material conversion to AperturePBR with packed texture channel metadata, registered converter lookup with automatic output shader selection, the `omni.kit.commands` dependency the converter core uses, and preserved USD Preview Surface normal textures, connected output names, and OpenGL normal encoding; legacy material matching builds each probe with the builder's selected output shader.
+
+### Fixed
+- Convert glTF base colors to RGB for AperturePBR color inputs and preserve separate alpha mapping.
+- Map glTF alpha modes to declared AperturePBR blend and alpha-test controls, with the MASK cutoff and explicit public exports.
+
 ## [2.1.6]
 ### Fixed
 - Preserved explicit normal map encodings when converting legacy materials

@@ -210,9 +210,33 @@ class AssetReplacementsValidators:
 
     @classmethod
     def get_prim_references(
-        cls, prim_path: str, context_name: str
+        cls,
+        prim_path: str,
+        context_name: str,
+        *,
+        stage: Usd.Stage | None = None,
+        ancestor_cache: dict[Sdf.Path, tuple[Usd.Prim | None, list[tuple[Sdf.Reference, Sdf.Layer]]]] | None = None,
     ) -> tuple[Usd.Prim, list[tuple[Sdf.Reference, Sdf.Layer]]]:
-        stage = omni.usd.get_context(context_name).get_stage()
+        """Get the prim and references that introduce the specified asset.
+
+        Args:
+            prim_path: Path of the asset prim.
+            context_name: USD context to use when no stage is supplied.
+            stage: Stage to use instead of the context stage.
+            ancestor_cache: Optional caller-owned cache of ancestor paths and reference results.
+                This method updates the supplied dictionary. Use it for one stage only.
+                Discard it when the stage or its reference composition changes.
+
+        Returns:
+            The prim that introduces the asset and its reference-layer pairs. If no reference
+            is found, returns the requested prim and an empty list. An invalid path returns
+            an invalid prim and an empty list. Cached reference lists are shared. Do not modify them.
+
+        Raises:
+            ValueError: If no stage is available.
+        """
+        if stage is None:
+            stage = omni.usd.get_context(context_name).get_stage()
         if stage is None:
             raise ValueError("No stage is currently loaded")
         prim = stage.GetPrimAtPath(str(prim_path))
@@ -222,20 +246,31 @@ class AssetReplacementsValidators:
 
         introducing_prim = prim
 
-        # If the asset has a reference, it should have more than 1 prim in the stack
-        prim_stack = introducing_prim.GetPrimStack()
-        while len(prim_stack) <= 1:
-            introducing_prim = introducing_prim.GetParent()
-            if not introducing_prim:
-                # No reference found
-                return prim, []
+        visited = []
+        while introducing_prim:
+            path = introducing_prim.GetPath()
+            if ancestor_cache is not None and path in ancestor_cache:
+                owner, references = ancestor_cache[path]
+                for visited_path in visited:
+                    ancestor_cache[visited_path] = (owner, references)
+                return owner if owner is not None else prim, references
+            visited.append(path)
+            # An asset reference requires more than one prim in the stack.
             prim_stack = introducing_prim.GetPrimStack()
+            if len(prim_stack) > 1:
+                break
+            introducing_prim = introducing_prim.GetParent()
+        else:
+            if ancestor_cache is not None:
+                for path in visited:
+                    ancestor_cache[path] = (None, [])
+            return prim, []
 
         references = omni.usd.get_composed_references_from_prim(introducing_prim)
 
         # If no references are found, try to build a reference using the prim stack
         if not references:
-            external_layers = [i.layer for i in introducing_prim.GetPrimStack() if i.layer not in stage.GetLayerStack()]
+            external_layers = [i.layer for i in prim_stack if i.layer not in stage.GetLayerStack()]
             if external_layers:
                 reference_layer = external_layers[-1]
                 introducing_layer = prim_stack[0].layer
@@ -243,4 +278,7 @@ class AssetReplacementsValidators:
 
                 references = [(Sdf.Reference(relative_path), introducing_layer)]
 
+        if ancestor_cache is not None:
+            for path in visited:
+                ancestor_cache[path] = (introducing_prim, references)
         return introducing_prim, references

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.4.1]
+### Added
+- Added selective reference removal and replacement to `Setup`, and optional stage and ancestor-cache keywords on the reference validators for single-pass traversals.
+
 ## [3.4.0]
 ### Changed
 - Optimized capture-layer checks with caller-scoped layer caching.

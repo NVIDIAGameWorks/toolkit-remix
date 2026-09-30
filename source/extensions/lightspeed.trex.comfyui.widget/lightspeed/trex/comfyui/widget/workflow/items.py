@@ -17,53 +17,55 @@
 
 __all__ = [
     "InputItemGroup",
+    "OutputItemGroup",
     "ResolverParamItem",
     "WorkflowGroupItem",
 ]
 
-from typing import Any
+from typing import Any, Literal
 
-from lightspeed.trex.comfyui.core.models import WorkflowInput
+from lightspeed.trex.comfyui.core.enums import OutputApplyBehavior, RemixType
+from lightspeed.trex.comfyui.core.maps import OUTPUT_TEXTURE_TYPE_MAP
+from lightspeed.trex.comfyui.core.models import WorkflowInput, WorkflowOutput
 from lightspeed.trex.comfyui.core.resolvers import ValueResolver
 from omni.flux.property_widget_builder.model.native import NativeChoiceModel, NativeItem
 from omni.flux.property_widget_builder.widget import ItemGroup
 from omni.flux.property_widget_builder.widget.tree.item_model import ItemGroupNameModel
 
-from .model import GetterValueModel, _ResolverFieldValueModel
+from .model import GetterValueModel, _ResolverFieldValueModel, _WorkflowOutputFieldValueModel
 
 
 class _ParameterNameModel(ItemGroupNameModel):
-    """Name model that carries a resolver parameter's explanatory tooltip.
+    """Name model that carries a workflow field's explanatory tooltip.
 
-    The property-widget name field renders ``get_tool_tip()`` next to the parameter
-    name, so exposing the tooltip here shows it without any delegate customization.
+    The property-widget name field renders ``get_tool_tip()`` next to the field
+    name, so this model exposes the tooltip without delegate customization.
     """
 
     def __init__(self, name: str, tooltip: str = ""):
         """Initialize the name model with its display text and tooltip.
 
         Args:
-            name: Text shown in the parameter name column.
-            tooltip: Hover text explaining what the parameter changes.
+            name: Text shown in the property name column.
+            tooltip: Hover text that explains the workflow field.
         """
         super().__init__(name)
         self._tooltip = tooltip
 
     def get_tool_tip(self) -> str | None:
-        """Return the parameter's explanatory tooltip.
+        """Return the workflow field's explanatory tooltip.
 
         Returns:
-            The tooltip text, or None when the parameter has no tooltip.
+            The tooltip text, or None when the field has no tooltip.
         """
         return self._tooltip or None
 
 
 class ResolverParamItem(NativeItem):
-    """PropertyWidget item representing a single dataclass field on a resolver.
+    """PropertyWidget item representing one editable workflow field.
 
-    Each instance binds its name column to the field name and its value column
-    to a live getter/setter on the resolver instance. Carries the runtime
-    ``value_type`` so the delegate can render the appropriate widget.
+    Each instance binds a display name to a live field model. It carries the
+    runtime ``value_type`` so the delegate can select the correct editor.
     """
 
     def __init__(
@@ -71,18 +73,28 @@ class ResolverParamItem(NativeItem):
         name_model: ItemGroupNameModel,
         value_model: _ResolverFieldValueModel[Any] | NativeChoiceModel,
         value_type: type = str,
+        field_model: _WorkflowOutputFieldValueModel | None = None,
     ):
-        """Initialize a resolver parameter row and its editor metadata.
+        """Initialize a workflow property row and its editor metadata.
 
         Args:
-            name_model: Read-only model displayed in the parameter name column.
-            value_model: Mutable model bound to the resolver parameter.
-            value_type: Python type used to select the parameter editor.
+            name_model: Read-only model displayed in the property name column.
+            value_model: Mutable model bound to the workflow field.
+            value_type: Python type used to select the field editor.
+            field_model: Output field model wrapped by a choice ``value_model``, released on destroy.
         """
         super().__init__()
         self._name_models = [name_model]
         self._value_models = [value_model]
         self._value_type = value_type
+        self._field_model = field_model
+
+    @property
+    def default_attr(self) -> dict[str, None]:
+        """Return the attributes released by the base item cleanup, including the owned field model."""
+        default_attr = super().default_attr
+        default_attr["_field_model"] = None
+        return default_attr
 
     @property
     def value_type(self) -> type:
@@ -126,6 +138,84 @@ class ResolverParamItem(NativeItem):
                 value_model = NativeChoiceModel(value_model, parameter.choices)
             items.append(cls(name_model, value_model, value_type=value_type))
         return items
+
+    @classmethod
+    def from_workflow_output(cls, workflow_output: WorkflowOutput) -> list["ResolverParamItem"]:
+        """Create editable property items for a persisted workflow output.
+
+        Args:
+            workflow_output: Output whose settings the property widget edits.
+
+        Returns:
+            Ordered property items supported by the output semantic.
+        """
+        if workflow_output.remix_type is RemixType.TEXTURE_FILE_PATH:
+            apply_choices = (OutputApplyBehavior.REPLACE, OutputApplyBehavior.NONE)
+        elif workflow_output.remix_type is RemixType.MESH_FILE_PATH:
+            apply_choices = (
+                OutputApplyBehavior.REPLACE,
+                OutputApplyBehavior.APPEND,
+                OutputApplyBehavior.NONE,
+            )
+        else:
+            apply_choices = (OutputApplyBehavior.NONE,)
+
+        items = [
+            cls._create_output_item(
+                _ParameterNameModel(
+                    "Apply Behavior",
+                    tooltip="Choose how this output changes the current project.",
+                ),
+                workflow_output,
+                "apply_behavior",
+                apply_choices,
+                OutputApplyBehavior,
+            )
+        ]
+        if workflow_output.remix_type is RemixType.TEXTURE_FILE_PATH:
+            items.append(
+                cls._create_output_item(
+                    _ParameterNameModel(
+                        "Texture Type",
+                        tooltip="Choose the type used to process this texture output.",
+                    ),
+                    workflow_output,
+                    "texture_type",
+                    tuple(OUTPUT_TEXTURE_TYPE_MAP),
+                    str,
+                )
+            )
+        return items
+
+    @classmethod
+    def _create_output_item(
+        cls,
+        name_model: ItemGroupNameModel,
+        workflow_output: WorkflowOutput,
+        field_name: Literal["apply_behavior", "texture_type"],
+        choices: tuple[Any, ...],
+        value_type: type,
+    ) -> "ResolverParamItem":
+        """Create a labeled choice item for one persisted output field.
+
+        Args:
+            name_model: Read-only model displayed in the property name column.
+            workflow_output: Output whose field the model edits.
+            field_name: Name of the persisted field.
+            choices: Allowed typed values in display order.
+            value_type: Python type used to select the field editor.
+
+        Returns:
+            Item whose choice model writes selections to the workflow output.
+        """
+        value_model = _WorkflowOutputFieldValueModel(workflow_output, field_name)
+        choice_model = NativeChoiceModel(value_model, choices)
+        for choice_item, choice in zip(choice_model.get_item_children(), choices):
+            if choice is OutputApplyBehavior.NONE:
+                choice_model.get_item_value_model(choice_item).set_value("Do Nothing")
+            elif choice in OUTPUT_TEXTURE_TYPE_MAP:
+                choice_model.get_item_value_model(choice_item).set_value(OUTPUT_TEXTURE_TYPE_MAP[choice].value)
+        return cls(name_model, choice_model, value_type=value_type, field_model=value_model)
 
 
 class InputItemGroup(ItemGroup):
@@ -173,12 +263,47 @@ class InputItemGroup(ItemGroup):
         return len(self.children) > 0
 
 
+class OutputItemGroup(ItemGroup):
+    """PropertyWidget group wrapping a persisted workflow output."""
+
+    def __init__(self, workflow_output: WorkflowOutput, expanded: bool = False):
+        """Initialize a workflow output row.
+
+        Args:
+            workflow_output: Workflow output represented by this property group.
+            expanded: Whether the group starts expanded.
+        """
+        super().__init__("", expanded=expanded)
+        self.workflow_output = workflow_output
+        self.refresh()
+
+    @property
+    def can_have_children(self) -> bool:
+        """Report that workflow output rows have no child rows."""
+        return False
+
+    def refresh(self) -> None:
+        """Refresh the output label and tooltip from its export name and current texture type."""
+        workflow_output = self.workflow_output
+        if (
+            workflow_output.remix_type == RemixType.TEXTURE_FILE_PATH
+            and workflow_output.texture_type in OUTPUT_TEXTURE_TYPE_MAP
+        ):
+            kind = OUTPUT_TEXTURE_TYPE_MAP[workflow_output.texture_type].value
+        elif workflow_output.remix_type == RemixType.MESH_FILE_PATH:
+            kind = "Mesh"
+        else:
+            kind = workflow_output.remix_type.value.replace("_", " ").title()
+        # The export name is what the user typed in ComfyUI, so a re-export is visible in the row.
+        label = workflow_output.name or kind
+        self._name_models = [ItemGroupNameModel(label)]
+        self.label = label
+        self.tooltip = f"Configure the {kind} output" if label == kind else f"Configure the {label} output ({kind})"
+
+
 class WorkflowGroupItem(ItemGroup):
-    """Tag a named workflow-input container for delegate-specific rendering.
+    """Tag a named workflow-item container for delegate-specific rendering.
 
-    Unlike InputItemGroup, this item has no getter model or value models --
-    it exists purely to group InputItemGroup children under a shared heading
-    (e.g. "Textures", "Materials").
-
-    The inherited ItemGroup constructor supplies the display name and expanded state.
+    This item has no field model. It groups workflow input or output rows under
+    one shared heading, such as "Textures", "Materials", or "Outputs".
     """

@@ -115,6 +115,15 @@ class _InstanceConcurrencyJob(_TypedJob):
 class TestTypedGraph(omni.kit.test.AsyncTestCase):
     """Validate the public typed graph construction contract."""
 
+    async def test_job_outputs_reject_invalid_skip_reason(self):
+        """Skip reasons require a nonblank string when supplied."""
+        for reason in ("", " \t\n"):
+            with self.subTest(reason=reason), self.assertRaises(ValueError):
+                JobOutputs(skip_reason=reason)
+        for reason in (False, 0, [], object()):
+            with self.subTest(reason=reason), self.assertRaises(TypeError):
+                JobOutputs(skip_reason=reason)
+
     async def test_bind_exact_type_retains_literal_input(self):
         """A literal with the exact input type is retained by the graph."""
         # Arrange

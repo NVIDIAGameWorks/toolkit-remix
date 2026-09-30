@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "4.1.0"
+version = "4.1.1"
 authors = ["Sam Bourne <sbourne@nvidia.com>"]
 description = "Job queue, executor, and scheduler library that uses SQLite for persistence"
 title = "Flux Job Queue"

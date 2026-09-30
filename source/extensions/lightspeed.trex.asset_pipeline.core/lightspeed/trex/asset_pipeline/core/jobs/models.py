@@ -18,15 +18,17 @@
 from __future__ import annotations
 
 __all__ = [
+    "ALREADY_OPTIMIZED_REASON",
+    "NO_TEXTURES_REASON",
     "LineageEntry",
     "MeshOptimizationRequest",
     "MeshOptimizationResult",
     "PrepareOptimizationResult",
     "ProcessedTexture",
     "TextureLedgerEntry",
-    "TextureProcessingItem",
-    "TextureProcessingRequest",
-    "TextureProcessingResult",
+    "TextureOptimizationItem",
+    "TextureOptimizationRequest",
+    "TextureOptimizationResult",
     "derive_texture_key",
     "resolve_processed_textures",
 ]
@@ -38,6 +40,10 @@ from dataclasses import dataclass
 from omni.flux.asset_importer.core.data_models import TextureTypes
 
 from ..pipeline.item import TextureAsset
+
+# Skip reasons the optimization jobs record when they settle with outputs but did no work.
+ALREADY_OPTIMIZED_REASON = "Asset already optimized"
+NO_TEXTURES_REASON = "No textures to optimize"
 
 
 def _validate_texture_fields(key: str, path: pathlib.Path, texture_type: TextureTypes) -> None:
@@ -63,18 +69,22 @@ def _validate_texture_fields(key: str, path: pathlib.Path, texture_type: Texture
 
 
 @dataclass(frozen=True, slots=True)
-class TextureProcessingItem:
+class TextureOptimizationItem:
     """Describe one local source texture and its required Remix semantic.
 
     Attributes:
         key: Stable caller-defined identifier preserved through processing.
         path: Local source path consumed by the Remix texture pipeline.
         texture_type: Required texture semantic.
+        channel: Source channel to extract, or ``None`` for the complete image.
+        factor: Per-channel multipliers to bake into the image, or ``None`` for no change.
     """
 
     key: str
     path: pathlib.Path
     texture_type: TextureTypes
+    channel: str | None = None
+    factor: tuple[float, ...] | None = None
 
     def __post_init__(self) -> None:
         """Validate the persisted texture boundary.
@@ -87,7 +97,7 @@ class TextureProcessingItem:
 
 
 @dataclass(frozen=True, slots=True)
-class TextureProcessingRequest:
+class TextureOptimizationRequest:
     """Provide one ordered texture batch and its publication destination.
 
     Attributes:
@@ -96,7 +106,7 @@ class TextureProcessingRequest:
         output_url: Explicit local or remote destination, or ``None`` to keep outputs in the job directory.
     """
 
-    items: tuple[TextureProcessingItem, ...]
+    items: tuple[TextureOptimizationItem, ...]
     source_root: pathlib.Path
     output_url: str | None
 
@@ -107,8 +117,8 @@ class TextureProcessingRequest:
             TypeError: If request fields do not have their exact persisted types.
             ValueError: If the explicit publication URL is blank.
         """
-        if type(self.items) is not tuple or not all(type(item) is TextureProcessingItem for item in self.items):
-            raise TypeError("items must be a tuple of TextureProcessingItem values")
+        if type(self.items) is not tuple or not all(type(item) is TextureOptimizationItem for item in self.items):
+            raise TypeError("items must be a tuple of TextureOptimizationItem values")
         if len({item.key for item in self.items}) != len(self.items):
             raise ValueError("item keys must be unique within one request")
         if not isinstance(self.source_root, pathlib.Path):
@@ -171,7 +181,7 @@ def _validate_lineage(lineage: tuple) -> None:
 
 
 @dataclass(frozen=True, slots=True)
-class TextureProcessingResult:
+class TextureOptimizationResult:
     """Contain immutable processed textures in their original request order.
 
     Attributes:
@@ -200,7 +210,7 @@ class TextureProcessingResult:
         if len({item.key for item in self.items}) != len(self.items):
             raise ValueError("item keys must be unique within one result")
 
-    def rebased_onto(self, textures: Iterable[TextureAsset]) -> TextureProcessingResult:
+    def rebased_onto(self, textures: Iterable[TextureAsset]) -> TextureOptimizationResult:
         """Return this result with every URL pointing at the copy published for the same key.
 
         A model job publishes the textures it binds beside the model and refers to those copies, so the
@@ -222,6 +232,7 @@ class TextureProcessingResult:
                 items.append(item)
                 continue
             url_map[item.asset_url] = str(published.path)
+            url_map.update(zip(item.udim_tiles, (str(tile) for tile in published.udim_tiles), strict=True))
             items.append(
                 ProcessedTexture(
                     key=item.key,
@@ -235,7 +246,7 @@ class TextureProcessingResult:
             (source_path, url_map.get(output_url, output_url), source_hash)
             for source_path, output_url, source_hash in self.lineage
         )
-        return TextureProcessingResult(items=tuple(items), lineage=lineage, validation_passed=self.validation_passed)
+        return TextureOptimizationResult(items=tuple(items), lineage=lineage, validation_passed=self.validation_passed)
 
 
 @dataclass(frozen=True, slots=True)
@@ -248,12 +259,15 @@ class MeshOptimizationRequest:
         output_url: Explicit local or remote destination, or ``None`` to keep outputs in the job directory.
         replace_udim_textures_by_empty: Author an empty shader attribute for UDIM textures instead
             of a ``<UDIM>`` token. Model ingestion sets this to ``True``.
+        extra_textures: Additional textures to process and publish without model bindings.
     """
 
     source_path: pathlib.Path
     source_root: pathlib.Path
     output_url: str | None = None
     replace_udim_textures_by_empty: bool = True
+
+    extra_textures: tuple[TextureOptimizationItem, ...] = ()
 
     def __post_init__(self) -> None:
         """Validate the persisted request boundary.
@@ -270,6 +284,13 @@ class MeshOptimizationRequest:
             raise TypeError("output_url must be a str or None")
         if self.output_url is not None and not self.output_url.strip():
             raise ValueError("output_url must not be blank")
+
+        if type(self.extra_textures) is not tuple or not all(
+            type(item) is TextureOptimizationItem for item in self.extra_textures
+        ):
+            raise TypeError("extra_textures must be a tuple of TextureOptimizationItem values")
+        if len({item.key for item in self.extra_textures}) != len(self.extra_textures):
+            raise ValueError("extra texture keys must be unique")
 
 
 @dataclass(frozen=True, slots=True)
@@ -291,7 +312,7 @@ class MeshOptimizationResult:
     """
 
     asset_url: str
-    texture_result: TextureProcessingResult
+    texture_result: TextureOptimizationResult
     lineage: tuple[LineageEntry, ...] = ()
     source_path: pathlib.Path | None = None
     validation_passed: bool = True
@@ -307,8 +328,8 @@ class MeshOptimizationResult:
             raise TypeError("asset_url must be a str")
         if not self.asset_url.strip():
             raise ValueError("asset_url must not be blank")
-        if type(self.texture_result) is not TextureProcessingResult:
-            raise TypeError("texture_result must be a TextureProcessingResult")
+        if type(self.texture_result) is not TextureOptimizationResult:
+            raise TypeError("texture_result must be a TextureOptimizationResult")
         _validate_lineage(self.lineage)
 
 
@@ -324,7 +345,7 @@ class TextureLedgerEntry:
     Attributes:
         material_path: Stable material prim path that owns the texture binding.
         texture_type: Texture semantic bound under that material.
-        texture_key: Key matching the :class:`TextureProcessingItem` and :class:`ProcessedTexture`
+        texture_key: Key matching the :class:`TextureOptimizationItem` and :class:`ProcessedTexture`
             that owns this binding's converted output.
     """
 
@@ -369,7 +390,7 @@ def derive_texture_key(material_path: str, texture_type: TextureTypes) -> str:
 
 def resolve_processed_textures(
     texture_ledger: tuple[TextureLedgerEntry, ...],
-    texture_result: TextureProcessingResult,
+    texture_result: TextureOptimizationResult,
 ) -> dict[tuple[str, TextureTypes], ProcessedTexture]:
     """Build the identity-to-processed-texture map validated against the ledger.
 
@@ -426,16 +447,19 @@ class PrepareOptimizationResult:
         output_url: Explicit local or remote destination, or ``None`` to keep outputs in the job directory.
         replace_udim_textures_by_empty: Author an empty shader attribute for UDIM textures instead of
             a ``<UDIM>`` token. Carried from the source request through the prepare phase.
+        already_optimized: The source model has a valid ``.meta`` sidecar, so it was ingested before. The
+            prepare job ran no steps, and the mesh job publishes the source in place without any step.
     """
 
     model_work_path: pathlib.Path
-    texture_items: tuple[TextureProcessingItem, ...]
+    texture_items: tuple[TextureOptimizationItem, ...]
     source_path: pathlib.Path
     source_root: pathlib.Path
     referenced_layers: tuple[str, ...]
     texture_ledger: tuple[TextureLedgerEntry, ...]
     output_url: str | None = None
     replace_udim_textures_by_empty: bool = True
+    already_optimized: bool = False
 
     def __post_init__(self) -> None:
         """Validate the exact persisted result shape.
@@ -447,9 +471,9 @@ class PrepareOptimizationResult:
         if not isinstance(self.model_work_path, pathlib.Path):
             raise TypeError("model_work_path must be a pathlib.Path")
         if type(self.texture_items) is not tuple or not all(
-            type(item) is TextureProcessingItem for item in self.texture_items
+            type(item) is TextureOptimizationItem for item in self.texture_items
         ):
-            raise TypeError("texture_items must be a tuple of TextureProcessingItem values")
+            raise TypeError("texture_items must be a tuple of TextureOptimizationItem values")
         if len({item.key for item in self.texture_items}) != len(self.texture_items):
             raise ValueError("texture item keys must be unique within one result")
         if type(self.referenced_layers) is not tuple or not all(
@@ -468,3 +492,5 @@ class PrepareOptimizationResult:
             type(entry) is TextureLedgerEntry for entry in self.texture_ledger
         ):
             raise TypeError("texture_ledger must be a tuple of TextureLedgerEntry values")
+        if type(self.already_optimized) is not bool:
+            raise TypeError("already_optimized must be a bool")

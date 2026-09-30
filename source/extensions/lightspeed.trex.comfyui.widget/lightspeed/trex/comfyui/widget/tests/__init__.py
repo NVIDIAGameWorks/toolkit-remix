@@ -16,12 +16,14 @@
 """
 
 from .e2e.test_job_queue_visibility import TestJobQueueVisibilityE2E
+from .e2e.test_mesh_workflow_ui import TestMeshWorkflowSelectionPanelUIE2E, TestMeshWorkflowUIE2E
 from .e2e.test_setup import TestComfySetupAdvancedWidgetE2E
 from .e2e.test_workspace import TestComfySetupWorkspaceE2E
 from .e2e.test_typed_product_workflow import TestTypedComfyUIProductWorkflowE2E
 from .e2e.test_workflow_widget import TestWorkflowSetupWidgetE2E
 from .unit.test_display_adapter import TestComfyUIDisplayAdapter
 from .unit.test_extension import TestComfyUIWidgetExtension
+from .unit.test_workflow_items import TestOutputItemGroup
 from .unit.test_workflow_model import TestWorkflowModel
 from .unit.test_workflow_widget import TestWorkflowSetupWidgetUnit
 
@@ -31,6 +33,9 @@ __all__ = (
     "TestComfyUIDisplayAdapter",
     "TestComfyUIWidgetExtension",
     "TestJobQueueVisibilityE2E",
+    "TestMeshWorkflowSelectionPanelUIE2E",
+    "TestMeshWorkflowUIE2E",
+    "TestOutputItemGroup",
     "TestTypedComfyUIProductWorkflowE2E",
     "TestWorkflowModel",
     "TestWorkflowSetupWidgetE2E",

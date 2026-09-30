@@ -21,6 +21,7 @@ __all__ = [
     "ConvertMaterialsStep",
     "ConvertNormalStep",
     "DiscoverTexturesStep",
+    "ExtractTextureChannelStep",
     "MaterialCleanupStep",
     "MetaStep",
     "NormalizeEmissiveIntensityStep",
@@ -33,6 +34,7 @@ from .convert_dds import ConvertDDSStep
 from .convert_materials import ConvertMaterialsStep
 from .convert_normal import ConvertNormalStep
 from .discover_textures import DiscoverTexturesStep
+from .extract_texture_channel import ExtractTextureChannelStep
 from .material_cleanup import MaterialCleanupStep
 from .meta import MetaStep
 from .reference import ReferenceStep

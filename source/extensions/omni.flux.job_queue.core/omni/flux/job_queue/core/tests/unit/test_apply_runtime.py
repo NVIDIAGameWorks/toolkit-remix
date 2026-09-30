@@ -31,7 +31,7 @@ from omni.flux.job_queue.core import handlers
 from omni.flux.job_queue.core.apply_executor import ApplyExecutor
 from omni.flux.job_queue.core.apply_handler_base import ApplyHandler
 from omni.flux.job_queue.core.apply_handler_registry import ApplyHandlerRegistry
-from omni.flux.job_queue.core.enums import ApplyDisposition, ApplyOperation, ApplyPolicy
+from omni.flux.job_queue.core.enums import ApplyDisposition, ApplyOperation, ApplyPolicy, JobState
 from omni.flux.job_queue.core.errors import ApplyExecutionError, QueueSubmissionError
 from omni.flux.job_queue.core.interface import QueueInterface
 from omni.flux.job_queue.core.models import QueueJobSnapshot
@@ -170,6 +170,7 @@ class _ApplyJob(Job):
     """Produce one integer output bound to the typed handler."""
 
     value: int = 1
+
     output_ports = (VALUE,)
 
     async def execute(
@@ -197,7 +198,13 @@ _MISMATCHED_APPLY_HANDLER_CODEC = PersistenceCodec("test.MismatchedApplyHandler"
 _APPLY_JOB_CODEC = PersistenceCodec(
     "test.ApplyJob",
     _ApplyJob,
-    lambda value: (value.job_id, value.name, value.skip_reason, value.apply_binding, value.value),
+    lambda value: (
+        value.job_id,
+        value.name,
+        value.skip_reason,
+        value.apply_binding,
+        value.value,
+    ),
     lambda value: _ApplyJob(*value),
 )
 
@@ -259,6 +266,35 @@ _APPLY_CODECS = (_APPLY_HANDLER_CODEC, _APPLY_JOB_CODEC, _RECEIPT_CODEC, _TARGET
 
 class TestApplyRuntime(omni.kit.test.AsyncTestCase):
     """Validate typed durable Apply, Reapply, Decline, and Revert semantics."""
+
+    async def test_returned_skip_can_apply_persisted_output(self):
+        """Apply a retained output without running the job execution workflow."""
+        # Arrange
+        async with self._temp_db_path() as db_path:
+            interface = QueueInterface(db_path)
+            registry = ApplyHandlerRegistry()
+            self.registry = registry
+            registry.register_plugins([_ApplyHandler])
+            executor = ApplyExecutor(interface, registry)
+            self.executor = executor
+            job = _ApplyJob(
+                value=7,
+                apply_binding=ApplyBinding(output_port=VALUE, handler_type=_ApplyHandler, target=_Target("asset")),
+            )
+            interface.submit(job)
+            interface.claim_runnable_jobs()
+            interface.start_job(job.job_id)
+            interface.complete_job(job.job_id, JobOutputs({VALUE: 7}, skip_reason="The result already exists."))
+
+            # Act
+            await executor.apply(job.job_id)
+
+            # Assert
+            self.assertEqual(_ApplyHandler.target_values["asset"], 7)
+            snapshot = interface.get_job_snapshot(job.job_id)
+            self.assertIs(snapshot.state, JobState.SKIPPED)
+            self.assertTrue(snapshot.has_outputs)
+            self.assertIs(snapshot.apply_disposition, ApplyDisposition.APPLIED)
 
     async def setUp(self):
         """Reset handler probes before each test."""
@@ -357,7 +393,11 @@ class TestApplyRuntime(omni.kit.test.AsyncTestCase):
 
     @staticmethod
     async def _complete_from_worker_and_wait(
-        executor: ApplyExecutor, interface: QueueInterface, job_id: uuid.UUID, value: int
+        executor: ApplyExecutor,
+        interface: QueueInterface,
+        job_id: uuid.UUID,
+        value: int,
+        skip_reason: str | None = None,
     ) -> None:
         """Complete from a worker thread and await automatic main-loop Apply.
 
@@ -366,8 +406,9 @@ class TestApplyRuntime(omni.kit.test.AsyncTestCase):
             interface: Queue receiving worker-thread completion.
             job_id: In-progress job identifier.
             value: Exact output value.
+            skip_reason: Optional reason for retaining outputs without new work.
         """
-        await asyncio.to_thread(interface.complete_job, job_id, JobOutputs({VALUE: value}))
+        await asyncio.to_thread(interface.complete_job, job_id, JobOutputs({VALUE: value}, skip_reason=skip_reason))
         await asyncio.wait_for(_ApplyHandler.applied.wait(), 2)
         await executor.wait_idle()
 
@@ -1511,6 +1552,37 @@ class TestApplyRuntime(omni.kit.test.AsyncTestCase):
             snapshot = interface.get_job_snapshot(job.job_id)
             self.assertIs(snapshot.apply_disposition, ApplyDisposition.APPLIED)
             self.assertIs(snapshot.apply_operation, ApplyOperation.IDLE)
+            self.assertEqual(interface.get_apply_receipt(job.job_id), _Receipt(100, 9))
+
+    async def test_worker_thread_skipped_output_reconciles_automatic_policy(self):
+        """Automatically apply a retained output when a worker skips generation."""
+        # Arrange
+        async with self._temp_db_path() as db_path:
+            interface = QueueInterface(db_path)
+            registry = ApplyHandlerRegistry()
+            self.registry = registry
+            registry.register_plugins([_ApplyHandler])
+            _ApplyHandler.apply_policy = ApplyPolicy.ALWAYS_AUTOMATIC
+            executor = ApplyExecutor(interface, registry)
+            self.executor = executor
+            job = _ApplyJob(
+                value=9,
+                apply_binding=ApplyBinding(output_port=VALUE, handler_type=_ApplyHandler, target=_Target("asset")),
+            )
+            interface.submit(job)
+            interface.claim_runnable_jobs()
+            interface.start_job(job.job_id)
+
+            # Act
+            await self._complete_from_worker_and_wait(
+                executor, interface, job.job_id, 9, skip_reason="The result already exists."
+            )
+
+            # Assert
+            snapshot = interface.get_job_snapshot(job.job_id)
+            self.assertIs(snapshot.state, JobState.SKIPPED)
+            self.assertIs(snapshot.apply_disposition, ApplyDisposition.APPLIED)
+            self.assertEqual(_ApplyHandler.target_values["asset"], 9)
             self.assertEqual(interface.get_apply_receipt(job.job_id), _Receipt(100, 9))
 
     async def test_automatic_apply_waits_for_handler_prerequisite(self):

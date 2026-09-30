@@ -18,14 +18,17 @@
 import pathlib
 from unittest.mock import MagicMock, patch
 
-from lightspeed.trex.comfyui.core.enums import (
+from ...enums import (
     WORKFLOW_TYPES_BY_CATEGORY,
+    OutputApplyBehavior,
     RemixType,
     WorkflowCategory,
     WorkflowSourceType,
     WorkflowType,
 )
-from lightspeed.trex.comfyui.core.models import (
+from ...models import (
+    ComfyUIFileResult,
+    ComfyUIInputBinding,
     ComfyUIWorkflowRequest,
     Workflow,
     WorkflowInput,
@@ -33,13 +36,14 @@ from lightspeed.trex.comfyui.core.models import (
     WorkflowTypeCategory,
     WorkflowTypeOption,
 )
-from lightspeed.trex.comfyui.core.preset import Preset
-from lightspeed.trex.comfyui.core.resolvers import (
+from ...preset import Preset
+from ...resolvers import (
     ConstantResolver,
+    SelectedMeshResolver,
     SelectedTextureResolver,
     ValueResolver,
 )
-from lightspeed.trex.comfyui.core.tests.unit.fixtures import get_test_workflow_pair
+from ...tests.unit.fixtures import get_test_workflow_pair
 from omni.kit.test import AsyncTestCase
 
 
@@ -56,36 +60,93 @@ def _editable_value(value: ValueResolver):
 
 
 class TestComfyUIWorkflowRequest(AsyncTestCase):
-    """Test the persisted ComfyUI workflow invocation model."""
+    """Test typed semantic bindings and the persisted workflow request."""
+
+    async def test_construction_with_file_semantics_preserves_source(self) -> None:
+        """Texture and mesh bindings keep their exact semantic and source URL."""
+        cases = (
+            (RemixType.TEXTURE_FILE_PATH, "C:/textures/albedo.dds"),
+            (RemixType.MESH_FILE_PATH, "omniverse://server/project/model.glb"),
+        )
+
+        for remix_type, source in cases:
+            with self.subTest(title=remix_type.value):
+                # Arrange
+                port_id = f"1.inputs.{remix_type.value}"
+
+                # Act
+                binding = ComfyUIInputBinding(port_id=port_id, remix_type=remix_type, source=source)
+
+                # Assert
+                self.assertEqual((binding.port_id, binding.remix_type, binding.source), (port_id, remix_type, source))
+
+    async def test_construction_with_invalid_fields_raises(self) -> None:
+        """Bindings reject blank identities, unsupported semantics, and blank sources."""
+        valid = {
+            "port_id": "1.inputs.source",
+            "remix_type": RemixType.TEXTURE_FILE_PATH,
+            "source": "C:/textures/albedo.dds",
+        }
+        cases = (
+            ("non_string_port", {"port_id": None}, TypeError),
+            ("blank_port", {"port_id": " "}, ValueError),
+            ("unsupported_semantic", {"remix_type": None}, ValueError),
+            ("plain_string_semantic", {"remix_type": "texture_file_path"}, ValueError),
+            ("blank_source", {"source": " "}, ValueError),
+        )
+
+        for title, override, error_type in cases:
+            with self.subTest(title=title):
+                # Arrange
+                values = valid | override
+
+                # Act
+                with self.assertRaises(error_type) as error_context:
+                    ComfyUIInputBinding(**values)
+
+                # Assert
+                self.assertIs(type(error_context.exception), error_type)
 
     async def test_construction_with_malformed_persisted_values_raises(self):
-        """Workflow requests reject ambiguous bindings and invalid persisted field types."""
+        """Workflow requests reject repeated bindings and invalid persisted field types."""
         # Arrange
+        binding = ComfyUIInputBinding(
+            port_id="1.inputs.source",
+            remix_type=RemixType.TEXTURE_FILE_PATH,
+            source="C:/textures/albedo.dds",
+        )
+        duplicate = ComfyUIInputBinding(
+            port_id=binding.port_id,
+            remix_type=RemixType.MESH_FILE_PATH,
+            source="C:/models/source.glb",
+        )
         valid = {
             "prompt": {},
-            "input_bindings": (),
+            "input_bindings": (binding,),
             "client_id": "client",
             "timeout": 300.0,
             "output_url": "C:/project/assets/ingested/comfyui/test",
             "workflow": Workflow(),
         }
         cases = (
-            ({"prompt": []}, TypeError),
-            ({"input_bindings": []}, TypeError),
-            ({"input_bindings": (("port",),)}, TypeError),
-            ({"input_bindings": (("", "source.png"),)}, ValueError),
-            ({"input_bindings": (("port", "a.png"), ("port", "b.png"))}, ValueError),
-            ({"client_id": None}, TypeError),
-            ({"timeout": 0.0}, ValueError),
-            ({"output_url": ""}, ValueError),
-            ({"workflow": MagicMock()}, TypeError),
+            ("prompt_type", {"prompt": []}, TypeError),
+            ("binding_container_type", {"input_bindings": []}, TypeError),
+            ("binding_value_type", {"input_bindings": (MagicMock(),)}, TypeError),
+            ("duplicate_port", {"input_bindings": (binding, duplicate)}, ValueError),
+            ("client_id_type", {"client_id": None}, TypeError),
+            ("nonpositive_timeout", {"timeout": 0.0}, ValueError),
+            ("blank_output_url", {"output_url": ""}, ValueError),
+            ("workflow_type", {"workflow": MagicMock()}, TypeError),
         )
 
-        for override, error_type in cases:
-            with self.subTest(override=override):
+        for title, override, error_type in cases:
+            with self.subTest(title=title):
+                # Arrange
+                values = valid | override
+
                 # Act
                 with self.assertRaises(error_type) as error_context:
-                    ComfyUIWorkflowRequest(**(valid | override))
+                    ComfyUIWorkflowRequest(**values)
 
                 # Assert
                 self.assertIs(type(error_context.exception), error_type)
@@ -128,6 +189,25 @@ class TestWorkflowInput(AsyncTestCase):
         self.assertIsInstance(result.value, SelectedTextureResolver)
         self.assertIs(result.remix_type, RemixType.TEXTURE_FILE_PATH)
         self.assertEqual((result.order, result.group, result.tooltip), (4, "Input", "Choose a source texture"))
+
+    async def test_from_dict_parses_mesh_semantic_resolver(self) -> None:
+        """A mesh-file input uses the selected-mesh resolver and a native path type."""
+        # Arrange
+        raw = {
+            "name": "Input Mesh",
+            "type": "str",
+            "remix_type": "mesh_file_path",
+        }
+
+        # Act
+        result = WorkflowInput.from_dict("178", "mesh", raw, "example.glb", context_name="stagecraft")
+
+        # Assert
+        self.assertEqual(result.port_id, "178.inputs.mesh")
+        self.assertIs(result.native_type, pathlib.Path)
+        self.assertIsInstance(result.value, SelectedMeshResolver)
+        self.assertEqual(result.value.context_name, "stagecraft")
+        self.assertIs(result.remix_type, RemixType.MESH_FILE_PATH)
 
     async def test_from_dict_uses_typed_constant_for_plain_input(self) -> None:
         """A plain typed input starts from its USD type default in an exact typed Constant."""
@@ -210,79 +290,313 @@ class TestWorkflowInput(AsyncTestCase):
 
 
 class TestWorkflowOutput(AsyncTestCase):
-    """Test the exact supported texture-output metadata contract."""
+    """Test tagged output metadata and typed runtime output boundaries."""
 
-    async def test_from_dict_parses_canonical_nested_texture_type(self) -> None:
-        """A canonical texture-file output becomes a compact typed model."""
+    async def test_from_dict_parses_texture_defaults(self) -> None:
+        """A texture output keeps its export name, group, and metadata type, and defaults to Replace."""
         # Arrange
         raw = {
             "name": "albedo",
             "type": "str",
             "remix_type": "texture_file_path",
             "order": 3,
-            "additional_data": {"texture_type": "albedo", "tooltip": "Generated color"},
+            "additional_data": {"texture_type": "albedo", "tooltip": "Generated color", "group": "Textures"},
         }
 
         # Act
         result = WorkflowOutput.from_dict("181", raw)
 
         # Assert
-        self.assertEqual(result, WorkflowOutput(node_id="181", texture_type="albedo", order=3))
+        self.assertEqual(
+            result,
+            WorkflowOutput(
+                node_id="181",
+                remix_type=RemixType.TEXTURE_FILE_PATH,
+                order=3,
+                texture_type="albedo",
+                apply_behavior=OutputApplyBehavior.REPLACE,
+                name="albedo",
+                group="Textures",
+            ),
+        )
 
-    async def test_unsupported_output_semantics_are_rejected(self) -> None:
-        """Only canonical string texture-file outputs enter texture application."""
+    async def test_from_dict_parses_mesh_defaults(self) -> None:
+        """A mesh output defaults to Replace, so each selected reference is upscaled in place."""
         # Arrange
-        base = {
+        raw = {
+            "name": "model",
+            "type": "str",
+            "remix_type": "mesh_file_path",
+            "order": 4,
+        }
+
+        # Act
+        result = WorkflowOutput.from_dict("182", raw)
+
+        # Assert
+        self.assertEqual(
+            result,
+            WorkflowOutput(
+                node_id="182",
+                remix_type=RemixType.MESH_FILE_PATH,
+                order=4,
+                texture_type=None,
+                apply_behavior=OutputApplyBehavior.REPLACE,
+                name="model",
+            ),
+        )
+
+    async def test_from_dict_rejects_non_string_file_outputs(self) -> None:
+        """Both processable file semantics require the node pack's string output type."""
+        # Arrange
+        cases = (
+            (
+                "texture_wrong_type",
+                {
+                    "name": "albedo",
+                    "type": "IMAGE",
+                    "remix_type": "texture_file_path",
+                    "additional_data": {"texture_type": "albedo"},
+                },
+            ),
+            ("mesh_wrong_type", {"name": "model", "type": "MODEL", "remix_type": "mesh_file_path"}),
+            (
+                "texture_missing_type",
+                {
+                    "name": "albedo",
+                    "remix_type": "texture_file_path",
+                    "additional_data": {"texture_type": "albedo"},
+                },
+            ),
+            ("mesh_missing_type", {"name": "model", "remix_type": "mesh_file_path"}),
+        )
+
+        for title, raw in cases:
+            with self.subTest(title=title):
+                # Arrange
+                metadata = raw
+
+                # Act
+                with patch("lightspeed.trex.comfyui.core.models.carb.log_warn"):
+                    result = WorkflowOutput.from_dict("181", metadata)
+
+                # Assert
+                self.assertIsNone(result)
+
+    async def test_from_dict_rejects_malformed_semantic_metadata(self) -> None:
+        """Malformed texture and mesh metadata does not create a partial output."""
+        # Arrange
+        texture = {
             "name": "albedo",
             "type": "str",
             "remix_type": "texture_file_path",
             "additional_data": {"texture_type": "albedo"},
         }
-        cases = (
-            {**base, "type": "IMAGE"},
-            {**base, "remix_type": "mesh_file_path"},
-            {key: value for key, value in base.items() if key != "type"},
-            {key: value for key, value in base.items() if key != "remix_type"},
-        )
-
-        for raw in cases:
-            with self.subTest(raw=raw):
-                # Act
-                with patch("lightspeed.trex.comfyui.core.models.carb.log_warn"):
-                    result = WorkflowOutput.from_dict("181", raw)
-
-                # Assert
-                self.assertIsNone(result)
-
-    async def test_malformed_output_metadata_is_rejected(self) -> None:
-        """Missing and wrongly typed output fields do not create output specs."""
-        # Arrange
-        base = {
-            "name": "albedo",
+        mesh = {
+            "name": "model",
             "type": "str",
-            "remix_type": "texture_file_path",
-            "additional_data": {"texture_type": "albedo"},
+            "remix_type": "mesh_file_path",
         }
         cases = (
-            ("", base),
-            ("181", []),
-            ("181", {**base, "name": ""}),
-            ("181", {**base, "order": "first"}),
-            ("181", {**base, "additional_data": []}),
-            ("181", {**base, "additional_data": {}}),
-            ("181", {**base, "additional_data": {"texture_type": 7}}),
-            ("181", {**base, "additional_data": {"texture_type": "unsupported"}}),
-            ("group.181", base),
+            ("blank_node", "", texture),
+            ("whitespace_node", " ", texture),
+            ("metadata_type", "181", []),
+            ("blank_name", "181", {**texture, "name": ""}),
+            ("order_type", "181", {**texture, "order": "first"}),
+            ("additional_data_type", "181", {**texture, "additional_data": []}),
+            ("missing_texture_type", "181", {**texture, "additional_data": {}}),
+            ("texture_type_value_type", "181", {**texture, "additional_data": {"texture_type": 7}}),
+            ("unknown_texture_type", "181", {**texture, "additional_data": {"texture_type": "unsupported"}}),
+            ("mesh_texture_type", "182", {**mesh, "additional_data": {"texture_type": "albedo"}}),
+            ("missing_remix_type", "181", {key: value for key, value in texture.items() if key != "remix_type"}),
+            ("unknown_remix_type", "181", {**texture, "remix_type": "future_file_path"}),
+            ("dotted_node", "group.181", texture),
         )
 
-        for node_id, raw in cases:
-            with self.subTest(node_id=node_id, raw=raw):
+        for title, node_id, raw in cases:
+            with self.subTest(title=title):
+                # Arrange
+                metadata = raw
+
                 # Act
-                with patch("lightspeed.trex.comfyui.core.models.carb.log_warn"):
-                    result = WorkflowOutput.from_dict(node_id, raw)
+                with patch("lightspeed.trex.comfyui.core.models.carb.log_warn") as log_warn:
+                    result = WorkflowOutput.from_dict(node_id, metadata)
 
                 # Assert
                 self.assertIsNone(result)
+                log_warn.assert_called_once()
+
+    async def test_construction_rejects_invalid_output_settings(self) -> None:
+        """Output models reject actions and metadata that their semantic does not support."""
+        # Arrange
+        cases = (
+            (
+                "texture_append",
+                {
+                    "node_id": "181",
+                    "remix_type": RemixType.TEXTURE_FILE_PATH,
+                    "texture_type": "albedo",
+                    "apply_behavior": OutputApplyBehavior.APPEND,
+                },
+                ValueError,
+            ),
+            (
+                "mesh_texture_type",
+                {
+                    "node_id": "182",
+                    "remix_type": RemixType.MESH_FILE_PATH,
+                    "texture_type": "albedo",
+                },
+                ValueError,
+            ),
+            (
+                "apply_behavior_type",
+                {
+                    "node_id": "182",
+                    "remix_type": RemixType.MESH_FILE_PATH,
+                    "apply_behavior": "replace",
+                },
+                TypeError,
+            ),
+        )
+
+        for title, values, error_type in cases:
+            with self.subTest(title=title):
+                # Arrange
+                settings = values
+
+                # Act
+                with self.assertRaises(error_type) as error_context:
+                    WorkflowOutput(**settings)
+
+                # Assert
+                self.assertIs(type(error_context.exception), error_type)
+
+    async def test_construction_preserves_semantic_fields_and_key(self) -> None:
+        """Each file result keeps all server fields and exposes its stable processing key."""
+        # Arrange
+        cases = (
+            (
+                "texture",
+                {
+                    "filename": "albedo.png",
+                    "key": "10",
+                    "remix_type": RemixType.TEXTURE_FILE_PATH,
+                    "order": 2,
+                    "subfolder": "nested",
+                    "texture_type": "albedo",
+                    "path": pathlib.Path("C:/outputs/albedo.png"),
+                },
+                "10",
+            ),
+            (
+                "mesh",
+                {
+                    "filename": "model.glb",
+                    "key": "20",
+                    "remix_type": RemixType.MESH_FILE_PATH,
+                    "order": 3,
+                    "subfolder": "models",
+                    "texture_type": None,
+                    "path": pathlib.Path("C:/outputs/model.glb"),
+                },
+                "20",
+            ),
+        )
+
+        for title, values, expected_key in cases:
+            with self.subTest(title=title):
+                # Arrange
+                fields = values
+
+                # Act
+                result = ComfyUIFileResult(**fields)
+
+                # Assert
+                self.assertEqual(result.key, expected_key)
+                self.assertEqual(
+                    (
+                        result.filename,
+                        result.key,
+                        result.remix_type,
+                        result.order,
+                        result.subfolder,
+                        result.texture_type,
+                        result.path,
+                    ),
+                    tuple(values.values()),
+                )
+
+    async def test_construction_rejects_invalid_semantic_fields(self) -> None:
+        """File descriptors reject blank names, semantic mismatches, and invalid field types."""
+        # Arrange
+        cases = (
+            (
+                "blank_filename",
+                {"filename": " ", "remix_type": RemixType.MESH_FILE_PATH},
+                ValueError,
+            ),
+            (
+                "blank_key",
+                {"filename": "model.glb", "key": " ", "remix_type": RemixType.MESH_FILE_PATH},
+                ValueError,
+            ),
+            (
+                "missing_texture_type",
+                {"filename": "albedo.png", "remix_type": RemixType.TEXTURE_FILE_PATH},
+                ValueError,
+            ),
+            (
+                "unsupported_texture_type",
+                {
+                    "filename": "albedo.png",
+                    "remix_type": RemixType.TEXTURE_FILE_PATH,
+                    "texture_type": "unsupported",
+                },
+                ValueError,
+            ),
+            (
+                "mesh_texture_type",
+                {
+                    "filename": "model.glb",
+                    "remix_type": RemixType.MESH_FILE_PATH,
+                    "texture_type": "albedo",
+                },
+                ValueError,
+            ),
+            (
+                "unsupported_semantic",
+                {"filename": "model.glb", "remix_type": None},
+                ValueError,
+            ),
+            (
+                "plain_string_semantic",
+                {"filename": "model.glb", "remix_type": "mesh_file_path"},
+                ValueError,
+            ),
+            (
+                "order_type",
+                {"filename": "model.glb", "remix_type": RemixType.MESH_FILE_PATH, "order": True},
+                TypeError,
+            ),
+            (
+                "path_type",
+                {"filename": "model.glb", "remix_type": RemixType.MESH_FILE_PATH, "path": "model.glb"},
+                TypeError,
+            ),
+        )
+
+        for title, values, error_type in cases:
+            with self.subTest(title=title):
+                # Arrange
+                fields = {"key": "output", **values}
+
+                # Act
+                with self.assertRaises(error_type) as error_context:
+                    ComfyUIFileResult(**fields)
+
+                # Assert
+                self.assertIs(type(error_context.exception), error_type)
 
 
 class TestWorkflow(AsyncTestCase):
@@ -307,9 +621,22 @@ class TestWorkflow(AsyncTestCase):
                 "177.inputs.image",
             ],
         )
-        self.assertEqual(workflow.output_specs, [WorkflowOutput("181", "albedo", 3)])
+        self.assertEqual(
+            workflow.output_specs,
+            [
+                WorkflowOutput(
+                    node_id="181",
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                    order=3,
+                    texture_type="albedo",
+                    apply_behavior=OutputApplyBehavior.REPLACE,
+                    name="albedo",
+                )
+            ],
+        )
         self.assertEqual(set(workflow.presets), {"Strong", "Soft"})
         self.assertEqual(workflow.group_order, ["Input", "Material"])
+        self.assertEqual(workflow.output_group_order, ["Textures"])
         self.assertEqual(workflow.active_preset, "Strong")
         strength = next(item for item in workflow.inputs if item.port_id == "10.inputs.strength")
         self.assertEqual(_editable_value(strength.value), 1.0)
@@ -525,6 +852,38 @@ class TestWorkflow(AsyncTestCase):
         self.assertEqual([item.port_id for item in workflow.inputs], ["1.inputs.present"])
         log_warn.assert_called_once()
 
+    async def test_mesh_output_defaults_to_replace_with_a_mesh_input_and_append_without(self) -> None:
+        """Replace needs a reference to replace, so a text- or image-to-mesh workflow defaults to Append.
+
+        The declaration decides. A declared mesh input whose port is missing from the node keeps Replace, so
+        submission rejects the workflow instead of appending beside the selected prim.
+        """
+        mesh_output = {"name": "model", "type": "str", "remix_type": "mesh_file_path", "order": 1}
+        mesh_input = {"mesh_file_path": {"type": "str", "remix_type": "mesh_file_path"}}
+        cases = (
+            ("mesh input", mesh_input, ["mesh_file_path"], OutputApplyBehavior.REPLACE, 1),
+            ("declared mesh input with a missing port", mesh_input, [], OutputApplyBehavior.REPLACE, 0),
+            ("text input", {"prompt": {"type": "str"}}, ["prompt"], OutputApplyBehavior.APPEND, 1),
+            ("no input", {}, [], OutputApplyBehavior.APPEND, 0),
+        )
+        for title, remix_inputs, node_ports, expected, parsed_inputs in cases:
+            with self.subTest(title=title):
+                # Arrange
+                api_workflow = {
+                    "1": {
+                        "inputs": dict.fromkeys(node_ports, ""),
+                        "_meta": {"rtx-remix": {"output": mesh_output, "inputs": remix_inputs}},
+                    }
+                }
+
+                # Act
+                with patch("lightspeed.trex.comfyui.core.models.carb.log_warn"):
+                    workflow = Workflow.from_litegraph_dict(api_workflow, {})
+
+                # Assert
+                self.assertEqual([output.apply_behavior for output in workflow.output_specs], [expected])
+                self.assertEqual(len(workflow.inputs), parsed_inputs)
+
     async def test_workflow_identity_is_set_explicitly_by_core(self) -> None:
         """Source and category remain explicit typed fields for server-loaded workflows."""
         # Arrange
@@ -660,19 +1019,43 @@ class TestWorkflow(AsyncTestCase):
                 # Assert
                 self.assertIn(message, str(error_context.exception))
 
-    async def test_get_output_spec_returns_exact_node(self) -> None:
-        """History parsing resolves outputs only by their declared node identifier."""
+    async def test_get_output_spec_with_declared_node_returns_exact_output(self) -> None:
+        """Output lookup returns the exact model declared for a node."""
         # Arrange
-        expected = WorkflowOutput("181", "albedo", 3)
+        expected = WorkflowOutput(
+            node_id="181",
+            remix_type=RemixType.TEXTURE_FILE_PATH,
+            order=3,
+            texture_type="albedo",
+            apply_behavior=OutputApplyBehavior.REPLACE,
+        )
         workflow = Workflow(output_specs=[expected])
 
         # Act
         result = workflow.get_output_spec("181")
-        missing = workflow.get_output_spec("missing")
 
         # Assert
         self.assertIs(result, expected)
-        self.assertIsNone(missing)
+
+    async def test_get_output_spec_with_missing_node_returns_none(self) -> None:
+        """Output lookup returns no model for an undeclared node."""
+        # Arrange
+        workflow = Workflow(
+            output_specs=[
+                WorkflowOutput(
+                    node_id="181",
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                    texture_type="albedo",
+                    apply_behavior=OutputApplyBehavior.REPLACE,
+                )
+            ]
+        )
+
+        # Act
+        result = workflow.get_output_spec("missing")
+
+        # Assert
+        self.assertIsNone(result)
 
 
 class TestWorkflowTypesByCategory(AsyncTestCase):

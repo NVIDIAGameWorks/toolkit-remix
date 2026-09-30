@@ -44,6 +44,7 @@ from .constants import (
     JOB_STATE_TO_DISPLAY,
     OPERATION_ERRORS,
     READY_TO_APPLY_FILTER_STATES,
+    SKIPPED_FILTER_STATES,
     SNAPSHOT_READ_ERRORS,
     TASK_SCHEDULING_ERRORS,
     TERMINAL_JOB_STATES,
@@ -503,8 +504,9 @@ class QueueModel(TreeModelBase):
             return DisplayState.CORRUPTED
         if row.state is JobState.QUEUED and self.get_waiting_reason(row):
             return DisplayState.WAITING
+        completed = self._has_completed(row)
         if (
-            row.state is JobState.DONE
+            completed
             and row.apply_operation
             in (
                 ApplyOperation.IDLE,
@@ -518,9 +520,22 @@ class QueueModel(TreeModelBase):
             return DisplayState.HANDLER_UNAVAILABLE
         if row.apply_operation in APPLY_OPERATION_TO_DISPLAY:
             return APPLY_OPERATION_TO_DISPLAY[row.apply_operation]
-        if row.state is JobState.DONE:
-            return APPLY_DISPOSITION_TO_DISPLAY.get(row.apply_disposition, DisplayState.DONE)
+        if completed:
+            fallback = DisplayState.DONE if row.state is JobState.DONE else DisplayState.SKIPPED_WITH_OUTPUTS
+            return APPLY_DISPOSITION_TO_DISPLAY.get(row.apply_disposition, fallback)
         return JOB_STATE_TO_DISPLAY.get(row.state, DisplayState.QUEUED)
+
+    @staticmethod
+    def _has_completed(row: Row) -> bool:
+        """Return whether a row finished with results, including a skipped job that produced outputs.
+
+        Args:
+            row: Child presentation data.
+
+        Returns:
+            Whether Apply lifecycle states apply to the row.
+        """
+        return row.state is JobState.DONE or (row.state is JobState.SKIPPED and row.has_outputs)
 
     def get_waiting_reason(self, row: Row) -> str | None:
         """Return adapter-owned safe waiting text for a queued job.
@@ -565,7 +580,7 @@ class QueueModel(TreeModelBase):
         ]
         if applicable and all(value in (ApplyDisposition.APPLIED, ApplyDisposition.DECLINED) for value in applicable):
             return DisplayState.PARTIALLY_APPLIED
-        if any(child.row.state is JobState.SKIPPED for child in children):
+        if any(child.row.state is JobState.SKIPPED and not child.row.has_outputs for child in children):
             return DisplayState.SKIPPED
         return DisplayState.DONE
 
@@ -727,7 +742,13 @@ class QueueModel(TreeModelBase):
         ):
             return self._safe_reason(row.apply_reason)
         if (
-            state in (DisplayState.FAILED, DisplayState.SKIPPED, DisplayState.WAITING_FOR_DEPENDENCIES)
+            state
+            in (
+                DisplayState.FAILED,
+                DisplayState.SKIPPED,
+                DisplayState.SKIPPED_WITH_OUTPUTS,
+                DisplayState.WAITING_FOR_DEPENDENCIES,
+            )
             and row.state_reason
         ):
             return self._safe_reason(row.state_reason)
@@ -875,6 +896,8 @@ class QueueModel(TreeModelBase):
         """
         if filter_state is DisplayState.READY_TO_APPLY:
             return state in READY_TO_APPLY_FILTER_STATES
+        if filter_state is DisplayState.SKIPPED:
+            return state in SKIPPED_FILTER_STATES
         if filter_state is DisplayState.FAILED:
             return state in FAILED_FILTER_STATES
         return state is filter_state

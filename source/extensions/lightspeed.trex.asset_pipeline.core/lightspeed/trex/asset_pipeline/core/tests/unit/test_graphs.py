@@ -34,7 +34,7 @@ from omni.flux.job_queue.core.job import (
 from lightspeed.trex.asset_pipeline.core.jobs import (
     MeshOptimizationJob,
     PrepareOptimizationJob,
-    TextureProcessingJob,
+    TextureOptimizationJob,
     add_asset_optimization_jobs,
     build_asset_optimization_graph,
     build_texture_optimization_graph,
@@ -43,9 +43,9 @@ from lightspeed.trex.asset_pipeline.core.jobs.apply_handler import SaveMeshMetad
 from lightspeed.trex.asset_pipeline.core.jobs.models import (
     MeshOptimizationRequest,
     MeshOptimizationResult,
-    TextureProcessingItem,
-    TextureProcessingRequest,
-    TextureProcessingResult,
+    TextureOptimizationItem,
+    TextureOptimizationRequest,
+    TextureOptimizationResult,
 )
 
 
@@ -68,11 +68,11 @@ class _CustomAssetHandler(ApplyHandler[MeshOptimizationResult, None, None]):
         pass
 
 
-class _CustomTextureHandler(ApplyHandler[TextureProcessingResult, None, None]):
+class _CustomTextureHandler(ApplyHandler[TextureOptimizationResult, None, None]):
     """Minimal custom handler for texture graph injection tests."""
 
     name = "CustomTextureHandler"
-    input_type = TextureProcessingResult
+    input_type = TextureOptimizationResult
     target_type = type(None)
     receipt_type = type(None)
     apply_policy = "always_automatic"
@@ -128,7 +128,7 @@ class TestGraphFactories(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertIsInstance(mesh_job, MeshOptimizationJob)
         job_types = {type(job) for job in graph.jobs}
-        self.assertEqual(job_types, {PrepareOptimizationJob, TextureProcessingJob, MeshOptimizationJob})
+        self.assertEqual(job_types, {PrepareOptimizationJob, TextureOptimizationJob, MeshOptimizationJob})
 
     async def test_asset_graph_binds_metadata_only_on_the_terminal_job(self):
         """Only the terminal mesh job writes metadata, so sidecars are written once."""
@@ -167,9 +167,9 @@ class TestGraphFactories(omni.kit.test.AsyncTestCase):
     async def test_texture_graph_has_one_job_that_writes_metadata(self):
         """A standalone texture graph holds only the texture job, and it writes metadata."""
         # Arrange
-        request = TextureProcessingRequest(
+        request = TextureOptimizationRequest(
             items=(
-                TextureProcessingItem(
+                TextureOptimizationItem(
                     key="texture_0",
                     path=pathlib.Path("/textures/albedo.png"),
                     texture_type=TextureTypes.DIFFUSE,
@@ -183,7 +183,7 @@ class TestGraphFactories(omni.kit.test.AsyncTestCase):
         graph, texture_job = build_texture_optimization_graph(request)
 
         # Assert
-        self.assertIsInstance(texture_job, TextureProcessingJob)
+        self.assertIsInstance(texture_job, TextureOptimizationJob)
         self.assertEqual(len(graph.jobs), 1)
         self.assertIsNotNone(texture_job.apply_binding)
         self.assertIs(texture_job.apply_binding.handler_type, SaveTextureMetadataHandler)
@@ -191,9 +191,9 @@ class TestGraphFactories(omni.kit.test.AsyncTestCase):
     async def test_texture_graph_binds_source_textures_to_request(self):
         """The texture graph binds the SOURCE_TEXTURES port to the passed request."""
         # Arrange
-        request = TextureProcessingRequest(
+        request = TextureOptimizationRequest(
             items=(
-                TextureProcessingItem(
+                TextureOptimizationItem(
                     key="texture_0",
                     path=pathlib.Path("/textures/albedo.png"),
                     texture_type=TextureTypes.DIFFUSE,
@@ -208,20 +208,20 @@ class TestGraphFactories(omni.kit.test.AsyncTestCase):
 
         # Assert
         bound_inputs = {(inp.job_id, inp.port) for inp in graph.literal_inputs}
-        self.assertIn((texture_job.job_id, TextureProcessingJob.SOURCE_TEXTURES), bound_inputs)
+        self.assertIn((texture_job.job_id, TextureOptimizationJob.SOURCE_TEXTURES), bound_inputs)
         literal_input = next(
             inp
             for inp in graph.literal_inputs
-            if inp.job_id == texture_job.job_id and inp.port == TextureProcessingJob.SOURCE_TEXTURES
+            if inp.job_id == texture_job.job_id and inp.port == TextureOptimizationJob.SOURCE_TEXTURES
         )
         self.assertEqual(literal_input.value, request)
 
     async def test_texture_graph_returned_job_is_the_terminal_job(self):
         """The returned job is the texture job itself."""
         # Arrange
-        request = TextureProcessingRequest(
+        request = TextureOptimizationRequest(
             items=(
-                TextureProcessingItem(
+                TextureOptimizationItem(
                     key="texture_0",
                     path=pathlib.Path("/textures/albedo.png"),
                     texture_type=TextureTypes.DIFFUSE,
@@ -240,9 +240,9 @@ class TestGraphFactories(omni.kit.test.AsyncTestCase):
     async def test_texture_graph_caller_supplied_handler_and_target_are_honoured(self):
         """A caller-supplied handler_type and target propagate to the terminal texture job."""
         # Arrange
-        request = TextureProcessingRequest(
+        request = TextureOptimizationRequest(
             items=(
-                TextureProcessingItem(
+                TextureOptimizationItem(
                     key="texture_0",
                     path=pathlib.Path("/textures/albedo.png"),
                     texture_type=TextureTypes.DIFFUSE,

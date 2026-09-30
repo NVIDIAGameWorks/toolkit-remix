@@ -15,11 +15,12 @@
 * limitations under the License.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from omni.kit.test import AsyncTestCase
-from lightspeed.trex.comfyui.widget.display_adapter import ComfyUIDisplayAdapter
 from lightspeed.trex.comfyui.widget.extension import ComfyUIWidgetExtension
+
+from ...display_adapter import ComfyUIAssetDisplayAdapter, ComfyUIDisplayAdapter
 
 
 class TestComfyUIWidgetExtension(AsyncTestCase):
@@ -40,11 +41,12 @@ class TestComfyUIWidgetExtension(AsyncTestCase):
             patch.object(ComfyUIDisplayAdapter, "set_workspaces", create=True) as set_workspaces,
         ):
             extension.on_startup("lightspeed.trex.comfyui.widget")
-
         # Assert
+        self.assertEqual(
+            registry.register.call_args_list, [call(ComfyUIDisplayAdapter), call(ComfyUIAssetDisplayAdapter)]
+        )
         setup_workspace.assert_called_once_with("")
         workflow_workspace.assert_called_once_with("")
-        registry.register.assert_called_once_with(ComfyUIDisplayAdapter)
         set_workspaces.assert_called_once_with(setup_workspace.return_value, workflow_workspace.return_value)
 
     async def test_shutdown_cleans_and_releases_both_workspaces(self):
@@ -67,7 +69,12 @@ class TestComfyUIWidgetExtension(AsyncTestCase):
             extension.on_shutdown()
 
         # Assert
-        registry.unregister.assert_called_once_with(ComfyUIDisplayAdapter)
+        self.assertEqual(
+            registry.register.call_args_list, [call(ComfyUIDisplayAdapter), call(ComfyUIAssetDisplayAdapter)]
+        )
+        self.assertEqual(
+            registry.unregister.call_args_list, [call(ComfyUIAssetDisplayAdapter), call(ComfyUIDisplayAdapter)]
+        )
         setup_workspace.cleanup.assert_called_once_with()
         workflow_workspace.cleanup.assert_called_once_with()
         self.assertEqual(set_show_window_fn.call_count, 4)
@@ -96,7 +103,12 @@ class TestComfyUIWidgetExtension(AsyncTestCase):
                 extension.on_startup("lightspeed.trex.comfyui.widget")
 
         # Assert
-        registry.unregister.assert_called_once_with(ComfyUIDisplayAdapter)
+        self.assertEqual(
+            registry.register.call_args_list, [call(ComfyUIDisplayAdapter), call(ComfyUIAssetDisplayAdapter)]
+        )
+        self.assertEqual(
+            registry.unregister.call_args_list, [call(ComfyUIAssetDisplayAdapter), call(ComfyUIDisplayAdapter)]
+        )
         setup_workspace.cleanup.assert_called_once_with()
         workflow_workspace.cleanup.assert_called_once_with()
         self.assertEqual(set_workspaces.call_args_list[-1].args, (None, None))
@@ -125,8 +137,12 @@ class TestComfyUIWidgetExtension(AsyncTestCase):
             extension.on_shutdown()
 
         # Assert
-        registry.register.assert_called_once_with(ComfyUIDisplayAdapter)
-        registry.unregister.assert_called_once_with(ComfyUIDisplayAdapter)
+        self.assertEqual(
+            registry.register.call_args_list, [call(ComfyUIDisplayAdapter), call(ComfyUIAssetDisplayAdapter)]
+        )
+        self.assertEqual(
+            registry.unregister.call_args_list, [call(ComfyUIAssetDisplayAdapter), call(ComfyUIDisplayAdapter)]
+        )
         setup_workspace.create_window.assert_called_once_with()
         workflow_workspace.create_window.assert_called_once_with()
         setup_workspace.cleanup.assert_called_once_with()

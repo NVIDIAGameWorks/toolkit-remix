@@ -64,7 +64,7 @@ class ResolverParameter(Generic[ParameterValueT]):
     tooltip: str = ""
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(kw_only=True)
 class ValueResolver(PluginBase, Generic[ResolvedValueT], abc.ABC):
     """Base class for values resolved from a selected USD prim."""
 
@@ -73,6 +73,7 @@ class ValueResolver(PluginBase, Generic[ResolvedValueT], abc.ABC):
     remix_types: ClassVar[tuple[RemixType, ...]] = ()
     native_types: ClassVar[tuple[type, ...]] = ()
     is_fallback: ClassVar[bool] = False
+    context_name: str | None = None
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         """Derive the stable factory and persistence key from the class name.
@@ -107,7 +108,7 @@ class ValueResolver(PluginBase, Generic[ResolvedValueT], abc.ABC):
         Returns:
             Resolver initialized for the workflow input.
         """
-        return cls()
+        return cls(context_name=context_name)
 
     @abc.abstractmethod
     def __call__(self, prim: Usd.Prim) -> ResolvedValueT:
