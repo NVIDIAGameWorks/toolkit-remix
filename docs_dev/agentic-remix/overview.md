@@ -129,7 +129,7 @@ MCP supplies *tools*. A skill supplies *instructions*. The
 {download}`RTX Remix Modding Agent Skill <../../skills/rtx-remix-modding/SKILL.md>` teaches a general
 coding agent how to use Remix and holds the behavioural rules. It is written by hand.
 
-[Using the bundled modding skill](../../docs/howto/learning-mcp.md#bundled-modding-skill)
+[Using the modding skill](../../docs/howto/learning-mcp.md#modding-skill)
 describes the installation layout and client discovery requirements.
 
 Agents use skill descriptions to select which skill to load. Repository wrappers point to

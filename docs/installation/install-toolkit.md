@@ -21,6 +21,20 @@ section.
 
 For access to the latest, potentially unstable features, you can install the RTX Remix Toolkit from GitHub.
 
+### Download a Prebuilt Development Package
+
+1) Sign in to [GitHub](https://github.com).
+2) Open the
+   [Download RTX Remix Toolkit Package runs](https://github.com/NVIDIAGameWorks/toolkit-remix/actions/workflows/toolkit-package.yml).
+3) Open the newest run with a green check mark whose artifact is named `rtx_remix@...+main...windows-x86_64.release`.
+4) Under **Artifacts** on the run's **Summary** page, click the artifact to download it as a ZIP.
+5) Extract the ZIP to a short path, such as `C:\rtx_remix`. The default folder name is long and can hit Windows
+   path-length limits.
+6) Optional: run `install.bat` once from the extracted folder to warm up the apps before the first launch.
+7) Run `lightspeed.app.trex.bat` from the extracted folder to start the Toolkit.
+
+### Build from Source
+
 1) Clone [the following repository](https://github.com/NVIDIAGameWorks/toolkit-remix)
 2) Follow
    the [Build Instructions](https://github.com/NVIDIAGameWorks/toolkit-remix?tab=readme-ov-file#build-instructions) in

@@ -605,7 +605,8 @@ We made a variety of changes to improve the Toolkit build process and make the l
 
 - Improved stability and solved various issues with the Toolkit Building Process for modders and open-source developers
 - Toolkit nightly builds are now accessible through GitHub Actions, making it easier to access the latest version of the
-  Toolkit without building it yourself. For the latest nightly release, check here.
+  Toolkit without building it yourself. To get the latest one, see
+  [Download a Prebuilt Development Package](../installation/install-toolkit.md#download-a-prebuilt-development-package).
 - When modders download Toolkit nightly builds, they will also receive more up to date changes to the renderer powering
   the RTX Remix Viewport than they did before
 
