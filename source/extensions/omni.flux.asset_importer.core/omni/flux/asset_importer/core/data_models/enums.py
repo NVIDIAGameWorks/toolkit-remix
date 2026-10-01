@@ -41,6 +41,7 @@ class TextureTypes(Enum):
     TRANSMITTANCE = "Transmittance"
     MEASUREMENT_DISTANCE = "Measurement Distance"
     SINGLE_SCATTERING = "Single Scattering"
+    SKYBOX = "Skybox"
     OTHER = "Other"
 
     @classmethod

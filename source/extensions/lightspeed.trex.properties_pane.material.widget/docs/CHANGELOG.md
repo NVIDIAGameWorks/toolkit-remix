@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.7]
+### Fixed
+- Skip texture types without material inputs when assigning a texture set, and do not assign them from words in their file name.
+
 ## [2.3.6]
 ### Changed
 - Use the material API's startup initialization for MDL asset resolution.

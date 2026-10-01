@@ -18,196 +18,162 @@
 import pathlib
 import tempfile
 import threading
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import lightspeed.trex.asset_pipeline.core.steps.convert_normal as convert_normal_module
+import numpy as np
 import omni.kit.test
 from lightspeed.trex.asset_pipeline.core import (
     RemixAssetItem,
     RemixAssetPipelineContext,
 )
+from lightspeed.trex.asset_pipeline.core import utils
 from lightspeed.trex.asset_pipeline.core.steps import ConvertNormalStep
 from omni.flux.asset_importer.core.data_models import TextureTypes
-from omni.flux.utils.common.path_utils import is_udim_texture
 
 
 class TestConvertNormal(omni.kit.test.AsyncTestCase):
-    """Test normal-map conversion behavior."""
+    """Test normal-map conversion from prepared float textures."""
 
-    async def test_run_converts_normal_dx_texture_record_to_oth(self):
-        """NORMAL_DX records convert off-thread to octahedral normals without replacing their item."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Arrange
-            caller_thread = threading.get_ident()
-            worker_threads = []
-            mock_converter = MagicMock(
-                side_effect=lambda *_args, **_kwargs: worker_threads.append(threading.get_ident())
-            )
-            output_dir = pathlib.Path(temp_dir) / "processed"
-            output_dir.mkdir()
-            item = RemixAssetItem.from_texture(pathlib.Path("/textures/normal.png"), TextureTypes.NORMAL_DX)
-            original_item = item
-            context = RemixAssetPipelineContext(items=[item], work_dir=output_dir)
+    def setUp(self):
+        """Create an isolated workspace for normal outputs."""
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = pathlib.Path(directory.name)
 
-            with patch.object(
-                convert_normal_module.OctahedralConverter,
-                "convert_file_to_octahedral",
-                mock_converter,
-            ):
-                # Act
-                await ConvertNormalStep().run(context)
+    async def test_run_converts_prepared_normals_to_octahedral_off_thread(self):
+        """DirectX and OpenGL normals produce different octahedral values without source metadata."""
+        cases = (
+            (TextureTypes.NORMAL_DX, (2 / 3, 1 / 3, 0.0, 1.0)),
+            (TextureTypes.NORMAL_OGL, (1 / 3, 2 / 3, 0.0, 1.0)),
+        )
+        for texture_type, expected in cases:
+            with self.subTest(title=texture_type.name):
+                # Arrange
+                source = self.root / "normal.exr"
+                source.write_bytes(b"prepared float normal")
+                source.with_suffix(".exr.meta").write_text('{"src_hash": "original-source"}')
+                item = RemixAssetItem.from_texture(source, texture_type)
+                context = RemixAssetPipelineContext(items=[item], work_dir=self.root / "work")
+                pixels = np.full((2, 2, 4), (0.5, 0.75, 1.0, 0.25), "float32")
+                caller_thread = threading.get_ident()
+                worker_threads = []
 
-            # Assert
-            self.assertIs(context.items[0], original_item)
-            self.assertEqual(item.value, pathlib.Path("/textures/normal.png"))
-            self.assertEqual(item.textures[0].path.name, "normal_OTH_Normal.png")
-            self.assertEqual(item.textures[0].path.parent.parent, output_dir)
-            self.assertEqual(item.textures[0].texture_type, TextureTypes.NORMAL_OTH)
-            mock_converter.assert_called_once_with(
-                str(pathlib.Path("/textures/normal.png")), str(item.textures[0].path), opengl=False
-            )
-            self.assertTrue(worker_threads)
-            self.assertNotIn(caller_thread, worker_threads)
+                def convert(_source, _destination, transform, pixels=pixels, worker_threads=worker_threads):
+                    """Apply the normal callback and record its execution thread."""
+                    worker_threads.append(threading.get_ident())
+                    transform(pixels)
 
-    async def test_run_converts_normal_ogl_texture_record_to_oth(self):
-        """NORMAL_OGL records are converted to octahedral normals."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Arrange
-            mock_converter = MagicMock()
-            output_dir = pathlib.Path(temp_dir) / "processed"
-            output_dir.mkdir()
-            item = RemixAssetItem.from_texture(pathlib.Path("/textures/normal.png"), TextureTypes.NORMAL_OGL)
-            context = RemixAssetPipelineContext(items=[item], work_dir=output_dir)
-
-            with patch.object(
-                convert_normal_module.OctahedralConverter,
-                "convert_file_to_octahedral",
-                mock_converter,
-            ):
-                # Act
-                await ConvertNormalStep().run(context)
-
-            # Assert
-            self.assertEqual(item.textures[0].path.name, "normal_OTH_Normal.png")
-            self.assertEqual(item.textures[0].path.parent.parent, output_dir)
-            self.assertEqual(item.textures[0].texture_type, TextureTypes.NORMAL_OTH)
-            mock_converter.assert_called_once_with(
-                str(pathlib.Path("/textures/normal.png")), str(item.textures[0].path), opengl=True
-            )
-
-    async def test_step_skips_octahedral_and_non_normal_textures(self):
-        """Octahedral (NORMAL_OTH) and diffuse textures, plain or UDIM, skip the step with a reason and stay unchanged."""
-        for texture_type in (TextureTypes.NORMAL_OTH, TextureTypes.DIFFUSE):
-            for path in (pathlib.Path("/textures/input.png"), pathlib.Path("/textures/input.<UDIM>.png")):
-                with self.subTest(texture_type=texture_type, path=path):
-                    # Arrange
-                    step = ConvertNormalStep()
-                    item = RemixAssetItem.from_texture(path, texture_type)
-                    context = RemixAssetPipelineContext(items=[item], work_dir=pathlib.Path("/processed"))
-
+                with patch.object(utils, "convert_to_openexr", side_effect=convert):
                     # Act
-                    should_run = step.should_run(context)
-                    skip_reason = step.skip_reason(context)
+                    await ConvertNormalStep().run(context)
 
-                    # Assert
-                    self.assertFalse(should_run)
-                    self.assertEqual(skip_reason, "no DirectX or OpenGL normal textures")
-                    self.assertEqual(item.textures[0].path, path)
-                    self.assertEqual(item.textures[0].texture_type, texture_type)
+                # Assert
+                texture = item.textures[0]
+                self.assertIs(context.items[0], item)
+                self.assertEqual(item.value, source)
+                self.assertEqual(texture.path.name, "normal_OTH_Normal.exr")
+                self.assertTrue(context.is_in_work_dir(texture.path))
+                self.assertEqual(texture.udim_tiles, ())
+                self.assertIs(texture.texture_type, TextureTypes.NORMAL_OTH)
+                self.assertFalse(texture.path.with_suffix(".exr.meta").exists())
+                self.assertEqual(len(worker_threads), 1)
+                self.assertNotIn(caller_thread, worker_threads)
+                np.testing.assert_allclose(pixels, np.full((2, 2, 4), expected, "float32"))
 
-    async def test_should_run_returns_true_when_normal_present(self):
-        """should_run returns True when a normal texture record is present."""
+    async def test_should_run_accepts_only_non_dds_directx_or_opengl_normals(self):
+        """DDS sources bypass normal conversion even when the final encoder forces a re-encode."""
+        cases = (
+            (TextureTypes.NORMAL_DX, ".dds", b"not a dds", True),
+            (TextureTypes.NORMAL_OGL, ".exr", b"prepared float normal", True),
+            (TextureTypes.NORMAL_OTH, ".exr", b"prepared float normal", False),
+            (TextureTypes.DIFFUSE, ".exr", b"prepared float texture", False),
+            (TextureTypes.NORMAL_DX, ".png", b"DDS payload", False),
+            (TextureTypes.NORMAL_OGL, ".DDS", b"DDS payload", False),
+        )
+        for texture_type, suffix, content, expected in cases:
+            with self.subTest(title=f"{texture_type.name} {suffix}"):
+                # Arrange
+                source = self.root / f"normal{suffix}"
+                source.write_bytes(content)
+                item = RemixAssetItem.from_texture(source, texture_type)
+                context = RemixAssetPipelineContext(items=[item], force_dds_reencode=True)
+
+                # Act
+                should_run = ConvertNormalStep().should_run(context)
+
+                # Assert
+                self.assertEqual(should_run, expected)
+
+    async def test_run_leaves_octahedral_and_non_normal_records_unchanged(self):
+        """Prepared octahedral and diffuse textures require no normal conversion."""
+        for texture_type in (TextureTypes.NORMAL_OTH, TextureTypes.DIFFUSE):
+            with self.subTest(title=texture_type.name):
+                # Arrange
+                source = self.root / "texture.exr"
+                item = RemixAssetItem.from_texture(source, texture_type)
+                context = RemixAssetPipelineContext(items=[item], work_dir=self.root / "work")
+
+                with patch.object(utils, "convert_to_openexr") as converter:
+                    # Act
+                    await ConvertNormalStep().run(context)
+
+                # Assert
+                converter.assert_not_called()
+                self.assertEqual(item.textures[0].path, source)
+                self.assertEqual(item.textures[0].texture_type, texture_type)
+
+    async def test_run_converts_every_tile_of_a_standardized_udim_ledger(self):
+        """The ledger determines tile order and membership, and all outputs share one directory."""
         # Arrange
-        item = RemixAssetItem.from_texture(pathlib.Path("/textures/normal.png"), TextureTypes.NORMAL_DX)
-        context = RemixAssetPipelineContext(items=[item])
+        ledger = tuple(self.root / f"normal.{tile}.exr" for tile in (1003, 1001))
+        for tile in ledger:
+            tile.write_bytes(b"prepared float normal")
+        (self.root / "normal.1002.exr").write_bytes(b"not in ledger")
+        item = RemixAssetItem.from_texture(self.root / "normal.<UDIM>.png", TextureTypes.NORMAL_OGL)
+        texture = item.textures[0]
+        texture.path = ledger[0]
+        texture.udim_tiles = ledger
+        context = RemixAssetPipelineContext(items=[item], work_dir=self.root / "work")
 
-        # Act
-        should_run = ConvertNormalStep().should_run(context)
+        with patch.object(utils, "convert_to_openexr", return_value=None) as converter:
+            # Act
+            await ConvertNormalStep().run(context)
 
         # Assert
-        self.assertTrue(should_run)
+        self.assertEqual([call.args[0] for call in converter.call_args_list], list(ledger))
+        self.assertEqual(
+            [tile.name for tile in texture.udim_tiles], ["normal.1003_OTH_Normal.exr", "normal.1001_OTH_Normal.exr"]
+        )
+        self.assertEqual(len({tile.parent for tile in texture.udim_tiles}), 1)
+        self.assertEqual(texture.path, texture.udim_tiles[0])
+        self.assertIs(texture.texture_type, TextureTypes.NORMAL_OTH)
 
-    # ------------------------------------------------------------------
-    # UDIM expansion and conversion — ledger pattern
-    # ------------------------------------------------------------------
+    async def test_run_isolates_directx_and_opengl_outputs_from_one_source(self):
+        """Prepared paths keep two normal conventions from overwriting the same output."""
+        for udim in (False, True):
+            with self.subTest(title=f"udim={udim}"):
+                # Arrange
+                original = self.root / ("normal.<UDIM>.png" if udim else "normal.png")
+                items = []
+                for texture_type in (TextureTypes.NORMAL_DX, TextureTypes.NORMAL_OGL):
+                    item = RemixAssetItem.from_texture(original, texture_type)
+                    prepared = self.root / texture_type.name
+                    tiles = tuple(prepared / f"normal.{tile}.exr" for tile in (1001, 1002))
+                    prepared.mkdir(exist_ok=True)
+                    item.textures[0].path = tiles[0] if udim else prepared / "normal.exr"
+                    item.textures[0].udim_tiles = tiles if udim else ()
+                    for source in item.textures[0].udim_tiles or (item.textures[0].path,):
+                        source.write_bytes(b"prepared float normal")
+                    items.append(item)
+                context = RemixAssetPipelineContext(items=items, work_dir=self.root / "work")
 
-    async def test_run_expands_udim_normal_and_populates_ledger(self):
-        """A three-tile UDIM normal source expands: three tiles convert, ledger has three entries, path is concrete."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = pathlib.Path(temp_dir)
-            for name in ("toto.1001.png", "toto.1002.png", "toto.1003.png"):
-                (temp_path / name).write_bytes(b"png")
-            work_dir = temp_path / "work"
-            work_dir.mkdir()
+                with patch.object(utils, "convert_to_openexr", return_value=None):
+                    # Act
+                    await ConvertNormalStep().run(context)
 
-            udim_source = temp_path / "toto.<UDIM>.png"
-            item = RemixAssetItem.from_texture(udim_source, TextureTypes.NORMAL_DX)
-            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir)
-
-            converted_tiles = []
-
-            def record_conversion(in_path, out_path, opengl):
-                converted_tiles.append((in_path, out_path, opengl))
-
-            with patch.object(
-                convert_normal_module.OctahedralConverter,
-                "convert_file_to_octahedral",
-                side_effect=record_conversion,
-            ):
-                await ConvertNormalStep().run(context)
-
-            texture = item.textures[0]
-            self.assertEqual(len(converted_tiles), 3)
-            self.assertEqual(len(texture.udim_tiles), 3)
-            # path is the first concrete tile, not a token.
-            self.assertEqual(texture.path, texture.udim_tiles[0])
-            self.assertFalse(is_udim_texture(str(texture.path)))
-            self.assertIs(texture.texture_type, TextureTypes.NORMAL_OTH)
-            # All tiles co-located.
-            tile_parents = {t.parent for t in texture.udim_tiles}
-            self.assertEqual(len(tile_parents), 1)
-
-    async def test_run_udim_normal_raises_on_empty_sequence(self):
-        """A UDIM pattern that resolves to zero tiles raises RuntimeError."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = pathlib.Path(temp_dir)
-            work_dir = temp_path / "work"
-            work_dir.mkdir()
-
-            udim_source = temp_path / "missing.<UDIM>.png"
-            item = RemixAssetItem.from_texture(udim_source, TextureTypes.NORMAL_DX)
-            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir)
-
-            with self.assertRaises(RuntimeError) as error_context:
-                await ConvertNormalStep().run(context)
-            self.assertIn("UDIM files don't exist", str(error_context.exception))
-
-    async def test_non_udim_normal_keeps_empty_ledger(self):
-        """A non-UDIM normal texture has empty udim_tiles after conversion (no regression)."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = pathlib.Path(temp_dir)
-            source_path = temp_path / "normal.png"
-            source_path.write_bytes(b"png")
-            work_dir = temp_path / "work"
-            work_dir.mkdir()
-
-            item = RemixAssetItem.from_texture(source_path, TextureTypes.NORMAL_DX)
-            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir)
-
-            with patch.object(
-                convert_normal_module.OctahedralConverter,
-                "convert_file_to_octahedral",
-            ):
-                await ConvertNormalStep().run(context)
-
-            texture = item.textures[0]
-            self.assertEqual(texture.udim_tiles, ())
-            self.assertIn("_OTH_Normal", texture.path.name)
-            self.assertIs(texture.texture_type, TextureTypes.NORMAL_OTH)
-
-    async def test_should_run_returns_true_for_udim_normal_texture(self):
-        """A UDIM normal texture triggers should_run via its path pattern."""
-        item = RemixAssetItem.from_texture(pathlib.Path("/textures/toto.<UDIM>.png"), TextureTypes.NORMAL_DX)
-        context = RemixAssetPipelineContext(items=[item])
-        should_run = ConvertNormalStep().should_run(context)
-        self.assertTrue(should_run)
+                # Assert
+                directx, opengl = (item.textures[0] for item in items)
+                self.assertNotEqual(directx.path.parent, opengl.path.parent)
+                self.assertEqual(directx.path.name, opengl.path.name)
+                self.assertEqual(directx.original_path, opengl.original_path)
+                self.assertTrue(set(directx.udim_tiles).isdisjoint(opengl.udim_tiles))

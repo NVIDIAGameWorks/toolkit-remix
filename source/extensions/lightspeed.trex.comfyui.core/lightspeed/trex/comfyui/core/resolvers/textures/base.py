@@ -30,7 +30,9 @@ from ..base import ResolverParameter, ResolverValueError, ValueResolver
 
 # The dropdown offers real texture inputs only; OTHER is a diffuse fallback, not a selectable type.
 SELECTABLE_TEXTURE_TYPES = tuple(
-    texture_type for texture_type in TextureTypes if texture_type is not TextureTypes.OTHER
+    texture_type
+    for texture_type in TextureTypes
+    if texture_type in TEXTURE_TYPE_INPUT_MAP and texture_type is not TextureTypes.OTHER
 )
 
 

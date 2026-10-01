@@ -20,8 +20,6 @@ from __future__ import annotations
 __all__ = ["ConvertNormalStep"]
 
 import functools
-import pathlib
-from collections.abc import Callable
 
 import carb
 from omni.flux.asset_importer.core.data_models import TextureTypes
@@ -29,29 +27,14 @@ from omni.flux.asset_pipeline.core import PipelineContext, PipelineStep
 from omni.flux.utils.octahedral_converter import OctahedralConverter
 
 from ..pipeline.context import RemixAssetPipelineContext
-from ..pipeline.item import RemixAssetItem
+from ..pipeline.item import RemixAssetItem, TextureAsset
 from ..texture_naming import get_octahedral_stem
-from omni.flux.utils.common.path_utils import (
-    get_udim_sequence as _get_udim_sequence,
-    is_udim_texture as _is_udim_texture,
-)
-from ..worker import run_in_worker_thread
+from ..utils import edit_texture_pixels, is_dds_texture
 
 
-def _get_normal_converter(texture_type: TextureTypes) -> Callable[[str, str], None] | None:
-    """Return the converter for one source normal-map semantic.
-
-    Args:
-        texture_type: Texture semantic to resolve.
-
-    Returns:
-        DirectX or OpenGL converter, or ``None`` for non-convertible semantics.
-    """
-    if texture_type in (TextureTypes.NORMAL_DX, TextureTypes.NORMAL_OGL):
-        return functools.partial(
-            OctahedralConverter.convert_file_to_octahedral, opengl=texture_type is TextureTypes.NORMAL_OGL
-        )
-    return None
+def _needs_conversion(texture: TextureAsset) -> bool:
+    """Return whether a prepared normal texture needs octahedral conversion."""
+    return texture.texture_type in (TextureTypes.NORMAL_DX, TextureTypes.NORMAL_OGL) and not is_dds_texture(texture)
 
 
 class ConvertNormalStep(PipelineStep):
@@ -71,11 +54,8 @@ class ConvertNormalStep(PipelineStep):
         return "Prepare normal textures"
 
     def should_run(self, context: RemixAssetPipelineContext) -> bool:
-        """Return true when any texture record is a DirectX or OpenGL normal.
-
-        Octahedral normals (``NORMAL_OTH``) and other texture types need no conversion, so they do not run the step.
-        """
-        return any(_get_normal_converter(texture.texture_type) is not None for texture in context.textures)
+        """Return true when a non-DDS texture needs DirectX or OpenGL normal conversion."""
+        return any(_needs_conversion(texture) for texture in context.textures)
 
     def validate(self, context: PipelineContext) -> list[str]:
         """Validate that the runner provided a work directory for converted files."""
@@ -86,46 +66,25 @@ class ConvertNormalStep(PipelineStep):
 
     def skip_reason(self, context: PipelineContext) -> str:
         """Return why this step has no work for the already-compatible context."""
-        return "no DirectX or OpenGL normal textures"
+        return "no non-DDS DirectX or OpenGL normal textures"
 
     async def run(self, context: RemixAssetPipelineContext) -> None:
-        """Convert the DirectX and OpenGL normal texture records in place.
+        """Convert the pixels of each DirectX and OpenGL normal texture to octahedral normals.
 
-        Other texture records, which include octahedral normals, stay unchanged.
-        A UDIM path expands to concrete tile files. Each tile converts individually into the
-        same work directory (keyed on the ``<UDIM>`` token form), so the sequence stays whole
-        across steps. The concrete tiles are stored in ``texture.udim_tiles`` and ``texture.path``
-        points to the first tile. ``ApplyProcessedTexturesStep`` derives the ``<UDIM>`` token only when
-        it writes the shader attribute.
-
-        This mutates ``TextureAsset.path``, ``TextureAsset.texture_type``, and
-        ``TextureAsset.udim_tiles``. The owning ``RemixAssetItem`` stays unchanged.
+        The octahedral copies record no source hash, so the DDS step keys reuse on the octahedral values. A DirectX
+        and an OpenGL conversion of one source share the DDS name but not the values, so a changed normal
+        convention encodes again. DDS textures and other texture types stay unchanged.
 
         Raises:
-            RuntimeError: If a UDIM pattern resolves to zero concrete tile files.
+            RuntimeError: If a texture file cannot be read or written.
         """
         for texture in context.textures:
-            converter = _get_normal_converter(texture.texture_type)
-            if converter is None:
+            if not _needs_conversion(texture):
                 continue
-            texture_path_str = str(texture.path)
-            if _is_udim_texture(texture_path_str):
-                tiles = _get_udim_sequence(texture_path_str)
-                if not tiles:
-                    raise RuntimeError(f"UDIM texture resolves to no tiles: {texture.path}. UDIM files don't exist.")
-                udim_source = texture.original_path or texture.path
-                tile_work_paths: list[pathlib.Path] = []
-                for tile_path_str in tiles:
-                    tile_path = pathlib.Path(tile_path_str)
-                    tile_new_path = context.get_work_path(udim_source, stem=get_octahedral_stem(tile_path.stem))
-                    carb.log_info(f"[ConvertNormal] Converting UDIM tile {tile_path_str} -> {tile_new_path}")
-                    await run_in_worker_thread(converter, tile_path_str, str(tile_new_path))
-                    tile_work_paths.append(tile_new_path)
-                texture.path = tile_work_paths[0]
-                texture.udim_tiles = tuple(tile_work_paths)
-            else:
-                new_path = context.get_work_path(texture.path, stem=get_octahedral_stem(texture.path.stem))
-                carb.log_info(f"[ConvertNormal] Converting {texture.path} -> {new_path}")
-                await run_in_worker_thread(converter, texture_path_str, str(new_path))
-                texture.path = new_path
+            carb.log_info(f"[ConvertNormal] Converting {texture.path}")
+            convert = functools.partial(
+                OctahedralConverter.convert_float_to_octahedral_in_place,
+                opengl=texture.texture_type is TextureTypes.NORMAL_OGL,
+            )
+            await edit_texture_pixels(context, texture, convert, stem=get_octahedral_stem)
             texture.texture_type = TextureTypes.NORMAL_OTH

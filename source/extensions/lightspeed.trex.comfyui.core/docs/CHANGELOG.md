@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.8]
+### Fixed
+- Restricted ComfyUI texture choices to mapped material inputs and excluded Other.
+
 ## [3.0.7]
 ### Added
 - Added output-driven texture and mesh workflows with metadata sidecars, atomic Apply, Reapply, and Revert, mesh input Reference Selection and All Meshes, and a generation, preparation, texture optimization, and mesh optimization chain that publishes standalone texture outputs beside the optimized model; mesh outputs default to Replace, so every selected reference gets its own job and is replaced in place by its upscaled model; generated models use shared `Setup` commands and per-job Remix reference children, viewport instance selections target the mesh prototype, unselected references survive Replace, Undo, Revert, and Reapply, and ComfyUI node errors are reported directly.

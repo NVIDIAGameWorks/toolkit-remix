@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.9]
+### Changed
+- Updated the texture choice test to exclude texture types without a material input, such as Skybox.
+
 ## [2.1.8]
 ### Added
 - Added texture and mesh output settings in Workflow Outputs and Item Properties, split Workflow Inputs and Workflow Outputs into separate sections with one shared selection, put Reference Selection in mesh input properties with the All Meshes getter, used the same queue display, actions, and schedule updates for texture and asset generation jobs, and made Focus in Viewport frame the visible instances of an invisible prototype mesh.

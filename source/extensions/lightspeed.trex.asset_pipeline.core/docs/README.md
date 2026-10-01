@@ -63,9 +63,9 @@ jobs, and persistence or Apply integration.
   steps key output naming and reuse checks on it. `channel` holds the packed channel name (`G`, `B`, ...)
   that the material converter marked with `remix:sourceChannel`
   (`TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY` in `omni.flux.utils.material_converter.utils`).
-  `ExtractTextureChannelStep` writes that channel to an RGB PNG before processing. `factor` holds the
+  `ExtractTextureChannelStep` writes that channel to a linear float OpenEXR file after standardization. `factor` holds the
   `remix:sourceFactor` values (`TEXTURE_SOURCE_FACTOR_CUSTOM_DATA_KEY`) that the glTF converter writes for
-  non-unit factors, and the same step multiplies the image by them (linear for mono, sRGB-correct for color). The texture
+  non-unit factors. The same step applies these factors in linear space. DDS sources skip both operations. The texture
   Apply removes the marker only from the bindings it replaces. `TextureBinding` connects
   that record to one authored shader input.
 - `RemixAssetPipelineConfig` supplies the output directory and any required
@@ -73,6 +73,9 @@ jobs, and persistence or Apply integration.
 - `RemixAssetPipelineContext` owns the current items, workspace paths, output
   reservations, execution state, and one native USD context lease. `textures`
   yields every texture record across the items.
+- `constants` owns the frozen `TextureInfo` dataclass and `TEXTURE_INFO` map, keyed by `TextureTypes`.
+  Encoding settings use `BlockFormat` and `MipmapFilter` from `omni.flux.nvtt.core`. Every texture type has an
+  entry. Only the maps that the runtime gamma-decodes (diffuse, other, emissive, transmittance) are gamma encoded.
 - `PrepareOptimizationJob`, `TextureOptimizationJob`, and `MeshOptimizationJob`
   compose into the graphs that `build_texture_optimization_graph()` and
   `build_asset_optimization_graph()` assemble. `add_asset_optimization_jobs()` adds
@@ -85,8 +88,6 @@ jobs, and persistence or Apply integration.
   `write_input_sidecars()`, the utility both default handlers and a
   consumer's own handler build on. `constants` holds the matching sidecar
   keys.
-- `constants` owns frozen `TextureInfo` records and `TEXTURE_INFO`, keyed by `TextureTypes`, with NVTT `BlockFormat` and `MipmapFilter` settings.
-  Texture types without metadata use Diffuse settings.
 - `persistence_codecs.py` serializes immutable job values, default Apply handlers,
   and the `MetadataApplyReceipt` that SQLite stores.
 - `utils.py` contains `get_authoring_spec()`, `publish_remote_outputs()`, and
@@ -97,13 +98,51 @@ jobs, and persistence or Apply integration.
 The extension exposes two processing pipelines. The texture pipeline converts
 standalone or discovered textures. The mesh pipeline consumes the processed
 texture result and authors the final model.
+`TextureTypes.SKYBOX` converts `.exr`, `.hdr`, or SDR sources to linear BC6H DDS with full mips and the `.s.rtex.dds` suffix.
+The standalone texture graph creates no material. Skybox uses the converted suffix map but has no material input.
+Every texture type accepts OpenEXR, identified by its file header. `StandardizeLinearTexturesStep` owns all input
+conversion and UDIM resolution. It writes each non-DDS source as a linear float OpenEXR work file.
+Later texture steps consume these files without source-format branches or 8-bit rounding.
+An SDR source becomes linear in the color space of its texture type:
+an sRGB decode when the DDS format is gamma encoded or BC6H, else `value / 255`. The step sets NaN to 0,
+remaps a signed float normal map from [-1, 1] to [0, 1], and clamps values to [0, 1]. Skybox uses [0, 65504] instead.
+`convert_to_openexr` raises `RuntimeError` for unknown or unreadable formats. Standardization does not pass those sources to later steps.
+
+Standardization resolves every UDIM texture, including DDS sources, into concrete paths in `texture.udim_tiles`.
+It sets `texture.path` to the first tile. Non-UDIM textures retain an empty tile tuple.
+A UDIM pattern with no tiles raises `RuntimeError`. Later texture steps use only `texture.udim_tiles or (texture.path,)`.
+They do not discover tiles on disk. Channel extraction, normal conversion, and DDS conversion each keep the output tiles of one texture in one directory.
+
+DDS sources skip standardization conversion, channel extraction, factor application, and normal conversion, regardless of their texture type or markers.
+`ConvertDDSStep` copies them unchanged, or leaves them in place when they already occupy their workspace destination.
+`RemixAssetPipelineContext.force_dds_reencode` affects only final DDS encoding. It does not enable any earlier conversion for DDS sources.
+`omni.flux.nvtt.core.is_dds` identifies a DDS source by its `DDS ` magic number, so the file suffix has no effect.
+A UDIM texture uses its first tile, so a tile ledger cannot mix DDS and non-DDS files.
+
+The standardized work file records the reuse key of the source bytes, so DDS reuse stays keyed on the source.
+`encode_dds` converts a linear source back to sRGB for a gamma-encoded format such as Diffuse BC7.
+For an 8-bit source, a BC4 result is byte-identical to a direct encode of the source. A BC7 result can differ by float
+rounding in the work file: on a 64x64 gradient, decoded pixels differed by 9/255 or less, and the error against the
+source did not change.
+
+The step edits one texture at a time in the FreeImage pixel buffer, so memory holds about one float copy of one image.
+OpenEXR work files have no compression.
+
+After standardization, every later step edits pixels through `edit_texture_pixels` and has no file-format code.
+The step supplies a per-pixel edit. The helper applies it to each file or tile and writes a copy in the same format.
+`ExtractTextureChannelStep` extracts packed channels, applies factors, and clears the channel and factor markers.
+`ConvertNormalStep` edits each non-DDS DirectX or OpenGL normal map to the octahedral encoding of the runtime
+(`hemisphereDirectionToUnsignedOctahedral`). An OpenGL map flips green first.
+The normal copy records no source hash, so DDS reuse keys on the octahedral values.
+DirectX and OpenGL conversions of one source use separate work paths.
+They share the DDS name, but not the reuse key.
 
 The queue adds a prepare phase before those pipelines:
 
 | Queue phase | Ordered work | Legacy parity rule |
 | --- | --- | --- |
 | Prepare | standardize/import → cleanup → materials → discover dependencies | Convert materials before discovering textures, as the legacy schema ran `MaterialShaders` before `ConvertToDDS`, so every source-shader texture is found under its AperturePBR input. |
-| Texture pipeline | channel extraction → OTH normal → DDS | Convert shared sources once and retain legacy output names. |
+| Texture pipeline | float standardization → channel extraction → OTH normal → DDS | Convert shared sources once and retain legacy output names. |
 | Mesh pipeline | standardize/import → cleanup → materials → emissive → textures → references → metadata | Clean materials before conversion. Apply references and root changes last. The legacy schema never triangulated, so neither does this pipeline. |
 
 `ApplyProcessedTexturesStep` consumes a ledger keyed by
@@ -123,11 +162,12 @@ falls back to the resolved source texture instead of failing.
 An existing DDS is reused only when its sidecar `src_hash` equals the hash of
 the current source texture, as the legacy plugin decided. The output filename
 carries the texture semantic, so the same path with the same source hash is the
-same conversion. A matching name alone is not sufficient. For an OpenEXR or
-Radiance HDR source, the `src_hash` value is the file hash plus a fixed suffix.
-DDS outputs from these linear sources written before this version skipped the
+same conversion. A matching name alone is not sufficient. For a linear source (OpenEXR, Radiance HDR, or BC6H DDS),
+the `src_hash` value is the file hash plus a fixed suffix (`utils.LINEAR_SOURCE_HASH_SUFFIX`).
+DDS outputs from these linear sources written before version 1.3.0 skipped the
 linear-to-sRGB conversion, so they encode again one time. Other sources keep the
-plain file hash.
+plain file hash. Only a work file of the pipeline uses the `src_hash` sidecar that a step recorded. Another file can
+carry a stale sidecar, for example from the retired octahedral converter, so its key always comes from its current bytes.
 
 Material conversion preserves authored AperturePBR variants. The material converter
 registry selects a builder, and that builder selects the output shader. Unsupported

@@ -29,11 +29,11 @@ from lightspeed.trex.asset_pipeline.core import (
     RemixAssetPipelineContext,
     TextureAsset,
 )
-from lightspeed.trex.asset_pipeline.core.constants import DDS_SOURCE_HASH_METADATA_KEY, TEXTURE_INFO, TextureInfo
+from lightspeed.trex.asset_pipeline.core import utils
+from lightspeed.trex.asset_pipeline.core.constants import DDS_SOURCE_HASH_METADATA_KEY
 from lightspeed.trex.asset_pipeline.core.steps import ConvertDDSStep
 from omni.flux.asset_importer.core.data_models import TextureTypes
-from omni.flux.nvtt.core import BlockFormat, MipmapFilter
-from omni.flux.utils.common.path_utils import hash_file, is_udim_texture, read_metadata
+from omni.flux.utils.common.path_utils import hash_file, read_metadata
 
 
 class TestConvertDDS(omni.kit.test.AsyncTestCase):
@@ -45,7 +45,9 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             # Arrange
             output_dir = pathlib.Path(temp_dir) / "processed"
             output_dir.mkdir()
-            item = RemixAssetItem.from_texture(pathlib.Path("/textures/albedo.png"), TextureTypes.DIFFUSE)
+            source_path = pathlib.Path(temp_dir) / "albedo.exr"
+            source_path.write_bytes(b"prepared float texture")
+            item = RemixAssetItem.from_texture(source_path, TextureTypes.DIFFUSE)
             original_item = item
             context = RemixAssetPipelineContext(items=[item], work_dir=output_dir, output_dir=output_dir)
             step = ConvertDDSStep()
@@ -66,72 +68,40 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
 
             # Assert
             self.assertIs(context.items[0], original_item)
-            self.assertEqual(item.value, pathlib.Path("/textures/albedo.png"))
+            self.assertEqual(item.value, source_path)
             self.assertEqual(item.textures[0].path.name, "albedo.a.rtex.dds")
             self.assertEqual(item.textures[0].path.parent.parent, output_dir)
+            self.assertEqual(item.textures[0].udim_tiles, ())
             mock_nvtt.assert_called_once()
             self.assertTrue(worker_threads)
             self.assertNotIn(caller_thread, worker_threads)
 
-    async def test_convert_texture_calls_encode_dds_with_mapped_settings(self):
-        """_convert_texture derives BlockFormat, gamma_encoded, and MipmapFilter from the texture info."""
-        texture_info = TextureInfo(BlockFormat.BC7, True, mip_filter=MipmapFilter.BOX)
-        with patch.object(convert_dds_module, "encode_dds") as mock_encode:
-            # Act
-            convert_dds_module._convert_texture("input.png", "output.dds", texture_info)
-
-        # Assert
-        mock_encode.assert_called_once_with(
-            pathlib.Path("input.png"),
-            pathlib.Path("output.dds"),
-            block_format=BlockFormat.BC7,
-            gamma_encoded=True,
-            mip_filter=MipmapFilter.BOX,
-        )
-
-    async def test_run_uses_canonical_texture_info_for_conversion(self):
-        """DDS conversion derives compression settings from the shared texture-info table."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Arrange
-            output_dir = pathlib.Path(temp_dir) / "processed"
-            output_dir.mkdir()
-            item = RemixAssetItem.from_texture(pathlib.Path("/textures/roughness.png"), TextureTypes.ROUGHNESS)
-            context = RemixAssetPipelineContext(items=[item], work_dir=output_dir, output_dir=output_dir)
-
-            with patch.object(convert_dds_module, "_convert_texture") as mock_nvtt:
-                # Act
-                await ConvertDDSStep().run(context)
-
-            # Assert
-            mock_nvtt.assert_called_once()
-            self.assertEqual(mock_nvtt.call_args.args[0], str(pathlib.Path("/textures/roughness.png")))
-            self.assertEqual(pathlib.Path(mock_nvtt.call_args.args[1]).name, "roughness.r.rtex.dds")
-            self.assertIs(
-                mock_nvtt.call_args.args[2],
-                TEXTURE_INFO[TextureTypes.ROUGHNESS],
-            )
-
     async def test_run_reuses_existing_dds_output(self):
-        """A DDS carrying only the legacy ``src_hash`` sidecar is reused, not recompressed."""
+        """A DDS carrying only the legacy ``src_hash`` sidecar is reused when the work file records that hash."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Arrange
             temp_path = pathlib.Path(temp_dir)
-            source_path = temp_path / "albedo.png"
-            source_path.write_bytes(b"png")
-            output_dir = temp_path / "processed"
-            output_dir.mkdir()
             work_dir = temp_path / "work"
             work_dir.mkdir()
+            source_path = work_dir / "albedo.exr"
+            source_path.write_bytes(b"prepared float texture")
+            original_path = temp_path / "albedo.png"
+            original_path.write_bytes(b"source texture")
+            source_hash = hash_file(str(original_path))
+            source_path.with_suffix(".exr.meta").write_text(json.dumps({DDS_SOURCE_HASH_METADATA_KEY: source_hash}))
+            output_dir = temp_path / "processed"
+            output_dir.mkdir()
             dds_path = output_dir / "albedo.a.rtex.dds"
-            dds_path.write_bytes(b"dds")
+            dds_path.write_bytes(b"DDS payload")
             dds_path.with_suffix(".dds.meta").write_text(
                 json.dumps(
                     {
-                        DDS_SOURCE_HASH_METADATA_KEY: hash_file(str(source_path)),
+                        DDS_SOURCE_HASH_METADATA_KEY: source_hash,
                     }
                 )
             )
             item = RemixAssetItem.from_texture(source_path, TextureTypes.DIFFUSE)
+            item.textures[0].original_path = original_path
             context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=output_dir)
             expected_work_path = context.get_work_path(source_path, stem_suffix=".a", suffix=".rtex.dds")
 
@@ -143,7 +113,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             self.assertEqual(item.textures[0].path, expected_work_path)
             self.assertEqual(item.textures[0].path.name, "albedo.a.rtex.dds")
             self.assertEqual(item.textures[0].path.parent.parent, work_dir)
-            self.assertEqual(item.textures[0].path.read_bytes(), b"dds")
+            self.assertEqual(item.textures[0].path.read_bytes(), b"DDS payload")
             mock_nvtt.assert_not_called()
 
     async def test_run_reencodes_linear_source_dds_output_with_legacy_hash(self):
@@ -164,13 +134,13 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             )
             item = RemixAssetItem.from_texture(source_path, TextureTypes.DIFFUSE)
             context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=output_dir)
-            expected_key = hash_file(str(source_path)) + convert_dds_module.LINEAR_SOURCE_HASH_SUFFIX
+            expected_key = hash_file(str(source_path)) + utils.LINEAR_SOURCE_HASH_SUFFIX
 
             def convert_texture(_input_path, output_path, _texture_info):
                 pathlib.Path(output_path).write_bytes(b"encoded")
 
             with (
-                patch.object(convert_dds_module, "is_linear_image", return_value=True),
+                patch.object(utils, "is_linear_image", return_value=True),
                 patch.object(convert_dds_module, "_convert_texture", side_effect=convert_texture) as mock_nvtt,
             ):
                 # Act
@@ -181,13 +151,57 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             self.assertEqual(item.textures[0].path.read_bytes(), b"encoded")
             self.assertEqual(read_metadata(str(item.textures[0].path), DDS_SOURCE_HASH_METADATA_KEY), expected_key)
 
+    async def test_run_hashes_source_bytes_when_source_outside_work_dir_has_stale_sidecar(self):
+        """A source outside the work directory keys DDS reuse on its bytes, not on a stale ``src_hash`` sidecar."""
+        cases = (("albedo.png", b"edited texture", False), ("albedo.dds", b"DDS edited payload", True))
+        for name, content, force_dds_reencode in cases:
+            with self.subTest(title=name):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # Arrange
+                    temp_path = pathlib.Path(temp_dir)
+                    source_path = temp_path / name
+                    source_path.write_bytes(content)
+                    source_path.with_name(f"{name}.meta").write_text(json.dumps({DDS_SOURCE_HASH_METADATA_KEY: "old"}))
+                    output_dir = temp_path / "processed"
+                    output_dir.mkdir()
+                    work_dir = temp_path / "work"
+                    work_dir.mkdir()
+                    dds_path = output_dir / "albedo.a.rtex.dds"
+                    dds_path.write_bytes(b"old encoding")
+                    dds_path.with_suffix(".dds.meta").write_text(json.dumps({DDS_SOURCE_HASH_METADATA_KEY: "old"}))
+                    item = RemixAssetItem.from_texture(source_path, TextureTypes.DIFFUSE)
+                    context = RemixAssetPipelineContext(
+                        items=[item],
+                        work_dir=work_dir,
+                        output_dir=output_dir,
+                        force_dds_reencode=force_dds_reencode,
+                    )
+
+                    def convert_texture(_input_path, output_path, _texture_info):
+                        """Write a new encoding in place of the NVTT invocation."""
+                        pathlib.Path(output_path).write_bytes(b"new encoding")
+
+                    with (
+                        patch.object(utils, "is_linear_image", return_value=False),
+                        patch.object(convert_dds_module, "_convert_texture", side_effect=convert_texture),
+                    ):
+                        # Act
+                        await ConvertDDSStep().run(context)
+
+                    # Assert
+                    self.assertEqual(item.textures[0].path.read_bytes(), b"new encoding")
+                    self.assertEqual(
+                        read_metadata(str(item.textures[0].path), DDS_SOURCE_HASH_METADATA_KEY),
+                        hash_file(str(source_path)),
+                    )
+
     async def test_run_passes_through_dds_input_without_semantic_suffix(self):
         """An encoded DDS is copied unchanged, whatever its name, so it is never compressed twice."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Arrange
             temp_path = pathlib.Path(temp_dir)
             source_path = temp_path / "emissive_bc7_abc.dds"
-            source_path.write_bytes(b"dds")
+            source_path.write_bytes(b"DDS payload")
             output_dir = temp_path / "processed"
             output_dir.mkdir()
             work_dir = temp_path / "work"
@@ -203,7 +217,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             mock_nvtt.assert_not_called()
             self.assertEqual(item.textures[0].path.name, "emissive_bc7_abc.dds")
             self.assertEqual(item.textures[0].path.parent.parent, work_dir)
-            self.assertEqual(item.textures[0].path.read_bytes(), b"dds")
+            self.assertEqual(item.textures[0].path.read_bytes(), b"DDS payload")
 
     async def test_run_reencodes_dds_input_when_forced(self):
         """force_dds_reencode re-encodes a DDS source to the semantic output name."""
@@ -211,7 +225,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             # Arrange
             temp_path = pathlib.Path(temp_dir)
             source_path = temp_path / "albedo.dds"
-            source_path.write_bytes(b"dds")
+            source_path.write_bytes(b"DDS payload")
             output_dir = temp_path / "processed"
             output_dir.mkdir()
             work_dir = temp_path / "work"
@@ -236,7 +250,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             # Arrange
             temp_path = pathlib.Path(temp_dir)
             source_path = temp_path / "albedo.a.rtex.dds"
-            source_path.write_bytes(b"dds")
+            source_path.write_bytes(b"DDS payload")
             output_dir = temp_path / "processed"
             output_dir.mkdir()
             work_dir = temp_path / "work"
@@ -252,7 +266,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             mock_nvtt.assert_not_called()
             self.assertEqual(item.textures[0].path.name, "albedo.a.rtex.dds")
             self.assertEqual(item.textures[0].path.parent.parent, work_dir)
-            self.assertEqual(item.textures[0].path.read_bytes(), b"dds")
+            self.assertEqual(item.textures[0].path.read_bytes(), b"DDS payload")
             self.assertEqual(
                 context.get_output_path(item.textures[0].path, source_path=source_path),
                 output_dir / "albedo.a.rtex.dds",
@@ -263,8 +277,8 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             # Arrange
             temp_path = pathlib.Path(temp_dir)
-            source_path = temp_path / "albedo.png"
-            source_path.write_bytes(b"png")
+            source_path = temp_path / "albedo.exr"
+            source_path.write_bytes(b"prepared float texture")
             output_dir = temp_path / "processed"
             output_dir.mkdir()
             work_dir = temp_path / "work"
@@ -296,8 +310,8 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             # Arrange
             temp_path = pathlib.Path(temp_dir)
-            first_source = temp_path / "first" / "albedo.png"
-            second_source = temp_path / "second" / "albedo.png"
+            first_source = temp_path / "first" / "albedo.exr"
+            second_source = temp_path / "second" / "albedo.exr"
             first_source.parent.mkdir()
             second_source.parent.mkdir()
             first_source.write_bytes(b"first")
@@ -324,29 +338,54 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             self.assertEqual(second_item.textures[0].path.parent.parent, work_dir)
             self.assertNotEqual(first_item.textures[0].path, second_item.textures[0].path)
 
-    async def test_should_run_returns_false_when_all_texture_records_are_dds(self):
-        """should_run returns False when every record is already an encoded DDS."""
-        # Arrange
-        item = RemixAssetItem.from_texture(pathlib.Path("/textures/albedo.dds"), TextureTypes.DIFFUSE)
-        context = RemixAssetPipelineContext(items=[item])
+    async def test_should_run_requires_work_for_dds_only_outside_workspace(self):
+        """Workspace DDS records need no copy, including records with a concrete UDIM ledger."""
+        cases = ((False, False), (False, True), (True, False), (True, True))
+        for in_workspace, udim in cases:
+            with self.subTest(title=f"in_workspace={in_workspace}, udim={udim}"):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # Arrange
+                    root = pathlib.Path(temp_dir)
+                    work_dir = root / "work"
+                    source_dir = work_dir if in_workspace else root / "source"
+                    source_dir.mkdir(parents=True)
+                    source = source_dir / ("albedo.1001.DDS" if udim else "albedo.DDS")
+                    source.write_bytes(b"DDS payload")
+                    item = RemixAssetItem.from_texture(source, TextureTypes.DIFFUSE)
+                    if udim:
+                        second_tile = source_dir / "albedo.1002.DDS"
+                        second_tile.write_bytes(b"DDS payload")
+                        item.textures[0].udim_tiles = (source, second_tile)
+                    context = RemixAssetPipelineContext(items=[item], work_dir=work_dir)
 
-        # Act
-        should_run = ConvertDDSStep().should_run(context)
+                    # Act
+                    should_run = ConvertDDSStep().should_run(context)
 
-        # Assert
-        self.assertFalse(should_run)
+                    # Assert
+                    self.assertEqual(should_run, not in_workspace)
 
-    async def test_should_run_returns_true_for_dds_record_when_forced(self):
-        """force_dds_reencode makes an encoded DDS need work again."""
-        # Arrange
-        item = RemixAssetItem.from_texture(pathlib.Path("/textures/albedo.dds"), TextureTypes.DIFFUSE)
-        context = RemixAssetPipelineContext(items=[item], force_dds_reencode=True)
+    async def test_should_run_returns_true_for_workspace_dds_when_forced(self):
+        """Forced encoding overrides the workspace DDS exclusion, including UDIM ledgers."""
+        for udim in (False, True):
+            with self.subTest(title=f"udim={udim}"):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # Arrange
+                    work_dir = pathlib.Path(temp_dir) / "work"
+                    work_dir.mkdir()
+                    source = work_dir / ("albedo.1001.dds" if udim else "albedo.dds")
+                    source.write_bytes(b"DDS payload")
+                    item = RemixAssetItem.from_texture(source, TextureTypes.DIFFUSE)
+                    if udim:
+                        second_tile = work_dir / "albedo.1002.dds"
+                        second_tile.write_bytes(b"DDS payload")
+                        item.textures[0].udim_tiles = (source, second_tile)
+                    context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, force_dds_reencode=True)
 
-        # Act
-        should_run = ConvertDDSStep().should_run(context)
+                    # Act
+                    should_run = ConvertDDSStep().should_run(context)
 
-        # Assert
-        self.assertTrue(should_run)
+                    # Assert
+                    self.assertTrue(should_run)
 
     async def test_should_run_returns_false_when_no_texture_records_exist(self):
         """Items without texture records leave DDS conversion with no work."""
@@ -362,167 +401,73 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
 
     async def test_should_run_returns_true_when_non_dds_texture_record_exists(self):
         """should_run returns True when any texture record still needs DDS conversion."""
-        # Arrange
-        item = RemixAssetItem.from_texture(pathlib.Path("/textures/albedo.png"), TextureTypes.DIFFUSE)
-        context = RemixAssetPipelineContext(items=[item])
-
-        # Act
-        should_run = ConvertDDSStep().should_run(context)
-
-        # Assert
-        self.assertTrue(should_run)
-
-    # ------------------------------------------------------------------
-    # UDIM expansion and conversion — ledger pattern
-    # ------------------------------------------------------------------
-
-    async def test_run_expands_udim_and_populates_ledger(self):
-        """A three-tile UDIM source expands: three tiles convert, ledger has three entries, path is concrete."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = pathlib.Path(temp_dir)
-            for name in ("toto.1001.png", "toto.1002.png", "toto.1003.png"):
-                (temp_path / name).write_bytes(b"png")
-            output_dir = temp_path / "processed"
-            output_dir.mkdir()
-            work_dir = temp_path / "work"
-            work_dir.mkdir()
-
-            udim_source = temp_path / "toto.<UDIM>.png"
-            item = RemixAssetItem.from_texture(udim_source, TextureTypes.DIFFUSE)
-            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=output_dir)
-
-            tile_paths_converted = []
-
-            def record_nvtt(in_path, out_path, _texture_info, **_kw):
-                tile_paths_converted.append((in_path, out_path))
-
-            with patch.object(convert_dds_module, "_convert_texture", side_effect=record_nvtt):
-                await ConvertDDSStep().run(context)
-
-            texture = item.textures[0]
-            # Three tiles were each converted.
-            self.assertEqual(len(tile_paths_converted), 3)
-            self.assertEqual(len(texture.udim_tiles), 3)
-            # path is the first concrete tile, not a token.
-            self.assertEqual(texture.path, texture.udim_tiles[0])
-            self.assertFalse(is_udim_texture(str(texture.path)))
-            # Every tile is in the same work directory (co-located).
-            tile_parents = {t.parent for t in texture.udim_tiles}
-            self.assertEqual(len(tile_parents), 1)
-            self.assertTrue(all(t.parent.parent == work_dir for t in texture.udim_tiles))
-
-    async def test_run_processes_existing_ledger_from_prior_step(self):
-        """Tiles arriving via the ledger from a prior step are converted to DDS in place."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = pathlib.Path(temp_dir)
-            output_dir = temp_path / "processed"
-            output_dir.mkdir()
-            work_dir = temp_path / "work"
-            work_dir.mkdir()
-
-            # Simulate tiles left by ConvertNormalStep: three work-dir paths.
-            tile_dir = work_dir / "abc123"
-            tile_dir.mkdir(parents=True)
-            tile_paths = [
-                tile_dir / "toto.1001_OTH_Normal.png",
-                tile_dir / "toto.1002_OTH_Normal.png",
-                tile_dir / "toto.1003_OTH_Normal.png",
-            ]
-            for tp in tile_paths:
-                tp.write_bytes(b"png")
-
-            udim_source = temp_path / "toto.<UDIM>.png"
-            texture_asset = TextureAsset(
-                path=tile_paths[0],
-                texture_type=TextureTypes.NORMAL_OTH,
-                original_path=udim_source,
-                udim_tiles=tuple(tile_paths),
-            )
-            item = RemixAssetItem(
-                value=udim_source,
-                kind=AssetKind.TEXTURE,
-                source_path=udim_source,
-                textures=[texture_asset],
-            )
-            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=output_dir)
-
-            tile_dds_converted = []
-
-            def record_nvtt(in_path, out_path, _texture_info, **_kw):
-                tile_dds_converted.append((in_path, out_path))
-
-            with patch.object(convert_dds_module, "_convert_texture", side_effect=record_nvtt):
-                await ConvertDDSStep().run(context)
-
-            texture = item.textures[0]
-            self.assertEqual(len(tile_dds_converted), 3)
-            self.assertEqual(len(texture.udim_tiles), 3)
-            # All DDS tiles co-located in the same work directory.
-            tile_parents = {t.parent for t in texture.udim_tiles}
-            self.assertEqual(len(tile_parents), 1)
-            self.assertTrue(all(".rtex.dds" in t.name for t in texture.udim_tiles))
-
-    async def test_run_raises_on_empty_udim_sequence(self):
-        """A UDIM pattern that resolves to no concrete tiles raises a clear RuntimeError."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = pathlib.Path(temp_dir)
-            output_dir = temp_path / "processed"
-            output_dir.mkdir()
-            work_dir = temp_path / "work"
-            work_dir.mkdir()
-
-            udim_source = temp_path / "missing.<UDIM>.png"
-            item = RemixAssetItem.from_texture(udim_source, TextureTypes.DIFFUSE)
-            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=output_dir)
-
-            with self.assertRaises(RuntimeError) as error_context:
-                await ConvertDDSStep().run(context)
-            self.assertIn("UDIM files don't exist", str(error_context.exception))
-
-    async def test_non_udim_texture_keeps_empty_ledger(self):
-        """A non-UDIM texture record has an empty udim_tiles after conversion (no regression)."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = pathlib.Path(temp_dir)
-            source_path = temp_path / "albedo.png"
-            source_path.write_bytes(b"png")
-            output_dir = temp_path / "processed"
-            output_dir.mkdir()
-            work_dir = temp_path / "work"
-            work_dir.mkdir()
-
+            # Arrange
+            source_path = pathlib.Path(temp_dir) / "albedo.exr"
+            source_path.write_bytes(b"prepared float texture")
             item = RemixAssetItem.from_texture(source_path, TextureTypes.DIFFUSE)
-            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=output_dir)
+            context = RemixAssetPipelineContext(items=[item])
 
-            with patch.object(convert_dds_module, "_convert_texture"):
+            # Act
+            should_run = ConvertDDSStep().should_run(context)
+
+            # Assert
+            self.assertTrue(should_run)
+
+    async def test_run_processes_only_the_existing_prepared_ledger(self):
+        """Prepared tiles retain their ledger order and produce co-located semantic DDS names."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Arrange
+            temp_path = pathlib.Path(temp_dir)
+            work_dir = temp_path / "work"
+            tile_dir = work_dir / "prepared"
+            tile_dir.mkdir(parents=True)
+            tiles = tuple(tile_dir / f"normal.{tile}_OTH_Normal.exr" for tile in (1003, 1001))
+            for tile in tiles:
+                tile.write_bytes(b"prepared float texture")
+            (tile_dir / "normal.1002_OTH_Normal.exr").write_bytes(b"not in ledger")
+            original = temp_path / "normal.<UDIM>.png"
+            item = RemixAssetItem.from_texture(original, TextureTypes.NORMAL_OTH)
+            texture = item.textures[0]
+            texture.path = tiles[0]
+            texture.udim_tiles = tiles
+            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=temp_path / "output")
+
+            with patch.object(convert_dds_module, "_convert_texture") as converter:
+                # Act
                 await ConvertDDSStep().run(context)
 
-            texture = item.textures[0]
-            self.assertEqual(texture.udim_tiles, ())
-            self.assertTrue(texture.path.name.endswith(".a.rtex.dds"))
+            # Assert
+            self.assertEqual([call.args[0] for call in converter.call_args_list], [str(tile) for tile in tiles])
+            self.assertEqual(
+                [tile.name for tile in texture.udim_tiles],
+                ["normal.1003_OTH_Normal.n.rtex.dds", "normal.1001_OTH_Normal.n.rtex.dds"],
+            )
+            self.assertEqual(texture.path, texture.udim_tiles[0])
+            self.assertEqual(len({tile.parent for tile in texture.udim_tiles}), 1)
+            self.assertTrue(all(context.is_in_work_dir(tile) for tile in texture.udim_tiles))
 
-    async def test_should_run_returns_true_for_udim_texture(self):
-        """A UDIM texture triggers should_run via its path pattern."""
-        item = RemixAssetItem.from_texture(pathlib.Path("/textures/toto.<UDIM>.png"), TextureTypes.DIFFUSE)
-        context = RemixAssetPipelineContext(items=[item])
-        should_run = ConvertDDSStep().should_run(context)
-        self.assertTrue(should_run)
+    async def test_should_run_returns_true_for_prepared_udim_ledger(self):
+        """A prepared float ledger still needs DDS encoding."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Arrange
+            root = pathlib.Path(temp_dir)
+            work_dir = root / "work"
+            work_dir.mkdir()
+            tiles = tuple(work_dir / f"tile.{tile}.exr" for tile in (1001, 1002))
+            for tile in tiles:
+                tile.write_bytes(b"prepared float texture")
+            texture = TextureAsset(path=tiles[0], texture_type=TextureTypes.NORMAL_OTH, udim_tiles=tiles)
+            item = RemixAssetItem(
+                value=root / "toto.<UDIM>.png",
+                kind=AssetKind.TEXTURE,
+                source_path=root / "toto.<UDIM>.png",
+                textures=[texture],
+            )
+            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir)
 
-    async def test_should_run_returns_true_for_ledger_populated_texture(self):
-        """A texture with a non-empty udim_tiles ledger triggers should_run."""
-        texture_asset = TextureAsset(
-            path=pathlib.Path("/work/tile.1001.png"),
-            texture_type=TextureTypes.NORMAL_OTH,
-            udim_tiles=(
-                pathlib.Path("/work/tile.1001.png"),
-                pathlib.Path("/work/tile.1002.png"),
-            ),
-        )
-        item = RemixAssetItem(
-            value=pathlib.Path("/source/toto.<UDIM>.png"),
-            kind=AssetKind.TEXTURE,
-            source_path=pathlib.Path("/source/toto.<UDIM>.png"),
-            textures=[texture_asset],
-        )
-        context = RemixAssetPipelineContext(items=[item])
-        should_run = ConvertDDSStep().should_run(context)
-        self.assertTrue(should_run)
+            # Act
+            should_run = ConvertDDSStep().should_run(context)
+
+            # Assert
+            self.assertTrue(should_run)

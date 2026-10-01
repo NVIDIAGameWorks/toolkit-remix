@@ -22,6 +22,7 @@ import tempfile
 import uuid
 from unittest import mock
 
+import numpy as np
 import omni.client
 import omni.kit.app
 import omni.kit.test
@@ -44,6 +45,7 @@ from omni.flux.job_queue.core.job import (
 from omni.flux.job_queue.core.execute import JobScheduler
 from omni.flux.job_queue.core.persistence import PersistenceCodec, get_registry
 from omni.flux.utils.common.path_utils import hash_file, read_metadata
+from omni.flux.nvtt.core import DxgiFormat, library, read_dds_format, write_openexr
 from omni.flux.utils.tests.context_managers import open_test_project
 from pxr import Sdf, Usd, UsdGeom, UsdShade, UsdUtils
 
@@ -56,6 +58,7 @@ from lightspeed.trex.asset_pipeline.core.jobs import (
     TextureOptimizationJob,
     build_asset_optimization_graph,
 )
+from lightspeed.trex.asset_pipeline.core.jobs.graphs import build_texture_optimization_graph
 from lightspeed.trex.asset_pipeline.core.metadata import (
     get_current_validation_extensions,
 )
@@ -75,6 +78,8 @@ from lightspeed.trex.asset_pipeline.core.jobs.models import (
 )
 from lightspeed.trex.asset_pipeline.core.pipeline.item import AssetKind
 from lightspeed.trex.asset_pipeline.core.steps import ConvertDDSStep, ConvertNormalStep
+
+_BC5_TOLERANCE = 0.02
 
 
 def _json_round_trip(value):
@@ -170,6 +175,83 @@ class TestTextureOptimizationJobE2E(omni.kit.test.AsyncTestCase):
     async def tearDown(self) -> None:
         """Unregister the test-only producer job."""
         get_registry().unregister_codecs([_REQUEST_PRODUCER_CODEC])
+
+    async def test_skybox_request_publishes_bc6_without_a_material(self):
+        """The standalone queue publishes a Skybox DDS from Radiance HDR and OpenEXR sources without a material."""
+        with tempfile.TemporaryDirectory() as directory:
+            for suffix in (".hdr", ".exr"):
+                with self.subTest(suffix=suffix):
+                    root = pathlib.Path(directory) / suffix[1:]
+                    root.mkdir()
+                    source = root / f"sky{suffix}"
+                    if suffix == ".hdr":
+                        source.write_bytes(
+                            b"#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 4 +X 4\n" + bytes((128, 64, 32, 131)) * 16
+                        )
+                    else:
+                        write_openexr(source, np.full((4, 4, 4), (8.0, 0.5, 2.0, 1.0), dtype="float32"))
+                    output_dir = root / "processed"
+                    request = TextureOptimizationRequest(
+                        items=(TextureOptimizationItem("sky", source, TextureTypes.SKYBOX),),
+                        source_root=root,
+                        output_url=str(output_dir),
+                    )
+                    interface = QueueInterface(str(root / "queue.sqlite"))
+                    graph, job = build_texture_optimization_graph(request)
+
+                    outputs = await _run_until_outputs(interface.submit(graph)[0], interface)
+
+                    result = outputs[job.PROCESSED_TEXTURES]
+                    output = pathlib.Path(result.items[0].asset_url)
+                    self.assertEqual(output, output_dir / "sky.s.rtex.dds")
+                    self.assertEqual(read_dds_format(output), DxgiFormat.BC6H_UF16)
+                    self.assertEqual(list(output_dir.glob("*.usd*")), [])
+
+    async def test_exr_request_publishes_every_texture_type_from_float_values(self):
+        """OpenEXR color, signed normal, and packed channel sources publish DDS files from their float values."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            albedo, normal, packed = root / "albedo.exr", root / "normal.exr", root / "packed.exr"
+            write_openexr(albedo, np.full((4, 4, 4), (2.0, 0.5, 0.25, 1.0), dtype="float32"))
+            # A signed DirectX normal. Clamping it instead of remapping it to [0, 1] gives another octahedral value.
+            write_openexr(normal, np.full((4, 4, 4), (-0.6, 0.0, 0.8, 1.0), dtype="float32"))
+            write_openexr(packed, np.full((4, 4, 4), (0.1, 0.7, 0.3, 1.0), dtype="float32"))
+            output_dir = root / "processed"
+            request = TextureOptimizationRequest(
+                items=(
+                    TextureOptimizationItem("albedo", albedo, TextureTypes.DIFFUSE),
+                    TextureOptimizationItem("normal", normal, TextureTypes.NORMAL_DX),
+                    TextureOptimizationItem("packed", packed, TextureTypes.ROUGHNESS, channel="G"),
+                ),
+                source_root=root,
+                output_url=str(output_dir),
+            )
+            interface = QueueInterface(str(root / "queue.sqlite"))
+            graph, job = build_texture_optimization_graph(request)
+
+            outputs = await _run_until_outputs(interface.submit(graph)[0], interface)
+
+            published = {item.key: pathlib.Path(item.asset_url) for item in outputs[job.PROCESSED_TEXTURES].items}
+            expected_formats = {
+                "albedo": DxgiFormat.BC7_UNORM,
+                "normal": DxgiFormat.BC5_UNORM,
+                "packed": DxgiFormat.BC4_UNORM,
+            }
+            for key, dxgi_format in expected_formats.items():
+                with self.subTest(key=key):
+                    self.assertEqual(read_dds_format(published[key]), dxgi_format)
+            # (-0.6, 0, 0.8) projects to octahedral (-3/7, 0), stored in both channels as 0.5 - 3/14.
+            # The package has no public DDS decode API, so the test reads pixels through the private loader.
+            native = library._load()
+            surface = native.nvttCreateSurface()
+            try:
+                self.assertTrue(native.nvttSurfaceLoad(surface, str(published["normal"]).encode(), None, False, None))
+                pixels = native.nvttSurfaceData(surface)
+                pixel_count = 16
+                for channel in range(2):
+                    self.assertAlmostEqual(pixels[channel * pixel_count], 0.5 - 3 / 14, delta=_BC5_TOLERANCE)
+            finally:
+                native.nvttDestroySurface(surface)
 
     async def test_empty_request_settles_skipped_with_an_empty_result(self):
         """An empty batch runs no pipeline: the job skips with a reason and still hands an empty result downstream."""
