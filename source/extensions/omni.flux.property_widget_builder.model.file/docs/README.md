@@ -7,7 +7,8 @@ You can show custom names for attributes. For example here, `translateY` is just
 ![alt text](../data/images/preview.png)
 
 
-There is a listener that will update the widget properties in real time.
+The file listener polls for metadata changes and updates changed attribute values without rebuilding property rows.
+Cached metadata is cleared when a file becomes unreadable, its last model is removed, or the listener is destroyed.
 
 ## Usage
 
@@ -32,7 +33,7 @@ for attr in [attr for attr in dir(omni.client.ListEntry) if not attr.startswith(
 model = _FileModel(path)
 model.set_items(items)
 delegate = _FileDelegate()
-file_listener_instance.add_model_and_delegate(model, delegate)
+file_listener_instance.add_model(model)
 
 with ui.Frame():
     widget = _PropertyWidget(model, delegate)

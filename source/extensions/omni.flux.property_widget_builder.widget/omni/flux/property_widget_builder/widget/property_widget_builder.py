@@ -108,6 +108,9 @@ class PropertyWidget:
             horizontal_clipping=True,
             computed_content_size_changed_fn=self._on_content_size_changed,
         )
+        column_widths = self._get_column_widths()
+        if self._uses_responsive_pixel_columns():
+            self._last_name_column_width = column_widths[0].value
         with self._root_frame:
             self._tree_view = _TreeWidget(
                 self._model,
@@ -115,7 +118,7 @@ class PropertyWidget:
                 root_visible=False,
                 header_visible=False,
                 width=ui.Fraction(1),
-                column_widths=self._get_column_widths(),
+                column_widths=column_widths,
                 min_column_widths=self._get_min_column_widths(),
                 columns_resizable=self._columns_resizable,
                 select_all_children=self._select_all_children,

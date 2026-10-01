@@ -110,6 +110,21 @@ class TestFileItemModels(omni.kit.test.AsyncTestCase):
         self.assertEqual(256, model.get_value())
         value_changed_mock.assert_called_once_with()
 
+    async def test_file_attribute_value_model_refresh_ignores_unchanged_none_value(self):
+        """Avoid notifying bound fields when an attribute remains unset."""
+        # Arrange
+        entry = SimpleNamespace(flags=omni.client.ItemFlags.READABLE_FILE, locked_by=None)
+        with patch.object(omni.client, "stat", return_value=(omni.client.Result.OK, entry)):
+            model = FileAttributeValueModel("omniverse://server/file.usda", "locked_by")
+
+            # Act
+            with patch.object(model, "_value_changed") as value_changed_mock:
+                model.refresh()
+
+        # Assert
+        self.assertIsNone(model.get_value())
+        value_changed_mock.assert_not_called()
+
     async def test_file_attribute_value_model_ignores_unreadable_files(self):
         # Arrange
         entry = SimpleNamespace(flags=0, size=128)

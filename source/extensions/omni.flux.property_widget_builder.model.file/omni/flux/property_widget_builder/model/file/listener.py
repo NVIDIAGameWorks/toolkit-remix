@@ -45,6 +45,7 @@ class FileListener:
         for attr, value in self._default_attr.items():
             setattr(self, attr, value)
         self._models: list[_FileModel] = []
+        self._entry_states: dict[str, tuple] = {}
         self._listeners: dict[str, asyncio.Task] = {}
         self._pending_paths: dict[str, None] = {}
 
@@ -54,7 +55,27 @@ class FileListener:
             await asyncio.sleep(1)
             result, entry = await omni.client.stat_async(path)
             if result == omni.client.Result.OK and entry.flags & omni.client.ItemFlags.READABLE_FILE:
-                self._on_file_changed(path)
+                entry_state = (
+                    entry.access,
+                    entry.comment,
+                    entry.created_by,
+                    entry.created_time,
+                    entry.deleted_by,
+                    entry.deleted_time,
+                    entry.flags,
+                    entry.hash,
+                    entry.locked_by,
+                    entry.modified_by,
+                    entry.modified_time,
+                    entry.relative_path,
+                    entry.size,
+                    entry.version,
+                )
+                if self._entry_states.get(path) != entry_state:
+                    self._entry_states[path] = entry_state
+                    self._on_file_changed(path)
+            else:
+                self._entry_states.pop(path, None)
 
     def _enable_listener(self, path: str):
         """Enable file polling for a path.
@@ -127,7 +148,7 @@ class FileListener:
         for model in self._models:
             if path != model.path:
                 continue
-            model.refresh()
+            model.refresh_values()
 
     def refresh_all(self):
         """Refresh all registered models."""
@@ -159,6 +180,7 @@ class FileListener:
             self._models.remove(model)
         if not any(f for f in self._models if f.path == model.path):
             self._disable_listener(model.path)
+            self._entry_states.pop(model.path, None)
             self._pending_paths.pop(model.path, None)
         if not self._models:
             self._disable_interaction_listener()
@@ -169,5 +191,6 @@ class FileListener:
         for listener in self._listeners.values():
             listener.cancel()
         self._disable_interaction_listener()
+        self._entry_states.clear()
 
         _reset_default_attrs(self)

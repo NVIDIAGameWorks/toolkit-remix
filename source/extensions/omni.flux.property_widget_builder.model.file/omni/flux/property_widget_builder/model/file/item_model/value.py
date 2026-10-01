@@ -37,8 +37,9 @@ class FileAttributeValueModel(_ItemValueModel):
         self._on_file_changed()
 
     def refresh(self):
-        self._on_file_changed()
-        self._on_dirty()
+        """Notify bound fields only when the file attribute changes."""
+        if self._read_value_from_file():
+            self._on_dirty()
 
     def get_value(self) -> Any:
         return self._value
@@ -68,8 +69,10 @@ class FileAttributeValueModel(_ItemValueModel):
         self._read_value_from_file()
 
     def _read_value_from_file(self):
-        """
-        :return: True if the cached value was updated; false otherwise
+        """Read the file attribute into the cached value.
+
+        Returns:
+            True if the cached value changed, otherwise False.
         """
         if not self._path:
             assert self._value is None
@@ -79,7 +82,7 @@ class FileAttributeValueModel(_ItemValueModel):
         result, entry = omni.client.stat(self._path)
         if result == omni.client.Result.OK and entry.flags & omni.client.ItemFlags.READABLE_FILE:
             value = getattr(entry, self._attribute)
-            if self._value is None or value != self._value:
+            if value != self._value:
                 self._value = value
                 value_was_set = True
         return value_was_set

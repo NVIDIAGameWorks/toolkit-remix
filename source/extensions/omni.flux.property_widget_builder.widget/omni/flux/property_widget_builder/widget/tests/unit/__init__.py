@@ -15,8 +15,9 @@
 * limitations under the License.
 """
 
-__all__ = ("TestClipboard", "TestDelegate", "TestItemGroupExpansion", "TestItemValueModel")
+__all__ = ("TestClipboard", "TestDelegate", "TestInitialColumnLayout", "TestItemGroupExpansion", "TestItemValueModel")
 
 from .test_expansion_with_existing_items import TestItemGroupExpansion
+from omni.flux.property_widget_builder.widget.tests.unit.test_initial_column_layout import TestInitialColumnLayout
 from .test_item_model import TestItemValueModel
 from .tree import TestClipboard, TestDelegate

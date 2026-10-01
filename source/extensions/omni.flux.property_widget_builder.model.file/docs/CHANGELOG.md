@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.6]
+### Fixed
+- Update file property values without rebuilding attribute rows, preventing label jitter during polling and capture changes.
+- Clear cached file metadata explicitly when the listener is destroyed.
+
+### Changed
+- Isolate polling regression tests from file I/O and share their polling task cleanup.
+
 ## [1.9.5]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.
