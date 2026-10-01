@@ -50,8 +50,8 @@ query parameters, request body, etc.
 ### Endpoint Versioning
 
 The Remix Toolkit REST API uses a versioning header to version every endpoint available individually. A dropdown with
-the list of available endpoint version headers can be found in the endpoint details with the `Request body` text or
-within the `Successful Response` sub-section of the `Responses` section. The header should have the following format:
+the list of available endpoint version headers can be found in the endpoint details within the `Successful Response`
+sub-section of the `Responses` section. The header should have the following format:
 
 ```text
 application/lightspeed.remix.service+json; version=1.0

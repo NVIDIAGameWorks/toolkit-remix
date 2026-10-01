@@ -80,13 +80,12 @@ class TestMCPCore(omni.kit.test.AsyncTestCase):
             mock.patch.object(mcp_module.carb.settings, "get_settings", return_value=settings),
             mock.patch.object(mcp_module.main, "get_app", return_value=mock.Mock()),
             mock.patch.object(mcp_module.FastMCP, "from_fastapi", return_value=rest_api_mcp),
-            mock.patch.object(mcp_module, "_compact_tool_descriptions", new_callable=mock.AsyncMock),
             mock.patch.object(mcp_module.MCPCore, "_run_mcp_server", run_mcp_server_mock),
         ):
             await mcp_module.MCPCore._initialize_async(mcp, host, port, allow_range, "warning", transport)
 
-    async def test_compact_descriptions_removes_only_generated_input_prose(self) -> None:
-        """Preserve authored guidance, responses and schemas while omitting repeated inputs."""
+    async def test_describe_tool_adds_body_and_response_guidance_without_input_prose(self) -> None:
+        """Extend authored guidance with the body description and responses, leaving schemas untouched."""
 
         # Arrange
         class ModelUpdate(BaseModel):
@@ -122,24 +121,24 @@ class TestMCPCore(omni.kit.test.AsyncTestCase):
             """Return health without exposing an MCP tool."""
             return {"ready": True}
 
-        mcp = FastMCP.from_fastapi(app, route_maps=mcp_module._CURATED_ROUTE_MAPS)
-        tools = await mcp.get_tools()
-        description_before = tools["update_model"].description
-        parameters_before = deepcopy(tools["update_model"].parameters)
+        plain = FastMCP.from_fastapi(app, route_maps=mcp_module._CURATED_ROUTE_MAPS)
+        parameters_before = (await plain.get_tool("update_model")).parameters
         spec_before = deepcopy(app.openapi())
 
         # Act
-        await mcp_module._compact_tool_descriptions(mcp, app.openapi())
+        described = FastMCP.from_fastapi(
+            app, route_maps=mcp_module._CURATED_ROUTE_MAPS, mcp_component_fn=mcp_module._describe_tool
+        )
 
         # Assert
+        tools = {tool.name: tool for tool in await described.list_tools()}
         description = tools["update_model"].description
         self.assertEqual(set(tools), {"update_model"})
         self.assertTrue(description.startswith(authored))
         for heading in ("**Path Parameters:**", "**Query Parameters:**", "**Request Properties:**"):
-            self.assertEqual(description_before.count(heading), 2)
             self.assertEqual(description.count(heading), 1)
         self.assertIn("Load the capture before replacing its model. (Required)", description)
-        self.assertEqual(description.rsplit("**Responses:**", 1)[1], description_before.rsplit("**Responses:**", 1)[1])
+        self.assertIn("Replacement model title.", description.rsplit("**Responses:**", 1)[1])
         self.assertEqual(tools["update_model"].parameters, parameters_before)
         self.assertIn("title", parameters_before["properties"])
         self.assertIn("title", parameters_before["required"])
@@ -237,8 +236,7 @@ class TestMCPCore(omni.kit.test.AsyncTestCase):
                 mock.patch.object(mcp_module, "_FALLBACK_PORT_RANGE", [retry_port]),
                 mock.patch.object(mcp_module.carb.settings, "get_settings", return_value=settings),
                 mock.patch.object(mcp_module.main, "get_app", return_value=mock.Mock()),
-                mock.patch.object(mcp_module.FastMCP, "from_fastapi", return_value=mock.Mock()),
-                mock.patch.object(mcp_module, "_compact_tool_descriptions", new_callable=mock.AsyncMock),
+                mock.patch.object(mcp_module.FastMCP, "from_fastapi", return_value=FastMCP("Empty REST API")),
                 mock.patch.object(mcp_module, "_ServiceReadyServer", side_effect=create_server),
                 mock.patch.object(mcp_module.carb, "log_info") as log_info_mock,
             ):
@@ -343,7 +341,7 @@ class TestMCPCore(omni.kit.test.AsyncTestCase):
             await mcp_module.MCPCore._run_mcp_server(mcp, host, port, "critical", "streamable-http")
 
         # Assert
-        mcp.http_app.assert_called_once_with(transport="streamable-http")
+        mcp.http_app.assert_called_once_with(path="/mcp/", transport="streamable-http")
 
     async def test_initialize_when_transport_is_unsupported_uses_default_transport(self) -> None:
         """Fall back to the default transport when the configured transport is not supported."""

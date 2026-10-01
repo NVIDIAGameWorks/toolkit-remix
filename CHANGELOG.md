@@ -179,6 +179,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-6104: Fixed delayed Open-with-Capture feedback and repeated input by showing progress after wizard dismissal, blocking duplicate requests, and logging preparation failures.
 - Fixed Remix Review spending its review budget on speculative synthesis reservations and idle worker queues while preserving required coverage and deadline enforcement.
 - REMIX-6129: Reduced large-selection stalls in Properties and the viewport.
+- Fixed MCP tool schemas that referenced `#/components/schemas/*` without including the definitions, which strict clients such as llama.cpp rejected, by upgrading the MCP server to FastMCP 4.0.10 with FastAPI 0.142.2, Starlette 1.7.0 and Pydantic 2.13.5 (GitHub rtx-remix#1097).
 
 ## [1.5.2-0]
 

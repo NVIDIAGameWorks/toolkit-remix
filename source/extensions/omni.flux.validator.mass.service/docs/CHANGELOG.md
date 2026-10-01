@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.7]
+### Changed
+- Send the schema update test's request through the running REST server instead of `httpx`, which the prebundle no longer ships
+
 ## [2.1.6]
 ### Fixed
 - Describe the ingestion schema update's JSON fields so MCP exposes the required request body without changing the REST payload format

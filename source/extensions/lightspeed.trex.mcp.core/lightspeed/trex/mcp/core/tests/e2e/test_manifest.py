@@ -20,12 +20,14 @@
 # about the app it points at.
 
 import json
+import re
 from copy import deepcopy
 
 import fastmcp
 import omni.kit.test
-from fastmcp.exceptions import ClientError
-from lightspeed.trex.mcp.core.mcp import _CURATED_ROUTE_MAPS, _compact_tool_descriptions
+from fastmcp.exceptions import ToolError
+from lightspeed.trex.mcp.core.mcp import _CURATED_ROUTE_MAPS, _describe_tool
+from omni.flux.utils.tests.context_managers import open_test_project
 from omni.services.core import main
 
 # Prefixes a capability serves. A new one is expected and fine; what the tests below assert is that
@@ -55,14 +57,16 @@ class TestMCPManifest(omni.kit.test.AsyncTestCase):
         # from_fastapi walks the app's OpenAPI spec, so this is the conversion MCPCore runs at
         # startup, against the routers this test app actually mounted.
         self.spec = main.get_app().openapi()
-        self.mcp = fastmcp.FastMCP("test")
-        rest_api_mcp = fastmcp.FastMCP.from_fastapi(main.get_app(), route_maps=_CURATED_ROUTE_MAPS)
-        self.original_manifest = {
-            name: tool.to_mcp_tool().model_dump(mode="json") for name, tool in (await rest_api_mcp.get_tools()).items()
-        }
         self.original_spec = deepcopy(self.spec)
-        await _compact_tool_descriptions(rest_api_mcp, self.spec)
-        self.mcp.mount("remix", rest_api_mcp)
+        plain = fastmcp.FastMCP.from_fastapi(main.get_app(), route_maps=_CURATED_ROUTE_MAPS)
+        self.original_manifest = {
+            tool.name: tool.to_mcp_tool().model_dump(mode="json") for tool in await plain.list_tools()
+        }
+        rest_api_mcp = fastmcp.FastMCP.from_fastapi(
+            main.get_app(), route_maps=_CURATED_ROUTE_MAPS, mcp_component_fn=_describe_tool
+        )
+        self.mcp = fastmcp.FastMCP("test")
+        self.mcp.mount(rest_api_mcp, namespace="remix")
 
     async def tearDown(self):
         self.mcp = None
@@ -71,8 +75,7 @@ class TestMCPManifest(omni.kit.test.AsyncTestCase):
         self.original_spec = None
 
     async def __tool_operation_ids(self) -> set[str]:
-        tools = await self.mcp.get_tools()
-        return {name.removeprefix(_TOOL_NAMESPACE) for name in tools}
+        return {tool.name.removeprefix(_TOOL_NAMESPACE) for tool in await self.mcp.list_tools()}
 
     async def test_manifest_matches_the_capability_operations_in_the_spec(self):
         # Both directions, derived from the running app: a dropped operation and a leaked one
@@ -87,23 +90,20 @@ class TestMCPManifest(omni.kit.test.AsyncTestCase):
         self.assertTrue(expected, "the test app mounted no capability routes to check against")
         self.assertEqual(served, expected)
 
-    async def test_compact_manifest_preserves_tools_and_schemas_with_less_description_text(self):
-        """Measure description savings against the real app's unmodified FastMCP manifest."""
-        # Compare the advertised tools after the same cleanup and mount used at startup.
+    async def test_described_manifest_changes_only_descriptions(self):
+        """Keep every tool and schema fastmcp builds from the real app; only extend the descriptions."""
         manifest = {
-            name.removeprefix(_TOOL_NAMESPACE): tool.to_mcp_tool(name=name.removeprefix(_TOOL_NAMESPACE)).model_dump(
-                mode="json"
-            )
-            for name, tool in (await self.mcp.get_tools()).items()
+            name: tool.to_mcp_tool(name=name).model_dump(mode="json")
+            for tool in await self.mcp.list_tools()
+            for name in (tool.name.removeprefix(_TOOL_NAMESPACE),)
         }
         before_chars = len(json.dumps(self.original_manifest, sort_keys=True))
         after_chars = len(json.dumps(manifest, sort_keys=True))
-        print(f"MCP manifest JSON: {before_chars} -> {after_chars} characters ({before_chars - after_chars} saved)")
-        self.assertLess(after_chars, before_chars)
+        print(f"MCP manifest JSON: {before_chars} -> {after_chars} characters ({after_chars - before_chars} added)")
         self.assertEqual(set(manifest), set(self.original_manifest))
         for name, tool in manifest.items():
             original = self.original_manifest[name]
-            self.assertLessEqual(len(tool["description"]), len(original["description"]))
+            self.assertTrue(tool["description"].startswith(original["description"]), name)
             self.assertEqual(
                 {key: value for key, value in tool.items() if key != "description"},
                 {key: value for key, value in original.items() if key != "description"},
@@ -114,16 +114,45 @@ class TestMCPManifest(omni.kit.test.AsyncTestCase):
         """Advertise required JSON fields and progress without unresolved schema references."""
         async with fastmcp.Client(self.mcp) as client:
             tools = {tool.name: tool for tool in await client.list_tools()}
-        schema = tools["remix_update_ingestion_schema"].inputSchema
+        schema = tools["remix_update_ingestion_schema"].input_schema
         self.assertEqual(set(schema["required"]), {"name", "context_plugin", "check_plugins"})
         self.assertIn("progress", schema["properties"])
         self.assertIn("queue_id", schema["properties"])
         self.assertNotIn("#/", json.dumps(schema))
 
-    async def test_update_ingestion_schema_without_body_rejects_call(self):
-        """Reject a missing body at the MCP boundary."""
+    async def test_every_tool_schema_resolves_its_own_refs(self):
+        """Keep every `$ref` inside the tool schema that uses it (GitHub rtx-remix#1097)."""
+        # llama.cpp rejects the whole tool list over one unresolvable ref, and the MCP client fails any call to a
+        # tool whose output schema has one.
         async with fastmcp.Client(self.mcp) as client:
-            with self.assertRaisesRegex(ClientError, "required property"):
+            tools = await client.list_tools()
+        dangling = {
+            f"{tool.name}: {ref}"
+            for tool in tools
+            for schema in (tool.input_schema, tool.output_schema or {})
+            for ref in re.findall(r'"\$ref": "([^"]*)"', json.dumps(schema))
+            if ref.removeprefix("#/$defs/") not in schema.get("$defs", {})
+        }
+        self.assertEqual(dangling, set())
+
+    async def test_get_layers_ignores_unknown_arguments_and_matches_the_output_schema(self):
+        """Return a real layer stack through a client that checks results against `outputSchema`."""
+        # The MCP client fails the call when the result does not match the output schema or the schema has a
+        # `$ref` it cannot resolve. Only a non-empty stack reaches the layer schema. The unknown argument must be
+        # dropped quietly: a warning goes to stderr, which Kit reports as `[Error]` and fails this run over.
+        # Arrange
+        async with open_test_project("usd/project_example/combined.usda", ext_name="lightspeed.trex.app.resources"):
+            # Act
+            async with fastmcp.Client(self.mcp) as client:
+                result = await client.call_tool("remix_get_layers", {"unknown_argument": True})
+
+        # Assert
+        self.assertTrue(result.structured_content["layers"])
+
+    async def test_update_ingestion_schema_without_body_rejects_call(self):
+        """Reject a missing body and report the service's validation failure to the client."""
+        async with fastmcp.Client(self.mcp) as client:
+            with self.assertRaisesRegex(ToolError, "422"):
                 await client.call_tool("remix_update_ingestion_schema", {"queue_id": "mcp-body-regression"})
 
     async def test_no_operation_outside_a_capability_reaches_the_manifest(self):
@@ -139,9 +168,7 @@ class TestMCPManifest(omni.kit.test.AsyncTestCase):
         self.assertEqual(served & outside, set())
 
     async def test_read_operations_are_tools_rather_than_resources(self):
-        # fastmcp appends its own defaults after ours, and those classify a bare GET as a RESOURCE.
-        # A deny-list missing the trailing TOOL catch-all passes every route-map unit test while
-        # quietly serving the read half of the API as something a model cannot call.
+        # A model cannot call a resource, so every capability GET must be served as a tool.
         # Arrange
         reads = {
             operation["operationId"]

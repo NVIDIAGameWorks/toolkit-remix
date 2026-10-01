@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Changed
+- Upgraded `fastmcp` to 4.0.10, `fastapi` to 0.142.2, `pydantic` to 2.13.5 and `pyperclip` to 1.11.0, which brings `starlette` 1.7.0 and `mcp` 2.2.0 and drops `httpx`, `httpx-sse`, `httpcore`, `typer`, `shellingham` and `colorama`. Prebundled package metadata now resolves by its hyphenated name, such as `importlib.metadata.version("email-validator")`, which Kit's importer does not normalize
+
 ## [2.2.5]
 ### Fixed
 - Added regression coverage for incompatible package files in the shared pip archive.
