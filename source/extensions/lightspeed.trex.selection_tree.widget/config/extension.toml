@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.10.2"
+version = "1.10.3"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix Selection Tree implementation for the StageCraft"
 description = "Selection Tree implementation for NVIDIA RTX Remix StageCraft App"

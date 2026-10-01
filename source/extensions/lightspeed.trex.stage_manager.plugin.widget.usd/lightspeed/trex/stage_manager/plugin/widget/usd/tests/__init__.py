@@ -19,6 +19,7 @@ from .e2e.test_action_delete_restore import TestDeleteRestoreActionWidgetPlugin
 from .e2e.test_widget import TestStageManagerPluginWidget
 from .unit.test_action_assign_category import TestAssignCategoryActionWidgetPlugin
 from .unit.test_action_delete_restore import TestDeleteRestoreActionWidgetPluginUnit
+from .unit.test_action_light_clipboard import TestLightClipboardMenuPlugin
 from .unit.test_action_nickname_toggle import TestNicknameToggleActionWidgetPlugin
 from .unit.test_action_remap_skeleton import TestRemapSkeletonActionWidgetPlugin
 from .unit.test_focus_in_viewport import TestFocusInViewportActionWidgetPlugin
@@ -30,6 +31,7 @@ __all__ = [
     "TestDeleteRestoreActionWidgetPlugin",
     "TestDeleteRestoreActionWidgetPluginUnit",
     "TestFocusInViewportActionWidgetPlugin",
+    "TestLightClipboardMenuPlugin",
     "TestLightspeedStageManagerUSDWidgetPluginsExtension",
     "TestNicknameToggleActionWidgetPlugin",
     "TestRemapSkeletonActionWidgetPlugin",

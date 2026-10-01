@@ -50,6 +50,18 @@ illumination, minimizing noise and maximizing performance.
 
    ![Lighting 1](../data/images/remix-lighting-007.png)
 
+### Copying a Light to Another Mesh
+
+1. Right-click an added light in the **Property Panel** or **Stage Manager**, then select **Copy Light**.
+2. Right-click a different destination mesh, then select **Paste Light**.
+
+The duplicated light retains the source light's authored settings and local transform values. Use **Undo** to remove
+the pasted light. Copy and paste confirmations or failures are reported in the console.
+
+```{note}
+Captured lights cannot be copied. The destination must belong to a different mesh asset in the same open stage.
+```
+
 ### Primitive Light Types
 
 1. **Cylinder, Disc, Rectangular, and Sphere Lights:**

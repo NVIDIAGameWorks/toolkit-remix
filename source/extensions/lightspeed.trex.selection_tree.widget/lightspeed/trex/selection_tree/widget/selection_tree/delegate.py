@@ -864,6 +864,10 @@ class Delegate(ui.AbstractItemDelegate):
         self._context_menu = ui.Menu("Context Menu")
 
         hash_match = re.match(constants.COMPILED_REGEX_HASH, str(item.prim.GetPath()))
+        can_copy_light = (
+            isinstance(item, _ItemPrim) and item.from_live_light_group and self._asset_core.can_copy_light(item.path)
+        )
+        can_paste_light = self._asset_core.can_paste_light_from_clipboard(item.path)
         with self._context_menu:
             ui.MenuItem(
                 "Copy Prim Name",
@@ -886,6 +890,19 @@ class Delegate(ui.AbstractItemDelegate):
                 enabled=hash_match is not None,
                 identifier="copy_hash",
                 triggered_fn=lambda: omni.kit.clipboard.copy(hash_match.group(3)),
+            )
+            ui.Separator()
+            ui.MenuItem(
+                "Copy Light",
+                enabled=can_copy_light,
+                identifier="copy_light",
+                triggered_fn=functools.partial(self._asset_core.copy_light_to_clipboard, item.path),
+            )
+            ui.MenuItem(
+                "Paste Light",
+                enabled=can_paste_light,
+                identifier="paste_light_to_mesh",
+                triggered_fn=functools.partial(self._asset_core.paste_light_from_clipboard, item.path),
             )
 
         self._context_menu.show()

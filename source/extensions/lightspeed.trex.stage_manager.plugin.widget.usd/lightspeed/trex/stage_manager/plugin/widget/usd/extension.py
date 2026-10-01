@@ -26,6 +26,7 @@ from omni.ext import IExt
 from .action_assign_category import AssignCategoryActionWidgetPlugin as _AssignCategoryActionWidgetPlugin
 from .action_delete_restore import DeleteRestoreActionWidgetPlugin as _DeleteRestoreActionWidgetPlugin
 from .action_logic_graph import LogicGraphWidgetPlugin as _LogicGraphWidgetPlugin
+from .action_light_clipboard import LightClipboardMenuPlugin as _LightClipboardMenuPlugin
 from .action_nickname_toggle import NicknameToggleActionWidgetPlugin as _NicknameToggleActionWidgetPlugin
 from .action_particle_systems import ParticleSystemsActionWidgetPlugin as _ParticleSystemsActionWidgetPlugin
 from .action_remap_skeleton import RemapSkeletonActionWidgetPlugin as _RemapSkeletonActionWidgetPlugin
@@ -47,6 +48,7 @@ class LightspeedStageManagerUSDWidgetPluginsExtension(IExt):
         _IsCaptureStateWidgetPlugin,
         _IsCategoryHiddenStateWidgetPlugin,
         _LogicGraphWidgetPlugin,
+        _LightClipboardMenuPlugin,
         _NicknameToggleActionWidgetPlugin,
         _ParticleSystemsActionWidgetPlugin,
         _PrimRenameNameActionWidgetPlugin,

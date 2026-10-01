@@ -5,6 +5,7 @@ USD-specific Stage Manager state and action widgets for RTX Remix capture editin
 ## Responsibilities
 
 - Register the RTX Remix USD widget plugins with the Stage Manager factory.
+- Provide context-menu actions for copying added lights and pasting them through mesh asset, descendant, or instance selections.
 - Render capture, category, nickname, particle, skeleton, logic-graph, rename, focus, and delete/restore controls.
 - Route viewport Delete requests to the matching USD context and publish context-bound frame requests.
 - Execute regular and capture deletion as one undoable operation.
@@ -30,6 +31,7 @@ USD-specific Stage Manager state and action widgets for RTX Remix capture editin
 - `SubmitComfyUIJobActionWidgetPlugin` snapshots the explicit selection and connection readiness, then lets the
   ComfyUI core resolve candidates and create skipped jobs for missing inputs.
 - `DeleteRestoreActionWidgetPlugin` applies undoable capture-reference and light-intensity edits.
+- `LightClipboardMenuPlugin` connects Stage Manager context-menu actions to the shared asset-replacement core.
 - The remaining action, state, and information plugins each provide one Stage Manager column or context-menu behavior.
 
 ### ComfyUI Submission

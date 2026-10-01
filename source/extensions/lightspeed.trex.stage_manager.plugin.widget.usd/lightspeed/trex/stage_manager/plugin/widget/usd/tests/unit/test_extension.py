@@ -52,6 +52,17 @@ class TestLightspeedStageManagerUSDWidgetPluginsExtension(omni.kit.test.AsyncTes
             extension._on_viewport_delete_selection_requested,
         )
 
+    async def test_plugins_include_light_clipboard_menu(self):
+        """The registered plugins include the light clipboard context menu."""
+        # Arrange
+        extension = LightspeedStageManagerUSDWidgetPluginsExtension()
+
+        # Act
+        plugin_names = {plugin.__name__ for plugin in extension._PLUGINS}
+
+        # Assert
+        self.assertIn("LightClipboardMenuPlugin", plugin_names)
+
     async def test_viewport_delete_request_with_context_deletes_selection_in_requested_context(self):
         """A viewport request deletes the selection in its explicit USD context."""
         # Arrange
