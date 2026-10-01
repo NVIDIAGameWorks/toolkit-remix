@@ -140,6 +140,20 @@ dependencies = [
 - Add `"omni.flux.pip_archive" = {}` if the extension uses any third-party pip packages.
 - Never rely on transitive dependencies — if you import it, declare it.
 
+### MDL Backend Initialization
+
+Declare `omni.flux.material_api` as a dependency when using `ShaderInfoAPI`. Its `MaterialApiExtension.on_startup()` calls
+`omni.mdl.neuraylib.ensure_running()` synchronously, so dependent extensions can resolve MDL assets and query shader
+metadata after startup without waiting for a material selection or renderer activity. Consumers that already depend on
+a material widget or service using this API inherit that startup ordering and do not need another initialization call.
+
+Loading `omni.mdl.neuraylib` alone does not establish this contract. Without `rtx.hydra`, Neuray must be started explicitly
+to register MDL search paths with the USD asset resolver; see
+[MDL module resolution without the RTX renderer](https://docs.omniverse.nvidia.com/kit/docs/omni.mdl.neuraylib/latest/USAGE_PYTHON.html#enable-mdl-module-resolution-without-the-rtx-renderer).
+The application still owns the configured search paths, such as those in
+[the rendering settings](../../source/apps/lightspeed.app.rendering.settings.toml); initializing the backend does not
+provide missing MDL content.
+
 ---
 
 ## `premake5.lua` Boilerplate

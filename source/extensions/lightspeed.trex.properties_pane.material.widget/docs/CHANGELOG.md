@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.6]
+### Changed
+- Use the material API's startup initialization for MDL asset resolution.
+
 ## [2.3.5]
 ### Fixed
 - Preserved complete material targets and built actions only when their menu opens.

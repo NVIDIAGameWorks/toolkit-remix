@@ -1,5 +1,5 @@
 """
-* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 * SPDX-License-Identifier: Apache-2.0
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +15,19 @@
 * limitations under the License.
 """
 
-from .extension import MaterialApiExtension
-from .placeholder_attribute import PlaceholderAttribute
-from .scripts import ShaderInfoAPI, UsdShadePropertyPlaceholder
+from omni.ext import IExt
+from omni.mdl.neuraylib import ensure_running
 
-__all__ = ["MaterialApiExtension", "PlaceholderAttribute", "ShaderInfoAPI", "UsdShadePropertyPlaceholder"]
+__all__ = ["MaterialApiExtension"]
+
+
+class MaterialApiExtension(IExt):
+    """Initialize the MDL backend for material API consumers."""
+
+    def on_startup(self, _ext_id: str) -> None:
+        """Enable MDL asset resolution before dependent extensions start.
+
+        Args:
+            _ext_id: Kit extension identifier.
+        """
+        ensure_running()
