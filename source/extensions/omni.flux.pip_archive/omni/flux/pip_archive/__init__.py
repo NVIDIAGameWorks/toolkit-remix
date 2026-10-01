@@ -15,13 +15,17 @@
 * limitations under the License.
 """
 
+import importlib.util
 import os
 import sys
 
-# Fix pygit2 DLL loading on Windows Python 3.8+
-if sys.platform == "win32" and sys.version_info >= (3, 8):
-    import importlib.util
-
-    if spec := importlib.util.find_spec("pygit2"):  # noqa: SIM102
-        if spec.origin:
-            os.add_dll_directory(os.path.dirname(spec.origin))
+if (spec := importlib.util.find_spec("pygit2")) and spec.origin:
+    # Fix pygit2 DLL loading on Windows Python 3.8+
+    if sys.platform == "win32":
+        os.add_dll_directory(os.path.dirname(spec.origin))
+    # Kit's importer matches dist-info folders by exact spelling, so `version("email-validator")` misses
+    # `email_validator-*.dist-info` and pydantic's EmailStr check fails. The stdlib finder normalizes names;
+    # imports still resolve through Kit's importer first.
+    _prebundle = os.path.dirname(os.path.dirname(spec.origin))
+    if _prebundle not in sys.path:
+        sys.path.append(_prebundle)

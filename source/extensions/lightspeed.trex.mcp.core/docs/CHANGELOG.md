@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Changed
+- Upgrade to FastMCP 4.0.10 and the MCP SDK 2.2.0. Tool schemas inline their definitions, so `Optional[Enum]` parameters no longer reference `#/components/schemas/` definitions the schema omits, which strict clients such as llama.cpp rejected. Tools advertise an output schema, return structured results and carry a title derived from their name; descriptions no longer include FastAPI's generated 422 section. Arguments are no longer checked against the input schema before the REST call: a missing body, a missing path parameter or a wrong type comes back as the REST service's HTTP 422, values the route can convert, such as `"3"` for an integer, are accepted, and unknown arguments are dropped
+
 ## [1.3.0]
 ### Changed
 - Changed the preferred port from `8000` to `18014`, with fallback limited to `18014–18019`. Update clients from `http://127.0.0.1:8000/mcp/` to `http://127.0.0.1:18014/mcp/`

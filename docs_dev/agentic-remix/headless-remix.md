@@ -53,7 +53,7 @@ MCP and REST servers accept requests.
 
 | Port | Surface | Use it for |
 |---|---|---|
-| 18014 (preferred) | **MCP over Streamable HTTP** | Agent tool calls. Connect with an MCP client, `.mcp.json`, or the MCP Python SDK. |
+| 18014 (preferred) | **MCP over Streamable HTTP** | Agent tool calls. Connect with an MCP client or the MCP Python SDK. |
 | 8011 (requested) | **REST** (uvicorn / FastAPI) | Direct HTTP calls and the OpenAPI schema. |
 
 The MCP server builds its tool list from the REST app's OpenAPI schema at startup. The

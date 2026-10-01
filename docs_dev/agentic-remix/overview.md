@@ -67,7 +67,7 @@ headless is a second host for the same stack, not the only one. Two consequences
      ▼
    lightspeed.trex.mcp.core
      FastMCP.from_fastapi(app, route_maps=_CURATED_ROUTE_MAPS)
-     mcp.mount("remix", rest_api_mcp)
+     mcp.mount(rest_api_mcp, namespace="remix")
      │ reflects the active REST schema
      ▼
    lightspeed.trex.service.core
@@ -164,10 +164,7 @@ that introduces that tool, together with the test that pins it — not written a
 
 ## Related documents
 
-The repository's MCP client configurations include a `remix` server entry:
-[Claude Code](../../.mcp.json), [Cursor](../../.cursor/mcp.json),
-[VS Code](../../.vscode/mcp.json), [Windsurf](../../.windsurf/mcp.json), and
-[Codex](../../.codex/config.toml). These settings are separate from bundled skill discovery.
+To drive a running Toolkit, add the endpoint it logs to your MCP client.
 
 - [Headless RTX Remix](headless-remix.md) — running the headless app, and its limitations
 - [Using AI Agents with MCP](../../docs/howto/learning-mcp.md) — pointing an MCP

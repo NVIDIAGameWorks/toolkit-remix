@@ -19,8 +19,9 @@ __all__ = ("TestCuratedRouteMaps",)
 
 from types import SimpleNamespace
 
-import fastmcp.server.openapi as fastmcp_openapi
+import fastmcp.server.providers.openapi as fastmcp_openapi
 import omni.kit.test
+from fastmcp.server.providers.openapi.routing import _determine_route_type
 
 from lightspeed.trex.mcp.core.mcp import _CURATED_ROUTE_MAPS
 
@@ -37,12 +38,10 @@ class TestCuratedRouteMaps(omni.kit.test.AsyncTestCase):
 
     def __classify(self, method: str, path: str):
         route = SimpleNamespace(method=method, path=path)
-        return fastmcp_openapi._determine_route_type(route, _CURATED_ROUTE_MAPS)
+        return _determine_route_type(route, _CURATED_ROUTE_MAPS).mcp_type
 
     async def test_unregistered_route_prefixes_become_tools(self):
-        # The point of the deny-list: a new prefix reaches the manifest with no edit here. GET is
-        # the case that matters — fastmcp's defaults send it to RESOURCE, so this also pins that
-        # the TOOL catch-all is still doing its job.
+        # The point of the deny-list: a new prefix reaches the manifest with no edit here, reads included.
         cases = [
             ("GET", "/agentic/lights"),
             ("POST", "/agentic/lights"),
@@ -55,7 +54,7 @@ class TestCuratedRouteMaps(omni.kit.test.AsyncTestCase):
                 route_type = self.__classify(method, path)
 
                 # Assert
-                self.assertEqual(route_type, fastmcp_openapi.RouteType.TOOL)
+                self.assertEqual(route_type, fastmcp_openapi.MCPType.TOOL)
 
     async def test_root_level_ui_automation_routes_are_ignored(self):
         # These belonged to an automation extension that no longer ships. Pinned so a regression
@@ -82,4 +81,4 @@ class TestCuratedRouteMaps(omni.kit.test.AsyncTestCase):
                 route_type = self.__classify(method, path)
 
                 # Assert
-                self.assertEqual(route_type, fastmcp_openapi.RouteType.IGNORE)
+                self.assertEqual(route_type, fastmcp_openapi.MCPType.EXCLUDE)

@@ -22,13 +22,14 @@ Provides the RTX Remix Toolkit MCP server. It exposes Toolkit REST APIs as tools
 - `_CURATED_ROUTE_MAPS` decides which routes become tools; first match wins. It is a deny-list: three
   patterns drop the transport's health/readiness endpoints, the OpenAPI metadata routes and the root-level
   UI-automation routes, and a trailing catch-all keeps everything else as a `TOOL`. A route prefix added by
-  a new capability therefore reaches the manifest without editing this extension. The catch-all is required,
-  not cosmetic: fastmcp appends its own default mappings after these, and those send a bare `GET` to
-  `RESOURCE`, so without it every read operation would drop out of the tool manifest.
+  a new capability therefore reaches the manifest without editing this extension. The catch-all keeps that
+  true without relying on the default mappings fastmcp appends after these.
 - `_ServiceReadyServer` publishes the Windows discovery manifest and timestamped readiness marker after Uvicorn startup, rather than after the long-running server exits.
 - `discovery` atomically publishes the manifest with current-user-only file permissions and removes it on shutdown only if it still describes this server.
-- Tool descriptions omit generated input-parameter and body-property prose already present in the input schema.
-  FastMCP's formatter preserves authored descriptions, body-wide guidance and response documentation; schemas are unchanged.
+- FastMCP starts each tool description from the route's authored text; `_describe_tool` adds the body-wide guidance
+  and response documentation through FastMCP's formatter, because clients such as Hermes Agent show the model the
+  description and input schema but not the output schema. Input parameters and body properties are described only by
+  the input schema, which is unchanged.
 
 ## Settings
 
@@ -84,12 +85,6 @@ A crash can leave a stale record. Check that `pid` is running and confirm the ma
 `SERVICE_READY service=mcp` log or endpoint readiness before connecting. If publication fails,
 the server logs a warning and continues; use the existing endpoint logs instead. Non-Windows
 hosts use those logs without a discovery file. Client configurations are not rewritten.
-
-## Protocol Version
-
-The negotiated MCP protocol revision comes from the `mcp` SDK in the Flux pip prebundle, not from this extension.
-The bundled SDK supports `2024-11-05`, `2025-03-26`, `2025-06-18`, and `2025-11-25`; a client that asks for a newer
-revision negotiates down to `2025-11-25` rather than failing.
 
 ## Known limitations
 

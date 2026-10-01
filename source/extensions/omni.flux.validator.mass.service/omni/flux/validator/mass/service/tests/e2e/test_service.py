@@ -17,7 +17,6 @@
 
 import unittest
 
-import httpx
 import omni.usd
 from omni.flux.service.factory import get_instance as get_service_factory_instance
 from omni.flux.utils.common.api import send_request
@@ -73,13 +72,14 @@ class TestMassValidatorService(AsyncTestCase):
             lambda schema, queue_id: updates.append((schema, queue_id))
         )
         try:
-            async with httpx.AsyncClient(
-                transport=httpx.ASGITransport(app=main.get_app()), base_url="http://test"
-            ) as client:
-                # Act
-                response = await client.put(
-                    f"{self.service.prefix}/schema", params={"queue_id": "rest-body-regression"}, json=body
-                )
+            # Act
+            response = await send_request(
+                "PUT",
+                f"{self.service.prefix}/schema",
+                raw_response=True,
+                params={"queue_id": "rest-body-regression"},
+                json=body,
+            )
 
             # Assert
             self.assertEqual(response.status_code, 200, response.text)

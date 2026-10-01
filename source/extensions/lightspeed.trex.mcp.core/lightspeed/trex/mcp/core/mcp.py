@@ -28,19 +28,27 @@ from functools import partial
 from pathlib import Path
 
 import carb
-import fastmcp.server.openapi as fastmcp_openapi
+import fastmcp.server.providers.openapi as fastmcp_openapi
 import omni.usd
 import uvicorn
 from fastmcp import FastMCP
-from fastmcp.utilities.openapi import format_description_with_responses, parse_openapi_to_http_routes
+from fastmcp.utilities.openapi import HTTPRoute, format_description_with_responses
 from omni.flux.utils.common.version import get_app_version
 from omni.services.core import main
 
 from . import discovery
 
-# fastmcp narrates the conversion at INFO on stderr, which Kit stamps `[Error]` and the test
-# harness fails the run over. At import, so a caller reaching `from_fastapi` directly is covered.
-fastmcp_openapi.logger.setLevel(logging.WARNING)
+# fastmcp logs to stderr through its own handler, which Kit stamps `[Error]` and the test harness fails the
+# run over. At import, so a caller reaching `from_fastapi` directly is covered.
+logging.getLogger("fastmcp").setLevel(logging.WARNING)
+# Models often send arguments a route does not define; fastmcp drops them and the call succeeds, so the warning
+# it logs for each one is noise.
+logging.getLogger("fastmcp.utilities.openapi.director").setLevel(logging.ERROR)
+# fastmcp logs every failed tool call, with a traceback for unexpected errors; the client already receives the
+# error. Filtered by message because this logger also reports resource and prompt failures.
+logging.getLogger("fastmcp.server.server").addFilter(
+    lambda record: not record.getMessage().startswith(("Error calling tool", "Invalid arguments for tool"))
+)
 
 _FALLBACK_PORT_RANGE = range(18014, 18020)
 _PORT_SETTING_PATH = "/exts/lightspeed.trex.mcp.core/port"
@@ -61,42 +69,44 @@ _UI_AUTOMATION_PATTERN = (
     r"|set_color_widget|toggle_checkbox|set_widget_value)/?$"
 )
 
-# First match wins. Deny-list so a new route prefix becomes a tool without editing this extension.
-# The TOOL catch-all is required, not cosmetic: fastmcp appends its own defaults after these and
-# they send a bare GET to RESOURCE, which would drop every read operation from the manifest.
+# First match wins. Deny-list so a new route prefix becomes a tool without editing this extension. The
+# TOOL catch-all keeps that true without relying on the default mappings fastmcp appends after these.
 _CURATED_ROUTE_MAPS = [
     *(
         fastmcp_openapi.RouteMap(
             methods=_ALL_METHODS,
             pattern=pattern,
-            route_type=fastmcp_openapi.RouteType.IGNORE,
+            mcp_type=fastmcp_openapi.MCPType.EXCLUDE,
         )
         for pattern in (_INFRASTRUCTURE_PATTERN, _OPENAPI_METADATA_PATTERN, _UI_AUTOMATION_PATTERN)
     ),
-    # Everything else. Matches `main`, which sent every route to TOOL.
+    # Everything else is a tool.
     fastmcp_openapi.RouteMap(
         methods=_ALL_METHODS,
         pattern=r".*",
-        route_type=fastmcp_openapi.RouteType.TOOL,
+        mcp_type=fastmcp_openapi.MCPType.TOOL,
     ),
 ]
 
 
-async def _compact_tool_descriptions(mcp: FastMCP, spec: dict) -> None:
-    """Omit duplicated input prose while preserving authored and response guidance."""
-    tools = await mcp.get_tools()
-    for route in parse_openapi_to_http_routes(spec):
-        tool = tools.get(route.operation_id)
-        if tool is None:
-            continue
-        # Body-wide guidance is not part of the input schema; property guidance already is.
-        body = route.request_body.model_copy(update={"content_schema": {}}) if route.request_body else None
-        # ponytail: reuse FastMCP's response formatting instead of parsing or summarizing Markdown.
-        tool.description = format_description_with_responses(
-            route.description or route.summary or f"Executes {route.method} {route.path}",
-            route.responses,
-            request_body=body,
-        )
+def _describe_tool(route: HTTPRoute, tool: fastmcp_openapi.OpenAPITool) -> None:
+    """Add the route's request body and response guidance to the description fastmcp starts from.
+
+    Clients such as Hermes Agent show the model a tool's description and input schema but not its output
+    schema, so the responses are documented in prose as well.
+
+    Args:
+        route: The OpenAPI route the tool was built from.
+        tool: The tool fastmcp built for the route.
+    """
+    # Body-wide guidance is not part of the input schema; property guidance already is.
+    body = route.request_body.model_copy(update={"content_schema": {}}) if route.request_body else None
+    # ponytail: reuse FastMCP's response formatting instead of parsing or summarizing Markdown.
+    tool.description = format_description_with_responses(
+        route.description or route.summary or f"Executes {route.method} {route.path}",
+        route.responses,
+        request_body=body,
+    )
 
 
 def _format_endpoint_host(host: str) -> str:
@@ -225,7 +235,8 @@ class MCPCore:
     async def _run_mcp_server(cls, mcp: FastMCP, host: str, port: int, log_level: str, transport: str) -> None:
         """Run and retain the Uvicorn server until it shuts down."""
         config = uvicorn.Config(
-            mcp.http_app(transport=transport),
+            # fastmcp defaults to `/mcp`; keep the published `/mcp/` endpoint clients already use.
+            mcp.http_app(path="/mcp/" if transport == "streamable-http" else None, transport=transport),
             host=host,
             port=port,
             log_level=log_level,
@@ -266,10 +277,10 @@ class MCPCore:
                     FastMCP.from_fastapi,
                     app,
                     route_maps=_CURATED_ROUTE_MAPS,
+                    mcp_component_fn=_describe_tool,
                 ),
             )
-            await _compact_tool_descriptions(rest_api_mcp, app.openapi())
-            mcp.mount("remix", rest_api_mcp)
+            mcp.mount(rest_api_mcp, namespace="remix")
 
             ports = [port]
             if allow_range:

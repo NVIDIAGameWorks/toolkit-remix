@@ -37,12 +37,12 @@ python = "../_build/target-deps/python"
 packages = [
     # flux common dependencies
     "fast-version==1.4.2",          # OSRB filed under: https://nvbugs/4546994
-    "fastapi==0.110.0",             # OSRB filed under: https://nvbugs/4575575
-    "fastmcp==2.3.3",               # OSRB filed under: https://nvbugs/5306565
+    "fastapi==0.142.2",             # OSRB filed under: https://nvbugs/4575575
+    "fastmcp==4.0.10",              # OSRB filed under: https://nvbugs/5306565
     "numpy==2.3.1",                 # OSRB filed under: https://nvbugs/4575572
-    "pydantic==2.11.5",             # OSRB filed under: https://nvbugs/3952548
+    "pydantic==2.13.5",             # OSRB filed under: https://nvbugs/3952548
     "pygit2==1.18.2",               # OSRB filed under: https://nvbugs/5571322
-    "pyperclip==1.8.2",             # OSRB filed under: https://nvbugs/4257389
+    "pyperclip==1.11.0",            # OSRB filed under: https://nvbugs/4257389
     "sentry-sdk==2.29.1",           # OSRB filed under: https://nvbugs/4575650
     "shapely==2.0.5",               # OSRB filed under: https://nvbugs/4748740
     "six==1.17.0",                  # OSRB filed under: https://nvbugs/5484025
