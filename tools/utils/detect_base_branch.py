@@ -17,8 +17,8 @@
 
 Detect the base branch for the current git working tree.
 
-Finds the remote branch with the fewest unique commits ahead of HEAD,
-i.e., the branch this one was most likely forked from.
+Finds the likely remote base with the fewest commits unique to HEAD,
+excluding branches strictly ahead of HEAD.
 
 Usage as a standalone script::
 
@@ -72,8 +72,9 @@ def detect_base_branch(fallback: str = FALLBACK) -> str:
     """Return the closest likely base branch to HEAD by commit distance.
 
     For each likely base branch, counts commits unique to HEAD
-    (``origin/X..HEAD``). The branch with the fewest unique commits is
-    the most likely parent. Candidate branches are integration branches
+    (``origin/X..HEAD``), excluding branches strictly ahead of HEAD.
+    The branch with the fewest unique commits is the most likely parent.
+    Candidate branches are integration branches
     (``main``, ``feature/*``, ``release/*``) plus personal ``dev/*``
     branches owned by the current branch owner, when applicable. When
     multiple branches tie, integration branches are preferred over
@@ -109,13 +110,16 @@ def detect_base_branch(fallback: str = FALLBACK) -> str:
         if short in (current, "HEAD"):
             continue
 
-        dist = _git_stdout(["rev-list", "--count", f"{branch}..HEAD"])
+        dist = _git_stdout(["rev-list", "--left-right", "--count", f"HEAD...{branch}"])
         if dist is None:
             continue
         try:
-            candidates.append((int(dist), short))
+            head_only, branch_only = map(int, dist.split())
         except ValueError:
             continue
+        if head_only == 0 and branch_only > 0:
+            continue
+        candidates.append((head_only, short))
 
     if not candidates:
         return fallback

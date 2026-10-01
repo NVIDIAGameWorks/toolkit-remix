@@ -66,8 +66,8 @@ def _build_gates(extensions: list[str]) -> list[tuple[str, list[str], list[str]]
         ),
         (
             "Changelog check",
-            ["cmd", "/c", ".\\repo.bat", "check_changelog", "-t", f"origin/{base}"],
-            ["bash", "./repo.sh", "check_changelog", "-t", f"origin/{base}"],
+            ["cmd", "/c", ".\\repo.bat", "check_changelog", "--working-tree", "-t", f"origin/{base}"],
+            ["bash", "./repo.sh", "check_changelog", "--working-tree", "-t", f"origin/{base}"],
         ),
     ]
 
