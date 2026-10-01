@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-6128: Added app-wide Ctrl+A selection using the active Stage Manager tab and filters, including when the mouse is outside the Stage Manager.
 - REMIX-5957: Added a headless StageCraft app, a curated MCP tool list with less duplicated description text, and a published Agent Skill with task recipes and installed `.agents/skills` and `.claude/skills` discovery paths; changed the preferred MCP port from `8000` to `18014` and REST from automatic port selection (`0`) to preferred `8011`, limiting MCP fallback to `18014–18019` and retaining REST fallback; published a current-user-only Windows endpoint discovery manifest with clean-shutdown cleanup, logged fallback MCP endpoints, and removed MCP prompts
 - REMIX-6006: Routed tagged ComfyUI texture and mesh workflow outputs through the texture and asset pipelines, with per-output Apply settings, mesh reference selection, and one atomic Apply, Reapply, and Revert for every result.
+- REMIX-3131: Added Copy Light and Paste Light actions with console success and failure messages and mesh-instance targeting to the Property Panel and Stage Manager.
 
 ### Changed
 

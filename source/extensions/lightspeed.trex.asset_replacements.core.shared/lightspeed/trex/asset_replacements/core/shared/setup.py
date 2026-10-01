@@ -25,6 +25,7 @@ from collections.abc import Callable, Sequence
 
 import carb
 import omni.client
+import omni.kit.clipboard
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
@@ -42,6 +43,8 @@ from lightspeed.trex.utils.common.prim_utils import get_children_prims
 from lightspeed.trex.utils.common.prim_utils import get_extended_selection as _get_extended_selection
 from lightspeed.trex.utils.common.prim_utils import get_prim_paths as _get_prim_paths
 from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
+from lightspeed.trex.utils.common.prim_utils import is_light as _is_light
+from lightspeed.trex.utils.common.prim_utils import is_mesh_asset as _is_mesh_asset
 from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS as _SUPPORTED_ASSET_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import TextureTypes as _TextureTypes
@@ -51,6 +54,7 @@ from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.utils.dialog import ErrorPopup
 from omni.kit.usd_undo import UsdLayerUndo as _UsdLayerUndo
 from omni.usd.commands import remove_prim_spec as _remove_prim_spec
+from pydantic import BaseModel, ConfigDict, ValidationError
 from pxr import Sdf, Usd, UsdGeom, UsdShade, UsdSkel
 
 if typing.TYPE_CHECKING:
@@ -91,6 +95,17 @@ from .skeleton import (
 _DEFAULT_PRIM_TAG = "<Default Prim>"
 
 
+class _LightClipboardModel(BaseModel):
+    """Represent a serialized copied-light clipboard payload."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    context_name: str
+    root_layer_identifier: str
+    session_layer_identifier: str
+    source_prim_path: str
+
+
 class Setup:
     def __init__(self, context_name: str):
         self._default_attr = {
@@ -103,6 +118,104 @@ class Setup:
         self._context_name = context_name
         self._context = omni.usd.get_context(context_name)
         self._layer_manager = _LayerManagerCore(context_name=context_name)
+
+    def can_copy_light(self, source_prim_path: Sdf.Path | str) -> bool:
+        """Return whether a path identifies an added light."""
+        return self._get_copyable_light(source_prim_path) is not None
+
+    def copy_light_to_clipboard(self, source_prim_path: Sdf.Path | str) -> bool:
+        """Copy an added light path and its stage identity to the clipboard."""
+        source_prim = self._get_copyable_light(source_prim_path)
+        if not source_prim:
+            carb.log_warn(f"Could not copy light '{source_prim_path}': the source is invalid or not an added light.")
+            return False
+
+        stage = source_prim.GetStage()
+        source_path = str(source_prim.GetPath())
+        omni.kit.clipboard.copy(
+            _LightClipboardModel(
+                context_name=self._context_name,
+                root_layer_identifier=stage.GetRootLayer().identifier,
+                session_layer_identifier=stage.GetSessionLayer().identifier,
+                source_prim_path=source_path,
+            ).model_dump_json()
+        )
+        carb.log_info(f"Copied light '{source_path}' to the clipboard.")
+        return True
+
+    def can_paste_light_from_clipboard(self, dest_prim_path: Sdf.Path | str) -> bool:
+        """Return whether the copied light can be pasted under a mesh asset."""
+        return self._get_light_clipboard_prims(dest_prim_path) is not None
+
+    def paste_light_from_clipboard(self, dest_prim_path: Sdf.Path | str) -> str | None:
+        """Duplicate the copied light under a mesh asset."""
+        prims = self._get_light_clipboard_prims(dest_prim_path)
+        if not prims:
+            carb.log_warn(f"Could not paste light to '{dest_prim_path}': the clipboard or destination is invalid.")
+            return None
+        source_prim, dest_prim = prims
+        stage = self._context.get_stage()
+        new_path = omni.usd.get_stage_next_free_path(
+            stage, str(dest_prim.GetPath().AppendChild(source_prim.GetName())), False
+        )
+        success, _ = omni.kit.commands.execute(
+            "CopyPrimCommand",
+            path_from=str(source_prim.GetPath()),
+            path_to=new_path,
+            combine_layers=True,
+            usd_context_name=self._context_name,
+        )
+        if not success:
+            carb.log_warn(f"Failed to paste light '{source_prim.GetPath()}' to '{new_path}'.")
+            return None
+        carb.log_info(f"Pasted light '{source_prim.GetPath()}' to '{new_path}'.")
+        return new_path
+
+    def _get_light_clipboard_prims(self, dest_prim_path: Sdf.Path | str) -> tuple[Usd.Prim, Usd.Prim] | None:
+        """Return validated source-light and destination-mesh prims."""
+        stage = self._context.get_stage()
+        if not stage:
+            return None
+        try:
+            payload = _LightClipboardModel.model_validate_json(omni.kit.clipboard.paste())
+        except (TypeError, ValidationError):
+            return None
+
+        if (
+            payload.context_name != self._context_name
+            or payload.root_layer_identifier != stage.GetRootLayer().identifier
+            or payload.session_layer_identifier != stage.GetSessionLayer().identifier
+        ):
+            return None
+
+        source_prim = self._get_copyable_light(payload.source_prim_path)
+        dest_prim = stage.GetPrimAtPath(str(dest_prim_path))
+        if not source_prim or not dest_prim:
+            return None
+
+        source_prim = _get_prototype(source_prim) or source_prim
+        dest_mesh_prim = self._get_mesh_asset_prim(dest_prim)
+        if not dest_mesh_prim or self._get_mesh_asset_prim(source_prim) == dest_mesh_prim:
+            return None
+        return source_prim, dest_mesh_prim
+
+    def _get_copyable_light(self, prim_path: Sdf.Path | str) -> Usd.Prim | None:
+        """Return an added light prim, if the path identifies one."""
+        stage = self._context.get_stage()
+        prim = stage.GetPrimAtPath(str(prim_path)) if stage else None
+        if not prim or not _is_light(prim) or self.prim_is_from_a_capture_reference(prim):
+            return None
+        return prim
+
+    @staticmethod
+    def _get_mesh_asset_prim(prim: Usd.Prim) -> Usd.Prim | None:
+        """Return the prototype mesh asset containing a prim."""
+        prim = _get_prototype(prim)
+        while prim and prim.IsValid():
+            if _is_mesh_asset(prim):
+                return prim
+            prim = prim.GetParent()
+        return None
 
     # DATA MODEL FUNCTIONS
 

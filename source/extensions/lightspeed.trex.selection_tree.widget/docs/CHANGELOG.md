@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.10.3]
+### Added
+- Added Copy Light and Paste Light actions for mesh asset, descendant, and instance selections to the Property Panel selection-tree context menu.
+
 ## [1.10.2]
 ### Fixed
 - Reduced repeated selection-tree lookups and discarded obsolete deferred selections.

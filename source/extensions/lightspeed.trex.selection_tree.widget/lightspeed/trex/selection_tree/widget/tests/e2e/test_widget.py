@@ -21,6 +21,7 @@ import re
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import carb.input
 import carb.settings
@@ -37,13 +38,14 @@ from lightspeed.trex.selection_tree.widget import SetupUI as _SetupUI
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemAsset as _ItemAsset
 from lightspeed.trex.selection_tree.widget.selection_tree.model import ItemPrim as _ItemPrim
 from omni.flux.utils.common import path_utils as _path_utils
+from omni.flux.utils.tests.menu import wait_for_menu_items
 from omni.flux.utils.tests.projects import copy_test_project_to_temp
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage
-from pxr import Sdf
+from pxr import Gf, Sdf, UsdGeom
 
 
 class TestSelectionTreeWidget(AsyncTestCase):
@@ -1106,6 +1108,27 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
+    async def test_copy_light_with_referenced_light_is_disabled(self):
+        """Copy Light is disabled for a light shown under a reference."""
+        _window, _wid = await self.__setup_widget()
+        light_path = (
+            "/RootNode/meshes/mesh_CED45075A077A49A/ref_e58b2a90258740278bd55cd166bf7ba3/Klab_A/PrimaryLights/TankA"
+        )
+        omni.usd.get_context().get_selection().set_selected_prim_paths([light_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        light_item = next(
+            item
+            for item in ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+            if item.widget.text == "TankA"
+        )
+
+        with patch.object(_wid._tree_delegate._asset_core, "can_copy_light", return_value=True):
+            await light_item.click(right_click=True)
+            copy_light = (await wait_for_menu_items(ui.Menu.get_current(), ["Copy Light"]))[0]
+
+        self.assertFalse(copy_light.enabled)
+        await self.__destroy(_window, _wid)
+
     async def test_duplicate_stage_light_on_mesh(self):
         # setup
         _window, _wid = await self.__setup_widget()  # Keep in memory during test
@@ -1170,6 +1193,63 @@ class TestSelectionTreeWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=3)
         duplicate_prim_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='duplicate_prim'")
         self.assertEqual(len(duplicate_prim_images), 2)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_copy_light_and_paste_to_mesh_copies_values_and_supports_undo(self):
+        """A light copied and pasted through Property Panel retains its value and can be undone."""
+        _window, _wid = await self.__setup_widget()
+        usd_context = omni.usd.get_context()
+        stage = usd_context.get_stage()
+        source_mesh_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"
+        source_light_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/DiskLight"
+        destination_mesh_path = "/RootNode/meshes/mesh_CED45075A077A49A/mesh"
+        destination_light_path = "/RootNode/meshes/mesh_CED45075A077A49A/DiskLight"
+
+        # Add a light to the first mesh through the Property Panel.
+        usd_context.get_selection().set_selected_prim_paths([source_mesh_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        add_buttons = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_add_button'")
+        await add_buttons[1].click()
+        await ui_test.human_delay()
+        await ui_test.find("Light creator//Frame/**/Button[*].name=='LightDisk'").click()
+        await ui_test.human_delay(human_delay_speed=3)
+
+        source_light = stage.GetPrimAtPath(source_light_path)
+        self.assertTrue(source_light.IsValid())
+        source_light.GetAttribute("inputs:intensity").Set(321.0)
+        UsdGeom.Xformable(source_light).AddTranslateOp().Set(Gf.Vec3d(1.0, 2.0, 3.0))
+
+        # Copy the added light from its visible context menu.
+        source_light_item = next(
+            item
+            for item in ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+            if item.widget.text == "DiskLight"
+        )
+        await source_light_item.click(right_click=True)
+        await ui_test.human_delay()
+        await omni.kit.ui_test.menu.select_context_menu("Copy Light")
+        await ui_test.human_delay()
+
+        # Select the second mesh, then paste the light from its visible context menu.
+        usd_context.get_selection().set_selected_prim_paths([destination_mesh_path], False)
+        await ui_test.human_delay(human_delay_speed=3)
+        destination_asset = ui_test.find(f"{_window.title}//Frame/**/Label[*].identifier=='item_asset'")
+        self.assertIsNotNone(destination_asset)
+        await destination_asset.click(right_click=True)
+        await ui_test.human_delay()
+        await omni.kit.ui_test.menu.select_context_menu("Paste Light")
+        await ui_test.human_delay(human_delay_speed=3)
+
+        pasted_light = stage.GetPrimAtPath(destination_light_path)
+        self.assertTrue(pasted_light.IsValid())
+        self.assertEqual(pasted_light.GetTypeName(), source_light.GetTypeName())
+        self.assertEqual(pasted_light.GetAttribute("inputs:intensity").Get(), 321.0)
+        self.assertEqual(pasted_light.GetAttribute("xformOp:translate").Get(), Gf.Vec3d(1.0, 2.0, 3.0))
+
+        omni.kit.undo.undo()
+        await ui_test.human_delay(human_delay_speed=3)
+        self.assertFalse(stage.GetPrimAtPath(destination_light_path).IsValid())
 
         await self.__destroy(_window, _wid)
 

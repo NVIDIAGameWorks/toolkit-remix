@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.4.3]
+### Added
+- Added validated light copy and paste operations for mesh asset, descendant, and instance destinations, with console success and failure messages.
+
 ## [3.4.2]
 ### Fixed
 - Reduced repeated instance, scope, and capture-classification work during bulk selection.

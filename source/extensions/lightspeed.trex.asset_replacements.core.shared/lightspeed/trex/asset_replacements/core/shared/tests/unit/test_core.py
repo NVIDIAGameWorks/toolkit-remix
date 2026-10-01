@@ -15,11 +15,13 @@
 * limitations under the License.
 """
 
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, call, patch
 
 import omni.kit.commands
+import omni.kit.clipboard
 import omni.kit.undo
 import omni.usd
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
@@ -28,7 +30,7 @@ from lightspeed.trex.asset_replacements.core.shared import usd_copier as _usd_co
 from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import open_stage
-from pxr import Sdf, Usd, UsdGeom, UsdShade
+from pxr import Sdf, Usd, UsdGeom, UsdLux, UsdShade
 
 
 class TestAssetReplacementsCore(AsyncTestCase):
@@ -36,10 +38,316 @@ class TestAssetReplacementsCore(AsyncTestCase):
     async def setUp(self):
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
         self.context = omni.usd.get_context()
+        self.stage = self.context.get_stage()
+        self.core = _AssetReplacementsCore("")
+        self.source_path = "/RootNode/lights/light_AAAAAAAAAAAAAAAA/CopiedLight"
+        self.source_mesh_path = "/RootNode/meshes/mesh_AAAAAAAAAAAAAAAA"
+        self.source_mesh_light_path = f"{self.source_mesh_path}/CopiedLight"
+        self.source_instance_path = "/RootNode/instances/inst_AAAAAAAAAAAAAAAA_0"
+        self.source_instance_light_path = f"{self.source_instance_path}/CopiedLight"
+        self.dest_path = "/RootNode/meshes/mesh_BBBBBBBBBBBBBBBB"
+        self.dest_child_path = f"{self.dest_path}/Child"
+        self.dest_instance_path = "/RootNode/instances/inst_BBBBBBBBBBBBBBBB_0"
+        self.dest_instance_child_path = f"{self.dest_instance_path}/Child"
+        UsdLux.SphereLight.Define(self.stage, self.source_path)
+        UsdGeom.Xform.Define(self.stage, self.source_mesh_path)
+        UsdLux.SphereLight.Define(self.stage, self.source_mesh_light_path)
+        UsdGeom.Xform.Define(self.stage, self.source_instance_path)
+        UsdLux.SphereLight.Define(self.stage, self.source_instance_light_path)
+        UsdGeom.Xform.Define(self.stage, self.dest_path)
+        UsdGeom.Xform.Define(self.stage, self.dest_child_path)
+        UsdGeom.Xform.Define(self.stage, self.dest_instance_path)
+        UsdGeom.Xform.Define(self.stage, self.dest_instance_child_path)
 
     # After running each test
     async def tearDown(self):
         self.stage = None
+
+    def _clipboard_payload(self, **overrides) -> str:
+        """Build a valid light clipboard payload with optional overrides."""
+        payload = {
+            "context_name": "",
+            "root_layer_identifier": self.stage.GetRootLayer().identifier,
+            "session_layer_identifier": self.stage.GetSessionLayer().identifier,
+            "source_prim_path": self.source_path,
+        }
+        return json.dumps(payload | overrides)
+
+    async def test_copy_light_to_clipboard_with_added_light_serializes_stage_identity(self):
+        """Serialize the light source and current stage identity for later paste validation."""
+        # Arrange
+        expected_payload = {
+            "context_name": "",
+            "root_layer_identifier": self.stage.GetRootLayer().identifier,
+            "session_layer_identifier": self.stage.GetSessionLayer().identifier,
+            "source_prim_path": self.source_path,
+        }
+
+        # Act
+        with (
+            patch.object(self.core, "prim_is_from_a_capture_reference", return_value=False),
+            patch.object(omni.kit.clipboard, "copy") as clipboard_copy_mock,
+        ):
+            result = self.core.copy_light_to_clipboard(self.source_path)
+
+        # Assert
+        self.assertTrue(result)
+        self.assertDictEqual(expected_payload, json.loads(clipboard_copy_mock.call_args.args[0]))
+
+    async def test_copy_light_to_clipboard_with_invalid_source_returns_false(self):
+        """Reject missing, non-light, and capture-authored source prims."""
+        cases = [
+            ("invalid-path", "/RootNode//CopiedLight", False),
+            ("missing", "/RootNode/Missing", False),
+            ("relative-path", "CopiedLight", False),
+            ("property-path", f"{self.source_path}.inputs:intensity", False),
+            ("non-light", self.dest_path, False),
+            ("capture-light", self.source_path, True),
+        ]
+        for title, source_path, is_from_capture in cases:
+            with self.subTest(title=title):
+                # Arrange
+                capture_result = is_from_capture
+
+                # Act
+                with (
+                    patch.object(
+                        self.core,
+                        "prim_is_from_a_capture_reference",
+                        return_value=capture_result,
+                    ),
+                    patch.object(omni.kit.clipboard, "copy") as clipboard_copy_mock,
+                    patch.object(setup.carb, "log_warn") as log_warn_mock,
+                ):
+                    result = self.core.copy_light_to_clipboard(source_path)
+
+                # Assert
+                self.assertFalse(result)
+                clipboard_copy_mock.assert_not_called()
+                log_warn_mock.assert_called_once()
+
+    async def test_copy_light_to_clipboard_with_added_light_logs_source_path(self):
+        """Report a successfully copied light path in the console."""
+        # Arrange
+        expected_message = f"Copied light '{self.source_path}' to the clipboard."
+
+        # Act
+        with (
+            patch.object(self.core, "prim_is_from_a_capture_reference", return_value=False),
+            patch.object(setup.carb, "log_info") as log_info_mock,
+        ):
+            self.core.copy_light_to_clipboard(self.source_path)
+
+        # Assert
+        self.assertEqual([call(expected_message)], log_info_mock.call_args_list)
+
+    async def test_can_paste_light_from_clipboard_with_mesh_asset_members_returns_true(self):
+        """Accept prototype and instance members that resolve to a mesh asset."""
+        # Arrange
+        payload = self._clipboard_payload()
+
+        for dest_path in (
+            self.dest_path,
+            self.dest_child_path,
+            self.dest_instance_path,
+            self.dest_instance_child_path,
+        ):
+            with self.subTest(dest_path=dest_path):
+                # Act
+                with (
+                    patch.object(omni.kit.clipboard, "paste", return_value=payload),
+                    patch.object(self.core, "prim_is_from_a_capture_reference", return_value=False),
+                ):
+                    result = self.core.can_paste_light_from_clipboard(dest_path)
+
+                # Assert
+                self.assertTrue(result)
+
+    async def test_can_paste_light_from_clipboard_with_invalid_payload_returns_false(self):
+        """Reject malformed, foreign, stale, and ineligible clipboard payloads."""
+        cases = [
+            ("malformed", "not-json", self.dest_path, False),
+            ("cross-context", self._clipboard_payload(context_name="ingestcraft"), self.dest_path, False),
+            (
+                "cross-stage",
+                self._clipboard_payload(root_layer_identifier="another-stage.usda"),
+                self.dest_path,
+                False,
+            ),
+            (
+                "stale-stage-session",
+                self._clipboard_payload(session_layer_identifier="stale-session"),
+                self.dest_path,
+                False,
+            ),
+            (
+                "extra-field",
+                self._clipboard_payload(unexpected="value"),
+                self.dest_path,
+                False,
+            ),
+            (
+                "stale-source",
+                self._clipboard_payload(source_prim_path="/RootNode/Missing"),
+                self.dest_path,
+                False,
+            ),
+            (
+                "relative-source",
+                self._clipboard_payload(source_prim_path="CopiedLight"),
+                self.dest_path,
+                False,
+            ),
+            (
+                "property-source",
+                self._clipboard_payload(source_prim_path=f"{self.source_path}.inputs:intensity"),
+                self.dest_path,
+                False,
+            ),
+            ("capture-source", self._clipboard_payload(), self.dest_path, True),
+            ("missing-destination", self._clipboard_payload(), "/RootNode/Missing", False),
+            ("relative-destination", self._clipboard_payload(), "mesh_BBBBBBBBBBBBBBBB", False),
+            (
+                "property-destination",
+                self._clipboard_payload(),
+                f"{self.dest_path}.xformOp:transform",
+                False,
+            ),
+            (
+                "source-under-destination",
+                self._clipboard_payload(source_prim_path=f"{self.dest_path}/SourceLight"),
+                self.dest_path,
+                False,
+            ),
+            (
+                "source-instance-under-destination",
+                self._clipboard_payload(source_prim_path=f"{self.dest_instance_path}/SourceLight"),
+                self.dest_instance_child_path,
+                False,
+            ),
+        ]
+        UsdLux.SphereLight.Define(self.stage, f"{self.dest_path}/SourceLight")
+        UsdLux.SphereLight.Define(self.stage, f"{self.dest_instance_path}/SourceLight")
+        for title, payload, dest_path, is_from_capture in cases:
+            with self.subTest(title=title):
+                # Arrange
+                capture_result = is_from_capture
+
+                # Act
+                with (
+                    patch.object(omni.kit.clipboard, "paste", return_value=payload),
+                    patch.object(
+                        self.core,
+                        "prim_is_from_a_capture_reference",
+                        return_value=capture_result,
+                    ),
+                ):
+                    result = self.core.can_paste_light_from_clipboard(dest_path)
+
+                # Assert
+                self.assertFalse(result)
+
+    async def test_paste_light_from_clipboard_with_instance_members_copies_between_prototype_assets(self):
+        """Copy instance selections between their canonical prototype mesh assets."""
+        # Arrange
+        new_path = f"{self.dest_path}/CopiedLight_01"
+        payload = self._clipboard_payload(source_prim_path=self.source_instance_light_path)
+
+        # Act
+        with (
+            patch.object(omni.kit.clipboard, "paste", return_value=payload),
+            patch.object(self.core, "prim_is_from_a_capture_reference", return_value=False),
+            patch.object(omni.usd, "get_stage_next_free_path", return_value=new_path) as next_path_mock,
+            patch.object(omni.kit.commands, "execute", return_value=(True, None)) as execute_mock,
+        ):
+            result = self.core.paste_light_from_clipboard(self.dest_instance_child_path)
+
+        # Assert
+        self.assertEqual(new_path, result)
+        self.assertEqual(
+            [call(self.stage, f"{self.dest_path}/CopiedLight", False)],
+            next_path_mock.call_args_list,
+        )
+        self.assertEqual(
+            [
+                call(
+                    "CopyPrimCommand",
+                    path_from=self.source_mesh_light_path,
+                    path_to=new_path,
+                    combine_layers=True,
+                    usd_context_name="",
+                )
+            ],
+            execute_mock.call_args_list,
+        )
+
+    async def test_paste_light_from_clipboard_with_invalid_payload_returns_none(self):
+        """Leave the stage unchanged when clipboard validation fails."""
+        # Arrange
+        payload = "not-json"
+
+        # Act
+        with (
+            patch.object(omni.kit.clipboard, "paste", return_value=payload),
+            patch.object(omni.kit.commands, "execute") as execute_mock,
+            patch.object(setup.carb, "log_info") as log_info_mock,
+            patch.object(setup.carb, "log_warn") as log_warn_mock,
+        ):
+            result = self.core.paste_light_from_clipboard(self.dest_path)
+
+        # Assert
+        self.assertIsNone(result)
+        execute_mock.assert_not_called()
+        log_info_mock.assert_not_called()
+        self.assertEqual(
+            [call(f"Could not paste light to '{self.dest_path}': the clipboard or destination is invalid.")],
+            log_warn_mock.call_args_list,
+        )
+
+    async def test_paste_light_from_clipboard_with_valid_payload_logs_source_and_destination_paths(self):
+        """Report successfully pasted source and destination light paths in the console."""
+        # Arrange
+        new_path = f"{self.dest_path}/CopiedLight_01"
+        payload = self._clipboard_payload()
+        expected_message = f"Pasted light '{self.source_path}' to '{new_path}'."
+
+        # Act
+        with (
+            patch.object(omni.kit.clipboard, "paste", return_value=payload),
+            patch.object(self.core, "prim_is_from_a_capture_reference", return_value=False),
+            patch.object(omni.usd, "get_stage_next_free_path", return_value=new_path),
+            patch.object(omni.kit.commands, "execute", return_value=(True, None)),
+            patch.object(setup.carb, "log_info") as log_info_mock,
+        ):
+            self.core.paste_light_from_clipboard(self.dest_path)
+
+        # Assert
+        self.assertEqual([call(expected_message)], log_info_mock.call_args_list)
+
+    async def test_paste_light_from_clipboard_with_failed_command_returns_none_and_logs_warning(self):
+        """Report a warning when the native copy command fails."""
+        # Arrange
+        new_path = f"{self.dest_path}/CopiedLight_01"
+        payload = self._clipboard_payload()
+
+        # Act
+        with (
+            patch.object(omni.kit.clipboard, "paste", return_value=payload),
+            patch.object(self.core, "prim_is_from_a_capture_reference", return_value=False),
+            patch.object(omni.usd, "get_stage_next_free_path", return_value=new_path),
+            patch.object(omni.kit.commands, "execute", return_value=(False, None)),
+            patch.object(setup.carb, "log_info") as log_info_mock,
+            patch.object(setup.carb, "log_warn") as log_warn_mock,
+        ):
+            result = self.core.paste_light_from_clipboard(self.dest_path)
+
+        # Assert
+        self.assertIsNone(result)
+        log_info_mock.assert_not_called()
+        self.assertEqual(
+            [call(f"Failed to paste light '{self.source_path}' to '{new_path}'.")],
+            log_warn_mock.call_args_list,
+        )
 
     async def test_prim_is_from_a_capture_reference_with_cache_classifies_each_exact_path_once(self):
         """Classify and cache each exact prim-stack layer path once."""
