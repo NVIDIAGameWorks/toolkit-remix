@@ -108,13 +108,32 @@ Any MCP-compatible client can connect to the Toolkit. To connect:
 2) Ensure the RTX Remix Toolkit is running
 3) The client will automatically discover available tools through the MCP protocol
 
+For example, to register the server with Claude Code for the current folder:
+
+```bash
+claude mcp add --transport http remix http://127.0.0.1:18014/mcp/
+```
+
+`claude mcp list` then shows `remix` as connected while the Toolkit is running.
+
 ***
 
-## Bundled modding skill
+## Modding skill
 
-The Toolkit includes the `rtx-remix-modding` skill and its reference files. Start your coding
-agent from the Toolkit installation directory, or open that directory as its workspace, to use
-its bundled skill discovery files. The skill's instructions are in `skills/rtx-remix-modding/SKILL.md`.
+The `rtx-remix-modding` skill teaches agents how to use the Toolkit's MCP tools. It requires Toolkit `1.6.0` or newer,
+including [prebuilt development packages](../installation/install-toolkit.md#download-a-prebuilt-development-package).
+To install the published version from the [NVIDIA skills repository](https://github.com/nvidia/skills), run this with
+[Node.js](https://nodejs.org/en/download) 22.20 or newer, in the folder you start your agent from:
+
+```bash
+npx skills add https://github.com/nvidia/skills --skill rtx-remix-modding
+```
+
+When prompted, make sure your agent is selected.
+
+The Toolkit also bundles the skill and its reference files. Start your coding agent from the Toolkit installation
+directory, or open that directory as its workspace, to use its bundled skill discovery files. The skill's instructions
+are in `skills/rtx-remix-modding/SKILL.md`.
 
 [Connect the agent to MCP](#connecting-ai-agents-to-mcp) separately; loading the skill does not
 establish a connection to the Toolkit.
