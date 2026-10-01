@@ -47,3 +47,8 @@ class FileModel(_Model):
     @property
     def path(self) -> str:
         return self._path
+
+    def refresh_values(self):
+        """Refresh file attributes without rebuilding the fixed property rows."""
+        for item in self.get_all_items(include_hidden=True):
+            item.refresh()

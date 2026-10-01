@@ -20,6 +20,7 @@ __all__ = (
     "TestContextMenu",
     "TestDelegate",
     "TestFieldBuilder",
+    "TestInitialColumnLayout",
     "TestItemGroupExpansion",
     "TestItemValueModel",
     "TestPropertyWidget",
@@ -27,3 +28,4 @@ __all__ = (
 
 from .e2e import TestContextMenu, TestFieldBuilder, TestPropertyWidget
 from .unit import TestClipboard, TestDelegate, TestItemGroupExpansion, TestItemValueModel
+from omni.flux.property_widget_builder.widget.tests.unit.test_initial_column_layout import TestInitialColumnLayout

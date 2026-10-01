@@ -7,6 +7,8 @@ This is the base widget that let you build property widget(s) from any attribute
 Because this is a base widget, by default, crating this widget will do nothing. You need to implement what the widget
 has to show.
 
+When a pixel-sized name column is used, the widget adjusts it as the panel resizes without redrawing rows for an unchanged width.
+
 ## Implementation
 
 The widget uses multiple components:
