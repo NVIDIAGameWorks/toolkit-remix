@@ -14,6 +14,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 """
+
 import difflib
 import re
 import subprocess
@@ -23,22 +24,27 @@ from pathlib import Path
 import toml
 
 
-def get_changed_files(source_hash: str, original_hash: str) -> list[tuple[str, str]]:
+def get_changed_files(source_hash: str | None, original_hash: str) -> list[tuple[str, str]]:
     """
-    Find all the files that have changed since the last commit.
+    Find tracked files changed between the original commit and the selected source.
 
     Args:
-        source_hash: The source commit hash
+        source_hash: The source commit hash, or None to compare the working tree.
         original_hash: The original commit hash
 
     Returns:
-        A list of change type + file names that have changed since the last commit.
+        A list of change types and file names that differ from the original commit.
     """
     changed_files = subprocess.check_output(
-        # Use --no-page to avoid paging the output
-        # Use --name-only to only return the file names, not the changed diff
-        ["git", "--no-pager", "diff", "--name-status", f"{original_hash}..{source_hash}"],
-        text=True
+        [
+            "git",
+            "--no-pager",
+            "diff",
+            "--name-status",
+            original_hash if source_hash is None else f"{original_hash}..{source_hash}",
+            "--",
+        ],
+        text=True,
     )
     return [(file[0], file[2:]) for file in changed_files.splitlines()]
 
@@ -65,7 +71,7 @@ def find_changed_extensions(changed_files: list[tuple[str, str]], prefix_path: P
 
 
 def validate_extension_changes(
-    source_hash: str,
+    source_hash: str | None,
     original_hash: str,
     changed_extension: Path,
     extension_changelog_file: str,
@@ -77,7 +83,7 @@ def validate_extension_changes(
         - that at least one line has been added to the `docs/CHANGELOG.md` file
 
     Args:
-        source_hash: The source commit hash
+        source_hash: The source commit hash, or None to validate the working tree.
         original_hash: The original commit hash
         changed_extension: the path of the extension to verify
         extension_changelog_file: The path off the main extension's path for the changelog file
@@ -88,7 +94,12 @@ def validate_extension_changes(
     """
 
     def get_source(file_path, hashval):
-        """Use `git show` to get the version of a file at the given commit"""
+        """Read a file at the given commit, or from the working tree when hashval is None."""
+        if hashval is None:
+            try:
+                return file_path.read_text(encoding="utf-8")
+            except FileNotFoundError:
+                return ""
         try:
             return subprocess.check_output(["git", "show", f"{hashval}:{file_path.as_posix()}"], text=True)
         except subprocess.CalledProcessError:
@@ -177,16 +188,13 @@ def validate_extension_changes(
     return ""
 
 
-def get_diff_lines(file_path: str, source_hash: str, original_hash: str):
+def get_diff_lines(file_path: str, source_hash: str | None, original_hash: str):
     """
-    Retrieve the differences between the current commit and the given source_hash for a specified file.
-
-    This function executes a git command to fetch the diff output between the current branch and the main branch
-    for the given file path. It returns the diff as a list of lines, which can be processed further.
+    Retrieve a file's differences between the original commit and the selected source.
 
     Args:
         file_path: The path to the file for which the diff is required.
-        source_hash: The source commit hash to compare the current file against
+        source_hash: The source commit hash, or None to compare the working tree.
         original_hash: The original commit hash to compare the current file against
 
     Returns:
@@ -194,12 +202,20 @@ def get_diff_lines(file_path: str, source_hash: str, original_hash: str):
     """
     try:
         # Get the number of lines in the CHANGELOG file to have a complete diff of the file
-        with open(file_path, 'r', encoding="utf-8") as file_content:
+        with open(file_path, "r", encoding="utf-8") as file_content:
             lines = len(file_content.readlines())
         diff_output = subprocess.check_output(
             # Use --no-page to avoid paging the output
             # Use --unified={lines} to avoid trimming the diff context
-            ["git", "--no-pager", "diff", f"--unified={lines}", f"{original_hash}..{source_hash}", '--', file_path],
+            [
+                "git",
+                "--no-pager",
+                "diff",
+                f"--unified={lines}",
+                original_hash if source_hash is None else f"{original_hash}..{source_hash}",
+                "--",
+                file_path,
+            ],
             text=True,
             encoding="utf-8",
         )
@@ -241,10 +257,10 @@ def check_new_entries_in_unreleased(
             in_unreleased_section = False
 
         # Check for added lines, ignoring diff metadata lines
-        if in_unreleased_section and line.startswith('+') and not line.startswith('+++'):
+        if in_unreleased_section and line.startswith("+") and not line.startswith("+++"):
             added_lines.add(line[1:].strip())
         # Check for removed lines, ignoring diff metadata lines
-        elif in_unreleased_section and line.startswith('-') and not line.startswith('---'):
+        elif in_unreleased_section and line.startswith("-") and not line.startswith("---"):
             removed_lines.add(line[1:].strip())
 
     # Check each added line against all removed lines
@@ -263,14 +279,21 @@ def check_new_entries_in_unreleased(
 
 
 def setup_repo_tool(parser, _):
+    """Register changelog checks for a source commit or the current working tree."""
     parser.prog = "check_changelog"
     parser.description = "Verify that the CHANGELOG.md file has had its '## [Unreleased]' section modified"
-    parser.add_argument(
+    source_group = parser.add_mutually_exclusive_group()
+    source_group.add_argument(
         "-s",
         "--source-hash",
         dest="source_hash",
         required=False,
         help="Override the source commit to compare the changelog file from",
+    )
+    source_group.add_argument(
+        "--working-tree",
+        action="store_true",
+        help="Validate tracked working-tree files, including staged and unstaged changes, against the original commit",
     )
     parser.add_argument(
         "-t",
@@ -281,6 +304,7 @@ def setup_repo_tool(parser, _):
     )
 
     def run_repo_tool(options, config):
+        """Validate extension versions and changelogs for the selected comparison."""
         settings = config["repo_check_changelog"]
         file_name = settings["file_name"]
         section_pattern = settings["section_pattern"]
@@ -292,10 +316,10 @@ def setup_repo_tool(parser, _):
         extension_changelog_file = settings["extension_changelog_file"]
         extension_config_file = settings["extension_config_file"]
 
-        source_hash = options.source_hash if options.source_hash else source_commit
+        source_hash = None if options.working_tree else (options.source_hash or source_commit)
         original_hash = options.original_hash if options.original_hash else original_commit
 
-        print("Comparing:", source_hash, "->", original_hash)
+        print("Comparing:", "working tree" if source_hash is None else source_hash, "->", original_hash)
 
         # Get list of all changed files
         # Find all the .py files under 'source/extensions`

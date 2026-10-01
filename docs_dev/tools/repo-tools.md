@@ -89,6 +89,16 @@ e.g., `repo.bat check_changelog`). They live in `tools/utils/` and are dispatche
 | `repo.bat check_forbidden_words`    | Validate that specified words are not present in code files (CI) |
 | `repo.bat check_tests_written`      | Warn when an extension's source changed but its tests did not (CI) |
 
+Use `repo.bat check_changelog --working-tree -t origin/main` before committing to validate work in progress without
+changing the Git index. Changed extensions and changelog differences are identified from tracked files, including
+staged and unstaged edits. Each identified extension's `config/extension.toml` is read from disk, even if it is
+untracked, so its version can be checked before staging the configuration. Entirely untracked extensions are not
+discovered, and untracked changelog files do not contribute entries to the comparison.
+
+The agent completion hook uses this mode with its detected base. A successful working-tree check does not confirm
+which files will be committed. Omit `--working-tree` to validate committed versions and changelog content instead.
+`--working-tree` cannot be combined with `--source-hash`.
+
 `check_tests_written` runs on every merge request as the non-blocking `check-tests-written` job. When an extension has
 modified Python source but no modified files under its `tests/` directory, the job finishes with a warning and posts a
 merge request note listing the extensions. The note updates in place on later pushes and is rewritten as resolved once
@@ -98,7 +108,7 @@ the tests are added. Apply the `no-tests-needed` label to the merge request when
 
 | Tool                                                 | Description                                     |
 |------------------------------------------------------|-------------------------------------------------|
-| `python tools/utils/list_changed_exts.py`            | List extensions changed vs. main branch         |
+| `python tools/utils/list_changed_exts.py`            | List extensions changed vs. the detected base; branches strictly ahead of HEAD are excluded as candidates |
 | `python tools/utils/update_pyright_from_settings.py` | Sync Pyright config from VSCode `settings.json` |
 
 ---

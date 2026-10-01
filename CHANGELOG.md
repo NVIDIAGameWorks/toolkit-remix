@@ -184,6 +184,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed MCP tool schemas that referenced `#/components/schemas/*` without including the definitions, which strict clients such as llama.cpp rejected, by upgrading the MCP server to FastMCP 4.0.10 with FastAPI 0.142.2, Starlette 1.7.0 and Pydantic 2.13.5 (GitHub rtx-remix#1097).
 - REMIX-5215: Fixed label jitter during idle polling and redundant label redraws when Capture Details or Mod Details loads.
 - Initialize the shared MDL backend before material API consumers run, including ComfyUI job preparation.
+- Fixed repository completion checks selecting downstream branches as their base and ignoring staged or unstaged version and changelog updates.
 
 ## [1.5.2-0]
 
