@@ -92,6 +92,7 @@ class EventCameraLightCore(_ILSSEvent):
                 ("rtx.fallbackLightMode", _FALLBACK_MODES["Always"]),
                 ("rtx.fallbackLightType", _FALLBACK_TYPES["Sphere"]),
                 ("rtx.fallbackLightRadiance", "50, 50, 50"),
+                ("rtx.fallbackLightVolumetricRadianceScale", "0"),
             ],
             "Camera light set...",
         )
