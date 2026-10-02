@@ -33,7 +33,7 @@ from lightspeed.trex.comfyui.core.resolvers import (
     SelectedTextureResolver,
     ValueResolver,
 )
-from omni.flux.asset_importer.core.data_models import TextureTypes
+from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP, TextureTypes
 from omni.flux.property_widget_builder.model.native import NativeChoiceModel
 from ...workflow.items import (
     InputItemGroup,
@@ -367,7 +367,7 @@ class TestWorkflowModel(AsyncTestCase):
         self.assertIsInstance(choice_model, NativeChoiceModel)
         self.assertEqual(
             tuple(choice.value for choice in choice_model.get_item_children()),
-            tuple(texture_type for texture_type in TextureTypes if texture_type is not TextureTypes.OTHER),
+            tuple(texture_type for texture_type in TEXTURE_TYPE_INPUT_MAP if texture_type is not TextureTypes.OTHER),
         )
 
     async def test_resolver_param_name_models_expose_parameter_tooltips(self):

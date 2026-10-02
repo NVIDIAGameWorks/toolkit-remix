@@ -27,6 +27,7 @@ __all__ = [
     "NormalizeEmissiveIntensityStep",
     "ReferenceStep",
     "StandardizeInputStep",
+    "StandardizeLinearTexturesStep",
 ]
 
 from .apply_processed_textures import ApplyProcessedTexturesStep
@@ -39,4 +40,5 @@ from .material_cleanup import MaterialCleanupStep
 from .meta import MetaStep
 from .reference import ReferenceStep
 from .standardize_input import StandardizeInputStep
+from .standardize_linear_textures import StandardizeLinearTexturesStep
 from .normalize_emissive_intensity import NormalizeEmissiveIntensityStep

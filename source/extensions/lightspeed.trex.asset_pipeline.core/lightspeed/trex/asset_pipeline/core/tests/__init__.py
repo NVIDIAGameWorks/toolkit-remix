@@ -18,6 +18,7 @@
 from .e2e.test_apply_processed_textures import TestApplyProcessedTexturesE2E
 from .e2e.test_context import TestRemixAssetPipelineContextE2E
 from .e2e.test_convert_materials import TestConvertMaterialsE2E
+from .e2e.test_convert_normal import TestConvertNormalE2E
 from .e2e.test_discover_textures import TestDiscoverTexturesE2E
 from .e2e.test_gltf_material import TestExtractTextureChannelE2E, TestGltfMaterialE2E
 from .e2e.test_job import TestMeshOptimizationGraphE2E, TestTextureOptimizationJobE2E
@@ -52,6 +53,7 @@ from .unit.test_models import (
 from .unit.test_prepare_optimization import TestPrepareOptimizationJob
 from .unit.test_runner import TestRemixAssetPipelineRunner
 from .unit.test_standardize_input import TestStandardizeInput
+from .unit.test_standardize_linear_textures import TestStandardizeLinearTextures
 
 __all__ = (
     "TestApplyHandler",
@@ -63,6 +65,7 @@ __all__ = (
     "TestConvertMaterials",
     "TestConvertMaterialsE2E",
     "TestConvertNormal",
+    "TestConvertNormalE2E",
     "TestDiscoverTexturesE2E",
     "TestExtractTextureChannelE2E",
     "TestExtractTextureChannelStep",
@@ -87,6 +90,7 @@ __all__ = (
     "TestRemixAssetPipelineRunner",
     "TestResolveProcessedTextures",
     "TestStandardizeInput",
+    "TestStandardizeLinearTextures",
     "TestTextureOptimizationItem",
     "TestTextureOptimizationJobE2E",
     "TestTextureOptimizationRequest",

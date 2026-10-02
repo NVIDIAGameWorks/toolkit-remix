@@ -22,23 +22,25 @@ import struct
 import tempfile
 from unittest.mock import patch
 
+import numpy as np
 import omni.kit.test
 from omni.flux.asset_importer.core.data_models import TextureTypes
+from omni.flux.nvtt.core import read_linear_image
 from omni.flux.job_queue.core.execute import JobScheduler
 from omni.flux.job_queue.core.interface import QueueInterface
 from omni.flux.utils.material_converter.utils import TEXTURE_SOURCE_CHANNEL_CUSTOM_DATA_KEY
 from PIL import Image
 from pxr import Usd, UsdShade
 
-from ... import RemixAssetItem, RemixAssetPipelineContext
-from ...jobs import (
+from lightspeed.trex.asset_pipeline.core import RemixAssetItem, RemixAssetPipelineContext
+from lightspeed.trex.asset_pipeline.core.jobs import (
     MeshOptimizationJob,
     PrepareOptimizationJob,
     TextureOptimizationJob,
     build_asset_optimization_graph,
 )
-from ...jobs.models import MeshOptimizationRequest
-from ...steps import ExtractTextureChannelStep
+from lightspeed.trex.asset_pipeline.core.jobs.models import MeshOptimizationRequest
+from lightspeed.trex.asset_pipeline.core.steps import ExtractTextureChannelStep, StandardizeLinearTexturesStep
 
 
 class TestGltfMaterialE2E(omni.kit.test.AsyncTestCase):
@@ -65,9 +67,9 @@ class TestGltfMaterialE2E(omni.kit.test.AsyncTestCase):
                 for item in context.items:
                     for texture in item.textures:
                         for channel in ("g", "b"):
-                            if texture.path.name.endswith(f".{channel}.png"):
-                                with Image.open(texture.path) as image:
-                                    extracted_pixels[channel] = (image.mode, image.getpixel((0, 0)))
+                            # The standardized source is linear float OpenEXR, so the extracted channel is too.
+                            if texture.path.name.endswith(f".{channel}.exr"):
+                                extracted_pixels[channel] = read_linear_image(texture.path)[0, 0].tolist()
 
             observer = patch.object(ExtractTextureChannelStep, "run", new=observe_extraction)
             observer.start()
@@ -105,7 +107,8 @@ class TestGltfMaterialE2E(omni.kit.test.AsyncTestCase):
             roughness = processed_by_type[TextureTypes.ROUGHNESS]
             metallic = processed_by_type[TextureTypes.METALLIC]
             self.assertNotEqual(roughness.asset_url, metallic.asset_url)
-            self.assertEqual(extracted_pixels, {"g": ("RGB", (64, 64, 64)), "b": ("RGB", (192, 192, 192))})
+            np.testing.assert_allclose(extracted_pixels["g"], [64 / 255, 64 / 255, 64 / 255, 1.0], atol=1e-6)
+            np.testing.assert_allclose(extracted_pixels["b"], [192 / 255, 192 / 255, 192 / 255, 1.0], atol=1e-6)
 
             result = outputs[MeshOptimizationJob.OPTIMIZED_MESH]
             final_model = pathlib.Path(result.asset_url)
@@ -152,18 +155,56 @@ class TestExtractTextureChannelE2E(omni.kit.test.AsyncTestCase):
             async with RemixAssetPipelineContext(
                 items=[roughness, metallic, unmarked], work_dir=temp_path / "work"
             ) as context:
+                await StandardizeLinearTexturesStep().run(context)
+                unmarked_path = unmarked.textures[0].path
+                unmarked_bytes = unmarked_path.read_bytes()
                 await ExtractTextureChannelStep().run(context)
             self.assertNotEqual(roughness.textures[0].path, metallic.textures[0].path)
             for item, channel, value in ((roughness, "g", 64), (metallic, "b", 192)):
                 texture = item.textures[0]
-                self.assertTrue(texture.path.name.endswith(f".{channel}.png"))
+                self.assertTrue(texture.path.name.endswith(f".{channel}.exr"))
                 self.assertIsNone(texture.channel)
-                with Image.open(texture.path) as image:
-                    self.assertEqual(image.mode, "RGB")
-                    self.assertEqual(list(image.getdata()), [(value, value, value)] * 4)
-            self.assertEqual(unmarked.textures[0].path, source)
+                np.testing.assert_allclose(
+                    read_linear_image(texture.path),
+                    np.full((2, 2, 4), (value / 255, value / 255, value / 255, 1.0), dtype="float32"),
+                    rtol=0,
+                    atol=1e-7,
+                )
+            self.assertEqual(unmarked.textures[0].path, unmarked_path)
+            self.assertEqual(unmarked_path.read_bytes(), unmarked_bytes)
             self.assertIsNone(unmarked.textures[0].channel)
             self.assertEqual(source.read_bytes(), source_bytes)
+
+    async def test_extract_udim_channel_and_factor_preserves_each_tile(self):
+        """Extract and scale each prepared tile without losing its value or UDIM identity."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            source = root / "packed.<UDIM>.png"
+            for tile, green in ((1001, 64), (1002, 192)):
+                Image.new("RGB", (2, 2), (17, green, 255)).save(root / f"packed.{tile}.png")
+            item = RemixAssetItem.from_texture(source, TextureTypes.ROUGHNESS)
+            texture = item.textures[0]
+            texture.channel = "G"
+            texture.factor = (0.5,)
+            async with RemixAssetPipelineContext(items=[item], work_dir=root / "work") as context:
+                await StandardizeLinearTexturesStep().run(context)
+
+                await ExtractTextureChannelStep().run(context)
+
+            self.assertEqual(len(texture.udim_tiles), 2)
+            self.assertEqual(texture.path, texture.udim_tiles[0])
+            self.assertEqual({tile.parent for tile in texture.udim_tiles}, {texture.path.parent})
+            self.assertIsNone(texture.channel)
+            self.assertIsNone(texture.factor)
+            for tile_path, (tile, value) in zip(texture.udim_tiles, ((1001, 32 / 255), (1002, 96 / 255))):
+                self.assertIn(f".{tile}.", tile_path.name)
+                self.assertEqual(tile_path.suffix, ".exr")
+                np.testing.assert_allclose(
+                    read_linear_image(tile_path),
+                    np.full((2, 2, 4), (value, value, value, 1.0), dtype="float32"),
+                    rtol=0,
+                    atol=1e-7,
+                )
 
     async def test_extract_distinct_factors_preserves_each_output(self):
         """Keep separate files when factors differ beyond six significant digits."""
@@ -176,18 +217,24 @@ class TestExtractTextureChannelE2E(omni.kit.test.AsyncTestCase):
                 item.textures[0].channel = "G"
                 item.textures[0].factor = (factor,)
             async with RemixAssetPipelineContext(items=items, work_dir=temp_path / "work") as context:
+                await StandardizeLinearTexturesStep().run(context)
                 await ExtractTextureChannelStep().run(context)
                 self.assertNotEqual(items[0].textures[0].path, items[1].textures[0].path)
-                for item, value in zip(items, (127, 128)):
-                    with Image.open(item.textures[0].path) as image:
-                        self.assertEqual(list(image.getdata()), [(value, value, value)] * 4)
+                for item, value in zip(items, (0.4999999701976776, 0.5000000596046448)):
+                    texture = item.textures[0]
+                    self.assertIsNone(texture.channel)
+                    self.assertIsNone(texture.factor)
+                    np.testing.assert_array_equal(
+                        read_linear_image(texture.path),
+                        np.full((2, 2, 4), (value, value, value, 1.0), dtype="float32"),
+                    )
 
-    async def test_extract_color_factors_preserves_srgb_and_alpha(self):
-        """Multiply color in linear space and preserve or add linear alpha."""
+    async def test_extract_color_factors_preserves_linear_color_and_alpha(self):
+        """Multiply linear float color and preserve or multiply linear alpha."""
         cases = (
-            ("RGB", (255, 255, 255), (0.5, 0.5, 0.5), (188, 188, 188)),
-            ("RGBA", (255, 255, 255, 128), (0.5, 0.5, 0.5, 0.5), (188, 188, 188, 64)),
-            ("RGB", (255, 255, 255), (0.5, 0.5, 0.5, 0.5), (188, 188, 188, 128)),
+            ("RGB", (255, 255, 255), (0.5, 0.5, 0.5), (0.5, 0.5, 0.5, 1.0)),
+            ("RGBA", (255, 255, 255, 128), (0.5, 0.5, 0.5, 0.5), (0.5, 0.5, 0.5, 64 / 255)),
+            ("RGB", (255, 255, 255), (0.5, 0.5, 0.5, 0.5), (0.5, 0.5, 0.5, 0.5)),
         )
         for mode, pixel, factor, expected in cases:
             with self.subTest(mode=mode, factor=factor), tempfile.TemporaryDirectory() as temp_dir:
@@ -197,12 +244,15 @@ class TestExtractTextureChannelE2E(omni.kit.test.AsyncTestCase):
                 item = RemixAssetItem.from_texture(source, TextureTypes.DIFFUSE)
                 item.textures[0].factor = factor
                 async with RemixAssetPipelineContext(items=[item], work_dir=temp_path / "work") as context:
+                    await StandardizeLinearTexturesStep().run(context)
                     await ExtractTextureChannelStep().run(context)
-                    with Image.open(item.textures[0].path) as image:
-                        self.assertEqual(list(image.getdata()), [expected] * 4)
+                    self.assertIsNone(item.textures[0].factor)
+                    np.testing.assert_array_equal(
+                        read_linear_image(item.textures[0].path), np.full((2, 2, 4), expected, dtype="float32")
+                    )
 
-    async def test_unreadable_marked_texture_fails_and_keeps_the_record_unchanged(self):
-        """Keep the texture record unchanged when channel extraction fails."""
+    async def test_standardize_unreadable_marked_texture_fails_and_keeps_the_record_unchanged(self):
+        """Reject unreadable sources during preparation without changing the texture record."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = pathlib.Path(temp_dir)
             source = temp_path / "broken.png"
@@ -210,8 +260,8 @@ class TestExtractTextureChannelE2E(omni.kit.test.AsyncTestCase):
             item = RemixAssetItem.from_texture(source, TextureTypes.ROUGHNESS)
             item.textures[0].channel = "G"
             async with RemixAssetPipelineContext(items=[item], work_dir=temp_path / "work") as context:
-                with self.assertRaises(Image.UnidentifiedImageError):
-                    await ExtractTextureChannelStep().run(context)
+                with self.assertRaises(RuntimeError):
+                    await StandardizeLinearTexturesStep().run(context)
             self.assertEqual(item.textures[0].path, source)
             self.assertEqual(item.textures[0].channel, "G")
 

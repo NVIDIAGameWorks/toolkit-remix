@@ -395,8 +395,9 @@ class TestValueResolver(AsyncTestCase):
         # Assert
         self.assertIs(parameter.value_type, TextureTypes)
         self.assertEqual(parameter.get_value(), TextureTypes.DIFFUSE)
-        self.assertEqual(parameter.choices, tuple(t for t in TextureTypes if t is not TextureTypes.OTHER))
+        self.assertEqual(parameter.choices, tuple(t for t in TEXTURE_TYPE_INPUT_MAP if t is not TextureTypes.OTHER))
         self.assertNotIn(TextureTypes.OTHER, parameter.choices)
+        self.assertNotIn(TextureTypes.SKYBOX, parameter.choices)
         self.assertEqual(parameter.label, "Texture Type")
 
     async def test_selected_texture_parameter_updates_texture_type(self):

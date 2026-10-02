@@ -381,11 +381,16 @@ class SetupUI(_PropertyGroupExpansionMixin):
             basename_parts = basename_parts[basename]
         base_parts_len = len(basename_parts)
         all_path_parts = _parse_texture_paths([p.name for p in selected_paths])
+        # Ingested textures with a known type but no material input (e.g. Skybox) must not be assigned by name later.
+        non_material_paths = []
 
         for path in selected_paths:
             if path.suffix != ".dds":
                 continue
             texture_type = _get_texture_type_from_filename(str(path))
+            if texture_type and texture_type not in _TEXTURE_TYPE_INPUT_MAP:
+                non_material_paths.append(path)
+                continue
             # If it's an already ingested texture, we can just ignore the tags
             path_parts = all_path_parts[path.name]
             if path_parts[-1] == "rtex":
@@ -394,12 +399,15 @@ class SetupUI(_PropertyGroupExpansionMixin):
             if similar_len == 0:
                 continue
             if texture_type and similar_len >= base_parts_len - 1:
-                name = _TEXTURE_TYPE_INPUT_MAP[texture_type].replace("inputs:", "")
+                name = _TEXTURE_TYPE_INPUT_MAP[texture_type]
+                name = name.replace("inputs:", "")
                 if name not in texture_dict:
                     texture_dict[name] = str(path)
 
         for value in texture_dict.values():
             selected_paths.remove(Path(value))
+        for path in non_material_paths:
+            selected_paths.remove(path)
 
         texture_types = _determine_ideal_types([str(path) for path in selected_paths])
         for path, texture_type in texture_types.items():

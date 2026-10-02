@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.0]
+### Added
+- Added the Skybox texture type and `.s.rtex.dds` suffix without a material input.
+- Added the `.an`, `.md` and `.ss` converted suffixes for Anisotropy, Measurement Distance and Single Scattering, so that each texture encoding has a unique DDS name.
+
+### Fixed
+- Matched converted suffixes only after a dot, so that `.tr.rtex.dds` no longer resolves to Roughness.
+
 ## [3.1.1]
 ### Fixed
 - Preserved source-to-copy paths from the last import batch to distinguish textures with the same filename.

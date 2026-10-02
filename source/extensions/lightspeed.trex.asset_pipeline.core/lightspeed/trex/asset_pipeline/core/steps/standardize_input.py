@@ -26,6 +26,7 @@ from omni.flux.asset_importer.core import ImporterCore
 from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS, SUPPORTED_TEXTURE_EXTENSIONS
 from omni.flux.asset_importer.core.data_models import TextureTypes, UsdExtensions
 from omni.flux.asset_pipeline.core import PipelineContext, PipelineStep
+from omni.flux.nvtt.core import is_openexr
 
 from ..pipeline.context import RemixAssetPipelineContext
 from ..pipeline.item import AssetKind, RemixAssetItem, TextureAsset
@@ -75,7 +76,9 @@ class StandardizeInputStep(PipelineStep):
             suffix = item.source_path.suffix.lower()
             if item.kind is AssetKind.TEXTURE and not item.textures and self._texture_type is None:
                 errors.append(f"{self.name}: item {index} requires an explicit texture type")
-            if item.kind is AssetKind.TEXTURE and suffix not in texture_extensions:
+            # TODO: Add OpenEXR to SUPPORTED_TEXTURE_EXTENSIONS and remove the header check when the asset library
+            #  replaces the legacy validator ingestion, which reads the same list.
+            if item.kind is AssetKind.TEXTURE and suffix not in texture_extensions and not is_openexr(item.source_path):
                 errors.append(f"{self.name}: item {index} has unsupported texture extension '{suffix}'")
             if item.kind is AssetKind.MODEL and suffix not in asset_extensions:
                 errors.append(f"{self.name}: item {index} has unsupported model extension '{suffix}'")

@@ -138,6 +138,9 @@ These are the file formats that can be used as source material for the ingestion
 
 #### Texture Formats
 
+The new texture optimization path also accepts OpenEXR for every texture type. It detects OpenEXR from the file header
+and uses linear float work files.
+
 | Extension | Format                            | Description                            |
 |:----------|:----------------------------------|:---------------------------------------|
 | `.bmp`    | Bitmap Image File                 | Common image format.                   |
@@ -167,6 +170,27 @@ These are the file formats that assets are converted to after the ingestion proc
 | Extension | Format             | Description                                                                 |
 |:----------|:-------------------|:----------------------------------------------------------------------------|
 | `.dds`    | DirectDraw Surface | Microsoft DirectX format for textures and environments, optimized for GPUs. |
+
+#### Skybox Textures
+
+A Skybox texture converts to a linear BC6H `.s.rtex.dds` file with a full mip chain. The source can be an OpenEXR
+(`.exr`), a Radiance HDR (`.hdr`), or an SDR image. SDR sources convert from sRGB to linear. BC6H stores no alpha and no
+negative values, so the output does not keep the alpha channel or negative values of the source.
+
+```{warning}
+Set `rtx.skyForceHDR` before you use a skybox. With the default value, the runtime draws the sky in the SDR format of
+the game. It clips values above 1 and reads the linear values as sRGB, so the sky is too dark.
+```
+
+To use a skybox in the game:
+
+1. Add this setting to the mod's `rtx.conf`:
+
+   ```ini
+   rtx.skyForceHDR = True
+   ```
+
+2. Set the skybox as the albedo texture of the sky material replacement.
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

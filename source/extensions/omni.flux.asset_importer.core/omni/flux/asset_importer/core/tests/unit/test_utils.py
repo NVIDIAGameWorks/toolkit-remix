@@ -23,18 +23,31 @@ class TestAssetUtils(omni.kit.test.AsyncTestCase):
             self.assertEqual(paths_to_parse[name], len(parts))
 
     def test_get_texture_type_from_filename(self):
-        # Dictionary of a filepath/filename with the expected TextureType
+        # Each tag resolves to its own type. Multi-letter tags must not match a shorter tag such as `r`, `n` or `s`.
         test_paths = {
             "/path/to/file/ProcessedTexture.a.rtex.dds": _TextureTypes.DIFFUSE,
             "/path/to/file/ProcessedTexture_metallic.m.rtex.dds": _TextureTypes.METALLIC,
             "/path/to/file/ProcessedTexture_roughness.r.rtex.dds": _TextureTypes.ROUGHNESS,
             "ProcessedTexture.n.rtex.dds": _TextureTypes.NORMAL_OGL,
+            "ProcessedTexture.e.rtex.dds": _TextureTypes.EMISSIVE,
+            "ProcessedTexture.h.rtex.dds": _TextureTypes.HEIGHT,
+            "ProcessedTexture.tr.rtex.dds": _TextureTypes.TRANSMITTANCE,
+            "ProcessedTexture.an.rtex.dds": _TextureTypes.ANISOTROPY,
+            "ProcessedTexture.md.rtex.dds": _TextureTypes.MEASUREMENT_DISTANCE,
+            "ProcessedTexture.ss.rtex.dds": _TextureTypes.SINGLE_SCATTERING,
+            "ProcessedTexture.s.rtex.dds": _TextureTypes.SKYBOX,
+            "ProcessedTexture.rtex.dds": None,
             "other.dds": None,
         }
 
-        for test_path, texture_type in test_paths.items():
-            found_type = get_texture_type_from_filename(test_path)
-            self.assertEqual(found_type, texture_type)
+        for test_path, expected_type in test_paths.items():
+            with self.subTest(test_path=test_path):
+                # Arrange
+                # Act
+                found_type = get_texture_type_from_filename(test_path)
+
+                # Assert
+                self.assertEqual(expected_type, found_type)
 
     def test_get_texture_sets(self):
         # Arrange

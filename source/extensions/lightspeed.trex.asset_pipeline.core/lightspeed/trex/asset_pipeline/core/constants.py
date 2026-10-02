@@ -62,16 +62,21 @@ class TextureInfo:
     mip_filter: MipmapFilter = MipmapFilter.BOX
 
 
-#: DDS conversion metadata keyed by texture type.
+#: Every texture type has an entry. The runtime shaders gamma-decode only the gamma-encoded entries below.
+#: They read all other maps as linear data (dxvk-remix remix-1.5.2).
 TEXTURE_INFO: dict[TextureTypes, TextureInfo] = {
     TextureTypes.DIFFUSE: TextureInfo(BlockFormat.BC7, True),
     TextureTypes.OTHER: TextureInfo(BlockFormat.BC7, True),
     TextureTypes.EMISSIVE: TextureInfo(BlockFormat.BC7, True),
     TextureTypes.TRANSMITTANCE: TextureInfo(BlockFormat.BC7, True),
+    TextureTypes.SINGLE_SCATTERING: TextureInfo(BlockFormat.BC7, False),
     TextureTypes.NORMAL_OGL: TextureInfo(BlockFormat.BC5, False),
     TextureTypes.NORMAL_DX: TextureInfo(BlockFormat.BC5, False),
     TextureTypes.NORMAL_OTH: TextureInfo(BlockFormat.BC5, False),
     TextureTypes.ROUGHNESS: TextureInfo(BlockFormat.BC4, False),
     TextureTypes.METALLIC: TextureInfo(BlockFormat.BC4, False),
+    TextureTypes.ANISOTROPY: TextureInfo(BlockFormat.BC4, False),
+    TextureTypes.MEASUREMENT_DISTANCE: TextureInfo(BlockFormat.BC4, False),
     TextureTypes.HEIGHT: TextureInfo(BlockFormat.BC4, False, mip_filter=MipmapFilter.MAX),
+    TextureTypes.SKYBOX: TextureInfo(BlockFormat.BC6H_UF16, False),
 }

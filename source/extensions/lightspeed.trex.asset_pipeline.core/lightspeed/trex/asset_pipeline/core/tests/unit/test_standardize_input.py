@@ -50,6 +50,25 @@ class TestStandardizeInput(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(errors, [])
 
+    async def test_validate_accepts_openexr_by_file_header(self):
+        """The file header, not the suffix, makes an OpenEXR source valid for every texture type."""
+        # Arrange
+        sky, fake_sky, albedo = (pathlib.Path("/textures") / name for name in ("sky.EXR", "fake.exr", "albedo.exr"))
+        openexr_paths = {sky, albedo}
+        items = [
+            RemixAssetItem.from_texture(sky, TextureTypes.SKYBOX),
+            RemixAssetItem.from_texture(fake_sky, TextureTypes.SKYBOX),
+            RemixAssetItem.from_texture(albedo, TextureTypes.DIFFUSE),
+        ]
+        context = RemixAssetPipelineContext(items=items, work_dir=pathlib.Path("/work"))
+
+        with patch.object(standardize_input_module, "is_openexr", side_effect=lambda path: path in openexr_paths):
+            # Act
+            errors = StandardizeInputStep(TextureTypes.DIFFUSE).validate(context)
+
+        # Assert
+        self.assertEqual(errors, ["standardize_input: item 1 has unsupported texture extension '.exr'"])
+
     async def test_validate_with_supported_uppercase_model_suffix_returns_no_errors(self):
         """Input validation accepts supported model extensions case-insensitively."""
         # Arrange

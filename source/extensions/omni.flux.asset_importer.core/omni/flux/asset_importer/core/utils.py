@@ -175,7 +175,7 @@ def determine_ideal_types(paths: list[str], pref_normal_conv: _TextureTypes = No
 
 def get_texture_type_from_filename(filename: str) -> _TextureTypes | None:
     for tag, texture_type in _TEXTURE_TYPE_CONVERTED_SUFFIX_MAP.items():
-        suffix = f"{tag}.rtex.dds"
+        suffix = f".{tag}.rtex.dds"
         if filename.endswith(suffix):
             return texture_type
     return None

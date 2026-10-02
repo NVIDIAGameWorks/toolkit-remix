@@ -21,19 +21,21 @@ import pathlib
 import tempfile
 from unittest.mock import patch
 
-import lightspeed.trex.asset_pipeline.core.steps.extract_texture_channel as extract_module
+import numpy as np
 import omni.kit.test
 from lightspeed.trex.asset_pipeline.core import RemixAssetItem, RemixAssetPipelineContext
+from lightspeed.trex.asset_pipeline.core import utils
 from lightspeed.trex.asset_pipeline.core.steps import ExtractTextureChannelStep
 from omni.flux.asset_importer.core.data_models import TextureTypes
-from PIL import Image
 
 
 def _make_context(
-    channel: str | None = None, factor: tuple[float, ...] | None = None, work_dir: pathlib.Path | None = None
+    work_dir: pathlib.Path, channel: str | None = None, factor: tuple[float, ...] | None = None
 ) -> RemixAssetPipelineContext:
-    """Build a pipeline context with one PNG texture that carries the given markers."""
-    item = RemixAssetItem.from_texture(pathlib.Path("/textures/packed.png"), TextureTypes.ROUGHNESS)
+    """Build a pipeline context with a prepared EXR texture and optional markers."""
+    source = work_dir / "packed.exr"
+    source.write_bytes(b"prepared float texture")
+    item = RemixAssetItem.from_texture(source, TextureTypes.ROUGHNESS)
     item.textures[0].channel = channel
     item.textures[0].factor = factor
     return RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=work_dir)
@@ -51,7 +53,7 @@ class TestExtractTextureChannelStep(omni.kit.test.AsyncTestCase):
     async def test_should_run_returns_false_for_unmarked_texture(self):
         """A texture with no channel and no factor needs no extraction."""
         # Arrange
-        context = _make_context()
+        context = _make_context(work_dir=self.work_dir)
 
         # Act
         should_run = ExtractTextureChannelStep().should_run(context)
@@ -61,8 +63,11 @@ class TestExtractTextureChannelStep(omni.kit.test.AsyncTestCase):
 
     async def test_should_run_returns_true_for_marked_texture(self):
         """A channel marker or a factor marker alone requests extraction."""
-        for title, context in (("channel", _make_context(channel="G")), ("factor", _make_context(factor=(0.5,)))):
+        for title, channel, factor in (("channel", "G", None), ("factor", None, (0.5,))):
             with self.subTest(title=title):
+                # Arrange
+                context = _make_context(work_dir=self.work_dir, channel=channel, factor=factor)
+
                 # Act
                 should_run = ExtractTextureChannelStep().should_run(context)
 
@@ -70,20 +75,25 @@ class TestExtractTextureChannelStep(omni.kit.test.AsyncTestCase):
                 self.assertTrue(should_run)
 
     async def test_run_extracts_channel_and_clears_markers(self):
-        """Extraction writes a suffixed PNG to the work path and clears both markers."""
+        """Extraction preserves float precision and clears markers after conversion."""
         # Arrange
         context = _make_context(channel="G", factor=(0.25, 1, 0.5), work_dir=self.work_dir)
         texture = context.items[0].textures[0]
-        source_path = texture.path
-        expected_path = context.get_work_path(source_path, stem_suffix=".g.x0.25_1_0.5", suffix=".png")
+        pixels = np.full((2, 2, 4), (0.125, 0.3333, 0.8, 0.2), "float32")
 
-        with patch.object(extract_module, "_extract_channel") as extract:
+        def convert(_source, _destination, transform):
+            """Apply the step callback to prepared pixels without file conversion."""
+            transform(pixels)
+
+        with patch.object(utils, "convert_to_openexr", side_effect=convert):
             # Act
             await ExtractTextureChannelStep().run(context)
 
         # Assert
-        extract.assert_called_once_with(source_path, expected_path, "G", (0.25, 1, 0.5))
-        self.assertEqual(texture.path, expected_path)
+        np.testing.assert_allclose(pixels, np.full((2, 2, 4), (0.083325, 0.3333, 0.16665, 1.0), "float32"))
+        self.assertEqual(texture.path.name, "packed.g.x0.25_1_0.5.exr")
+        self.assertTrue(context.is_in_work_dir(texture.path))
+        self.assertEqual(texture.udim_tiles, ())
         self.assertIsNone(texture.channel)
         self.assertIsNone(texture.factor)
 
@@ -94,7 +104,7 @@ class TestExtractTextureChannelStep(omni.kit.test.AsyncTestCase):
         texture = context.items[0].textures[0]
         source_path = texture.path
 
-        with patch.object(extract_module, "_extract_channel") as extract:
+        with patch.object(utils, "convert_to_openexr") as extract:
             # Act
             await ExtractTextureChannelStep().run(context)
 
@@ -105,36 +115,81 @@ class TestExtractTextureChannelStep(omni.kit.test.AsyncTestCase):
     async def test_run_leaves_record_unchanged_when_extraction_fails(self):
         """A failed extraction propagates and does not update the texture record."""
         # Arrange
-        context = _make_context(channel="G", work_dir=self.work_dir)
+        context = _make_context(channel="G", factor=(0.5,), work_dir=self.work_dir)
         texture = context.items[0].textures[0]
         source_path = texture.path
 
-        with patch.object(extract_module, "_extract_channel", side_effect=OSError("unreadable")):
+        with patch.object(utils, "convert_to_openexr", side_effect=RuntimeError("unreadable")):
             # Act
-            with self.assertRaises(OSError):
+            with self.assertRaises(RuntimeError):
                 await ExtractTextureChannelStep().run(context)
 
         # Assert
         self.assertEqual(texture.path, source_path)
         self.assertEqual(texture.channel, "G")
+        self.assertEqual(texture.factor, (0.5,))
 
-    async def test_extract_channel_converts_palette_and_grayscale_sources(self):
-        """Palette and grayscale images have no RGB bands but still yield the selected channel."""
-        cases = (
-            ("palette", Image.new("RGB", (2, 2), (17, 64, 192)).convert("P", palette=Image.Palette.ADAPTIVE), 64),
-            ("grayscale", Image.new("L", (2, 2), 99), 99),
-        )
-        for title, source_image, expected in cases:
-            with self.subTest(title=title):
+    async def test_should_run_excludes_marked_dds_textures(self):
+        """DDS inputs bypass extraction even when factors or channels request changes."""
+        for suffix, content, expected in ((".png", b"DDS payload", False), (".dds", b"not a dds", True)):
+            with self.subTest(title=suffix):
                 # Arrange
-                source = self.work_dir / f"{title}.png"
-                destination = self.work_dir / f"{title}.g.png"
-                source_image.save(source)
+                context = _make_context(work_dir=self.work_dir, channel="G", factor=(0.5,))
+                source = self.work_dir / f"packed{suffix}"
+                source.write_bytes(content)
+                context.items[0].textures[0].path = source
+                context.force_dds_reencode = True
 
                 # Act
-                extract_module._extract_channel(source, destination, "G", None)
+                should_run = ExtractTextureChannelStep().should_run(context)
 
                 # Assert
-                with Image.open(destination) as result:
-                    self.assertEqual(result.mode, "RGB")
-                    self.assertEqual(result.getpixel((0, 0)), (expected, expected, expected))
+                self.assertEqual(should_run, expected)
+
+    async def test_run_applies_factors_and_alpha_without_eight_bit_rounding(self):
+        """Mono factors discard alpha. Color factors preserve or multiply linear alpha."""
+        cases = (
+            (None, (0.5,), (0.0625, 0.16665, 0.4, 1.0)),
+            (None, (0.5, 0.25, 2.0), (0.0625, 0.083325, 1.6, 0.2)),
+            (None, (0.5, 0.25, 2.0, 0.5), (0.0625, 0.083325, 1.6, 0.1)),
+            ("A", None, (0.2, 0.2, 0.2, 1.0)),
+        )
+        for channel, factor, expected in cases:
+            with self.subTest(title=f"channel={channel}, factor={factor}"):
+                # Arrange
+                context = _make_context(channel=channel, factor=factor, work_dir=self.work_dir)
+                pixels = np.full((2, 2, 4), (0.125, 0.3333, 0.8, 0.2), "float32")
+
+                def convert(_source, _destination, transform, pixels=pixels):
+                    """Apply the step callback to prepared pixels without file conversion."""
+                    transform(pixels)
+
+                with patch.object(utils, "convert_to_openexr", side_effect=convert):
+                    # Act
+                    await ExtractTextureChannelStep().run(context)
+
+                # Assert
+                np.testing.assert_allclose(pixels, np.full((2, 2, 4), expected, "float32"))
+
+    async def test_run_converts_only_authoritative_udim_tiles_and_colocates_outputs(self):
+        """Extraction retains the ledger order and does not discover extra tiles."""
+        # Arrange
+        context = _make_context(channel="G", work_dir=self.work_dir)
+        texture = context.items[0].textures[0]
+        ledger = tuple(self.work_dir / f"packed.{tile}.exr" for tile in (1003, 1001))
+        for tile in ledger:
+            tile.write_bytes(b"prepared float texture")
+        texture.path = ledger[0]
+        texture.original_path = self.work_dir / "packed.<UDIM>.png"
+        texture.udim_tiles = ledger
+        (self.work_dir / "packed.1002.exr").write_bytes(b"not in ledger")
+
+        with patch.object(utils, "convert_to_openexr", return_value=None):
+            # Act
+            await ExtractTextureChannelStep().run(context)
+
+        # Assert
+        self.assertEqual([tile.name for tile in texture.udim_tiles], ["packed.1003.g.exr", "packed.1001.g.exr"])
+        self.assertEqual(len({tile.parent for tile in texture.udim_tiles}), 1)
+        self.assertEqual(texture.path, texture.udim_tiles[0])
+        self.assertIsNone(texture.channel)

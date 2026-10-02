@@ -16,6 +16,7 @@
 """
 
 import asyncio
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -32,7 +33,7 @@ def _make_group(name: str, hidden: bool = False):
 
 
 class TestSetupUI(AsyncTestCase):
-    """Verify DLSS Neural Rendering material-group availability handling."""
+    """Verify material-group availability handling and texture assignment."""
 
     def test_constructor_subscribes_to_dlss_neural_rendering_availability_changes(self):
         # Arrange
@@ -188,3 +189,26 @@ class TestSetupUI(AsyncTestCase):
                 replacement.cancel()
                 task.cancel()
                 await asyncio.gather(task, return_exceptions=True)
+
+    def test_texture_assignment_with_skybox_textures_assigns_only_material_textures(self):
+        """Skybox textures have no material input and must not be assigned from words in their name."""
+        # Arrange
+        material_path = Path("C:/textures/sky_metallic.m.rtex.dds")
+        selected_paths = [
+            Path("C:/textures/sky_albedo.s.rtex.dds"),
+            Path("C:/textures/sky_normal.s.rtex.dds"),
+            material_path,
+        ]
+        setup = SetupUI.__new__(SetupUI)
+        with (
+            patch(f"{_MODULE}.TextureDialog"),
+            patch(f"{_MODULE}.Delegate"),
+            patch(f"{_MODULE}.ui"),
+            patch(f"{_MODULE}.Model") as model_class,
+        ):
+            # Act
+            setup._texture_assignment(selected_paths, [], allow_dialog_skip=False, basename=material_path.name)
+
+            # Assert
+            added_items = [call.args for call in model_class.return_value.add_item.call_args_list]
+            self.assertListEqual([(material_path.name, "metallic_texture")], added_items)

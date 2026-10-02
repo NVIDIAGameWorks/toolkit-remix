@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0]
+### Added
+- Added `StandardizeLinearTexturesStep`, which writes every non-DDS texture as a linear float OpenEXR file and resolves every UDIM tile list before channel extraction, factor application, normal conversion, and DDS encoding. Added Skybox textures with linear BC6H UF16 output, and used linear BC4 for Anisotropy and Measurement Distance and linear BC7 for Single Scattering. The pipeline identifies DDS sources by their `DDS ` magic number, not their suffix, and DDS sources skip every step except the final DDS step.
+
 ## [1.3.0]
 ### Changed
 - Added public frozen `TextureInfo` and `TEXTURE_INFO` in `constants`, keyed by `TextureTypes` with NVTT `BlockFormat` and `MipmapFilter` settings. `ConvertNormalStep` uses `OctahedralConverter.convert_file_to_octahedral` and does not run when no texture is a DirectX or OpenGL normal. DDS outputs from OpenEXR and Radiance HDR sources encode again one time, because their `src_hash` value now adds a fixed suffix to the file hash.

@@ -120,6 +120,10 @@ TEXTURE_TYPE_CONVERTED_SUFFIX_MAP = {
     "n": TextureTypes.NORMAL_OGL,  # All normal types share the same suffix.
     "h": TextureTypes.HEIGHT,
     "tr": TextureTypes.TRANSMITTANCE,
+    "an": TextureTypes.ANISOTROPY,
+    "md": TextureTypes.MEASUREMENT_DISTANCE,
+    "ss": TextureTypes.SINGLE_SCATTERING,
+    "s": TextureTypes.SKYBOX,
 }
 """
 **WARNING**: All normal types share the same suffix but `NORMAL_GL` will be returned as the value here.

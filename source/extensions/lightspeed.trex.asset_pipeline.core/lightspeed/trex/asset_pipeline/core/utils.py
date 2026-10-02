@@ -17,13 +17,26 @@
 
 from __future__ import annotations
 
-__all__ = ["get_authoring_spec", "get_material_shader_prim", "publish_remote_outputs", "resolve_local_output_dir"]
+__all__ = [
+    "LINEAR_SOURCE_HASH_SUFFIX",
+    "edit_texture_pixels",
+    "get_authoring_spec",
+    "get_material_shader_prim",
+    "get_source_hash",
+    "hash_source_file",
+    "is_dds_texture",
+    "publish_remote_outputs",
+    "resolve_local_output_dir",
+]
 
 import asyncio
 import pathlib
 import uuid
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import carb
+import numpy as np
 from omni.usd import get_shader_from_material
 from omni.client import CopyBehavior, Result as ClientResult
 from omni.client import (
@@ -37,11 +50,102 @@ from omni.client import (
     stat_async,
 )
 from omni.flux.job_queue.core.job import JobProgress, JobProgressCallback
-from omni.flux.utils.common.path_utils import get_local_path
+from omni.flux.nvtt.core import convert_to_openexr, is_dds, is_linear_image
+from omni.flux.utils.common.path_utils import get_local_path, hash_file, read_metadata
 from pxr import Sdf, Usd
 
-from .constants import PROCESSED_OUTPUT_DIR_NAME
+if TYPE_CHECKING:
+    from .pipeline.context import RemixAssetPipelineContext
+    from .pipeline.item import TextureAsset
+
+from .constants import DDS_SOURCE_HASH_METADATA_KEY, PROCESSED_OUTPUT_DIR_NAME
 from .worker import await_settled, run_in_worker_thread
+
+
+# DDS files from a linear source (OpenEXR, Radiance HDR, or BC6H DDS) written before version 1.3.0 skipped the
+# linear-to-sRGB conversion. The different reuse key makes these outputs encode again one time.
+LINEAR_SOURCE_HASH_SUFFIX = "-linear-srgb"
+
+
+def is_dds_texture(texture: TextureAsset) -> bool:
+    """Return whether the concrete file of the texture is a DDS file.
+
+    Raises:
+        OSError: If the file cannot be read, for example an unresolved UDIM pattern.
+    """
+    return is_dds(texture.path)
+
+
+async def edit_texture_pixels(
+    context: RemixAssetPipelineContext,
+    texture: TextureAsset,
+    edit: Callable[[np.ndarray], None],
+    *,
+    stem: Callable[[str], str] = str,
+    stem_suffix: str = "",
+) -> None:
+    """Apply a per-pixel edit to every file of a standardized texture, one file at a time.
+
+    ``StandardizeLinearTexturesStep`` gave every file the same linear float RGBA format, so a step supplies only the
+    edit. Each edited copy keeps that format and goes into the work directory of ``texture.path``. ``texture.path``
+    and a UDIM ``texture.udim_tiles`` then point to the copies.
+
+    Args:
+        context: Pipeline context that owns the work directory.
+        texture: Standardized texture to edit.
+        edit: Called once per file with pixels of shape ``(height, width, 4)``. Only per-pixel changes are valid.
+        stem: Returns the copy stem from the stem of each file.
+        stem_suffix: Text added after the stem of each copy.
+
+    Raises:
+        RuntimeError: If a file cannot be read or written.
+    """
+    copies = []
+    for path in texture.udim_tiles or (texture.path,):
+        copy = context.get_work_path(texture.path, stem=stem(path.stem), stem_suffix=stem_suffix, suffix=path.suffix)
+        await run_in_worker_thread(convert_to_openexr, path, copy, edit)
+        copies.append(copy)
+    texture.path = copies[0]
+    if texture.udim_tiles:
+        texture.udim_tiles = tuple(copies)
+
+
+def hash_source_file(path: pathlib.Path, linear: bool) -> str:
+    """Return the DDS reuse key of a file from its current bytes.
+
+    The key is the file hash. A linear source adds ``LINEAR_SOURCE_HASH_SUFFIX``.
+
+    Args:
+        path: Texture file to hash.
+        linear: Whether the file holds linear values, as ``is_linear_image`` returns.
+
+    Returns:
+        The reuse key.
+    """
+    file_hash = hash_file(str(path))
+    return file_hash + LINEAR_SOURCE_HASH_SUFFIX if linear else file_hash
+
+
+def get_source_hash(context: RemixAssetPipelineContext, path: pathlib.Path) -> str | None:
+    """Return the hash that keys DDS reuse for a texture file.
+
+    A work file that a pipeline step derived from a source records the reuse key of that source. A file outside
+    the work directory can carry a stale ``src_hash`` sidecar, so it always returns the key of its current bytes.
+
+    Args:
+        context: Pipeline context that owns the work directory.
+        path: Texture file to hash.
+
+    Returns:
+        The recorded source key or the key of the file bytes, or ``None`` when the file is absent.
+    """
+    if not path.exists():
+        return None
+    if context.is_in_work_dir(path):
+        recorded_hash = read_metadata(str(path), DDS_SOURCE_HASH_METADATA_KEY)
+        if recorded_hash:
+            return recorded_hash
+    return hash_source_file(path, is_linear_image(path))
 
 
 def resolve_local_output_dir(job_directory: pathlib.Path, output_url: str | None) -> tuple[pathlib.Path, bool]:
