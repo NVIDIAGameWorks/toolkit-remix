@@ -29,10 +29,11 @@ name. A packman bump then needs no code change.
 
 ### Gamma handling
 
-Level 0 is written from the values as loaded. Every later level converts to linear, builds the
-mipmap, converts back to gamma, then compresses. This matches requested gamma-correct mip
-generation.
-The stored values stay gamma encoded.
+For gamma-encoded output, each mip converts to linear for the downsample and back to sRGB before compression.
+OpenEXR, Radiance HDR, and BC6H DDS sources hold linear values. BC6H_UF16 output keeps them, and SDR sources convert
+from sRGB before compression. Gamma-encoded output converts linear sources to sRGB. `FreeImage_GetFileTypeU` identifies
+the format from the file header, so the file suffix has no effect. The DX10 header of a DDS file identifies a BC6H
+source. NVTT has no OpenEXR reader, so the bundled `FreeImage.dll` reads OpenEXR files as exact 32 bit float values.
 
 ### GPU pinning
 
@@ -85,8 +86,16 @@ encode_dds(
 
 | Symbol | Description |
 |---|---|
-| `BlockFormat` | `IntEnum` of supported block compression formats: `BC4` (6), `BC5` (9), `BC7` (15). The ordinals are the NVTT ABI. |
+| `BlockFormat` | `IntEnum` of supported block compression formats: `BC4` (6), `BC5` (9), `BC6H_UF16` (13, unsigned half float), `BC7` (15). The ordinals are the NVTT ABI. |
+| `DxgiFormat` | `IntEnum` of the `DXGI_FORMAT` values in the DDS files this repository writes: `BC4_UNORM` (80), `BC5_UNORM` (83), `BC6H_UF16` (95), `BC6H_SF16` (96), `BC7_UNORM` (98). |
 | `MipmapFilter` | `IntEnum` matching `NvttMipmapFilter`: `BOX`, `TRIANGLE`, `KAISER`, `MITCHELL`, `MIN`, `MAX`. |
 | `NvttUnavailableError` | Raised when the NVTT shared library cannot be loaded. |
+| `convert_to_openexr` | Read an image as float RGBA, edit the pixels in place, and write a float OpenEXR file. Memory holds one float copy. |
 | `encode_dds` | Encode one image file to a mipmapped DDS. |
 | `is_available` | Return whether the NVTT library can be loaded. |
+| `is_dds` | Return whether the file header marks a DDS file. Does not load the NVTT library. |
+| `is_linear_image` | Return whether the file header marks an OpenEXR, Radiance HDR, or BC6H DDS image. |
+| `is_openexr` | Return whether the file header marks an OpenEXR image. |
+| `read_dds_format` | Return the DXGI format of a DDS file with a DX10 header, or None. Does not load the NVTT library. |
+| `read_linear_image` | Read an OpenEXR or Radiance HDR image as float RGBA pixels. Return None for other formats. |
+| `write_openexr` | Write float RGBA pixels to an OpenEXR file with 32 bit float channels. |

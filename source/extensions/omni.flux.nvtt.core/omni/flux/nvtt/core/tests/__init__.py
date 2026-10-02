@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .e2e.test_library import TestNvttLibraryE2E
 from .unit.test_library import TestNvttLibrary
 
-__all__ = ["TestNvttLibrary"]
+__all__ = ["TestNvttLibrary", "TestNvttLibraryE2E"]

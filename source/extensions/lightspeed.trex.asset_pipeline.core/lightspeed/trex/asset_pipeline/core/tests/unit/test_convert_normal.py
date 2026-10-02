@@ -40,7 +40,9 @@ class TestConvertNormal(omni.kit.test.AsyncTestCase):
             # Arrange
             caller_thread = threading.get_ident()
             worker_threads = []
-            mock_converter = MagicMock(side_effect=lambda *_args: worker_threads.append(threading.get_ident()))
+            mock_converter = MagicMock(
+                side_effect=lambda *_args, **_kwargs: worker_threads.append(threading.get_ident())
+            )
             output_dir = pathlib.Path(temp_dir) / "processed"
             output_dir.mkdir()
             item = RemixAssetItem.from_texture(pathlib.Path("/textures/normal.png"), TextureTypes.NORMAL_DX)
@@ -49,7 +51,7 @@ class TestConvertNormal(omni.kit.test.AsyncTestCase):
 
             with patch.object(
                 convert_normal_module.OctahedralConverter,
-                "convert_dx_file_to_octahedral",
+                "convert_file_to_octahedral",
                 mock_converter,
             ):
                 # Act
@@ -61,7 +63,9 @@ class TestConvertNormal(omni.kit.test.AsyncTestCase):
             self.assertEqual(item.textures[0].path.name, "normal_OTH_Normal.png")
             self.assertEqual(item.textures[0].path.parent.parent, output_dir)
             self.assertEqual(item.textures[0].texture_type, TextureTypes.NORMAL_OTH)
-            mock_converter.assert_called_once()
+            mock_converter.assert_called_once_with(
+                str(pathlib.Path("/textures/normal.png")), str(item.textures[0].path), opengl=False
+            )
             self.assertTrue(worker_threads)
             self.assertNotIn(caller_thread, worker_threads)
 
@@ -77,7 +81,7 @@ class TestConvertNormal(omni.kit.test.AsyncTestCase):
 
             with patch.object(
                 convert_normal_module.OctahedralConverter,
-                "convert_ogl_file_to_octahedral",
+                "convert_file_to_octahedral",
                 mock_converter,
             ):
                 # Act
@@ -87,32 +91,29 @@ class TestConvertNormal(omni.kit.test.AsyncTestCase):
             self.assertEqual(item.textures[0].path.name, "normal_OTH_Normal.png")
             self.assertEqual(item.textures[0].path.parent.parent, output_dir)
             self.assertEqual(item.textures[0].texture_type, TextureTypes.NORMAL_OTH)
-            mock_converter.assert_called_once()
+            mock_converter.assert_called_once_with(
+                str(pathlib.Path("/textures/normal.png")), str(item.textures[0].path), opengl=True
+            )
 
-    async def test_run_skips_non_normal_texture_records(self):
-        """Diffuse texture records are left unchanged."""
-        # Arrange
-        item = RemixAssetItem.from_texture(pathlib.Path("/textures/diffuse.png"), TextureTypes.DIFFUSE)
-        context = RemixAssetPipelineContext(items=[item], work_dir=pathlib.Path("/processed"))
+    async def test_step_skips_octahedral_and_non_normal_textures(self):
+        """Octahedral (NORMAL_OTH) and diffuse textures, plain or UDIM, skip the step with a reason and stay unchanged."""
+        for texture_type in (TextureTypes.NORMAL_OTH, TextureTypes.DIFFUSE):
+            for path in (pathlib.Path("/textures/input.png"), pathlib.Path("/textures/input.<UDIM>.png")):
+                with self.subTest(texture_type=texture_type, path=path):
+                    # Arrange
+                    step = ConvertNormalStep()
+                    item = RemixAssetItem.from_texture(path, texture_type)
+                    context = RemixAssetPipelineContext(items=[item], work_dir=pathlib.Path("/processed"))
 
-        # Act
-        await ConvertNormalStep().run(context)
+                    # Act
+                    should_run = step.should_run(context)
+                    skip_reason = step.skip_reason(context)
 
-        # Assert
-        self.assertEqual(item.textures[0].path, pathlib.Path("/textures/diffuse.png"))
-        self.assertEqual(item.textures[0].texture_type, TextureTypes.DIFFUSE)
-
-    async def test_should_run_returns_false_when_no_normals(self):
-        """should_run returns False when no texture records have normal types."""
-        # Arrange
-        item = RemixAssetItem.from_texture(pathlib.Path("/textures/diffuse.png"), TextureTypes.DIFFUSE)
-        context = RemixAssetPipelineContext(items=[item])
-
-        # Act
-        should_run = ConvertNormalStep().should_run(context)
-
-        # Assert
-        self.assertFalse(should_run)
+                    # Assert
+                    self.assertFalse(should_run)
+                    self.assertEqual(skip_reason, "no DirectX or OpenGL normal textures")
+                    self.assertEqual(item.textures[0].path, path)
+                    self.assertEqual(item.textures[0].texture_type, texture_type)
 
     async def test_should_run_returns_true_when_normal_present(self):
         """should_run returns True when a normal texture record is present."""
@@ -145,12 +146,12 @@ class TestConvertNormal(omni.kit.test.AsyncTestCase):
 
             converted_tiles = []
 
-            def record_conversion(in_path, out_path):
-                converted_tiles.append((in_path, out_path))
+            def record_conversion(in_path, out_path, opengl):
+                converted_tiles.append((in_path, out_path, opengl))
 
             with patch.object(
                 convert_normal_module.OctahedralConverter,
-                "convert_dx_file_to_octahedral",
+                "convert_file_to_octahedral",
                 side_effect=record_conversion,
             ):
                 await ConvertNormalStep().run(context)
@@ -195,7 +196,7 @@ class TestConvertNormal(omni.kit.test.AsyncTestCase):
 
             with patch.object(
                 convert_normal_module.OctahedralConverter,
-                "convert_dx_file_to_octahedral",
+                "convert_file_to_octahedral",
             ):
                 await ConvertNormalStep().run(context)
 

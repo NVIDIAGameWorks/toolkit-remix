@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.3.4]
+### Changed
+- `ConvertToOctahedral` uses `OctahedralConverter.convert_file_to_octahedral` for DirectX and OpenGL normal maps.
+
 ## [4.3.3]
 ### Changed
 - `ConvertToDDS` now uses typed `ConversionSettings` (`BlockFormat`, `gamma_encoded`, `MipmapFilter`) and calls

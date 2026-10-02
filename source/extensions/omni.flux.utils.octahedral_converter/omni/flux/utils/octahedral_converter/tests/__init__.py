@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .e2e.test_conversion import TestOctahedralConverterE2E
 from .unit.test_conversion import TestOctahedralConverter
 
-__all__ = ["TestOctahedralConverter"]
+__all__ = ["TestOctahedralConverter", "TestOctahedralConverterE2E"]

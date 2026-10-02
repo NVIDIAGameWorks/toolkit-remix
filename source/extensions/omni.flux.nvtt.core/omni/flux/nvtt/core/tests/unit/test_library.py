@@ -27,10 +27,22 @@ from omni.flux.nvtt.core import library as nvtt_library
 class TestNvttLibrary(omni.kit.test.AsyncTestCase):
     """Test the NVTT ctypes binding without loading the real library."""
 
+    async def test_encode_bc6_gamma_output_raises(self):
+        """Reject gamma-encoded BC6H_UF16 output before the encoder creates a file."""
+        # Arrange
+        source, destination = pathlib.Path("sky.png"), pathlib.Path("sky.dds")
+
+        # Act / Assert
+        with self.assertRaisesRegex(ValueError, "BC6H_UF16 requires linear output"):
+            nvtt_library.encode_dds(
+                source, destination, block_format=nvtt_library.BlockFormat.BC6H_UF16, gamma_encoded=True
+            )
+
     async def test_block_format_ordinals_match_nvtt_abi(self):
         """The ordinals are the NVTT ABI; a silent renumber would corrupt every encoded texture."""
         self.assertEqual(nvtt_library.BlockFormat.BC4, 6)
         self.assertEqual(nvtt_library.BlockFormat.BC5, 9)
+        self.assertEqual(nvtt_library.BlockFormat.BC6H_UF16, 13)
         self.assertEqual(nvtt_library.BlockFormat.BC7, 15)
 
     async def test_mipmap_filter_ordinals_match_nvtt_abi(self):
@@ -106,6 +118,7 @@ class TestNvttLibrary(omni.kit.test.AsyncTestCase):
             # Act
             with (
                 patch.object(nvtt_library, "_library", None),
+                patch.object(nvtt_library, "_freeimage", None),
                 patch.object(nvtt_library, "_load_error", None),
                 patch.object(nvtt_library, "_cuda_supported", None),
                 patch.object(nvtt_library, "_nvtt_directory", return_value=pathlib.Path(directory)),
