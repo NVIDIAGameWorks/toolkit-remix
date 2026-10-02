@@ -1,5 +1,5 @@
 [package]
-version = "1.2.1"
+version = "1.3.0"
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "RTX Remix Asset Pipeline Steps"
 description = "Concrete pipeline steps for RTX Remix asset processing (normal conversion, DDS, metadata)"

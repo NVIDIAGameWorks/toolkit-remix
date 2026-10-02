@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-6006: Routed tagged ComfyUI texture and mesh workflow outputs through the texture and asset pipelines, with per-output Apply settings, mesh reference selection, and one atomic Apply, Reapply, and Revert for every result.
 - REMIX-3131: Added Copy Light and Paste Light actions with console success and failure messages and mesh-instance targeting to the Property Panel and Stage Manager.
 - Added docs for downloading prebuilt Toolkit development packages from GitHub Actions, installing the published `rtx-remix-modding` skill with `npx skills add`, and registering the MCP server in Claude Code
+- REMIX-2659: Added linear BC6H UF16 encoding, float image I/O, and float octahedral normal conversion without 8-bit rounding.
 
 ### Changed
 

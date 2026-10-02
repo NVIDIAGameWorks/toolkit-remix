@@ -22,8 +22,6 @@ from pathlib import Path
 from omni import ui
 from pxr import Sdf
 
-from .texture_info import CompressionFormat, MipFilter, TextureInfo
-
 WINDOW_NAME = "Remix Main Window"
 
 MATERIAL_RELATIONSHIP = "material:binding"
@@ -176,19 +174,6 @@ EXPORT_STATUS_INCOMPLETE_EXPORT = "Export did not finish"
 EXPORT_STATUS_PRECHECK_ERRORS = "Precheck Failed"
 EXPORT_STATUS_PRECHECK_MEMORY_ERRORS = "Precheck Memory Failed"
 EXPORT_STATUS_POSTPROCESS_ERRORS = "PostProcess Errors"
-
-# Texture information describing various aspects of a class of textures such as its encoding and desired export
-# format.
-TEXTURE_INFO = {
-    MATERIAL_INPUTS_DIFFUSE_TEXTURE: TextureInfo(CompressionFormat.BC7, True),
-    MATERIAL_INPUTS_NORMALMAP_TEXTURE: TextureInfo(CompressionFormat.BC5, False),
-    MATERIAL_INPUTS_TANGENT_TEXTURE: TextureInfo(CompressionFormat.BC5, False),
-    MATERIAL_INPUTS_REFLECTIONROUGHNESS_TEXTURE: TextureInfo(CompressionFormat.BC4, False),
-    MATERIAL_INPUTS_EMISSIVE_MASK_TEXTURE: TextureInfo(CompressionFormat.BC7, True),
-    MATERIAL_INPUTS_METALLIC_TEXTURE: TextureInfo(CompressionFormat.BC4, False),
-    MATERIAL_INPUTS_TRANSMITTANCE_TEXTURE: TextureInfo(CompressionFormat.BC7, True),
-    MATERIAL_INPUTS_HEIGHT_TEXTURE: TextureInfo(CompressionFormat.BC4, False, mip_filter=MipFilter.MAX),
-}
 
 AUTOUPSCALE_LAYER_FILENAME = "autoupscale.usda"
 

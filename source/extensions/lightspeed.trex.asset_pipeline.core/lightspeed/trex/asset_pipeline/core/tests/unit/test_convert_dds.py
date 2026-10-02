@@ -23,18 +23,17 @@ from unittest.mock import patch
 
 import lightspeed.trex.asset_pipeline.core.steps.convert_dds as convert_dds_module
 import omni.kit.test
-from lightspeed.common.constants import TEXTURE_INFO
-from lightspeed.common.texture_info import CompressionFormat, MipFilter, TextureInfo
 from lightspeed.trex.asset_pipeline.core import (
     AssetKind,
     RemixAssetItem,
     RemixAssetPipelineContext,
     TextureAsset,
 )
-from lightspeed.trex.asset_pipeline.core.constants import DDS_SOURCE_HASH_METADATA_KEY
+from lightspeed.trex.asset_pipeline.core.constants import DDS_SOURCE_HASH_METADATA_KEY, TEXTURE_INFO, TextureInfo
 from lightspeed.trex.asset_pipeline.core.steps import ConvertDDSStep
-from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP, TextureTypes
-from omni.flux.utils.common.path_utils import is_udim_texture
+from omni.flux.asset_importer.core.data_models import TextureTypes
+from omni.flux.nvtt.core import BlockFormat, MipmapFilter
+from omni.flux.utils.common.path_utils import hash_file, is_udim_texture, read_metadata
 
 
 class TestConvertDDS(omni.kit.test.AsyncTestCase):
@@ -76,7 +75,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
 
     async def test_convert_texture_calls_encode_dds_with_mapped_settings(self):
         """_convert_texture derives BlockFormat, gamma_encoded, and MipmapFilter from the texture info."""
-        texture_info = TextureInfo(CompressionFormat.BC7, True, mip_filter=MipFilter.BOX)
+        texture_info = TextureInfo(BlockFormat.BC7, True, mip_filter=MipmapFilter.BOX)
         with patch.object(convert_dds_module, "encode_dds") as mock_encode:
             # Act
             convert_dds_module._convert_texture("input.png", "output.dds", texture_info)
@@ -85,9 +84,9 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
         mock_encode.assert_called_once_with(
             pathlib.Path("input.png"),
             pathlib.Path("output.dds"),
-            block_format=convert_dds_module.BlockFormat.BC7,
+            block_format=BlockFormat.BC7,
             gamma_encoded=True,
-            mip_filter=convert_dds_module.MipmapFilter.BOX,
+            mip_filter=MipmapFilter.BOX,
         )
 
     async def test_run_uses_canonical_texture_info_for_conversion(self):
@@ -109,7 +108,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             self.assertEqual(pathlib.Path(mock_nvtt.call_args.args[1]).name, "roughness.r.rtex.dds")
             self.assertIs(
                 mock_nvtt.call_args.args[2],
-                TEXTURE_INFO[TEXTURE_TYPE_INPUT_MAP[TextureTypes.ROUGHNESS]],
+                TEXTURE_INFO[TextureTypes.ROUGHNESS],
             )
 
     async def test_run_reuses_existing_dds_output(self):
@@ -128,7 +127,7 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             dds_path.with_suffix(".dds.meta").write_text(
                 json.dumps(
                     {
-                        DDS_SOURCE_HASH_METADATA_KEY: convert_dds_module._hash_existing_file(str(source_path)),
+                        DDS_SOURCE_HASH_METADATA_KEY: hash_file(str(source_path)),
                     }
                 )
             )
@@ -146,6 +145,41 @@ class TestConvertDDS(omni.kit.test.AsyncTestCase):
             self.assertEqual(item.textures[0].path.parent.parent, work_dir)
             self.assertEqual(item.textures[0].path.read_bytes(), b"dds")
             mock_nvtt.assert_not_called()
+
+    async def test_run_reencodes_linear_source_dds_output_with_legacy_hash(self):
+        """A DDS from a linear source with the legacy plain-hash sidecar encodes again and gets the new key."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Arrange
+            temp_path = pathlib.Path(temp_dir)
+            source_path = temp_path / "albedo.hdr"
+            source_path.write_bytes(b"hdr")
+            output_dir = temp_path / "processed"
+            output_dir.mkdir()
+            work_dir = temp_path / "work"
+            work_dir.mkdir()
+            dds_path = output_dir / "albedo.a.rtex.dds"
+            dds_path.write_bytes(b"legacy")
+            dds_path.with_suffix(".dds.meta").write_text(
+                json.dumps({DDS_SOURCE_HASH_METADATA_KEY: hash_file(str(source_path))})
+            )
+            item = RemixAssetItem.from_texture(source_path, TextureTypes.DIFFUSE)
+            context = RemixAssetPipelineContext(items=[item], work_dir=work_dir, output_dir=output_dir)
+            expected_key = hash_file(str(source_path)) + convert_dds_module.LINEAR_SOURCE_HASH_SUFFIX
+
+            def convert_texture(_input_path, output_path, _texture_info):
+                pathlib.Path(output_path).write_bytes(b"encoded")
+
+            with (
+                patch.object(convert_dds_module, "is_linear_image", return_value=True),
+                patch.object(convert_dds_module, "_convert_texture", side_effect=convert_texture) as mock_nvtt,
+            ):
+                # Act
+                await ConvertDDSStep().run(context)
+
+            # Assert
+            mock_nvtt.assert_called_once()
+            self.assertEqual(item.textures[0].path.read_bytes(), b"encoded")
+            self.assertEqual(read_metadata(str(item.textures[0].path), DDS_SOURCE_HASH_METADATA_KEY), expected_key)
 
     async def test_run_passes_through_dds_input_without_semantic_suffix(self):
         """An encoded DDS is copied unchanged, whatever its name, so it is never compressed twice."""

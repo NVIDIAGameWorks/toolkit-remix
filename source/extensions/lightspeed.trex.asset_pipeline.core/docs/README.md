@@ -85,6 +85,8 @@ jobs, and persistence or Apply integration.
   `write_input_sidecars()`, the utility both default handlers and a
   consumer's own handler build on. `constants` holds the matching sidecar
   keys.
+- `constants` owns frozen `TextureInfo` records and `TEXTURE_INFO`, keyed by `TextureTypes`, with NVTT `BlockFormat` and `MipmapFilter` settings.
+  Texture types without metadata use Diffuse settings.
 - `persistence_codecs.py` serializes immutable job values, default Apply handlers,
   and the `MetadataApplyReceipt` that SQLite stores.
 - `utils.py` contains `get_authoring_spec()`, `publish_remote_outputs()`, and
@@ -121,7 +123,11 @@ falls back to the resolved source texture instead of failing.
 An existing DDS is reused only when its sidecar `src_hash` equals the hash of
 the current source texture, as the legacy plugin decided. The output filename
 carries the texture semantic, so the same path with the same source hash is the
-same conversion. A matching name alone is not sufficient.
+same conversion. A matching name alone is not sufficient. For an OpenEXR or
+Radiance HDR source, the `src_hash` value is the file hash plus a fixed suffix.
+DDS outputs from these linear sources written before this version skipped the
+linear-to-sRGB conversion, so they encode again one time. Other sources keep the
+plain file hash.
 
 Material conversion preserves authored AperturePBR variants. The material converter
 registry selects a builder, and that builder selects the output shader. Unsupported

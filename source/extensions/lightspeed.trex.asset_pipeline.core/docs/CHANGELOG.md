@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.0]
+### Changed
+- Added public frozen `TextureInfo` and `TEXTURE_INFO` in `constants`, keyed by `TextureTypes` with NVTT `BlockFormat` and `MipmapFilter` settings. `ConvertNormalStep` uses `OctahedralConverter.convert_file_to_octahedral` and does not run when no texture is a DirectX or OpenGL normal. DDS outputs from OpenEXR and Radiance HDR sources encode again one time, because their `src_hash` value now adds a fixed suffix to the file hash.
+
 ## [1.2.1]
 ### Added
 - Added glTF/GLB material conversion with packed texture channel extraction and extra textures beside mesh outputs, renamed the optimization stages to Optimization preparation, Texture optimization, and Mesh optimization, restored the default material for meshes without a surface shader, renamed `TextureProcessingJob`, `TextureProcessingRequest`, `TextureProcessingResult`, and `TextureProcessingItem` to `TextureOptimization*` (persisted codec ids unchanged), and made the optimization jobs settle as skipped with outputs when there is no work: the prepare and mesh jobs skip with "Asset already optimized" for a source with a valid `.meta` sidecar and publish it in place so Apply still runs, and the texture job skips with "No textures to optimize" for an empty batch.

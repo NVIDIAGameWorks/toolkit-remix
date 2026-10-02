@@ -15,6 +15,34 @@
 * limitations under the License.
 """
 
-from .library import BlockFormat, MipmapFilter, NvttUnavailableError, encode_dds, is_available
+from .library import (
+    BlockFormat,
+    DxgiFormat,
+    MipmapFilter,
+    NvttUnavailableError,
+    convert_to_openexr,
+    encode_dds,
+    is_available,
+    is_dds,
+    is_linear_image,
+    is_openexr,
+    read_dds_format,
+    read_linear_image,
+    write_openexr,
+)
 
-__all__ = ["BlockFormat", "MipmapFilter", "NvttUnavailableError", "encode_dds", "is_available"]
+__all__ = [
+    "BlockFormat",
+    "DxgiFormat",
+    "MipmapFilter",
+    "NvttUnavailableError",
+    "convert_to_openexr",
+    "encode_dds",
+    "is_available",
+    "is_dds",
+    "is_linear_image",
+    "is_openexr",
+    "read_dds_format",
+    "read_linear_image",
+    "write_openexr",
+]

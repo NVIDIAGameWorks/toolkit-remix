@@ -15,7 +15,6 @@
 * limitations under the License.
 """
 
-import functools
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import IntEnum
@@ -263,17 +262,15 @@ class ConvertToOctahedral(_CheckBaseUSD):
 
                 if not out_path.exists() or src_hash is not None:
                     future = None
-                    if encoding == NormalMapEncodings.TANGENT_SPACE_DX.value:
+                    if encoding in (
+                        NormalMapEncodings.TANGENT_SPACE_DX.value,
+                        NormalMapEncodings.TANGENT_SPACE_OGL.value,
+                    ):
                         future = executor.submit(
-                            functools.partial(
-                                OctahedralConverter.convert_dx_file_to_octahedral, in_path_str, out_path_str
-                            )
-                        )
-                    elif encoding == NormalMapEncodings.TANGENT_SPACE_OGL.value:
-                        future = executor.submit(
-                            functools.partial(
-                                OctahedralConverter.convert_ogl_file_to_octahedral, in_path_str, out_path_str
-                            )
+                            OctahedralConverter.convert_file_to_octahedral,
+                            in_path_str,
+                            out_path_str,
+                            encoding == NormalMapEncodings.TANGENT_SPACE_OGL.value,
                         )
                     if future:
                         future.attrs = attrs

@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0]
+### Added
+- Added linear BC6H UF16 encoding, float image I/O, file header detection, and DDS DXGI format reading. BC6H DDS
+  sources stay linear.
+
 ## [1.0.0]
 ### Added
 - Created in-process DDS encoding through the NVTT 3 library, with a typed block format, gamma correct mip

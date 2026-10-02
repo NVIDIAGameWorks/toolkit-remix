@@ -15,13 +15,20 @@
 * limitations under the License.
 """
 
+from dataclasses import dataclass
+
+from omni.flux.asset_importer.core.data_models import TextureTypes
+from omni.flux.nvtt.core import BlockFormat, MipmapFilter
+
 __all__ = (
     "BASE_HASH_KEY",
     "DDS_SOURCE_HASH_METADATA_KEY",
     "ORPHAN_PARAMETER_CLEANUP_SETTING_PATH",
     "PROCESSED_OUTPUT_DIR_NAME",
+    "TEXTURE_INFO",
     "VALIDATION_EXTENSIONS_KEY",
     "VALIDATION_PASSED_KEY",
+    "TextureInfo",
 )
 
 # The legacy ingestion plugins keyed DDS reuse on "src_hash" and stored hash_file(source) under it. Keep the
@@ -44,3 +51,27 @@ VALIDATION_EXTENSIONS_KEY: str = "validation_extensions"
 # The legacy writer also appended a "fixes_applied" key, populated by the retired check plugins. The shipped
 # ingested fixtures under lightspeed.trex.app.resources carry no such key, and no reader in this pipeline
 # consumes one, so this pipeline writes none rather than inventing entries.
+
+
+@dataclass(frozen=True)
+class TextureInfo:
+    """A texture's desired block format, encoding, and mip filter."""
+
+    block_format: BlockFormat
+    gamma_encoded: bool
+    mip_filter: MipmapFilter = MipmapFilter.BOX
+
+
+#: DDS conversion metadata keyed by texture type.
+TEXTURE_INFO: dict[TextureTypes, TextureInfo] = {
+    TextureTypes.DIFFUSE: TextureInfo(BlockFormat.BC7, True),
+    TextureTypes.OTHER: TextureInfo(BlockFormat.BC7, True),
+    TextureTypes.EMISSIVE: TextureInfo(BlockFormat.BC7, True),
+    TextureTypes.TRANSMITTANCE: TextureInfo(BlockFormat.BC7, True),
+    TextureTypes.NORMAL_OGL: TextureInfo(BlockFormat.BC5, False),
+    TextureTypes.NORMAL_DX: TextureInfo(BlockFormat.BC5, False),
+    TextureTypes.NORMAL_OTH: TextureInfo(BlockFormat.BC5, False),
+    TextureTypes.ROUGHNESS: TextureInfo(BlockFormat.BC4, False),
+    TextureTypes.METALLIC: TextureInfo(BlockFormat.BC4, False),
+    TextureTypes.HEIGHT: TextureInfo(BlockFormat.BC4, False, mip_filter=MipmapFilter.MAX),
+}

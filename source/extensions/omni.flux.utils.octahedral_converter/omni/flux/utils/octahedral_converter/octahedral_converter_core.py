@@ -21,6 +21,10 @@ import carb
 import numpy as np
 from PIL import Image
 
+# Each pass of the in-place float conversion reads about this many pixels into contiguous temporary arrays of
+# 256 KiB, which stay in the CPU cache. Larger blocks run slower.
+_CHUNK_PIXELS = 1 << 16
+
 
 # Converts either OpenGL or DirectX style normal maps to RTX Remix compatible Hemispherical Octahedral maps.
 #
@@ -31,114 +35,85 @@ from PIL import Image
 #   https://www.texturecan.com/post/3/DirectX-vs-OpenGL-Normal-Map/
 #
 # To use, call this from python as
-# `OctahedralConverter.convert_dx_file_to_octahedral("input_dx_normal_map.png", "output_octahedral_map.png")`
+# `OctahedralConverter.convert_file_to_octahedral("input_dx_normal_map.png", "output_octahedral_map.png", opengl=False)`
 #
 # To then load these into RTX Remix, you can convert it to a DDS file using
 #   https://developer.nvidia.com/nvidia-texture-tools-exporter
 #   Use BC5 compression, and the flag --no-mip-gamma-correct
 class OctahedralConverter:
-    # Convert DirectX style normal maps (green is down)
     @staticmethod
-    def convert_dx_file_to_octahedral(dx_path: str, oth_path: str):
-        if not Path(dx_path).exists():
-            carb.log_warn("convert_dx_to_octahedral called on non-existant path: " + dx_path)
+    def convert_file_to_octahedral(source_path: str, oth_path: str, opengl: bool) -> None:
+        """Convert an 8-bit normal map file to an 8-bit octahedral RGB file.
+
+        The values go through ``convert_float_to_octahedral_in_place``, and only the output rounds to 8 bits.
+
+        Args:
+            source_path: DirectX or OpenGL normal map to read.
+            oth_path: Octahedral map to write.
+            opengl: Whether green points up (OpenGL). False for DirectX, where green points down.
+        """
+        if not Path(source_path).exists():
+            carb.log_warn(f"convert_file_to_octahedral called on non-existent path: {source_path}")
             return
-        with Image.open(dx_path) as image_file:
-            img = np.array(image_file)
-            OctahedralConverter._check_for_spherical_normals(dx_path, img)
-            img_int = OctahedralConverter.convert_dx_to_octahedral(img)
-            Image.fromarray(img_int, "RGB").save(oth_path)
-
-    # Convert OpenGL style normal maps (green is up)
-    @staticmethod
-    def convert_ogl_file_to_octahedral(ogl_path: str, oth_path: str):
-        if not Path(ogl_path).exists():
-            carb.log_warn("convert_ogl_to_octahedral called on non-existant path: " + ogl_path)
-            return
-        with Image.open(ogl_path) as image_file:
-            img = np.array(image_file)
-            OctahedralConverter._check_for_spherical_normals(ogl_path, img)
-            img_int = OctahedralConverter.convert_ogl_to_octahedral(img)
-            Image.fromarray(img_int, "RGB").save(oth_path)
+        with Image.open(source_path) as image_file:
+            rgb = np.asarray(image_file.convert("RGB"))
+        pixels = np.empty((*rgb.shape[:2], 4), dtype=np.float32)
+        pixels[:, :, 0:3] = rgb
+        pixels[:, :, 0:3] *= 1.0 / 255.0
+        OctahedralConverter.convert_float_to_octahedral_in_place(pixels, opengl)
+        pixels[:, :, 0:3] *= 255.0
+        pixels[:, :, 0:3] += 0.5
+        Image.fromarray(pixels[:, :, 0:3].astype(np.uint8), "RGB").save(oth_path)
 
     @staticmethod
-    def convert_dx_to_octahedral(image: np.ndarray) -> np.ndarray:
-        normals = OctahedralConverter._pixels_to_normals(image)
-        octahedrals = OctahedralConverter._convert_to_octahedral(normals)
-        return OctahedralConverter._octahedrals_to_pixels(octahedrals)
+    def convert_float_to_octahedral_in_place(pixels: np.ndarray, opengl: bool) -> None:
+        """Change a float RGBA normal map in place to octahedral values, without 8-bit rounding.
 
-    @staticmethod
-    def convert_ogl_to_octahedral(image: np.ndarray) -> np.ndarray:
-        dx_image = OctahedralConverter._ogl_to_dx(image)
-        return OctahedralConverter.convert_dx_to_octahedral(dx_image)
+        The math is ``hemisphereDirectionToUnsignedOctahedral`` of the RTX Remix runtime. The octahedral
+        projection divides by the L1 length, so a normal needs no normalization first. A zero-length normal
+        becomes the surface normal. Each pass copies a block of pixels into small contiguous arrays, so memory holds
+        no second copy of the image.
+        After the call, red and green hold the octahedral value in [0, 1], blue is 0, and alpha is 1.
 
-    @staticmethod
-    def _check_for_spherical_normals(original_path: str, image: np.ndarray):
-        # Check for blue values below 128.
-        mask = image[:, :, 2] < 128
-        num_negative = image[mask].shape[0]
-        if num_negative > 0:
+        Args:
+            pixels: Float32 pixels with shape ``(height, width, 4)``. The first three channels hold the normal,
+                encoded in [0, 1]. Only per-pixel changes occur, so the row order does not matter.
+            opengl: Whether green points up (OpenGL). False for DirectX, where green points down.
+        """
+        rows_per_chunk = max(1, _CHUNK_PIXELS // pixels.shape[1])
+        # DirectX green points down, as the runtime expects. OpenGL green flips: y = 1 - 2 * g.
+        y_scale, y_offset = (-2.0, 1.0) if opengl else (2.0, -1.0)
+        inward = 0
+        for start in range(0, pixels.shape[0], rows_per_chunk):
+            rows = pixels[start : start + rows_per_chunk]
+            x = rows[:, :, 0] * 2.0
+            x -= 1.0
+            y = rows[:, :, 1] * y_scale
+            y += y_offset
+            z = rows[:, :, 2] * 2.0
+            z -= 1.0
+            # RTX Remix only supports hemispherical normals, so an inward normal mirrors to point away from the surface.
+            inward += int(np.count_nonzero(z < 0.0))
+            np.abs(z, out=z)
+            # 0.5 / L1 length. A zero length gives 0, so the normal becomes (0.5, 0.5), the surface normal.
+            scale = np.abs(x)
+            scale += np.abs(y)
+            scale += z
+            scale[scale == 0.0] = np.inf
+            np.divide(0.5, scale, out=scale)
+            # The sum and the difference of the projected x and y, moved from [-1, 1] to [0, 1].
+            np.subtract(x, y, out=z)
+            x += y
+            x *= scale
+            x += 0.5
+            z *= scale
+            z += 0.5
+            rows[:, :, 0] = x
+            rows[:, :, 1] = z
+            rows[:, :, 2] = 0.0
+            rows[:, :, 3] = 1.0
+        if inward:
             carb.log_warn(
-                original_path
-                + " contained "
-                + str(num_negative)
-                + " pixels with inward pointing normals (z < 0.0, or b < 128).  RTX Remix only supports hemispherical"
-                + " normals, with the normal pointing away from the surface."
+                f"{inward} normals point inward (z < 0.0). RTX Remix only supports hemispherical normals,"
+                " so they are mirrored to point away from the surface."
             )
-
-        # Mirror the normal to point out from surface.
-        image[mask, 2] = 255 - image[mask, 2]
-
-    @staticmethod
-    def _pixels_to_normals(image: np.ndarray) -> np.ndarray:
-        image = image[:, :, 0:3].astype("float32") / 255
-        image = image * 2.0 - 1.0
-        return image / np.linalg.norm(image, axis=2)[:, :, np.newaxis]
-
-    @staticmethod
-    def _octahedrals_to_pixels(octahedrals: np.ndarray) -> np.ndarray:
-        image = np.floor(octahedrals * 255 + 0.5).astype("uint8")
-        return np.pad(image, ((0, 0), (0, 0), (0, 1)), mode="constant")
-
-    @staticmethod
-    def _ogl_to_dx(image: np.ndarray) -> np.ndarray:
-        # flip the g channel to convert to DX style
-        image[:, :, (1)] = 255 - image[:, :, (1)]
-        return image
-
-    @staticmethod
-    def _convert_to_octahedral(image: np.ndarray) -> np.ndarray:
-        # convert from 3 channel to 2 channel normal map
-        # vectorized implementation of hemisphereDirectionToSignedOctahedral from dxvk_rt's packing.glsli
-
-        # p = v.xy / (abs(v.x) + abs(v.y) + abs(v.z));
-        abs_values = np.absolute(image)
-        snorm_octahedrals = image[:, :, 0:2] / np.expand_dims(abs_values.sum(2), axis=2)
-        # Hemisphere normal handling:
-        result = snorm_octahedrals.copy()
-        result[:, :, 0] = snorm_octahedrals[:, :, 0] + snorm_octahedrals[:, :, 1]
-        result[:, :, 1] = snorm_octahedrals[:, :, 0] - snorm_octahedrals[:, :, 1]
-        return result * 0.5 + 0.5
-
-        # # Spherical normal handling.  Leaving this in for reference, since it does work.
-        # TODO [REMIX-1018] this code will be needed to support Tangent maps
-        # snorm_octahedrals = result
-
-        # # snormOctahedral = (v.z >= 0.0) ? p : octWrap(p);
-        # needs_wrap_mask = image[:, :, 2] < 0.0
-        # # vec2 wrapped = 1.0f - abs(v.yx);
-        # snorm_octahedrals[needs_wrap_mask] = -abs_values[needs_wrap_mask, 1::-1] + 1
-
-        # # wrapped.x *= signNotZero(v.x);
-        # #   create mask of normals with x < 0 and z < 0
-        # needs_xflip_mask = (needs_wrap_mask) & (image[:, :, 0] < 0.0)
-        # #   use those masks to flip the x components of snorm_octahedrals
-        # snorm_octahedrals[needs_xflip_mask, 0] = -1.0 * snorm_octahedrals[needs_xflip_mask, 0]
-
-        # # wrapped.y *= signNotZero(v.y);
-        # #   create mask of normals with y < 0 and z < 0
-        # needs_yflip_mask = (needs_wrap_mask) & (image[:, :, 1] < 0.0)
-        # #   use those masks to flip the y components of snorm_octahedrals
-        # snorm_octahedrals[needs_yflip_mask, 1] = -1.0 * snorm_octahedrals[needs_yflip_mask, 1]
-
-        # return snorm_octahedrals * 0.5 + 0.5

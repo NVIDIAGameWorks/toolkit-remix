@@ -22,11 +22,9 @@ __all__ = ["ConvertDDSStep"]
 import pathlib
 
 import carb
-from lightspeed.common.constants import TEXTURE_INFO
-from lightspeed.common.texture_info import TextureInfo
 from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP, TextureTypes
 from omni.flux.asset_pipeline.core import PipelineContext, PipelineStep
-from omni.flux.nvtt.core import BlockFormat, MipmapFilter, encode_dds
+from omni.flux.nvtt.core import encode_dds, is_linear_image
 from omni.flux.utils.common.path_utils import (
     get_udim_sequence as _get_udim_sequence,
     hash_file,
@@ -35,11 +33,15 @@ from omni.flux.utils.common.path_utils import (
     write_metadata,
 )
 
-from ..constants import DDS_SOURCE_HASH_METADATA_KEY
+from ..constants import DDS_SOURCE_HASH_METADATA_KEY, TEXTURE_INFO, TextureInfo
 from ..pipeline.context import RemixAssetPipelineContext
 from ..pipeline.item import RemixAssetItem
 from ..texture_naming import DDS_SUFFIX, get_dds_stem_suffix
 from ..worker import run_in_worker_thread
+
+# DDS files from a linear source (OpenEXR or Radiance HDR) written before this version skipped the linear-to-sRGB
+# conversion. The different reuse key makes these outputs encode again one time.
+LINEAR_SOURCE_HASH_SUFFIX = "-linear-srgb"
 
 
 def _convert_texture(input_path: str, output_path: str, texture_info: TextureInfo) -> None:
@@ -57,9 +59,9 @@ def _convert_texture(input_path: str, output_path: str, texture_info: TextureInf
     encode_dds(
         pathlib.Path(input_path),
         pathlib.Path(output_path),
-        block_format=BlockFormat[texture_info.compression_format.name],
+        block_format=texture_info.block_format,
         gamma_encoded=texture_info.gamma_encoded,
-        mip_filter=MipmapFilter[texture_info.mip_filter.name],
+        mip_filter=texture_info.mip_filter,
     )
 
 
@@ -85,38 +87,45 @@ def _get_texture_info(texture_type: TextureTypes) -> TextureInfo:
     Returns:
         The texture's compression format, gamma handling, and mip filter.
     """
-    input_name = TEXTURE_TYPE_INPUT_MAP[texture_type]
-    texture_info = TEXTURE_INFO.get(input_name)
+    texture_info = TEXTURE_INFO.get(texture_type)
     if texture_info is None:
         # Diffuse is the safest general-purpose encoding for new texture channels that lack explicit TEXTURE_INFO.
+        input_name = TEXTURE_TYPE_INPUT_MAP[texture_type]
         carb.log_warn(f"[ConvertDDS] No TEXTURE_INFO for '{input_name}', falling back to DIFFUSE settings")
-        texture_info = TEXTURE_INFO[TEXTURE_TYPE_INPUT_MAP[TextureTypes.DIFFUSE]]
+        texture_info = TEXTURE_INFO[TextureTypes.DIFFUSE]
     return texture_info
 
 
 def _hash_existing_file(path: str) -> str | None:
-    """Return a file hash when the path exists locally.
+    """Return the DDS reuse key of a source file when the path exists locally.
+
+    The key is the file hash. A linear source (OpenEXR or Radiance HDR) adds ``LINEAR_SOURCE_HASH_SUFFIX``.
 
     Args:
         path: Candidate local file path.
 
     Returns:
-        File hash, or ``None`` when the file is absent.
+        The reuse key, or ``None`` when the file is absent.
     """
-    return hash_file(path) if pathlib.Path(path).exists() else None
+    source = pathlib.Path(path)
+    if not source.exists():
+        return None
+    file_hash = hash_file(path)
+    return file_hash + LINEAR_SOURCE_HASH_SUFFIX if is_linear_image(source) else file_hash
 
 
 def _can_reuse_dds_output(path: str, source_hash: str | None) -> bool:
     """Return whether an existing DDS was converted from the same source texture.
 
     Matches the legacy ``get_new_hash`` semantics: reuse when the output exists and its
-    ``src_hash`` metadata equals the current source hash. The semantic letter in the
+    ``src_hash`` metadata equals the current source reuse key. The semantic letter in the
     output filename already encodes the conversion, so the same path with the same
-    source hash is the same conversion.
+    source key is the same conversion. A linear source key carries ``LINEAR_SOURCE_HASH_SUFFIX``,
+    so a DDS from a linear source with the legacy plain-hash key does not match and encodes again.
 
     Args:
         path: Existing DDS path to inspect.
-        source_hash: Hash of the current source texture, if the source exists.
+        source_hash: Reuse key of the current source texture, if the source exists.
 
     Returns:
         True when the file exists and its recorded source hash matches.

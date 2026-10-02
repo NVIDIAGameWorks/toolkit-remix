@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0]
+### Changed
+- Replaced the 8-bit `convert_dx_file_to_octahedral`, `convert_ogl_file_to_octahedral`, `convert_dx_to_octahedral`, and `convert_ogl_to_octahedral` with `convert_file_to_octahedral(source_path, oth_path, opengl)` and `convert_float_to_octahedral_in_place`, which convert without 8-bit rounding.
+
 ## [1.1.5]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.
