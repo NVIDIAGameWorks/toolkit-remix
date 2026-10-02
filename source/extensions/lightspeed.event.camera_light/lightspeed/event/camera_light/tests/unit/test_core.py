@@ -45,6 +45,7 @@ class TestCore(AsyncTestCase):
                     call("rtx.fallbackLightMode", "2"),
                     call("rtx.fallbackLightType", "1"),
                     call("rtx.fallbackLightRadiance", "50, 50, 50"),
+                    call("rtx.fallbackLightVolumetricRadianceScale", "0"),
                 ]
             )
 

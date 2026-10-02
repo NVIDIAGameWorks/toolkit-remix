@@ -185,6 +185,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-5215: Fixed label jitter during idle polling and redundant label redraws when Capture Details or Mod Details loads.
 - Initialize the shared MDL backend before material API consumers run, including ComfyUI job preparation.
 - Fixed repository completion checks selecting downstream branches as their base and ignoring staged or unstaged version and changelog updates.
+- REMIX-5137: Updated paired Remix schema dependencies and fixed Camera Light contributing to volumetric lighting by setting the fallback light's volumetric radiance scale to zero.
 
 ## [1.5.2-0]
 
