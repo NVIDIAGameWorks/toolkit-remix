@@ -19,3 +19,7 @@ Claim done only after applicable gates pass or user accepts exception.
 
 Before done: summarize changed files, verification commands/results, known issues, accepted exceptions. Gate fails +
 cannot fix -> report why; never silently skip.
+
+Use a Stop-hook continuation for one focused repair attempt. If it remains unresolved, cannot be repaired, or conflicts
+with user direction, summarize the failed check, ask one concrete question, and end the turn. Reporting a blocker
+does not claim completion or waive any gate, version bump, changelog, or release requirement.

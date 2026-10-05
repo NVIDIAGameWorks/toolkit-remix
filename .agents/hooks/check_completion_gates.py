@@ -219,7 +219,9 @@ def main():
         f"Modified extensions: {', '.join(extensions) if extensions else 'unknown'}\n\n"
         f"Gates PASSED:\n{passed_list}\n\n"
         f"Gates FAILED:\n{failed_list}\n\n"
-        f"Fix the failing gates before stopping. See .agents/rules/completion-gates.md for details.",
+        "Resolve failing gates before claiming completion. If a failure cannot be resolved within the user's "
+        "instructions, report the blocker, ask for the needed feedback, and end the turn. "
+        "See .agents/rules/completion-gates.md for details.",
         file=sys.stderr,
     )
     sys.exit(2)

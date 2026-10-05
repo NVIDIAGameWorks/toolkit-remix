@@ -5,7 +5,7 @@
       {
         "command": "\"../.agents/scripts/run_packman_python.cmd\" .agents/hooks/run_stop_checks.py --agent=cursor .agents/hooks/check_completion_gates.py .agents/hooks/check_memory_promotion.py",
         "timeout": 600,
-        "loop_limit": 5,
+        "loop_limit": 1,
         "failClosed": true
       }
     ]
