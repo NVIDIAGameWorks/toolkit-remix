@@ -53,8 +53,8 @@ and document reason here. Cursor skill discovery version-sensitive.
 - Add/rename/remove shared rule, command, context, skill, subagent, hook, or MCP -> update matching Tool Surfaces row and
   every direct ref.
 - No duplication. If wrapper cannot import, keep inline minimum and point to `.agents/`.
-- `.agents/` agent-agnostic. No Pi/Codex/Claude/Cursor/private state paths. Hook targets may take `--agent` only for
-  output contract formatting.
+- `.agents/` agent-agnostic. No Pi/Codex/Claude/Cursor/private state paths. Hook targets may take `--agent` only to
+  interpret the agent's hook input protocol and format its output contract.
 - Local/private checks -> ignored local config, not shared hooks.
 - Hook targets live in `.agents/hooks/`; helpers live in `.agents/scripts/`.
 - All shared hook commands use one entrypoint: `.agents/scripts/run_packman_python.cmd`. It is a polyglot shim:
@@ -65,8 +65,10 @@ and document reason here. Cursor skill discovery version-sensitive.
 - Keep hook arguments as real argv tokens. Do not combine the script path and flags into one `args` item; use
   `--agent=<agent>` when one token is clearer.
 - Stop hook runner: `.agents/hooks/run_stop_checks.py --agent=<codex|claude|cursor> <check>...`.
-  Check scripts return `0` allow, `2` block + stderr. Runner remaps by agent: `claude` keeps exit `2` + stderr;
-  `codex` exits `0` + JSON `decision:block`/`reason`; `cursor` exits `0` + JSON `followup_message`.
+  Check scripts return `0` allow, `2` block + stderr. Run checks on every Stop; allow at most one automatic repair or
+  feedback continuation, only with explicit first-stop metadata. Persistent failures or missing/invalid metadata
+  end the turn with diagnostics, never another automatic continuation. Protocol details:
+  `docs_dev/tools/ai-agents.md` -> Shared Hooks.
 - Memory watch only via ignored `.agents/memory-promotion.local.json` or env vars; no private state hardcode.
 - New rule -> `.agents/rules/`, Cursor wrapper if always/glob, shared + Claude skill if on-demand, wire
   `.agents/instructions.md`.

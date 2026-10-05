@@ -189,6 +189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initialize the shared MDL backend before material API consumers run, including ComfyUI job preparation.
 - Fixed repository completion checks selecting downstream branches as their base and ignoring staged or unstaged version and changelog updates.
 - REMIX-5137: Updated paired Remix schema dependencies and fixed Camera Light contributing to volumetric lighting by setting the fallback light's volumetric radiance scale to zero.
+- Fixed completion hooks repeatedly restarting blocked agents by limiting automatic repair to one attempt and preserving unresolved failures for user feedback.
 
 ## [1.5.2-0]
 

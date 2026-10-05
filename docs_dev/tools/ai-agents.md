@@ -187,6 +187,29 @@ The shared hook targets are:
 | `.agents/hooks/check_completion_gates.py` | Checks changed source Python files against formatting/lint completion expectations      |
 | `.agents/hooks/check_memory_promotion.py` | Detects configured local memory changes that may need promotion to repo docs or rules   |
 
+Stop hooks run the checks on every invocation and allow at most one automatic continuation to repair a failure or
+request feedback. That continuation asks for one focused repair; if a check cannot be satisfied or conflicts with
+the user's direction, the agent's final response should name the failed checks, explain why automatic continuation
+stopped, and ask one concrete question for guidance. Ending with a blocker does not mean the checks passed or waive
+version, changelog, or release requirements.
+
+The runner uses each agent's Stop input to bound continuation: Codex and Claude Code require an explicit
+`stop_hook_active: false`; Cursor requires integer `loop_count: 0` and `status: "completed"`. A first failure returns
+Codex's `decision: "block"`, Claude Code's exit code `2`, or Cursor's `followup_message`. These request another agent
+turn. When continuation is withheld, the failure report distinguishes a prior Stop continuation, missing or invalid
+Stop metadata, and Cursor's `aborted` or `error` status. Codex and Claude Code receive `continue: false` with
+`stopReason` and `systemMessage`; Cursor receives `{}` on stdout and diagnostics on stderr. No further automatic
+continuation is requested. Cursor also sets `loop_limit: 1` in its hook configuration. See the
+[Codex Stop contract](https://learn.chatgpt.com/docs/hooks#stop),
+[Claude Code Stop contract](https://code.claude.com/docs/en/hooks#stop), and
+[Cursor Stop contract](https://cursor.com/docs/hooks#stop).
+
+Cursor documents `loop_count` as the number of automatic Stop follow-ups in the conversation. The native client
+controls this counter and may stop invoking the hook once `loop_limit` is reached, so a final hook report is not
+guaranteed. Its Stop output contract documents only `followup_message`, whose nonempty value requests another agent
+turn; stderr diagnostics are not guaranteed to appear in chat. The allowed continuation therefore asks the agent to
+include unresolved failures and the guidance question in its final response.
+
 Tool-specific hook configuration stays in `.claude/settings.json`, `.codex/hooks.json`, and `.cursor/hooks.json`.
 Those files should invoke shared `.agents/scripts/` launchers and `.agents/hooks/` targets instead of cloning logic.
 Claude-specific permission prompts remain in `.claude/settings.json`; trust and approval policy is agent-specific
