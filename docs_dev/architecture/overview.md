@@ -169,7 +169,8 @@ See [Implementing Commands](../patterns/commands.md) for the full implementation
 Many systems (validators, stage manager, AI tools) use `omni.flux.factory.base`. Plugins register themselves and are
 discovered at runtime. See `omni.flux.validator.factory` for the canonical example.
 
-Service extensions register with `omni.flux.service.factory`:
+Top-level REST services register with `omni.flux.service.factory`. `lightspeed.trex.service.core` registers the
+Toolkit's from `ROUTE_SERVICES` in its `routes/` package; a Flux `.service` extension registers its own:
 
 ```python
 from omni.flux.service.factory import get_instance as _get_service_factory_instance

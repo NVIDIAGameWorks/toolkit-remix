@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.1]
+### Changed
+- Point REST routing documentation at `lightspeed.trex.service.core`, which now serves the texture routes
+
 ## [3.0.0]
 ### Changed
 - Added guarded texture-input discovery and atomic native undoable replacement batches, removing `use_undo_group` while preserving USD values, validating target-layer baselines, and rejecting duplicate shader-input targets.

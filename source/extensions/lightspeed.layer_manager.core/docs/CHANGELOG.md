@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.3]
+### Changed
+- Point REST routing documentation at `lightspeed.trex.service.core`, which now serves the project and layer routes
+
 ## [3.3.2]
 ### Fixed
 - Expose explicit stage mute state in layer tree, type-filtered, and immediate-sublayer responses.

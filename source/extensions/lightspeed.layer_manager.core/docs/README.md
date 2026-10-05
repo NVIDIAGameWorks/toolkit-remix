@@ -10,7 +10,8 @@ Core project and layer management for a named USD context.
 
 ## Non-Responsibilities
 
-REST routing belongs to [lightspeed.layer_manager.service](../../lightspeed.layer_manager.service/docs/README.md).
+REST routing belongs to [lightspeed.trex.service.core](../../lightspeed.trex.service.core/docs/README.md), whose
+project and layer routes call this extension.
 This extension does not provide layer management UI.
 
 ## Architecture

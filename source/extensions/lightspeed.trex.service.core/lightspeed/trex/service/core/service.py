@@ -21,6 +21,7 @@ __all__ = ["CoreService"]
 
 import carb
 from fast_version import init_fastapi_versioning
+from fast_version.app import FastAPIVersioningMiddleware
 from omni.flux.factory.base import FactoryBase
 from omni.flux.service.factory import ServiceBase
 from omni.flux.service.factory import get_instance as _get_service_factory_instance
@@ -40,10 +41,13 @@ class CoreService:
             or "application/lightspeed.remix.service+json"
         )
 
+        app = main.get_app()
+
         # Get the desired services from the factory
         factory = _get_service_factory_instance()
 
         self._service_instances = []
+        self._openapi_tags = []
         for service, service_instance in self._instantiate_services(factory, services):
             self._service_instances.append(service_instance)
 
@@ -51,22 +55,26 @@ class CoreService:
                 router=service_instance.router, prefix=service_instance.prefix, tags=[service.get(self.TITLE)]
             )
 
-            if not main.get_app().openapi_tags:
-                main.get_app().openapi_tags = []
-            main.get_app().openapi_tags.append(
-                {
-                    "name": service.get(self.TITLE),
-                    "description": service.get(self.DESCRIPTION),
-                }
-            )
+            tag = {"name": service.get(self.TITLE), "description": service.get(self.DESCRIPTION)}
+            if not app.openapi_tags:
+                app.openapi_tags = []
+            app.openapi_tags.append(tag)
+            self._openapi_tags.append(tag)
 
-        # Initialize FastAPI endpoint versioning
-        init_fastapi_versioning(app=main.get_app(), vendor_media_type=header)
+        # Initialize FastAPI endpoint versioning once per app. The app outlives this extension, so a disable or hot
+        # reload builds the next CoreService against an app that already has the middleware, and Starlette refuses
+        # new middleware once the app has served a request.
+        if not any(middleware.cls is FastAPIVersioningMiddleware for middleware in app.user_middleware):
+            init_fastapi_versioning(app=app, vendor_media_type=header)
 
     def destroy(self):
         for service_instance in self._service_instances:
             main.deregister_router(router=service_instance.router)
+        app = main.get_app()
+        for tag in self._openapi_tags:
+            app.openapi_tags.remove(tag)
         self._service_instances = None
+        self._openapi_tags = None
 
     @classmethod
     def _instantiate_services(
@@ -88,8 +96,8 @@ class CoreService:
             service_class = factory.get_plugin_from_name(name)
             if service_class is None:
                 # Skipping beats instantiating the `None` the factory returns, which would take the
-                # extension down with every service that did resolve. At error because nothing in
-                # `services` is gated today: a silent skip serves an empty REST surface, healthily.
+                # extension down with every service that did resolve. At error because every configured
+                # service is expected to resolve: a silent skip serves an empty REST surface, healthily.
                 carb.log_error(f"Service '{name}' is configured but not registered with the factory; skipping it.")
                 continue
             resolved.append((service, service_class(context_name=service.get(cls.CONTEXT_NAME))))

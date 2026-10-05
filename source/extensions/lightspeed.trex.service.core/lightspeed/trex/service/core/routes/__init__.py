@@ -17,14 +17,23 @@
 
 from __future__ import annotations
 
-__all__ = ["ROUTE_SERVICES"]
+__all__ = [
+    "ROUTE_SERVICES",
+    "IngestCraftService",
+    "StageCraftService",
+]
 
 from typing import TYPE_CHECKING
+
+from .ingestcraft import IngestCraftService
+from .stagecraft import StageCraftService
 
 if TYPE_CHECKING:
     from omni.flux.service.factory import ServiceBase
 
-# Route services to register with omni.flux.service.factory, gated by the extension's
-# `agentic_enabled` setting. Empty until the .service extensions migrate into the packages
-# below; each migrated route appends its ServiceBase subclass here.
-ROUTE_SERVICES: list[type[ServiceBase]] = []
+# The Toolkit's REST API, registered with omni.flux.service.factory at startup. Each service includes the routers of
+# the services under its prefix.
+ROUTE_SERVICES: list[type[ServiceBase]] = [
+    StageCraftService,
+    IngestCraftService,
+]
