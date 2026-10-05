@@ -103,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-996fe27-main`
 - Set OMP model roles for project subagents.
 - Automatically build the Windows Toolkit package for Remix dependency bot merge requests and require packaging to succeed.
+- Moved the Toolkit REST routes from six `.service` extensions into `lightspeed.trex.service.core` without changing the REST API or MCP tools, and fixed hot-reloading `lightspeed.trex.service.core` failing to restart and doubling its OpenAPI tags
 
 ### Removed
 

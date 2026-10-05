@@ -15,13 +15,12 @@
 * limitations under the License.
 """
 
-__all__ = ("TestGateDefaults", "TestInstantiateServices", "TestRoutesPackage")
+__all__ = ("TestInstantiateServices", "TestRoutesPackage")
 
 import importlib
 import pkgutil
 from unittest import mock
 
-import carb.settings
 import omni.kit.test
 from omni.flux.factory.base import FactoryBase
 from omni.flux.service.factory import ServiceBase
@@ -30,8 +29,6 @@ from lightspeed.trex.service.core import routes as _routes_package
 from lightspeed.trex.service.core import service as _service_module
 from lightspeed.trex.service.core.routes import ROUTE_SERVICES
 from lightspeed.trex.service.core.service import CoreService
-
-_SETTINGS_ROOT = "/exts/lightspeed.trex.service.core"
 
 
 class _KnownService(ServiceBase):
@@ -106,7 +103,7 @@ class TestInstantiateServices(omni.kit.test.AsyncTestCase):
         self.assertIn("NotRegisteredService", log_error.call_args[0][0])
 
     async def test_skip_is_logged_at_error_not_warning(self):
-        # Nothing in `services` is gated today, so a skip is always a real failure. Logged below
+        # Every configured service is expected to resolve, so a skip is always a real failure. Logged below
         # error it would leave an app serving an empty REST surface while reporting healthy —
         # and Kit's stdoutFailPatterns would not catch it either.
         # Arrange
@@ -148,28 +145,12 @@ class TestInstantiateServices(omni.kit.test.AsyncTestCase):
         self.assertIsInstance(instance, _KnownService)
 
 
-class TestGateDefaults(omni.kit.test.AsyncTestCase):
-    """Pin the agentic gate off."""
-
-    async def test_the_agentic_gate_is_declared_and_false_by_default(self):
-        # `get_as_bool` cannot tell false from absent — it returns False for a missing key — so a
-        # deleted, renamed or misplaced setting would pass. `get` returns None when absent.
-        # Arrange
-        path = f"{_SETTINGS_ROOT}/agentic_enabled"
-
-        # Act
-        value = carb.settings.get_settings().get(path)
-
-        # Assert
-        self.assertIs(value, False, f"{path} must be declared and default to false")
-
-
 class TestRoutesPackage(omni.kit.test.AsyncTestCase):
     """Cover the `routes/` package tree and the registry `TrexCoreServiceExtension` reads."""
 
     async def test_every_routes_package_imports(self):
-        # Nothing else imports the nested packages, so without this a syntax error or a bad
-        # license header anywhere under `routes/` ships undetected.
+        # Nothing else imports the empty `data_models/` packages, so without this a syntax error or
+        # a bad license header in one ships undetected.
         # Arrange
         names = [
             name
@@ -185,7 +166,7 @@ class TestRoutesPackage(omni.kit.test.AsyncTestCase):
 
     async def test_route_services_are_registrable(self):
         # A class the service factory cannot key by name would fail silently at registration,
-        # so every entry in ROUTE_SERVICES is checked for the attribute the factory reads.
+        # so every entry is checked for the attribute the factory reads.
         for service in ROUTE_SERVICES:
             with self.subTest(title=f"service={service.__name__}"):
                 # Arrange / Act

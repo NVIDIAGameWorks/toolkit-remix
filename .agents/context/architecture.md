@@ -3,7 +3,8 @@
 Full refs: `docs_dev/architecture/overview.md`, `docs_dev/architecture/extension-guide.md`.
 
 - Suffix = role: `.core` logic/no UI; `.widget` UI on Frame/Stack; `.window` wraps widgets; `.menu` menu items;
-  `.model` tree/list data; `.service` REST; `.plugin.*` factory plugin; `.style` stylesheet; `.bundle` meta-ext.
+  `.model` tree/list data; `.service` reusable Flux REST; `.plugin.*` factory plugin; `.style` stylesheet; `.bundle`
+  meta-ext. Toolkit REST routes go in `lightspeed.trex.service.core` `routes/`, not a new `.service` ext.
 - Feature entry ext wires `.core`, `.widget`/`.window`, `.menu`; match nearby naming/loading.
 - Dependency direction: entry -> `.widget` + `.core`. `.widget` <-> `.core` forbidden.
 - Generic -> `omni.flux.*`. Remix-specific -> `lightspeed.trex.*`.

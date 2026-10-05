@@ -17,7 +17,8 @@ Extension names encode their role:
 - `.menu` — Menu items only, exposes subscriptions. Often skipped — a simple menu can live directly in the top-level
   feature entry extension.
 - `.model` — Data models for tree/list views (`omni.ui.AbstractItemModel`)
-- `.service` — REST API endpoints (FastAPI via Omniverse microservices)
+- `.service` — Reusable Flux REST services, such as `omni.flux.validator.mass.service`. Toolkit REST routes live in
+  `lightspeed.trex.service.core` `routes/` instead (see [Implementing REST Service Endpoints](../patterns/services.md))
 - `.plugin.*` — Plugin implementations loaded by a factory
 - `.app.resources` — Shared assets (icons, images, fonts) for an application. No code.
 - `.style` — Global application stylesheet. No per-widget inline styles; all styles come from here.

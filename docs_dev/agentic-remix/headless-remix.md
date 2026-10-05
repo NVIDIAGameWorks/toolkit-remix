@@ -13,8 +13,8 @@ The headless app provides:
 
 > **What is exposed.** This app serves the Toolkit's tools — project open/close, layer
 > management, asset-reference replacement, texture overrides, and asset ingestion via
-> `/ingestcraft/*`. The available operations come from the loaded service extensions; inspect
-> their request and response schemas at `/openapi.json`.
+> `/ingestcraft/*`. The available operations are the routes `lightspeed.trex.service.core` serves;
+> inspect their request and response schemas at `/openapi.json`.
 
 ## Launching
 
@@ -59,8 +59,8 @@ MCP and REST servers accept requests.
 The MCP server builds its tool list from the REST app's OpenAPI schema at startup. The
 `/stagecraft/*` and `/ingestcraft/*` operations become `remix_<operation_id>` tools.
 The MCP route filter excludes named infrastructure, API-documentation, and UI-automation
-endpoints. Restart the Toolkit after changing which service extensions load so the MCP tool
-list reflects their routes.
+endpoints. The tool list is read once at startup: restart the Toolkit after changing which routes it
+serves.
 
 The headless app configures both servers to bind loopback and does not configure authentication.
 Keep these endpoints local.

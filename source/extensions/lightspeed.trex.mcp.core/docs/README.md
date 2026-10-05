@@ -12,7 +12,7 @@ Provides the RTX Remix Toolkit MCP server. It exposes Toolkit REST APIs as tools
 
 ## Non-Responsibilities
 
-- Defining REST API routes. Those are owned by the Toolkit service extensions.
+- Defining REST API routes. `lightspeed.trex.service.core` owns them; this extension adapts whatever that app serves.
 - Owning user-facing MCP UI. This extension provides the server core only.
 - Managing external MCP clients after they connect to the server endpoint.
 

@@ -12,7 +12,7 @@ Shared texture discovery, validation, and USD mutation logic for RTX Remix appli
 
 ## Non-Responsibilities
 
-- Does not expose HTTP endpoints. `lightspeed.trex.texture_replacements.service` owns REST routing and status mapping.
+- Does not expose HTTP endpoints. `lightspeed.trex.service.core`'s texture routes own REST routing and status mapping.
 - Does not ingest or convert source textures. `lightspeed.trex.asset_pipeline.core` owns Remix asset processing and
   produces validated texture outputs.
 - Does not communicate with ComfyUI or own queue jobs. `lightspeed.trex.comfyui.core` owns that workflow.

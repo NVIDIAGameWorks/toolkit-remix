@@ -1,6 +1,17 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0]
+### Changed
+- Moved the Toolkit REST routes here from the `.service` extensions, with no REST API change
+- `ROUTE_SERVICES` registers `StageCraftService` and `IngestCraftService` at every startup
+
+### Removed
+- Removed the `agentic_enabled` setting
+
+### Fixed
+- Fixed the extension failing to restart after a hot reload
+
 ## [1.3.0]
 ### Added
 - `routes/` package tree — `ingestcraft/` and `stagecraft/{assets,layers,project,textures}/`, each stagecraft area with a co-located `data_models/`. The packages hold no route

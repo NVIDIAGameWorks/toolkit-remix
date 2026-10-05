@@ -19,7 +19,7 @@ exact strings, generated output, logs.
 
 | What to look for                  | Where to search                               |
 |-----------------------------------|-----------------------------------------------|
-| A service endpoint implementation | Extensions matching `*.service`               |
+| A service endpoint implementation | `service.core/routes/`, `omni.flux.*.service` |
 | A factory plugin implementation   | Extensions matching `*.plugin.*`              |
 | An event extension                | Extensions matching `lightspeed.event.*`      |
 | A validator                       | `omni.flux.validator.*`                       |

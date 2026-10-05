@@ -32,11 +32,11 @@ On Windows, it publishes the selected endpoints in a per-user
 [discovery manifest](../../source/extensions/lightspeed.trex.mcp.core/docs/README.md#discovery-manifest).
 [Finding the MCP server](../../docs/howto/learning-mcp.md#finding-the-mcp-server-information) explains how to find the
 selected endpoint. Its tools are the `/stagecraft/*` operations —
-project lifecycle, layers, asset references, texture overrides — served by four `.service`
-extensions, plus the `/ingestcraft/*` ingestion routes.
+project lifecycle, layers, asset references, texture overrides — plus the `/ingestcraft/*`
+ingestion routes. `lightspeed.trex.service.core` serves every one of them from its `routes/` package.
 
 `omni.flux.service.factory` owns `ServiceBase` and the service plugin registry. Both app hosts
-use these existing services.
+serve the same routes.
 
 **The tool manifest is narrower than the route list.** `mcp.core` drops the transport's own
 health, readiness, status and asyncapi endpoints, OpenAPI metadata endpoints, and the root-level
@@ -71,10 +71,8 @@ headless is a second host for the same stack, not the only one. Two consequences
      │ reflects the active REST schema
      ▼
    lightspeed.trex.service.core
-     mounts StageCraftService and IngestCraftService
-     │ resolves service classes through omni.flux.service.factory
-     ▼
-   ServiceBase classes registered by .service extensions
+     registers ROUTE_SERVICES (StageCraftService, IngestCraftService) with omni.flux.service.factory
+     mounts StageCraftService and IngestCraftService from its `services` setting
      │ route handlers delegate to Toolkit core extensions
      ▼
    Toolkit core extensions / omni.kit.commands
@@ -84,9 +82,11 @@ headless is a second host for the same stack, not the only one. Two consequences
 ```
 
 `StageCraftService` mounts `ProjectManagerService`, `LayerManagerService`,
-`AssetReplacementsService` and `TextureReplacementsService`. `IngestCraftService` mounts
-`MassValidatorService`. These services supply the project, layer, asset, texture and ingestion
-operations. **`mcp.core` declares no REST route.** It reflects the active FastAPI app's schema.
+`AssetReplacementsService` and `TextureReplacementsService`, each from its own package under
+`routes/stagecraft/`. `IngestCraftService` mounts `MassValidatorService`, which
+`omni.flux.validator.mass.service` registers. These services supply the project, layer, asset,
+texture and ingestion operations. **`mcp.core` declares no REST route.** It reflects the active
+FastAPI app's schema.
 
 **Nothing in this repository registers an MCP tool by hand.** The transformation is entirely
 schema-driven:
@@ -107,16 +107,17 @@ schema-driven:
 
 ## 4. Route registration
 
-`CoreService` reads its `services` setting, resolves each class through the service factory and
-registers its router. The default entries are `StageCraftService` with the default USD context
-and `IngestCraftService` with the `ingestcraft` context. An unresolved service name logs an error
-and is skipped.
+`TrexCoreServiceExtension` registers the top-level route services in
+[`ROUTE_SERVICES`](../../source/extensions/lightspeed.trex.service.core/lightspeed/trex/service/core/routes/__init__.py)
+with the service factory, then `CoreService` reads its `services` setting, resolves each class
+through the factory and registers its router. The default entries are `StageCraftService` with the
+default USD context and `IngestCraftService` with the `ingestcraft` context. An unresolved service
+name logs an error and is skipped.
 
-The separate package tree under
-[`service.core/routes/`](../../source/extensions/lightspeed.trex.service.core/lightspeed/trex/service/core/routes/__init__.py)
-contains no endpoints: `ROUTE_SERVICES` is empty, and its `agentic_enabled` registration setting
-defaults to `false`. The existing StageCraft and IngestCraft services are independent of that
-setting.
+`ROUTE_SERVICES` in `routes/__init__.py` lists `StageCraftService` and `IngestCraftService` and
+registers them at every startup. Each route area under `routes/stagecraft/` has a `data_models/`
+package for models its routes own; the four areas take their models from their core extensions, so
+those packages are empty.
 
 [Implementing REST Service Endpoints](../patterns/services.md) documents the service class,
 factory registration and router mounting patterns used by this repository.
@@ -154,8 +155,9 @@ that introduces that tool, together with the test that pins it — not written a
 ## 6. What the repo covers
 
 - `mcp.core` exposes the curated REST operations as MCP tools.
-- StageCraft services expose project lifecycle, layers, asset references and texture overrides.
-- IngestCraft exposes the ingestion queue through `MassValidatorService`.
+- `service.core`'s StageCraft routes expose project lifecycle, layers, asset references and texture
+  overrides.
+- Its IngestCraft routes expose the ingestion queue through `MassValidatorService`.
 - `stagecraft.headless.kit` and its launchers run the service stack without a window.
 - The published modding skill includes model replacement and asset-reference recipes and an
   evaluation suite.
