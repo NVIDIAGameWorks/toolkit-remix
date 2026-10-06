@@ -90,12 +90,12 @@ GF_TO_PYTHON_TYPE = {
     tf_gf_vec4h: float,
     tf_gf_vec4f: float,
     tf_gf_vec4d: float,
-    tf_gf_col3d: float,
-    tf_gf_col3f: float,
-    tf_gf_col3h: float,
-    tf_gf_col4d: float,
-    tf_gf_col4f: float,
-    tf_gf_col4h: float,
+    tf_gf_col3d: Gf.Vec3d,
+    tf_gf_col3f: Gf.Vec3f,
+    tf_gf_col3h: Gf.Vec3h,
+    tf_gf_col4d: Gf.Vec4d,
+    tf_gf_col4f: Gf.Vec4f,
+    tf_gf_col4h: Gf.Vec4h,
     tf_tf_token: str,
     tf_sdf_asset_path: None,  # todo
     tf_sdf_time_code: None,  # todo

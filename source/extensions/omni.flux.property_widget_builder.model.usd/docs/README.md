@@ -26,6 +26,7 @@ The shared property widget owns tree layout and field cleanup registration.
 existing commands. `USDListener` routes USD changes back to the model. The delegate builds the corresponding controls.
 `USDModel` also supplies logical-group rows, `USDDelegate` claims them through field builders, and
 `USDPropertyWidget` connects the tree to layer notices. Models own USD synchronization and undoable authoring.
+Whole-color properties convert to their matching Gf vector type; numeric vector channels retain scalar conversion.
 
 You can show custom names for attributes. For example here, `translateY` is just `Y`:
 
@@ -136,6 +137,8 @@ editor consumers and selected-label styling.
 `begin_batch_edit()` coalesces numeric previews until `end_batch_edit()`. Pass `live=True` to author each value
 immediately while keeping the entire session in one model-owned undo step. Live batches require a top-level undo
 operation. Ending an inactive batch does nothing.
+Field controls also pair `begin_edit()` and `end_edit()` around the session so `USDModel` can defer application
+listeners until editing finishes while authored USD values remain live.
 
 If a write fails, the model rolls back the current batch, restores displayed values, and preserves completed edit
 sessions. Locked target layers are rejected before a write command runs. Color fields use live batches, and picker
