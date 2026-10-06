@@ -136,6 +136,8 @@ class UsdAttributeBase(abc.ABC):
         self._is_batch_editing = False
         self._pending_preview_task = None
         self._preview_layer_undos: dict[tuple[str, Sdf.Path], UsdLayerUndo] = {}
+        self._batch_edit_live = False
+        self._batch_undo_stack_size: int | None = None
 
     def init_attributes(self):
         # cache the attributes
@@ -392,7 +394,7 @@ class UsdAttributeBase(abc.ABC):
 
         self._set_internal_value(new_value)
 
-        if self._is_batch_editing:
+        if self._is_batch_editing and not self._batch_edit_live:
             self._on_dirty()
             self._schedule_preview()
             return True
@@ -400,7 +402,16 @@ class UsdAttributeBase(abc.ABC):
         if not self._stage:
             return False
 
-        if self._related_override_paths or len(self._attribute_paths) > 1:
+        if self._is_batch_editing:
+            succeeded = False
+            try:
+                succeeded, wrote_value = self._write_value_to_usd()
+            finally:
+                if not succeeded:
+                    self._close_batch_edit(failed=True)
+                    self.refresh()
+                    self._refresh_linked_value_models()
+        elif self._related_override_paths or len(self._attribute_paths) > 1:
             undo_stack_size = len(omni.kit.undo.get_undo_stack())
             owns_undo_group = False
             try:
@@ -460,6 +471,8 @@ class UsdAttributeBase(abc.ABC):
                                 undo_scope.enter_context(omni.kit.undo.group(remove_if_empty=True))
                                 group_undo = False
                             target_layer = self._get_target_layer(attr)
+                            if not target_layer.permissionToEdit:
+                                return False, wrote_any
                             succeeded, wrote_related = self._ensure_related_override_specs(attr, target_layer)
                             wrote_any = wrote_related or wrote_any
                             if not succeeded:
@@ -551,7 +564,7 @@ class UsdAttributeBase(abc.ABC):
 
     def _reserve_preview_property(self, attr: Usd.Attribute, target_layer: Sdf.Layer | None = None) -> None:
         """Reserve a property's original spec once in its effective edit target."""
-        if not self._is_batch_editing:
+        if not self._is_batch_editing or self._batch_edit_live:
             return
         edit_target = self._stage.GetEditTarget()
         if target_layer is not None:
@@ -601,14 +614,47 @@ class UsdAttributeBase(abc.ABC):
         if not self._is_batch_editing and self._preview_layer_undos:
             raise RuntimeError("Property preview rollback is incomplete; cancel or destroy the model before editing")
 
-    def begin_batch_edit(self):
-        """Start a drag batch with live previews that leave undo history unchanged."""
+    def begin_batch_edit(self, *, live: bool = False):
+        """Start one undoable batch with deferred previews or immediate USD writes.
+
+        Args:
+            live: Whether intermediate edits should be authored immediately.
+
+        Raises:
+            RuntimeError: If a live batch cannot own a top-level undo group.
+        """
         self._check_preview_restored()
+        if self._is_batch_editing:
+            return
+        if live:
+            undo_stack_size = len(omni.kit.undo.get_undo_stack())
+            omni.kit.undo.begin_group()
+            if len(omni.kit.undo.get_undo_stack()) == undo_stack_size:
+                omni.kit.undo.end_group(remove_if_empty=True)
+                raise RuntimeError("Live batch editing requires a top-level undo operation")
+            self._batch_undo_stack_size = undo_stack_size
         self._is_batch_editing = True
+        self._batch_edit_live = live
 
     def end_batch_edit(self):
-        """Restore previewed properties and commit the final drag value as one undo step."""
+        """Commit deferred previews or close the active live batch undo group."""
         self._check_preview_restored()
+        if not self._is_batch_editing:
+            return
+        if self._batch_edit_live:
+            succeeded = False
+            try:
+                if not self._stage:
+                    return
+                succeeded, wrote_value = self._write_value_to_usd()
+            finally:
+                self._close_batch_edit(failed=not succeeded)
+                if not succeeded:
+                    self.refresh()
+                    self._refresh_linked_value_models()
+            if succeeded and wrote_value:
+                self.refresh()
+            return
         succeeded = False
         undo_stack_size = None
         try:
@@ -629,15 +675,33 @@ class UsdAttributeBase(abc.ABC):
         if succeeded and wrote_value:
             self.refresh()
 
-    def _cancel_batch_edit(self):
-        """Restore the original authored properties and cache without recording undo."""
+    def _close_batch_edit(self, *, failed: bool = False) -> None:
+        """Close an active batch once and discard its writes when the batch failed."""
+        if not self._is_batch_editing:
+            return
+        self._is_batch_editing = False
+        was_live = self._batch_edit_live
+        self._batch_edit_live = False
+        if not was_live:
+            return
+        undo_stack_size = self._batch_undo_stack_size
+        self._batch_undo_stack_size = None
         try:
-            self._restore_preview()
+            omni.kit.undo.end_group(remove_if_empty=True)
+        finally:
+            if failed and undo_stack_size is not None:
+                _undo_group_added_since(undo_stack_size)
+
+    def _cancel_batch_edit(self):
+        """Restore deferred previews or retain live writes before releasing the batch."""
+        try:
+            if not self._batch_edit_live:
+                self._restore_preview()
             if self._stage and self._read_value_from_usd():
                 self._value_changed()
             self._refresh_linked_value_models()
         finally:
-            self._is_batch_editing = False
+            self._close_batch_edit()
 
     def _refresh_after_cancel_property_edit(self) -> None:
         """Allow subclasses to refresh display models after canceled editing."""

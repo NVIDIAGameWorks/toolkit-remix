@@ -213,9 +213,13 @@ class ItemModelBase(abc.ABC):
         """Return whether this model is currently inside an open batch-edit section."""
         return False
 
-    def begin_batch_edit(self) -> None:
-        """Begin a batch edit when supported; the default implementation is a no-op."""
-        return
+    def begin_batch_edit(self, *, live: bool = False) -> None:
+        """Begin a supported batch edit, optionally authoring intermediate values live.
+
+        Args:
+            live: Whether intermediate edits should be authored before the batch ends.
+        """
+        pass
 
     def end_batch_edit(self) -> None:
         """End a batch edit when supported; the default implementation is a no-op."""

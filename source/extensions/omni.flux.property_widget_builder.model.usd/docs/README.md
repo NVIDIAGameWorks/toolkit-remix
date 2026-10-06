@@ -8,6 +8,7 @@ Build property rows backed by USD attributes, with layer-aware writes, undo, and
 - Keep property rows synchronized with USD and expose their reset and override state.
 - Preview numeric drags live while preserving one undoable change on release.
 - Build logical Curve/Gradient rows with USD-backed models and editor controls.
+- Own grouped undo, edit failure recovery, and listener-driven value refresh.
 
 ## Non-Responsibilities
 
@@ -17,6 +18,7 @@ Clipboard parsing, matching, structural checks, and paste grouping belong to the
 [shared property widget helper](../../omni.flux.property_widget_builder.widget/docs/README.md#clipboard-and-row-editing).
 Popup lifetime, selection observation, and generic Gradient controls belong to shared widget extensions.
 Curve editing and channel selection belong to [the curve editor](../../omni.flux.curve_editor.widget/docs/README.md).
+The shared property widget owns tree layout and field cleanup registration.
 
 ## Architecture
 
@@ -129,6 +131,16 @@ before control construction; existing controls do not observe live theme changes
 
 See the [Curve Editor styling contract](../../omni.flux.curve_editor.widget/docs/README.md#channel-styling) for direct
 editor consumers and selected-label styling.
+### Edit Sessions
+
+`begin_batch_edit()` coalesces numeric previews until `end_batch_edit()`. Pass `live=True` to author each value
+immediately while keeping the entire session in one model-owned undo step. Live batches require a top-level undo
+operation. Ending an inactive batch does nothing.
+
+If a write fails, the model rolls back the current batch, restores displayed values, and preserves completed edit
+sessions. Locked target layers are rejected before a write command runs. Color fields use live batches, and picker
+dismissal closes the session. Cancelling the row or releasing its widget also releases field subscriptions.
+Row cancellation retains values already authored by a live batch; write failure rolls back the whole current batch.
 
 ## Row-Owned Property State
 

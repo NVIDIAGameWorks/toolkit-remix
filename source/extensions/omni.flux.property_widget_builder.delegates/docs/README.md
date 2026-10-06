@@ -29,10 +29,11 @@ stage capability raises `ValueError`. `ComboboxField` consumes an `ui.AbstractIt
 value model.
 
 `ColorField` writes color picker changes to the backing value model immediately while the picker remains open.
-It groups all edits in one picker session into a single undo step and closes the group when the picker closes.
+For models that support batch editing, it uses `begin_batch_edit(live=True)` so the model owns the picker session's
+undo step and failure recovery. Other models use a Kit undo group. The session ends when the picker closes.
 Pass `register_cleanup` to `build_ui()` to register `destroy()` with the owning property widget, or call `destroy()`
 directly when releasing the field. Field cleanup and property edit cancellation release subscriptions and close any
-active picker undo group.
+active picker session. Read-only color fields disable the picker.
 
 `AbstractDragFieldGroup` builds and coordinates numeric fields in one row. Pass `linkable=True` to opt a Float or Int
 group into link controls, linked presentation, focus, commit, cancel, unlink, and value routing. The item owns the

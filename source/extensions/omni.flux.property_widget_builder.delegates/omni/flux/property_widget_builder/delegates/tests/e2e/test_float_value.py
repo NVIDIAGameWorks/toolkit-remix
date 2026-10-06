@@ -23,12 +23,11 @@ import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
 from carb.input import KeyboardInput
-from omni.flux.property_widget_builder.model.usd import USDAttributeItem, USDDelegate, USDModel
-from omni.flux.property_widget_builder.model.usd.setup_ui import USDPropertyWidget
+from omni.flux.property_widget_builder.model.usd import USDAttributeItem, USDDelegate, USDModel, USDPropertyWidget
 from omni.kit.commands import execute
-from omni.kit.undo import clear_stack, redo, undo
+from omni.kit.undo import can_redo, clear_stack, group, redo, undo
 from omni.usd import get_context
-from pxr import Gf, Sdf
+from pxr import Gf, Sdf, Usd
 
 
 class TestColorField(omni.kit.test.AsyncTestCase):
@@ -127,4 +126,155 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
         undo()
         await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
+
+    async def test_edit_read_only_color_preserves_pending_redo(self):
+        """A rejected picker edit leaves the scene color and unrelated redo step intact."""
+        self.model.set_items([USDAttributeItem("", [self.color_attribute.GetPath()], read_only=True)])
+        await omni.kit.ui_test.human_delay()
+        execute(
+            "ChangeProperty",
+            prop_path=self.other_attribute.GetPath(),
+            value=2.0,
+            prev=1.0,
+            usd_context_name="",
+        )
+        undo()
+        self.assertTrue(can_redo())
+
+        # Trying to edit a locked row must not consume the pending intensity redo.
+        widget_ref = omni.kit.ui_test.find(
+            f"{self.window.title}//Frame/**/ColorWidget[*].name=='ColorsWidgetFieldRead'"
+        )
+        await widget_ref.click()
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_char_press("0.8")
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
+        await omni.kit.ui_test.emulate_mouse_move_and_click(widget_ref.offset(-3, -3))
+        await omni.kit.ui_test.human_delay()
+        self.assertTrue(can_redo())
+        redo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.other_attribute.Get(), 2.0)
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
+
+    async def test_edit_selected_colors_with_locked_target_rolls_back_failed_session(self):
+        """A failed selection edit preserves the previous completed picker session and its undo."""
+        stage = self.context.get_stage()
+        session_layer = stage.GetSessionLayer()
+        with Usd.EditContext(stage, session_layer):
+            second_prim = stage.DefinePrim("/World/LockedColor", "Xform")
+            second_attribute = second_prim.CreateAttribute("color", Sdf.ValueTypeNames.Color3f)
+            second_attribute.Set(Gf.Vec3f(0.2, 0.2, 0.2))
+        self.model.set_items([USDAttributeItem("", [self.color_attribute.GetPath(), second_attribute.GetPath()])])
+        await omni.kit.ui_test.human_delay()
+        widget_ref = omni.kit.ui_test.find(
+            f"{self.window.title}//Frame/**/ColorWidget[*].name=='ColorsWidgetFieldRead'"
+        )
+
+        # Complete a valid multi-selection edit before a later session encounters a locked target.
+        await widget_ref.click()
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_char_press("0.8")
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_mouse_move_and_click(widget_ref.offset(-3, -3))
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+        self.assertEqual(second_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+
+        session_layer.SetPermissionToEdit(False)
+        try:
+            # The first target remains writable; the second genuinely rejects the same live edit.
+            await widget_ref.click()
+            await omni.kit.ui_test.human_delay()
+            await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+            await omni.kit.ui_test.human_delay()
+            await omni.kit.ui_test.emulate_char_press("0.5")
+            await omni.kit.ui_test.human_delay()
+            await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+            await omni.kit.ui_test.human_delay()
+            self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+            self.assertEqual(second_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+        finally:
+            session_layer.SetPermissionToEdit(True)
+
+        # The same row remains usable after the rejected edit and keeps the corrected picker value.
+        await omni.kit.ui_test.emulate_mouse_move_and_click(widget_ref.offset(-3, -3))
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+        self.assertEqual(second_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+        await widget_ref.click()
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_char_press("0.6")
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_mouse_move_and_click(widget_ref.offset(-3, -3))
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.6, 0.2, 0.2))
+        self.assertEqual(second_attribute.Get(), Gf.Vec3f(0.6, 0.2, 0.2))
+        self.model.set_items([])
+        await omni.kit.ui_test.human_delay()
+
+        # The next command and the two completed picker sessions each retain their own undo step.
+        execute(
+            "ChangeProperty",
+            prop_path=self.other_attribute.GetPath(),
+            value=2.0,
+            prev=1.0,
+            usd_context_name="",
+        )
+        undo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.other_attribute.Get(), 1.0)
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.6, 0.2, 0.2))
+        self.assertEqual(second_attribute.Get(), Gf.Vec3f(0.6, 0.2, 0.2))
+        undo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+        self.assertEqual(second_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+        undo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
+        self.assertEqual(second_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
+
+    async def test_begin_live_batch_inside_undo_group_rejects_without_unbalancing_undo(self):
+        """Reject a nested live batch while preserving the outer command and the next undo step."""
+        value_model = self.model.get_all_items()[0].value_models[0]
+        with group():
+            execute(
+                "ChangeProperty",
+                prop_path=self.other_attribute.GetPath(),
+                value=2.0,
+                prev=1.0,
+                usd_context_name="",
+            )
+            try:
+                with self.assertRaisesRegex(RuntimeError, "top-level"):
+                    value_model.begin_batch_edit(live=True)
+            finally:
+                value_model.cancel_property_edit_interaction()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
+        execute(
+            "ChangeProperty",
+            prop_path=self.other_attribute.GetPath(),
+            value=3.0,
+            prev=2.0,
+            usd_context_name="",
+        )
+        undo()
+        self.assertEqual(self.other_attribute.Get(), 2.0)
+        undo()
+        self.assertEqual(self.other_attribute.Get(), 1.0)
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))

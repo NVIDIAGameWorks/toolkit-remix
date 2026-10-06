@@ -30,12 +30,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Standardized property-window placement, dismissal, keyboard handling, and app-owned inline Gradient styling, with disposable Gradient editors sharing the field's model and preview.
 
-## [2.0.2]
+## [2.1.0]
 ### Changed
-- `ColorField` now applies color picker edits live while the picker is open, grouping the picker session into a single undo step
-
-### Fixed
-- Released color field subscriptions and closed picker undo groups during property edit cancellation and field cleanup.
+- `ColorField` now supports live picker edits with grouped undo, read-only protection, and row-owned session cleanup.
 
 ## [2.0.1]
 ### Added
