@@ -147,6 +147,10 @@ Why each behavioural rule is worded the way it is — including the incidents th
 is in the {download}`agent skill rule rationale <../../.agents/rules/agent-skill-rules.md>`.
 Read it before trimming `SKILL.md`.
 
+**A skill only reaches agents that load it.** Unsupported operations such as deleting a prim are
+refused in `SKILL.md` and routed to the Toolkit GUI, but an agent that answers without opening the
+skill never sees that rule, so skill wording cannot cover those runs.
+
 **The skill describes only what actually ships.** A rule about a tool belongs in the merge request
 that introduces that tool, together with the test that pins it — not written ahead of time.
 
