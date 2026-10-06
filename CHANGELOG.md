@@ -190,6 +190,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed repository completion checks selecting downstream branches as their base and ignoring staged or unstaged version and changelog updates.
 - REMIX-5137: Updated paired Remix schema dependencies and fixed Camera Light contributing to volumetric lighting by setting the fallback light's volumetric radiance scale to zero.
 - Fixed completion hooks repeatedly restarting blocked agents by limiting automatic repair to one attempt and preserving unresolved failures for user feedback.
+- Fixed the RTX Remix modding Agent Skill suggesting file edits or other workarounds when asked to delete a prim; it now points to the Remix Toolkit instead (NVBug 6713667).
 
 ## [1.5.2-0]
 
