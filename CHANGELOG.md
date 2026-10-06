@@ -115,7 +115,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- REMIX-3047: Color fields in property panels now apply color picker edits live instead of only when the picker closes
 - REMIX-4286: Renamed the prototype AI Tools workspace to AI Tools (Experimental)
 - LSSDEVOPS-39: Updated release automation and repository maintenance workflows.
 - LSSDEVOPS-39: Removed legacy bootstrap from repo tooling.
@@ -174,6 +173,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the internal feature freeze and release process to tag `main` directly from one release MR instead of cutting `release/X.Y.x` branches, and added filtered internal skill wrappers so agents detect internal commands.
 - Update hdremix and omni_core_materials to `ext-c22d0c6-main` (`remix-1.6.0` tag)
 - Update remix_runtime to `remix-1.6.0`
+- REMIX-5565: Standardized Curve, Gradient, and texture-preview windows with launcher-relative placement and selection dismissal.
+- REMIX-6067, REMIX-6061: Replaced Curve Editor visibility checkboxes with channel multiselection, shared-time key insertion, and selection-aware edits grouped into one undo step; restricted key deletion to selected keys on visible curves and preserved selection highlighting.
+- REMIX-3047: Color fields in property panels now apply color picker edits live instead of only when the picker closes
 
 ### Removed
 

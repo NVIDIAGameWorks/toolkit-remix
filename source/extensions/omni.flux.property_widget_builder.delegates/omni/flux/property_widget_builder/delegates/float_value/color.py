@@ -19,8 +19,8 @@ __all__ = ("ColorField",)
 
 from functools import partial
 
-import omni.kit.undo
 import omni.ui as ui
+from omni.kit.undo import begin_group, end_group
 from pxr import Gf
 
 from ..base import AbstractField
@@ -58,8 +58,9 @@ class ColorField(AbstractField):
         # The color widget is a bit unique as the provided item's model is not used directly within the widget. We
         # instead connect change events between the two models to ensure that updates properly flow both ways.
         self._color_widget_changed_sub = None
-        self._color_widget_component_subs = []
+        self._color_widget_component_subscriptions = []
         self._value_model_value_changed_sub = None
+        self._unsubscribe_property_edit_cancel = None
 
         # Used to supress redundant change events.
         self._ignore_value_change_events = False
@@ -68,10 +69,17 @@ class ColorField(AbstractField):
         # True while a live color picker session owns an open undo group (one undo step per picker session).
         self._undo_group_open = False
 
-    def build_ui(self, item) -> list[ui.Widget]:
+    def build_ui(self, item, *, register_cleanup=None) -> list[ui.Widget]:
+        """Build the color field and connect its cleanup to the owning property row.
+
+        Args:
+            item: Property row whose value model stores the color vector.
+            register_cleanup: Optional callback that registers field cleanup with the owning delegate.
+        """
         if len(item.value_models) != 1:
             raise ValueError("Expected 1 value_model that holds the vector values")
 
+        self.destroy()
         value_model = item.value_models[0]
         vec = value_model.get_attributes_raw_value(0)
         if vec is None:
@@ -110,7 +118,7 @@ class ColorField(AbstractField):
                         ui.Spacer(height=ui.Pixel(4))
 
             # Apply every component edit immediately so the viewport updates while the color picker is still open.
-            self._color_widget_component_subs = [
+            self._color_widget_component_subscriptions = [
                 color_widget.model.get_item_value_model(child).subscribe_value_changed_fn(
                     partial(self._color_widget_component_changed, type(vec), value_model, color_widget.model)
                 )
@@ -124,8 +132,21 @@ class ColorField(AbstractField):
         self._value_model_value_changed_sub = value_model.subscribe_value_changed_fn(
             partial(self._value_model_changed, color_widget)
         )
+        self._unsubscribe_property_edit_cancel = value_model.subscribe_property_edit_cancel_fn(self.destroy)
+        if register_cleanup is not None:
+            register_cleanup(self.destroy)
 
         return widgets
+
+    def destroy(self) -> None:
+        """Release field subscriptions and close any active picker undo group."""
+        if self._unsubscribe_property_edit_cancel is not None:
+            self._unsubscribe_property_edit_cancel()
+            self._unsubscribe_property_edit_cancel = None
+        self._color_widget_component_subscriptions.clear()
+        self._color_widget_changed_sub = None
+        self._value_model_value_changed_sub = None
+        self._close_undo_group()
 
     def _value_model_changed(self, color_widget, value_model):
         if self._ignore_value_change_events:
@@ -148,7 +169,7 @@ class ColorField(AbstractField):
         if self._syncing_from_value_model:
             return
         if not self._undo_group_open:
-            omni.kit.undo.begin_group()
+            begin_group()
             self._undo_group_open = True
         self._apply_color(vec_type, value_model, model)
 
@@ -157,11 +178,22 @@ class ColorField(AbstractField):
         try:
             self._apply_color(vec_type, value_model, model)
         finally:
-            if self._undo_group_open:
-                self._undo_group_open = False
-                omni.kit.undo.end_group(remove_if_empty=True)
+            self._close_undo_group()
+
+    def _close_undo_group(self) -> None:
+        """Close the picker undo group at most once after dismissal or cancellation."""
+        if self._undo_group_open:
+            self._undo_group_open = False
+            end_group(remove_if_empty=True)
 
     def _apply_color(self, vec_type, value_model, model):
+        """Write the picker color to the backing value model without echoing the update.
+
+        Args:
+            vec_type: Vector constructor matching the backing color value.
+            value_model: Destination property value model that receives the color.
+            model: Source color widget item model that provides the component values.
+        """
         new_value = vec_type(*[model.get_item_value_model(c).get_value_as_float() for c in model.get_item_children()])
         self._ignore_value_change_events = True
         try:

@@ -32,7 +32,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.0.2]
 ### Changed
-- REMIX-3047: `ColorField` now applies color picker edits live while the picker is open, grouping the picker session into a single undo step
+- `ColorField` now applies color picker edits live while the picker is open, grouping the picker session into a single undo step
+
+### Fixed
+- Released color field subscriptions and closed picker undo groups during property edit cancellation and field cleanup.
 
 ## [2.0.1]
 ### Added

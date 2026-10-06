@@ -315,6 +315,7 @@ class TestAbstractDragFieldUnit(omni.kit.test.AsyncTestCase):
 
         # Act
         begin_edit_callbacks[0](second_models[1])
+        self.addCleanup(second_field.end_edit, second_models[1])
 
         # Assert
         self.assertTrue(first_item.linked_edit_enabled)

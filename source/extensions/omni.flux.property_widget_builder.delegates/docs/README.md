@@ -13,7 +13,7 @@
 
 ## Non-Responsibilities
 
-- Does not author USD or implement USD multi-selection, undo, refresh, or failure recovery. The USD property model owns
+- Does not author USD or implement USD multi-selection, refresh, or failure recovery. The USD property model owns
   those operations through its item and value models.
 - Does not choose which field represents an item. Property-widget models and field-builder registrations own that
   mapping.
@@ -27,6 +27,12 @@ The hosting application supplies the inline Gradient's named `ColorGradientBar` 
 keyword-only `stage_resolver` callback; constructing `FilePicker(use_relative_paths=True)` without that explicit USD
 stage capability raises `ValueError`. `ComboboxField` consumes an `ui.AbstractItemModel` supplied by the property
 value model.
+
+`ColorField` writes color picker changes to the backing value model immediately while the picker remains open.
+It groups all edits in one picker session into a single undo step and closes the group when the picker closes.
+Pass `register_cleanup` to `build_ui()` to register `destroy()` with the owning property widget, or call `destroy()`
+directly when releasing the field. Field cleanup and property edit cancellation release subscriptions and close any
+active picker undo group.
 
 `AbstractDragFieldGroup` builds and coordinates numeric fields in one row. Pass `linkable=True` to opt a Float or Int
 group into link controls, linked presentation, focus, commit, cancel, unlink, and value routing. The item owns the

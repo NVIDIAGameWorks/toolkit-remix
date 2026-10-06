@@ -18,126 +18,113 @@
 __all__ = ("TestColorField",)
 
 import uuid
-from collections.abc import Iterable
 
 import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
 from carb.input import KeyboardInput
-from omni.flux.property_widget_builder.delegates.float_value.color import ColorField
-from pxr import Gf
-
-
-class MockValueModel(ui.AbstractValueModel):
-    def __init__(self):
-        super().__init__()
-        self._value = Gf.Vec3d(0.2, 0.2, 0.2)
-
-    def get_attributes_raw_value(self, _):
-        return self._value
-
-    def get_value(self):
-        return self._value
-
-    def set_value(self, value):
-        self._value = value
-        self._value_changed()
-
-
-class MockItem(ui.AbstractItem):
-    def __init__(self):
-        super().__init__()
-        self.value_models = [MockValueModel()]
+from omni.flux.property_widget_builder.model.usd import USDAttributeItem, USDDelegate, USDModel
+from omni.flux.property_widget_builder.model.usd.setup_ui import USDPropertyWidget
+from omni.kit.commands import execute
+from omni.kit.undo import clear_stack, redo, undo
+from omni.usd import get_context
+from pxr import Gf, Sdf
 
 
 class TestColorField(omni.kit.test.AsyncTestCase):
+    """Exercise live color picker edits and cleanup through real USD property rows."""
+
     async def setUp(self):
+        """Build a production color row backed by an in-memory USD attribute."""
+        self.context = get_context("")
+        await self.context.new_stage_async()
+        prim = self.context.get_stage().DefinePrim("/World/Color", "Xform")
+        self.color_attribute = prim.CreateAttribute("color", Sdf.ValueTypeNames.Color3f)
+        self.color_attribute.Set(Gf.Vec3f(0.2, 0.2, 0.2))
+        self.other_attribute = prim.CreateAttribute("intensity", Sdf.ValueTypeNames.Float)
+        self.other_attribute.Set(1.0)
+        self.model = USDModel(context_name="")
         self.window = ui.Window(
             f"{self.__class__.__name__}_{str(uuid.uuid1())}",
             height=200,
-            width=200,
+            width=400,
             position_x=0,
             position_y=0,
         )
-        self.item = MockItem()
         with self.window.frame:
-            self.color_field = ColorField()
-            self.widgets = self.color_field.build_ui(self.item)
-        self.window.width = 200
-        self.window.height = 200
-
+            self.property_widget = USDPropertyWidget(context_name="", model=self.model, delegate=USDDelegate())
+        self.model.set_items([USDAttributeItem("", [self.color_attribute.GetPath()])])
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
     async def tearDown(self):
-        for widget in self.widgets:
-            widget.destroy()
+        """Cancel active edits before releasing the UI and temporary stage."""
+        self.model.set_items([])
+        self.property_widget.destroy()
+        self.model.destroy()
         self.window.destroy()
+        clear_stack()
+        await self.context.close_stage_async()
 
-    def assertColorEquals(self, values: Iterable[float]):  # noqa: N802
-        """
-        Tests both the item value model and the widget children values are set to the specified values.
-        """
-        color_widget = self.widgets[0]
-        for child, value in zip(color_widget.model.get_item_children(), values):
-            current = color_widget.model.get_item_value_model(child).get_value_as_float()
-            self.assertAlmostEqual(current, value)
-
-        for v1, v2 in zip(self.item.value_models[0].get_value(), values):
-            self.assertAlmostEqual(v1, v2)
-
-    async def test_pick_color(self):
-        """
-        Emulate picking a value from the color picker.
-        """
-        # default values
-        self.assertColorEquals([0.2, 0.2, 0.2])
-
+    async def test_edit_color_with_picker_open_updates_usd_and_dismissal_groups_undo(self):
+        """Successive picker edits update USD live and undo as one completed session."""
         widget_ref = omni.kit.ui_test.find(
             f"{self.window.title}//Frame/**/ColorWidget[*].name=='ColorsWidgetFieldRead'"
         )
-
-        # Open color picker
+        # Keep the popup open while each RGB field changes the scene color.
         await widget_ref.click()
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await omni.kit.ui_test.human_delay()
+        expected_color = [0.2, 0.2, 0.2]
+        for index, value in enumerate((0.8, 0.5, 0.4)):
+            await omni.kit.ui_test.emulate_char_press(str(value))
+            await omni.kit.ui_test.human_delay()
+            await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+            await omni.kit.ui_test.human_delay()
+            expected_color[index] = value
+            self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(*expected_color))
 
-        # First float field
-        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
-        await omni.kit.ui_test.emulate_char_press("0.8")
-        # Second float field
-        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
-        await omni.kit.ui_test.emulate_char_press("0.5")
-        # Third float field
-        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
-        await omni.kit.ui_test.emulate_char_press("0.4")
-        # Deselect color picker to commit changes
+        # Dismissing the popup must leave one undo step for all three component edits.
         await omni.kit.ui_test.emulate_mouse_move_and_click(widget_ref.offset(-3, -3))
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.5, 0.4))
+        undo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
+        redo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.5, 0.4))
 
-        self.assertColorEquals([0.8, 0.5, 0.4])
+    async def test_remove_color_row_with_picker_open_keeps_later_command_undo_separate(self):
+        """Removing an actively edited row releases its undo group before the next command."""
+        widget_ref = omni.kit.ui_test.find(
+            f"{self.window.title}//Frame/**/ColorWidget[*].name=='ColorsWidgetFieldRead'"
+        )
+        await widget_ref.click()
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_char_press("0.8")
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
 
-    async def test_model_changes(self):
-        """
-        Test changing the model directly forwards events to update the ColorWidget.
-        """
-        self.assertColorEquals([0.2, 0.2, 0.2])
-        self.item.value_models[0].set_value(Gf.Vec3d(0.6, 0.5, 0.4))
-        self.assertColorEquals([0.6, 0.5, 0.4])
-        # Model -> widget sync must not be treated as a user edit
-        self.assertFalse(self.color_field._undo_group_open)
-
-    async def test_color_edits_apply_live(self):
-        """
-        Editing a color component updates the item value model before the color picker closes.
-        """
-        self.assertColorEquals([0.2, 0.2, 0.2])
-        color_widget = self.widgets[0]
-        children = color_widget.model.get_item_children()
-
-        # Emulate the picker changing each component; no end_edit has been sent yet
-        for child, value in zip(children, (0.8, 0.5, 0.4)):
-            color_widget.model.get_item_value_model(child).set_value(value)
-        self.assertColorEquals([0.8, 0.5, 0.4])
-        self.assertTrue(self.color_field._undo_group_open)
-
-        # Closing the picker commits the final value and closes the live-edit undo group
-        color_widget.model.end_edit(children[0])
-        self.assertColorEquals([0.8, 0.5, 0.4])
-        self.assertFalse(self.color_field._undo_group_open)
+        # Replacing the property selection cancels the row while its picker is still open.
+        self.model.set_items([])
+        await omni.kit.ui_test.human_delay()
+        execute(
+            "ChangeProperty",
+            prop_path=self.other_attribute.GetPath(),
+            value=2.0,
+            prev=1.0,
+            usd_context_name="",
+        )
+        self.assertEqual(self.other_attribute.Get(), 2.0)
+        undo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.other_attribute.Get(), 1.0)
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+        undo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
