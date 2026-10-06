@@ -120,3 +120,24 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         self.assertColorEquals([0.2, 0.2, 0.2])
         self.item.value_models[0].set_value(Gf.Vec3d(0.6, 0.5, 0.4))
         self.assertColorEquals([0.6, 0.5, 0.4])
+        # Model -> widget sync must not be treated as a user edit
+        self.assertFalse(self.color_field._undo_group_open)
+
+    async def test_color_edits_apply_live(self):
+        """
+        Editing a color component updates the item value model before the color picker closes.
+        """
+        self.assertColorEquals([0.2, 0.2, 0.2])
+        color_widget = self.widgets[0]
+        children = color_widget.model.get_item_children()
+
+        # Emulate the picker changing each component; no end_edit has been sent yet
+        for child, value in zip(children, (0.8, 0.5, 0.4)):
+            color_widget.model.get_item_value_model(child).set_value(value)
+        self.assertColorEquals([0.8, 0.5, 0.4])
+        self.assertTrue(self.color_field._undo_group_open)
+
+        # Closing the picker commits the final value and closes the live-edit undo group
+        color_widget.model.end_edit(children[0])
+        self.assertColorEquals([0.8, 0.5, 0.4])
+        self.assertFalse(self.color_field._undo_group_open)

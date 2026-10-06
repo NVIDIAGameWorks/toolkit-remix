@@ -115,6 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- REMIX-3047: Color fields in property panels now apply color picker edits live instead of only when the picker closes
 - REMIX-4286: Renamed the prototype AI Tools workspace to AI Tools (Experimental)
 - LSSDEVOPS-39: Updated release automation and repository maintenance workflows.
 - LSSDEVOPS-39: Removed legacy bootstrap from repo tooling.

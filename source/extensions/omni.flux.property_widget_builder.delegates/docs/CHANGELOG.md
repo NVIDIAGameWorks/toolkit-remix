@@ -30,6 +30,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Standardized property-window placement, dismissal, keyboard handling, and app-owned inline Gradient styling, with disposable Gradient editors sharing the field's model and preview.
 
+## [2.0.2]
+### Changed
+- REMIX-3047: `ColorField` now applies color picker edits live while the picker is open, grouping the picker session into a single undo step
+
 ## [2.0.1]
 ### Added
 - Added optional persistent-selection styling for shared property labels.

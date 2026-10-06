@@ -19,6 +19,7 @@ __all__ = ("ColorField",)
 
 from functools import partial
 
+import omni.kit.undo
 import omni.ui as ui
 from pxr import Gf
 
@@ -57,10 +58,15 @@ class ColorField(AbstractField):
         # The color widget is a bit unique as the provided item's model is not used directly within the widget. We
         # instead connect change events between the two models to ensure that updates properly flow both ways.
         self._color_widget_changed_sub = None
+        self._color_widget_component_subs = []
         self._value_model_value_changed_sub = None
 
         # Used to supress redundant change events.
         self._ignore_value_change_events = False
+        # Set while the item value model pushes its value into the color widget so it is not echoed back as an edit.
+        self._syncing_from_value_model = False
+        # True while a live color picker session owns an open undo group (one undo step per picker session).
+        self._undo_group_open = False
 
     def build_ui(self, item) -> list[ui.Widget]:
         if len(item.value_models) != 1:
@@ -103,6 +109,14 @@ class ColorField(AbstractField):
                         ui.Rectangle(name="ColorsWidgetSeparator")
                         ui.Spacer(height=ui.Pixel(4))
 
+            # Apply every component edit immediately so the viewport updates while the color picker is still open.
+            self._color_widget_component_subs = [
+                color_widget.model.get_item_value_model(child).subscribe_value_changed_fn(
+                    partial(self._color_widget_component_changed, type(vec), value_model, color_widget.model)
+                )
+                for child in color_widget.model.get_item_children()
+            ]
+            # Closing the picker commits the final value and closes the undo group opened by the live edits.
             self._color_widget_changed_sub = color_widget.model.subscribe_end_edit_fn(
                 partial(self._color_widget_changed, type(vec), value_model)
             )
@@ -121,12 +135,36 @@ class ColorField(AbstractField):
             vec = Gf.Vec3f(0, 0, 0)
         children = color_widget.model.get_item_children()
         assert len(children) == len(vec), f"{vec} does not match expected length for ColorWidget"
-        for child, value in zip(children, vec):
-            child_value_model = color_widget.model.get_item_value_model(child)
-            child_value_model.set_value(value)
+        self._syncing_from_value_model = True
+        try:
+            for child, value in zip(children, vec):
+                child_value_model = color_widget.model.get_item_value_model(child)
+                child_value_model.set_value(value)
+        finally:
+            self._syncing_from_value_model = False
+
+    def _color_widget_component_changed(self, vec_type, value_model, model, _component_model):
+        """Live-apply a color picker edit without waiting for the picker to close."""
+        if self._syncing_from_value_model:
+            return
+        if not self._undo_group_open:
+            omni.kit.undo.begin_group()
+            self._undo_group_open = True
+        self._apply_color(vec_type, value_model, model)
 
     def _color_widget_changed(self, vec_type, value_model, model, _):
+        """Commit the final color when the picker closes and close the live-edit undo group."""
+        try:
+            self._apply_color(vec_type, value_model, model)
+        finally:
+            if self._undo_group_open:
+                self._undo_group_open = False
+                omni.kit.undo.end_group(remove_if_empty=True)
+
+    def _apply_color(self, vec_type, value_model, model):
         new_value = vec_type(*[model.get_item_value_model(c).get_value_as_float() for c in model.get_item_children()])
         self._ignore_value_change_events = True
-        value_model.set_value(new_value)
-        self._ignore_value_change_events = False
+        try:
+            value_model.set_value(new_value)
+        finally:
+            self._ignore_value_change_events = False
