@@ -15,7 +15,9 @@
 * limitations under the License.
 """
 
-from unittest.mock import MagicMock, patch
+import asyncio
+from contextlib import ExitStack
+from unittest.mock import MagicMock, Mock, patch
 
 import omni.kit.app
 import omni.kit.undo
@@ -33,6 +35,8 @@ from omni.flux.property_widget_builder.model.usd.model import USDModel
 from omni.flux.property_widget_builder.widget import ItemGroup
 from omni.flux.utils.common.interactive_usd_notices import register_objects_changed_listener as _register_listener
 from pxr import Gf, Sdf, UsdGeom
+
+from ...item_model import attr_value
 
 
 def _make_model(stage, value=0.0):
@@ -183,34 +187,6 @@ class _EndingCancelValueModel:
         self._callback()
 
 
-class _SetItemsCancelValueModel:
-    def __init__(self):
-        self.callbacks = (None, None)
-
-    def set_property_edit_callbacks(self, begin_callback, end_callback):
-        self.callbacks = (begin_callback, end_callback)
-
-    def cancel_property_edit_interaction(self):
-        raise RuntimeError("cancel failure")
-
-    def refresh(self):
-        pass
-
-
-class _SetItemsValueModel:
-    def __init__(self):
-        self.callbacks = (None, None)
-
-    def set_property_edit_callbacks(self, begin_callback, end_callback):
-        self.callbacks = (begin_callback, end_callback)
-
-    def cancel_property_edit_interaction(self):
-        pass
-
-    def refresh(self):
-        pass
-
-
 class _Notice:
     def __init__(self, changed_paths=(), resynced_paths=()):
         self._changed_paths = list(changed_paths)
@@ -224,7 +200,7 @@ class _Notice:
 
 
 class TestUsdAttributeValueModelEditBatching(omni.kit.test.AsyncTestCase):
-    """Regression tests for deferred edit writes in UsdAttributeValueModel."""
+    """Regression tests for live batch previews in UsdAttributeValueModel."""
 
     async def setUp(self):
         self.context = omni.usd.get_context()
@@ -232,6 +208,7 @@ class TestUsdAttributeValueModelEditBatching(omni.kit.test.AsyncTestCase):
         self.stage = self.context.get_stage()
 
     async def tearDown(self):
+        omni.kit.undo.clear_stack()
         if self.context:
             await self.context.close_stage_async()
         self.context = None
@@ -246,6 +223,33 @@ class TestUsdAttributeValueModelEditBatching(omni.kit.test.AsyncTestCase):
 
         # Assert
         self.assertFalse(model.is_batch_editing)
+
+    async def test_set_value_during_batch_previews_latest_value_on_next_update(self):
+        """Preview coalesced input before release without recording undo."""
+        # Arrange
+        model = _make_model(self.stage)
+        omni.kit.undo.clear_stack()
+        model.begin_batch_edit()
+
+        try:
+            # Act
+            model.set_value(5.0)
+            first_task = model._pending_preview_task
+            model.set_value(8.0)
+            second_task = model._pending_preview_task
+            cached_value = model.get_value_as_float()
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+
+            # Assert
+            self.assertIsNotNone(first_task)
+            self.assertIs(second_task, first_task)
+            self.assertAlmostEqual(cached_value, 8.0)
+            self.assertAlmostEqual(_usd_value(self.stage), 8.0)
+            self.assertAlmostEqual(model.get_value_as_float(), 8.0)
+            self.assertEqual(list(omni.kit.undo.get_undo_stack()), [])
+        finally:
+            model.cancel_property_edit_interaction()
 
     async def test_set_value_outside_batch_edit_writes_immediately(self):
         # Arrange
@@ -291,37 +295,18 @@ class TestUsdAttributeValueModelEditBatching(omni.kit.test.AsyncTestCase):
     async def test_set_value_during_batch_edit_updates_only_cached_value(self):
         # Arrange
         model = _make_model(self.stage, value=0.0)
+        try:
+            with patch("omni.kit.undo.begin_group"), patch("omni.kit.undo.end_group"):
+                model.begin_batch_edit()
 
-        with patch("omni.kit.undo.begin_group"), patch("omni.kit.undo.end_group"):
-            model.begin_batch_edit()
+                # Act
+                model.set_value(5.0)
 
-            # Act
-            model.set_value(5.0)
-
-            # Assert
-            self.assertAlmostEqual(model.get_value_as_float(), 5.0)
-            self.assertAlmostEqual(_usd_value(self.stage), 0.0)
-
-    async def test_end_batch_edit_flushes_only_the_final_drag_value(self):
-        # Arrange
-        model = _make_model(self.stage, value=0.0)
-
-        with patch("omni.kit.undo.begin_group") as begin_group, patch("omni.kit.undo.end_group") as end_group:
-            model.begin_batch_edit()
-            model.set_value(10.0)
-            self.assertAlmostEqual(_usd_value(self.stage), 0.0)
-            model.set_value(20.0)
-            self.assertAlmostEqual(_usd_value(self.stage), 0.0)
-            model.set_value(30.0)
-            self.assertAlmostEqual(_usd_value(self.stage), 0.0)
-
-            # Act
-            model.end_batch_edit()
-
-            # Assert
-            begin_group.assert_called_once_with()
-            end_group.assert_called_once_with(remove_if_empty=True)
-            self.assertAlmostEqual(_usd_value(self.stage), 30.0)
+                # Assert
+                self.assertAlmostEqual(model.get_value_as_float(), 5.0)
+                self.assertAlmostEqual(_usd_value(self.stage), 0.0)
+        finally:
+            model.cancel_property_edit_interaction()
 
     async def test_cancel_property_edit_interaction_aborts_active_batch_edit(self):
         # Arrange
@@ -335,7 +320,7 @@ class TestUsdAttributeValueModelEditBatching(omni.kit.test.AsyncTestCase):
             model.cancel_property_edit_interaction()
 
             # Assert
-            end_group.assert_called_once_with()
+            end_group.assert_not_called()
             self.assertFalse(model.is_batch_editing)
             self.assertAlmostEqual(model.get_value_as_float(), 0.0)
             self.assertAlmostEqual(_usd_value(self.stage), 0.0)
@@ -564,42 +549,54 @@ class TestUsdAttributeValueModelEditBatching(omni.kit.test.AsyncTestCase):
             omni.kit.undo.clear_history()
 
     async def test_group_edit_batch_when_later_target_fails_rolls_back_and_refreshes_linked_caches(self):
-        # Arrange
-        original_values = ((1.0, 2.0, 3.0), (9.0, 8.0, 7.0))
-        item, attributes = _make_group_edit_item(self.stage, original_values)
+        """Failed preview or release commands restore every target and linked channel cache."""
+        execute = omni.kit.commands.execute
+        for phase in ("preview", "release"):
+            with self.subTest(phase=phase):
+                # Arrange
+                original_values = ((1.0, 2.0, 3.0), (9.0, 8.0, 7.0))
+                item, attributes = _make_group_edit_item(self.stage, original_values)
 
-        try:
-            item.set_linked_edit_enabled(True)
-            x_model = item.value_models[0]
-            omni.kit.undo.clear_stack()
-            omni.kit.undo.clear_history()
-            x_model.begin_batch_edit()
-            x_model.set_value(42.0)
-            execute = omni.kit.commands.execute
-            change_property_calls = 0
+                try:
+                    item.set_linked_edit_enabled(True)
+                    x_model = item.value_models[0]
+                    omni.kit.undo.clear_stack()
+                    omni.kit.undo.clear_history()
+                    x_model.begin_batch_edit()
+                    x_model.set_value(42.0)
+                    change_property_calls = 0
 
-            def fail_second_change_property(command_name, **kwargs):
-                nonlocal change_property_calls
-                if command_name == "ChangeProperty":
-                    change_property_calls += 1
-                    if change_property_calls == 2:
-                        return False, None
-                return execute(command_name, **kwargs)
+                    def fail_second_change_property(command_name, **kwargs):
+                        nonlocal change_property_calls
+                        if command_name == "ChangeProperty":
+                            change_property_calls += 1
+                            if change_property_calls == 2:
+                                return False, None
+                        return execute(command_name, **kwargs)
 
-            with patch("omni.kit.commands.execute", side_effect=fail_second_change_property):
-                # Act
-                x_model.end_batch_edit()
+                    with patch("omni.kit.commands.execute", side_effect=fail_second_change_property):
+                        # Act
+                        if phase == "preview":
+                            await omni.kit.app.get_app().next_update_async()
+                            await omni.kit.app.get_app().next_update_async()
+                        else:
+                            x_model.end_batch_edit()
 
-            # Assert
-            self.assertFalse(x_model.is_batch_editing)
-            expected_values = [Gf.Vec3f(*value) for value in original_values]
-            self.assertEqual([attr.Get() for attr in attributes], expected_values)
-            self.assertEqual([model._values for model in item.value_models], [expected_values] * 3)
-            self.assertEqual([model.get_value_as_float() for model in item.value_models], [9.0, 8.0, 7.0])
-        finally:
-            item.destroy()
-            omni.kit.undo.clear_stack()
-            omni.kit.undo.clear_history()
+                    # Assert
+                    self.assertEqual(change_property_calls, 2)
+                    self.assertFalse(x_model.is_batch_editing)
+                    self.assertIsNone(x_model._pending_preview_task)
+                    self.assertFalse(omni.kit.undo.can_undo())
+                    expected_values = [Gf.Vec3f(*value) for value in original_values]
+                    self.assertEqual([attr.Get() for attr in attributes], expected_values)
+                    self.assertEqual([model._values for model in item.value_models], [expected_values] * 3)
+                    self.assertEqual([model.get_value_as_float() for model in item.value_models], [9.0, 8.0, 7.0])
+                finally:
+                    item.destroy()
+                    for attr in attributes:
+                        self.stage.RemovePrim(attr.GetPath().GetPrimPath())
+                    omni.kit.undo.clear_stack()
+                    omni.kit.undo.clear_history()
 
     async def test_reset_row_nested_failed_write_closes_group_without_consuming_prior_history(self):
         # Arrange
@@ -674,32 +671,614 @@ class TestUsdAttributeValueModelEditBatching(omni.kit.test.AsyncTestCase):
             omni.kit.undo.clear_stack()
             omni.kit.undo.clear_history()
 
-    async def test_end_batch_edit_records_single_undoable_change(self):
+    async def test_preview_multiple_frames_reserves_each_property_once(self):
+        """Each selected property captures its original spec once across preview frames."""
         # Arrange
-        omni.kit.undo.clear_stack()
-        omni.kit.undo.clear_history()
-        model = _make_model(self.stage, value=0.0)
+        attributes = []
+        originals = [float(index) for index in range(32)]
+        for index, original in enumerate(originals):
+            attribute = self.stage.DefinePrim(f"/Reservation{index}").CreateAttribute("value", Sdf.ValueTypeNames.Float)
+            attribute.Set(original)
+            attributes.append(attribute)
+        sdk_undo = attr_value.UsdLayerUndo
+        reservations = []
 
+        def create_reservation(layer):
+            """Observe SDK calls while preserving real spec capture and restoration."""
+            reservation = Mock(wraps=sdk_undo(layer))
+            reservations.append(reservation)
+            return reservation
+
+        model = UsdAttributeValueModel("", [attribute.GetPath() for attribute in attributes], 0)
         try:
-            # Act
-            model.begin_batch_edit()
-            model.set_value(10.0)
-            model.set_value(20.0)
-            model.set_value(30.0)
-            model.end_batch_edit()
+            with patch.object(attr_value, "UsdLayerUndo", side_effect=create_reservation):
+                # Act
+                model.begin_batch_edit()
+                model.set_value(100.0)
+                await omni.kit.app.get_app().next_update_async()
+                await omni.kit.app.get_app().next_update_async()
+                first_reservation_count = len(reservations)
+                first_preview_values = [attribute.Get() for attribute in attributes]
+                model.set_value(200.0)
+                await omni.kit.app.get_app().next_update_async()
+                await omni.kit.app.get_app().next_update_async()
+                second_preview_values = [attribute.Get() for attribute in attributes]
+                model.cancel_property_edit_interaction()
 
             # Assert
-            change_property_entries = [
-                entry for entry in omni.kit.undo.get_history().values() if entry.name == "ChangeProperty"
-            ]
-            self.assertEqual(len(change_property_entries), 1)
-            self.assertAlmostEqual(_usd_value(self.stage), 30.0)
-
-            omni.kit.undo.undo()
-            self.assertAlmostEqual(_usd_value(self.stage), 0.0)
+            self.assertEqual(first_preview_values, [100.0] * len(attributes))
+            self.assertEqual(second_preview_values, [200.0] * len(attributes))
+            self.assertEqual(first_reservation_count, len(attributes))
+            self.assertEqual(len(reservations), first_reservation_count)
+            for reservation in reservations:
+                self.assertEqual(reservation.reserve.call_count, 1)
+            self.assertEqual([attribute.Get() for attribute in attributes], originals)
+            self.assertEqual(list(omni.kit.undo.get_undo_stack()), [])
         finally:
-            omni.kit.undo.clear_stack()
-            omni.kit.undo.clear_history()
+            model.cancel_property_edit_interaction()
+
+    async def test_release_with_pending_preview_keeps_exact_final_value(self):
+        """A pending preview cannot overwrite the released value."""
+        # Arrange
+        model = _make_model(self.stage, value=3.0)
+        try:
+            model.begin_batch_edit()
+            model.set_value(7.0)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+            model.set_value(11.0)
+
+            # Act
+            model.end_batch_edit()
+            released_value = _usd_value(self.stage)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+
+            # Assert
+            self.assertAlmostEqual(released_value, 11.0)
+            self.assertAlmostEqual(_usd_value(self.stage), 11.0)
+            self.assertIsNone(model._pending_preview_task)
+            self.assertFalse(model.is_batch_editing)
+        finally:
+            model.cancel_property_edit_interaction()
+
+    async def test_batch_cancel_or_noop_preserves_existing_redo(self):
+        """Cancelled and unchanged drags preserve an unrelated redo entry."""
+        for finish in ("cancel", "return", "unchanged"):
+            with self.subTest(finish=finish):
+                # Arrange
+                omni.kit.undo.clear_stack()
+                model = _make_model(self.stage, value=0.0)
+                try:
+                    model.set_value(4.0)
+                    omni.kit.undo.undo()
+                    model.refresh()
+                    model.begin_batch_edit()
+                    if finish != "unchanged":
+                        model.set_value(8.0)
+                        await omni.kit.app.get_app().next_update_async()
+                        await omni.kit.app.get_app().next_update_async()
+                    if finish == "return":
+                        model.set_value(0.0)
+                    redo_available_during_preview = omni.kit.undo.can_redo()
+
+                    # Act
+                    if finish == "cancel":
+                        model.cancel_property_edit_interaction()
+                    else:
+                        model.end_batch_edit()
+                    restored_value = _usd_value(self.stage)
+                    empty_undo = not omni.kit.undo.can_undo()
+                    omni.kit.undo.redo()
+
+                    # Assert
+                    self.assertAlmostEqual(restored_value, 0.0)
+                    self.assertTrue(redo_available_during_preview)
+                    self.assertTrue(empty_undo)
+                    self.assertAlmostEqual(_usd_value(self.stage), 4.0)
+                    self.assertIsNone(model._pending_preview_task)
+                finally:
+                    model.cancel_property_edit_interaction()
+
+    async def test_release_displayed_original_commits_other_mixed_target(self):
+        """Returning to the displayed value still updates differing selected values."""
+        # Arrange
+        omni.kit.undo.clear_stack()
+        _make_model(self.stage, value=2.0)
+        first_attr = self.stage.GetAttributeAtPath("/DragTestPrim.testFloat")
+        second_attr = self.stage.DefinePrim("/OtherPrim").CreateAttribute("testFloat", Sdf.ValueTypeNames.Float)
+        second_attr.Set(6.0)
+        model = UsdAttributeValueModel("", [first_attr.GetPath(), second_attr.GetPath()], 0)
+        try:
+            model.begin_batch_edit()
+            model.set_value(10.0)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+            model.set_value(6.0)
+
+            # Act
+            model.end_batch_edit()
+            committed = (first_attr.Get(), second_attr.Get())
+            undo_count = sum(entry.level == 0 for entry in omni.kit.undo.get_undo_stack())
+            omni.kit.undo.undo()
+
+            # Assert
+            self.assertEqual(committed, (6.0, 6.0))
+            self.assertEqual(undo_count, 1)
+            self.assertEqual((first_attr.Get(), second_attr.Get()), (2.0, 6.0))
+        finally:
+            model.cancel_property_edit_interaction()
+
+    async def test_preview_exception_restores_original_and_clears_batch(self):
+        """A failed later preview reports its error and rolls back earlier previews."""
+        # Arrange
+        model = _make_model(self.stage, value=3.0)
+        try:
+            model.begin_batch_edit()
+            model.set_value(7.0)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+            preview_value = _usd_value(self.stage)
+
+            with (
+                patch.object(model, "_set_attribute_value", side_effect=RuntimeError("preview failed")),
+                patch.object(attr_value.carb, "log_error") as log_error,
+            ):
+                # Act
+                model.set_value(9.0)
+                await omni.kit.app.get_app().next_update_async()
+                await omni.kit.app.get_app().next_update_async()
+
+                # Assert
+                self.assertAlmostEqual(preview_value, 7.0)
+                self.assertAlmostEqual(_usd_value(self.stage), 3.0)
+                self.assertAlmostEqual(model.get_value_as_float(), 3.0)
+                self.assertIsNone(model._pending_preview_task)
+                self.assertFalse(model.is_batch_editing)
+                log_error.assert_called_once()
+                error_message = log_error.call_args.args[0]
+                self.assertIn("Failed to preview property edit", error_message)
+                self.assertIn("Traceback (most recent call last):", error_message)
+                self.assertIn("RuntimeError: preview failed", error_message)
+        finally:
+            model.cancel_property_edit_interaction()
+
+    async def test_preview_reservation_failure_rolls_back_earlier_writes_without_publishing_capture(self):
+        """A failed capture leaves no reservation and restores earlier preview writes."""
+        # Arrange
+        attributes = []
+        for index in range(2):
+            attribute = self.stage.DefinePrim(f"/CaptureFailure{index}").CreateAttribute(
+                "value", Sdf.ValueTypeNames.Float
+            )
+            attribute.Set(3.0)
+            attributes.append(attribute)
+        model = UsdAttributeValueModel("", [attribute.GetPath() for attribute in attributes], 0)
+        try:
+            sdk_undo = attr_value.UsdLayerUndo
+            failed_key = (self.stage.GetRootLayer().identifier, attributes[1].GetPath())
+            failed_capture_state = []
+
+            def create_reservation(layer):
+                """Inject capture failure only into reservations owned by the value model."""
+                reservation = sdk_undo(layer)
+
+                def reserve_property(property_path):
+                    """Fail the second capture after the first property's preview was written."""
+                    if property_path == attributes[1].GetPath():
+                        failed_capture_state.append(
+                            (failed_key in model._preview_layer_undos, [attribute.Get() for attribute in attributes])
+                        )
+                        raise RuntimeError("reservation failed")
+                    reservation.reserve(property_path)
+
+                reservation_spy = Mock(wraps=reservation)
+                reservation_spy.reserve.side_effect = reserve_property
+                return reservation_spy
+
+            with (
+                patch.object(attr_value, "UsdLayerUndo", side_effect=create_reservation),
+                patch.object(attr_value.carb, "log_error") as log_error,
+            ):
+                # Act
+                model.begin_batch_edit()
+                model.set_value(7.0)
+                await omni.kit.app.get_app().next_update_async()
+                await omni.kit.app.get_app().next_update_async()
+
+                # Assert
+                self.assertEqual(failed_capture_state, [(False, [7.0, 3.0])])
+                self.assertEqual([attribute.Get() for attribute in attributes], [3.0, 3.0])
+                self.assertAlmostEqual(model.get_value_as_float(), 3.0)
+                self.assertEqual(model._preview_layer_undos, {})
+                self.assertIsNone(model._pending_preview_task)
+                self.assertFalse(model.is_batch_editing)
+                self.assertEqual(list(omni.kit.undo.get_undo_stack()), [])
+                log_error.assert_called_once()
+                self.assertIn("RuntimeError: reservation failed", log_error.call_args.args[0])
+        finally:
+            model.cancel_property_edit_interaction()
+
+    async def test_cancelled_preview_does_not_clear_new_gesture_task(self):
+        """An older task's finalizer cannot discard the next gesture's preview."""
+        # Arrange
+        model = _make_model(self.stage, value=3.0)
+        try:
+            entered = asyncio.Event()
+            resume = asyncio.Event()
+
+            async def wait_for_preview():
+                entered.set()
+                await resume.wait()
+
+            with patch.object(attr_value, "get_app") as get_app:
+                get_app.return_value.next_update_async = wait_for_preview
+                model.begin_batch_edit()
+                model.set_value(7.0)
+                await entered.wait()
+                old_task = model._pending_preview_task
+
+                # Act
+                model.cancel_property_edit_interaction()
+                model.begin_batch_edit()
+                model.set_value(9.0)
+                new_task = model._pending_preview_task
+                await asyncio.gather(old_task, return_exceptions=True)
+                retained_task = model._pending_preview_task
+                resume.set()
+                await new_task
+
+                # Assert
+                self.assertTrue(old_task.cancelled())
+                self.assertIs(retained_task, new_task)
+                self.assertAlmostEqual(_usd_value(self.stage), 9.0)
+        finally:
+            model.cancel_property_edit_interaction()
+
+    async def test_cancel_preview_removes_related_overrides_and_restores_metadata(self):
+        """Rollback removes preview-only overrides without damaging weaker specs."""
+        # Arrange
+        _make_model(self.stage, value=3.0)
+        attr = self.stage.GetAttributeAtPath("/DragTestPrim.testFloat")
+        attr.SetCustomDataByKey("test", "preserve")
+        attr.Set(4.0, 1.0)
+        related = attr.GetPrim().CreateAttribute("related", Sdf.ValueTypeNames.Float)
+        related.Set(9.0)
+        original_layer = self.stage.GetRootLayer().ExportToString()
+        edit_layer = self.stage.GetSessionLayer()
+        self.stage.SetEditTarget(edit_layer)
+        model = UsdAttributeValueModel("", [attr.GetPath()], 0, related_override_paths=[related.GetPath()])
+        try:
+            model.begin_batch_edit()
+            model.set_value(7.0)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+            preview_spec = edit_layer.GetPropertyAtPath(attr.GetPath()) is not None
+            related_spec = edit_layer.GetPropertyAtPath(related.GetPath()) is not None
+
+            # Act
+            model.cancel_property_edit_interaction()
+
+            # Assert
+            self.assertTrue(preview_spec)
+            self.assertTrue(related_spec)
+            self.assertIsNone(edit_layer.GetPropertyAtPath(attr.GetPath()))
+            self.assertIsNone(edit_layer.GetPropertyAtPath(related.GetPath()))
+            self.assertEqual(self.stage.GetRootLayer().ExportToString(), original_layer)
+            self.assertAlmostEqual(model.get_value_as_float(), 3.0)
+        finally:
+            model.cancel_property_edit_interaction()
+
+    async def test_cancel_nonpersistent_preview_restores_session_property(self):
+        """Reserve the command's session target for nonpersistent attributes."""
+        # Arrange
+        model = _make_model(self.stage, value=3.0)
+        try:
+            attr = self.stage.GetAttributeAtPath("/DragTestPrim.testFloat")
+            attr.SetCustomDataByKey("nonpersistant", True)
+            model.begin_batch_edit()
+            model.set_value(7.0)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+            preview_value = attr.Get()
+
+            # Act
+            model.cancel_property_edit_interaction()
+
+            # Assert
+            self.assertAlmostEqual(preview_value, 7.0)
+            self.assertAlmostEqual(attr.Get(), 3.0)
+            self.assertIsNone(self.stage.GetSessionLayer().GetPropertyAtPath(attr.GetPath()))
+        finally:
+            model.cancel_property_edit_interaction()
+
+    async def test_restore_preview_layer_failure_preserves_reservation_and_restores_other_layers(self):
+        """A failed property does not prevent restoration in the same or another layer."""
+        # Arrange
+        attributes = []
+        for index in range(3):
+            attribute = self.stage.DefinePrim(f"/Rollback{index}").CreateAttribute("value", Sdf.ValueTypeNames.Float)
+            attribute.Set(3.0)
+            attributes.append(attribute)
+        attributes[2].SetCustomDataByKey("nonpersistant", True)
+        model = UsdAttributeValueModel("", [attribute.GetPath() for attribute in attributes], 0)
+        try:
+            model.begin_batch_edit()
+            model.set_value(7.0)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+            root_identifier = self.stage.GetRootLayer().identifier
+            failed_key = (root_identifier, attributes[0].GetPath())
+            failed_reservation = model._preview_layer_undos[failed_key]
+            root_reservation = model._preview_layer_undos[(root_identifier, attributes[1].GetPath())]
+            session_reservation = model._preview_layer_undos[
+                (self.stage.GetSessionLayer().identifier, attributes[2].GetPath())
+            ]
+            failure = RuntimeError("layer restoration failed")
+            model._ignore_refresh = True
+
+            with (
+                patch.object(failed_reservation, "undo", side_effect=failure) as failed_undo,
+                patch.object(root_reservation, "undo", wraps=root_reservation.undo) as root_undo,
+                patch.object(session_reservation, "undo", wraps=session_reservation.undo) as session_undo,
+                patch.object(attr_value.carb, "log_error") as log_error,
+            ):
+                # Act
+                with self.assertRaises(RuntimeError) as raised:
+                    model.cancel_property_edit_interaction()
+
+                # Assert
+                self.assertIs(raised.exception, failure)
+                failed_undo.assert_called_once_with()
+                root_undo.assert_called_once_with()
+                session_undo.assert_called_once_with()
+                self.assertEqual(model._preview_layer_undos, {failed_key: failed_reservation})
+                self.assertEqual([attribute.Get() for attribute in attributes], [7.0, 3.0, 3.0])
+                self.assertIsNone(self.stage.GetSessionLayer().GetPropertyAtPath(attributes[2].GetPath()))
+                self.assertTrue(model._ignore_refresh)
+                self.assertFalse(model.is_batch_editing)
+                self.assertIsNone(model._pending_preview_task)
+                log_error.assert_called_once()
+                error_message = log_error.call_args.args[0]
+                self.assertIn(f"Failed to restore property preview in layer {root_identifier}", error_message)
+                self.assertIn(str(attributes[0].GetPath()), error_message)
+                self.assertIn("Traceback (most recent call last):", error_message)
+                self.assertIn("RuntimeError: layer restoration failed", error_message)
+            model._ignore_refresh = False
+            model.cancel_property_edit_interaction()
+            self.assertEqual([attribute.Get() for attribute in attributes], [3.0, 3.0, 3.0])
+            self.assertEqual(model._preview_layer_undos, {})
+        finally:
+            model._ignore_refresh = False
+            model.cancel_property_edit_interaction()
+
+    async def test_cancel_preview_after_failed_restoration_retries_and_preserves_redo(self):
+        """Explicit cancellation retries retained reservations after batch mode has ended."""
+        for operation in ("release", "cancel"):
+            with self.subTest(title=operation):
+                # Arrange
+                omni.kit.undo.clear_stack()
+                model = _make_model(self.stage, value=3.0)
+                try:
+                    model.set_value(4.0)
+                    omni.kit.undo.undo()
+                    redo_stack = list(omni.kit.undo.get_redo_stack())
+                    model.begin_batch_edit()
+                    model.set_value(7.0)
+                    await omni.kit.app.get_app().next_update_async()
+                    await omni.kit.app.get_app().next_update_async()
+                    reservation = next(iter(model._preview_layer_undos.values()))
+                    with (
+                        patch.object(reservation, "undo", side_effect=RuntimeError("restore failed")),
+                        patch.object(attr_value.carb, "log_error"),
+                        self.assertRaisesRegex(RuntimeError, "restore failed"),
+                    ):
+                        if operation == "release":
+                            model.end_batch_edit()
+                        else:
+                            model.cancel_property_edit_interaction()
+
+                    # Act
+                    model.cancel_property_edit_interaction()
+
+                    # Assert
+                    self.assertAlmostEqual(_usd_value(self.stage), 3.0)
+                    self.assertAlmostEqual(model.get_value_as_float(), 3.0)
+                    self.assertEqual(model._preview_layer_undos, {})
+                    self.assertFalse(model.is_batch_editing)
+                    self.assertIsNone(model._pending_preview_task)
+                    self.assertFalse(omni.kit.undo.can_undo())
+                    self.assertEqual(list(omni.kit.undo.get_redo_stack()), redo_stack)
+                finally:
+                    model.cancel_property_edit_interaction()
+
+    async def test_edit_with_unresolved_preview_rollback_rejects_without_mutation(self):
+        """Unresolved reservations block each edit entry point until explicit cancellation."""
+        for operation in ("begin", "typed", "copy", "release"):
+            with self.subTest(title=operation):
+                # Arrange
+                self.stage.RemovePrim("/GroupEditPrim0")
+                item, attributes = _make_group_edit_item(self.stage, [(1.0, 2.0, 3.0)])
+                try:
+                    model = item.value_models[0]
+                    model.begin_batch_edit()
+                    model.set_value(7.0)
+                    await omni.kit.app.get_app().next_update_async()
+                    await omni.kit.app.get_app().next_update_async()
+                    reservation = next(iter(model._preview_layer_undos.values()))
+                    with (
+                        patch.object(reservation, "undo", side_effect=RuntimeError("restore failed")),
+                        patch.object(attr_value.carb, "log_error"),
+                        self.assertRaisesRegex(RuntimeError, "restore failed"),
+                    ):
+                        model.cancel_property_edit_interaction()
+                    cached_values = [tuple(value_model._value) for value_model in item.value_models]
+                    authored_value = attributes[0].Get()
+                    reservations = dict(model._preview_layer_undos)
+                    operations = {
+                        "begin": model.begin_batch_edit,
+                        "typed": lambda model=model: model._set_value(9.0),
+                        "copy": model.copy_first_channel_to_all_attributes,
+                        "release": model.end_batch_edit,
+                    }
+
+                    with (
+                        patch.object(model, "_write_value_to_usd") as write,
+                        patch.object(reservation, "undo") as restore,
+                        patch.object(omni.kit.undo, "group") as group,
+                    ):
+                        # Act
+                        with self.assertRaisesRegex(RuntimeError, "Property preview rollback is incomplete"):
+                            operations[operation]()
+
+                        # Assert
+                        write.assert_not_called()
+                        restore.assert_not_called()
+                        group.assert_not_called()
+                        self.assertEqual(
+                            [tuple(value_model._value) for value_model in item.value_models], cached_values
+                        )
+                        self.assertEqual(attributes[0].Get(), authored_value)
+                        self.assertEqual(model._preview_layer_undos, reservations)
+                        self.assertFalse(model.is_batch_editing)
+                        self.assertIsNone(model._pending_preview_task)
+                finally:
+                    if item.value_models is not None:
+                        try:
+                            item.value_models[0].cancel_property_edit_interaction()
+                        finally:
+                            item.destroy()
+
+    async def test_destroy_item_with_preview_restores_authored_state_and_preserves_redo(self):
+        """Item-first destruction cancels pending and already applied previews."""
+        for preview_applied in (False, True):
+            with self.subTest(title=f"preview_applied={preview_applied}"):
+                # Arrange
+                omni.kit.undo.clear_stack()
+                self.stage.RemovePrim("/GroupEditPrim0")
+                item, attributes = _make_group_edit_item(self.stage, [(1.0, 2.0, 3.0)])
+                try:
+                    model = item.value_models[0]
+                    original_value = attributes[0].Get()
+                    model.set_value(4.0)
+                    omni.kit.undo.undo()
+                    redo_stack = list(omni.kit.undo.get_redo_stack())
+                    original_layer = self.stage.GetRootLayer().ExportToString()
+                    model.begin_batch_edit()
+                    model.set_value(7.0)
+                    if preview_applied:
+                        await omni.kit.app.get_app().next_update_async()
+                        await omni.kit.app.get_app().next_update_async()
+
+                    # Act
+                    item.destroy()
+                    await omni.kit.app.get_app().next_update_async()
+                    await omni.kit.app.get_app().next_update_async()
+
+                    # Assert
+                    self.assertEqual(attributes[0].Get(), original_value)
+                    self.assertEqual(self.stage.GetRootLayer().ExportToString(), original_layer)
+                    self.assertIsNone(item.value_models)
+                    self.assertFalse(model.is_batch_editing)
+                    self.assertIsNone(model._pending_preview_task)
+                    self.assertEqual(model._preview_layer_undos, {})
+                    self.assertFalse(omni.kit.undo.can_undo())
+                    self.assertEqual(list(omni.kit.undo.get_redo_stack()), redo_stack)
+                finally:
+                    if item.value_models is not None:
+                        try:
+                            item.value_models[0].cancel_property_edit_interaction()
+                        finally:
+                            item.destroy()
+
+    async def test_destroy_item_after_failed_restoration_keeps_models_available_for_retry(self):
+        """A failed item teardown retains its models until explicit destruction succeeds."""
+        # Arrange
+        item, attributes = _make_group_edit_item(self.stage, [(1.0, 2.0, 3.0)])
+        try:
+            value_models = item.value_models
+            model = value_models[0]
+            original_value = attributes[0].Get()
+            model.begin_batch_edit()
+            model.set_value(7.0)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+            reservation = next(iter(model._preview_layer_undos.values()))
+            with (
+                patch.object(reservation, "undo", side_effect=RuntimeError("restore failed")),
+                patch.object(attr_value.carb, "log_error"),
+                self.assertRaisesRegex(RuntimeError, "restore failed"),
+            ):
+                item.destroy()
+            retained_models = item.value_models
+            retained_reservations = dict(model._preview_layer_undos)
+
+            # Act
+            item.destroy()
+
+            # Assert
+            self.assertIs(retained_models, value_models)
+            self.assertIn(reservation, retained_reservations.values())
+            self.assertIsNone(item.value_models)
+            self.assertEqual(attributes[0].Get(), original_value)
+            self.assertEqual(model._preview_layer_undos, {})
+            self.assertIsNone(model._pending_preview_task)
+        finally:
+            if item.value_models is not None:
+                try:
+                    item.value_models[0].cancel_property_edit_interaction()
+                finally:
+                    item.destroy()
+
+    async def test_destroy_value_model_after_cancellation_is_idempotent(self):
+        """Repeated value-model destruction performs no writes or undo operations."""
+        # Arrange
+        model = _make_model(self.stage, value=3.0)
+        model.destroy()
+        with (
+            patch.object(model, "_write_value_to_usd") as write,
+            patch.object(omni.kit.undo, "group") as group,
+        ):
+            # Act
+            model.destroy()
+
+            # Assert
+            write.assert_not_called()
+            group.assert_not_called()
+            self.assertAlmostEqual(_usd_value(self.stage), 3.0)
+            self.assertIsNone(model._pending_preview_task)
+            self.assertEqual(model._preview_layer_undos, {})
+
+    async def test_cancel_mapped_preview_restores_variant_property(self):
+        """Rollback uses the mapped spec path inside a local layer's variant."""
+        # Arrange
+        prim = self.stage.DefinePrim("/Instance")
+        variants = prim.GetVariantSets().AddVariantSet("preview")
+        variants.AddVariant("selected")
+        variants.SetVariantSelection("selected")
+        with variants.GetVariantEditContext():
+            prim.CreateAttribute("value", Sdf.ValueTypeNames.Float).Set(3.0)
+            edit_target = self.stage.GetEditTarget()
+        self.stage.SetEditTarget(edit_target)
+        layer = self.stage.GetRootLayer()
+        before = layer.ExportToString()
+        model = UsdAttributeValueModel("", [Sdf.Path("/Instance.value")], 0)
+        try:
+            model.begin_batch_edit()
+            model.set_value(7.0)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+            preview_value = prim.GetAttribute("value").Get()
+
+            # Act
+            model.cancel_property_edit_interaction()
+
+            # Assert
+            self.assertAlmostEqual(preview_value, 7.0)
+            self.assertEqual(layer.ExportToString(), before)
+            self.assertAlmostEqual(prim.GetAttribute("value").Get(), 3.0)
+        finally:
+            model.cancel_property_edit_interaction()
 
 
 class TestUSDModelInteractiveNotices(omni.kit.test.AsyncTestCase):
@@ -797,6 +1376,127 @@ class TestUSDModelInteractiveNotices(omni.kit.test.AsyncTestCase):
             if task is not None and not task.done():
                 task.cancel()
                 await omni.kit.app.get_app().next_update_async()
+
+    async def test_destroy_active_preview_restores_original_value(self):
+        """Destroy cancels child previews before discarding their owning items."""
+        # Arrange
+        value_model = _make_model(self.stage, value=3.0)
+        model = USDModel(context_name="")
+        try:
+            item = ItemGroup("preview", expanded=True)
+            item._value_models = [value_model]
+            model.set_items([item])
+            value_model.begin_edit()
+            value_model.begin_batch_edit()
+            value_model.set_value(7.0)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+            preview_value = _usd_value(self.stage)
+
+            # Act
+            model.destroy()
+            await omni.kit.app.get_app().next_update_async()
+
+            # Assert
+            self.assertAlmostEqual(preview_value, 7.0)
+            self.assertAlmostEqual(_usd_value(self.stage), 3.0)
+            self.assertFalse(value_model.is_batch_editing)
+            self.assertIsNone(value_model._pending_preview_task)
+        finally:
+            model.destroy()
+
+    async def test_cleanup_failed_restoration_retains_nested_items_until_explicit_retry(self):
+        """Failed destruction or replacement preserves nested preview recovery state."""
+        for operation in ("destroy", "replace"):
+            with self.subTest(title=operation):
+                # Arrange
+                omni.kit.undo.clear_stack()
+                model = USDModel(context_name="")
+                group = ItemGroup("preview", expanded=True)
+                item, attributes = _make_group_edit_item(self.stage, [(1.0, 2.0, 3.0)])
+                item.parent = group
+                value_model = item.value_models[0]
+                try:
+                    model.set_items([group])
+                    subscriptions = tuple(model._subscriptions)
+                    value_model.set_value(4.0)
+                    omni.kit.undo.undo()
+                    redo_stack = list(omni.kit.undo.get_redo_stack())
+                    value_model.begin_edit()
+                    value_model.begin_batch_edit()
+                    value_model.set_value(7.0)
+                    await omni.kit.app.get_app().next_update_async()
+                    await omni.kit.app.get_app().next_update_async()
+                    reservations = dict(value_model._preview_layer_undos)
+                    reservation = next(iter(reservations.values()))
+                    value_model.set_value(9.0)
+                    failure = RuntimeError("restore failed")
+                    cleanup = model.destroy if operation == "destroy" else lambda model=model: model.set_items([])
+
+                    # Act
+                    with (
+                        patch.object(reservation, "undo", side_effect=failure),
+                        patch.object(attr_value.carb, "log_error"),
+                        self.assertRaises(RuntimeError) as raised,
+                    ):
+                        cleanup()
+                    retained_item_ids = [id(owned_item) for owned_item in model.get_all_items(include_hidden=True)]
+                    retained_child_ids = [id(child) for child in group.children]
+                    retained_subscriptions = tuple(model._subscriptions or ())
+                    retained_reservations = dict(value_model._preview_layer_undos)
+                    pending_task = value_model._pending_preview_task
+                    failed_value = attributes[0].Get()
+                    cleanup()
+                    await omni.kit.app.get_app().next_update_async()
+
+                    # Assert
+                    self.assertIs(raised.exception, failure)
+                    self.assertEqual(retained_item_ids, [id(group), id(item)])
+                    self.assertEqual(retained_child_ids, [id(item)])
+                    self.assertEqual(retained_subscriptions, subscriptions)
+                    self.assertEqual(retained_reservations, reservations)
+                    self.assertIsNone(pending_task)
+                    self.assertEqual(failed_value, Gf.Vec3f(7.0, 2.0, 3.0))
+                    self.assertEqual(attributes[0].Get(), Gf.Vec3f(1.0, 2.0, 3.0))
+                    self.assertEqual(value_model._preview_layer_undos, {})
+                    self.assertEqual(model.get_all_items(include_hidden=True), [])
+                    self.assertFalse(omni.kit.undo.can_undo())
+                    self.assertEqual(list(omni.kit.undo.get_redo_stack()), redo_stack)
+                finally:
+                    with ExitStack() as cleanup_stack:
+                        cleanup_stack.callback(omni.kit.undo.clear_stack)
+                        cleanup_stack.callback(self.stage.RemovePrim, "/GroupEditPrim0")
+                        cleanup_stack.callback(
+                            lambda item=item: item.destroy() if item.value_models is not None else None
+                        )
+                        cleanup_stack.callback(model.destroy)
+
+                        value_model.set_property_edit_callbacks(None, None)
+                        value_model.cancel_property_edit_interaction()
+
+    async def test_cleanup_after_item_destroy_accepts_destroyed_items(self):
+        """Support property panes that destroy items before model cleanup or replacement."""
+        for operation in ("destroy", "replace"):
+            with self.subTest(operation=operation):
+                # Arrange
+                model = USDModel(context_name="")
+                item = ItemGroup("destroyed", expanded=True)
+                model.set_items([item])
+                item.destroy()
+                self.assertIsNone(item.value_models)
+
+                with patch.object(_model_module._Model, "destroy") as parent_destroy:
+                    # Act
+                    if operation == "destroy":
+                        model.destroy()
+                    else:
+                        model.set_items([])
+
+                    # Assert
+                    if operation == "destroy":
+                        parent_destroy.assert_called_once_with()
+                    else:
+                        self.assertEqual(model.get_all_items(), [])
 
     async def test_unmatched_end_edit_does_not_fire_final_edit_callbacks(self):
         # Arrange
@@ -1068,27 +1768,6 @@ class TestUSDModelInteractiveNotices(omni.kit.test.AsyncTestCase):
         self.assertEqual(end_interaction_counts_during_cancel, [0])
         end_interaction.assert_called_once_with(token)
 
-    async def test_set_items_replaces_items_before_reraising_cancel_failure(self):
-        # Arrange
-        model = USDModel(context_name="")
-        value_model = _SetItemsCancelValueModel()
-        old_item = ItemGroup("old", expanded=True)
-        old_item._value_models = [value_model]
-        new_value_model = _SetItemsValueModel()
-        new_item = ItemGroup("new", expanded=True)
-        new_item._value_models = [new_value_model]
-        model.set_items([old_item])
-        self.assertNotEqual(value_model.callbacks, (None, None))
-
-        # Act
-        with self.assertRaisesRegex(RuntimeError, "cancel failure"):
-            model.set_items([new_item])
-
-        # Assert
-        self.assertEqual(value_model.callbacks, (None, None))
-        self.assertNotEqual(new_value_model.callbacks, (None, None))
-        self.assertEqual(model.get_all_items(), [new_item])
-
 
 class TestVirtualAttributeWrites(omni.kit.test.AsyncTestCase):
     async def setUp(self):
@@ -1121,6 +1800,59 @@ class TestVirtualAttributeWrites(omni.kit.test.AsyncTestCase):
         attr = self.stage.GetAttributeAtPath("/VirtualTestPrim.virtualFloat")
         self.assertTrue(attr.IsValid())
         self.assertAlmostEqual(attr.Get(), 2.5)
+
+    async def test_cancel_virtual_preview_removes_created_attribute(self):
+        """A virtual preview restores the original absence of its property."""
+        # Arrange
+        self.stage.DefinePrim("/VirtualTestPrim")
+        path = Sdf.Path("/VirtualTestPrim.virtualFloat")
+        model = VirtualUsdAttributeValueModel("", [path], 0, Sdf.ValueTypeNames.Float, default_value=0.0)
+        try:
+            model.begin_batch_edit()
+            model.set_value(2.5)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+            preview_value = self.stage.GetAttributeAtPath(path).Get()
+
+            # Act
+            model.cancel_property_edit_interaction()
+
+            # Assert
+            self.assertAlmostEqual(preview_value, 2.5)
+            self.assertFalse(self.stage.GetAttributeAtPath(path).IsValid())
+            self.assertIsNone(self.stage.GetEditTarget().GetLayer().GetPropertyAtPath(path))
+            self.assertAlmostEqual(model.get_value_as_float(), 0.0)
+        finally:
+            model.cancel_property_edit_interaction()
+
+    async def test_virtual_custom_callback_runs_only_on_release(self):
+        """Custom creation callbacks remain release-only during numeric batches."""
+        # Arrange
+        self.stage.DefinePrim("/VirtualTestPrim")
+        callback = MagicMock()
+        model = VirtualUsdAttributeValueModel(
+            "",
+            [Sdf.Path("/VirtualTestPrim.virtualFloat")],
+            0,
+            Sdf.ValueTypeNames.Float,
+            default_value=0.0,
+            create_callback=callback,
+        )
+        try:
+            # Act
+            model.begin_batch_edit()
+            model.set_value(2.5)
+            await omni.kit.app.get_app().next_update_async()
+            await omni.kit.app.get_app().next_update_async()
+            preview_calls = callback.call_count
+            model.end_batch_edit()
+
+            # Assert
+            self.assertEqual(preview_calls, 0)
+            callback.assert_called_once()
+            self.assertEqual(callback.call_args.args[1], 2.5)
+        finally:
+            model.cancel_property_edit_interaction()
 
     async def test_virtual_asset_attribute_creation_normalizes_asset_value(self):
         # Arrange

@@ -44,6 +44,7 @@ from .unit.test_value_tooltips import TestUSDAttributeChannelTooltips, TestUSDAt
 from .e2e.test_curve_editor_popup import TestCurveEditorPopupLifecycle
 from .e2e.test_delegate_alignment import TestDelegateAlignment
 from .e2e.test_drag import TestUSDDragField
+from .e2e.test_numeric_drag_preview import TestNumericDragPreview
 from .e2e.test_gradient_command import (
     TestGradientEditorUndo,
     TestSetDataPrimvarsCommand,
@@ -67,6 +68,7 @@ __all__ = [
     "TestGradientEditorUndo",
     "TestLogicalGroups",
     "TestMultichannelPaste",
+    "TestNumericDragPreview",
     "TestPropertyGroupExpansionMixin",
     "TestRelationshipUtils",
     "TestSetDataPrimvarsCommand",
