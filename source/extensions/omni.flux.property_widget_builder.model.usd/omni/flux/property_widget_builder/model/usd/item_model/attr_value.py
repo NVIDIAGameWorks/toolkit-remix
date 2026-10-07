@@ -16,8 +16,11 @@
 """
 
 import abc
+import asyncio
 import copy
+import traceback
 from collections.abc import Callable
+from contextlib import ExitStack
 from typing import Any
 
 import carb
@@ -29,6 +32,8 @@ from omni.flux.property_widget_builder.widget import ItemValueModel as _ItemValu
 from omni.flux.property_widget_builder.widget import Serializable as _Serializable
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices as _defer_usd_notices
+from omni.kit.app import get_app
+from omni.kit.usd_undo import UsdLayerUndo
 from pxr import Gf, Sdf, Usd
 
 from ..mapping import GF_TO_PYTHON_TYPE, MULTICHANNEL_BUILDER_TABLE, VEC_TYPES, VecType
@@ -132,13 +137,18 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         self._ignore_refresh = False
         self._attributes: list[Usd.Attribute] = None
         self._is_batch_editing = False
-        self._batch_undo_stack_size: int | None = None
+        self._pending_preview_task = None
+        self._preview_layer_undos: dict[tuple[str, Sdf.Path], UsdLayerUndo] = {}
 
     def init_attributes(self):
         # cache the attributes
         self._attributes = _get_item_attributes(self.stage, self.attribute_paths)
         # initial read of attribute values
         self._on_usd_changed()
+
+    def destroy(self) -> None:
+        """Cancel pending previews and restore their specs before item teardown."""
+        self.cancel_property_edit_interaction()
 
     def register_serializer_hooks(self, serializer):
         super().register_serializer_hooks(serializer)
@@ -400,6 +410,8 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         if self._skip_set_value(value):
             return False
 
+        self._check_preview_restored()
+
         new_value = value
         if self._convert_type is not None:
             try:
@@ -415,6 +427,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
 
         if self._is_batch_editing:
             self._on_dirty()
+            self._schedule_preview()
             return True
 
         if not self._stage:
@@ -449,8 +462,11 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         self._on_dirty()
         return False
 
-    def _write_value_to_usd(self) -> tuple[bool, bool]:
+    def _write_value_to_usd(self, *, group_undo: bool = False) -> tuple[bool, bool]:
         """Write the current in-memory value to USD for all attribute paths.
+
+        Args:
+            group_undo: Group changed targets without opening a group for unchanged values.
 
         Returns:
             Whether every requested command succeeded and whether any command wrote a value.
@@ -460,7 +476,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
         wrote_any = False
         self._ignore_refresh = True
         try:
-            with _defer_usd_notices(self._stage):
+            with _defer_usd_notices(self._stage), ExitStack() as undo_scope:
                 for attribute_path in self._attribute_paths:
                     prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
                     if prim.IsValid():
@@ -473,6 +489,9 @@ class UsdAttributeBase(_Serializable, abc.ABC):
                             continue
                         new_value = self._get_write_value(current_value)
                         if current_value != new_value:
+                            if group_undo:
+                                undo_scope.enter_context(omni.kit.undo.group(remove_if_empty=True))
+                                group_undo = False
                             target_layer = self._get_target_layer(attr)
                             succeeded, wrote_related = self._ensure_related_override_specs(attr, target_layer)
                             wrote_any = wrote_related or wrote_any
@@ -523,6 +542,7 @@ class UsdAttributeBase(_Serializable, abc.ABC):
             related_attr = self._stage.GetAttributeAtPath(related_path)
             if not related_attr or not related_attr.IsValid():
                 continue
+            self._reserve_preview_property(related_attr, target_layer)
             succeeded, _result = omni.kit.commands.execute(
                 "ChangeProperty",
                 prop_path=str(related_path),
@@ -536,52 +556,130 @@ class UsdAttributeBase(_Serializable, abc.ABC):
             wrote_any = True
         return True, wrote_any
 
+    def _schedule_preview(self) -> None:
+        """Coalesce cached drag values into one undo-free write on the next update."""
+        if not self._stage or self._pending_preview_task is not None:
+            return
+
+        async def preview_async():
+            try:
+                await get_app().next_update_async()
+                if self._is_batch_editing:
+                    with omni.kit.undo.disabled():
+                        succeeded, _wrote_value = self._write_value_to_usd()
+                    if not succeeded:
+                        self.cancel_property_edit_interaction()
+            except Exception:  # noqa: BLE001 - Ruff does not recognize Carbonite traceback logging.
+                carb.log_error(f"Failed to preview property edit\n{traceback.format_exc()}")
+                try:
+                    self.cancel_property_edit_interaction()
+                except Exception:  # noqa: BLE001 - Ruff does not recognize Carbonite traceback logging.
+                    carb.log_error(f"Failed to cancel property preview\n{traceback.format_exc()}")
+            finally:
+                if self._pending_preview_task is task:
+                    self._pending_preview_task = None
+
+        task = asyncio.ensure_future(preview_async())
+        self._pending_preview_task = task
+
+    def _reserve_preview_property(self, attr: Usd.Attribute, target_layer: Sdf.Layer | None = None) -> None:
+        """Reserve a property's original spec once in its effective edit target."""
+        if not self._is_batch_editing:
+            return
+        edit_target = self._stage.GetEditTarget()
+        if target_layer is not None:
+            if attr.GetCustomDataByKey("nonpersistant"):
+                target_layer = self._stage.GetSessionLayer()
+            edit_target = self._stage.GetEditTargetForLocalLayer(target_layer).ComposeOver(edit_target)
+        layer = edit_target.GetLayer()
+        property_path = edit_target.MapToSpecPath(attr.GetPath())
+        reservation_key = (layer.identifier, property_path)
+        if reservation_key in self._preview_layer_undos:
+            return
+        layer_undo = UsdLayerUndo(layer)
+        layer_undo.reserve(property_path)
+        self._preview_layer_undos[reservation_key] = layer_undo
+
+    def _restore_preview(self) -> None:
+        """Restore every previewed property, retaining failed reservations for explicit retry."""
+        task = self._pending_preview_task
+        self._pending_preview_task = None
+        if task is not None and not task.done():
+            task.cancel()
+        was_ignoring_refresh = self._ignore_refresh
+        self._ignore_refresh = True
+        first_error = None
+        try:
+            with _defer_usd_notices(self._stage), Sdf.ChangeBlock():
+                for reservation_key, layer_undo in tuple(self._preview_layer_undos.items()):
+                    layer_identifier, property_path = reservation_key
+                    try:
+                        layer_undo.undo()
+                    except Exception as exc:  # noqa: BLE001 - Ruff does not recognize Carbonite traceback logging.
+                        carb.log_error(
+                            f"Failed to restore property preview in layer {layer_identifier} at {property_path}\n"
+                            f"{traceback.format_exc()}"
+                        )
+                        if first_error is None:
+                            first_error = exc
+                    else:
+                        del self._preview_layer_undos[reservation_key]
+        finally:
+            self._ignore_refresh = was_ignoring_refresh
+        if first_error is not None:
+            raise first_error
+
+    def _check_preview_restored(self) -> None:
+        """Reject edits until explicit cleanup restores a failed preview rollback."""
+        if not self._is_batch_editing and self._preview_layer_undos:
+            raise RuntimeError("Property preview rollback is incomplete; cancel or destroy the model before editing")
+
     def begin_batch_edit(self):
-        """Start a drag batch so intermediate values stay in memory until release."""
+        """Start a drag batch with live previews that leave undo history unchanged."""
+        self._check_preview_restored()
         self._is_batch_editing = True
-        self._batch_undo_stack_size = len(omni.kit.undo.get_undo_stack())
-        omni.kit.undo.begin_group()
 
     def end_batch_edit(self):
-        """Flush the final drag value to USD and close the undo group."""
-        failed = True
+        """Restore previewed properties and commit the final drag value as one undo step."""
+        self._check_preview_restored()
+        succeeded = False
+        undo_stack_size = None
         try:
+            final_value = _safe_deepcopy(self._value)
+            self._restore_preview()
+            self._value = final_value
+            self._is_batch_editing = False
             if not self._stage:
                 return
-            succeeded, wrote_value = self._write_value_to_usd()
-            failed = not succeeded
+            undo_stack_size = len(omni.kit.undo.get_undo_stack())
+            succeeded, wrote_value = self._write_value_to_usd(group_undo=True)
         finally:
             self._is_batch_editing = False
-            try:
-                omni.kit.undo.end_group(remove_if_empty=True)
-            finally:
-                undo_stack_size = self._batch_undo_stack_size
-                self._batch_undo_stack_size = None
-                if failed and undo_stack_size is not None:
-                    _undo_group_added_since(undo_stack_size)
+            if not succeeded and undo_stack_size is not None:
+                _undo_group_added_since(undo_stack_size)
+                self.refresh()
+                self._refresh_linked_value_models()
         if succeeded and wrote_value:
             self.refresh()
-        elif not succeeded:
-            self.refresh()
-            self._refresh_linked_value_models()
 
     def _cancel_batch_edit(self):
+        """Restore the original authored properties and cache without recording undo."""
         try:
+            self._restore_preview()
             if self._stage and self._read_value_from_usd():
                 self._value_changed()
             self._refresh_linked_value_models()
         finally:
             self._is_batch_editing = False
-            self._batch_undo_stack_size = None
-            omni.kit.undo.end_group()
 
     def _refresh_after_cancel_property_edit(self) -> None:
         pass
 
     def cancel_property_edit_interaction(self) -> None:
+        """Cancel editing and retry any retained preview restorations before notifying listeners."""
         first_error: Exception | None = None
         try:
-            if self.is_batch_editing:
+            if self.is_batch_editing or self._preview_layer_undos:
                 self._cancel_batch_edit()
         except Exception as exc:  # noqa: BLE001 - parent cancel callbacks must still run.
             first_error = exc
@@ -668,10 +766,11 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         cannot be rolled back independently.
 
         Raises:
-            RuntimeError: If another Kit undo group is already active.
+            RuntimeError: If rollback is unresolved or another Kit undo group is already active.
         """
         if not self._is_multichannel or self.read_only or not self._stage:
             return False
+        self._check_preview_restored()
         undo_stack_size = len(omni.kit.undo.get_undo_stack())
         self._copy_current_first_channel = True
         try:
@@ -906,6 +1005,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         if target_layer is None:
             target_layer = self._get_target_layer(attr)
 
+        self._reserve_preview_property(attr, target_layer)
         succeeded, _result = omni.kit.commands.execute(
             "ChangeProperty",
             prop_path=attribute_path,
@@ -968,6 +1068,11 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         # Since the attribute does not exist, we need to retrieve the stored value.
         return self._default_value
 
+    def _schedule_preview(self) -> None:
+        """Preview virtual values only when creation has a known property-only mutation."""
+        if self._create_callback is None:
+            super()._schedule_preview()
+
     @property
     def metadata(self):
         # Since the attribute does not exist, we need to retrieve the stored value.
@@ -1004,6 +1109,7 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
             if not path.IsPropertyPath():
                 raise ValueError(f"Cannot create virtual attribute from invalid property path: {path}")
             prim = self._stage.GetPrimAtPath(path.GetPrimPath())
+            self._reserve_preview_property(attr)
             succeeded, _result = omni.kit.commands.execute(
                 "CreateUsdAttributeCommand",
                 prim=prim,

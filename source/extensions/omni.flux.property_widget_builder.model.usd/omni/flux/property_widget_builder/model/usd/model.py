@@ -117,8 +117,7 @@ class USDModel(_Model):
         return super().default_attrs
 
     def set_items(self, items: list[_ItemGroup | _USDAttributeItem]):
-        """
-        Set the items to show
+        """Replace shown items only after current edits cancel successfully.
 
         Args:
             items: the items to show
@@ -138,22 +137,15 @@ class USDModel(_Model):
             for child in _item.children:
                 add_listeners(child)
 
-        cancel_error = None
-        try:
-            self.cancel_property_edit_interaction()
-        except Exception as exc:  # noqa: BLE001 - finish replacing items before surfacing cancel failure.
-            cancel_error = exc
-        finally:
-            for item in tuple(self.get_all_items(include_hidden=True)):
-                for value_model in tuple(item.value_models):
-                    value_model.set_property_edit_callbacks(None, None)
-            self._subscriptions.clear()
-            self._value_changed_callbacks.clear()
+        self.cancel_property_edit_interaction()
+        for item in tuple(self.get_all_items(include_hidden=True)):
+            for value_model in tuple(item.value_models or ()):
+                value_model.set_property_edit_callbacks(None, None)
+        self._subscriptions.clear()
+        self._value_changed_callbacks.clear()
         for item in items:
             add_listeners(item)
         super().set_items(items)
-        if cancel_error is not None:
-            raise cancel_error
 
     def _finish_property_edit_interaction(self):
         self.supress_usd_events_during_widget_edit = False
@@ -170,10 +162,9 @@ class USDModel(_Model):
         self._pending_property_edit_finish_task = None
 
     def destroy(self):
-        """Release pending property-edit cleanup before resetting model state."""
-        self._cancel_pending_property_edit_finish()
+        """Release owned items only after live property edits cancel successfully."""
         if self._active_edit_model_counts is not None:
-            self._finish_property_edit_interaction()
+            self.cancel_property_edit_interaction()
         super().destroy()
 
     def _schedule_finish_property_edit_interaction(self):
@@ -245,7 +236,7 @@ class USDModel(_Model):
         first_error = None
         try:
             for item in tuple(self.get_all_items(include_hidden=True)):
-                for value_model in tuple(item.value_models):
+                for value_model in tuple(item.value_models or ()):
                     try:
                         value_model.cancel_property_edit_interaction()
                     except Exception as exc:  # noqa: BLE001 - cancel every value model before re-raising.

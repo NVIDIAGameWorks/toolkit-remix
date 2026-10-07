@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.36.10]
+### Fixed
+- Preview numeric drags live with one undo on release, preserve redo for cancelled or unchanged gestures, and restore property specs on cancellation or destruction; report failures through Carbonite and retain failed reservations and their owners for explicit retry while rejecting further edits.
+
 ## [2.36.9]
 ### Added
 - Added optional semantic channel names for vector value tooltips.
