@@ -22,13 +22,17 @@ from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
 from typing import Any
 
 import omni.client
-from pydantic_core import core_schema
+from pydantic_core import SchemaSerializer, core_schema
 
 
 class OmniUrl:
     """
     A class to present a pathlib like wrapper around omni client urls.
     """
+
+    # pydantic>=2.12 ignores the field serializer when `serialize_as_any=True` and infers the serializer from the value.
+    # Inference uses `__pydantic_serializer__` when the value has one.
+    __pydantic_serializer__ = SchemaSerializer(core_schema.any_schema(serialization=core_schema.to_string_ser_schema()))
 
     def __init__(self, url: str | Path | OmniUrl, list_entry=None):
         self._url = str(url).replace("\\", "/")
