@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from .e2e.ingestcraft.test_ingestion import TestIngestionService
 from .e2e.stagecraft.test_assets import TestAssetReplacementsService
 from .e2e.stagecraft.test_layers import TestLayerManagerService
 from .e2e.stagecraft.test_project import TestProjectManagerService
@@ -23,6 +24,7 @@ from .unit.test_service import TestInstantiateServices, TestRoutesPackage
 
 __all__ = [
     "TestAssetReplacementsService",
+    "TestIngestionService",
     "TestInstantiateServices",
     "TestLayerManagerService",
     "TestProjectManagerService",

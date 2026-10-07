@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.0.1]
+### Fixed
+- Fixed `OmniUrl` JSON serialization with `serialize_as_any=True` on pydantic 2.12 and later
+
 ## [4.0.0]
 ### Added
 - Added `WorkerYieldBudget` for cooperative GIL releases in synchronous worker loops.

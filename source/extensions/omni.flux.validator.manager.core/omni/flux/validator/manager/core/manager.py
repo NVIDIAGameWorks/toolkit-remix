@@ -396,7 +396,12 @@ class ManagerCore:
         r = None
         try:
             # Sending a schema update request should be quick. Set a short timeout.
-            r = requests.put(url, data=self.model.model_dump_json(serialize_as_any=True), timeout=5)
+            r = requests.put(
+                url,
+                data=self.model.model_dump_json(serialize_as_any=True),
+                headers={"Content-Type": "application/json"},
+                timeout=5,
+            )
             r.raise_for_status()
         except (requests.exceptions.ConnectionError, requests.exceptions.HTTPError) as e:
             raise ValueError(r.text) from e

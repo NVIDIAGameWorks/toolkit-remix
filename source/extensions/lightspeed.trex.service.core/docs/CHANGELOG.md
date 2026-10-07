@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.1]
+### Added
+- Added an E2E test that queues a model ingestion through the REST API with the external process executor
+
+### Changed
+- Declared `omni.flux.validator.factory` and `omni.flux.validator.mass.core` as direct dependencies
+
 ## [2.0.0]
 ### Changed
 - Moved the Toolkit REST routes here from the `.service` extensions, with no REST API change
