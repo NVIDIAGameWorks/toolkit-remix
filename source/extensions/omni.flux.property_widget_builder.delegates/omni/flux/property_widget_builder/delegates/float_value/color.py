@@ -234,10 +234,10 @@ class ColorField(AbstractField):
             if not self._value_model_editing:
                 try:
                     value_model.begin_edit()
-                except Exception:
-                    self._close_undo_group()
-                    raise
-                self._value_model_editing = True
+                    self._value_model_editing = True
+                finally:
+                    if not self._value_model_editing:
+                        self._close_undo_group()
             value_model.set_value(new_value)
         finally:
             self._ignore_value_change_events = False
