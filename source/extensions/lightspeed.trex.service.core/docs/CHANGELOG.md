@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.2]
+### Fixed
+- The `remove_layer` and `mute_layer` descriptions now say they act on the whole layer and every edit in it, not just the selected prims, so they are not a substitute for deleting prims
+
 ## [2.0.1]
 ### Added
 - Added an E2E test that queues a model ingestion through the REST API with the external process executor

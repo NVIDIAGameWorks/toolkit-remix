@@ -194,6 +194,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the RTX Remix modding Agent Skill suggesting file edits or other workarounds when asked to delete a prim; it now points to the Remix Toolkit instead (NVBug 6713667).
 - REMIX-6099: Fixed numeric property drags to preview live while preserving multi-selection behavior, one undoable change on release, and original authored state on cancellation.
 - REMIX-6232: Fixed ingestion jobs that never started after the Pydantic 2.13.5 and FastAPI 0.142.2 upgrade. `OmniUrl` fields failed JSON serialization, and FastAPI rejected schema update requests that had no `Content-Type` header.
+- Clarified the remove-layer and mute-layer MCP tool descriptions: they act on the whole layer and are not a substitute for deleting prims (NVBug 6713667).
 
 ## [1.5.2-0]
 
