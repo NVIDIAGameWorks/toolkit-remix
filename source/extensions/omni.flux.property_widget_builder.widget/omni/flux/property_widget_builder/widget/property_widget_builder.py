@@ -244,5 +244,6 @@ class PropertyWidget:
         if self._update_task:
             self._update_task.cancel()
         if self._delegate is not None:
+            self._delegate.reset()
             self._delegate.set_apply_item_expanded_fn(None)
         _reset_default_attrs(self)

@@ -135,8 +135,10 @@ editor consumers and selected-label styling.
 ### Edit Sessions
 
 `begin_batch_edit()` coalesces numeric previews until `end_batch_edit()`. Pass `live=True` to author each value
-immediately while keeping the entire session in one model-owned undo step. Live batches require a top-level undo
-operation. Ending an inactive batch does nothing.
+immediately through one `LiveUsdAttributeEditCommand` that retains the initial layer specs for undo.
+Live batches do not hold a Kit undo group open across frames and can participate in a caller-owned group.
+Closing a live batch releases its command without authoring the cached value again. Ending an inactive batch does
+nothing.
 Field controls also pair `begin_edit()` and `end_edit()` around the session so `USDModel` can defer application
 listeners until editing finishes while authored USD values remain live.
 
@@ -144,6 +146,8 @@ If a write fails, the model rolls back the current batch, restores displayed val
 sessions. Locked target layers are rejected before a write command runs. Color fields use live batches, and picker
 dismissal closes the session. Cancelling the row or releasing its widget also releases field subscriptions.
 Row cancellation retains values already authored by a live batch; write failure rolls back the whole current batch.
+An external change to an edited USD property, including global undo, cancels the current picker edit and refreshes its value.
+A lightweight USD notice listener observes these changes even while application refreshes are deferred.
 
 ## Row-Owned Property State
 

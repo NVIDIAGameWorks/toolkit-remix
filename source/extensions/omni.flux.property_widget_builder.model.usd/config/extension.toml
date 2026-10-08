@@ -45,6 +45,7 @@ icon = "data/images/icon.png"
 # import PIL, not import Pillow.
 "omni.flux.pip_archive" = {}
 "omni.kit.commands" = {}
+"omni.kit.usd_undo" = {}
 "omni.kit.usd.layers" = {}
 "omni.kit.usd_undo" = {}
 "omni.kit.widget.prompt" = {}

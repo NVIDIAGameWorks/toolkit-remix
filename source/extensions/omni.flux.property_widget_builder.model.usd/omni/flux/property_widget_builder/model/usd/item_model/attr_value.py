@@ -33,9 +33,10 @@ from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices as _defer_usd_notices
 from omni.kit.app import get_app
 from omni.kit.usd_undo import UsdLayerUndo
-from pxr import Sdf, Usd
+from pxr import Gf, Sdf, Tf, Usd
 
-from ..mapping import GF_TO_PYTHON_TYPE, MULTICHANNEL_BUILDER_TABLE
+from ..commands import LiveUsdAttributeEditCommand
+from ..mapping import GF_TO_PYTHON_TYPE, MULTICHANNEL_BUILDER_TABLE, VEC_TYPES, VecType
 from ..utils import get_default_attribute_value as _get_default_attribute_value
 from ..utils import get_item_attributes as _get_item_attributes
 from ..utils import get_metadata as _get_metadata
@@ -138,6 +139,8 @@ class UsdAttributeBase(abc.ABC):
         self._preview_layer_undos: dict[tuple[str, Sdf.Path], UsdLayerUndo] = {}
         self._batch_edit_live = False
         self._batch_undo_stack_size: int | None = None
+        self._live_edit_command: LiveUsdAttributeEditCommand | None = None
+        self._live_edit_listener = None
 
     def init_attributes(self):
         # cache the attributes
@@ -405,7 +408,7 @@ class UsdAttributeBase(abc.ABC):
         if self._is_batch_editing:
             succeeded = False
             try:
-                succeeded, wrote_value = self._write_value_to_usd()
+                succeeded, wrote_value = self._write_live_value_to_usd()
             finally:
                 if not succeeded:
                     self._close_batch_edit(failed=True)
@@ -439,6 +442,77 @@ class UsdAttributeBase(abc.ABC):
         # value was not changed, but we do want to refresh the delegate
         self._on_dirty()
         return False
+
+    def _write_live_value_to_usd(self) -> tuple[bool, bool]:
+        """Author a live preview through the command that owns this batch's undo snapshot."""
+        undo_stack = omni.kit.undo.get_undo_stack()
+        if self._live_edit_command is not None and (
+            not undo_stack or undo_stack[-1].command is not self._live_edit_command
+        ):
+            self._close_batch_edit()
+            self.refresh()
+            return False, False
+        attribute_values = []
+        for attribute_path in self._attribute_paths:
+            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
+            if not prim.IsValid():
+                continue
+            attr = prim.GetAttribute(attribute_path.name)
+            if not attr.IsValid() and not self._is_virtual:
+                continue
+            current_value = self._get_attribute_value(attr) if attr.IsValid() else self._get_default_value(attr)
+            new_value = self._get_write_value(current_value)
+            if current_value == new_value:
+                continue
+            target_layer = self._get_target_layer(attr)
+            if not target_layer.permissionToEdit:
+                if self._live_edit_command is not None:
+                    self._ignore_refresh = True
+                    try:
+                        self._live_edit_command.rollback()
+                    finally:
+                        self._ignore_refresh = False
+                return False, False
+            edit_target = self._stage.GetEditTargetForLocalLayer(target_layer).ComposeOver(self._stage.GetEditTarget())
+            for related_path in self._related_override_paths:
+                if (
+                    related_path == attribute_path
+                    or related_path.GetPrimPath() != attribute_path.GetPrimPath()
+                    or target_layer.GetPropertyAtPath(related_path) is not None
+                ):
+                    continue
+                related_attr = self._stage.GetAttributeAtPath(related_path)
+                if related_attr.IsValid():
+                    attribute_values.append((related_path, related_attr.Get(), edit_target, related_attr.GetTypeName()))
+            attribute_values.append((attribute_path, _safe_deepcopy(new_value), edit_target, self._value_type_name))
+        if not attribute_values:
+            return True, False
+        self._ignore_refresh = True
+        try:
+            if self._live_edit_command is None:
+                succeeded, self._live_edit_command = omni.kit.commands.execute(
+                    "LiveUsdAttributeEdit", attribute_values=attribute_values, usd_context_name=self._context_name
+                )
+                succeeded = succeeded and self._live_edit_command is not None
+            else:
+                succeeded = self._live_edit_command.update(attribute_values)
+            return succeeded, succeeded
+        finally:
+            self._ignore_refresh = False
+
+    def _on_live_edit_usd_changed(self, notice, _stage) -> None:
+        """Discard queued picker values when an external write changes an edited property."""
+        if self._ignore_refresh:
+            return
+        paths = (*self._attribute_paths, *self._related_override_paths)
+        if any(
+            path.HasPrefix(changed_path)
+            for changed_path in (*notice.GetChangedInfoOnlyPaths(), *notice.GetResyncedPaths())
+            for path in paths
+        ):
+            self._close_batch_edit()
+            self.refresh()
+            self.cancel_property_edit_interaction()
 
     def _write_value_to_usd(self, *, group_undo: bool = False) -> tuple[bool, bool]:
         """Write the current in-memory value to USD for all attribute paths.
@@ -619,41 +693,25 @@ class UsdAttributeBase(abc.ABC):
 
         Args:
             live: Whether intermediate edits should be authored immediately.
-
-        Raises:
-            RuntimeError: If a live batch cannot own a top-level undo group.
         """
         self._check_preview_restored()
         if self._is_batch_editing:
             return
-        if live:
-            undo_stack_size = len(omni.kit.undo.get_undo_stack())
-            omni.kit.undo.begin_group()
-            if len(omni.kit.undo.get_undo_stack()) == undo_stack_size:
-                omni.kit.undo.end_group(remove_if_empty=True)
-                raise RuntimeError("Live batch editing requires a top-level undo operation")
-            self._batch_undo_stack_size = undo_stack_size
         self._is_batch_editing = True
         self._batch_edit_live = live
+        if live:
+            self._live_edit_listener = Tf.Notice.Register(
+                Usd.Notice.ObjectsChanged, self._on_live_edit_usd_changed, self._stage
+            )
 
     def end_batch_edit(self):
-        """Commit deferred previews or close the active live batch undo group."""
+        """Commit deferred previews or release the command that owns the live batch."""
         self._check_preview_restored()
         if not self._is_batch_editing:
             return
         if self._batch_edit_live:
-            succeeded = False
-            try:
-                if not self._stage:
-                    return
-                succeeded, wrote_value = self._write_value_to_usd()
-            finally:
-                self._close_batch_edit(failed=not succeeded)
-                if not succeeded:
-                    self.refresh()
-                    self._refresh_linked_value_models()
-            if succeeded and wrote_value:
-                self.refresh()
+            self._close_batch_edit()
+            self.refresh()
             return
         succeeded = False
         undo_stack_size = None
@@ -682,15 +740,11 @@ class UsdAttributeBase(abc.ABC):
         self._is_batch_editing = False
         was_live = self._batch_edit_live
         self._batch_edit_live = False
-        if not was_live:
-            return
-        undo_stack_size = self._batch_undo_stack_size
-        self._batch_undo_stack_size = None
-        try:
-            omni.kit.undo.end_group(remove_if_empty=True)
-        finally:
-            if failed and undo_stack_size is not None:
-                _undo_group_added_since(undo_stack_size)
+        if was_live:
+            if self._live_edit_listener is not None:
+                self._live_edit_listener.Revoke()
+                self._live_edit_listener = None
+            self._live_edit_command = None
 
     def _cancel_batch_edit(self):
         """Restore deferred previews or retain live writes before releasing the batch."""

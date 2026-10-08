@@ -18,6 +18,7 @@
 __all__ = ("TestColorField",)
 
 import uuid
+from math import isclose
 
 import omni.kit.test
 import omni.kit.ui_test
@@ -180,6 +181,59 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         self.assertEqual(self.other_attribute.Get(), 2.0)
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
 
+    async def test_undo_with_picker_open_preserves_restored_color_after_dismissal(self):
+        """Undoing a live picker edit keeps its restored color and redo when the popup closes."""
+        widget_ref = await self._open_picker_and_edit_red(0.8)
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+
+        # Global undo must end the live operation while its native popup remains open.
+        undo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
+        self.assertTrue(can_redo())
+        await omni.kit.ui_test.emulate_mouse_move_and_click(widget_ref.offset(-3, -3))
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
+        self.assertFalse(is_any_interaction_active())
+        self.assertTrue(can_redo())
+        redo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+
+        # The restored row accepts a fresh native picker session after the interrupted edit.
+        widget_ref = await self._open_picker_and_edit_red(0.6)
+        await omni.kit.ui_test.emulate_mouse_move_and_click(widget_ref.offset(-3, -3))
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.6, 0.2, 0.2))
+        self.assertFalse(is_any_interaction_active())
+
+    async def test_external_color_command_with_picker_open_survives_dismissal(self):
+        """An external USD edit wins over the open picker's cached color on dismissal."""
+        widget_ref = await self._open_picker_and_edit_red(0.8)
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
+
+        # Another public command changes the same attribute without another picker gesture.
+        execute(
+            "ChangeProperty",
+            prop_path=self.color_attribute.GetPath(),
+            value=Gf.Vec3f(0.1, 0.4, 0.7),
+            prev=Gf.Vec3f(0.8, 0.2, 0.2),
+            usd_context_name="",
+        )
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.1, 0.4, 0.7))
+        await omni.kit.ui_test.emulate_mouse_move_and_click(widget_ref.offset(-3, -3))
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.1, 0.4, 0.7))
+        self.assertFalse(is_any_interaction_active())
+
+        # The next native edit starts from the externally authored color.
+        widget_ref = await self._open_picker_and_edit_red(0.6)
+        await omni.kit.ui_test.emulate_mouse_move_and_click(widget_ref.offset(-3, -3))
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.6, 0.4, 0.7))
+        self.assertFalse(is_any_interaction_active())
+
     async def test_edit_selected_colors_with_locked_target_rolls_back_failed_session(self):
         """A failed selection edit preserves the previous completed picker session and its undo."""
         stage = self.context.get_stage()
@@ -267,8 +321,8 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
         self.assertEqual(second_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
 
-    async def test_begin_live_batch_inside_undo_group_rejects_without_unbalancing_undo(self):
-        """Reject a nested live batch while preserving the outer command and the next undo step."""
+    async def test_live_batch_inside_caller_group_preserves_outer_operation_and_later_undo(self):
+        """A live color batch preserves its caller's undo group and the subsequent undo step."""
         value_model = self.model.get_all_items()[0].value_models[0]
         with group():
             execute(
@@ -278,12 +332,13 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 prev=1.0,
                 usd_context_name="",
             )
+            value_model.begin_batch_edit(live=True)
             try:
-                with self.assertRaisesRegex(RuntimeError, "top-level"):
-                    value_model.begin_batch_edit(live=True)
+                value_model.set_value(Gf.Vec3f(0.6, 0.2, 0.2))
+                value_model.set_value(Gf.Vec3f(0.8, 0.2, 0.2))
             finally:
-                value_model.cancel_property_edit_interaction()
-        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
+                value_model.end_batch_edit()
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
         execute(
             "ChangeProperty",
             prop_path=self.other_attribute.GetPath(),
@@ -293,6 +348,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         )
         undo()
         self.assertEqual(self.other_attribute.Get(), 2.0)
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
         undo()
         self.assertEqual(self.other_attribute.Get(), 1.0)
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
@@ -424,31 +480,66 @@ class TestColorField(omni.kit.test.AsyncTestCase):
             usd_context_name="",
         )
         undo()
-        picker_model = omni.kit.ui_test.find(
+        widget_ref = omni.kit.ui_test.find(
             f"{self.window.title}//Frame/**/ColorWidget[*].name=='ColorsWidgetFieldRead'"
-        ).model
-        for child, value in zip(picker_model.get_item_children(), (0.8, 0.5, 0.4)):
-            picker_model.get_item_value_model(child).set_value(value)
-        self.model.set_items([])
-        await omni.kit.ui_test.human_delay()
+        )
+        red_model = widget_ref.model.get_item_value_model(widget_ref.model.get_item_children()[0])
+        row_removed = False
+
+        def remove_row_during_native_edit(_component_model):
+            """Replace the selection during real picker input before its queued write can run."""
+            nonlocal row_removed
+            if not row_removed:
+                row_removed = True
+                self.model.set_items([])
+
+        subscription = red_model.subscribe_value_changed_fn(remove_row_during_native_edit)
+        try:
+            await self._open_picker_and_edit_red(0.8)
+        finally:
+            del subscription
+        self.assertTrue(row_removed)
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2, 0.2, 0.2))
+        self.assertFalse(is_any_interaction_active())
         self.assertTrue(can_redo())
         redo()
         self.assertEqual(self.other_attribute.Get(), 2.0)
 
     async def test_update_backing_color_before_next_frame_supersedes_queued_picker_edits(self):
-        """An external backing-model update cancels queued picker edits and refreshes the picker."""
+        """An external USD command during native input cancels queued picker edits and refreshes the picker."""
         picker_model = omni.kit.ui_test.find(
             f"{self.window.title}//Frame/**/ColorWidget[*].name=='ColorsWidgetFieldRead'"
         ).model
         component_models = [picker_model.get_item_value_model(child) for child in picker_model.get_item_children()]
 
-        # A newer scene update takes precedence over component edits not yet authored to USD.
-        for model, value in zip(component_models, (0.8, 0.5, 0.4)):
-            model.set_value(value)
-        self.model.get_all_items()[0].value_models[0].set_value(Gf.Vec3f(0.6, 0.7, 0.9))
-        await omni.kit.ui_test.human_delay()
+        external_edit_applied = False
+
+        def change_usd_during_native_edit(component_model):
+            """Author a newer public USD edit while the native red change is still queued."""
+            nonlocal external_edit_applied
+            if external_edit_applied or not isclose(component_model.get_value_as_float(), 0.8, abs_tol=1e-6):
+                return
+            external_edit_applied = True
+            execute(
+                "ChangeProperty",
+                prop_path=self.color_attribute.GetPath(),
+                value=Gf.Vec3f(0.6, 0.7, 0.9),
+                prev=self.color_attribute.Get(),
+                usd_context_name="",
+            )
+
+        # Observe actual picker input; the competing scene edit uses the public command API.
+        subscription = component_models[0].subscribe_value_changed_fn(change_usd_during_native_edit)
+        try:
+            await self._open_picker_and_edit_red(0.8)
+        finally:
+            del subscription
+        self.assertTrue(external_edit_applied)
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.6, 0.7, 0.9))
+        picker_model = omni.kit.ui_test.find(
+            f"{self.window.title}//Frame/**/ColorWidget[*].name=='ColorsWidgetFieldRead'"
+        ).model
+        component_models = [picker_model.get_item_value_model(child) for child in picker_model.get_item_children()]
         self.assertEqual(Gf.Vec3f(*(model.get_value_as_float() for model in component_models)), Gf.Vec3f(0.6, 0.7, 0.9))
         await omni.kit.ui_test.human_delay()
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.6, 0.7, 0.9))
@@ -489,3 +580,25 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         finally:
             logging.remove_logger(logger)
         self.assertEqual(conversion_warnings, [])
+
+    async def _open_picker_and_edit_red(self, value):
+        """Open the native color popup and edit its red numeric field.
+
+        Args:
+            value: Red component entered through the picker keyboard control.
+
+        Returns:
+            Swatch reference used to dismiss the popup after the workflow.
+        """
+        widget_ref = omni.kit.ui_test.find(
+            f"{self.window.title}//Frame/**/ColorWidget[*].name=='ColorsWidgetFieldRead'"
+        )
+        await widget_ref.click()
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_char_press(str(value))
+        await omni.kit.ui_test.human_delay()
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await omni.kit.ui_test.human_delay()
+        return widget_ref

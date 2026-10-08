@@ -21,7 +21,6 @@ from functools import partial
 
 import omni.ui as ui
 from omni.kit.app import get_app
-from omni.kit.undo import begin_group, end_group
 from pxr import Gf
 
 from ..base import AbstractField
@@ -58,6 +57,7 @@ class ColorField(AbstractField):
 
         # The color widget is a bit unique as the provided item's model is not used directly within the widget. We
         # instead connect change events between the two models to ensure that updates properly flow both ways.
+        self._color_widget_begin_edit_sub = None
         self._color_widget_changed_sub = None
         self._color_widget_component_subscriptions = []
         self._color_update_subscription = None
@@ -65,12 +65,10 @@ class ColorField(AbstractField):
         self._unsubscribe_property_edit_cancel = None
         self._value_model = None
 
-        # Used to supress redundant change events.
+        # Both change callbacks ignore updates echoed from the other model.
         self._ignore_value_change_events = False
-        # Set while the item value model pushes its value into the color widget so it is not echoed back as an edit.
-        self._syncing_from_value_model = False
-        # True while a live color picker session owns an open undo group (one undo step per picker session).
-        self._undo_group_open = False
+        self._picker_edit_cancelled = False
+        self._batch_editing = False
         self._value_model_editing = False
 
     def build_ui(self, item, *, register_cleanup=None) -> list[ui.Widget]:
@@ -83,9 +81,10 @@ class ColorField(AbstractField):
         if len(item.value_models) != 1:
             raise ValueError("Expected 1 value_model that holds the vector values")
 
-        self.destroy()
+        self.cleanup()
         value_model = item.value_models[0]
         self._value_model = value_model
+        self._picker_edit_cancelled = False
         vec = value_model.get_attributes_raw_value(0)
         if vec is None:
             vec = Gf.Vec3f(0, 0, 0)
@@ -129,7 +128,10 @@ class ColorField(AbstractField):
                 )
                 for child in color_widget.model.get_item_children()
             ]
-            # Closing the picker commits the final value and closes the undo group opened by the live edits.
+            self._color_widget_begin_edit_sub = color_widget.model.subscribe_begin_edit_fn(
+                self._color_widget_begin_edit
+            )
+            # Closing the picker commits the final value and ends its backing model edit session.
             self._color_widget_changed_sub = color_widget.model.subscribe_end_edit_fn(
                 partial(self._color_widget_changed, type(vec), value_model)
             )
@@ -137,46 +139,67 @@ class ColorField(AbstractField):
         self._value_model_value_changed_sub = value_model.subscribe_value_changed_fn(
             partial(self._value_model_changed, color_widget.model)
         )
-        self._unsubscribe_property_edit_cancel = value_model.subscribe_property_edit_cancel_fn(self.destroy)
+        self._unsubscribe_property_edit_cancel = value_model.subscribe_property_edit_cancel_fn(self._cancel_edit)
         if register_cleanup is not None:
-            register_cleanup(self.destroy)
+            # Delegate reset can release the row while its backing model remains alive.
+            register_cleanup(self.cleanup)
 
         return widgets
 
-    def destroy(self) -> None:
+    def cleanup(self) -> None:
         """Release field subscriptions and close any active picker edit sessions."""
         self._color_update_subscription = None
         if self._unsubscribe_property_edit_cancel is not None:
             self._unsubscribe_property_edit_cancel()
             self._unsubscribe_property_edit_cancel = None
         self._color_widget_component_subscriptions.clear()
+        self._color_widget_begin_edit_sub = None
         self._color_widget_changed_sub = None
         self._value_model_value_changed_sub = None
-        self._close_undo_group()
+        self._cancel_edit()
         self._value_model = None
+
+    def _cancel_edit(self) -> None:
+        """Discard a cancelled popup's buffered input while keeping the row reusable."""
+        self._picker_edit_cancelled = True
+        self._color_update_subscription = None
+        self._end_edit()
+
+    def _color_widget_begin_edit(self, _model, _item):
+        """Accept new picker input when the native popup opens again."""
+        self._picker_edit_cancelled = False
 
     def _value_model_changed(self, color_model, value_model):
         """Synchronize the picker components with the backing property value."""
-        if self._ignore_value_change_events:
+        if self._ignore_value_change_events or value_model is not self._value_model:
             return
         self._color_update_subscription = None
+        if value_model.supports_batch_edit and not value_model.is_batch_editing:
+            self._batch_editing = False
         vec = value_model.get_attributes_raw_value(0)
         if vec is None:
             vec = Gf.Vec3f(0, 0, 0)
         children = color_model.get_item_children()
         assert len(children) == len(vec), f"{vec} does not match expected length for ColorWidget"
-        self._syncing_from_value_model = True
+        self._ignore_value_change_events = True
         try:
             for child, value in zip(children, vec):
                 child_value_model = color_model.get_item_value_model(child)
                 child_value_model.set_value(value)
         finally:
-            self._syncing_from_value_model = False
+            self._ignore_value_change_events = False
 
     def _color_widget_component_changed(self, vec_type, value_model, model, _component_model):
         """Queue the latest picker color for the next application update."""
-        if self._syncing_from_value_model or value_model.read_only:
+        if self._ignore_value_change_events or value_model.read_only or value_model is not self._value_model:
             return
+        if self._picker_edit_cancelled:
+            self._value_model_changed(model, value_model)
+            return
+        if value_model.supports_batch_edit and not self._batch_editing:
+            # Observe competing scene edits before the queued first color can be authored.
+            value_model.begin_batch_edit(live=True)
+            self._batch_editing = True
         if self._color_update_subscription is None:
             self._color_update_subscription = (
                 get_app()
@@ -188,21 +211,22 @@ class ColorField(AbstractField):
 
     def _color_widget_changed(self, vec_type, value_model, model, _):
         """Commit any queued color when the picker closes and close its edit sessions."""
+        if value_model is not self._value_model:
+            return
         try:
             if self._color_update_subscription is not None:
                 self._apply_color(vec_type, value_model, model)
         finally:
-            self._close_undo_group()
+            self._end_edit()
+            if self._picker_edit_cancelled:
+                self._value_model_changed(model, value_model)
 
-    def _close_undo_group(self) -> None:
-        """Close the picker undo and property edit sessions at most once."""
+    def _end_edit(self) -> None:
+        """End the picker batch and property edit sessions at most once."""
         try:
-            if self._undo_group_open:
-                self._undo_group_open = False
-                if self._value_model.supports_batch_edit:
-                    self._value_model.end_batch_edit()
-                else:
-                    end_group(remove_if_empty=True)
+            if self._batch_editing:
+                self._batch_editing = False
+                self._value_model.end_batch_edit()
         finally:
             if self._value_model_editing:
                 self._value_model_editing = False
@@ -225,22 +249,19 @@ class ColorField(AbstractField):
             return
         self._ignore_value_change_events = True
         try:
-            if not self._undo_group_open:
-                if value_model.supports_batch_edit:
-                    value_model.begin_batch_edit(live=True)
-                else:
-                    begin_group()
-                self._undo_group_open = True
+            if value_model.supports_batch_edit and not self._batch_editing:
+                value_model.begin_batch_edit(live=True)
+                self._batch_editing = True
             if not self._value_model_editing:
                 try:
                     value_model.begin_edit()
                     self._value_model_editing = True
                 finally:
                     if not self._value_model_editing:
-                        self._close_undo_group()
+                        self._end_edit()
             value_model.set_value(new_value)
         finally:
             self._ignore_value_change_events = False
             if value_model.supports_batch_edit and not value_model.is_batch_editing:
-                self._undo_group_open = False
+                self._batch_editing = False
                 self._value_model_changed(model, value_model)
