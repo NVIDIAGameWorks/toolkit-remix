@@ -30,15 +30,22 @@ value model.
 
 `ColorField` combines the picker's RGB component changes into one complete-color update per frame while the picker
 remains open, then writes the final queued color synchronously when the picker closes.
-For models that support batch editing, it uses `begin_batch_edit(live=True)` so the model owns the picker session's
+For models that support batch editing, it uses `begin_batch_edit(live=True)` so the model owns each released drag's
 undo step and failure recovery. Other models retain their own write behavior.
 It forwards `begin_edit()` and `end_edit()` to the backing model once per session so the model can defer expensive
 application refreshes while live values change.
-The session ends when the picker closes.
+Each mouse release finishes the current undo batch. An empty live batch then watches for external changes without
+creating an undo step.
+Keyboard edits share a batch until the next mouse release or popup dismissal; the backing edit session ends when the
+picker closes.
 Pass `register_cleanup` to `build_ui()` to register `cleanup()` with the owning property widget, or call `cleanup()`
-directly when releasing the field. Field cleanup and property edit cancellation release subscriptions and close any
-active picker session. Cleanup and external backing-value changes discard queued updates so stale picker values
-cannot be written later. Read-only color fields disable the picker.
+directly when releasing the field. Cleanup releases subscriptions and closes any active picker session.
+Property edit cancellation closes the backing edit session while retaining the field subscriptions. Cleanup and
+external backing-value changes discard queued updates so stale picker values cannot be written later.
+Undo dismisses an open picker after restoring its color; reopening starts a fresh edit session.
+An external change cancels an open picker edit; close and reopen it before making another edit.
+The cancellation guard rejects buffered input until the native popup opens again, preserving restored colors and redo.
+Read-only color fields disable the picker.
 Row cleanup is required even when the backing value model remains alive after a delegate rebuild.
 The native picker reports individual component changes rather than a complete-color event during dragging.
 The picker uses `ui.ColorWidget`'s native numeric dragging. `display_precision` formats the read-only row text and

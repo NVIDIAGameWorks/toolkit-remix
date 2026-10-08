@@ -1,3 +1,20 @@
+"""
+* SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+* SPDX-License-Identifier: Apache-2.0
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* https://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+"""
+
 __all__ = ("TestPropertyWidget",)
 
 from collections.abc import Iterable
@@ -89,6 +106,19 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
 
             self.assertFalse(helper.property_widget.tree_view.is_expanded(parent_group))
             self.assertFalse(helper.property_widget.tree_view.is_expanded(child_group))
+
+    async def test_destroy_with_destroyed_delegate_releases_widget(self):
+        """Widget teardown still releases its tree after its delegate was destroyed first."""
+        delegate = TestDelegate()
+        helper = AsyncTestPropertyWidget(delegate=delegate)
+        await helper.build()
+        try:
+            # Owners may release their delegate before destroying the containing property widget.
+            delegate.destroy()
+            helper.property_widget.destroy()
+            self.assertIsNone(helper.property_widget.tree_view)
+        finally:
+            helper.window.destroy()
 
     async def test_destroy_clears_delegate_expansion_callback(self):
         delegate = TestDelegate()

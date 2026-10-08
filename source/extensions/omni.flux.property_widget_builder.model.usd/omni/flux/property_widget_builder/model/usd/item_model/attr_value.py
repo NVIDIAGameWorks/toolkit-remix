@@ -78,7 +78,7 @@ def _safe_deepcopy(value):
 
 
 def _undo_group_added_since(undo_stack_size: int) -> None:
-    """Undo and discard the completed group only when this scope added an undo entry."""
+    """Undo and discard the completed operation only when this scope added an undo entry."""
     if len(omni.kit.undo.get_undo_stack()) > undo_stack_size and omni.kit.undo.undo():
         # Starting a new top-level action clears Kit's redo stack; remove the empty action itself.
         with omni.kit.undo.group(remove_if_empty=True):
@@ -443,8 +443,12 @@ class UsdAttributeBase(abc.ABC):
         self._on_dirty()
         return False
 
-    def _write_live_value_to_usd(self) -> tuple[bool, bool]:
-        """Author a live preview through the command that owns this batch's undo snapshot."""
+    def _write_live_value_to_usd(self, excluded_paths: tuple[Sdf.Path, ...] = ()) -> tuple[bool, bool]:
+        """Author a live preview through the command that owns this batch's undo snapshot.
+
+        Args:
+            excluded_paths: Properties already authored by a custom creation callback for this preview.
+        """
         undo_stack = omni.kit.undo.get_undo_stack()
         if self._live_edit_command is not None and (
             not undo_stack or undo_stack[-1].command is not self._live_edit_command
@@ -454,6 +458,8 @@ class UsdAttributeBase(abc.ABC):
             return False, False
         attribute_values = []
         for attribute_path in self._attribute_paths:
+            if attribute_path in excluded_paths:
+                continue
             prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
             if not prim.IsValid():
                 continue
@@ -490,9 +496,16 @@ class UsdAttributeBase(abc.ABC):
         self._ignore_refresh = True
         try:
             if self._live_edit_command is None:
+                undo_stack_size = len(undo_stack)
                 succeeded, self._live_edit_command = omni.kit.commands.execute(
                     "LiveUsdAttributeEdit", attribute_values=attribute_values, usd_context_name=self._context_name
                 )
+                if (
+                    len(undo_stack) > undo_stack_size
+                    and undo_stack[-1].command is self._live_edit_command
+                    and undo_stack[-1].level == 0
+                ):
+                    self._batch_undo_stack_size = undo_stack_size
                 succeeded = succeeded and self._live_edit_command is not None
             else:
                 succeeded = self._live_edit_command.update(attribute_values)
@@ -740,11 +753,15 @@ class UsdAttributeBase(abc.ABC):
         self._is_batch_editing = False
         was_live = self._batch_edit_live
         self._batch_edit_live = False
+        undo_stack_size = self._batch_undo_stack_size
+        self._batch_undo_stack_size = None
         if was_live:
             if self._live_edit_listener is not None:
                 self._live_edit_listener.Revoke()
                 self._live_edit_listener = None
             self._live_edit_command = None
+            if failed and undo_stack_size is not None:
+                _undo_group_added_since(undo_stack_size)
 
     def _cancel_batch_edit(self):
         """Restore deferred previews or retain live writes before releasing the batch."""
@@ -1163,6 +1180,57 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
                 return raw_value
         # If virtual attributes don't exist, they take on the default value.
         return self._default_value
+
+    def _write_live_value_to_usd(self) -> tuple[bool, bool]:
+        """Group custom virtual creation with the first live preview before returning to the UI."""
+        if self._create_callback is None or self._live_edit_command is not None:
+            return super()._write_live_value_to_usd()
+
+        creation_values = []
+        for attribute_path in self._attribute_paths:
+            prim = self._stage.GetPrimAtPath(attribute_path.GetPrimPath())
+            if not prim.IsValid():
+                continue
+            attr = prim.GetAttribute(attribute_path.name)
+            current_value = self._get_attribute_value(attr) if attr.IsValid() else self._get_default_value(attr)
+            new_value = self._get_write_value(current_value)
+            if current_value == new_value:
+                continue
+            target_layer = self._get_target_layer(attr)
+            if not target_layer.permissionToEdit:
+                return False, False
+            if not attr.IsValid():
+                creation_values.append((attr, new_value, target_layer))
+        if not creation_values:
+            return super()._write_live_value_to_usd()
+
+        undo_stack_size = len(omni.kit.undo.get_undo_stack())
+        self._ignore_refresh = True
+        try:
+            with omni.kit.undo.group(remove_if_empty=True):
+                if len(omni.kit.undo.get_undo_stack()) > undo_stack_size:
+                    self._batch_undo_stack_size = undo_stack_size
+                for attr, new_value, target_layer in creation_values:
+                    edit_target = self._stage.GetEditTargetForLocalLayer(target_layer).ComposeOver(
+                        self._stage.GetEditTarget()
+                    )
+                    with Usd.EditContext(self._stage, edit_target):
+                        succeeded, _wrote_related = self._ensure_related_override_specs(attr, target_layer)
+                        if not succeeded or not self._create_and_set_attribute_value(attr, new_value):
+                            return False, False
+                    if not self._stage.GetAttributeAtPath(attr.GetPath()).IsValid():
+                        return False, False
+                succeeded, self._live_edit_command = omni.kit.commands.execute(
+                    "LiveUsdAttributeEdit", attribute_values=[], usd_context_name=self._context_name
+                )
+                if not succeeded or self._live_edit_command is None:
+                    return False, False
+                succeeded, _wrote_value = super()._write_live_value_to_usd(
+                    excluded_paths=tuple(attr.GetPath() for attr, _value, _layer in creation_values)
+                )
+                return succeeded, succeeded
+        finally:
+            self._ignore_refresh = False
 
     def _create_and_set_attribute_value(self, attr: Usd.Attribute, new_value: Any) -> bool:
         # If it's the default value, no need to create anything

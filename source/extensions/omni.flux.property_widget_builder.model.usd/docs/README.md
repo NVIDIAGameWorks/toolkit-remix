@@ -144,10 +144,16 @@ listeners until editing finishes while authored USD values remain live.
 
 If a write fails, the model rolls back the current batch, restores displayed values, and preserves completed edit
 sessions. Locked target layers are rejected before a write command runs. Color fields use live batches, and picker
-dismissal closes the session. Cancelling the row or releasing its widget also releases field subscriptions.
+dismissal closes the session. Row cancellation ends the edit session and discards queued input while retaining field
+subscriptions. Row cleanup or widget destruction releases those subscriptions.
 Row cancellation retains values already authored by a live batch; write failure rolls back the whole current batch.
 An external change to an edited USD property, including global undo, cancels the current picker edit and refreshes its value.
 A lightweight USD notice listener observes these changes even while application refreshes are deferred.
+
+Virtual color attributes retain their `create_callback(attribute, value)` creation hook. The first live preview
+runs that hook in a synchronous undo group, together with the live color command. Callback setup commands and
+subsequent color previews undo and redo as one operation; no undo group remains open between previews.
+Creation callbacks must author their setup through Kit commands.
 
 ## Row-Owned Property State
 
