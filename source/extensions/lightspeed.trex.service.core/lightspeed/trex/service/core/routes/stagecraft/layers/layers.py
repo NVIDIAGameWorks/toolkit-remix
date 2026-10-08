@@ -130,7 +130,10 @@ class LayerManagerService(ServiceBase):
         @self.router.delete(
             path="/{layer_id:path}",
             operation_id="remove_layer",
-            description="Remove a layer from the current stage.",
+            description=(
+                "Remove a layer from the current stage. Removing it drops the whole layer and every edit in it, not "
+                "just the selected prims, so it is not a substitute for deleting prims."
+            ),
         )
         async def remove_layer(
             body: ServiceBase.inject_hidden_fields(DeleteLayerRequestModel, context_name=context_name),
@@ -181,7 +184,10 @@ class LayerManagerService(ServiceBase):
         @self.router.put(
             path="/{layer_id:path}/mute",
             operation_id="mute_layer",
-            description="Mute or unmute a layer in the current stage.",
+            description=(
+                "Mute or unmute a layer in the current stage. Muting hides the whole layer and every edit in it, not "
+                "just the selected prims, so it is not a substitute for deleting prims."
+            ),
         )
         async def mute_layer(
             body: ServiceBase.inject_hidden_fields(MuteLayerRequestModel, context_name=context_name),
