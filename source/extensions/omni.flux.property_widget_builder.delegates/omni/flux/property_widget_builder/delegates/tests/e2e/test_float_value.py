@@ -68,7 +68,10 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         await omni.kit.ui_test.human_delay(human_delay_speed=1)
 
     async def tearDown(self):
-        """Cancel active edits before releasing the UI and temporary stage."""
+        """Dismiss native picker callbacks before releasing the UI and temporary stage."""
+        # Native popups can outlive their rows; dismiss them while the backing stage is still valid.
+        self.window.focus()
+        await omni.kit.ui_test.human_delay()
         self.model.set_items([])
         self.property_widget.destroy()
         self.model.destroy()
