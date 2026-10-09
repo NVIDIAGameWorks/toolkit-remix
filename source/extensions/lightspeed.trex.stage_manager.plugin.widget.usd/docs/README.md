@@ -7,6 +7,8 @@ USD-specific Stage Manager state and action widgets for RTX Remix capture editin
 - Register the RTX Remix USD widget plugins with the Stage Manager factory.
 - Provide context-menu actions for copying added lights and pasting them through mesh asset, descendant, or instance selections.
 - Render capture, category, nickname, particle, skeleton, logic-graph, rename, focus, and delete/restore controls.
+- Provide the experimental `Convert Alpha Cards to Mesh...` context-menu action that resolves the clicked capture
+  mesh to its prototype and requests the alpha cutout window through a global event.
 - Route viewport Delete requests to the matching USD context and publish context-bound frame requests.
 - Execute regular and capture deletion as one undoable operation.
 - Snapshot explicit selections, confirm skipped prepared jobs, and pass accepted submissions back to the ComfyUI core.
@@ -32,6 +34,10 @@ USD-specific Stage Manager state and action widgets for RTX Remix capture editin
   ComfyUI core resolve candidates and create skipped jobs for missing inputs.
 - `DeleteRestoreActionWidgetPlugin` applies undoable capture-reference and light-intensity edits.
 - `LightClipboardMenuPlugin` connects Stage Manager context-menu actions to the shared asset-replacement core.
+- `ConvertAlphaCardsActionWidgetPlugin` owns the `Experimental...` submenu. It only appears for prims that resolve
+  to a capture mesh prototype and emits `GlobalEventNames.ALPHA_CUTOUT_CONVERT_REQUEST` with the prototype paths;
+  `lightspeed.trex.alpha_cutout.widget` opens its window from that event, so this extension has no dependency on
+  the conversion code.
 - The remaining action, state, and information plugins each provide one Stage Manager column or context-menu behavior.
 
 ### ComfyUI Submission

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.8]
+### Added
+- Added the experimental `Convert Alpha Cards to Mesh...` context menu action for capture meshes.
+
 ## [3.1.7]
 ### Added
 - Added Copy Light and Paste Light actions for mesh asset, descendant, and instance selections to the Stage Manager context menu, separated from the following viewport actions.

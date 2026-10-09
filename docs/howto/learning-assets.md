@@ -170,3 +170,61 @@ The RTX Remix Toolkit provides a tool for manual joint remapping.
 
 ***
 <sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>
+
+## Converting Alpha Cards to Mesh (Experimental)
+
+Alpha-tested foliage cards are expensive to path trace because every ray that crosses the transparent part of a card
+still runs the alpha test. The experimental **Convert Alpha Cards to Mesh** action cuts the card geometry along the
+alpha channel of its diffuse texture so only the opaque area remains.
+
+1. In the **Stage Manager**, right-click a capture mesh or instance and choose
+   **Experimental** > **Convert Alpha Cards to Mesh**. The **Convert Alpha Cards to Mesh** window opens with the
+   selected prototype. While the window stays open it follows the selection, so picking another capture mesh
+   makes that one the mesh up for conversion.
+2. Pick an **Output Folder**. It defaults to `assets/ingested/alpha_cutout` inside the project. The mesh produces one
+   `cutout_<HASH>.usda` file with an ingestion sidecar, so the replacement passes the packaging checks.
+3. Adjust the **Parameters** and click **Convert**:
+   - **Alpha threshold** is the alpha value at or above which a texel counts as opaque.
+   - **Trace resolution** is the size of the mask that is traced. Higher values follow the texture more closely and
+     produce more triangles.
+   - **Simplify tolerance** and **Minimum island area** reduce the triangle count by smoothing the outline and dropping
+     specks.
+   - **Edge margin** grows the outline so bilinear filtering at the edge is not clipped. Use `0` when alpha testing is
+     disabled, because the cut edge then is the visible silhouette.
+   - **Minimal vertex outline** connects the traced cutoff with the fewest points that stay within the simplify
+     tolerance. It is on by default, costs a little time and typically saves 5 to 20 percent of the outline
+     vertices compared with the greedy pass, so raising the trace resolution and tuning the tolerance is the way to trade accuracy for
+     triangles.
+   - **Disable alpha test on the generated material** authors the opaque alpha state on the material copy so the
+     runtime renders the cut mesh as fully opaque geometry.
+   - **Thicken mesh** extrudes the cut mesh backwards, against the surface normal, by **Thickness** mesh units.
+     Every outline edge gets two triangles. **Back face** closes the extrusion with a reversed copy of the front;
+     turning it off keeps only the sides, which gives the illusion of thickness at a fraction of the polygons
+     because a double-sided capture still shows its front face from behind. **UV anti-stretch** textures the
+     sides with the band of the texture just inside the outline instead of smearing the edge texel.
+   - The **Normals** section holds **Smooth normals**, which blends the normals of the thickened mesh towards the
+     average around each position by **Smoothing** so the rim shades rounded instead of creased, and
+     **Up-facing normals**, which blends every vertex normal towards the stage up axis by **Up amount**. A card is a flat
+     plane, so every card shades by its own tilt and a canopy reads as a pile of differently lit planes; bending
+     the normals up makes the canopy shade like one lit volume. The up direction is taken in the prototype's own
+     space, so rotated instances are not accounted for.
+
+**Replacement meshes.** The action also works on a replacement mesh made in a DDC tool. The window then lists
+every mesh of the replacement file that has a diffuse texture, ticked for conversion; untick the ones to keep. The
+cutout is written next to the original as `<name>_cutout_replacement<ext>`, so the output field is locked, and the
+original file is never overwritten. The reference of the replacement is pointed at the cutout file on the same
+prim, so material and transform overrides keep applying, and converting again with other settings starts from the
+original file.
+
+The conversion masks the capture reference of each mesh on the current edit target layer and references the generated
+file instead, like a regular mesh replacement. Converting the same mesh again with other parameters overwrites its file
+and keeps the existing reference, so you can tune the settings until the result looks right. One undo reverts the stage
+edits of a run; the generated files stay on disk.
+
+Each generated file carries its own copy of the captured material, named `AlphaCutoutMaterial`, with the composed
+values at conversion time. Later edits to the captured material do not propagate to converted meshes; convert again to
+refresh the copy. The runtime reads the alpha test type as a raw integer, so the copy stores `7` for *always pass*,
+which the material property panel labels as *Greater Or Equal*.
+
+Skinned meshes and meshes without texture coordinates or a diffuse texture are skipped and listed in the **Results**
+section. Animated captures convert their first time sample.
