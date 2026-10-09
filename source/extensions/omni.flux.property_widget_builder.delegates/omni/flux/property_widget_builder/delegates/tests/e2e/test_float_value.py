@@ -24,7 +24,7 @@ from math import isclose
 import omni.kit.test
 import omni.kit.ui_test
 import omni.ui as ui
-from carb.input import KeyboardInput, MouseEventType
+from carb.input import KeyboardInput, MouseEventType, acquire_input_interface
 from carb.logging import acquire_logging
 from omni.flux.property_widget_builder.model.usd import (
     USDAttributeItem,
@@ -632,8 +632,10 @@ class TestColorField(omni.kit.test.AsyncTestCase):
             await omni.kit.ui_test.human_delay()
             await emulate_mouse(MouseEventType.MOVE, start + omni.kit.ui_test.Vec2(20, 0))
             await omni.kit.ui_test.human_delay()
+            color_before_release = self.color_attribute.Get()
             await emulate_mouse(MouseEventType.LEFT_BUTTON_UP)
             await omni.kit.ui_test.human_delay()
+            return color_before_release
 
         # Complete three separate drags without dismissing the popup between cursor releases.
         await widget_ref.click()
@@ -677,16 +679,34 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         )
         await widget_ref.click()
         await omni.kit.ui_test.human_delay()
-        await drag_square(widget_ref.offset(120, 150))
-        reopened_color = self.color_attribute.Get()
+        undo_on_release = False
+
+        def undo_during_release(event):
+            """Undo once after the picker observes a real release, before its queued checkpoint executes."""
+            nonlocal undo_on_release
+            if event.event.type == MouseEventType.LEFT_BUTTON_UP and not undo_on_release:
+                undo_on_release = True
+                undo()
+            return True
+
+        input_interface = acquire_input_interface()
+        # SDK subscription positions put this observer immediately after the picker's mouse observer.
+        release_subscription = input_interface.subscribe_to_input_events(
+            undo_during_release, device=self.window.app_window.get_mouse(), order=1
+        )
+        try:
+            reopened_color = await drag_square(widget_ref.offset(120, 150))
+        finally:
+            input_interface.unsubscribe_to_input_events(release_subscription)
+        self.assertTrue(undo_on_release)
         self.assertNotEqual(reopened_color, original_color)
         self.assertNotIn(reopened_color, gesture_colors)
-        await omni.kit.ui_test.emulate_mouse_move_and_click(widget_ref.offset(-3, -3))
+        self.assertEqual(colors_at_dismissal, [second_color, second_color])
+        self.assertEqual(self.color_attribute.Get(), second_color)
+        # The deferred interaction release must finish without reauthoring the discarded checkpoint.
         await omni.kit.ui_test.human_delay()
-        self.assertEqual(self.color_attribute.Get(), reopened_color)
         self.assertFalse(is_any_interaction_active())
-        undo()
-        await omni.kit.ui_test.human_delay()
+        self.assertTrue(can_redo())
         self.assertEqual(self.color_attribute.Get(), second_color)
         redo()
         await omni.kit.ui_test.human_delay()

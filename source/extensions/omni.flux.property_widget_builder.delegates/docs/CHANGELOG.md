@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.1.0]
 ### Changed
-- `ColorField` now supports live picker edits with frame-coalesced colors, deferred application refreshes, undo checkpoints on mouse release, automatic picker dismissal after undo without overwriting restored colors, read-only protection, and row-owned session cleanup.
+- `ColorField` now supports live picker edits through one queued update path with frame-coalesced colors, deferred application refreshes, undo checkpoints on mouse release, automatic picker dismissal after undo without overwriting restored colors, read-only protection, and row-owned session cleanup.
 
 ## [2.0.1]
 ### Added

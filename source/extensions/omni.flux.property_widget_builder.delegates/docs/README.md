@@ -30,6 +30,9 @@ value model.
 
 `ColorField` combines the picker's RGB component changes into one complete-color update per frame while the picker
 remains open, then writes the final queued color synchronously when the picker closes.
+Callbacks reuse the component value models captured when the row is built, avoiding native item lookups during edits.
+One picker item-change subscription feeds one deferred update path. Pending Undo dismissal takes priority over a
+mouse-release checkpoint, which includes the latest color write; ordinary changes request only a color write.
 For models that support batch editing, it uses `begin_batch_edit(live=True)` so the model owns each released drag's
 undo step and failure recovery. Other models retain their own write behavior.
 It forwards `begin_edit()` and `end_edit()` to the backing model once per session so the model can defer expensive
