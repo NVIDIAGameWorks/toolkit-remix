@@ -905,6 +905,11 @@ class AlphaCutoutPane(WorkspaceWidget):
                 self._result_lines = ["The conversion was cancelled."]
                 self._rebuild_results()
                 return
+            current = self._context.get_stage() if self._context else None
+            if not current or current.GetRootLayer() != stage.GetRootLayer() or self._editor.get_edit_layer_problem():
+                self._result_lines = ["The project or edit target changed during the conversion. Nothing was written."]
+                self._rebuild_results()
+                return
             written = self._write_results(results, stage, target)
             outcomes = self._editor.apply(written)
             self._show_results(written, outcomes)

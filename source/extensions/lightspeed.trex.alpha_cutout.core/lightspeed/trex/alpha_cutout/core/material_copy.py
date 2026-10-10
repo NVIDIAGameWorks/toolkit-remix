@@ -22,6 +22,7 @@ __all__ = [
     "OPAQUE_ALPHA_STATE_INPUTS",
     "author_opaque_alpha_state",
     "copy_material_flattened",
+    "get_surface_shader",
 ]
 
 import omni.client
@@ -51,7 +52,7 @@ def author_opaque_alpha_state(shader: UsdShade.Shader) -> None:
         shader.CreateInput(name, type_name).Set(value)
 
 
-def _get_surface_shader(material: UsdShade.Material) -> UsdShade.Shader | None:
+def get_surface_shader(material: UsdShade.Material) -> UsdShade.Shader | None:
     """Return the surface shader of a material, trying the universal then the MDL render context.
 
     Args:
@@ -137,7 +138,7 @@ def copy_material_flattened(
     """
     destination_material = UsdShade.Material.Define(destination_stage, destination_path)
     destination_shader = UsdShade.Shader.Define(destination_stage, f"{destination_path}/{_SHADER_NAME}")
-    source_shader = _get_surface_shader(source_material)
+    source_shader = get_surface_shader(source_material)
     if source_shader is not None:
         source_prim = source_shader.GetPrim()
         kind = source_prim.GetMetadata(_KIND_KEY)

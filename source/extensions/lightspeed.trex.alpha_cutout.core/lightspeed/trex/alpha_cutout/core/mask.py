@@ -190,18 +190,29 @@ def _iso_segments(field: np.ndarray, level: float) -> np.ndarray:
     return all_segments[lengths > 1e-9]
 
 
-def _sample_field(field: np.ndarray, x: float, y: float) -> float:
+def _pad_field(field: np.ndarray) -> np.ndarray:
+    """Surround a field with a transparent border for sampling.
+
+    Args:
+        field: ``(h, w)`` alpha values.
+
+    Returns:
+        ``(h + 2, w + 2)`` float64 field with zeros around it.
+    """
+    return np.pad(field.astype(np.float64), 1, constant_values=0.0)
+
+
+def _sample_field(padded: np.ndarray, x: float, y: float) -> float:
     """Return the bilinear field value at a texel-space point.
 
     Args:
-        field: ``(h, w)`` alpha values sampled at texel centres.
+        padded: Field returned by ``_pad_field``.
         x: Horizontal texel coordinate.
         y: Vertical texel coordinate.
 
     Returns:
         Interpolated value, with everything outside the texture treated as fully transparent.
     """
-    padded = np.pad(field.astype(np.float64), 1, constant_values=0.0)
     px = min(max(x + 0.5, 0.0), padded.shape[1] - 1.0)
     py = min(max(y + 0.5, 0.0), padded.shape[0] - 1.0)
     col, row = int(np.floor(px)), int(np.floor(py))
@@ -300,10 +311,11 @@ def trace_alpha_mask(
     if segments.shape[0] == 0:
         return []
     faces = shapely.polygonize(shapely.linestrings(segments))
+    padded = _pad_field(field)
     opaque = []
     for face in faces.geoms:
         point = face.representative_point()
-        if _sample_field(field, point.x, point.y) >= level:
+        if _sample_field(padded, point.x, point.y) >= level:
             opaque.append(face)
     if not opaque:
         return []

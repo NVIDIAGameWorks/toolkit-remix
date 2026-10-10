@@ -168,9 +168,6 @@ The RTX Remix Toolkit provides a tool for manual joint remapping.
 
 5. Click "Apply" to re-author joint influences on the replacement mesh, matching the captured joint index.
 
-***
-<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>
-
 ## Converting Alpha Cards to Mesh (Experimental)
 
 Alpha-tested foliage cards are expensive to path trace because every ray that crosses the transparent part of a card
@@ -228,3 +225,6 @@ which the material property panel labels as *Greater Or Equal*.
 
 Skinned meshes and meshes without texture coordinates or a diffuse texture are skipped and listed in the **Results**
 section. Animated captures convert their first time sample.
+
+***
+<sub> Need to leave feedback about the RTX Remix Documentation?  [Click here](https://github.com/NVIDIAGameWorks/rtx-remix/issues/new?assignees=nvdamien&labels=documentation%2Cfeedback%2Ctriage&projects=&template=documentation_feedback.yml&title=%5BDocumentation+feedback%5D%3A+) </sub>

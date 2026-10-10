@@ -36,7 +36,7 @@ from omni.flux.validator.factory import BASE_HASH_KEY, VALIDATION_EXTENSIONS, VA
 from pxr import Gf, Kind, Sdf, Usd, UsdGeom, UsdShade, Vt
 
 from .data_models import CutMesh, MeshSource
-from .material_copy import _get_surface_shader, author_opaque_alpha_state, copy_material_flattened
+from .material_copy import author_opaque_alpha_state, copy_material_flattened, get_surface_shader
 from .usd_reader import is_replacement_cutout_path
 
 # The prim names deliberately avoid the capture naming scheme (``mesh_HASH`` / ``mat_HASH``) because the
@@ -295,7 +295,7 @@ def write_cutout_replacement(
         if not disable_alpha_test:
             continue
         material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
-        shader = _get_surface_shader(material) if material else None
+        shader = get_surface_shader(material) if material else None
         if shader and layer.GetPrimAtPath(shader.GetPath()):
             author_opaque_alpha_state(shader)
     if not layer.Save():
