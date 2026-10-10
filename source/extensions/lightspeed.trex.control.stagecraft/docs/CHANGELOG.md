@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.12]
+### Added
+- Loaded the alpha cutout window extension in StageCraft.
+
 ## [1.8.11]
 ### Added
 - Extended Ctrl+A coverage and corrected viewport ownership in test cleanup.

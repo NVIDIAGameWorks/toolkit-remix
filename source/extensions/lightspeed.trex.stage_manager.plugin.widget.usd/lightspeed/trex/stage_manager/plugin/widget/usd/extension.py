@@ -24,6 +24,7 @@ from omni.flux.stage_manager.factory import get_instance as _get_factory_instanc
 from omni.ext import IExt
 
 from .action_assign_category import AssignCategoryActionWidgetPlugin as _AssignCategoryActionWidgetPlugin
+from .action_convert_alpha_cards import ConvertAlphaCardsActionWidgetPlugin as _ConvertAlphaCardsActionWidgetPlugin
 from .action_delete_restore import DeleteRestoreActionWidgetPlugin as _DeleteRestoreActionWidgetPlugin
 from .action_logic_graph import LogicGraphWidgetPlugin as _LogicGraphWidgetPlugin
 from .action_light_clipboard import LightClipboardMenuPlugin as _LightClipboardMenuPlugin
@@ -43,6 +44,7 @@ class LightspeedStageManagerUSDWidgetPluginsExtension(IExt):
 
     _PLUGINS = [
         _AssignCategoryActionWidgetPlugin,
+        _ConvertAlphaCardsActionWidgetPlugin,
         _DeleteRestoreActionWidgetPlugin,
         _FocusInViewportActionWidgetPlugin,
         _IsCaptureStateWidgetPlugin,
