@@ -1,22 +1,22 @@
+.toolkit_internal_remote:
+  variables:
+    LSPACKAGES_REMOTE: rtx-remix-internal
+
 ###########################################################
-# Publish the Windows package from Gitlab to Packman
+# Publish tagged Windows packages to the internal lspackages remote
 ###########################################################
 publish-package-gitlab:
+  interruptible: false
   extends:
     - .linux_build_agent
-    - .linux_vault
+    - .lspackages_publish_linux
     - .gitlab_release
+    - .toolkit_internal_remote
   needs:
     - job: build-package-gitlab-windows
       artifacts: true
-  before_script:
-    - !reference [ .linux_vault, before_script ]
-    - ./build.sh --fetch-only --release --no-docker
   script:
-    - fail_wr=0
-    - ./repo.sh publish -c release || fail_wr=1
-    - echo "WinRel=${fail_wr}"
-    - '[ "$fail_wr" -eq 0 ] || exit 1'
+    - for package in _build/packages/rtx_remix@*.release.zip; do lightspeed-uploader upload "$package" --remote "$LSPACKAGES_REMOTE" || exit $?; done
 
 #######################################################
 # Publish the Windows package to Gitlab releases
@@ -24,6 +24,7 @@ publish-package-gitlab:
 publish-gitlab-release:
   extends:
     - .gitlab_release
+    - .toolkit_internal_remote
     - .windows_build_agent
   needs:
     - job: publish-package-gitlab
@@ -36,7 +37,7 @@ publish-gitlab-release:
     - .\repo.bat get_release_changelog -s _current_changelog.md -sh "[$env:CI_COMMIT_TAG]"
     - $env:ENCODED_ARTIFACT_WIN_ZIP_NAME=[URI]::EscapeDataString("$env:ARTIFACT_WIN_ZIP_NAME")
     - echo "Encoded window zip name is $env:ENCODED_ARTIFACT_WIN_ZIP_NAME"
-    - $env:WIN_URL="$env:PACKMAN_CLOUDFRONT_URL/$env:ENCODED_ARTIFACT_WIN_ZIP_NAME"
+    - $env:WIN_URL="https://lspackages.nvidia.com/api/v1/download/$env:LSPACKAGES_REMOTE/$env:ENCODED_ARTIFACT_WIN_ZIP_NAME"
     - echo "Full asset url for WIN is $env:WIN_URL"
     - $assetsJson = '[{\"name\":\"windows-x86_64.release\",\"url\":\"' + $env:WIN_URL + '\"}]'
     - glab auth login --token "$env:TOOLKIT_GITLAB_RELEASE_TOKEN" --hostname "$env:CI_SERVER_HOST"
@@ -45,12 +46,15 @@ publish-gitlab-release:
     - glab auth logout --hostname "$env:CI_SERVER_HOST"
 
 ########################################################
-# Publish Windows package to Packman for GitHub releases
+# Publish Windows package to lspackages for GitHub releases
 ########################################################
 publish-github-release:
   extends:
     - .github_release
     - .windows_build_agent
+    - .lspackages_publish_windows
+  variables:
+    LSPACKAGES_REMOTE: rtx-remix-external
   needs:
     - job: build-package-windows
       artifacts: true
@@ -62,8 +66,9 @@ publish-github-release:
     - 'echo "Found zip file $($zipFile.Name)"'
     # Strip build number from filename and rename
     - $zipFile = Rename-Item -Path $zipFile.FullName -NewName ($zipFile.Name -replace '(\+[^.]+)\.(\d+)\.([a-f0-9]+\.)', '$1.$3') -PassThru
-    # Publish the package to Packman
-    - ./tools/packman/packman.cmd push -r rtx-remix-external $zipFile.FullName
+    # Publish the package to the public Remix remote
+    - lightspeed-uploader.exe upload $zipFile.FullName --remote $env:LSPACKAGES_REMOTE
+    - 'if ($LASTEXITCODE -ne 0) { throw "Toolkit upload failed" }'
 
 ########################################################
 # Trigger GitHub Actions workflow to download toolkit

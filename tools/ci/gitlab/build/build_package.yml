@@ -11,7 +11,7 @@ build-package-windows:
     - .\build.bat --rebuild --release
   script:
     - .\repo.bat publish_exts --verify
-    - .\repo.bat package --mode main_package --platform windows-x86_64 --config release
+    - .\tools\ci\scripts\package_toolkit.ps1
   # Artifacts required to make the publishing step work
   artifacts:
     when: on_success

@@ -28,8 +28,10 @@ from remix_target_dep_bot import (
     HttpPackageProbe,
     PinUpdate,
     collect_dxvk_commits,
+    current_pins_track_branch,
     format_changelog_entry,
     list_package_versions,
+    package_base_url,
     read_packman_versions,
     select_latest_runtime_release,
     select_target_update,
@@ -170,18 +172,75 @@ class TestRemixTargetDepBot(unittest.TestCase):
         # Assert
         self.assertEqual(version, "remix-1.5.10")
 
-    def test_artifact_exists_rejects_empty_omnipackages_metadata(self):
+    def test_current_pins_track_branch_accepts_matching_source_and_preserves_overrides(self):
+        for branch, version, expected in (
+            ("main", "ext-bbbbbbb-main", True),
+            ("release/v1.2.3", "ext-bbbbbbb-release-v1-2-3", True),
+            ("feature/new_runtime", "int-bbbbbbb-feature-new-runtime", True),
+            ("main", "int-bbbbbbb-feature-new-runtime", False),
+            ("feature/new_runtime", "compatibility-pin", False),
+        ):
+            with self.subTest(branch=branch, version=version):
+                # Arrange
+                pins = {package: version for package in TARGET_PACKAGES}
+
+                # Act
+                matches = current_pins_track_branch(pins, branch)
+
+                # Assert
+                self.assertEqual(matches, expected)
+
+    def test_package_base_url_source_branch_selects_expected_remote(self):
+        for branch, remote in (
+            ("main", "rtx-remix-external"),
+            ("release/v1.2.3", "rtx-remix-external"),
+            ("release/1.2.x", "rtx-remix-external"),
+            ("feature/new-runtime", "rtx-remix-internal"),
+            ("release/v1.2.3-private", "rtx-remix-internal"),
+        ):
+            with self.subTest(branch=branch):
+                # Act
+                url = package_base_url(branch)
+
+                # Assert
+                self.assertEqual(url, f"https://lspackages.nvidia.com/packages/{remote}")
+
+    def test_select_target_update_source_branch_uses_matching_package_version(self):
+        for branch, version in (
+            ("release/v1.2.3", "ext-bbbbbbb-release-v1-2-3"),
+            ("feature/new_runtime", "int-bbbbbbb-feature-new-runtime"),
+        ):
+            with self.subTest(branch=branch):
+                # Arrange
+                probe = PackageProbe(
+                    {(package, version) for package in TARGET_PACKAGES}, ["remix-1.5.3"]
+                )
+                current = {package: "old" for package in TARGET_PACKAGES | {REMIX_RUNTIME_PACKAGE}}
+
+                # Act
+                update = select_target_update(current, ["b" * 40], probe, branch)
+
+                # Assert
+                self.assertEqual(update.paired_version, version)
+                self.assertEqual(update.pins["rtx-remix-hdremix"].new, version)
+                self.assertEqual(update.pins["rtx-remix-omni_core_materials"].new, version)
+
+    def test_artifact_exists_rejects_empty_lspackages_metadata(self):
         # Arrange
-        probe = HttpPackageProbe("https://omnipackages.nvidia.com/packages/cloudfront")
+        probe = HttpPackageProbe()
         body = '{"name":"","extension":"","url":"","modificationTime":"","size":0}'
-        with patch("remix_target_dep_bot.urllib.request.urlopen", return_value=UrlopenResponse(body)):
+        with patch("remix_target_dep_bot.urllib.request.urlopen", return_value=UrlopenResponse(body)) as urlopen:
             # Act
             exists = probe.artifact_exists("rtx-remix-hdremix", "ext-acfce16-main")
 
         # Assert
         self.assertFalse(exists)
+        urlopen.assert_called_once_with(
+            "https://lspackages.nvidia.com/api/v3/packages/rtx-remix-hdremix/ext-acfce16-main/rtx-remix-external",
+            timeout=30,
+        )
 
-    def test_list_package_versions_reads_omnipackages_api_pages(self):
+    def test_list_package_versions_reads_lspackages_api_pages(self):
         # Arrange
         responses = [
             UrlopenResponse('{"items":[{"name":"remix-1.5.2","extension":".7z"}],"pageNum":1,"pageCount":2}'),
@@ -193,13 +252,13 @@ class TestRemixTargetDepBot(unittest.TestCase):
         with patch("remix_target_dep_bot.urllib.request.urlopen", side_effect=responses) as urlopen:
             # Act
             versions = list_package_versions(
-                "https://omnipackages.nvidia.com/packages/cloudfront", REMIX_RUNTIME_PACKAGE
+                "https://lspackages.nvidia.com/packages/rtx-remix-external", REMIX_RUNTIME_PACKAGE
             )
 
         # Assert
         self.assertCountEqual(versions, ["remix-1.5.2", "remix-1.5.10"])
         self.assertIn(
-            "/api/v3/packages/rtx-remix-remix_runtime/?version=&remote=cloudfront&page=1&pageSize=100",
+            "/api/v3/packages/rtx-remix-remix_runtime/?version=&remote=rtx-remix-external&page=1&pageSize=100",
             urlopen.call_args_list[0].args[0],
         )
 
