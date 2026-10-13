@@ -39,3 +39,9 @@ their widget extensions.
 The [particle panel](../../lightspeed.trex.properties_pane.particle.widget/docs/README.md) assigns these semantic
 names; the [USD layout adapter](../../omni.flux.property_widget_builder.model.usd/docs/README.md#curve-layout-styling)
 resolves their normal colors when constructing property controls.
+
+## Color Picker Handles
+
+The `Circle::ColorPickerHandleOutline` and `Circle::ColorPickerHandle` selectors pair dark and white outlines with
+transparent fills for the color picker's hollow saturation/value handle.
+`Triangle::ColorPickerHueHandle` supplies the white fill and dark outline for the paired inward-facing hue markers.

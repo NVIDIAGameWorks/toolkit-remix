@@ -1028,6 +1028,21 @@ current_dict.update(
             "border_radius": 5,
             "border_color": _WHITE_20,
         },
+        "Circle::ColorPickerHandleOutline": {
+            "background_color": 0x00000000,
+            "border_width": 2,
+            "border_color": _TRUE_DARK,
+        },
+        "Circle::ColorPickerHandle": {
+            "background_color": 0x00000000,
+            "border_width": 1,
+            "border_color": _WHITE_100,
+        },
+        "Triangle::ColorPickerHueHandle": {
+            "background_color": _WHITE_100,
+            "border_width": 1,
+            "border_color": _TRUE_DARK,
+        },
         "ImageWithProvider::ColorGradientBar": {
             "border_radius": 5,
         },

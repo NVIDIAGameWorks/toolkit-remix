@@ -610,6 +610,28 @@ class TestColorField(omni.kit.test.AsyncTestCase):
             self.assertIsNotNone(authoring_layer.GetPropertyAtPath(color_attribute.GetPath()))
         self.assertFalse(can_redo())
 
+    async def test_reset_color_delegate_with_surviving_value_model_releases_retired_picker_updates(self):
+        """Resetting the property delegate disconnects its open picker from a surviving USD value model."""
+        await self._open_picker_and_edit_red(0.8)
+        item = self.model.get_all_items()[0]
+        value_model = item.value_models[0]
+        picker_model = omni.kit.ui_test.find(
+            f"{self.window.title}//Frame/**/ColorPicker[*].identifier=='color_swatch'"
+        ).model
+        component_models = [picker_model.get_item_value_model(child) for child in picker_model.get_item_children()]
+        original_color = Gf.Vec3f(*(model.get_value_as_float() for model in component_models))
+        del picker_model
+
+        # Delegate reset retires fields while the same property item remains available for later edits.
+        self.delegate.reset()
+        self.window.frame.clear()
+        await omni.kit.ui_test.human_delay()
+        new_color = Gf.Vec3f(0.8, 0.5, 0.4)
+        value_model.set_value(new_color)
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), new_color)
+        self.assertEqual(Gf.Vec3f(*(model.get_value_as_float() for model in component_models)), original_color)
+
     async def test_drag_rebuilt_color_row_reusing_value_model_preserves_live_edits_and_reopening(self):
         """Repeated row rebuilding preserves live gestures on the same backing value model."""
         original_color = self.color_attribute.Get()

@@ -18,6 +18,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Centralized Curve Editor channel colors under semantic style names, with brighter selected RGB labels.
 
+### Fixed
+- Added contrasting color-picker handles: a hollow white ring with a dark outline for saturation/value and paired white triangles with dark outlines for hue.
+
 ## [1.27.2]
 ### Added
 - Added active and hovered link-icon styles for grouped transform editing.

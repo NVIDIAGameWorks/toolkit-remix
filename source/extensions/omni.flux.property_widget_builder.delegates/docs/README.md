@@ -28,31 +28,40 @@ keyword-only `stage_resolver` callback; constructing `FilePicker(use_relative_pa
 stage capability raises `ValueError`. `ComboboxField` consumes an `ui.AbstractItemModel` supplied by the property
 value model.
 
-`ColorField` combines the picker's RGB component changes into one complete-color update per frame while the picker
-remains open, then writes the final queued color synchronously when the picker closes.
-Callbacks reuse the component value models captured when the row is built, avoiding native item lookups during edits.
-One picker item-change subscription feeds one deferred update path. Pending Undo dismissal takes priority over a
-mouse-release checkpoint, which includes the latest color write; ordinary changes request only a color write.
-For models that support batch editing, it uses `begin_batch_edit(live=True)` so the model owns each released drag's
-undo step and failure recovery. Other models retain their own write behavior.
-It forwards `begin_edit()` and `end_edit()` to the backing model once per session so the model can defer expensive
-application refreshes while live values change.
-Each mouse release finishes the current undo batch. An empty live batch then watches for external changes without
-creating an undo step.
-Keyboard edits share a batch until the next mouse release or popup dismissal; the backing edit session ends when the
-picker closes.
+`ColorField` uses an owned Flux picker that shares the field's Python color item model with the read-only RGB fields.
+The popup opens above the field when there is not enough room below it in the main window.
+Its padded layout uses the application's `WorkspaceBackground` style and reserves a fixed-height Close row with
+space beneath it.
+The picker borrows that model; the field retains its component models and subscriptions for the row's lifetime.
+Saturation/value and hue controls define each gesture through widget-local press, move, and release callbacks.
+Control-local coordinates map those gestures to colors. Each component's native `ui.FloatDrag` reports its own
+begin/end edit boundary for dragging and typed edits.
+
+Gradient image providers are created when the popup first opens. Saturation/value textures are regenerated only
+while that image is visible and its hue changes. Closed pickers keep swatch and color synchronization without
+generating or uploading hidden gradients. The saturation/value selector is a hollow white ring with a dark
+outline so the color beneath it remains visible. White triangles with dark outlines point inward from both hue-bar
+edges to mark the selected hue. Both marker placers use stable sizing so their movement does not resize the controls
+or change the pointer-to-color mapping.
+
+For models that support batch editing, each completed drag or typed edit uses a separate `begin_batch_edit(live=True)`
+batch and produces one undo entry when the value changes. Opening the popup creates no undo entry.
+The field pairs the backing model's `begin_edit()` and `end_edit()` for each gesture, deferring application refreshes
+while authored colors remain live. RGB changes are combined into one complete-color write per application frame,
+with a synchronous final flush when the gesture ends.
+
+Undo while the popup is idle restores the previous gesture's color and leaves the picker ready for the next gesture.
+During an active edit, queued writes check the latest key from Kit's public command execution history before
+authoring. Its monotonically increasing key detects intervening commands even if Undo and Redo restore the same
+undo-stack boundary. An interrupted active edit discards buffered input and closes the popup while preserving the
+restored backing color and the field's models and subscriptions.
+
 Pass `register_cleanup` to `build_ui()` to register `cleanup()` with the owning property widget, or call `cleanup()`
 directly when releasing the field. Cleanup releases subscriptions and closes any active picker session.
-Property edit cancellation closes the backing edit session while retaining the field subscriptions. Cleanup and
-external backing-value changes discard queued updates so stale picker values cannot be written later.
-Undo dismisses an open picker after restoring its color; reopening starts a fresh edit session.
-An external change cancels an open picker edit; close and reopen it before making another edit.
-The cancellation guard rejects buffered input until the native popup opens again, preserving restored colors and redo.
+The default USD color builder registers this cleanup with its delegate. A full delegate reset releases the field's
+subscriptions even when its backing value model remains alive; picker cancellation keeps the current field usable.
 Read-only color fields disable the picker.
-Row cleanup is required even when the backing value model remains alive after a delegate rebuild.
-The native picker reports individual component changes rather than a complete-color event during dragging.
-The picker uses `ui.ColorWidget`'s native numeric dragging. `display_precision` formats the read-only row text and
-does not set the picker's drag increments.
+`display_precision` formats the read-only row text and does not set the picker's drag increments.
 
 `AbstractDragFieldGroup` builds and coordinates numeric fields in one row. Pass `linkable=True` to opt a Float or Int
 group into link controls, linked presentation, focus, commit, cancel, unlink, and value routing. The item owns the

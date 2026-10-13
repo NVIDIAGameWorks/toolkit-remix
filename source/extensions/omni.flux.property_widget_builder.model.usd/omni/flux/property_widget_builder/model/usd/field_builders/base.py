@@ -245,11 +245,17 @@ def _sdf_asset_path_builder(item) -> list[ui.Widget]:
     mapping.tf_gf_col4d,
     mapping.tf_gf_col4f,
     mapping.tf_gf_col4h,
+    supports_field_cleanup=True,
 )
-def _color_builder(item):
-    """Build a color field for a USD property item."""
+def _color_builder(item, *, register_cleanup=None):
+    """Build a color field with optional delegate-owned cleanup.
+
+    Args:
+        item: USD property item holding the color value.
+        register_cleanup: Callback that registers field cleanup with the owning delegate.
+    """
     builder = ColorField()
-    return builder(item)
+    return builder(item, register_cleanup=register_cleanup)
 
 
 @DEFAULT_FIELD_BUILDERS.register_by_type(

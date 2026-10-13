@@ -32,8 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.1.0]
 ### Changed
-- `ColorField` now supports live picker edits through one queued update path with frame-coalesced colors, deferred application refreshes, undo checkpoints on mouse release, automatic picker dismissal after undo without overwriting restored colors, read-only protection, and row-owned session cleanup.
-- Updated color picker test teardown to dismiss native popups before closing their USD stage.
+- Added an owned color picker with live frame-coalesced colors, per-gesture undo, idle Undo, safe cancellation and cleanup, lazy visible-only gradients, contrasting selectors, and a larger padded popup with application background and bounded placement.
 
 ## [2.0.1]
 ### Added

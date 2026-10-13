@@ -143,12 +143,16 @@ Field controls also pair `begin_edit()` and `end_edit()` around the session so `
 listeners until editing finishes while authored USD values remain live.
 
 If a write fails, the model rolls back the current batch, restores displayed values, and preserves completed edit
-sessions. Locked target layers are rejected before a write command runs. Color fields use live batches, and picker
-dismissal closes the session. Row cancellation ends the edit session and discards queued input while retaining field
-subscriptions. `ColorField.cleanup()` releases those subscriptions; the default USD color builder does not register
-that cleanup with the delegate.
+sessions. Locked target layers are rejected before a write command runs. Color fields use one live batch per completed
+drag or typed edit, pairing `begin_edit()` and `end_edit()` for each gesture. Opening the picker creates no undo entry.
+Undo while the popup is idle restores the previous gesture and allows another edit in the same popup.
+Row cancellation ends an active edit session and discards queued input while retaining field subscriptions.
+`ColorField.cleanup()` releases those subscriptions; the default USD color builder
+registers that cleanup with the owning delegate so a full row reset releases the field even when its backing value
+model remains alive. Picker cancellation keeps the current field usable until that reset.
 Row cancellation retains values already authored by a live batch; write failure rolls back the whole current batch.
-An external change to an edited USD property, including global undo, cancels the current picker edit and refreshes its value.
+An external change to an actively edited USD property, including global undo, cancels that edit, closes the popup,
+and refreshes its value. Idle picker controls synchronize with restored USD values without creating an edit.
 A lightweight USD notice listener observes these changes even while application refreshes are deferred.
 
 Virtual color attributes retain their `create_callback(attribute, value)` creation hook. The first live preview
