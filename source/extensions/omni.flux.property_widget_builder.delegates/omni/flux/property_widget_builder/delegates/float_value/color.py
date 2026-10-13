@@ -19,13 +19,50 @@ __all__ = ("ColorField",)
 
 from functools import partial
 
-import carb.input
 import omni.ui as ui
 from omni.kit.app import get_app
-from omni.kit.commands import POST_DO_CALLBACK, register_callback, unregister_callback
+from omni.kit.undo import get_history
 from pxr import Gf
 
 from ..base import AbstractField
+from .color_picker import ColorPicker
+
+
+class _ColorItemModel(ui.AbstractItemModel):
+    """Own the color components independently of the native picker widget."""
+
+    def __init__(self, values):
+        """Create the root and component models for an RGB or RGBA color."""
+        super().__init__()
+        self._root_model = ui.SimpleIntModel()
+        self._components = {ui.AbstractItem(): ui.SimpleFloatModel(float(value)) for value in values}
+        self._subscriptions = [self._root_model.subscribe_value_changed_fn(lambda _: self._item_changed(None))]
+        self._subscriptions.extend(
+            model.subscribe_value_changed_fn(lambda _, item=item: self._item_changed(item))
+            for item, model in self._components.items()
+        )
+
+    def get_item_children(self, parent_item=None):
+        """Return the component items belonging to the root."""
+        return list(self._components) if parent_item is None else []
+
+    def get_item_value_model(self, item=None, column_id=0):
+        """Return the root or requested color component value model."""
+        return self._root_model if item is None else self._components[item]
+
+    def get_item_value_model_count(self, item=None):
+        """Return the single value column for each item."""
+        return 1
+
+    def begin_edit(self, item):
+        """Accept the native popup's begin-edit dispatch."""
+
+    def end_edit(self, item):
+        """Accept the native popup's end-edit dispatch."""
+
+    def destroy(self):
+        """Release notifications from the owned component value models."""
+        self._subscriptions.clear()
 
 
 class ColorValueModel(ui.AbstractValueModel):
@@ -52,10 +89,6 @@ class ColorValueModel(ui.AbstractValueModel):
 class ColorField(AbstractField):
     """Delegate of the tree"""
 
-    _WRITE_COLOR = 1
-    _CHECKPOINT_COLOR = 2
-    _DISMISS_PICKER = 3
-
     def __init__(self, display_precision: int = 2, style_name: str = "ColorsWidgetFieldRead"):
         super().__init__(style_name=style_name)
 
@@ -63,17 +96,14 @@ class ColorField(AbstractField):
 
         # The color widget is a bit unique as the provided item's model is not used directly within the widget. We
         # instead connect change events between the two models to ensure that updates properly flow both ways.
-        self._color_widget_begin_edit_subscription = None
-        self._color_widget_changed_sub = None
         self._color_widget_item_changed_subscription = None
         self._update_subscription = None
-        self._pending_action = None
         self._value_model_value_changed_sub = None
         self._unsubscribe_property_edit_cancel = None
         self._value_model = None
-        self._picker_window = None
-        self._undo_callback_id = None
-        self._mouse_input_subscription_id = None
+        self._color_widget_model = None
+        self._picker = None
+        self._undo_history = None
 
         # Both change callbacks ignore updates echoed from the other model.
         self._ignore_value_change_events = False
@@ -98,6 +128,9 @@ class ColorField(AbstractField):
         vec = value_model.get_attributes_raw_value(0)
         if vec is None:
             vec = Gf.Vec3f(0, 0, 0)
+        color_model = _ColorItemModel(vec)
+        self._color_widget_model = color_model
+        component_models = tuple(color_model.get_item_value_model(child) for child in color_model.get_item_children())
 
         widgets = []
 
@@ -105,15 +138,20 @@ class ColorField(AbstractField):
             ui.Spacer(width=ui.Pixel(8))
             with ui.VStack():
                 ui.Spacer(height=ui.Pixel(2))
-                color_widget = ui.ColorWidget(*vec, name=self.style_name, enabled=not value_model.read_only)
-                widgets.append(color_widget)
+                self._picker = ColorPicker(
+                    color_model,
+                    begin_edit_fn=partial(self._color_widget_begin_edit, value_model),
+                    end_edit_fn=partial(self._color_widget_changed, type(vec), value_model, component_models),
+                    name=self.style_name,
+                    style_type_name_override=self.style_name,
+                    identifier="color_swatch",
+                    enabled=not value_model.read_only,
+                )
+                widgets.append(self._picker)
                 ui.Spacer(height=ui.Pixel(2))
 
             ui.Spacer(width=ui.Pixel(4))
 
-            component_models = tuple(
-                color_widget.model.get_item_value_model(child) for child in color_widget.model.get_item_children()
-            )
             for index, child_model in enumerate(component_models):
                 ui.Spacer(width=ui.Pixel(4))
                 with ui.VStack():
@@ -134,15 +172,8 @@ class ColorField(AbstractField):
                         ui.Spacer(height=ui.Pixel(4))
 
             # The picker changes RGB components separately; author the completed color once per frame.
-            self._color_widget_item_changed_subscription = color_widget.model.subscribe_item_changed_fn(
+            self._color_widget_item_changed_subscription = color_model.subscribe_item_changed_fn(
                 partial(self._color_widget_item_changed, type(vec), value_model, component_models)
-            )
-            self._color_widget_begin_edit_subscription = color_widget.model.subscribe_begin_edit_fn(
-                partial(self._color_widget_begin_edit, type(vec), value_model, component_models)
-            )
-            # Closing the picker commits the final value and ends its backing model edit session.
-            self._color_widget_changed_sub = color_widget.model.subscribe_end_edit_fn(
-                partial(self._color_widget_changed, type(vec), value_model, component_models)
             )
 
         self._value_model_value_changed_sub = value_model.subscribe_value_changed_fn(
@@ -157,130 +188,68 @@ class ColorField(AbstractField):
 
     def cleanup(self) -> None:
         """Release field subscriptions and close any active picker edit sessions."""
-        self._stop_watching_popup()
+        self._clear_pending_update()
         if self._unsubscribe_property_edit_cancel is not None:
             self._unsubscribe_property_edit_cancel()
             self._unsubscribe_property_edit_cancel = None
         self._color_widget_item_changed_subscription = None
-        self._color_widget_begin_edit_subscription = None
-        self._color_widget_changed_sub = None
         self._value_model_value_changed_sub = None
-        self._cancel_edit()
+        picker = self._picker
+        self._picker = None
+        try:
+            self._cancel_edit()
+        finally:
+            if picker is not None:
+                picker.destroy()
+        if self._color_widget_model is not None:
+            self._color_widget_model.destroy()
+            self._color_widget_model = None
         self._value_model = None
 
     def _cancel_edit(self) -> None:
-        """Discard a cancelled popup's buffered input while keeping the row reusable."""
+        """Discard interrupted input before dismissing an active picker edit."""
         self._picker_edit_cancelled = True
-        self._stop_watching_mouse()
-        if self._pending_action != self._DISMISS_PICKER:
-            self._clear_pending_update()
-        self._end_edit()
+        self._undo_history = None
+        self._clear_pending_update()
+        try:
+            self._end_edit()
+        finally:
+            if self._picker is not None:
+                self._picker.cancel()
 
-    def _color_widget_begin_edit(self, vec_type, value_model, component_models, _model, _item):
-        """Accept new picker input when the native popup opens again."""
+    def _color_widget_begin_edit(self, value_model):
+        """Snapshot the backing edit before the gesture's first component changes."""
         if value_model is not self._value_model:
             return
         self._picker_edit_cancelled = False
-        self._picker_window = next(
-            (
-                window
-                for window in reversed(ui.Workspace.get_windows())
-                if isinstance(window, ui.Window) and window.focused
-            ),
-            None,
-        )
-        if self._picker_window is not None and self._undo_callback_id is None:
-            self._undo_callback_id = register_callback(
-                "Undo", POST_DO_CALLBACK, partial(self._on_undo, vec_type, value_model, component_models)
-            )
-        if self._picker_window is not None and value_model.supports_batch_edit:
-            self._mouse_input_subscription_id = carb.input.acquire_input_interface().subscribe_to_input_events(
-                partial(self._on_picker_mouse_input, vec_type, value_model, component_models),
-                device=self._picker_window.app_window.get_mouse(),
-                order=0,
-            )
+        self._undo_history = self._get_undo_history()
+        if value_model.supports_batch_edit and not self._batch_editing:
+            value_model.begin_batch_edit(live=True)
+            self._batch_editing = True
 
-    def _on_picker_mouse_input(self, vec_type, value_model, component_models, event):
-        """Checkpoint completed mouse edits without consuming native picker input."""
-        if event.event.type == carb.input.MouseEventType.LEFT_BUTTON_UP and not self._picker_edit_cancelled:
-            # Native popup controls expose no per-drag edit callbacks. Wait for their final RGB update.
-            self._schedule_update(self._CHECKPOINT_COLOR, vec_type, value_model, component_models)
-        return True
-
-    def _schedule_update(self, action, vec_type, value_model, component_models):
-        """Queue the highest-priority picker action for the next application update."""
-        if value_model is not self._value_model or (
-            self._pending_action is not None and action <= self._pending_action
-        ):
-            return
-        self._pending_action = action
-        if self._update_subscription is None:
-            self._update_subscription = (
-                get_app()
-                .get_update_event_stream()
-                .create_subscription_to_pop(
-                    partial(self._drain_update, vec_type, value_model, component_models),
-                    name="ColorField pending update",
-                )
-            )
+    @staticmethod
+    def _get_undo_history():
+        """Use the execution sequence so execute/Undo cannot return to the same boundary."""
+        return next(reversed(get_history()), 0)
 
     def _drain_update(self, vec_type, value_model, component_models, _event):
-        """Apply queued input or dismiss the popup before any color can be authored."""
+        """Author one complete color from the component updates."""
         if value_model is not self._value_model:
             return
-        action = self._pending_action
         self._clear_pending_update()
-        if action is None:
-            return
-        if action == self._DISMISS_PICKER:
-            self._cancel_edit()
-            if self._picker_window is not None:
-                self._picker_window.focus()
-            return
         if self._picker_edit_cancelled:
             return
         self._apply_color(vec_type, value_model, component_models)
-        if action == self._CHECKPOINT_COLOR and self._batch_editing and not self._picker_edit_cancelled:
-            self._batch_editing = False
-            value_model.end_batch_edit()
-            if value_model is self._value_model and not self._picker_edit_cancelled:
-                # Keep observing external edits between drags; an empty live batch creates no undo entry.
-                value_model.begin_batch_edit(live=True)
-                self._batch_editing = True
 
     def _clear_pending_update(self):
-        """Discard the queued action and release its application update subscription."""
-        self._pending_action = None
+        """Discard the queued color and release its application update subscription."""
         self._update_subscription = None
-
-    def _stop_watching_mouse(self):
-        """Release popup-only mouse input observation."""
-        if self._mouse_input_subscription_id is not None:
-            carb.input.acquire_input_interface().unsubscribe_to_input_events(self._mouse_input_subscription_id)
-            self._mouse_input_subscription_id = None
-
-    def _on_undo(self, vec_type, value_model, component_models, _info):
-        """Schedule dismissal after the Undo command restores its values."""
-        if self._picker_window is None:
-            return
-        # SDK command callbacks iterate a mutable list; close the popup after dispatch.
-        self._schedule_update(self._DISMISS_PICKER, vec_type, value_model, component_models)
-
-    def _stop_watching_popup(self):
-        """Release popup observers and discard any pending picker action."""
-        self._clear_pending_update()
-        self._stop_watching_mouse()
-        self._picker_window = None
-        if self._undo_callback_id is not None:
-            unregister_callback(self._undo_callback_id)
-            self._undo_callback_id = None
 
     def _value_model_changed(self, component_models, value_model):
         """Synchronize the picker components with the backing property value."""
         if self._ignore_value_change_events or value_model is not self._value_model:
             return
-        if self._pending_action == self._WRITE_COLOR:
-            self._clear_pending_update()
+        self._clear_pending_update()
         if value_model.supports_batch_edit and not value_model.is_batch_editing:
             self._batch_editing = False
         vec = value_model.get_attributes_raw_value(0)
@@ -307,21 +276,28 @@ class ColorField(AbstractField):
             # Observe competing scene edits before the queued first color can be authored.
             value_model.begin_batch_edit(live=True)
             self._batch_editing = True
-        self._schedule_update(self._WRITE_COLOR, vec_type, value_model, component_models)
+        if self._update_subscription is None:
+            self._update_subscription = (
+                get_app()
+                .get_update_event_stream()
+                .create_subscription_to_pop(
+                    partial(self._drain_update, vec_type, value_model, component_models),
+                    name="ColorField pending color",
+                )
+            )
 
-    def _color_widget_changed(self, vec_type, value_model, component_models, _model, _item):
-        """Commit any queued color when the picker closes and close its edit sessions."""
+    def _color_widget_changed(self, vec_type, value_model, component_models):
+        """Flush the final gesture color before closing its backing edit sessions."""
         if value_model is not self._value_model:
             return
-        action = self._pending_action
-        if action == self._DISMISS_PICKER:
-            self._cancel_edit()
-        self._stop_watching_popup()
+        pending_color = self._update_subscription is not None
+        self._clear_pending_update()
         try:
-            if action in (self._WRITE_COLOR, self._CHECKPOINT_COLOR) and not self._picker_edit_cancelled:
+            if pending_color and not self._picker_edit_cancelled:
                 self._apply_color(vec_type, value_model, component_models)
         finally:
             self._end_edit()
+            self._undo_history = None
             if self._picker_edit_cancelled:
                 self._value_model_changed(component_models, value_model)
 
@@ -342,14 +318,14 @@ class ColorField(AbstractField):
         Args:
             vec_type: Vector constructor matching the backing color value.
             value_model: Destination property value model that receives the color.
-            component_models: Retained native value models that provide the color components.
+            component_models: Retained value models that provide the color components.
         """
-        if (
-            value_model is not self._value_model
-            or value_model.read_only
-            or self._picker_edit_cancelled
-            or self._pending_action == self._DISMISS_PICKER
-        ):
+        if value_model is not self._value_model or value_model.read_only or self._picker_edit_cancelled:
+            return
+        history = self._get_undo_history()
+        if self._undo_history is not None and history != self._undo_history:
+            self._cancel_edit()
+            self._value_model_changed(component_models, value_model)
             return
         new_value = vec_type(*(component_model.get_value_as_float() for component_model in component_models))
         if not value_model.is_mixed and new_value == value_model.get_attributes_raw_value(0):
@@ -367,6 +343,8 @@ class ColorField(AbstractField):
                     if not self._value_model_editing:
                         self._end_edit()
             value_model.set_value(new_value)
+            if value_model is self._value_model and not self._picker_edit_cancelled:
+                self._undo_history = self._get_undo_history()
         finally:
             self._ignore_value_change_events = False
             if value_model.supports_batch_edit and not value_model.is_batch_editing:
