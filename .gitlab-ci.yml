@@ -71,15 +71,15 @@ include:
   - local: tools/ci/gitlab/defaults/release_rules.yml
   - local: tools/ci/gitlab/defaults/agents.yml
   - local: tools/ci/gitlab/defaults/vault.yml
-  # Vault definitions
-  - project: 'omniverse/sectools/vault'
-    file: 'templates/v3/linux/packman_s3.gitlab-ci.yml'
+  # Shared package publishing and separate extension/signing credentials
+  - project: lightspeedrtx/lightspeedvault
+    ref: main
+    file:
+      - /templates/publishing.gitlab-ci.yml
   - project: 'omniverse/sectools/vault'
     file: 'templates/v3/linux/codesign.gitlab-ci.yml'
   - project: 'omniverse/sectools/vault'
     file: "templates/v3/linux/nucleus/kit-extensions.ov.nvidia.com/kit-extension-svc.gitlab-ci.yml"
-  - project: 'omniverse/sectools/vault'
-    file: 'templates/v3/windows/packman_s3.gitlab-ci.yml'
   - project: 'omniverse/sectools/vault'
     file: 'templates/v3/windows/codesign.gitlab-ci.yml'
   - project: 'omniverse/sectools/vault'

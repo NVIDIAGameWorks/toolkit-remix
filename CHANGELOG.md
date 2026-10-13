@@ -106,6 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved the Toolkit REST routes from six `.service` extensions into `lightspeed.trex.service.core` without changing the REST API or MCP tools, and fixed hot-reloading `lightspeed.trex.service.core` failing to restart and doubling its OpenAPI tags
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-f337894-main`
 
+- Migrated toolkit ZIP packaging and publishing to Lightspeed uploader, with dependency discovery selecting Remix remotes from the DXVK source branch.
+
 ### Removed
 
 - Removed the unstable custom numeric expression controller from bounded drag widgets, along with object properties E2E coverage for the retired expression overlay, while preserving deferred property refreshes and native drag hard-bound clamping.

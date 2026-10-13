@@ -72,7 +72,7 @@ jobs:
         EOF
         
         # Download from packman using project.xml
-        if ./tools/packman/packman pull project.xml; then
+        if ./tools/packman/packman pull project.xml -r rtx-remix-external; then
           echo "✅ Successfully downloaded $FILENAME"
           echo "SHOULD_UPLOAD=true" >> $GITHUB_ENV
           echo "FILENAME=$FILENAME" >> $GITHUB_ENV
