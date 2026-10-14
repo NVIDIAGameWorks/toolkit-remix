@@ -64,7 +64,12 @@ case "${notification_type}" in
         : "${REMIX_TARGET_DEP_BOT_BRANCH:?REMIX_TARGET_DEP_BOT_BRANCH must be set}"
 
         notification_result="failure"
-        message=":red_circle: Remix dependency bot scheduled job failed for ${CI_PROJECT_PATH}. Source SHA: ${CI_COMMIT_SHA}. Repro latest bot branch if present: git fetch origin ${REMIX_TARGET_DEP_BOT_BRANCH} && git checkout origin/${REMIX_TARGET_DEP_BOT_BRANCH}. Pipeline: ${CI_PIPELINE_URL}"
+        printf -v message '%s\n%s\n%s\n%s\n%s' \
+            ":red_circle: *Remix dependency bot scheduled job failed*" \
+            "*Project:* \`${CI_PROJECT_PATH}\`" \
+            "*Source SHA:* \`${CI_COMMIT_SHA}\`" \
+            "*Repro latest bot branch if present:* \`git fetch origin ${REMIX_TARGET_DEP_BOT_BRANCH} && git checkout origin/${REMIX_TARGET_DEP_BOT_BRANCH}\`" \
+            "*Pipeline:* <${CI_PIPELINE_URL}|View pipeline>"
         ;;
     *)
         echo "Unknown notification type: ${notification_type}" >&2
