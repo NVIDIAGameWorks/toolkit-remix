@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.9]
+### Fixed
+- Stopped sending the texture of the material a subset-bound mesh inherits from its captured prim to the job queue.
+
 ## [3.0.8]
 ### Fixed
 - Restricted ComfyUI texture choices to mapped material inputs and excluded Other.

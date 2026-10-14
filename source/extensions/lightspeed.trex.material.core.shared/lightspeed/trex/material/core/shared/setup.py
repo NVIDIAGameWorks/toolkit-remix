@@ -21,6 +21,7 @@ import typing
 
 import omni.usd
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
+from omni.flux.utils.common.materials import get_bound_material as _get_bound_material
 from pxr import Usd, UsdGeom, UsdShade
 
 if typing.TYPE_CHECKING:
@@ -52,7 +53,7 @@ class Setup:
                 yield from traverse_instanced_children(child)
 
         def get_mat_from_geo(_prim):
-            _material, _ = UsdShade.MaterialBindingAPI(_prim).ComputeBoundMaterial()
+            _material = _get_bound_material(_prim)
             if _material:
                 return _material.GetPath()
             return None

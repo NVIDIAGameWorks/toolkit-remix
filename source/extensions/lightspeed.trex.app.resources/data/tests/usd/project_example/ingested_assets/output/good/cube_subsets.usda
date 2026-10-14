@@ -1,0 +1,77 @@
+#usda 1.0
+(
+    defaultPrim = "Root"
+    metersPerUnit = 1
+    upAxis = "Y"
+)
+
+def Xform "Root"
+{
+    def Mesh "SubsetCube"
+    {
+        int[] faceVertexCounts = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+        int[] faceVertexIndices = [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23]
+        point3f[] points = [(-50, -50, 50), (50, -50, 50), (50, 50, 50), (-50, 50, 50), (-50, -50, -50), (-50, 50, -50), (50, 50, -50), (50, -50, -50), (-50, 50, -50), (-50, 50, 50), (50, 50, 50), (50, 50, -50), (-50, -50, -50), (50, -50, -50), (50, -50, 50), (-50, -50, 50), (-50, -50, -50), (-50, -50, 50), (-50, 50, 50), (-50, 50, -50), (50, -50, -50), (50, 50, -50), (50, 50, 50), (50, -50, 50)]
+        uniform token subdivisionScheme = "none"
+        uniform token subsetFamily:materialBind:familyType = "partition"
+
+        def GeomSubset "SubsetA" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [0, 1, 2, 3, 4, 5]
+            rel material:binding = </Root/Looks/SubsetMaterialA>
+        }
+
+        def GeomSubset "SubsetB" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            uniform token elementType = "face"
+            uniform token familyName = "materialBind"
+            int[] indices = [6, 7, 8, 9, 10, 11]
+            rel material:binding = </Root/Looks/SubsetMaterialB>
+        }
+    }
+
+    def Scope "Looks"
+    {
+        def Material "SubsetMaterialA"
+        {
+            token outputs:mdl:displacement.connect = </Root/Looks/SubsetMaterialA/Shader.outputs:out>
+            token outputs:mdl:surface.connect = </Root/Looks/SubsetMaterialA/Shader.outputs:out>
+            token outputs:mdl:volume.connect = </Root/Looks/SubsetMaterialA/Shader.outputs:out>
+
+            def Shader "Shader"
+            {
+                uniform token info:implementationSource = "sourceAsset"
+                uniform asset info:mdl:sourceAsset = @AperturePBR_Opacity.mdl@
+                uniform token info:mdl:sourceAsset:subIdentifier = "AperturePBR_Opacity"
+                color3f inputs:diffuse_color_constant = (0.8, 0.1, 0.1)
+                token outputs:out (
+                    renderType = "material"
+                )
+            }
+        }
+
+        def Material "SubsetMaterialB"
+        {
+            token outputs:mdl:displacement.connect = </Root/Looks/SubsetMaterialB/Shader.outputs:out>
+            token outputs:mdl:surface.connect = </Root/Looks/SubsetMaterialB/Shader.outputs:out>
+            token outputs:mdl:volume.connect = </Root/Looks/SubsetMaterialB/Shader.outputs:out>
+
+            def Shader "Shader"
+            {
+                uniform token info:implementationSource = "sourceAsset"
+                uniform asset info:mdl:sourceAsset = @AperturePBR_Opacity.mdl@
+                uniform token info:mdl:sourceAsset:subIdentifier = "AperturePBR_Opacity"
+                color3f inputs:diffuse_color_constant = (0.1, 0.1, 0.8)
+                token outputs:out (
+                    renderType = "material"
+                )
+            }
+        }
+    }
+}

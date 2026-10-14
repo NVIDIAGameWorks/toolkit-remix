@@ -778,8 +778,6 @@ class TestComfyUICore(AsyncTestCase):
         second_mesh.IsA.side_effect = lambda schema: schema is UsdGeom.Mesh
         context = _make_context()
         context.get_stage.return_value.GetPrimAtPath.return_value = parent
-        binding = mock.MagicMock()
-        binding.ComputeBoundMaterial.return_value = (material, None)
 
         def get_materials(paths, _context_name):
             self.assertEqual(list(paths), ["/Asset"])
@@ -795,7 +793,7 @@ class TestComfyUICore(AsyncTestCase):
                 "lightspeed.trex.comfyui.core.core.Usd.PrimRange",
                 return_value=[first_mesh, subset, second_mesh],
             ),
-            mock.patch("lightspeed.trex.comfyui.core.core.UsdShade.MaterialBindingAPI", return_value=binding),
+            mock.patch("lightspeed.trex.comfyui.core.core.get_bound_material", return_value=material),
         ):
             # Act
             candidates = core._get_material_candidates(iter(("/Asset",)))

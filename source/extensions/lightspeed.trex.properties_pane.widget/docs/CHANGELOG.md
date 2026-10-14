@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.6]
+### Added
+- Added end-to-end coverage for the Material Properties panel with a replacement mesh whose materials are bound on GeomSubsets.
+
 ## [1.17.5]
 ### Fixed
 - Shared selected prims across Properties panels within each refresh.

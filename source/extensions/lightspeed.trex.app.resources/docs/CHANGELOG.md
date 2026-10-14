@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.30.5]
+### Added
+- Added a `cube_subsets.usda` ingested test asset whose mesh binds its materials through GeomSubsets only.
+
 ## [1.30.4]
 ### Changed
 - Limited the Stage Manager Categories tab top bar to Search and Additional Filters.

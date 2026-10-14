@@ -20,6 +20,7 @@ __all__ = ["iter_texture_paths_for_prim"]
 from collections.abc import Iterator
 
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS
+from omni.flux.utils.common.materials import get_bound_material
 from omni.usd import get_context
 from pxr import Sdf, Usd, UsdShade
 
@@ -64,7 +65,7 @@ def _get_bound_material_prim(prim: Usd.Prim) -> Usd.Prim | None:
     Returns:
         Valid bound material prim, or ``None`` when no material is bound.
     """
-    material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
+    material = get_bound_material(prim)
     if material:
         material_prim = material.GetPrim()
         if material_prim.IsValid():
