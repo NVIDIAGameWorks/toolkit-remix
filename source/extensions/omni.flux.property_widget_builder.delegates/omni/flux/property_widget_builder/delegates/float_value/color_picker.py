@@ -70,20 +70,19 @@ class _PickerValueModel(ui.AbstractValueModel):
 class ColorPicker(ui.Frame):
     """Display a color swatch with an owned picker and explicit gesture boundaries."""
 
-    _PLANE_SIZE = ui.Pixel(180)
+    _PLANE_SIZE = ui.Pixel(240)
     _HUE_WIDTH = ui.Pixel(20)
-    _SWATCH_WIDTH = ui.Pixel(24)
+    _SWATCH_WIDTH = ui.Pixel(48)
     _SWATCH_HEIGHT = ui.Pixel(20)
-    _WINDOW_WIDTH = ui.Pixel(320)
-    _WINDOW_HEIGHT = ui.Pixel(360)
     _CHANNEL_ROW_HEIGHT = ui.Pixel(20)
-    _CHANNEL_LABEL_WIDTH = ui.Pixel(12)
+    _CHANNEL_LABEL_WIDTH = ui.Pixel(24)
     _HEX_LABEL_WIDTH = ui.Pixel(32)
     _CURRENT_WIDTH = ui.Pixel(64)
     _CURRENT_HEIGHT = ui.Pixel(44)
     _SPACING = ui.Pixel(8)
     _PADDING = ui.Pixel(8)
-    _CLOSE_HEIGHT = ui.Pixel(24)
+    _RIGHT_PADDING = ui.Pixel(16)
+    _BOTTOM_PADDING = ui.Pixel(24)
     _MARKER_SIZE = ui.Pixel(12)
     _MARKER_INNER_SIZE = ui.Pixel(8)
     _HUE_MARKER_WIDTH = ui.Pixel(8)
@@ -221,10 +220,21 @@ class ColorPicker(ui.Frame):
             checker_height = int(float(self._CURRENT_HEIGHT))
             checker = create_checkerboard(checker_width, checker_height)
             self._checker_provider.set_bytes_data(checker.ravel().tolist(), [checker_width, checker_height])
-        popup_height = float(self._WINDOW_HEIGHT) + (
-            float(self._CHANNEL_ROW_HEIGHT) + float(self._SPACING) if len(self._components) == 4 else 0
+        main_width = ui.Pixel(float(self._PLANE_SIZE) + float(self._HUE_WIDTH) + float(self._SPACING))
+        popup_width = (
+            float(main_width)
+            + float(self._CURRENT_WIDTH)
+            + float(self._SPACING)
+            + float(self._PADDING)
+            + float(self._RIGHT_PADDING)
         )
-        self._window = ColorPickerPopup(self, float(self._WINDOW_WIDTH), popup_height, self.close)
+        popup_height = (
+            float(self._PLANE_SIZE)
+            + 3 * (float(self._CHANNEL_ROW_HEIGHT) + float(self._SPACING))
+            + float(self._PADDING)
+            + float(self._BOTTOM_PADDING)
+        )
+        self._window = ColorPickerPopup(self, popup_width, popup_height, self.close)
         self._window_title = self._window.title
         self._hsv_models = [ui.SimpleFloatModel(value) for value in (self._hue, self._saturation, self._value)]
         self._hex_model = ui.SimpleStringModel(self._format_hex())
@@ -238,63 +248,92 @@ class ColorPicker(ui.Frame):
                 ui.Rectangle(name="WorkspaceBackground", opaque_for_mouse_events=False)
                 with ui.HStack():
                     ui.Spacer(width=self._PADDING)
-                    with ui.VStack(spacing=self._SPACING):
+                    with ui.VStack():
                         ui.Spacer(height=self._PADDING)
-                        with ui.HStack(spacing=self._SPACING, height=self._PLANE_SIZE):
-                            with ui.ZStack(width=self._PLANE_SIZE):
-                                self._sv_image = ui.ImageWithProvider(
-                                    self._sv_provider,
-                                    fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
-                                    identifier="color_picker_sv",
-                                    mouse_pressed_fn=partial(self._on_plane_pressed, "sv", self._window),
-                                    mouse_moved_fn=partial(self._on_plane_moved, "sv", self._window),
-                                    mouse_released_fn=partial(self._on_plane_released, self._window),
+                        with ui.HStack(spacing=self._SPACING):
+                            with ui.VStack(width=main_width, spacing=self._SPACING):
+                                with ui.HStack(spacing=self._SPACING, height=self._PLANE_SIZE):
+                                    with ui.ZStack(width=self._PLANE_SIZE):
+                                        self._sv_image = ui.ImageWithProvider(
+                                            self._sv_provider,
+                                            fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
+                                            identifier="color_picker_sv",
+                                            mouse_pressed_fn=partial(self._on_plane_pressed, "sv", self._window),
+                                            mouse_moved_fn=partial(self._on_plane_moved, "sv", self._window),
+                                            mouse_released_fn=partial(self._on_plane_released, self._window),
+                                        )
+                                        self._sv_marker = ui.Placer(stable_size=True)
+                                        with self._sv_marker:
+                                            with ui.ZStack(width=self._MARKER_SIZE, height=self._MARKER_SIZE):
+                                                ui.Circle(
+                                                    width=self._MARKER_SIZE,
+                                                    height=self._MARKER_SIZE,
+                                                    name="ColorPickerHandleOutline",
+                                                    opaque_for_mouse_events=False,
+                                                )
+                                                ui.Circle(
+                                                    width=self._MARKER_SIZE,
+                                                    height=self._MARKER_SIZE,
+                                                    radius=float(self._MARKER_INNER_SIZE) / 2,
+                                                    size_policy=ui.CircleSizePolicy.FIXED,
+                                                    alignment=ui.Alignment.CENTER,
+                                                    name="ColorPickerHandle",
+                                                    opaque_for_mouse_events=False,
+                                                )
+                                    with ui.ZStack(width=self._HUE_WIDTH):
+                                        self._hue_image = ui.ImageWithProvider(
+                                            self._hue_provider,
+                                            fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
+                                            identifier="color_picker_hue",
+                                            mouse_pressed_fn=partial(self._on_plane_pressed, "hue", self._window),
+                                            mouse_moved_fn=partial(self._on_plane_moved, "hue", self._window),
+                                            mouse_released_fn=partial(self._on_plane_released, self._window),
+                                        )
+                                        self._hue_marker = ui.Placer(stable_size=True)
+                                        with self._hue_marker:
+                                            with ui.HStack(width=self._HUE_WIDTH, height=self._HUE_MARKER_HEIGHT):
+                                                ui.Triangle(
+                                                    width=self._HUE_MARKER_WIDTH,
+                                                    height=self._HUE_MARKER_HEIGHT,
+                                                    alignment=ui.Alignment.RIGHT_CENTER,
+                                                    name="ColorPickerHueHandle",
+                                                    opaque_for_mouse_events=False,
+                                                )
+                                                ui.Spacer()
+                                                ui.Triangle(
+                                                    width=self._HUE_MARKER_WIDTH,
+                                                    height=self._HUE_MARKER_HEIGHT,
+                                                    alignment=ui.Alignment.LEFT_CENTER,
+                                                    name="ColorPickerHueHandle",
+                                                    opaque_for_mouse_events=False,
+                                                )
+                                self._build_numeric_row(
+                                    [
+                                        (name[0].upper(), parent, partial(self._write_component, index), name)
+                                        for index, (name, parent) in enumerate(
+                                            zip(self._CHANNEL_NAMES, self._components)
+                                        )
+                                    ]
                                 )
-                                self._sv_marker = ui.Placer(stable_size=True)
-                                with self._sv_marker:
-                                    with ui.ZStack(width=self._MARKER_SIZE, height=self._MARKER_SIZE):
-                                        ui.Circle(
-                                            width=self._MARKER_SIZE,
-                                            height=self._MARKER_SIZE,
-                                            name="ColorPickerHandleOutline",
-                                            opaque_for_mouse_events=False,
-                                        )
-                                        ui.Circle(
-                                            width=self._MARKER_SIZE,
-                                            height=self._MARKER_SIZE,
-                                            radius=float(self._MARKER_INNER_SIZE) / 2,
-                                            size_policy=ui.CircleSizePolicy.FIXED,
-                                            alignment=ui.Alignment.CENTER,
-                                            name="ColorPickerHandle",
-                                            opaque_for_mouse_events=False,
-                                        )
-                            with ui.ZStack(width=self._HUE_WIDTH):
-                                self._hue_image = ui.ImageWithProvider(
-                                    self._hue_provider,
-                                    fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
-                                    identifier="color_picker_hue",
-                                    mouse_pressed_fn=partial(self._on_plane_pressed, "hue", self._window),
-                                    mouse_moved_fn=partial(self._on_plane_moved, "hue", self._window),
-                                    mouse_released_fn=partial(self._on_plane_released, self._window),
-                                )
-                                self._hue_marker = ui.Placer(stable_size=True)
-                                with self._hue_marker:
-                                    with ui.HStack(width=self._HUE_WIDTH, height=self._HUE_MARKER_HEIGHT):
-                                        ui.Triangle(
-                                            width=self._HUE_MARKER_WIDTH,
-                                            height=self._HUE_MARKER_HEIGHT,
-                                            alignment=ui.Alignment.RIGHT_CENTER,
-                                            name="ColorPickerHueHandle",
-                                            opaque_for_mouse_events=False,
-                                        )
-                                        ui.Spacer()
-                                        ui.Triangle(
-                                            width=self._HUE_MARKER_WIDTH,
-                                            height=self._HUE_MARKER_HEIGHT,
-                                            alignment=ui.Alignment.LEFT_CENTER,
-                                            name="ColorPickerHueHandle",
-                                            opaque_for_mouse_events=False,
-                                        )
+                                hsv_fields = [
+                                    (label, parent, partial(self._write_hsv, index), name)
+                                    for index, (label, parent, name) in enumerate(
+                                        zip("HSV", self._hsv_models, self._HSV_NAMES)
+                                    )
+                                ]
+                                if len(self._components) == 4:
+                                    hsv_fields.append(
+                                        ("A", self._components[3], partial(self._write_component, 3), "alpha_hsv")
+                                    )
+                                self._build_numeric_row(hsv_fields)
+                                with ui.HStack(height=self._CHANNEL_ROW_HEIGHT):
+                                    ui.Label("Hex", width=self._HEX_LABEL_WIDTH)
+                                    ui.StringField(
+                                        model=self._create_input_model(
+                                            self._hex_model, self._write_hex_text, commit_fn=self._commit_hex
+                                        ),
+                                        identifier="color_picker_hex",
+                                    )
                             with ui.VStack(width=self._CURRENT_WIDTH, spacing=self._SPACING):
                                 ui.Label("Current", height=self._CHANNEL_ROW_HEIGHT)
                                 with ui.ZStack(height=self._CURRENT_HEIGHT):
@@ -311,38 +350,8 @@ class ColorPicker(ui.Frame):
                                         self._current_opaque = ui.Rectangle(opaque_for_mouse_events=False)
                                     ui.Rectangle(name="ColorPickerCurrentBorder", opaque_for_mouse_events=False)
                                 ui.Spacer()
-                        self._build_numeric_row(
-                            [
-                                (name[0].upper(), parent, partial(self._write_component, index), name)
-                                for index, (name, parent) in enumerate(zip(self._CHANNEL_NAMES, self._components))
-                            ]
-                        )
-                        hsv_fields = [
-                            (label, parent, partial(self._write_hsv, index), name)
-                            for index, (label, parent, name) in enumerate(zip("HSV", self._hsv_models, self._HSV_NAMES))
-                        ]
-                        if len(self._components) == 4:
-                            hsv_fields.append(
-                                ("A", self._components[3], partial(self._write_component, 3), "alpha_hsv")
-                            )
-                        self._build_numeric_row(hsv_fields)
-                        with ui.HStack(height=self._CHANNEL_ROW_HEIGHT):
-                            ui.Label("Hex", width=self._HEX_LABEL_WIDTH)
-                            ui.StringField(
-                                model=self._create_input_model(
-                                    self._hex_model, self._write_hex_text, commit_fn=self._commit_hex
-                                ),
-                                identifier="color_picker_hex",
-                            )
-                        ui.Spacer()
-                        ui.Button(
-                            "Close",
-                            height=self._CLOSE_HEIGHT,
-                            identifier="color_picker_close",
-                            clicked_fn=self.close,
-                        )
-                        ui.Spacer(height=self._PADDING)
-                    ui.Spacer(width=self._PADDING)
+                        ui.Spacer(height=self._BOTTOM_PADDING)
+                    ui.Spacer(width=self._RIGHT_PADDING)
         self._sv_image.set_computed_content_size_changed_fn(partial(self._update_markers, self._window))
         self._hue_image.set_computed_content_size_changed_fn(partial(self._update_markers, self._window))
         self._refresh()
@@ -365,7 +374,7 @@ class ColorPicker(ui.Frame):
         with ui.HStack(height=self._CHANNEL_ROW_HEIGHT, spacing=self._SPACING):
             for label, parent, write_fn, identifier in fields:
                 with ui.HStack():
-                    ui.Label(label, width=self._CHANNEL_LABEL_WIDTH)
+                    ui.Label(label, width=self._CHANNEL_LABEL_WIDTH, alignment=ui.Alignment.CENTER)
                     ui.FloatDrag(
                         model=self._create_input_model(parent, write_fn),
                         step=self._NUMERIC_STEP,
@@ -535,18 +544,29 @@ class ColorPicker(ui.Frame):
         return int(rounded)
 
     def _write_hex_text(self, value):
-        """Buffer hexadecimal input until the editor commits."""
+        """Buffer color text until the hexadecimal editor commits."""
         if self._input_enabled and self._hex_model is not None:
             self._hex_dirty = True
             self._hex_model.set_value(str(value))
 
     def _commit_hex(self):
-        """Commit a complete byte string or restore the canonical display."""
+        """Commit hexadecimal or normalized tuple input, or restore the canonical display."""
         if not self._input_enabled or not self._hex_dirty or self._hex_model is None:
             return
         window, model = self._window, self._hex_model
-        text = model.get_value_as_string().strip().removeprefix("#")
+        text = model.get_value_as_string().strip()
         self._hex_dirty = False
+        if text.startswith("(") and text.endswith(")"):
+            components = text[1:-1].split(",", len(self._components))
+            if len(components) == len(self._components):
+                try:
+                    values = [float(component) for component in components]
+                except ValueError:
+                    text = ""
+                else:
+                    if all(0 <= value <= 1 for value in values):
+                        text = "".join(f"{self._display_byte(value):02X}" for value in values)
+        text = text.removeprefix("#")
         if len(text) == len(self._components) * 2 and all(character in hexdigits for character in text):
             self._write_color([int(text[index : index + 2], 16) / 255 for index in range(0, len(text), 2)])
         if self._window is window and self._hex_model is model:

@@ -37,6 +37,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Updated color selector positioning after layout so reopening the picker shows the current color.
 - Refreshed the picker after complete backing color updates so Undo to white, gray, or black preserves the selected hue.
 - Aligned fixed picker dimensions and spacing to the application's four-pixel grid.
+- Enlarged the property swatch and picker square, aligned the fields beneath the square and hue bar with centered channel labels, moved the Current preview alongside them with more right and bottom padding, and removed the Close button while preserving dismissal and viewport-edge usability.
+- Added validated normalized RGB/RGBA tuple input to the Hex field, with canonical hex conversion and one undo operation.
 
 ## [2.0.1]
 ### Added

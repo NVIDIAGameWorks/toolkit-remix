@@ -1325,6 +1325,58 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 self.assertEqual(hex_field.model.get_value_as_string(), updated_text)
                 await self._close_picker()
 
+    async def test_enter_rgb_rgba_tuple_in_hex_converts_to_bytes_and_preserves_per_edit_undo(self):
+        """Numeric tuples become canonical hex colors with the same byte rounding and undo as hex input."""
+        for name, value_type, original, entries in (
+            (
+                "tuple_rgb",
+                Sdf.ValueTypeNames.Color3f,
+                Gf.Vec3f(0.2),
+                (
+                    ("(1,1,1)", Gf.Vec3f(1), "#FFFFFF"),
+                    ("(1,.5,0)", Gf.Vec3f(1, 128 / 255, 0), "#FF8000"),
+                    (" ( 3e-1, .5, 1e0 ) ", Gf.Vec3f(77 / 255, 128 / 255, 1), "#4D80FF"),
+                ),
+            ),
+            (
+                "tuple_rgba",
+                Sdf.ValueTypeNames.Color4f,
+                Gf.Vec4f(0.2, 0.2, 0.2, 0.4),
+                (
+                    ("(1,.5,0,.5)", Gf.Vec4f(1, 128 / 255, 0, 128 / 255), "#FF800080"),
+                    ("(0,1,.3,0)", Gf.Vec4f(0, 1, 77 / 255, 0), "#00FF4D00"),
+                    ("(1,0,0,1)", Gf.Vec4f(1, 0, 0, 1), "#FF0000FF"),
+                ),
+            ),
+        ):
+            with self.subTest(value_type=value_type):
+                attribute = self.color_attribute.GetPrim().CreateAttribute(name, value_type)
+                attribute.Set(original)
+                self.model.set_items([USDAttributeItem("", [attribute.GetPath()])])
+                await omni.kit.ui_test.human_delay()
+                clear_stack()
+                await self._open_picker()
+                hex_field = self._picker_control("StringField", "hex")
+                colors = [original]
+                for text, expected, canonical in entries:
+                    await self._edit_picker_hex(text)
+                    self.assertEqual(attribute.Get(), expected, text)
+                    self.assertEqual(hex_field.model.get_value_as_string(), canonical)
+                    colors.append(expected)
+
+                # Each pasted tuple remains one independently reversible color edit.
+                for expected in reversed(colors[:-1]):
+                    undo()
+                    await omni.kit.ui_test.human_delay()
+                    self.assertEqual(attribute.Get(), expected)
+                self.assertFalse(can_undo())
+                for expected in colors[1:]:
+                    redo()
+                    await omni.kit.ui_test.human_delay()
+                    self.assertEqual(attribute.Get(), expected)
+                self.assertFalse(can_redo())
+                await self._close_picker()
+
     async def test_edit_hsv_achromatic_color_retains_chosen_hue_and_saturation_without_empty_undo(self):
         """Hue and saturation selected on black survive a later value edit without creating empty history."""
         self.color_attribute.Set(Gf.Vec3f(0.0))
@@ -1409,12 +1461,12 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 await self._close_picker()
 
     async def test_enter_invalid_hex_preserves_rgb_rgba_and_recovery_after_close(self):
-        """Invalid and incomplete hex edits preserve scene values and history, including during Close."""
+        """Invalid hex or tuple edits preserve authored color, canonical text, and pending redo during dismissal."""
         for name, value_type, original, invalid, incomplete, valid, expected in (
             (
                 "invalid_hex_rgb",
                 Sdf.ValueTypeNames.Color3f,
-                Gf.Vec3f(0.5, 0.25, 0.125),
+                Gf.Vec3f(-0.25, 2, 0.125),
                 "#GG0000",
                 "#12345",
                 "#0080FF",
@@ -1423,7 +1475,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
             (
                 "invalid_hex_rgba",
                 Sdf.ValueTypeNames.Color4f,
-                Gf.Vec4f(0.5, 0.25, 0.125, 0.5),
+                Gf.Vec4f(-0.25, 2, 0.125, 0.3),
                 "#GG000080",
                 "#1234567",
                 "#0080FF80",
@@ -1436,10 +1488,43 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 self.model.set_items([USDAttributeItem("", [attribute.GetPath()])])
                 await omni.kit.ui_test.human_delay()
                 clear_stack()
+                execute(
+                    "ChangeProperty",
+                    prop_path=self.other_attribute.GetPath(),
+                    value=2.0,
+                    prev=1.0,
+                    usd_context_name="",
+                )
+                undo()
+                await omni.kit.ui_test.human_delay()
                 await self._open_picker()
-                await self._edit_picker_hex(invalid)
-                self.assertEqual(attribute.Get(), original)
-                self.assertFalse(can_undo())
+                canonical = self._picker_control("StringField", "hex").model.get_value_as_string()
+                wrong_count = "(1,1,1,1)" if len(original) == 3 else "(1,1,1)"
+                remaining_channels = ",".join("0.5" for _ in original[1:])
+                for text in (
+                    invalid,
+                    wrong_count,
+                    "(0.5,,0.5)",
+                    "[1,0,0]",
+                    "(1,0,0",
+                    *(
+                        f"({token},{remaining_channels})"
+                        for token in ("-0.1", "1.1", "nan", "inf", "-inf", "1e309", "True", "(0.5)", "1/2", "red")
+                    ),
+                ):
+                    with self.subTest(text=text):
+                        await self._edit_picker_hex(text)
+                        self.assertEqual(attribute.Get(), original)
+                        self.assertEqual(
+                            self._picker_control("StringField", "hex").model.get_value_as_string(), canonical
+                        )
+                        self.assertFalse(can_undo())
+                        self.assertTrue(can_redo())
+                redo()
+                await omni.kit.ui_test.human_delay()
+                self.assertEqual(self.other_attribute.Get(), 2.0)
+                undo()
+                await omni.kit.ui_test.human_delay()
                 await self._focus_picker_hex()
                 await omni.kit.ui_test.emulate_char_press(incomplete)
                 await omni.kit.ui_test.human_delay()
@@ -1447,6 +1532,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 self._assert_picker_closed()
                 self.assertEqual(attribute.Get(), original)
                 self.assertFalse(can_undo())
+                self.assertTrue(can_redo())
                 await self._open_picker()
                 await self._edit_picker_hex(valid)
                 self.assertEqual(attribute.Get(), expected)
@@ -1457,7 +1543,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 await self._close_picker()
 
     async def test_close_pending_hsv_hex_text_commits_once_and_undo_cancels_later_buffer(self):
-        """Close commits focused HSV or hex text, while Undo cancels the next edit without replaying stale input."""
+        """Dismissal commits focused HSV or hex text, while Undo cancels later input without replaying it."""
         original_color = Gf.Vec3f(0.8, 0.2, 0.2)
         for identifier, text, pending, expected, edited_color, restored_color in (
             (
@@ -1476,8 +1562,16 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 Gf.Vec3f(0, 128 / 255, 1),
                 original_color,
             ),
+            (
+                "hex",
+                "(0,.5,1)",
+                "(0,1",
+                Gf.Vec3f(0, 128 / 255, 1),
+                Gf.Vec3f(0, 128 / 255, 1),
+                original_color,
+            ),
         ):
-            with self.subTest(identifier=identifier):
+            with self.subTest(identifier=identifier, text=text):
                 self.color_attribute.Set(original_color)
                 await omni.kit.ui_test.human_delay()
                 clear_stack()
@@ -1579,12 +1673,19 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         await omni.kit.ui_test.human_delay()
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(-1.0, 0.0, 0.0))
 
-    async def test_close_button_with_uncommitted_component_text_preserves_latest_value_and_single_undo(self):
-        """Normal Close commits focused RGB text without creating another undo step."""
-        await self._open_picker()
+    async def test_click_widened_swatch_and_dismiss_pending_rgb_text_preserves_single_undo(self):
+        """The wider swatch opens a buttonless picker whose dismissal commits focused RGB text once."""
+        swatch = omni.kit.ui_test.find(f"{self.window.title}//Frame/**/ColorPicker[*].identifier=='color_swatch'")
+        await omni.kit.ui_test.emulate_mouse_move_and_click(
+            swatch.position + omni.kit.ui_test.Vec2(swatch.size.y * 1.8, swatch.size.y / 2)
+        )
+        await omni.kit.ui_test.human_delay()
+        self.picker_window_title = swatch.widget.window_title
+        self.assertTrue(self.picker_window_title, "Clicking the widened swatch must open its picker")
         await self._focus_picker_component("red")
         await omni.kit.ui_test.emulate_char_press("0.8")
         await omni.kit.ui_test.human_delay()
+        self.assertIsNone(self._picker_control("Button", "close"))
         await self._close_picker()
         self._assert_picker_closed()
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
@@ -1596,31 +1697,42 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         await omni.kit.ui_test.human_delay()
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
         self.assertFalse(can_redo())
+        await self._open_picker()
+        self.assertAlmostEqual(self._picker_control("FloatDrag", "red").model.get_value_as_float(), 0.8)
 
-    async def test_open_picker_near_main_window_bottom_keeps_close_reachable_without_editing_color(self):
-        """RGB and RGBA pickers opened near the viewport bottom remain dismissible without authoring color."""
+    async def test_open_picker_at_viewport_bottom_right_keeps_hex_edit_and_dismissal_usable(self):
+        """RGB and RGBA pickers at the viewport edge keep their last input usable and independently undoable."""
+        self.window.position_x = max(0, ui.Workspace.get_main_window_width() - self.window.width)
         self.window.position_y = max(0, ui.Workspace.get_main_window_height() - self.window.height)
         await omni.kit.ui_test.human_delay()
-        for name, value_type, color in (
-            ("edge_color_rgb", Sdf.ValueTypeNames.Color3f, Gf.Vec3f(0.2)),
-            ("edge_color_rgba", Sdf.ValueTypeNames.Color4f, Gf.Vec4f(0.2, 0.2, 0.2, 0.4)),
+        for name, value_type, color, text, expected in (
+            ("edge_color_rgb", Sdf.ValueTypeNames.Color3f, Gf.Vec3f(0.2), "#0080FF", Gf.Vec3f(0, 128 / 255, 1)),
+            (
+                "edge_color_rgba",
+                Sdf.ValueTypeNames.Color4f,
+                Gf.Vec4f(0.2, 0.2, 0.2, 0.4),
+                "#0080FF66",
+                Gf.Vec4f(0, 128 / 255, 1, 0.4),
+            ),
         ):
             with self.subTest(value_type=value_type):
                 attribute = self.color_attribute.GetPrim().CreateAttribute(name, value_type)
                 attribute.Set(color)
                 self.model.set_items([USDAttributeItem("", [attribute.GetPath()])])
                 await omni.kit.ui_test.human_delay()
+                clear_stack()
                 await self._open_picker()
-                close_button = self._picker_control("Button", "close")
-                close_presses = []
-                # A click outside the viewport may dismiss through focus loss; require an actual Close-button hit.
-                close_button.widget.set_mouse_pressed_fn(lambda *_args, presses=close_presses: presses.append(True))
-                await close_button.click()
-                await omni.kit.ui_test.human_delay()
-                self.assertTrue(close_presses)
+                await self._edit_picker_hex(text)
+                self.assertEqual(attribute.Get(), expected)
+                await self._close_picker()
                 self._assert_picker_closed()
+                undo()
+                await omni.kit.ui_test.human_delay()
                 self.assertEqual(attribute.Get(), color)
                 self.assertFalse(can_undo())
+                redo()
+                await omni.kit.ui_test.human_delay()
+                self.assertEqual(attribute.Get(), expected)
 
     async def test_drag_rgb_fields_applies_live_values_and_preserves_per_release_undo(self):
         """RGB field drags update live and undo independently without discarding other channels."""
@@ -1892,10 +2004,15 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         await omni.kit.ui_test.human_delay()
 
     async def _close_picker(self):
-        """Dismiss this property's open popup through its actual close button."""
+        """Dismiss this property's open popup by clicking outside its native window."""
         window = ui.Workspace.get_window(self.picker_window_title) if self.picker_window_title else None
         if window and window.visible:
-            await self._picker_control("Button", "close").click()
+            await omni.kit.ui_test.emulate_mouse_move_and_click(
+                omni.kit.ui_test.Vec2(
+                    ui.Workspace.get_main_window_width() - 2,
+                    ui.Workspace.get_main_window_height() - 2,
+                )
+            )
             await omni.kit.ui_test.human_delay()
 
     def _assert_picker_closed(self):

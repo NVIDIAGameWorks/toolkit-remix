@@ -48,7 +48,7 @@ class ColorPickerPopup(ui.Window):
             f"ColorPicker_{uuid4()}",
             width=width,
             height=height,
-            position_x=anchor.screen_position_x,
+            position_x=max(0.0, min(anchor.screen_position_x, ui.Workspace.get_main_window_width() - width)),
             position_y=position_y,
             flags=ui.WINDOW_FLAGS_POPUP
             | ui.WINDOW_FLAGS_NO_RESIZE

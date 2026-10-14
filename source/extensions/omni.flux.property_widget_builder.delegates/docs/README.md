@@ -33,9 +33,10 @@ value model.
 The same-extension `ColorPickerPopup` (`ui.Window`) owns popup creation, identity, positioning, local keyboard,
 focus, and visibility dismissal notifications, and deferred native window teardown.
 Each opening uses a fresh native window identity so the new popup cannot inherit held input from a retired popup.
-The popup opens above the field when there is not enough room below it in the main window.
-Its padded layout uses the application's `WorkspaceBackground` style and reserves a fixed-height Close row with
-space beneath it.
+The popup opens above the field when there is not enough room below it and moves left near the main window's right
+edge. Its padded layout uses the application's `WorkspaceBackground` style. The wider property swatch opens a larger
+saturation/value square and hue bar, with RGB/A, HSV/A, and hex fields aligned beneath them. The Current preview sits
+in a separate column on the right. Clicking outside the popup or pressing Escape dismisses it without a Close button.
 The picker borrows that model; the field retains its component models and subscriptions for the row's lifetime.
 Saturation/value and hue controls define each gesture through widget-local press, move, and release callbacks.
 Control-local coordinates map those gestures to colors. Each component's native `ui.FloatDrag` reports its own
@@ -43,10 +44,16 @@ begin/end edit boundary for dragging and typed edits.
 
 The popup provides RGB/A and HSV numeric editors, a hexadecimal field, and a Current preview. Hue and Saturation
 are normalized to `[0, 1]`; Value supports nonnegative HDR floats through typing and dragging.
-Numeric fields apply valid changes live. Hex text is buffered until end-edit or Close; invalid text restores the
-formatted current color.
+Numeric fields apply valid changes live. Hex text is buffered until end-edit or dismissal.
 Hex input accepts `RRGGBB` for RGB or `RRGGBBAA` for RGBA, with an optional `#` prefix. Its display clips and rounds
 channels to bytes without changing authored HDR values; committing a valid hex edit writes each byte divided by 255.
+The same field accepts parenthesized, comma-separated normalized tuples matching the active color's channel count:
+three for RGB or four for RGBA.
+Whitespace is allowed; each channel must be a finite number in `[0, 1]`, inclusive. RGB `(1.0, 1.0, 1.0)` becomes
+`#FFFFFF`, and `(1.0, 0.5, 0.0)` becomes `#FF8000`; RGBA `(1.0, 0.5, 0.0, 0.5)` becomes `#FF800080`.
+Tuple input uses Kit's eight-bit rounding, restores uppercase hex text, and commits changed colors as one undo operation.
+Malformed input, wrong channel counts, booleans, nonnumeric values, and nonfinite or out-of-range channels are rejected.
+Invalid input restores the formatted current color without changing authored values, including HDR, or undo history.
 The Current preview is solid for RGB and splits RGBA into opaque and transparency-over-checkerboard halves.
 
 Gradient image providers are created when the popup first opens. Saturation/value textures are regenerated only
