@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.1.0]
+### Added
+- Added `get_bound_material()`, which returns no material for a mesh whose faces are all bound through GeomSubsets
+
+### Fixed
+- `get_materials_from_prim_paths()` no longer returns the material a mesh fully covered by GeomSubsets inherits from its parent prim
+
 ## [4.0.1]
 ### Fixed
 - Fixed `OmniUrl` JSON serialization with `serialize_as_any=True` on pydantic 2.12 and later

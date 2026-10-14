@@ -19,6 +19,28 @@ import omni.usd
 from pxr import Usd, UsdGeom, UsdShade
 
 
+def get_bound_material(prim: Usd.Prim) -> UsdShade.Material | None:
+    """
+    Get the material bound to a prim.
+
+    A mesh whose faces are all bound through material-bind subsets has no material of its own: the subsets hold the
+    materials it renders with, and its computed binding would be inherited from an ancestor, such as a captured prim.
+
+    Args:
+        prim: The prim to get the bound material for
+
+    Returns:
+        The bound material, or None for unbound prims and meshes whose faces are all covered by material-bind subsets
+    """
+    if prim.IsA(UsdGeom.Mesh):
+        subsets = UsdShade.MaterialBindingAPI(prim).GetMaterialBindSubsets()
+        face_count = len(UsdGeom.Mesh(prim).GetFaceVertexCountsAttr().Get() or [])
+        if subsets and not UsdGeom.Subset.GetUnassignedIndices(subsets, face_count):
+            return None
+    material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
+    return material or None
+
+
 def get_materials_from_prim_paths(
     prim_paths: list[str], context_name: str = ""
 ) -> list[UsdShade.Material | UsdShade.MaterialBindingAPI | None]:
@@ -35,9 +57,7 @@ def get_materials_from_prim_paths(
 
     def get_mat_from_geo(_prim):
         if _prim.IsA(UsdGeom.Subset) or _prim.IsA(UsdGeom.Mesh):
-            _material, _ = UsdShade.MaterialBindingAPI(_prim).ComputeBoundMaterial()
-            if _material:
-                return _material
+            return get_bound_material(_prim)
         return None
 
     usd_context = omni.usd.get_context(context_name)

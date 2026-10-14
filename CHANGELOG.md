@@ -198,6 +198,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-6232: Fixed ingestion jobs that never started after the Pydantic 2.13.5 and FastAPI 0.142.2 upgrade. `OmniUrl` fields failed JSON serialization, and FastAPI rejected schema update requests that had no `Content-Type` header.
 - Clarified the remove-layer and mute-layer MCP tool descriptions: they act on the whole layer and are not a substitute for deleting prims (NVBug 6713667).
 - Matched scheduled Remix dependency bot failure notifications to the formatted Slack pipeline messages.
+- Fixed the Material Properties panel and ComfyUI job queue using the captured material for a replacement mesh whose materials are bound on GeomSubsets; select a subset to edit its material.
 
 ## [1.5.2-0]
 

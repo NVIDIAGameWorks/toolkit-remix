@@ -40,6 +40,8 @@ from omni.flux.utils.widget.resources import get_test_data as _get_test_data
 from omni.flux.layer_tree.usd.widget import LayerTransferTarget as _LayerTransferTarget
 from omni.flux.property_widget_builder.widget import ItemGroup
 from omni.flux.property_widget_builder.widget import PropertyWidget
+from omni.flux.utils.tests.projects import copy_test_project_to_temp
+from omni.flux.utils.widget.file_pickers import destroy_file_picker
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage
@@ -1341,6 +1343,91 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         # ensure the selection tree is occupied with the selection since mesh selection
         self.assertEqual(len(selection_tree.widget.selection), 1)
+
+        await self.__destroy(_window, _wid)
+
+    async def test_select_replacement_mesh_with_subset_bindings_shows_subset_material_only_when_subset_selected(self):
+        # Work on a temp copy of the project: replacing the reference authors into the project's replacement layer.
+        temp_project_dir, stage_url = await copy_test_project_to_temp(
+            "usd/project_example/combined.usda", "lightspeed.trex.app.resources"
+        )
+        self.addCleanup(temp_project_dir.cleanup)
+        await open_stage(stage_url.path)
+        _LayerManagerCore().set_edit_target_layer_of_type(_LayerType.replacement)
+        subset_asset_path = Path(stage_url.path).parent / "ingested_assets/output/good/cube_subsets.usda"
+
+        _window, _wid = await self.__setup_widget(
+            "test_select_replacement_mesh_with_subset_bindings_shows_subset_material_only_when_subset_selected"
+        )
+
+        # The captured mesh binds the captured material, which every replacement under it inherits
+        captured_material = self.MATERIAL_PATH
+        await self.__set_selection(
+            ["/RootNode/instances/inst_BAC90CAA733B0859_0/ref_c89e0497f4ff4dc4a7b70b79c85692da/XForms/Root/Cube"]
+        )
+
+        # Select the current reference in the selection tree to expose the reference file picker
+        item_prims = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='item_prim'")
+        self.assertTrue(item_prims, "Expected the selection tree to list the selected mesh reference")
+        await item_prims[0].click()
+        await ui_test.human_delay()
+
+        replace_ref_open_folder = ui_test.find(
+            f"{_window.title}//Frame/**/Image[*].identifier=='replace_ref_open_folder'"
+        )
+        self.assertIsNotNone(replace_ref_open_folder)
+        self.addCleanup(destroy_file_picker)
+        await replace_ref_open_folder.click()
+        await ui_test.human_delay(1)
+
+        # Pick the ingested replacement whose mesh only binds materials through its GeomSubsets
+        window_name = "Select a reference file"
+        select_button = ui_test.find(f"{window_name}//Frame/**/Button[*].text=='Select'")
+        toolbar_field = ui_test.find(f"{window_name}//Frame/**/Rectangle[*].style_type_name_override=='ToolBar.Field'")
+        self.assertIsNotNone(select_button)
+        self.assertIsNotNone(toolbar_field)
+        await ui_test.human_delay(10)
+
+        # The directory StringField sits under a combobox, so focus the toolbar and tab into the path field
+        field_position = toolbar_field.position
+        await toolbar_field.click(pos=ui_test.Vec2(field_position.x + 1, field_position.y + 1))
+        await ui_test.human_delay(1)
+        await ui_test.emulate_keyboard_press(KeyboardInput.TAB)
+        await ui_test.human_delay(1)
+        await ui_test.emulate_char_press(str(subset_asset_path))
+        await ui_test.human_delay(1)
+        await ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
+        await ui_test.human_delay(1)
+        await select_button.click()
+        await ui_test.human_delay(10)
+
+        # Select the replacement mesh from the selection tree
+        subset_mesh_item = self.__label(_window.title, text="SubsetCube")
+        self.assertIsNotNone(subset_mesh_item, "Expected the selection tree to list the replacement mesh")
+        await subset_mesh_item.click()
+        await ui_test.human_delay(10)
+
+        # The mesh materials live on its subsets, so the panel shows no material instead of the inherited captured one
+        material_label = ui_test.find(f"{_window.title}//Frame/**/Label[*].identifier=='material_label'")
+        self.assertIsNotNone(material_label)
+        self.assertEqual(
+            material_label.widget.text, "None", f"Expected no material instead of the inherited {captured_material}"
+        )
+
+        # Expand the mesh in the selection tree and select a subset to display the material it binds
+        mesh_row_y = subset_mesh_item.center.y
+        expand_icon = min(
+            ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='Expand'"),
+            key=lambda icon: abs(icon.center.y - mesh_row_y),
+        )
+        await expand_icon.click()
+        await ui_test.human_delay(10)
+        subset_item = self.__label(_window.title, text="SubsetA")
+        self.assertIsNotNone(subset_item, "Expected the selection tree to list the mesh subset")
+        await subset_item.click()
+        await ui_test.human_delay(10)
+
+        self.assertTrue(material_label.widget.text.endswith("/SubsetMaterialA"), material_label.widget.text)
 
         await self.__destroy(_window, _wid)
 

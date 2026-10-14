@@ -44,7 +44,7 @@ from omni.flux.job_queue.core.errors import QueueSubmissionError
 from omni.flux.job_queue.core.job import ApplyBinding, JobGraph
 from omni.flux.asset_importer.core.data_models import TEXTURE_TYPE_INPUT_MAP
 from omni.flux.utils.common.omni_url import OmniUrl
-from omni.flux.utils.common.materials import get_materials_from_prim_paths
+from omni.flux.utils.common.materials import get_bound_material, get_materials_from_prim_paths
 from omni.flux.utils.common.progress import INDETERMINATE_PROGRESS_TOTAL, run_worker_with_latest_progress
 from omni.usd import get_composed_references_from_prim, get_context
 from pxr import Sdf, Tf, Usd, UsdGeom, UsdShade
@@ -1730,7 +1730,7 @@ class ComfyUICore:
             for candidate in Usd.PrimRange(prim, predicate):
                 if not (candidate.IsA(UsdGeom.Mesh) or candidate.IsA(UsdGeom.Subset)):
                     continue
-                material, _ = UsdShade.MaterialBindingAPI(candidate).ComputeBoundMaterial()
+                material = get_bound_material(candidate)
                 if not material:
                     continue
                 material_path = str(material.GetPrim().GetPath())
