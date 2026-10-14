@@ -413,6 +413,10 @@ class GlobalEventNames(Enum):
     LOGIC_GRAPH_CREATE_REQUEST = "Logic graph create request"  # Emitted with (parent: Usd.Prim)
     LOGIC_GRAPH_EDIT_REQUEST = "Logic graph edit request"  # Emitted with (graph: Usd.Prim)
 
+    ALPHA_CUTOUT_CONVERT_REQUEST = (
+        "Alpha cutout convert request"  # Emitted with (prim_paths: list[str], context_name: str)
+    )
+
 
 # Remix Logic
 OMNI_GRAPH_TYPE = "OmniGraph"
@@ -449,6 +453,7 @@ class WindowNames(StrEnum):
     COMFYUI_WORKFLOW = "ComfyUI Workflow"
     JOB_QUEUE = "Job Queue"
     JOB_DETAILS = "Job Details"
+    ALPHA_CUTOUT = "Convert Alpha Cards to Mesh"
 
 
 class Layouts(Enum):

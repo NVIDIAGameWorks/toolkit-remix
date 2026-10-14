@@ -152,6 +152,16 @@
   },
   {
     "dock_id": 0,
+    "height": 800.0,
+    "position_x": 0,
+    "position_y": 0,
+    "selected_in_dock": false,
+    "title": "Convert Alpha Cards to Mesh",
+    "visible": false,
+    "width": 520.0
+  },
+  {
+    "dock_id": 0,
     "height": 600.0,
     "position_x": 0,
     "position_y": 0,

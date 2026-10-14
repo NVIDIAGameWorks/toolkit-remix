@@ -18,6 +18,7 @@
 from .e2e.test_action_delete_restore import TestDeleteRestoreActionWidgetPlugin
 from .e2e.test_widget import TestStageManagerPluginWidget
 from .unit.test_action_assign_category import TestAssignCategoryActionWidgetPlugin
+from .unit.test_action_convert_alpha_cards import TestConvertAlphaCardsActionWidgetPlugin
 from .unit.test_action_delete_restore import TestDeleteRestoreActionWidgetPluginUnit
 from .unit.test_action_light_clipboard import TestLightClipboardMenuPlugin
 from .unit.test_action_nickname_toggle import TestNicknameToggleActionWidgetPlugin
@@ -28,6 +29,7 @@ from .unit.test_extension import TestLightspeedStageManagerUSDWidgetPluginsExten
 
 __all__ = [
     "TestAssignCategoryActionWidgetPlugin",
+    "TestConvertAlphaCardsActionWidgetPlugin",
     "TestDeleteRestoreActionWidgetPlugin",
     "TestDeleteRestoreActionWidgetPluginUnit",
     "TestFocusInViewportActionWidgetPlugin",

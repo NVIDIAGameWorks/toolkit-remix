@@ -61,3 +61,5 @@ class MenuItem(Enum):
     RENAME_PRIM_NICENAME = "Add Nickname"
     REMOVE_PRIM_NICENAME = "Restore Name"
     TOGGLE_NICKNAME = "Toggle Nickname"
+    EXPERIMENTAL = "Experimental..."  # ... is used to indicate that the menu item is a submenu
+    CONVERT_ALPHA_CARDS = "Convert Alpha Cards to Mesh..."  # ... is used to indicate that the menu item opens a window

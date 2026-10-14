@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.0.2]
+### Added
+- Added the `Experimental...` submenu and `Convert Alpha Cards to Mesh...` menu item names.
+
 ## [4.0.1]
 ### Fixed
 - Fixed `OmniUrl` JSON serialization with `serialize_as_any=True` on pydantic 2.12 and later

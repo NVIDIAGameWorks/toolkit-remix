@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.1]
+### Added
+- Added the `ALPHA_CUTOUT_CONVERT_REQUEST` global event and the `ALPHA_CUTOUT` window name.
+
 ## [3.0.0]
 ### Removed
 - Removed public texture metadata types and constants, now owned by `lightspeed.trex.asset_pipeline.core.constants`.

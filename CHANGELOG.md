@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added docs for downloading prebuilt Toolkit development packages from GitHub Actions, installing the published `rtx-remix-modding` skill with `npx skills add`, and registering the MCP server in Claude Code
 - REMIX-2659: Added linear BC6H UF16 encoding, float image I/O, and float octahedral normal conversion without 8-bit rounding.
 - REMIX-2659: Added HDRI Skybox textures as linear BC6H UF16 DDS, linear float OpenEXR standardization for all texture inputs, and matched the runtime color space of each texture type.
+- Added the experimental Stage Manager action "Convert Alpha Cards to Mesh" that traces the diffuse alpha of a capture mesh into cut geometry, writes an ingested replacement with a per-mesh material copy, swaps the capture reference on the edit target layer and can disable alpha testing on the copied material
 
 ### Changed
 
