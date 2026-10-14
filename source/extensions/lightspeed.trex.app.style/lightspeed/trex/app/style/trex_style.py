@@ -1043,6 +1043,12 @@ current_dict.update(
             "border_width": 1,
             "border_color": _TRUE_DARK,
         },
+        "Rectangle::ColorPickerCurrentBorder": {
+            "background_color": 0x00000000,
+            "border_width": 1,
+            "border_color": _WHITE_20,
+            "border_radius": 4,
+        },
         "ImageWithProvider::ColorGradientBar": {
             "border_radius": 5,
         },

@@ -32,7 +32,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.1.0]
 ### Changed
-- Added an owned color picker with live frame-coalesced colors, per-gesture undo, idle Undo, safe cancellation and cleanup, lazy visible-only gradients, contrasting selectors, and a larger padded popup with application background and bounded placement.
+- Added an owned RGB/A and HSV picker with HDR editing, hex input, Current previews, live colors and per-gesture undo, safe close/cancellation/cleanup, and a styled, bounded popup with lazy gradients and clear selectors.
+- Separated ownership of color controls and popup windows, and released retained component and image-provider references on picker destruction.
+- Updated color selector positioning after layout so reopening the picker shows the current color.
+- Refreshed the picker after complete backing color updates so Undo to white, gray, or black preserves the selected hue.
+- Aligned fixed picker dimensions and spacing to the application's four-pixel grid.
 
 ## [2.0.1]
 ### Added

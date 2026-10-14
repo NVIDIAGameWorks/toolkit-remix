@@ -145,9 +145,11 @@ class USDDelegate(_Delegate):
 
     def reset(self) -> None:
         """Clear cached row widgets and context menus."""
-        super().reset()
-        self._context_menu_widgets.clear()
-        self._rows.clear()
+        try:
+            super().reset()
+        finally:
+            self._context_menu_widgets.clear()
+            self._rows.clear()
 
     @staticmethod
     def _get_row_attributes(item: _Item) -> list[Usd.Attribute]:

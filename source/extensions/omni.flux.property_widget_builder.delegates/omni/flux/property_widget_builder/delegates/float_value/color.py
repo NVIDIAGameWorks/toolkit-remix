@@ -17,6 +17,7 @@
 
 __all__ = ("ColorField",)
 
+from contextlib import ExitStack
 from functools import partial
 
 import omni.ui as ui
@@ -36,6 +37,7 @@ class _ColorItemModel(ui.AbstractItemModel):
         super().__init__()
         self._root_model = ui.SimpleIntModel()
         self._components = {ui.AbstractItem(): ui.SimpleFloatModel(float(value)) for value in values}
+        self._updating_values = False
         self._subscriptions = [self._root_model.subscribe_value_changed_fn(lambda _: self._item_changed(None))]
         self._subscriptions.extend(
             model.subscribe_value_changed_fn(lambda _, item=item: self._item_changed(item))
@@ -60,9 +62,27 @@ class _ColorItemModel(ui.AbstractItemModel):
     def end_edit(self, item):
         """Accept the native popup's end-edit dispatch."""
 
+    def set_values(self, values):
+        """Notify item listeners only after the complete external color is restored."""
+        components = tuple(self._components.values())
+        if all(model.get_value_as_float() == value for model, value in zip(components, values)):
+            return
+        self._updating_values = True
+        try:
+            for model, value in zip(components, values):
+                model.set_value(value)
+        finally:
+            self._updating_values = False
+        self._item_changed(None)
+
     def destroy(self):
         """Release notifications from the owned component value models."""
         self._subscriptions.clear()
+
+    def _item_changed(self, item):
+        """Keep intermediate component values out of complete-color notifications."""
+        if not self._updating_values:
+            super()._item_changed(item)
 
 
 class ColorValueModel(ui.AbstractValueModel):
@@ -196,15 +216,17 @@ class ColorField(AbstractField):
         self._value_model_value_changed_sub = None
         picker = self._picker
         self._picker = None
+        color_model = self._color_widget_model
+        self._color_widget_model = None
         try:
-            self._cancel_edit()
+            with ExitStack() as cleanup:
+                if color_model is not None:
+                    cleanup.callback(color_model.destroy)
+                if picker is not None:
+                    cleanup.callback(picker.destroy)
+                self._cancel_edit()
         finally:
-            if picker is not None:
-                picker.destroy()
-        if self._color_widget_model is not None:
-            self._color_widget_model.destroy()
-            self._color_widget_model = None
-        self._value_model = None
+            self._value_model = None
 
     def _cancel_edit(self) -> None:
         """Discard interrupted input before dismissing an active picker edit."""
@@ -216,6 +238,12 @@ class ColorField(AbstractField):
         finally:
             if self._picker is not None:
                 self._picker.cancel()
+            if self._color_widget_model is not None:
+                component_models = tuple(
+                    self._color_widget_model.get_item_value_model(child)
+                    for child in self._color_widget_model.get_item_children()
+                )
+                self._value_model_changed(component_models, self._value_model)
 
     def _color_widget_begin_edit(self, value_model):
         """Snapshot the backing edit before the gesture's first component changes."""
@@ -258,8 +286,7 @@ class ColorField(AbstractField):
         assert len(component_models) == len(vec), f"{vec} does not match expected length for ColorWidget"
         self._ignore_value_change_events = True
         try:
-            for child_value_model, value in zip(component_models, vec):
-                child_value_model.set_value(value)
+            self._color_widget_model.set_values(vec)
         finally:
             self._ignore_value_change_events = False
 

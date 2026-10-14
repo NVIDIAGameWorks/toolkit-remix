@@ -45,3 +45,4 @@ resolves their normal colors when constructing property controls.
 The `Circle::ColorPickerHandleOutline` and `Circle::ColorPickerHandle` selectors pair dark and white outlines with
 transparent fills for the color picker's hollow saturation/value handle.
 `Triangle::ColorPickerHueHandle` supplies the white fill and dark outline for the paired inward-facing hue markers.
+`Rectangle::ColorPickerCurrentBorder` outlines the color picker's Current preview using the shared neutral palette.

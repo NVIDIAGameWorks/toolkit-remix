@@ -20,24 +20,28 @@ __all__ = ("ColorPicker",)
 import asyncio
 import colorsys
 from collections.abc import Callable
+from ctypes import c_float
 from functools import partial
+from string import hexdigits
 
-import carb
 import omni.ui as ui
 from omni.flux.utils.widget.color import color_to_hex
+from omni.flux.utils.widget.gradient import create_checkerboard
 from omni.kit.app import get_app
 from omni.ui import color as cl
 
+from .color_picker_popup import ColorPickerPopup
 
-class _ComponentValueModel(ui.AbstractValueModel):
-    """Start an edit before forwarding a numeric color change to its owner."""
 
-    def __init__(self, parent: ui.AbstractValueModel, write_fn: Callable[[float], None]):
-        """Borrow a component and connect its public value notifications.
+class _PickerValueModel(ui.AbstractValueModel):
+    """Route a popup input through its retained display model and owner."""
+
+    def __init__(self, parent: ui.AbstractValueModel, write_fn: Callable[[float | str], None]):
+        """Borrow a display model and connect its public value notifications.
 
         Args:
-            parent: Authoritative component model retained for native value getters.
-            write_fn: Callback that begins the gesture before updating the component.
+            parent: Display model retained for native value getters.
+            write_fn: Callback that authors or buffers input while the popup accepts edits.
         """
         super().__init__()
         self._parent = parent
@@ -49,13 +53,13 @@ class _ComponentValueModel(ui.AbstractValueModel):
         return self._parent.get_value_as_float()
 
     def get_value_as_string(self):
-        """Return the component text used by the numeric editor."""
-        return str(self.get_value_as_float())
+        """Return the display model text used by the editor."""
+        return self._parent.get_value_as_string()
 
     def set_value(self, value):
-        """Forward a numeric edit while the popup accepts input."""
+        """Forward an edit while the popup accepts input."""
         if self._write_fn is not None:
-            self._write_fn(float(value))
+            self._write_fn(value)
 
     def destroy(self):
         """Release the borrowed component subscription and input callback."""
@@ -70,22 +74,26 @@ class ColorPicker(ui.Frame):
     _HUE_WIDTH = ui.Pixel(20)
     _SWATCH_WIDTH = ui.Pixel(24)
     _SWATCH_HEIGHT = ui.Pixel(20)
-    _WINDOW_WIDTH = ui.Pixel(260)
+    _WINDOW_WIDTH = ui.Pixel(320)
     _WINDOW_HEIGHT = ui.Pixel(360)
     _CHANNEL_ROW_HEIGHT = ui.Pixel(20)
-    _CHANNEL_LABEL_WIDTH = ui.Pixel(45)
-    _SPACING = ui.Pixel(6)
+    _CHANNEL_LABEL_WIDTH = ui.Pixel(12)
+    _HEX_LABEL_WIDTH = ui.Pixel(32)
+    _CURRENT_WIDTH = ui.Pixel(64)
+    _CURRENT_HEIGHT = ui.Pixel(44)
+    _SPACING = ui.Pixel(8)
     _PADDING = ui.Pixel(8)
     _CLOSE_HEIGHT = ui.Pixel(24)
     _MARKER_SIZE = ui.Pixel(12)
-    _MARKER_INNER_SIZE = ui.Pixel(10)
-    _HUE_MARKER_WIDTH = ui.Pixel(6)
-    _HUE_MARKER_HEIGHT = ui.Pixel(10)
+    _MARKER_INNER_SIZE = ui.Pixel(8)
+    _HUE_MARKER_WIDTH = ui.Pixel(8)
+    _HUE_MARKER_HEIGHT = ui.Pixel(12)
     _NUMERIC_STEP = 0.001
     _SV_TEXTURE_SIZE = 64
     _HUE_TEXTURE_HEIGHT = 256
     _CHANNEL_NAMES = ("red", "green", "blue", "alpha")
-    _HANDLE_FALLBACK_STYLE = {
+    _HSV_NAMES = ("hue_value", "saturation", "value")
+    _FALLBACK_STYLE = {
         "Circle::ColorPickerHandleOutline": {
             "background_color": cl.transparent,
             "border_color": cl.black,
@@ -98,6 +106,11 @@ class ColorPicker(ui.Frame):
         },
         "Triangle::ColorPickerHueHandle": {
             "background_color": cl.white,
+            "border_color": cl.black,
+            "border_width": 1,
+        },
+        "Rectangle::ColorPickerCurrentBorder": {
+            "background_color": cl.transparent,
             "border_color": cl.black,
             "border_width": 1,
         },
@@ -131,13 +144,20 @@ class ColorPicker(ui.Frame):
         self._end_edit_fn = end_edit_fn
         self._style_name = kwargs.get("style_type_name_override", kwargs.get("name", "ColorsWidgetFieldRead"))
         self._window = None
+        self._window_title = ""
         self._close_task = None
-        self._window_focused = False
         self._input_enabled = False
         self._gesture_active = False
         self._pointer_control = None
         self._numeric_editing = None
         self._writing = False
+        self._writing_color = False
+        self._hsv_models = []
+        self._hex_model = None
+        self._hex_dirty = False
+        self._current_opaque = None
+        self._current_alpha = None
+        self._checker_provider = None
         self._numeric_models = []
         self._numeric_subscriptions = []
         self._hue = 0.0
@@ -170,7 +190,7 @@ class ColorPicker(ui.Frame):
     @property
     def window_title(self):
         """Return the owned popup's unique title for UI queries."""
-        return f"ColorPicker_{id(self)}"
+        return self._window_title
 
     @property
     def style_type_name_override(self):
@@ -189,37 +209,28 @@ class ColorPicker(ui.Frame):
         if not self.enabled or self._window is not None or self._model is None:
             return
         self._input_enabled = True
-        self._window_focused = False
         self._refresh()
         self._value_scale = max(1.0, self._value)
         if self._hue_provider is None:
             self._sv_provider = ui.ByteImageProvider()
             self._hue_provider = ui.ByteImageProvider()
             self._hue_provider.set_bytes_data(self._HUE_BYTES, [1, self._HUE_TEXTURE_HEIGHT])
+        if len(self._components) == 4 and self._checker_provider is None:
+            self._checker_provider = ui.ByteImageProvider()
+            checker_width = int(float(self._CURRENT_WIDTH) / 2)
+            checker_height = int(float(self._CURRENT_HEIGHT))
+            checker = create_checkerboard(checker_width, checker_height)
+            self._checker_provider.set_bytes_data(checker.ravel().tolist(), [checker_width, checker_height])
         popup_height = float(self._WINDOW_HEIGHT) + (
             float(self._CHANNEL_ROW_HEIGHT) + float(self._SPACING) if len(self._components) == 4 else 0
         )
-        position_y = self.screen_position_y + self.computed_height
-        if position_y + popup_height > ui.Workspace.get_main_window_height():
-            position_y = max(0.0, self.screen_position_y - popup_height)
-        self._window = ui.Window(
-            self.window_title,
-            width=float(self._WINDOW_WIDTH),
-            height=popup_height,
-            position_x=self.screen_position_x,
-            position_y=position_y,
-            flags=ui.WINDOW_FLAGS_POPUP
-            | ui.WINDOW_FLAGS_NO_RESIZE
-            | ui.WINDOW_FLAGS_NO_COLLAPSE
-            | ui.WINDOW_FLAGS_NO_DOCKING
-            | ui.WINDOW_FLAGS_NO_SCROLLBAR
-            | ui.WINDOW_FLAGS_NO_TITLE_BAR
-            | ui.WINDOW_FLAGS_NO_MOVE,
-        )
+        self._window = ColorPickerPopup(self, float(self._WINDOW_WIDTH), popup_height, self.close)
+        self._window_title = self._window.title
+        self._hsv_models = [ui.SimpleFloatModel(value) for value in (self._hue, self._saturation, self._value)]
+        self._hex_model = ui.SimpleStringModel(self._format_hex())
+        self._hex_dirty = False
         default_style = ui.Style.get_instance().default
-        fallback_style = {
-            name: style for name, style in self._HANDLE_FALLBACK_STYLE.items() if name not in default_style
-        }
+        fallback_style = {name: style for name, style in self._FALLBACK_STYLE.items() if name not in default_style}
         if fallback_style:
             self._window.frame.set_style(fallback_style)
         with self._window.frame:
@@ -235,9 +246,9 @@ class ColorPicker(ui.Frame):
                                     self._sv_provider,
                                     fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
                                     identifier="color_picker_sv",
-                                    mouse_pressed_fn=partial(self._on_plane_pressed, "sv"),
-                                    mouse_moved_fn=partial(self._on_plane_moved, "sv"),
-                                    mouse_released_fn=self._on_plane_released,
+                                    mouse_pressed_fn=partial(self._on_plane_pressed, "sv", self._window),
+                                    mouse_moved_fn=partial(self._on_plane_moved, "sv", self._window),
+                                    mouse_released_fn=partial(self._on_plane_released, self._window),
                                 )
                                 self._sv_marker = ui.Placer(stable_size=True)
                                 with self._sv_marker:
@@ -262,9 +273,9 @@ class ColorPicker(ui.Frame):
                                     self._hue_provider,
                                     fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
                                     identifier="color_picker_hue",
-                                    mouse_pressed_fn=partial(self._on_plane_pressed, "hue"),
-                                    mouse_moved_fn=partial(self._on_plane_moved, "hue"),
-                                    mouse_released_fn=self._on_plane_released,
+                                    mouse_pressed_fn=partial(self._on_plane_pressed, "hue", self._window),
+                                    mouse_moved_fn=partial(self._on_plane_moved, "hue", self._window),
+                                    mouse_released_fn=partial(self._on_plane_released, self._window),
                                 )
                                 self._hue_marker = ui.Placer(stable_size=True)
                                 with self._hue_marker:
@@ -284,23 +295,45 @@ class ColorPicker(ui.Frame):
                                             name="ColorPickerHueHandle",
                                             opaque_for_mouse_events=False,
                                         )
-                        for index, component in enumerate(self._components):
-                            proxy = _ComponentValueModel(component, partial(self._write_component, index))
-                            self._numeric_models.append(proxy)
-                            self._numeric_subscriptions.extend(
-                                (
-                                    proxy.subscribe_begin_edit_fn(partial(self._on_numeric_begin, index)),
-                                    proxy.subscribe_end_edit_fn(partial(self._on_numeric_end, index)),
-                                )
+                            with ui.VStack(width=self._CURRENT_WIDTH, spacing=self._SPACING):
+                                ui.Label("Current", height=self._CHANNEL_ROW_HEIGHT)
+                                with ui.ZStack(height=self._CURRENT_HEIGHT):
+                                    if len(self._components) == 4:
+                                        with ui.HStack():
+                                            self._current_opaque = ui.Rectangle(opaque_for_mouse_events=False)
+                                            with ui.ZStack():
+                                                ui.ImageWithProvider(
+                                                    self._checker_provider,
+                                                    fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
+                                                )
+                                                self._current_alpha = ui.Rectangle(opaque_for_mouse_events=False)
+                                    else:
+                                        self._current_opaque = ui.Rectangle(opaque_for_mouse_events=False)
+                                    ui.Rectangle(name="ColorPickerCurrentBorder", opaque_for_mouse_events=False)
+                                ui.Spacer()
+                        self._build_numeric_row(
+                            [
+                                (name[0].upper(), parent, partial(self._write_component, index), name)
+                                for index, (name, parent) in enumerate(zip(self._CHANNEL_NAMES, self._components))
+                            ]
+                        )
+                        hsv_fields = [
+                            (label, parent, partial(self._write_hsv, index), name)
+                            for index, (label, parent, name) in enumerate(zip("HSV", self._hsv_models, self._HSV_NAMES))
+                        ]
+                        if len(self._components) == 4:
+                            hsv_fields.append(
+                                ("A", self._components[3], partial(self._write_component, 3), "alpha_hsv")
                             )
-                            with ui.HStack(height=self._CHANNEL_ROW_HEIGHT):
-                                ui.Label(self._CHANNEL_NAMES[index].capitalize(), width=self._CHANNEL_LABEL_WIDTH)
-                                ui.FloatDrag(
-                                    model=proxy,
-                                    step=self._NUMERIC_STEP,
-                                    precision=4,
-                                    identifier=f"color_picker_{self._CHANNEL_NAMES[index]}",
-                                )
+                        self._build_numeric_row(hsv_fields)
+                        with ui.HStack(height=self._CHANNEL_ROW_HEIGHT):
+                            ui.Label("Hex", width=self._HEX_LABEL_WIDTH)
+                            ui.StringField(
+                                model=self._create_input_model(
+                                    self._hex_model, self._write_hex_text, commit_fn=self._commit_hex
+                                ),
+                                identifier="color_picker_hex",
+                            )
                         ui.Spacer()
                         ui.Button(
                             "Close",
@@ -310,21 +343,48 @@ class ColorPicker(ui.Frame):
                         )
                         ui.Spacer(height=self._PADDING)
                     ui.Spacer(width=self._PADDING)
-        self._window.set_key_pressed_fn(self._on_key_pressed)
-        self._window.set_focused_changed_fn(self._on_focus_changed)
-        self._window.set_visibility_changed_fn(self._on_visibility_changed)
+        self._sv_image.set_computed_content_size_changed_fn(partial(self._update_markers, self._window))
+        self._hue_image.set_computed_content_size_changed_fn(partial(self._update_markers, self._window))
         self._refresh()
 
+    def _create_input_model(self, parent, write_fn, *, commit_fn=None):
+        """Connect one popup editor to the shared gesture and cleanup lifecycle."""
+        proxy = _PickerValueModel(parent, write_fn)
+        index = len(self._numeric_models)
+        self._numeric_models.append(proxy)
+        self._numeric_subscriptions.extend(
+            (
+                proxy.subscribe_begin_edit_fn(partial(self._on_numeric_begin, index)),
+                proxy.subscribe_end_edit_fn(partial(self._on_numeric_end, index, commit_fn=commit_fn)),
+            )
+        )
+        return proxy
+
+    def _build_numeric_row(self, fields):
+        """Build a compact row of labeled component editors."""
+        with ui.HStack(height=self._CHANNEL_ROW_HEIGHT, spacing=self._SPACING):
+            for label, parent, write_fn, identifier in fields:
+                with ui.HStack():
+                    ui.Label(label, width=self._CHANNEL_LABEL_WIDTH)
+                    ui.FloatDrag(
+                        model=self._create_input_model(parent, write_fn),
+                        step=self._NUMERIC_STEP,
+                        precision=4,
+                        identifier=f"color_picker_{identifier}",
+                    )
+
     def close(self):
-        """Commit focused numeric input and finish its gesture before closing."""
+        """Finish complete color updates and focused numeric input before closing."""
         if self._window is None or self._close_task is not None:
             return
-        if self._numeric_editing is not None and not self._writing:
+        if (self._numeric_editing is not None and not self._writing) or self._writing_color:
             self._close_task = asyncio.ensure_future(self._close_after_update(self._window))
         else:
             window = self._window
             try:
-                self._finish_gesture()
+                self._commit_hex()
+                if self._window is window:
+                    self._finish_gesture()
             finally:
                 if self._window is window:
                     self._input_enabled = False
@@ -345,22 +405,26 @@ class ColorPicker(ui.Frame):
         self._begin_edit_fn = None
         self._end_edit_fn = None
         self._model = None
+        self._components = ()
+        self._sv_provider = self._hue_provider = self._checker_provider = None
         super().destroy()
 
     async def _close_after_update(self, window):
-        """Let focus-loss dispatch commit before disposing of numeric controls."""
+        """Let native input dispatch finish before closing its gesture and controls."""
         await get_app().next_update_async()
         self._close_task = None
         if self._window is window:
             try:
-                self._finish_gesture()
+                self._commit_hex()
+                if self._window is window:
+                    self._finish_gesture()
             finally:
                 if self._window is window:
                     self._input_enabled = False
                     self._release_window()
 
     def _release_window(self):
-        """Hide the owned window and defer destruction until callbacks finish."""
+        """Disable popup input and transfer retired controls to their window owner."""
         if self._close_task is not None:
             self._close_task.cancel()
             self._close_task = None
@@ -369,51 +433,22 @@ class ColorPicker(ui.Frame):
             return
         self._pointer_control = None
         self._numeric_editing = None
-        self._window_focused = False
-        window.set_key_pressed_fn(None)
-        window.set_focused_changed_fn(None)
-        window.set_visibility_changed_fn(None)
         for proxy in self._numeric_models:
             proxy.destroy()
-        window.visible = False
-        asyncio.ensure_future(
-            self._destroy_window_after_update(window, self._numeric_models, self._numeric_subscriptions)
-        )
+        window.retire(self._numeric_models, self._numeric_subscriptions)
         self._numeric_models = []
         self._numeric_subscriptions = []
+        self._hsv_models = []
+        self._hex_model = None
+        self._hex_dirty = False
+        self._current_opaque = self._current_alpha = None
         self._sv_image = self._hue_image = None
         self._sv_marker = self._hue_marker = None
-
-    @staticmethod
-    async def _destroy_window_after_update(window, models, subscriptions):
-        """Destroy hidden controls after their native event dispatch completes."""
-        await get_app().next_update_async()
-        subscriptions.clear()
-        for model in models:
-            model.destroy()
-        window.destroy()
 
     def _on_swatch_released(self, _x, _y, button, _modifier):
         """Open the picker on a left click of its swatch."""
         if button == 0:
             self.open()
-
-    def _on_key_pressed(self, key, _modifier, down):
-        """Close the owned window when Escape is pressed."""
-        if down and key == int(carb.input.KeyboardInput.ESCAPE):
-            self.close()
-
-    def _on_focus_changed(self, focused):
-        """Close an opened picker when its own window loses focus."""
-        if focused:
-            self._window_focused = True
-        elif self._window_focused:
-            self.close()
-
-    def _on_visibility_changed(self, visible):
-        """Finish a gesture when the window's close control hides it."""
-        if not visible and self._window is not None:
-            self.close()
 
     def _start_gesture(self):
         """Begin a property transaction on its first actual value change."""
@@ -432,7 +467,7 @@ class ColorPicker(ui.Frame):
         if self._input_enabled and index < len(self._numeric_models) and self._numeric_models[index] is model:
             self._numeric_editing = index
 
-    def _on_numeric_end(self, index, model):
+    def _on_numeric_end(self, index, model, *, commit_fn=None):
         """Finish numeric dragging or a committed text edit."""
         if (
             self._input_enabled
@@ -441,38 +476,97 @@ class ColorPicker(ui.Frame):
             and self._numeric_models[index] is model
         ):
             self._numeric_editing = None
-            self._finish_gesture()
+            window = self._window
+            if commit_fn is not None:
+                commit_fn()
+            if self._window is window:
+                self._finish_gesture()
 
     def _write_component(self, index, value):
-        """Author unrestricted numeric input after beginning its gesture."""
-        component = self._components[index]
-        if not self._input_enabled or value == component.get_value_as_float():
-            return
-        self._start_gesture()
+        """Author one unrestricted RGB or alpha component."""
+        values = [model.get_value_as_float() for model in self._components]
+        values[index] = float(value)
+        self._write_color(values)
+
+    def _write_hsv(self, index, value):
+        """Update normalized hue/saturation or nonnegative HDR value."""
+        hsv = [self._hue, self._saturation, self._value]
+        value = max(0.0, float(value))
+        hsv[index] = min(1.0, value) if index < 2 else value
+        self._hue, self._saturation, self._value = hsv
+        values = [*colorsys.hsv_to_rgb(*hsv), *(model.get_value_as_float() for model in self._components[3:])]
+        self._write_color(values, read_hsv=False)
+
+    def _write_color(self, values, *, read_hsv=True):
+        """Apply a complete color while rejecting cancelled or replaced input."""
         if not self._input_enabled:
             return
-        self._writing = True
-        try:
-            component.set_value(value)
-        finally:
-            self._writing = False
-        self._refresh()
+        changes = [
+            (model, value) for model, value in zip(self._components, values) if value != model.get_value_as_float()
+        ]
+        if changes:
+            window = self._window
+            self._start_gesture()
+            if not self._input_enabled or self._window is not window:
+                return
+            self._writing = True
+            self._writing_color = len(changes) > 1
+            try:
+                for model, value in changes:
+                    if not self._input_enabled or self._window is not window:
+                        return
+                    model.set_value(value)
+            finally:
+                self._writing = False
+                self._writing_color = False
+            if not self._input_enabled or self._window is not window:
+                return
+        self._refresh(read_hsv=read_hsv)
 
-    def _on_plane_pressed(self, control, x, y, button, _modifier):
+    def _format_hex(self):
+        """Format clipped display bytes without changing authoritative HDR values."""
+        return "#" + "".join(f"{self._display_byte(model.get_value_as_float()):02X}" for model in self._components)
+
+    @staticmethod
+    def _display_byte(value: float) -> int:
+        """Round a clipped display channel with Kit's float32 color arithmetic."""
+        scaled = c_float(min(1.0, max(0.0, value)) * 255).value
+        rounded = c_float(scaled + 0.5).value
+        return int(rounded)
+
+    def _write_hex_text(self, value):
+        """Buffer hexadecimal input until the editor commits."""
+        if self._input_enabled and self._hex_model is not None:
+            self._hex_dirty = True
+            self._hex_model.set_value(str(value))
+
+    def _commit_hex(self):
+        """Commit a complete byte string or restore the canonical display."""
+        if not self._input_enabled or not self._hex_dirty or self._hex_model is None:
+            return
+        window, model = self._window, self._hex_model
+        text = model.get_value_as_string().strip().removeprefix("#")
+        self._hex_dirty = False
+        if len(text) == len(self._components) * 2 and all(character in hexdigits for character in text):
+            self._write_color([int(text[index : index + 2], 16) / 255 for index in range(0, len(text), 2)])
+        if self._window is window and self._hex_model is model:
+            model.set_value(self._format_hex())
+
+    def _on_plane_pressed(self, control, window, x, y, button, _modifier):
         """Start tracking input belonging to an owned color plane."""
-        if button == 0 and self._input_enabled:
+        if window is self._window and button == 0 and self._input_enabled:
             self._pointer_control = control
             self._value_scale = max(1.0, self._value)
             self._pick_color(control, x, y)
 
-    def _on_plane_moved(self, control, x, y, _modifier, _pressed):
+    def _on_plane_moved(self, control, window, x, y, _modifier, _pressed):
         """Apply continuous color changes from an owned drag."""
-        if self._pointer_control == control and self._input_enabled:
+        if window is self._window and self._pointer_control == control and self._input_enabled:
             self._pick_color(control, x, y)
 
-    def _on_plane_released(self, _x, _y, button, _modifier):
+    def _on_plane_released(self, window, _x, _y, button, _modifier):
         """Finish the gesture when its initiating mouse button is released."""
-        if button == 0:
+        if window is self._window and button == 0:
             self._pointer_control = None
             self._finish_gesture()
 
@@ -488,18 +582,11 @@ class ColorPicker(ui.Frame):
             self._value = (1.0 - vertical) * self._value_scale
         else:
             self._hue = vertical
-        rgb = colorsys.hsv_to_rgb(self._hue, self._saturation, self._value)
-        if any(value != component.get_value_as_float() for value, component in zip(rgb, self._components)):
-            self._start_gesture()
-            if not self._input_enabled:
-                return
-            self._writing = True
-            try:
-                for component, value in zip(self._components, rgb):
-                    component.set_value(value)
-            finally:
-                self._writing = False
-        self._refresh(read_hsv=False)
+        values = [
+            *colorsys.hsv_to_rgb(self._hue, self._saturation, self._value),
+            *(model.get_value_as_float() for model in self._components[3:]),
+        ]
+        self._write_color(values, read_hsv=False)
 
     def _on_model_changed(self, _model, _item):
         """Reflect authoritative colors and cancel uncommitted numeric text."""
@@ -517,10 +604,19 @@ class ColorPicker(ui.Frame):
             hue, saturation, value = colorsys.rgb_to_hsv(*(max(0.0, channel) for channel in values[:3]))
             if saturation > 0 and value > 0:
                 self._hue = hue
-            self._saturation = saturation
+            if value > 0:
+                self._saturation = saturation
             self._value = value
         rgba = values if len(values) == 4 else [*values, 1.0]
         self._swatch.set_style({"background_color": color_to_hex(tuple(rgba))})
+        for model, value in zip(self._hsv_models, (self._hue, self._saturation, self._value)):
+            model.set_value(value)
+        if self._hex_model is not None and not self._hex_dirty:
+            self._hex_model.set_value(self._format_hex())
+        if self._current_opaque is not None:
+            self._current_opaque.set_style({"background_color": color_to_hex((*values[:3], 1.0))})
+        if self._current_alpha is not None:
+            self._current_alpha.set_style({"background_color": color_to_hex(tuple(rgba))})
         if self._sv_image is not None and self._preview_hue != self._hue:
             self._preview_hue = self._hue
             hue_rgb = colorsys.hsv_to_rgb(self._hue, 1, 1)
@@ -532,7 +628,13 @@ class ColorPicker(ui.Frame):
                     pixels.extend(round((1 - saturation + saturation * channel) * value * 255) for channel in hue_rgb)
                     pixels.append(255)
             self._sv_provider.set_bytes_data(pixels, [self._SV_TEXTURE_SIZE, self._SV_TEXTURE_SIZE])
-        if self._sv_image is not None:
+        self._update_markers(self._window)
+
+    def _update_markers(self, window):
+        """Position the current popup's selectors after its color or measured layout changes."""
+        if window is not self._window:
+            return
+        if self._sv_image is not None and self._sv_image.computed_width > 0 and self._sv_image.computed_height > 0:
             self._sv_marker.offset_x = ui.Pixel(
                 min(1.0, max(0.0, self._saturation)) * self._sv_image.computed_width - float(self._MARKER_SIZE) / 2
             )
@@ -540,6 +642,7 @@ class ColorPicker(ui.Frame):
                 (1 - min(1.0, max(0.0, self._value / self._value_scale))) * self._sv_image.computed_height
                 - float(self._MARKER_SIZE) / 2
             )
+        if self._hue_image is not None and self._hue_image.computed_height > 0:
             self._hue_marker.offset_y = ui.Pixel(
                 self._hue * self._hue_image.computed_height - float(self._HUE_MARKER_HEIGHT) / 2
             )

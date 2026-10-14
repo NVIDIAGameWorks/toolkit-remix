@@ -147,9 +147,10 @@ sessions. Locked target layers are rejected before a write command runs. Color f
 drag or typed edit, pairing `begin_edit()` and `end_edit()` for each gesture. Opening the picker creates no undo entry.
 Undo while the popup is idle restores the previous gesture and allows another edit in the same popup.
 Row cancellation ends an active edit session and discards queued input while retaining field subscriptions.
-`ColorField.cleanup()` releases those subscriptions; the default USD color builder
-registers that cleanup with the owning delegate so a full row reset releases the field even when its backing value
-model remains alive. Picker cancellation keeps the current field usable until that reset.
+`ColorField.cleanup()` releases those subscriptions and its owned picker and color model even when ending the edit
+raises. The default USD color builder registers that cleanup with the owning delegate so a full row reset releases
+the field even when its backing value model remains alive. Picker cancellation keeps the current field usable until
+that reset. `USDDelegate.reset()` clears cached rows and context menus even when registered field cleanup raises.
 Row cancellation retains values already authored by a live batch; write failure rolls back the whole current batch.
 An external change to an actively edited USD property, including global undo, cancels that edit, closes the popup,
 and refreshes its value. Idle picker controls synchronize with restored USD values without creating an edit.
