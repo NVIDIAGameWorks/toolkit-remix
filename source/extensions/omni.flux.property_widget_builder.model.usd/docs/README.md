@@ -132,7 +132,8 @@ before control construction; existing controls do not observe live theme changes
 
 See the [Curve Editor styling contract](../../omni.flux.curve_editor.widget/docs/README.md#channel-styling) for direct
 editor consumers and selected-label styling.
-### Edit Sessions
+
+## Color Edit Sessions
 
 `begin_batch_edit()` coalesces numeric previews until `end_batch_edit()`. Pass `live=True` to author each value
 immediately through one `LiveUsdAttributeEditCommand` that retains the initial layer specs for undo.

@@ -2,6 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.0]
+### Changed
+- Added an owned RGB/A and HSV picker with HDR editing, hex input, Current previews, live colors and per-gesture undo, safe close/cancellation/cleanup, and a styled, bounded popup with lazy gradients and clear selectors.
+- Separated ownership of color controls and popup windows, and released retained component and image-provider references on picker destruction.
+- Updated color selector positioning after layout so reopening the picker shows the current color.
+- Refreshed the picker after complete backing color updates so Undo to white, gray, or black preserves the selected hue.
+- Aligned fixed picker dimensions and spacing to the application's four-pixel grid.
+- Enlarged the property swatch and picker square, aligned the fields beneath the square and hue bar with centered channel labels, moved the Current preview alongside them with more right and bottom padding, and removed the Close button while preserving dismissal and viewport-edge usability.
+- Added validated normalized RGB/RGBA tuple input to the Hex field, with canonical hex conversion and one undo operation.
+- Declared the USD model test dependency for color-picker workflow coverage.
+
 ## [3.1.2]
 
 ### Fixed
@@ -29,16 +40,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Standardized property-window placement, dismissal, keyboard handling, and app-owned inline Gradient styling, with disposable Gradient editors sharing the field's model and preview.
-
-## [2.1.0]
-### Changed
-- Added an owned RGB/A and HSV picker with HDR editing, hex input, Current previews, live colors and per-gesture undo, safe close/cancellation/cleanup, and a styled, bounded popup with lazy gradients and clear selectors.
-- Separated ownership of color controls and popup windows, and released retained component and image-provider references on picker destruction.
-- Updated color selector positioning after layout so reopening the picker shows the current color.
-- Refreshed the picker after complete backing color updates so Undo to white, gray, or black preserves the selected hue.
-- Aligned fixed picker dimensions and spacing to the application's four-pixel grid.
-- Enlarged the property swatch and picker square, aligned the fields beneath the square and hue bar with centered channel labels, moved the Current preview alongside them with more right and bottom padding, and removed the Close button while preserving dismissal and viewport-edge usability.
-- Added validated normalized RGB/RGBA tuple input to the Hex field, with canonical hex conversion and one undo operation.
 
 ## [2.0.1]
 ### Added
