@@ -114,6 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Made `tools/ci/scripts/notify_remix_target_dep_bot.sh` use a bash 3.2-compatible channel de-duplication so its test suite passes with the default macOS `/bin/bash` (associative arrays require bash 4.0+).
 - Prevented new main-branch pipelines from auto-canceling scheduled nightly SOAK jobs.
 - REMIX-4286: Hardened AI Tools ComfyUI connection, workflow submission, job output handling, and widget cleanup
 - Fixed invalid agent skill YAML descriptions so local skill discovery loads shared wrappers correctly
