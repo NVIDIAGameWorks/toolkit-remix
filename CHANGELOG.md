@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected the Toolkit release version from 1.6.0 to 1.6.0-0.
 - REMIX-4585: Centralized property copy/paste for ordinary and logical rows, preserving displayed defaults, visible textures, legacy particle companions, hidden editable settings, and distinct linked XYZ components, with one synchronous paste undo action that restores prior logical-property opinions.
 - Fix model-facing description of agent skill shims. Includes minor metadata fix toward spec adhesion.
+- Made `tools/ci/scripts/notify_remix_target_dep_bot.sh` use a bash 3.2-compatible channel de-duplication so its test suite passes with the default macOS `/bin/bash` (associative arrays require bash 4.0+).
 
 ### Removed
 
