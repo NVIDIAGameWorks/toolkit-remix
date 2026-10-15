@@ -37,8 +37,8 @@ def setup_repo_tool(parser, config):
 
     def run_repo_tool(options, config):
         settings = config.get("repo_check_forbidden_words", {})
-        file_settings = settings.get("files")
-        word_settings = settings.get("words")
+        file_settings = settings.get("files") or {}
+        word_settings = settings.get("words") or {}
         include_files = file_settings.get("include", [])
         forbidden_words = word_settings.get("exclude", [])
         start_path = Path(".")

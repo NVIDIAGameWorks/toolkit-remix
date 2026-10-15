@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added unit tests for the `check_forbidden_words` and `check_test_file_location` repo tools, and made both tools tolerant of missing `files`/`words`/`rule` config keys instead of crashing with `AttributeError`
 - Created 1.5.2-0 build
 - Added RTX Remix 1.5 final release notes
 - REMIX-5246: Added spotlight cone wireframe visualization for DiskLight and SphereLight when `shaping:cone:angle` is authored, with tunable threshold / subdivisions / outer + inner colors under the viewport Display dropdown ▸ Custom Manipulators ▸ Light Manipulator; the visual cone and intensity-arrow lengths update together based on the display threshold

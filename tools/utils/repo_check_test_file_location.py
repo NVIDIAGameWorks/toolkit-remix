@@ -21,7 +21,7 @@ from pathlib import Path
 
 def setup_repo_tool(parser, config):
     parser.prog = "check_test_file_location"
-    parser.description = "Verify all `test_*.py` files are in directories specified in the config's `required_paths`"
+    parser.description = "Verify all `test_*.py` files are in directories specified in the config's `rule.allow_paths`"
 
     def _multi_glob(start_path, paths):
         """Combine the results of multiple globs into a single list of Paths"""
@@ -34,8 +34,8 @@ def setup_repo_tool(parser, config):
 
     def run_repo_tool(options, config):
         settings = config.get("repo_check_test_file_location", {})
-        file_settings = settings.get("files")
-        rule_settings = settings.get("rule")
+        file_settings = settings.get("files") or {}
+        rule_settings = settings.get("rule") or {}
         include_dirs = file_settings.get("include", ["**/source/**/tests/*.py"])
         exclude_dirs = file_settings.get("exclude", ["**/lightspeed.common/lightspeed/common/tools/**/*"])
         allowed_paths = rule_settings.get("allow_paths", ["**/source/**/tests/__init__.py"])
