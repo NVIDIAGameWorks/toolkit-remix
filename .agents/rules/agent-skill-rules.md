@@ -2,7 +2,7 @@
 
 Applies to the `## Rules` section of `skills/rtx-remix-modding/SKILL.md`, the standing instructions
 sent to a model on every request. The file is hand-written. Shortening it is legitimate work —
-length is a per-request cost. These four things cost real debugging to learn and are not visible
+length is a per-request cost. These five things cost real debugging to learn and are not visible
 from reading the prompt, so check a cut against them first.
 
 **A prohibition gets walked past; a fact does not.** Three prohibition-shaped wordings were
@@ -20,3 +20,10 @@ operations are listed as facts for that reason.
 
 **Ordering is load-bearing.** A prohibition stated after its exception reads as permission. The
 repeat-query rule needs its exception (read back after a write) to come second.
+
+**A plausible set reads as a confirmed one.** Asked to replace "all the textures" on an object whose
+every map had an exact 4K twin, the agent wrote them all without asking. The exact matches are what
+it took as confirmation, so the rule names them. The gate also has to sit before every write route, not
+only the texture tool: the agent made side writes (a reference, a hand-edited layer) before asking, so
+the rule lists them. A question tool does not gate the write either: a non-interactive harness can
+answer the agent's own question for it, so only a question that ends the turn stops it.

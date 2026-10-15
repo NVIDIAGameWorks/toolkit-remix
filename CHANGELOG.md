@@ -199,6 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clarified the remove-layer and mute-layer MCP tool descriptions: they act on the whole layer and are not a substitute for deleting prims (NVBug 6713667).
 - Matched scheduled Remix dependency bot failure notifications to the formatted Slack pipeline messages.
 - Fixed the Material Properties panel and ComfyUI job queue using the captured material for a replacement mesh whose materials are bound on GeomSubsets; select a subset to edit its material.
+- Fixed the RTX Remix modding agent skill making multi-target writes (e.g. "replace all the textures") without first confirming the resolved set with the user (NVBug 6713631).
 
 ## [1.5.2-0]
 
