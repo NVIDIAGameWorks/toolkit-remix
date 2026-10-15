@@ -89,14 +89,24 @@ if [[ "${channel_ids}" == ,* || "${channel_ids}" == *, || "${channel_ids}" == *,
 fi
 
 IFS=',' read -r -a slack_channel_ids <<< "${channel_ids}"
-declare -A notified_channel_ids=()
+# Track already-notified channels as a comma-separated string so the script stays
+# compatible with the bash 3.2 that ships with macOS (associative arrays are bash 4.0+).
+notified_channel_ids=""
+notified_channel_count=0
 notification_failed=0
 
 for slack_channel_id in "${slack_channel_ids[@]}"; do
-    if [ -n "${notified_channel_ids[${slack_channel_id}]:-}" ]; then
-        continue
+    case ",${notified_channel_ids}," in
+        *",${slack_channel_id},"*)
+            continue
+            ;;
+    esac
+    if [ -n "${notified_channel_ids}" ]; then
+        notified_channel_ids="${notified_channel_ids},${slack_channel_id}"
+    else
+        notified_channel_ids="${slack_channel_id}"
     fi
-    notified_channel_ids["${slack_channel_id}"]=1
+    notified_channel_count=$((notified_channel_count + 1))
 
     if ! slack_response="$(
         curl -fsS -X POST \
@@ -123,4 +133,4 @@ if [ "${notification_failed}" -ne 0 ]; then
     exit 1
 fi
 
-echo "Slack notification sent to ${#notified_channel_ids[@]} channel(s)."
+echo "Slack notification sent to ${notified_channel_count} channel(s)."
