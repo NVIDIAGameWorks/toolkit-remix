@@ -109,10 +109,24 @@ class ColorValueModel(ui.AbstractValueModel):
 class ColorField(AbstractField):
     """Delegate of the tree"""
 
-    def __init__(self, display_precision: int = 2, style_name: str = "ColorsWidgetFieldRead"):
+    def __init__(
+        self,
+        display_precision: int = 2,
+        style_name: str = "ColorsWidgetFieldRead",
+        *,
+        context_name: str | None = None,
+    ):
+        """Create a color field with optional scene-selection tracking for its editor.
+
+        Args:
+            display_precision: Decimal places shown by the inline component labels.
+            style_name: Theme style used for the inline color field.
+            context_name: Owning USD context, or None for a generic color field.
+        """
         super().__init__(style_name=style_name)
 
         self.display_precision = display_precision
+        self._context_name = context_name
 
         # The color widget is a bit unique as the provided item's model is not used directly within the widget. We
         # instead connect change events between the two models to ensure that updates properly flow both ways.
@@ -151,6 +165,7 @@ class ColorField(AbstractField):
         color_model = _ColorItemModel(vec)
         self._color_widget_model = color_model
         component_models = tuple(color_model.get_item_value_model(child) for child in color_model.get_item_children())
+        property_name = "".join(model.get_value_as_string() for model in item.name_models)
 
         widgets = []
 
@@ -162,6 +177,8 @@ class ColorField(AbstractField):
                     color_model,
                     begin_edit_fn=partial(self._color_widget_begin_edit, value_model),
                     end_edit_fn=partial(self._color_widget_changed, type(vec), value_model, component_models),
+                    context_name=self._context_name,
+                    title=f"{property_name} - Color Editor" if property_name else "Color Editor",
                     name=self.style_name,
                     style_type_name_override=self.style_name,
                     identifier="color_swatch",

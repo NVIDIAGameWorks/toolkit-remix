@@ -19,6 +19,7 @@ __all__ = ("TestColorField",)
 
 import sys
 import uuid
+from asyncio import Event
 from contextlib import nullcontext
 from math import isclose
 
@@ -27,7 +28,9 @@ import omni.kit.ui_test
 import omni.ui as ui
 from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardEventType, KeyboardInput, MouseEventType
 from carb.logging import acquire_logging
+from omni.flux.property_widget_builder.delegates import FieldPopupWindow
 from omni.flux.property_widget_builder.delegates.float_value.color import ColorField
+from omni.flux.property_widget_builder.delegates.float_value.color_gradient import ColorGradientField
 from omni.flux.property_widget_builder.model.usd import (
     USDAttributeItem,
     USDDelegate,
@@ -36,7 +39,12 @@ from omni.flux.property_widget_builder.model.usd import (
     VirtualUSDAttributeItem,
     get_usd_listener_instance,
 )
-from omni.flux.utils.common.interactive_usd_notices import is_any_interaction_active, register_objects_changed_listener
+from omni.flux.utils.common.interactive_usd_notices import (
+    is_any_interaction_active,
+    register_interaction_end_listener,
+    register_objects_changed_listener,
+)
+from omni.flux.utils.widget import InMemoryGroupedKeysModel
 from omni.kit.commands import execute
 from omni.kit.app import get_app
 from omni.kit.ui_test.input import emulate_keyboard, emulate_mouse
@@ -121,6 +129,252 @@ class TestColorField(omni.kit.test.AsyncTestCase):
             redo()
             await omni.kit.ui_test.human_delay()
             self.assertEqual(self.color_attribute.Get(), color)
+
+    async def test_native_picker_chrome_moves_resizes_and_closes_pending_rgb_with_independent_undo(self):
+        """Native window controls preserve released gestures and commit pending RGB exactly once on close."""
+        original_color = self.color_attribute.Get()
+        await self._open_picker()
+        await self._drag_picker_control("sv", (0.3, 0.3), (0.5, 0.4))
+        released_color = self.color_attribute.Get()
+        window = ui.Workspace.get_window(self.picker_window_title)
+
+        # Native chrome is outside the widget tree, so use the actual content inset to locate its controls.
+        header_height = window.frame.screen_position_y - window.position_y
+        self.assertGreater(header_height, 0)
+        title = omni.kit.ui_test.Vec2(window.position_x + window.width / 2, window.position_y + header_height / 2)
+        before_move = (window.position_x, window.position_y)
+        await omni.kit.ui_test.input.emulate_mouse_drag_and_drop(title, title + omni.kit.ui_test.Vec2(24, 16))
+        await omni.kit.ui_test.human_delay()
+        self.assertGreater(window.position_x, before_move[0])
+        self.assertGreater(window.position_y, before_move[1])
+        before_size = (window.width, window.height)
+        grip = omni.kit.ui_test.Vec2(window.position_x + window.width - 2, window.position_y + window.height - 2)
+        await omni.kit.ui_test.input.emulate_mouse_drag_and_drop(grip, grip + omni.kit.ui_test.Vec2(32, 24))
+        await omni.kit.ui_test.human_delay()
+        self.assertGreater(window.width, before_size[0])
+        self.assertGreater(window.height, before_size[1])
+        self.assertEqual(self.color_attribute.Get(), released_color)
+
+        # The native close button must finish focused text before the host detaches the picker controls.
+        await self._focus_picker_component("red")
+        await omni.kit.ui_test.emulate_char_press("0.85")
+        await omni.kit.ui_test.human_delay()
+        close = omni.kit.ui_test.Vec2(
+            window.position_x + window.width - header_height / 2,
+            window.position_y + header_height / 2,
+        )
+        await omni.kit.ui_test.emulate_mouse_move_and_click(close)
+        await omni.kit.ui_test.human_delay()
+        self._assert_picker_closed()
+        committed_color = Gf.Vec3f(0.85, released_color[1], released_color[2])
+        self.assertEqual(self.color_attribute.Get(), committed_color)
+        self.assertFalse(is_any_interaction_active())
+        for expected in (released_color, original_color):
+            undo()
+            await omni.kit.ui_test.human_delay()
+            self.assertEqual(self.color_attribute.Get(), expected)
+        self.assertFalse(can_undo())
+        for expected in (released_color, committed_color):
+            redo()
+            await omni.kit.ui_test.human_delay()
+            self.assertEqual(self.color_attribute.Get(), expected)
+        self.assertFalse(can_redo())
+
+        await self._open_picker()
+        self.assertIsNot(ui.Workspace.get_window(self.picker_window_title), window)
+        self.assertEqual(self.color_attribute.Get(), committed_color)
+        await self._drag_picker_control("hue", (0.5, 0.2), (0.5, 0.6))
+        undo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), committed_color)
+
+    async def test_open_gradient_after_color_commits_pending_hex_and_preserves_undo_cancellation(self):
+        """Shared-editor handoff commits normal input while cancelled text cannot replace an Undo-restored color."""
+        launcher = ui.Window("ColorPickerGradientLauncher", width=400, height=120, position_x=0, position_y=240)
+        gradient_model = InMemoryGroupedKeysModel(group_ids=["colors"])
+        gradient_field = ColorGradientField(model=gradient_model, group_id="colors")
+        self.addCleanup(launcher.destroy)
+        self.addCleanup(gradient_model.destroy)
+        self.addCleanup(gradient_field.destroy)
+        with launcher.frame:
+            gradient_field.build_ui(None)
+        await omni.kit.ui_test.human_delay()
+        gradient_launcher = omni.kit.ui_test.find(
+            f"{launcher.title}//Frame/**/Rectangle[*].name=='ColorGradientBarOverlay'"
+        )
+        original_color = self.color_attribute.Get()
+        await self._open_picker()
+        await self._drag_picker_control("sv", (0.3, 0.3), (0.5, 0.4))
+        released_color = self.color_attribute.Get()
+        first_window = ui.Workspace.get_window(self.picker_window_title)
+        await self._focus_picker_hex()
+        await omni.kit.ui_test.emulate_char_press("#4080C0")
+        await omni.kit.ui_test.human_delay()
+
+        # Launch a different production editor through its real property control.
+        await gradient_launcher.click()
+        await omni.kit.ui_test.human_delay()
+        self._assert_picker_closed()
+        committed_color = Gf.Vec3f(64 / 255, 128 / 255, 192 / 255)
+        self.assertEqual(self.color_attribute.Get(), committed_color)
+        active_editors = [
+            window for window in ui.Workspace.get_windows() if isinstance(window, FieldPopupWindow) and window.visible
+        ]
+        self.assertEqual(len(active_editors), 1)
+        gradient_window = active_editors[0]
+        self.addCleanup(gradient_window.close)
+        self.assertIn("Gradient Editor", gradient_window.title)
+        self.assertFalse(first_window.visible)
+        self.assertFalse(is_any_interaction_active())
+        undo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), released_color)
+        undo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), original_color)
+        self.assertFalse(can_undo())
+        redo()
+        await omni.kit.ui_test.human_delay()
+        redo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), committed_color)
+        self.assertFalse(can_redo())
+
+        # Undo while another hex edit is buffered must discard it before the next editor takes ownership.
+        await self._open_picker()
+        self.assertFalse(gradient_window.visible)
+        await self._focus_picker_hex()
+        await omni.kit.ui_test.emulate_char_press("#FF0000")
+        await omni.kit.ui_test.human_delay()
+        undo()
+        await omni.kit.ui_test.human_delay()
+        self._assert_picker_closed()
+        self.assertEqual(self.color_attribute.Get(), released_color)
+        await gradient_launcher.click()
+        await omni.kit.ui_test.human_delay()
+        active_editors = [
+            window for window in ui.Workspace.get_windows() if isinstance(window, FieldPopupWindow) and window.visible
+        ]
+        self.assertEqual(len(active_editors), 1)
+        self.addCleanup(active_editors[0].close)
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), released_color)
+        self.assertTrue(can_redo())
+        redo()
+        await omni.kit.ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), committed_color)
+
+    async def test_change_selection_with_pending_color_text_closes_editor_and_commits_original_property_once(self):
+        """Selection dismissal commits the old property's text before releasing its editor and undo steps."""
+        selection = self.context.get_selection()
+        selection.set_selected_prim_paths([str(self.color_attribute.GetPrim().GetPath())], False)
+        await self.context.selection_changed_async()
+        await omni.kit.ui_test.human_delay()
+        original_color = self.color_attribute.Get()
+        await self._open_picker_and_edit_red(0.8)
+        released_color = self.color_attribute.Get()
+        await self._focus_picker_hex()
+        await omni.kit.ui_test.emulate_char_press("#4080C0")
+        await omni.kit.ui_test.human_delay()
+        interaction_ended = Event()
+
+        def record_interaction_end(stage):
+            """Observe the original property's deferred USD interaction completion."""
+            if stage == self.context.get_stage():
+                interaction_ended.set()
+
+        subscription = register_interaction_end_listener(record_interaction_end)
+        self.addCleanup(subscription.revoke)
+
+        # The context selection changes while the old property's text control still owns keyboard focus.
+        selection.set_selected_prim_paths([str(self.other_attribute.GetPrim().GetPath())], False)
+        await self.context.selection_changed_async()
+        await interaction_ended.wait()
+        await omni.kit.ui_test.human_delay()
+        self._assert_picker_closed()
+        committed_color = Gf.Vec3f(64 / 255, 128 / 255, 192 / 255)
+        self.assertEqual(self.color_attribute.Get(), committed_color)
+        self.assertEqual(self.other_attribute.Get(), 1.0)
+        self.assertFalse(is_any_interaction_active())
+        for expected in (released_color, original_color):
+            undo()
+            await omni.kit.ui_test.human_delay()
+            self.assertEqual(self.color_attribute.Get(), expected)
+            self.assertEqual(self.other_attribute.Get(), 1.0)
+        self.assertFalse(can_undo())
+        for expected in (released_color, committed_color):
+            redo()
+            await omni.kit.ui_test.human_delay()
+            self.assertEqual(self.color_attribute.Get(), expected)
+        self.assertFalse(can_redo())
+
+    async def test_mouse_wheel_over_color_controls_preserves_content_color_and_history_after_resize(self):
+        """Wheel input cannot scroll color content or edit values, including when native resizing clips controls."""
+        original_color = self.color_attribute.Get()
+        execute("ChangeProperty", prop_path=self.other_attribute.GetPath(), value=2.0, prev=1.0, usd_context_name="")
+        undo()
+        await omni.kit.ui_test.human_delay()
+        await self._open_picker()
+        plane = self._picker_control("ImageWithProvider", "sv")
+        hex_field = self._picker_control("StringField", "hex")
+        for widget_type, identifier in (
+            ("ImageWithProvider", "sv"),
+            ("ImageWithProvider", "hue"),
+            ("FloatDrag", "red"),
+            ("FloatDrag", "green"),
+            ("FloatDrag", "blue"),
+            ("FloatDrag", "hue_value"),
+            ("FloatDrag", "saturation"),
+            ("FloatDrag", "value"),
+            ("StringField", "hex"),
+        ):
+            with self.subTest(control=identifier):
+                before_positions = (plane.position, hex_field.position)
+                await omni.kit.ui_test.emulate_mouse_move(self._picker_control(widget_type, identifier).center)
+                await omni.kit.ui_test.human_delay()
+                await omni.kit.ui_test.input.emulate_mouse_scroll(omni.kit.ui_test.Vec2(0, -1200))
+                await omni.kit.ui_test.human_delay()
+                self.assertEqual((plane.position, hex_field.position), before_positions)
+                self.assertEqual(self.color_attribute.Get(), original_color)
+                self.assertFalse(can_undo())
+                self.assertTrue(can_redo())
+
+        # Overflow after a real resize must not let the hidden native scrollbar move the controls.
+        window = ui.Workspace.get_window(self.picker_window_title)
+        original_height = window.height
+        grip = omni.kit.ui_test.Vec2(window.position_x + window.width - 2, window.position_y + window.height - 2)
+        await omni.kit.ui_test.input.emulate_mouse_drag_and_drop(grip, grip - omni.kit.ui_test.Vec2(0, 96))
+        await omni.kit.ui_test.human_delay()
+        self.assertLess(window.height, original_height)
+        current = omni.kit.ui_test.find(
+            f"{self.picker_window_title}//Frame/**/Rectangle[*].name=='ColorPickerCurrentBorder'"
+        )
+        for target in (plane, self._picker_control("ImageWithProvider", "hue"), current):
+            before_positions = (plane.position, hex_field.position)
+            await omni.kit.ui_test.emulate_mouse_move(target.center)
+            await omni.kit.ui_test.human_delay()
+            await omni.kit.ui_test.input.emulate_mouse_scroll(omni.kit.ui_test.Vec2(0, -1200))
+            await omni.kit.ui_test.human_delay()
+            self.assertEqual((plane.position, hex_field.position), before_positions)
+            self.assertEqual(self.color_attribute.Get(), original_color)
+            self.assertFalse(can_undo())
+            self.assertTrue(can_redo())
+
+        grip = omni.kit.ui_test.Vec2(window.position_x + window.width - 2, window.position_y + window.height - 2)
+        await omni.kit.ui_test.input.emulate_mouse_drag_and_drop(
+            grip, grip + omni.kit.ui_test.Vec2(0, original_height - window.height)
+        )
+        await omni.kit.ui_test.human_delay()
+        await self._drag_picker_control("sv", (0.3, 0.3), (0.5, 0.4))
+        dragged_color = self.color_attribute.Get()
+        await self._edit_picker_component("red", 0.85)
+        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.85, dragged_color[1], dragged_color[2]))
+        for expected in (dragged_color, original_color):
+            undo()
+            await omni.kit.ui_test.human_delay()
+            self.assertEqual(self.color_attribute.Get(), expected)
+        self.assertFalse(can_undo())
 
     async def test_edit_missing_virtual_color_uses_custom_creation_and_undo_restores_attribute_lifetime(self):
         """Owned RGB editing preserves virtual attribute creation callbacks and their undoable setup."""

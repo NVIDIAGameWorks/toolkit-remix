@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Enlarged the property swatch and picker square, aligned the fields beneath the square and hue bar with centered channel labels, moved the Current preview alongside them with more right and bottom padding, and removed the Close button while preserving dismissal and viewport-edge usability.
 - Added validated normalized RGB/RGBA tuple input to the Hex field, with canonical hex conversion and one undo operation.
 - Declared the USD model test dependency for color-picker workflow coverage.
+- Hosted the Color Editor in the shared movable, resizable property floater without scrollbars, with consistent placement, dismissal, and one active editor while preserving color edits and per-gesture undo.
+- Increased the Color Editor height and bottom padding to keep the Hex field fully visible.
+- Disabled mouse-wheel scrolling in the Color Editor while preserving drag and typed edits.
 
 ## [3.1.2]
 

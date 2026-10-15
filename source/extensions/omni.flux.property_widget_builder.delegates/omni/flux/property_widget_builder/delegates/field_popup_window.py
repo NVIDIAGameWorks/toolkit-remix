@@ -198,6 +198,34 @@ class FieldPopupWindow(ui.Window):
         if key == int(KeyboardInput.ESCAPE) and is_down and not modifiers & _SHORTCUT_MODIFIERS:
             self.close()
 
+    def _apply_geometry(self, preferred_size, anchor_rect) -> None:
+        """Clamp preferred window geometry and place it beside an optional launcher.
+
+        Args:
+            preferred_size: Requested width and height in logical pixels.
+            anchor_rect: Launcher left, top, width, and height, or None to center the window.
+        """
+        workspace_width = float(ui.Workspace.get_main_window_width())
+        workspace_height = float(ui.Workspace.get_main_window_height())
+        width = min(max(0.0, float(preferred_size[0])), max(0.0, workspace_width - 2 * _WINDOW_MARGIN))
+        height = min(max(0.0, float(preferred_size[1])), max(0.0, workspace_height - 2 * _WINDOW_MARGIN))
+        self.width = width
+        self.height = height
+        position_x = (workspace_width - width) / 2
+        position_y = (workspace_height - height) / 2
+        if anchor_rect is not None and anchor_rect[2] > 0 and anchor_rect[3] > 0:
+            anchor_x, anchor_y, anchor_width, anchor_height = anchor_rect
+            right_x = anchor_x + anchor_width + _WINDOW_MARGIN
+            left_space = anchor_x - 2 * _WINDOW_MARGIN
+            right_space = workspace_width - _WINDOW_MARGIN - right_x
+            if right_space >= width or (left_space < width and right_space >= left_space):
+                position_x = right_x
+            else:
+                position_x = anchor_x - _WINDOW_MARGIN - width
+            position_y = anchor_y + (anchor_height - height) / 2
+        self.position_x = max(_WINDOW_MARGIN, min(position_x, workspace_width - _WINDOW_MARGIN - width))
+        self.position_y = max(_WINDOW_MARGIN, min(position_y, workspace_height - _WINDOW_MARGIN - height))
+
     def __request_open(self, token, preferred_size, anchor_rect) -> None:
         global _PENDING_WINDOW
         if self.__pre_open_token is not token:
@@ -224,7 +252,7 @@ class FieldPopupWindow(ui.Window):
                 return
         _ACTIVE_WINDOW = self
         try:
-            self.__apply_geometry(preferred_size, anchor_rect)
+            self._apply_geometry(preferred_size, anchor_rect)
             if self._closing:
                 return
             with self.frame:
@@ -239,28 +267,6 @@ class FieldPopupWindow(ui.Window):
             except Exception:  # noqa: BLE001 - Carb logs the full exception traceback.
                 log_error(f"Failed to clean up a failed property-panel floating editor build\n{format_exc()}")
             raise
-
-    def __apply_geometry(self, preferred_size, anchor_rect) -> None:
-        workspace_width = float(ui.Workspace.get_main_window_width())
-        workspace_height = float(ui.Workspace.get_main_window_height())
-        width = min(max(0.0, float(preferred_size[0])), max(0.0, workspace_width - 2 * _WINDOW_MARGIN))
-        height = min(max(0.0, float(preferred_size[1])), max(0.0, workspace_height - 2 * _WINDOW_MARGIN))
-        self.width = width
-        self.height = height
-        position_x = (workspace_width - width) / 2
-        position_y = (workspace_height - height) / 2
-        if anchor_rect is not None and anchor_rect[2] > 0 and anchor_rect[3] > 0:
-            anchor_x, anchor_y, anchor_width, anchor_height = anchor_rect
-            right_x = anchor_x + anchor_width + _WINDOW_MARGIN
-            left_space = anchor_x - 2 * _WINDOW_MARGIN
-            right_space = workspace_width - _WINDOW_MARGIN - right_x
-            if right_space >= width or (left_space < width and right_space >= left_space):
-                position_x = right_x
-            else:
-                position_x = anchor_x - _WINDOW_MARGIN - width
-            position_y = anchor_y + (anchor_height - height) / 2
-        self.position_x = max(_WINDOW_MARGIN, min(position_x, workspace_width - _WINDOW_MARGIN - width))
-        self.position_y = max(_WINDOW_MARGIN, min(position_y, workspace_height - _WINDOW_MARGIN - height))
 
     def __begin_close(self) -> None:
         self.__stop_input_watch()

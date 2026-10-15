@@ -30,13 +30,15 @@ value model.
 
 `ColorField` owns the Python color item model shared by the read-only RGB fields and `ColorPicker`, an embedded
 `ui.Frame`. `ColorPicker` owns the swatch, editor controls, color conversions, and gesture callbacks.
-The same-extension `ColorPickerPopup` (`ui.Window`) owns popup creation, identity, positioning, local keyboard,
-focus, and visibility dismissal notifications, and deferred native window teardown.
-Each opening uses a fresh native window identity so the new popup cannot inherit held input from a retired popup.
-The popup opens above the field when there is not enough room below it and moves left near the main window's right
-edge. Its padded layout uses the application's `WorkspaceBackground` style. The wider property swatch opens a larger
+`ColorPickerPopup` extends the shared [`FieldPopupWindow`](#floating-property-editors), giving the Color Editor the
+same native title bar, close control, move/resize behavior, bounded placement beside its launcher, and single active
+editor policy as the Curve and Gradient editors. The USD field builder supplies the owning context for selection
+dismissal; generic fields can omit the context. Content is built only when the shared host activates the editor.
+Its padded layout uses the application's `WorkspaceBackground` style. The wider property swatch opens a larger
 saturation/value square and hue bar, with RGB/A, HSV/A, and hex fields aligned beneath them. The Current preview sits
-in a separate column on the right. Clicking outside the popup or pressing Escape dismisses it without a Close button.
+in a separate column on the right. The initial window size includes measured native chrome and displays the fixed-size
+picker content without scrollbars or mouse-wheel scrolling. Dismissal uses the native
+close control, Escape, or an outside click; the content has no separate Close button.
 The picker borrows that model; the field retains its component models and subscriptions for the row's lifetime.
 Saturation/value and hue controls define each gesture through widget-local press, move, and release callbacks.
 Control-local coordinates map those gestures to colors. Each component's native `ui.FloatDrag` reports its own
@@ -88,8 +90,9 @@ when ending the backing edit raises; the lifecycle error still propagates.
 The default USD color builder registers this cleanup with its delegate. A full delegate reset releases the field's
 subscriptions even when its backing value model remains alive; picker cancellation keeps the current field usable.
 `ColorPicker.destroy()` clears its borrowed component references and its saturation/value, hue, and checkerboard
-image-provider references. Retired `_PickerValueModel` proxies disable writes and subscriptions but retain their
-borrowed parents for safe late native getters throughout the popup owner's deferred teardown.
+image-provider references. Normal floater dismissal commits pending input before the host detaches content;
+cancellation discards that input. Retired `_PickerValueModel` proxies disable writes and subscriptions but retain
+their borrowed parents for safe late native getters throughout the shared host's deferred teardown.
 Read-only color fields disable the picker.
 `display_precision` formats the read-only row text and does not set the picker's drag increments.
 
@@ -118,7 +121,9 @@ editors own models and sessions, and release hooks handle canceled or partial bu
 `context_name=None` skips selection observation, `""` observes the default USD context, and a nonempty name observes
 that context. Selection changes cancel preparation or close the editor; any outside mouse-button press also closes it.
 Escape closes the active editor and any open child picker without clearing the scene selection.
-Application Ctrl+Z/Ctrl+Y remain available.
+Application Ctrl+Z/Ctrl+Y remain available. The active host owns an application-level Escape subscription and checks
+mouse-button transitions and pointer bounds on application updates for outside-click dismissal. These shared watches
+are released when the editor closes; color controls add no separate global input listeners.
 
 Editors extend `_on_key_pressed(key, modifiers, is_down)` and call `super()` to preserve Escape dismissal. This native
 window callback follows keyboard focus; a widget's key callback follows pointer dispatch and is unsuitable for

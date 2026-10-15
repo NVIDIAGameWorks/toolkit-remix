@@ -82,7 +82,7 @@ class ColorPicker(ui.Frame):
     _SPACING = ui.Pixel(8)
     _PADDING = ui.Pixel(8)
     _RIGHT_PADDING = ui.Pixel(16)
-    _BOTTOM_PADDING = ui.Pixel(24)
+    _BOTTOM_PADDING = ui.Pixel(56)
     _MARKER_SIZE = ui.Pixel(12)
     _MARKER_INNER_SIZE = ui.Pixel(8)
     _HUE_MARKER_WIDTH = ui.Pixel(8)
@@ -126,6 +126,8 @@ class ColorPicker(ui.Frame):
         *,
         begin_edit_fn: Callable[[], None],
         end_edit_fn: Callable[[], None],
+        context_name: str | None = None,
+        title: str = "Color Editor",
         **kwargs,
     ):
         """Borrow a color model and callbacks for the first change and final gesture value.
@@ -134,6 +136,8 @@ class ColorPicker(ui.Frame):
             model: Caller-owned item model containing RGB or RGBA component values.
             begin_edit_fn: Callback invoked before the first actual change of a gesture.
             end_edit_fn: Callback that flushes and commits the gesture's final value.
+            context_name: USD context whose selection changes dismiss this editor, or None for generic fields.
+            title: Friendly property name and editor title for the native window.
             **kwargs: Built-in Frame constructor options for the swatch.
         """
         super().__init__(**kwargs)
@@ -141,6 +145,8 @@ class ColorPicker(ui.Frame):
         self._components = tuple(model.get_item_value_model(item) for item in model.get_item_children())
         self._begin_edit_fn = begin_edit_fn
         self._end_edit_fn = end_edit_fn
+        self._context_name = context_name
+        self._title = title
         self._style_name = kwargs.get("style_type_name_override", kwargs.get("name", "ColorsWidgetFieldRead"))
         self._window = None
         self._window_title = ""
@@ -204,8 +210,45 @@ class ColorPicker(ui.Frame):
         self._swatch.selected = "Selected" in value
 
     def open(self):
-        """Open the owned popup without starting a property edit."""
+        """Request the shared floating editor without starting a property edit."""
         if not self.enabled or self._window is not None or self._model is None:
+            return
+        popup_width = (
+            float(self._PLANE_SIZE)
+            + float(self._HUE_WIDTH)
+            + float(self._SPACING)
+            + float(self._CURRENT_WIDTH)
+            + float(self._SPACING)
+            + float(self._PADDING)
+            + float(self._RIGHT_PADDING)
+        )
+        popup_height = (
+            float(self._PLANE_SIZE)
+            + 3 * (float(self._CHANNEL_ROW_HEIGHT) + float(self._SPACING))
+            + float(self._PADDING)
+            + float(self._BOTTOM_PADDING)
+        )
+        self._window = ColorPickerPopup(
+            title=self._title,
+            context_name=self._context_name,
+            build_fn=partial(self._build_content, (popup_width, popup_height)),
+            close_fn=self.close,
+            cancel_fn=self.cancel,
+        )
+        self._window_title = self._window.title
+        self._window.open(
+            preferred_size=(popup_width, popup_height),
+            anchor_rect=(
+                self.screen_position_x,
+                self.screen_position_y,
+                self.computed_width,
+                self.computed_height,
+            ),
+        )
+
+    def _build_content(self, preferred_size, window):
+        """Create this opening's controls only after its shared floating host activates."""
+        if window is not self._window or self._model is None:
             return
         self._input_enabled = True
         self._refresh()
@@ -221,21 +264,6 @@ class ColorPicker(ui.Frame):
             checker = create_checkerboard(checker_width, checker_height)
             self._checker_provider.set_bytes_data(checker.ravel().tolist(), [checker_width, checker_height])
         main_width = ui.Pixel(float(self._PLANE_SIZE) + float(self._HUE_WIDTH) + float(self._SPACING))
-        popup_width = (
-            float(main_width)
-            + float(self._CURRENT_WIDTH)
-            + float(self._SPACING)
-            + float(self._PADDING)
-            + float(self._RIGHT_PADDING)
-        )
-        popup_height = (
-            float(self._PLANE_SIZE)
-            + 3 * (float(self._CHANNEL_ROW_HEIGHT) + float(self._SPACING))
-            + float(self._PADDING)
-            + float(self._BOTTOM_PADDING)
-        )
-        self._window = ColorPickerPopup(self, popup_width, popup_height, self.close)
-        self._window_title = self._window.title
         self._hsv_models = [ui.SimpleFloatModel(value) for value in (self._hue, self._saturation, self._value)]
         self._hex_model = ui.SimpleStringModel(self._format_hex())
         self._hex_dirty = False
@@ -243,8 +271,8 @@ class ColorPicker(ui.Frame):
         fallback_style = {name: style for name, style in self._FALLBACK_STYLE.items() if name not in default_style}
         if fallback_style:
             self._window.frame.set_style(fallback_style)
-        with self._window.frame:
-            with ui.ZStack():
+        with ui.Frame():
+            with ui.ZStack(width=ui.Pixel(preferred_size[0]), height=ui.Pixel(preferred_size[1])):
                 ui.Rectangle(name="WorkspaceBackground", opaque_for_mouse_events=False)
                 with ui.HStack():
                     ui.Spacer(width=self._PADDING)

@@ -59,7 +59,7 @@ existing immediate-write behavior.
 
 ## Floating Property Editors
 
-Curve, Gradient, and texture-preview controls use the shared
+Color, Curve, Gradient, and texture-preview controls use the shared
 [`FieldPopupWindow` lifecycle](../../omni.flux.property_widget_builder.delegates/docs/README.md#floating-property-editors).
 
 `CurveFieldEditor` owns a per-opening model and session; standalone `PropertyPrimvarCurveModel` keeps

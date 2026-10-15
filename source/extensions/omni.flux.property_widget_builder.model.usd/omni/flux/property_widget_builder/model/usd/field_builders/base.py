@@ -254,7 +254,7 @@ def _color_builder(item, *, register_cleanup=None):
         item: USD property item holding the color value.
         register_cleanup: Callback that registers field cleanup with the owning delegate.
     """
-    builder = ColorField()
+    builder = ColorField(context_name=item.context_name)
     return builder(item, register_cleanup=register_cleanup)
 
 

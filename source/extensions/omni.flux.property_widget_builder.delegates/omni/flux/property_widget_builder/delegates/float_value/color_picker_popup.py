@@ -17,87 +17,97 @@
 
 __all__ = ("ColorPickerPopup",)
 
-import asyncio
 from collections.abc import Callable
-from uuid import uuid4
+from functools import partial
 
-import carb
 import omni.ui as ui
-from omni.kit.app import get_app
+
+from ..field_popup_window import FieldPopupWindow
 
 
-class ColorPickerPopup(ui.Window):
-    """Own the transient window and native teardown for embedded color controls."""
+class ColorPickerPopup(FieldPopupWindow):
+    """Route shared floating-window activation and dismissal through the color edit owner."""
 
-    def __init__(self, anchor: ui.Widget, width: float, height: float, close_fn: Callable[[], None]):
-        """Open a popup near its swatch and route dismissal through its edit owner.
+    def __init__(
+        self,
+        *,
+        title: str,
+        context_name: str | None,
+        build_fn: Callable[[FieldPopupWindow], None],
+        close_fn: Callable[[], None],
+        cancel_fn: Callable[[], None],
+    ):
+        """Construct a hidden host whose content and edits remain owned by the picker.
 
         Args:
-            anchor: Swatch whose screen bounds determine the popup position.
-            width: Popup width in UI points.
-            height: Popup height in UI points.
-            close_fn: Callback that commits focused input before retiring the popup.
+            title: Friendly property name and editor title for the native window.
+            context_name: Owning USD context, or None for a generic color field.
+            build_fn: Callback that builds controls only after this host activates.
+            close_fn: Callback that commits focused input before retiring the host.
+            cancel_fn: Callback that discards input when activation or content construction fails.
         """
+        self._build_fn = build_fn
         self._close_fn = close_fn
-        self._was_focused = False
-        position_y = anchor.screen_position_y + anchor.computed_height
-        if position_y + height > ui.Workspace.get_main_window_height():
-            position_y = max(0.0, anchor.screen_position_y - height)
-        # A new native ID prevents a replacement popup from inheriting the retired control's held input.
-        super().__init__(
-            f"ColorPicker_{uuid4()}",
-            width=width,
-            height=height,
-            position_x=max(0.0, min(anchor.screen_position_x, ui.Workspace.get_main_window_width() - width)),
-            position_y=position_y,
-            flags=ui.WINDOW_FLAGS_POPUP
-            | ui.WINDOW_FLAGS_NO_RESIZE
-            | ui.WINDOW_FLAGS_NO_COLLAPSE
-            | ui.WINDOW_FLAGS_NO_DOCKING
-            | ui.WINDOW_FLAGS_NO_SCROLLBAR
-            | ui.WINDOW_FLAGS_NO_TITLE_BAR
-            | ui.WINDOW_FLAGS_NO_MOVE,
-        )
-        self.set_key_pressed_fn(self._on_key_pressed)
-        self.set_focused_changed_fn(self._on_focus_changed)
-        self.set_visibility_changed_fn(self._on_visibility_changed)
+        self._cancel_fn = cancel_fn
+        self._retired_inputs = ()
+        super().__init__(title=title, context_name=context_name)
+        self.flags |= ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
+
+    def open(self, *, preferred_size, anchor_rect=None):
+        """Fit the requested content size around native chrome after the first layout.
+
+        Args:
+            preferred_size: Desired width and height of the color controls in logical pixels.
+            anchor_rect: Launcher bounds used by the shared host for placement.
+        """
+        if not self.is_open and not self._closing:
+            self.frame.set_computed_content_size_changed_fn(
+                partial(self._fit_content_size, preferred_size, anchor_rect)
+            )
+        super().open(preferred_size=preferred_size, anchor_rect=anchor_rect)
+
+    def close(self):
+        """Finish the owner's input before the shared host starts its deferred teardown."""
+        if self._close_fn is not None:
+            self._close_fn()
+        else:
+            super().close()
 
     def retire(self, models, subscriptions):
-        """Hide the popup and retain disabled input models until native dispatch finishes.
+        """Retain disabled input getters through native teardown and close without reentering the owner.
 
         Args:
-            models: Retired input models whose getters remain valid for native controls.
-            subscriptions: Input subscriptions retained until their native controls are destroyed.
+            models: Disabled input models whose getters must survive native control destruction.
+            subscriptions: Input subscriptions retained alongside their native controls.
         """
-        self._close_fn = None
-        self.set_key_pressed_fn(None)
-        self.set_focused_changed_fn(None)
-        self.set_visibility_changed_fn(None)
-        self.visible = False
-        asyncio.ensure_future(self._destroy_after_update(models, subscriptions))
+        self._build_fn = self._close_fn = self._cancel_fn = None
+        self.frame.set_computed_content_size_changed_fn(None)
+        # Native destruction can still query disabled models; retain them with their window.
+        self._retired_inputs = (models, subscriptions)
+        super().close()
 
-    async def _destroy_after_update(self, models, subscriptions):
-        """Release retired inputs and destroy hidden controls after native dispatch completes."""
-        await get_app().next_update_async()
-        subscriptions.clear()
-        try:
-            self.destroy()
-        finally:
-            models.clear()
+    def _fit_content_size(self, preferred_size, anchor_rect):
+        """Include measured native insets once without constraining subsequent user resizing."""
+        if self._closing or self.frame.computed_width <= 0 or self.frame.computed_height <= 0:
+            return
+        self.frame.set_computed_content_size_changed_fn(None)
+        self._apply_geometry(
+            (
+                preferred_size[0] + max(0.0, self.width - self.frame.computed_width),
+                preferred_size[1] + max(0.0, self.height - self.frame.computed_height),
+            ),
+            anchor_rect,
+        )
 
-    def _on_key_pressed(self, key, _modifier, down):
-        """Request normal dismissal when Escape is pressed."""
-        if down and key == int(carb.input.KeyboardInput.ESCAPE) and self._close_fn is not None:
-            self._close_fn()
+    def _build_content(self):
+        """Build the current opening after the shared host releases any outgoing editor."""
+        if self._build_fn is not None:
+            self._build_fn(self)
 
-    def _on_focus_changed(self, focused):
-        """Request normal dismissal when the previously focused popup loses focus."""
-        if focused:
-            self._was_focused = True
-        elif self._was_focused and self._close_fn is not None:
-            self._close_fn()
-
-    def _on_visibility_changed(self, visible):
-        """Commit focused input when native window dismissal hides the popup."""
-        if not visible and self._close_fn is not None:
-            self._close_fn()
+    def _release_content(self):
+        """Cancel partially built input when the shared host finalizes without owner retirement."""
+        cancel_fn, self._cancel_fn = self._cancel_fn, None
+        self._build_fn = self._close_fn = None
+        self.frame.set_computed_content_size_changed_fn(None)
+        if cancel_fn is not None:
+            cancel_fn()
