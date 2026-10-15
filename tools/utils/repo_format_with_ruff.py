@@ -127,34 +127,5 @@ def main():
     sys.exit(result.returncode)
 
 
-def _get_changed_python_files(target_branch="origin/main"):
-    """Get Python files changed between merge-base and HEAD."""
-    merge_base = subprocess.run(
-        ["git", "merge-base", "HEAD", target_branch],
-        capture_output=True,
-        text=True,
-        cwd=REPO_ROOT,
-    )
-    if merge_base.returncode != 0:
-        print("Warning: could not determine merge-base, falling back to HEAD~1")
-        base = "HEAD~1"
-    else:
-        base = merge_base.stdout.strip()
-
-    diff = subprocess.run(
-        ["git", "diff", "--name-only", "--diff-filter=ACMR", base, "HEAD"],
-        capture_output=True,
-        text=True,
-        cwd=REPO_ROOT,
-    )
-    files = [
-        os.path.join(REPO_ROOT, f)
-        for f in diff.stdout.strip().splitlines()
-        if f.endswith(".py") and os.path.isfile(os.path.join(REPO_ROOT, f))
-    ]
-    print(f"Found {len(files)} changed Python file(s)")
-    return files
-
-
 if __name__ == "__main__":
     main()
