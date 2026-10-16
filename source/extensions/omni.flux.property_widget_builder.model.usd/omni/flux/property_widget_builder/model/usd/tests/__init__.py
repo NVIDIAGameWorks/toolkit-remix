@@ -45,6 +45,7 @@ from .unit.test_usd_attribute_xform_item import TestUSDAttributeXformItem
 from .unit.test_value_tooltips import TestUSDAttributeChannelTooltips, TestUSDAttributeValueTooltips
 
 from .e2e.test_clipboard import TestRowClipboard
+from .e2e.test_color_field import TestColorField
 from .e2e.test_curve_editor_popup import TestCurveEditorPopupLifecycle, TestCurvePrimvarModelMixedFirstEdit
 from .e2e.test_delegate_alignment import TestDelegateAlignment
 from .e2e.test_drag import TestUSDDragField
@@ -57,6 +58,7 @@ from .e2e.test_gradient_command import (
 
 __all__ = [
     "TestBoundsAdapter",
+    "TestColorField",
     "TestConditionalVisibilityOrchestrator",
     "TestCurveEditorPopupLifecycle",
     "TestCurveFieldEditor",

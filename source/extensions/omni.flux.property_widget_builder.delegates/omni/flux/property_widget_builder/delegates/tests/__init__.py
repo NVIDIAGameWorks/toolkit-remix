@@ -18,7 +18,6 @@
 __all__ = (
     "TestAbstractDragFieldGroup",
     "TestAbstractDragFieldUnit",
-    "TestColorField",
     "TestColorGradientField",
     "TestFieldPopupWindow",
     "TestFilePicker",
@@ -30,7 +29,6 @@ __all__ = (
 
 from .e2e import (
     TestAbstractDragFieldGroup,
-    TestColorField,
     TestColorGradientField,
     TestFloatDragFieldGroup,
     TestIntDragFieldGroup,

@@ -231,6 +231,9 @@ with ui.Frame():
 
 ## Testing
 
+USD-backed color-picker workflows live in this extension's E2E suite alongside the numeric, Curve, and Gradient
+integrations. The generic delegates test suite does not depend on this USD model extension.
+
 The Curve editor named-context workflow reuses one USD context for the Kit process lifetime. Each run opens a fresh
 stage and closes it during teardown, preserving stage isolation. Keep the native context alive because queued
 `omni.kit.usd.layers` events can reference it after cleanup; destroying it can crash a later test. See the

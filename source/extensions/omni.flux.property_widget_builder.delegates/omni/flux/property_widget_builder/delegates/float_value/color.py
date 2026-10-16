@@ -17,7 +17,6 @@
 
 __all__ = ("ColorField",)
 
-from contextlib import ExitStack
 from functools import partial
 
 import omni.ui as ui
@@ -172,7 +171,7 @@ class ColorField(AbstractField):
         with ui.HStack(height=ui.Pixel(24)):
             ui.Spacer(width=ui.Pixel(8))
             with ui.VStack():
-                ui.Spacer(height=ui.Pixel(2))
+                ui.Spacer()
                 self._picker = ColorPicker(
                     color_model,
                     begin_edit_fn=partial(self._color_widget_begin_edit, value_model),
@@ -183,9 +182,10 @@ class ColorField(AbstractField):
                     style_type_name_override=self.style_name,
                     identifier="color_swatch",
                     enabled=not value_model.read_only,
+                    height=0,
                 )
                 widgets.append(self._picker)
-                ui.Spacer(height=ui.Pixel(2))
+                ui.Spacer()
 
             ui.Spacer(width=ui.Pixel(4))
 
@@ -236,12 +236,15 @@ class ColorField(AbstractField):
         color_model = self._color_widget_model
         self._color_widget_model = None
         try:
-            with ExitStack() as cleanup:
-                if color_model is not None:
-                    cleanup.callback(color_model.destroy)
-                if picker is not None:
-                    cleanup.callback(picker.destroy)
+            try:
                 self._cancel_edit()
+            finally:
+                try:
+                    if picker is not None:
+                        picker.destroy()
+                finally:
+                    if color_model is not None:
+                        color_model.destroy()
         finally:
             self._value_model = None
 

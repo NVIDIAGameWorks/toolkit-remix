@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Hosted the Color Editor in the shared movable, resizable property floater without scrollbars, with consistent placement, dismissal, and one active editor while preserving color edits and per-gesture undo.
 - Increased the Color Editor height and bottom padding to keep the Hex field fully visible.
 - Disabled mouse-wheel scrolling in the Color Editor while preserving drag and typed edits.
+- Centered the color swatch, aligned picker labels and padding, reused layout sizes and channel enums, removed fallback styles, and simplified cleanup and documentation.
+- Moved USD-backed color-picker workflow tests to the USD model extension to remove the reverse test dependency.
 
 ## [3.1.2]
 

@@ -28,73 +28,26 @@ keyword-only `stage_resolver` callback; constructing `FilePicker(use_relative_pa
 stage capability raises `ValueError`. `ComboboxField` consumes an `ui.AbstractItemModel` supplied by the property
 value model.
 
-`ColorField` owns the Python color item model shared by the read-only RGB fields and `ColorPicker`, an embedded
-`ui.Frame`. `ColorPicker` owns the swatch, editor controls, color conversions, and gesture callbacks.
-`ColorPickerPopup` extends the shared [`FieldPopupWindow`](#floating-property-editors), giving the Color Editor the
-same native title bar, close control, move/resize behavior, bounded placement beside its launcher, and single active
-editor policy as the Curve and Gradient editors. The USD field builder supplies the owning context for selection
-dismissal; generic fields can omit the context. Content is built only when the shared host activates the editor.
-Its padded layout uses the application's `WorkspaceBackground` style. The wider property swatch opens a larger
-saturation/value square and hue bar, with RGB/A, HSV/A, and hex fields aligned beneath them. The Current preview sits
-in a separate column on the right. The initial window size includes measured native chrome and displays the fixed-size
-picker content without scrollbars or mouse-wheel scrolling. Dismissal uses the native
-close control, Escape, or an outside click; the content has no separate Close button.
-The picker borrows that model; the field retains its component models and subscriptions for the row's lifetime.
-Saturation/value and hue controls define each gesture through widget-local press, move, and release callbacks.
-Control-local coordinates map those gestures to colors. Each component's native `ui.FloatDrag` reports its own
-begin/end edit boundary for dragging and typed edits.
+`ColorField` owns the color model shared by its read-only component fields and `ColorPicker`, a Frame-based RGB/RGBA
+editor with live updates. The picker provides saturation/value and hue controls, RGB/HSV numeric fields, hex input,
+and a Current preview. Numeric editing supports HDR values; `display_precision` only formats the read-only row.
+Read-only fields disable the picker.
 
-The popup provides RGB/A and HSV numeric editors, a hexadecimal field, and a Current preview. Hue and Saturation
-are normalized to `[0, 1]`; Value supports nonnegative HDR floats through typing and dragging.
-Numeric fields apply valid changes live. Hex text is buffered until end-edit or dismissal.
-Hex input accepts `RRGGBB` for RGB or `RRGGBBAA` for RGBA, with an optional `#` prefix. Its display clips and rounds
-channels to bytes without changing authored HDR values; committing a valid hex edit writes each byte divided by 255.
-The same field accepts parenthesized, comma-separated normalized tuples matching the active color's channel count:
-three for RGB or four for RGBA.
-Whitespace is allowed; each channel must be a finite number in `[0, 1]`, inclusive. RGB `(1.0, 1.0, 1.0)` becomes
-`#FFFFFF`, and `(1.0, 0.5, 0.0)` becomes `#FF8000`; RGBA `(1.0, 0.5, 0.0, 0.5)` becomes `#FF800080`.
-Tuple input uses Kit's eight-bit rounding, restores uppercase hex text, and commits changed colors as one undo operation.
-Malformed input, wrong channel counts, booleans, nonnumeric values, and nonfinite or out-of-range channels are rejected.
-Invalid input restores the formatted current color without changing authored values, including HDR, or undo history.
-The Current preview is solid for RGB and splits RGBA into opaque and transparency-over-checkerboard halves.
+Hex input accepts `RRGGBB` or `RRGGBBAA` with an optional `#`, or parenthesized normalized RGB/RGBA tuples matching
+the color's channel count. Tuple channels must be finite numbers in `[0, 1]`. Text commits on end-edit or dismissal;
+invalid input preserves the current color and undo history. Formatting hex does not change authored HDR values.
 
-Gradient image providers are created when the popup first opens. Saturation/value textures are regenerated only
-while that image is visible and its hue changes. Closed pickers keep swatch and color synchronization without
-generating or uploading hidden gradients. The saturation/value selector is a hollow white ring with a dark
-outline so the color beneath it remains visible. White triangles with dark outlines point inward from both hue-bar
-edges to mark the selected hue. Both marker placers use stable sizing so their movement does not resize the controls
-or change the pointer-to-color mapping. Fixed picker dimensions and spacing use the application's four-pixel grid.
-Widget-local image content-size callbacks position selectors from the retained HSV values after layout, so reopening
-shows the current color. Marker updates use positive measured bounds and ignore callbacks from retired popups;
-layout callbacks only move the selectors.
+Widget-local callbacks define each gesture. With a batch-capable backing model, each completed drag or typed edit
+produces one undo entry when the color changes. RGB components are authored together, and external edits or Undo
+discard interrupted input so queued writes cannot overwrite the restored color.
 
-For models that support batch editing, each completed drag or typed edit uses a separate `begin_batch_edit(live=True)`
-batch and produces one undo entry when the value changes. Opening the popup creates no undo entry.
-The field pairs the backing model's `begin_edit()` and `end_edit()` for each gesture, deferring application refreshes
-while authored colors remain live. RGB changes are combined into one complete-color write per application frame,
-with a synchronous final flush when the gesture ends.
-Normal close requested from an HSV component-change callback completes the remaining RGB writes before committing
-that single gesture. Cancellation abandons remaining writes from the retired popup.
+`ColorPickerPopup` adapts the shared [`FieldPopupWindow`](#floating-property-editors) lifecycle. The USD field builder
+supplies `context_name` for selection dismissal; generic fields can omit it. Normal dismissal commits pending input,
+while cancellation discards it. The picker borrows its model and adds no separate global input listeners.
 
-Undo while the popup is idle restores the previous gesture's color and leaves the picker ready for the next gesture.
-Backing color updates notify the picker after all RGB/A components are synchronized, so temporary channel combinations
-cannot replace its remembered hue when restoring white, gray, or black.
-During an active edit, queued writes check the latest key from Kit's public command execution history before
-authoring. Its monotonically increasing key detects intervening commands even if Undo and Redo restore the same
-undo-stack boundary. An interrupted active edit discards buffered input and closes the popup while preserving the
-restored backing color and the field's models and subscriptions.
-
-Pass `register_cleanup` to `build_ui()` to register `cleanup()` with the owning property widget, or call `cleanup()`
-directly when releasing the field. Cleanup releases subscriptions, the owned picker, and the owned color model even
-when ending the backing edit raises; the lifecycle error still propagates.
-The default USD color builder registers this cleanup with its delegate. A full delegate reset releases the field's
-subscriptions even when its backing value model remains alive; picker cancellation keeps the current field usable.
-`ColorPicker.destroy()` clears its borrowed component references and its saturation/value, hue, and checkerboard
-image-provider references. Normal floater dismissal commits pending input before the host detaches content;
-cancellation discards that input. Retired `_PickerValueModel` proxies disable writes and subscriptions but retain
-their borrowed parents for safe late native getters throughout the shared host's deferred teardown.
-Read-only color fields disable the picker.
-`display_precision` formats the read-only row text and does not set the picker's drag increments.
+Pass `register_cleanup` to `ColorField.build_ui()` to register `cleanup()` with the owning property widget, or call
+`cleanup()` when releasing the field. The default USD builder registers it with the delegate. Cleanup releases the
+picker, color model, and subscriptions even when ending an edit raises; the error still propagates.
 
 `AbstractDragFieldGroup` builds and coordinates numeric fields in one row. Pass `linkable=True` to opt a Float or Int
 group into link controls, linked presentation, focus, commit, cancel, unlink, and value routing. The item owns the

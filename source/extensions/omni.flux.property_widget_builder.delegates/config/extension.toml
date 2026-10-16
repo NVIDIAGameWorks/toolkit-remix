@@ -44,7 +44,6 @@ name = "omni.flux.property_widget_builder.delegates"
 [[test]]
 dependencies = [
     "omni.flux.tests.dependencies",
-    "omni.flux.property_widget_builder.model.usd",
     "omni.flux.property_widget_builder.widget",
     # Lock the capture API used for direct provider-texture readback.
     "omni.kit.renderer.capture-2.0.1",
