@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.4]
+### Changed
+- Enabled Auto Mask by default and removed the experimental label from the shared DLSS 3D-Guided Neural Generation controls.
+
 ## [1.0.3]
 ### Added
 - Added capability-gated **DLSS 3D-Guided Neural Generation [Experimental]** controls to Edit > Preferences > HdRemix Renderer, including Model A/B/C selection, marketing-aligned intensity defaults, Auto Mask, and collapsed advanced controls for highlight recovery and volumetric improvement.

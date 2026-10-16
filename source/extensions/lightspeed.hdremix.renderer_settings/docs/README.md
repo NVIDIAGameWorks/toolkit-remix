@@ -23,7 +23,7 @@ Exposes live HdRemix renderer controls in **Edit > Preferences > HdRemix Rendere
 
 Settings are exposed as a dedicated **Edit > Preferences > HdRemix Renderer** page registered as a sibling of Kit's built-in "Viewport" page. The extension also stubs Kit's "Viewport" page content with a one-line redirect notice (its built-in settings — Auto Frame on stage open, viewport-toolbar visibility, Area Select Occluded Objects — are no-ops against the customized Remix viewport). The Viewport page is kept registered (only its `build` is wrapped) so the viewport menubar's "Preferences" navigation, which looks the page up by title, keeps working. The DLSS 3D-Guided Neural Generation settings are also available in the viewport **Render Settings** pane.
 
-### DLSS 3D-Guided Neural Generation [Experimental]
+### DLSS 3D-Guided Neural Generation
 
 Controls the global DLSS 3D-Guided Neural Generation settings. The group remains hidden until the running dxvk-remix runtime reports support. A missing feature DLL, unsupported platform, or initialization failure keeps it hidden.
 
@@ -34,7 +34,7 @@ Controls the global DLSS 3D-Guided Neural Generation settings. The group remains
 | Model | `rtx.dlssNeuralRendering.model` | `Model A` |
 | Structure Intensity | `rtx.dlssNeuralRendering.structuralStrength` | `0.7` |
 | Tone Intensity | `rtx.dlssNeuralRendering.toneStrength` | `0.3` |
-| Enable Auto Mask | `rtx.dlssNeuralRendering.useAutoMask` | `false` |
+| Enable Auto Mask | `rtx.dlssNeuralRendering.useAutoMask` | `true` |
 | Character Intensity | `rtx.dlssNeuralRendering.skinStructureStrength` | `0.5` |
 
 The collapsed **Advanced Settings** section contains:
@@ -79,7 +79,7 @@ Settings survive restarts, but a loaded capture's resolved DLSS NR values take p
 | `/persistent/exts/lightspeed.hdremix.renderer_settings/dlssNeuralRenderingIntensity` | float | `1.0` | Internal global effect intensity synchronized with capture configuration |
 | `/persistent/exts/lightspeed.hdremix.renderer_settings/dlssNeuralRenderingToneIntensity` | float | `0.3` | Global tone intensity |
 | `/persistent/exts/lightspeed.hdremix.renderer_settings/dlssNeuralRenderingStructureIntensity` | float | `0.7` | Global structure intensity |
-| `/persistent/exts/lightspeed.hdremix.renderer_settings/enableDlssNeuralRenderingAutoMask` | bool | `false` | Enables Auto Mask |
+| `/persistent/exts/lightspeed.hdremix.renderer_settings/enableDlssNeuralRenderingAutoMask` | bool | `true` | Enables Auto Mask |
 | `/persistent/exts/lightspeed.hdremix.renderer_settings/dlssNeuralRenderingCharacterIntensity` | float | `0.5` | Auto Mask character intensity |
 | `/persistent/exts/lightspeed.hdremix.renderer_settings/enableDlssNeuralRenderingHighlightRecovery` | bool | `true` | Enables highlight recovery |
 | `/persistent/exts/lightspeed.hdremix.renderer_settings/dlssNeuralRenderingHighlightRecoveryThresholds` | float4 | `[1.0, 8.0, 0.75, 0.99]` | Highlight recovery thresholds |

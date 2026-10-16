@@ -76,7 +76,8 @@ class TestDlssSettings(AsyncTestCase):
         # Assert
         self.assertEqual(contract, (expected_runtime_names, expected_defaults))
         self.assertFalse(DLSS_ENABLE.default)
-        self.assertEqual(DLSS_SETTINGS_TITLE, "DLSS 3D-Guided Neural Generation [Experimental]")
+        self.assertTrue(DLSS_AUTO_MASK.default)
+        self.assertEqual(DLSS_SETTINGS_TITLE, "DLSS 3D-Guided Neural Generation")
         self.assertEqual(DLSS_ENABLE.label, "DLSS 3D-Guided Neural Generation")
         self.assertEqual(DLSS_MODEL.options, ("Model A", "Model B", "Model C"))
         self.assertEqual(
@@ -102,6 +103,8 @@ class TestDlssSettings(AsyncTestCase):
         # Arrange
         cases = (
             ("invalid Boolean uses disabled default", (DLSS_ENABLE, "invalid", "False")),
+            ("missing Auto Mask uses enabled default", (DLSS_AUTO_MASK, None, "True")),
+            ("explicitly disabled Auto Mask stays disabled", (DLSS_AUTO_MASK, False, "False")),
             ("scalar is clamped to maximum", (DLSS_INTENSITY, 2.0, "1.0")),
             (
                 "vector components use bounds and defaults",

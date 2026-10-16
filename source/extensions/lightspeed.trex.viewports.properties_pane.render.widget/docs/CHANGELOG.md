@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.4]
+### Changed
+- Removed the experimental label from the DLSS 3D-Guided Neural Generation group in the viewport Render Settings pane.
+
 ## [1.2.3]
 ### Added
 - Added capability-gated **DLSS 3D-Guided Neural Generation [Experimental]** controls with Model A/B/C selection, marketing-aligned defaults, and collapsed advanced settings to the viewport Render Settings pane.

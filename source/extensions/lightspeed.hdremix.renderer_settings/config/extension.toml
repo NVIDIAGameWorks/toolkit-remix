@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.0.3"
+version = "1.0.4"
 authors = ["nvidia"]
 repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit"
 changelog = "docs/CHANGELOG.md"
@@ -31,7 +31,7 @@ persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingModel 
 persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingIntensity = 1.0
 persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingToneIntensity = 0.3
 persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingStructureIntensity = 0.7
-persistent.exts."lightspeed.hdremix.renderer_settings".enableDlssNeuralRenderingAutoMask = false
+persistent.exts."lightspeed.hdremix.renderer_settings".enableDlssNeuralRenderingAutoMask = true
 persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingCharacterIntensity = 0.5
 persistent.exts."lightspeed.hdremix.renderer_settings".enableDlssNeuralRenderingHighlightRecovery = true
 persistent.exts."lightspeed.hdremix.renderer_settings".dlssNeuralRenderingHighlightRecoveryThresholds = [1.0, 8.0, 0.75, 0.99]

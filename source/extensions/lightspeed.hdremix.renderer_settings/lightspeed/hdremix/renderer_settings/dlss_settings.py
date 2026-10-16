@@ -73,7 +73,7 @@ class DlssSetting:
 
 _SETTING_PREFIX = "/persistent/exts/lightspeed.hdremix.renderer_settings"
 _RUNTIME_PREFIX = "rtx.dlssNeuralRendering"
-DLSS_SETTINGS_TITLE = "DLSS 3D-Guided Neural Generation [Experimental]"
+DLSS_SETTINGS_TITLE = "DLSS 3D-Guided Neural Generation"
 DLSS_UNIT_FLOAT_RANGE = (0.0, 1.0)
 DLSS_FLOAT4_RANGE = (0.0, 32.0)
 SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE = "/exts/lightspeed.hdremix.renderer_settings/dlssNeuralRenderingAvailable"
@@ -122,9 +122,9 @@ _DLSS_SETTING_DATA = (
     (
         "enableDlssNeuralRenderingAutoMask",
         "useAutoMask",
-        False,
+        True,
         "Enable Auto Mask",
-        "Uses Auto Mask instead of the control mask.",
+        "Combines the automatic character mask with the material control mask.",
         DlssSettingKind.BOOL,
     ),
     (
