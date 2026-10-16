@@ -107,6 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-f337894-main`
 
 - Migrated toolkit ZIP packaging and publishing to Lightspeed uploader, with dependency discovery selecting Remix remotes from the DXVK source branch.
+- Enabled Auto Mask by default, removed the experimental label from DLSS 3D-Guided Neural Generation controls, and preserved material-group availability gating for current and older names.
 
 ### Removed
 

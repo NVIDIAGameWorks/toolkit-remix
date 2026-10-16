@@ -45,9 +45,7 @@ class TestRenderPaneSetupUI(AsyncTestCase):
 
             # Assert
             frame_type.assert_has_calls([call(), call(visible=False)])
-            collapsable_frame.assert_called_once_with(
-                "DLSS 3D-Guided Neural Generation [Experimental]", collapsed=False
-            )
+            collapsable_frame.assert_called_once_with("DLSS 3D-Guided Neural Generation", collapsed=False)
             panel_type.assert_called_once_with("render_settings_dlss_neural_rendering")
             settings.subscribe_to_node_change_events.assert_called_once_with(
                 _setup_ui.SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE,

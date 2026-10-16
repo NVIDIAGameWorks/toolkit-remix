@@ -5,7 +5,7 @@ Builds the viewport **Render Settings** properties pane for RTX Remix Toolkit.
 ## Responsibilities
 
 - Provide the visible Render Settings pane in the viewport properties panel.
-- Expose global experimental DLSS NR controls when the running renderer reports the feature as available.
+- Expose global DLSS 3D-Guided Neural Generation controls when the running renderer reports the feature as available.
 - Persist those controls through the shared `lightspeed.hdremix.renderer_settings` carb settings.
 
 ## Non-Responsibilities
@@ -21,4 +21,4 @@ Builds the viewport **Render Settings** properties pane for RTX Remix Toolkit.
 
 ## Settings
 
-The pane uses the same persistent settings as **Edit > Preferences > HdRemix Renderer**. See the [renderer settings documentation](../../lightspeed.hdremix.renderer_settings/docs/README.md#dlss-3d-guided-neural-generation-experimental) for paths, defaults, runtime mappings, and constraints.
+The pane uses the same persistent settings as **Edit > Preferences > HdRemix Renderer**. See the [renderer settings documentation](../../lightspeed.hdremix.renderer_settings/docs/README.md#dlss-3d-guided-neural-generation) for paths, defaults, runtime mappings, and constraints.
