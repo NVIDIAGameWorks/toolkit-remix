@@ -1325,6 +1325,29 @@ class TestUSDModelInteractiveNotices(omni.kit.test.AsyncTestCase):
                 task.cancel()
                 await omni.kit.app.get_app().next_update_async()
 
+    async def test_finish_editor_failure_finishes_other_editors_and_cancels_all_before_reraising(self):
+        """A failed preview commit cannot prevent another row's teardown cleanup."""
+        # Arrange
+        model = USDModel(context_name="")
+        self.addCleanup(model.destroy)
+        failure = RuntimeError("finish failed")
+        first = Mock()
+        first.finish_property_edit_interaction.side_effect = failure
+        first.cancel_property_edit_interaction.side_effect = RuntimeError("cancel failed")
+        second = Mock()
+        with patch.object(model, "get_all_items", return_value=[Mock(value_models=[first, second])]):
+            # Act
+            with self.assertRaises(RuntimeError) as raised:
+                model.finish_property_edit_interaction()
+
+        # Assert
+        self.assertIs(raised.exception, failure)
+        first.finish_property_edit_interaction.assert_called_once_with()
+        second.finish_property_edit_interaction.assert_called_once_with()
+        first.cancel_property_edit_interaction.assert_called_once_with()
+        second.cancel_property_edit_interaction.assert_called_once_with()
+        self.assertFalse(model.supress_usd_events_during_widget_edit)
+
     async def test_destroy_active_preview_restores_original_value(self):
         """Destroy cancels child previews before discarding their owning items."""
         # Arrange
@@ -1749,8 +1772,8 @@ class TestVirtualAttributeWrites(omni.kit.test.AsyncTestCase):
         self.assertTrue(attr.IsValid())
         self.assertAlmostEqual(attr.Get(), 2.5)
 
-    async def test_cancel_virtual_preview_removes_created_attribute(self):
-        """A virtual preview restores the original absence of its property."""
+    async def test_cancel_missing_virtual_preview_preserves_attribute_absence(self):
+        """A missing virtual attribute is not created by an unfinished preview."""
         # Arrange
         self.stage.DefinePrim("/VirtualTestPrim")
         path = Sdf.Path("/VirtualTestPrim.virtualFloat")
@@ -1760,13 +1783,13 @@ class TestVirtualAttributeWrites(omni.kit.test.AsyncTestCase):
             model.set_value(2.5)
             await omni.kit.app.get_app().next_update_async()
             await omni.kit.app.get_app().next_update_async()
-            preview_value = self.stage.GetAttributeAtPath(path).Get()
+            preview_created = self.stage.GetAttributeAtPath(path).IsValid()
 
             # Act
             model.cancel_property_edit_interaction()
 
             # Assert
-            self.assertAlmostEqual(preview_value, 2.5)
+            self.assertFalse(preview_created)
             self.assertFalse(self.stage.GetAttributeAtPath(path).IsValid())
             self.assertIsNone(self.stage.GetEditTarget().GetLayer().GetPropertyAtPath(path))
             self.assertAlmostEqual(model.get_value_as_float(), 0.0)

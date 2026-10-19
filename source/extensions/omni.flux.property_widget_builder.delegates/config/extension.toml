@@ -32,6 +32,7 @@ icon = "data/images/icon.png"
 
 [dependencies]
 "omni.appwindow" = {}
+"omni.flux.resources" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 "omni.client" = {}

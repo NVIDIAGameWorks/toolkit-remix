@@ -1018,6 +1018,15 @@ current_dict.update(
             "background_color": _PALE_ORANGE_40,
             "border_radius": 5,
         },
+        "Rectangle::ColorsWidgetFieldRead": {
+            "border_color": _WHITE_20,
+            "border_width": 1,
+            "border_radius": 5,
+        },
+        "Rectangle::ColorsWidgetFieldReadMixed": {
+            "background_color": _PALE_ORANGE_40,
+            "border_radius": 5,
+        },
         "Rectangle::ColorsWidgetSeparator": {
             "background_color": _WHITE_10,
             "border_width": 0,
@@ -1028,21 +1037,8 @@ current_dict.update(
             "border_radius": 5,
             "border_color": _WHITE_20,
         },
-        "Circle::ColorPickerHandleOutline": {
-            "background_color": 0x00000000,
-            "border_width": 2,
-            "border_color": _TRUE_DARK,
-        },
-        "Circle::ColorPickerHandle": {
-            "background_color": 0x00000000,
-            "border_width": 1,
-            "border_color": _WHITE_100,
-        },
-        "Triangle::ColorPickerHueHandle": {
-            "background_color": _WHITE_100,
-            "border_width": 1,
-            "border_color": _TRUE_DARK,
-        },
+        "Image::ColorPickerHandle": {"color": _WHITE_100},
+        "Image::ColorPickerHueHandle": {"color": _WHITE_100},
         "Rectangle::ColorPickerCurrentBorder": {
             "background_color": 0x00000000,
             "border_width": 1,

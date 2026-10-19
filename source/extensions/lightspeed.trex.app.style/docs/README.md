@@ -42,7 +42,10 @@ resolves their normal colors when constructing property controls.
 
 ## Color Picker Handles
 
-The `Circle::ColorPickerHandleOutline` and `Circle::ColorPickerHandle` selectors pair dark and white outlines with
-transparent fills for the color picker's hollow saturation/value handle.
-`Triangle::ColorPickerHueHandle` supplies the white fill and dark outline for the paired inward-facing hue markers.
+The owned color swatch uses `Rectangle::ColorsWidgetFieldRead` and `Rectangle::ColorsWidgetFieldReadMixed` name
+selectors. The existing `ColorWidget` selectors remain available for the native Gradient color control.
+
+The `Image::ColorPickerHandle` and `Image::ColorPickerHueHandle` selectors preserve the contrast of the hollow
+saturation/value ring and paired inward-facing hue markers. Their two-tone SVG assets live in `omni.flux.resources`
+and load directly in the picker, so the handles also render without the Remix application stylesheet.
 `Rectangle::ColorPickerCurrentBorder` outlines the color picker's Current preview using the shared neutral palette.

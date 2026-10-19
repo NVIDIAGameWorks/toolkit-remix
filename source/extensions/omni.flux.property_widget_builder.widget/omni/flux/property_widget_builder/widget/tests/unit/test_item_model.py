@@ -50,6 +50,68 @@ class _TestValueModel(ItemValueModel):
 
 
 class TestItemValueModel(omni.kit.test.AsyncTestCase):
+    async def test_finish_property_edit_interaction_subscriber_errors_run_all_and_reraise_first_failure(self):
+        """Finish every subscriber and preserve the first failure regardless of callback order."""
+        # Arrange
+        model = _TestValueModel()
+        calls = []
+        first_failure = RuntimeError("first subscriber failed")
+        second_failure = RuntimeError("second subscriber failed")
+
+        def first_failing_callback():
+            """Record the first failing subscriber before raising its error."""
+            calls.append(first_failure)
+            raise first_failure
+
+        def second_failing_callback():
+            """Record the second failing subscriber before raising its error."""
+            calls.append(second_failure)
+            raise second_failure
+
+        def successful_callback():
+            """Record the successful subscriber's completion."""
+            calls.append("success")
+
+        subscriptions = [
+            model.subscribe_property_edit_finish_fn(callback)
+            for callback in (first_failing_callback, second_failing_callback, successful_callback)
+        ]
+        self.addCleanup(subscriptions.clear)
+
+        # Act
+        with self.assertRaises(RuntimeError) as raised:
+            model.finish_property_edit_interaction()
+
+        # Assert
+        self.assertCountEqual(calls, [first_failure, second_failure, "success"])
+        failures = [call for call in calls if isinstance(call, RuntimeError)]
+        self.assertIs(raised.exception, failures[0])
+
+    async def test_finish_property_edit_interaction_unsubscribe_during_dispatch_finishes_snapshot(self):
+        """Finish the original subscribers even when a callback releases every subscription."""
+        # Arrange
+        model = _TestValueModel()
+        calls = []
+        subscriptions = []
+
+        def unsubscribe_all():
+            """Release subscriptions without changing the current dispatch snapshot."""
+            calls.append("unsubscribe")
+            subscriptions.clear()
+
+        subscriptions.extend(
+            model.subscribe_property_edit_finish_fn(callback)
+            for callback in (unsubscribe_all, lambda: calls.append("first"), lambda: calls.append("second"))
+        )
+        self.addCleanup(subscriptions.clear)
+
+        # Act
+        model.finish_property_edit_interaction()
+
+        # Assert
+        self.assertCountEqual(calls, ["unsubscribe", "first", "second"])
+        self.assertEqual(subscriptions, [])
+
     async def test_cancel_property_edit_interaction_runs_all_callbacks_before_reraising(self):
         # Arrange
         model = _TestValueModel()

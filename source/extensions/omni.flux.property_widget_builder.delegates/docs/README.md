@@ -30,20 +30,30 @@ value model.
 
 `ColorField` owns the color model shared by its read-only component fields and `ColorPicker`, a Frame-based RGB/RGBA
 editor with live updates. The picker provides saturation/value and hue controls, RGB/HSV numeric fields, hex input,
-and a Current preview. Numeric editing supports HDR values; `display_precision` only formats the read-only row.
-Read-only fields disable the picker.
+and a Current preview. All picker edits use normalized `[0, 1]` channels, including alpha and HSV Value; each new
+color clamps the whole RGB/RGBA vector. Opening, external refresh, and Undo preserve existing HDR or negative
+authored values. `display_precision` only formats the read-only row. Read-only fields disable the picker.
+The swatch uses app-defined Rectangle name selectors; shared delegate style updates set its name and selected state.
 
 Hex input accepts `RRGGBB` or `RRGGBBAA` with an optional `#`, or parenthesized normalized RGB/RGBA tuples matching
 the color's channel count. Tuple channels must be finite numbers in `[0, 1]`. Text commits on end-edit or dismissal;
 invalid input preserves the current color and undo history. Formatting hex does not change authored HDR values.
 
-Widget-local callbacks define each gesture. With a batch-capable backing model, each completed drag or typed edit
-produces one undo entry when the color changes. RGB components are authored together, and external edits or Undo
-discard interrupted input so queued writes cannot overwrite the restored color.
+Picker-owned events define each gesture and send complete RGB/RGBA colors to the backing model. With a batch-capable
+backing model, held drags preview the color and each mouse release or completed typed edit commits one Undo entry
+when the color changes. Removing the row retains its latest preview. External edits or Undo discard interrupted input
+so stale input cannot overwrite the restored color.
+Rows rebuilt during a gesture display the model's cached preview while its USD write is pending.
 
 `ColorPickerPopup` adapts the shared [`FieldPopupWindow`](#floating-property-editors) lifecycle. The USD field builder
 supplies `context_name` for selection dismissal; generic fields can omit it. Normal dismissal commits pending input,
 while cancellation discards it. The picker borrows its model and adds no separate global input listeners.
+The popup opens at a fixed default size. Its gradient and input column fill the available content area when resized;
+the hue bar and Current column retain their widths. The shared host handles viewport placement and clamping.
+Content is arranged in a main editing column and a Current preview column, with local gradient-handle overlays,
+eight pixels of padding at the top and sides, and sixteen pixels below Hex.
+Numeric rows use one horizontal stack with fixed label widths and equally expanding input fields.
+SVG handles use fixed-size frames inside full-area placers to preserve their size and movement during live edits.
 
 Pass `register_cleanup` to `ColorField.build_ui()` to register `cleanup()` with the owning property widget, or call
 `cleanup()` when releasing the field. The default USD builder registers it with the delegate. Cleanup releases the

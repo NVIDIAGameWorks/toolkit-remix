@@ -179,7 +179,7 @@ class USDListener:
 
         Args:
             model: Model whose stage may no longer need a listener.
-            cancel_edit_interaction: Whether an active property edit should be canceled.
+            cancel_edit_interaction: Whether opted-in editors should finish and remaining edits should cancel.
         """
 
         if not model:
@@ -198,7 +198,7 @@ class USDListener:
         cancel_error = None
         if cancel_edit_interaction:
             try:
-                model.cancel_property_edit_interaction()
+                model.finish_property_edit_interaction()
             except Exception as exc:  # noqa: BLE001 - keep listener cleanup reliable before re-raising.
                 cancel_error = exc
         if removed_from_models and stage and not any(f for f in self._models if f.stage == stage):

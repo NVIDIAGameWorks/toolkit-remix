@@ -23,11 +23,14 @@ from collections.abc import Callable
 from ctypes import c_float
 from enum import StrEnum
 from functools import partial
+from math import isfinite
 from string import hexdigits
 
 import omni.ui as ui
+from omni.flux.utils.common import Event, EventSubscription
 from omni.flux.utils.widget.color import color_to_hex
 from omni.flux.utils.widget.gradient import create_checkerboard
+from omni.flux.utils.widget.resources import get_icons
 from omni.kit.app import get_app
 
 from .color_picker_popup import ColorPickerPopup
@@ -87,7 +90,8 @@ class _PickerValueModel(ui.AbstractValueModel):
 class ColorPicker(ui.Frame):
     """Display a color swatch with an owned picker and explicit gesture boundaries."""
 
-    _PLANE_SIZE = ui.Pixel(240)
+    _DEFAULT_WINDOW_WIDTH = ui.Pixel(384)
+    _DEFAULT_WINDOW_HEIGHT = ui.Pixel(384)
     _CONTROL_SIZE = ui.Pixel(20)
     _SWATCH_WIDTH = ui.Pixel(48)
     _CHANNEL_LABEL_WIDTH = ui.Pixel(24)
@@ -96,8 +100,6 @@ class ColorPicker(ui.Frame):
     _CURRENT_HEIGHT = ui.Pixel(44)
     _SPACING_MD = ui.Pixel(8)
     _PADDING_MD = ui.Pixel(8)
-    _BOTTOM_PADDING = ui.Pixel(56)
-    _HANDLE_SIZE_SM = ui.Pixel(8)
     _HANDLE_SIZE_MD = ui.Pixel(12)
     _NUMERIC_STEP = 0.001
     _SV_TEXTURE_SIZE = 64
@@ -112,66 +114,29 @@ class ColorPicker(ui.Frame):
         self,
         model: ui.AbstractItemModel,
         *,
-        begin_edit_fn: Callable[[], None],
-        end_edit_fn: Callable[[], None],
         context_name: str | None = None,
         title: str = "Color Editor",
         **kwargs,
     ):
-        """Borrow a color model and callbacks for the first change and final gesture value.
+        """Borrow a color model for the swatch and owned editor controls.
 
         Args:
             model: Caller-owned item model containing RGB or RGBA component values.
-            begin_edit_fn: Callback invoked before the first actual change of a gesture.
-            end_edit_fn: Callback that flushes and commits the gesture's final value.
             context_name: USD context whose selection changes dismiss this editor, or None for generic fields.
             title: Friendly property name and editor title for the native window.
             **kwargs: Built-in Frame constructor options for the swatch.
         """
+        kwargs.setdefault("name", "ColorsWidgetFieldRead")
         super().__init__(**kwargs)
         self._model = model
         self._components = tuple(model.get_item_value_model(item) for item in model.get_item_children())
-        self._begin_edit_fn = begin_edit_fn
-        self._end_edit_fn = end_edit_fn
+        self._edit_started = Event(copy=True)
+        self._color_changed = Event(copy=True)
+        self._edit_finished = Event(copy=True)
         self._context_name = context_name
         self._title = title
-        self._style_name = kwargs.get("style_type_name_override", kwargs.get("name", "ColorsWidgetFieldRead"))
-        self._window = None
-        self._window_title = ""
-        self._close_task = None
-        self._input_enabled = False
-        self._gesture_active = False
-        self._pointer_control = None
-        self._numeric_editing = None
-        self._writing = False
-        self._writing_color = False
-        self._hsv_models = []
-        self._hex_model = None
-        self._hex_dirty = False
-        self._current_opaque = None
-        self._current_alpha = None
-        self._checker_provider = None
-        self._numeric_models = []
-        self._numeric_subscriptions = []
-        self._hue = 0.0
-        self._preview_hue = None
-        self._saturation = 0.0
-        self._value = 0.0
-        self._value_scale = 1.0
-        self._sv_image = None
-        self._hue_image = None
-        self._sv_marker = None
-        self._hue_marker = None
-        self._sv_provider = None
-        self._hue_provider = None
-        with self:
-            self._swatch = ui.Rectangle(
-                width=self._SWATCH_WIDTH,
-                height=self._CONTROL_SIZE,
-                name=self._style_name,
-                style_type_name_override="ColorWidget",
-                mouse_released_fn=self._on_swatch_released,
-            )
+        self._initialize_editor_state()
+        self._build_swatch()
         self._model_subscription = model.subscribe_item_changed_fn(self._on_model_changed)
         self._refresh()
 
@@ -187,45 +152,33 @@ class ColorPicker(ui.Frame):
 
     @property
     def style_type_name_override(self):
-        """Return the delegate style applied to the actual swatch."""
-        return self._style_name
+        """Expose the name-based style to the shared field-state adapter."""
+        return self.name
 
     @style_type_name_override.setter
     def style_type_name_override(self, value):
-        """Forward mixed and selected styling to the actual swatch."""
-        self._style_name = value
+        """Translate shared delegate style states into swatch names and selection."""
+        self.name = value
         self._swatch.name = value.replace("Selected", "")
         self._swatch.selected = "Selected" in value
 
     def open(self):
         """Request the shared floating editor without starting a property edit."""
+        if self._close_task is not None:
+            self._close_task.add_done_callback(self._reopen_after_close)
+            return
         if not self.enabled or self._window is not None or self._model is None:
             return
-        popup_width = (
-            float(self._PLANE_SIZE)
-            + float(self._CONTROL_SIZE)
-            + float(self._SPACING_MD)
-            + float(self._CURRENT_WIDTH)
-            + float(self._SPACING_MD)
-            + float(self._PADDING_MD)
-            + float(self._PADDING_MD)
-        )
-        popup_height = (
-            float(self._PLANE_SIZE)
-            + 3 * (float(self._CONTROL_SIZE) + float(self._SPACING_MD))
-            + float(self._PADDING_MD)
-            + float(self._BOTTOM_PADDING)
-        )
         self._window = ColorPickerPopup(
             title=self._title,
             context_name=self._context_name,
-            build_fn=partial(self._build_content, (popup_width, popup_height)),
+            build_fn=self._build_content,
             close_fn=self.close,
             cancel_fn=self.cancel,
         )
         self._window_title = self._window.title
         self._window.open(
-            preferred_size=(popup_width, popup_height),
+            preferred_size=(float(self._DEFAULT_WINDOW_WIDTH), float(self._DEFAULT_WINDOW_HEIGHT)),
             anchor_rect=(
                 self.screen_position_x,
                 self.screen_position_y,
@@ -234,13 +187,80 @@ class ColorPicker(ui.Frame):
             ),
         )
 
-    def _build_content(self, preferred_size, window):
+    def subscribe_edit_started(self, callback: Callable[[], None]) -> EventSubscription:
+        """Subscribe to the first color change of each gesture."""
+        return EventSubscription(self._edit_started, callback)
+
+    def subscribe_color_changed(self, callback: Callable[[tuple[float, ...]], None]) -> EventSubscription:
+        """Subscribe to complete normalized colors after their component controls update."""
+        return EventSubscription(self._color_changed, callback)
+
+    def subscribe_edit_finished(self, callback: Callable[[], None]) -> EventSubscription:
+        """Subscribe to completed gestures and normal editor dismissal."""
+        return EventSubscription(self._edit_finished, callback)
+
+    def close(self):
+        """Finish complete color updates and focused numeric input before closing."""
+        if self._window is None or self._close_task is not None:
+            return
+        if self._numeric_editing is not None or self._writing:
+            self._close_task = asyncio.ensure_future(self._close_after_update(self._window))
+        else:
+            self._finish_close(self._window)
+
+    def cancel(self):
+        """Close the popup without committing buffered numeric input."""
+        self._input_enabled = False
+        self._gesture_active = False
+        self._pointer_control = None
+        self._numeric_editing = None
+        self._release_window()
+
+    def destroy(self):
+        """Release owned UI and callbacks without destroying the borrowed model."""
+        self._model_subscription = None
+        self.cancel()
+        self._model = None
+        self._components = ()
+        self._sv_provider = self._hue_provider = self._checker_provider = None
+        super().destroy()
+
+    def _initialize_editor_state(self) -> None:
+        """Initialize the editor's popup, input, gesture, and control references."""
+        self._window = self._close_task = None
+        self._window_title = ""
+        self._input_enabled = self._gesture_active = self._writing = False
+        self._pointer_control = self._numeric_editing = None
+
+        self._hsv_models = []
+        self._numeric_models = []
+        self._numeric_subscriptions = []
+        self._hex_model = None
+        self._hex_dirty = False
+
+        self._hue = self._saturation = self._value = 0.0
+        self._preview_hue = None
+        self._current_opaque = self._current_alpha = None
+        self._sv_image = self._hue_image = None
+        self._sv_marker = self._hue_marker = None
+        self._sv_provider = self._hue_provider = self._checker_provider = None
+
+    def _build_swatch(self) -> None:
+        """Build the inline color swatch that opens the editor."""
+        with self:
+            self._swatch = ui.Rectangle(
+                width=self._SWATCH_WIDTH,
+                height=self._CONTROL_SIZE,
+                name=self.name,
+                mouse_released_fn=self._on_swatch_released,
+            )
+
+    def _build_content(self, window):
         """Create this opening's controls only after its shared floating host activates."""
         if window is not self._window or self._model is None:
             return
         self._input_enabled = True
         self._refresh()
-        self._value_scale = max(1.0, self._value)
         if self._hue_provider is None:
             self._sv_provider = ui.ByteImageProvider()
             self._hue_provider = ui.ByteImageProvider()
@@ -251,118 +271,109 @@ class ColorPicker(ui.Frame):
             checker_height = int(float(self._CURRENT_HEIGHT))
             checker = create_checkerboard(checker_width, checker_height)
             self._checker_provider.set_bytes_data(checker.ravel().tolist(), [checker_width, checker_height])
-        main_width = ui.Pixel(float(self._PLANE_SIZE) + float(self._CONTROL_SIZE) + float(self._SPACING_MD))
         self._hsv_models = [ui.SimpleFloatModel(value) for value in (self._hue, self._saturation, self._value)]
         self._hex_model = ui.SimpleStringModel(self._format_hex())
         self._hex_dirty = False
-        with ui.Frame():
-            with ui.ZStack(width=ui.Pixel(preferred_size[0]), height=ui.Pixel(preferred_size[1])):
-                ui.Rectangle(name="WorkspaceBackground", opaque_for_mouse_events=False)
-                with ui.HStack():
-                    ui.Spacer(width=self._PADDING_MD)
-                    with ui.VStack():
-                        ui.Spacer(height=self._PADDING_MD)
-                        with ui.HStack(spacing=self._SPACING_MD):
-                            with ui.VStack(width=main_width, spacing=self._SPACING_MD):
-                                with ui.HStack(spacing=self._SPACING_MD, height=self._PLANE_SIZE):
-                                    with ui.ZStack(width=self._PLANE_SIZE):
-                                        self._sv_image = ui.ImageWithProvider(
-                                            self._sv_provider,
-                                            fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
-                                            identifier="color_picker_sv",
-                                            mouse_pressed_fn=partial(self._on_plane_pressed, "sv", self._window),
-                                            mouse_moved_fn=partial(self._on_plane_moved, "sv", self._window),
-                                            mouse_released_fn=partial(self._on_plane_released, self._window),
-                                        )
-                                        self._sv_marker = ui.Placer(stable_size=True)
-                                        with self._sv_marker:
-                                            with ui.ZStack(width=self._HANDLE_SIZE_MD, height=self._HANDLE_SIZE_MD):
-                                                ui.Circle(
-                                                    width=self._HANDLE_SIZE_MD,
-                                                    height=self._HANDLE_SIZE_MD,
-                                                    name="ColorPickerHandleOutline",
-                                                    opaque_for_mouse_events=False,
-                                                )
-                                                ui.Circle(
-                                                    width=self._HANDLE_SIZE_MD,
-                                                    height=self._HANDLE_SIZE_MD,
-                                                    radius=float(self._HANDLE_SIZE_SM) / 2,
-                                                    size_policy=ui.CircleSizePolicy.FIXED,
-                                                    alignment=ui.Alignment.CENTER,
-                                                    name="ColorPickerHandle",
-                                                    opaque_for_mouse_events=False,
-                                                )
-                                    with ui.ZStack(width=self._CONTROL_SIZE):
-                                        self._hue_image = ui.ImageWithProvider(
-                                            self._hue_provider,
-                                            fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
-                                            identifier="color_picker_hue",
-                                            mouse_pressed_fn=partial(self._on_plane_pressed, "hue", self._window),
-                                            mouse_moved_fn=partial(self._on_plane_moved, "hue", self._window),
-                                            mouse_released_fn=partial(self._on_plane_released, self._window),
-                                        )
-                                        self._hue_marker = ui.Placer(stable_size=True)
-                                        with self._hue_marker:
-                                            with ui.HStack(width=self._CONTROL_SIZE, height=self._HANDLE_SIZE_MD):
-                                                ui.Triangle(
-                                                    width=self._HANDLE_SIZE_SM,
-                                                    height=self._HANDLE_SIZE_MD,
-                                                    alignment=ui.Alignment.RIGHT_CENTER,
-                                                    name="ColorPickerHueHandle",
-                                                    opaque_for_mouse_events=False,
-                                                )
-                                                ui.Spacer()
-                                                ui.Triangle(
-                                                    width=self._HANDLE_SIZE_SM,
-                                                    height=self._HANDLE_SIZE_MD,
-                                                    alignment=ui.Alignment.LEFT_CENTER,
-                                                    name="ColorPickerHueHandle",
-                                                    opaque_for_mouse_events=False,
-                                                )
-                                self._build_numeric_row(
-                                    [
-                                        (channel.name[0], parent, partial(self._write_component, index), channel.value)
-                                        for index, (channel, parent) in enumerate(zip(_RgbChannel, self._components))
-                                    ]
-                                )
-                                hsv_fields = [
-                                    (channel.name[0], parent, partial(self._write_hsv, index), channel.value)
-                                    for index, (channel, parent) in enumerate(zip(_HsvChannel, self._hsv_models))
-                                ]
-                                if len(self._components) == 4:
-                                    hsv_fields.append(
-                                        ("A", self._components[3], partial(self._write_component, 3), "alpha_hsv")
-                                    )
-                                self._build_numeric_row(hsv_fields)
-                                with ui.HStack(height=self._CONTROL_SIZE):
-                                    ui.Label("Hex", width=self._HEX_LABEL_WIDTH)
-                                    ui.StringField(
-                                        model=self._create_input_model(
-                                            self._hex_model, self._write_hex_text, commit_fn=self._commit_hex
-                                        ),
-                                        identifier="color_picker_hex",
-                                    )
-                            with ui.VStack(width=self._CURRENT_WIDTH, spacing=self._SPACING_MD):
-                                ui.Label("Current", height=self._CONTROL_SIZE, alignment=ui.Alignment.LEFT_TOP)
-                                with ui.ZStack(height=self._CURRENT_HEIGHT):
-                                    if len(self._components) == 4:
-                                        with ui.HStack():
-                                            self._current_opaque = ui.Rectangle(opaque_for_mouse_events=False)
-                                            with ui.ZStack():
-                                                ui.ImageWithProvider(
-                                                    self._checker_provider,
-                                                    fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
-                                                )
-                                                self._current_alpha = ui.Rectangle(opaque_for_mouse_events=False)
-                                    else:
-                                        self._current_opaque = ui.Rectangle(opaque_for_mouse_events=False)
-                                    ui.Rectangle(name="ColorPickerCurrentBorder", opaque_for_mouse_events=False)
-                                ui.Spacer()
-                        ui.Spacer(height=self._BOTTOM_PADDING)
-                    ui.Spacer(width=self._PADDING_MD)
+        with ui.ZStack():
+            ui.Rectangle(name="WorkspaceBackground", opaque_for_mouse_events=False)
+            with ui.HStack(spacing=self._SPACING_MD):
+                ui.Spacer(width=0, height=0)
+                self._build_main_column()
+                self._build_current_column()
+                ui.Spacer(width=0, height=0)
         self._sv_image.set_computed_content_size_changed_fn(partial(self._update_markers, self._window))
         self._hue_image.set_computed_content_size_changed_fn(partial(self._update_markers, self._window))
         self._refresh()
+
+    def _build_main_column(self) -> None:
+        """Build the flexible color plane and its aligned numeric editors."""
+        with ui.VStack(spacing=self._SPACING_MD):
+            ui.Spacer(width=0, height=0)
+            with ui.HStack(spacing=self._SPACING_MD):
+                self._build_sv_control()
+                self._build_hue_control()
+            self._build_numeric_row(
+                [
+                    (channel.name[0], parent, partial(self._write_component, index), channel.value)
+                    for index, (channel, parent) in enumerate(zip(_RgbChannel, self._components))
+                ]
+            )
+            hsv_fields = [
+                (channel.name[0], parent, partial(self._write_hsv, index), channel.value)
+                for index, (channel, parent) in enumerate(zip(_HsvChannel, self._hsv_models))
+            ]
+            if len(self._components) == 4:
+                hsv_fields.append(("A", self._components[3], partial(self._write_component, 3), "alpha_hsv"))
+            self._build_numeric_row(hsv_fields)
+            with ui.HStack(height=self._CONTROL_SIZE):
+                ui.Label("Hex", width=self._HEX_LABEL_WIDTH)
+                ui.StringField(
+                    model=self._create_input_model(self._hex_model, self._write_hex_text, commit_fn=self._commit_hex),
+                    identifier="color_picker_hex",
+                )
+            ui.Spacer(height=self._PADDING_MD)
+
+    def _build_sv_control(self) -> None:
+        """Build the stretched saturation/value plane and hollow selection handle."""
+        with ui.ZStack():
+            self._sv_image = ui.ImageWithProvider(
+                self._sv_provider,
+                fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
+                identifier="color_picker_sv",
+                mouse_pressed_fn=partial(self._on_plane_pressed, "sv", self._window),
+                mouse_moved_fn=partial(self._on_plane_moved, "sv", self._window),
+                mouse_released_fn=partial(self._on_plane_released, self._window),
+            )
+            self._sv_marker = ui.Placer(stable_size=True)
+            with self._sv_marker:
+                # Placer stretches a direct Image child, so a fixed frame preserves the SVG's handle size.
+                with ui.Frame(width=self._HANDLE_SIZE_MD, height=self._HANDLE_SIZE_MD):
+                    ui.Image(
+                        get_icons("ColorPickerHandle", ext_name="omni.flux.resources"),
+                        width=self._HANDLE_SIZE_MD,
+                        height=self._HANDLE_SIZE_MD,
+                        name="ColorPickerHandle",
+                        opaque_for_mouse_events=False,
+                    )
+
+    def _build_hue_control(self) -> None:
+        """Build the fixed-width hue bar and contrasting side handles."""
+        with ui.ZStack(width=self._CONTROL_SIZE):
+            self._hue_image = ui.ImageWithProvider(
+                self._hue_provider,
+                fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
+                identifier="color_picker_hue",
+                mouse_pressed_fn=partial(self._on_plane_pressed, "hue", self._window),
+                mouse_moved_fn=partial(self._on_plane_moved, "hue", self._window),
+                mouse_released_fn=partial(self._on_plane_released, self._window),
+            )
+            self._hue_marker = ui.Placer(stable_size=True)
+            with self._hue_marker:
+                with ui.Frame(width=self._CONTROL_SIZE, height=self._HANDLE_SIZE_MD):
+                    ui.Image(
+                        get_icons("ColorPickerHueHandle", ext_name="omni.flux.resources"),
+                        width=self._CONTROL_SIZE,
+                        height=self._HANDLE_SIZE_MD,
+                        name="ColorPickerHueHandle",
+                        opaque_for_mouse_events=False,
+                    )
+
+    def _build_current_column(self) -> None:
+        """Build the top-aligned Current preview and optional alpha checkerboard."""
+        with ui.VStack(width=self._CURRENT_WIDTH, spacing=self._SPACING_MD):
+            ui.Spacer(width=0, height=0)
+            ui.Label("Current", height=self._CONTROL_SIZE, alignment=ui.Alignment.LEFT_TOP)
+            with ui.ZStack(height=self._CURRENT_HEIGHT):
+                if len(self._components) == 4:
+                    with ui.HStack():
+                        self._current_opaque = ui.Rectangle(opaque_for_mouse_events=False)
+                        with ui.ZStack():
+                            ui.ImageWithProvider(self._checker_provider, fill_policy=ui.IwpFillPolicy.IWP_STRETCH)
+                            self._current_alpha = ui.Rectangle(opaque_for_mouse_events=False)
+                else:
+                    self._current_opaque = ui.Rectangle(opaque_for_mouse_events=False)
+                ui.Rectangle(name="ColorPickerCurrentBorder", opaque_for_mouse_events=False)
+            ui.Spacer()
 
     def _create_input_model(self, parent, write_fn, *, commit_fn=None):
         """Connect one popup editor to the shared gesture and cleanup lifecycle."""
@@ -378,67 +389,44 @@ class ColorPicker(ui.Frame):
         return proxy
 
     def _build_numeric_row(self, fields):
-        """Build a compact row of labeled component editors."""
-        with ui.HStack(height=self._CONTROL_SIZE, spacing=self._SPACING_MD):
-            for label, parent, write_fn, identifier in fields:
-                with ui.HStack():
-                    ui.Label(label, width=self._CHANNEL_LABEL_WIDTH, alignment=ui.Alignment.LEFT_CENTER)
-                    ui.FloatDrag(
-                        model=self._create_input_model(parent, write_fn),
-                        step=self._NUMERIC_STEP,
-                        precision=4,
-                        identifier=f"color_picker_{identifier}",
-                    )
-
-    def close(self):
-        """Finish complete color updates and focused numeric input before closing."""
-        if self._window is None or self._close_task is not None:
-            return
-        if (self._numeric_editing is not None and not self._writing) or self._writing_color:
-            self._close_task = asyncio.ensure_future(self._close_after_update(self._window))
-        else:
-            window = self._window
-            try:
-                self._commit_hex()
-                if self._window is window:
-                    self._finish_gesture()
-            finally:
-                if self._window is window:
-                    self._input_enabled = False
-                    self._release_window()
-
-    def cancel(self):
-        """Close the popup without committing buffered numeric input."""
-        self._input_enabled = False
-        self._gesture_active = False
-        self._pointer_control = None
-        self._numeric_editing = None
-        self._release_window()
-
-    def destroy(self):
-        """Release owned UI and callbacks without destroying the borrowed model."""
-        self._model_subscription = None
-        self.cancel()
-        self._begin_edit_fn = None
-        self._end_edit_fn = None
-        self._model = None
-        self._components = ()
-        self._sv_provider = self._hue_provider = self._checker_provider = None
-        super().destroy()
+        """Build labeled component editors in one horizontal stack."""
+        with ui.HStack(height=self._CONTROL_SIZE):
+            for index, (label, parent, write_fn, identifier) in enumerate(fields):
+                if index:
+                    ui.Spacer(width=self._SPACING_MD)
+                ui.Label(label, width=self._CHANNEL_LABEL_WIDTH, alignment=ui.Alignment.LEFT_CENTER)
+                ui.FloatDrag(
+                    model=self._create_input_model(parent, write_fn),
+                    min=0.0,
+                    max=1.0,
+                    step=self._NUMERIC_STEP,
+                    precision=4,
+                    identifier=f"color_picker_{identifier}",
+                )
 
     async def _close_after_update(self, window):
         """Let native input dispatch finish before closing its gesture and controls."""
         await get_app().next_update_async()
         self._close_task = None
-        if self._window is window:
-            try:
-                self._commit_hex()
-                if self._window is window:
-                    self._finish_gesture()
-            finally:
-                if self._window is window:
-                    self._input_enabled = False
-                    self._release_window()
+        self._finish_close(window)
+
+    def _finish_close(self, window):
+        """Commit input and retire controls only while this opening remains owned."""
+        if self._window is not window:
+            return
+        try:
+            self._commit_hex()
+            if self._window is window:
+                self._finish_gesture()
+        finally:
+            if self._window is window:
+                self._input_enabled = False
+                self._release_window()
+
+    def _reopen_after_close(self, task):
+        """Honor reopening requested during native input after its close completes."""
+        if not task.cancelled() and task.exception() is None and self._model is not None:
+            self.open()
 
     def _release_window(self):
         """Disable popup input and transfer retired controls to their window owner."""
@@ -471,13 +459,13 @@ class ColorPicker(ui.Frame):
         """Begin a property transaction on its first actual value change."""
         if not self._gesture_active:
             self._gesture_active = True
-            self._begin_edit_fn()
+            self._edit_started()
 
     def _finish_gesture(self):
         """Commit a completed gesture once."""
         if self._gesture_active:
             self._gesture_active = False
-            self._end_edit_fn()
+            self._edit_finished()
 
     def _on_numeric_begin(self, index, model):
         """Track focused numeric input before its first value change."""
@@ -500,24 +488,27 @@ class ColorPicker(ui.Frame):
                 self._finish_gesture()
 
     def _write_component(self, index, value):
-        """Author one unrestricted RGB or alpha component."""
+        """Author an RGB or alpha component within the normalized color range."""
         values = [model.get_value_as_float() for model in self._components]
         values[index] = float(value)
         self._write_color(values)
 
     def _write_hsv(self, index, value):
-        """Update normalized hue/saturation or nonnegative HDR value."""
+        """Update normalized hue, saturation, or value."""
         hsv = [self._hue, self._saturation, self._value]
-        value = max(0.0, float(value))
-        hsv[index] = min(1.0, value) if index < 2 else value
+        hsv[index] = float(value)
+        if not all(isfinite(component) for component in hsv):
+            return
+        hsv = [min(1.0, max(0.0, component)) for component in hsv]
         self._hue, self._saturation, self._value = hsv
         values = [*colorsys.hsv_to_rgb(*hsv), *(model.get_value_as_float() for model in self._components[3:])]
         self._write_color(values, read_hsv=False)
 
     def _write_color(self, values, *, read_hsv=True):
-        """Apply a complete color while rejecting cancelled or replaced input."""
-        if not self._input_enabled:
+        """Apply a normalized color while rejecting invalid, cancelled, or replaced input."""
+        if not self._input_enabled or not all(isfinite(value) for value in values):
             return
+        values = [min(1.0, max(0.0, value)) for value in values]
         changes = [
             (model, value) for model, value in zip(self._components, values) if value != model.get_value_as_float()
         ]
@@ -527,7 +518,6 @@ class ColorPicker(ui.Frame):
             if not self._input_enabled or self._window is not window:
                 return
             self._writing = True
-            self._writing_color = len(changes) > 1
             try:
                 for model, value in changes:
                     if not self._input_enabled or self._window is not window:
@@ -535,7 +525,9 @@ class ColorPicker(ui.Frame):
                     model.set_value(value)
             finally:
                 self._writing = False
-                self._writing_color = False
+            if not self._input_enabled or self._window is not window:
+                return
+            self._color_changed(tuple(values))
             if not self._input_enabled or self._window is not window:
                 return
         self._refresh(read_hsv=read_hsv)
@@ -584,7 +576,6 @@ class ColorPicker(ui.Frame):
         """Start tracking input belonging to an owned color plane."""
         if window is self._window and button == 0 and self._input_enabled:
             self._pointer_control = control
-            self._value_scale = max(1.0, self._value)
             self._pick_color(control, x, y)
 
     def _on_plane_moved(self, control, window, x, y, _modifier, _pressed):
@@ -607,9 +598,10 @@ class ColorPicker(ui.Frame):
         vertical = min(1.0, max(0.0, (y - image.screen_position_y) / image.computed_height))
         if control == "sv":
             self._saturation = horizontal
-            self._value = (1.0 - vertical) * self._value_scale
+            self._value = 1.0 - vertical
         else:
             self._hue = vertical
+            self._value = min(1.0, max(0.0, self._value))
         values = [
             *colorsys.hsv_to_rgb(self._hue, self._saturation, self._value),
             *(model.get_value_as_float() for model in self._components[3:]),
@@ -628,7 +620,7 @@ class ColorPicker(ui.Frame):
         """Update previews without quantizing the component values."""
         values = [component.get_value_as_float() for component in self._components]
         if read_hsv:
-            # HSV controls represent nonnegative colors; numeric authoring keeps the original channels.
+            # Refreshing external colors must not clamp or rewrite the backing channels.
             hue, saturation, value = colorsys.rgb_to_hsv(*(max(0.0, channel) for channel in values[:3]))
             if saturation > 0 and value > 0:
                 self._hue = hue
@@ -667,8 +659,7 @@ class ColorPicker(ui.Frame):
                 min(1.0, max(0.0, self._saturation)) * self._sv_image.computed_width - float(self._HANDLE_SIZE_MD) / 2
             )
             self._sv_marker.offset_y = ui.Pixel(
-                (1 - min(1.0, max(0.0, self._value / self._value_scale))) * self._sv_image.computed_height
-                - float(self._HANDLE_SIZE_MD) / 2
+                (1 - min(1.0, max(0.0, self._value))) * self._sv_image.computed_height - float(self._HANDLE_SIZE_MD) / 2
             )
         if self._hue_image is not None and self._hue_image.computed_height > 0:
             self._hue_marker.offset_y = ui.Pixel(

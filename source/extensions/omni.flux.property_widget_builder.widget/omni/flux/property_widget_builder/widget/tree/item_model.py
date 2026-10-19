@@ -28,6 +28,7 @@ from collections.abc import Callable
 from typing import Any
 
 import omni.ui as ui
+from omni.flux.utils.common import Event, EventSubscription
 
 
 class _SetValueCallbackManager:
@@ -213,12 +214,8 @@ class ItemModelBase(abc.ABC):
         """Return whether this model is currently inside an open batch-edit section."""
         return False
 
-    def begin_batch_edit(self, *, live: bool = False) -> None:
-        """Begin a supported batch edit, optionally authoring intermediate values live.
-
-        Args:
-            live: Whether intermediate edits should be authored before the batch ends.
-        """
+    def begin_batch_edit(self) -> None:
+        """Begin a supported batch edit with previews until the batch ends."""
         pass
 
     def end_batch_edit(self) -> None:
@@ -239,6 +236,21 @@ class ItemModelBase(abc.ABC):
     def cancel_property_edit_interaction(self) -> None:
         """Leave models without an editing lifecycle unchanged."""
         return
+
+    def subscribe_property_edit_finish_fn(self, callback: Callable[[], None]) -> EventSubscription | None:
+        """Subscribe an editor to finish its current value before its row is removed.
+
+        Args:
+            callback: Editor callback that commits its current preview.
+
+        Returns:
+            Subscription retained by the editor, or None for unsupported models.
+        """
+        return None
+
+    def finish_property_edit_interaction(self) -> None:
+        """Allow an editor to commit its preview before teardown cancellation."""
+        pass
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.get_value()!r})"
@@ -263,6 +275,7 @@ class ItemValueModel(ItemModelBase, ui.AbstractValueModel, metaclass=AbstractVal
         self.__property_edit_begin_callback: Callable[[ItemModelBase], None] | None = None
         self.__property_edit_end_callback: Callable[[ItemModelBase], None] | None = None
         self.__property_edit_cancel_callbacks: list[Callable[[], None]] = []
+        self.__property_edit_finish = Event(copy=True)
         self.__property_edit_depth = 0
 
     def set_property_edit_callbacks(
@@ -281,6 +294,29 @@ class ItemValueModel(ItemModelBase, ui.AbstractValueModel, metaclass=AbstractVal
                 self.__property_edit_cancel_callbacks.remove(callback)
 
         return unsubscribe
+
+    def subscribe_property_edit_finish_fn(self, callback: Callable[[], None]) -> EventSubscription:
+        """Subscribe an editor to finish its preview before row teardown.
+
+        Args:
+            callback: Editor callback that commits its current preview.
+
+        Returns:
+            Subscription whose lifetime controls the callback registration.
+        """
+        return EventSubscription(self.__property_edit_finish, callback)
+
+    def finish_property_edit_interaction(self) -> None:
+        """Finish every subscribed editor before propagating the first callback failure."""
+        first_error: Exception | None = None
+        for callback in tuple(self.__property_edit_finish):
+            try:
+                callback()
+            except Exception as exc:  # noqa: BLE001 - run every finish callback before re-raising.
+                if first_error is None:
+                    first_error = exc
+        if first_error is not None:
+            raise first_error
 
     def cancel_property_edit_interaction(self) -> None:
         first_error: Exception | None = None

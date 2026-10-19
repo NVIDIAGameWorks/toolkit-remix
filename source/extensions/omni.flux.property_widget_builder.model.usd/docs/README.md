@@ -135,24 +135,30 @@ editor consumers and selected-label styling.
 
 ## Color Edit Sessions
 
-`begin_batch_edit()` coalesces numeric previews until `end_batch_edit()`. Pass `live=True` to author each value
-immediately through one `LiveUsdAttributeEditCommand` that retains the initial layer specs for undo.
-Live batches do not hold a Kit undo group open across frames and can participate in a caller-owned group.
-Closing a live batch releases its command without authoring the cached value again. Ending an inactive batch does
-nothing.
+`begin_batch_edit()` coalesces color and numeric previews without adding Undo entries. `end_batch_edit()` restores
+the pre-gesture layer specs and authors the final value through the existing property commands in one synchronous
+Undo group. Ending an inactive batch does nothing. No Undo group remains open across frames.
 Field controls also pair `begin_edit()` and `end_edit()` around the session so `USDModel` can defer application
 listeners until editing finishes while authored USD values remain live.
 
 If a write fails, the model rolls back the current batch, restores displayed values, and preserves completed edit
-sessions. Locked target layers are rejected before a write command runs. Color fields use one live batch per completed
-drag or typed edit, pairing `begin_edit()` and `end_edit()` for each gesture. Opening the picker creates no undo entry.
+sessions. Locked target layers are rejected before a write command runs. Color fields use one preview batch per
+drag or typed edit, committing at mouse release or end-edit. Virtual attributes and their creation callbacks wait
+until commit. Opening the picker creates no undo entry.
 Undo while the popup is idle restores the previous gesture and allows another edit in the same popup.
-Row cancellation ends an active edit session and discards queued input while retaining field subscriptions.
+Undo or Redo during a drag cancels the unfinished preview before replaying the completed edit. External writes to
+represented attributes also cancel the preview and retain the external values. These protections belong to the
+active USD batch; the color field does not inspect Undo history or subscribe to application updates.
+Each active batch owns a stage notice and temporary Undo/Redo command callbacks, released when the batch ends.
+Preview restoration preserves externally changed property fields, including metadata, while restoring untouched
+preview values on the other selected objects.
+Row removal finishes the color preview before canceling remaining property interactions, so the row and USD retain
+the last previewed color. Explicit cancellation discards unfinished input while retaining field subscriptions.
 `ColorField.cleanup()` releases those subscriptions and its owned picker and color model even when ending the edit
 raises. The default USD color builder registers that cleanup with the owning delegate so a full row reset releases
 the field even when its backing value model remains alive. Picker cancellation keeps the current field usable until
 that reset. `USDDelegate.reset()` clears cached rows and context menus even when registered field cleanup raises.
-Row cancellation retains values already authored by a live batch; write failure rolls back the whole current batch.
+Write failure rolls back the whole current batch.
 An external change to an actively edited USD property, including global undo, cancels that edit, closes the popup,
 and refreshes its value. Idle picker controls synchronize with restored USD values without creating an edit.
 A lightweight USD notice listener observes these changes even while application refreshes are deferred.

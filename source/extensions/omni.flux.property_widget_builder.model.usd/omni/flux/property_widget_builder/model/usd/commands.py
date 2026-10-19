@@ -22,11 +22,10 @@ from typing import Any
 
 import carb
 import omni.kit.commands
-from omni.kit.usd_undo import UsdEditTargetUndo
 import omni.usd
 from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices
 from omni.flux.utils.widget import GroupedKeysPayload
-from pxr import Sdf, Usd
+from pxr import Usd
 
 from .logical_group_constants import (
     CURVE_LOGICAL_GROUP_DEFINITION,
@@ -38,100 +37,12 @@ from .logical_group_constants import (
 from .logical_row import LogicalGroupDefinition, normalize_value_for_signature
 from .mapping import VEC_TYPES
 
-__all__ = ["LiveUsdAttributeEditCommand", "SetDataPrimvarsCommand"]
+__all__ = ["SetDataPrimvarsCommand"]
 
 
 def __dir__() -> list[str]:
     """Expose only registerable command classes to Kit's module command registration."""
     return __all__
-
-
-class LiveUsdAttributeEditCommand(omni.kit.commands.Command):
-    """Retain one undo snapshot while updating a live attribute edit."""
-
-    def __init__(
-        self,
-        attribute_values: list[tuple[Sdf.Path, Any, Usd.EditTarget, Sdf.ValueTypeName]],
-        usd_context_name: str,
-    ) -> None:
-        """Store attribute values and the context containing the edited stage.
-
-        Args:
-            attribute_values: Property paths, values, edit targets, and attribute types to author.
-            usd_context_name: USD context containing the edited attributes.
-        """
-        self._stage = omni.usd.get_context(usd_context_name).get_stage()
-        self._attribute_values = attribute_values
-        self._undo_data: dict[tuple[str, Sdf.Path], UsdEditTargetUndo] = {}
-
-    def do(self) -> LiveUsdAttributeEditCommand | None:
-        """Author the current payload and return the executed live-edit command."""
-        return self if self.update(self._attribute_values) else None
-
-    def update(self, attribute_values: list[tuple[Sdf.Path, Any, Usd.EditTarget, Sdf.ValueTypeName]]) -> bool:
-        """Author the latest preview while preserving each property's initial layer spec.
-
-        Args:
-            attribute_values: Property paths, values, edit targets, and attribute types to author.
-
-        Returns:
-            Whether every target could be authored.
-        """
-        for path, _value, edit_target, _value_type in attribute_values:
-            if (
-                not self._stage
-                or not self._stage.GetPrimAtPath(path.GetPrimPath()).IsValid()
-                or not self._stage.HasLocalLayer(edit_target.GetLayer())
-                or not edit_target.GetLayer().permissionToEdit
-            ):
-                self.rollback()
-                return False
-
-        authored = False
-        try:
-            with defer_usd_notices(self._stage):
-                for path, value, edit_target, value_type in attribute_values:
-                    key = (edit_target.GetLayer().identifier, edit_target.MapToSpecPath(path))
-                    if key not in self._undo_data:
-                        undo_data = UsdEditTargetUndo(edit_target)
-                        undo_data.reserve(path)
-                        self._undo_data[key] = undo_data
-                    with Usd.EditContext(self._stage, edit_target):
-                        attr = self._stage.GetAttributeAtPath(path)
-                        if not attr.IsValid():
-                            attr = self._stage.GetPrimAtPath(path.GetPrimPath()).CreateAttribute(path.name, value_type)
-                        if not attr.Set(value):
-                            return False
-            authored = True
-        finally:
-            if not authored:
-                self.rollback()
-
-        values_by_target = {
-            (target.GetLayer().identifier, path): (path, value, target, value_type)
-            for path, value, target, value_type in self._attribute_values
-        }
-        for path, value, target, value_type in attribute_values:
-            values_by_target[(target.GetLayer().identifier, path)] = (
-                path,
-                _copy_snapshot_value(value),
-                target,
-                value_type,
-            )
-        self._attribute_values[:] = values_by_target.values()
-        return True
-
-    def undo(self) -> None:
-        """Restore the property specs captured before the first live update."""
-        with defer_usd_notices(self._stage), Sdf.ChangeBlock():
-            for undo_data in reversed(tuple(self._undo_data.values())):
-                undo_data.undo()
-
-    def rollback(self) -> None:
-        """Restore and discard a failed edit's payload and snapshots."""
-        self.undo()
-        self._attribute_values.clear()
-        self._undo_data.clear()
 
 
 def _copy_snapshot_value(value: Any) -> Any:

@@ -42,6 +42,8 @@ Omit it when you need visible UI to debug widget focus, rendering, or modal beha
 - The first `--` separates test-runner flags from Kit flags; `--no-window` is passed to Kit.
 - Use `--dev` when you intentionally want to see local E2E tests run in a visible Kit window during development.
 - Use `-n default -f <pattern>` when you need to isolate a specific failure.
+- Pause source and test edits while Kit tests run. Extension hot reload can destroy the active widgets and listeners,
+  producing focus failures and cleanup errors unrelated to the workflow under test.
 - If a visible window opens unexpectedly, check the launch command because Kit probably did not receive `--no-window`.
 
 ### Troubleshooting
