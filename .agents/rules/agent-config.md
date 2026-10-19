@@ -75,8 +75,9 @@ and document reason here. Cursor skill discovery version-sensitive.
 - New command -> `.agents/commands/`, shared skill, Claude skill, `AGENTS.md`. No `.claude/commands/` duplicate unless
   documented legacy-client need. Commands stay compressed: repo-specific facts, sources, and gotchas only; link generic
   vendor/process guidance instead of restating it.
-- Internal command -> `.agents/commands/internal/` + internal README. Do not list in `AGENTS.md` or shared tables unless
-  intentionally public.
+- Internal command -> `.agents/commands/internal/` + internal README + `internal-<name>` skill wrappers in
+  `.agents/skills/` and `.claude/skills/`. `.github-private-paths` filters `internal-*` wrappers by glob. Do not list in
+  `AGENTS.md` or shared tables unless intentionally public.
 - New subagent -> `.agents/subagents/`, `.claude/agents/<name>.md`, `.codex/agents/<name>.toml`,
   `.pi/agents/<name>.md`, `.omp/agents/<name>.md`, `AGENTS.md`, `GEMINI.md`. Pi/OMP wrappers explicitly read the
   canonical role and recursively resolve its `@` refs. No `.cursor/agents/` unless verified need documented.

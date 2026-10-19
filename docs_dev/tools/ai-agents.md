@@ -141,7 +141,8 @@ slash/skill command if your tool exposes one. If behavior needs to change, edit 
 the relevant `.agents/rules/` file first, then update wrappers only when discovery changes.
 
 Internal-only procedures live under `.agents/commands/internal/` and are indexed from that directory's README. They are
-not listed in the public command tables or shared skill discovery unless a tool needs a deliberate internal wrapper.
+not listed in the public command tables. Their `internal-<name>` skill wrappers make them discoverable, and the GitHub
+mirror removes the wrappers with the procedures.
 
 ### Review Scheduling
 
