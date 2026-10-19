@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Filters the current GitLab repository against .github-private-paths and
+# Filters the current GitLab repository against .github-private-paths,
+# exports the public packman config in place of the internal one, and
 # force-pushes the result to the GitHub staging mirror. Each step bails the
 # entire job on failure so GitLab marks the job as failed (non-zero exit)
 # and the github-mirror resource group is released for the next pipeline.
@@ -17,6 +18,10 @@ WORKDIR="/tmp/filtered-repo"
 PRIVATE_PATHS_RAW="/tmp/private-paths.txt"
 PRIVATE_PATHS_ACTIVE="/tmp/private-paths.active"
 FILTER_AUDIT_LOG="/tmp/filter-audit.log"
+PACKMAN_CONFIG="tools/packman/config.packman.xml"
+PUBLIC_PACKMAN_CONFIG="tools/packman/external_config.packman.xml"
+PUBLIC_CONFIG_CALLBACK="tools/ci/scripts/github_mirror_public_config.py"
+PACKMAN_PYTHON="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../packman" && pwd)/python.sh"
 
 current_step="startup"
 
@@ -86,11 +91,17 @@ fi
 step "Paths removed from GitHub mirror"
 cat "${PRIVATE_PATHS_ACTIVE}"
 
+step "Extract public packman config callback"
+public_config_callback="$(git show "${target_ref}:${PUBLIC_CONFIG_CALLBACK}")" \
+    || die "${PUBLIC_CONFIG_CALLBACK} is missing from ${target_ref_human}. Aborting to prevent leak."
+echo "Replacing ${PACKMAN_CONFIG} with ${PUBLIC_PACKMAN_CONFIG}"
+
 step "Dry-run filtered history audit"
 git-filter-repo \
     --dry-run \
     --paths-from-file "${PRIVATE_PATHS_ACTIVE}" \
     --invert-paths \
+    --commit-callback "${public_config_callback}" \
     --force \
     > "${FILTER_AUDIT_LOG}" 2>&1
 tail -100 "${FILTER_AUDIT_LOG}"
@@ -99,6 +110,7 @@ step "Filter history"
 git-filter-repo \
     --paths-from-file "${PRIVATE_PATHS_ACTIVE}" \
     --invert-paths \
+    --commit-callback "${public_config_callback}" \
     --force
 
 step "Post-filter leak validation"
@@ -115,6 +127,25 @@ while IFS= read -r path; do
 done < "${PRIVATE_PATHS_ACTIVE}"
 if [ "${leaked}" -eq 1 ]; then
     die "Denylisted paths survived filtering. Aborting push."
+fi
+
+step "Public packman config validation"
+if ! git diff --quiet "${target_ref}:${PUBLIC_PACKMAN_CONFIG}" "${target_ref}:${PACKMAN_CONFIG}"; then
+    die "${PACKMAN_CONFIG} does not match ${PUBLIC_PACKMAN_CONFIG} in filtered ${target_ref_human}. Aborting push."
+fi
+# Parse with the pinned packman's own parser; packman only warns when a config has no <config> root.
+if ! "${PACKMAN_PYTHON}" - "$(git show "${target_ref}:${PACKMAN_CONFIG}")" <<'PY'
+import sys
+
+from packman import schemaparser
+
+config = schemaparser.ConfigParser("packman").parse_data(sys.argv[1])
+if config is None or not config.remotes:
+    sys.exit("No <config> element listing remotes was found.")
+print("Remotes: " + " ".join(name.split(":", 1)[1] for name in config.remotes))
+PY
+then
+    die "${PACKMAN_CONFIG} in filtered ${target_ref_human} is not a valid packman config. Aborting push."
 fi
 
 step "Configure staging remote"

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Created 1.6.0 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.6.0]
+
+### Added
+
 - Created 1.5.2-0 build
 - Added RTX Remix 1.5 final release notes
 - REMIX-5246: Added spotlight cone wireframe visualization for DiskLight and SphereLight when `shaping:cone:angle` is authored, with tunable threshold / subdivisions / outer + inner colors under the viewport Display dropdown ▸ Custom Manipulators ▸ Light Manipulator; the visual cone and intensity-arrow lengths update together based on the display threshold
@@ -108,6 +120,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Migrated toolkit ZIP packaging and publishing to Lightspeed uploader, with dependency discovery selecting Remix remotes from the DXVK source branch.
 - Enabled Auto Mask by default, removed the experimental label from DLSS 3D-Guided Neural Generation controls, and preserved material-group availability gating for current and older names.
+- Changed the internal feature freeze and release process to tag `main` directly from one release MR instead of cutting `release/X.Y.x` branches, and added filtered internal skill wrappers so agents detect internal commands.
+- Update hdremix and omni_core_materials to `ext-c22d0c6-main` (`remix-1.6.0` tag)
+- Update remix_runtime to `remix-1.6.0`
 
 ### Removed
 
@@ -201,6 +216,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Matched scheduled Remix dependency bot failure notifications to the formatted Slack pipeline messages.
 - Fixed the Material Properties panel and ComfyUI job queue using the captured material for a replacement mesh whose materials are bound on GeomSubsets; select a subset to edit its material.
 - Fixed the RTX Remix modding agent skill making multi-target writes (e.g. "replace all the textures") without first confirming the resolved set with the user (NVBug 6713631).
+- Fixed dependency downloads failing in GitHub checkouts
 
 ## [1.5.2-0]
 
