@@ -16,6 +16,7 @@
 """
 
 __all__ = [
+    "AttributeCopyPasteHelper",
     "ClaimResult",
     "Delegate",
     "FieldBuilder",
@@ -27,13 +28,11 @@ __all__ = [
     "ItemValueModel",
     "Model",
     "PropertyWidget",
-    "Serializable",
     "claim_each",
-    "clipboard",
 ]
 
 from .property_widget_builder import PropertyWidget
-from .tree import clipboard
+from .tree.clipboard import AttributeCopyPasteHelper
 from .tree.delegate import ClaimResult, Delegate, FieldBuilder, FieldBuilderList, claim_each
-from .tree.item_model import ItemModel, ItemModelBase, ItemValueModel, Serializable
+from .tree.item_model import ItemModel, ItemModelBase, ItemValueModel
 from .tree.model import Item, ItemGroup, Model

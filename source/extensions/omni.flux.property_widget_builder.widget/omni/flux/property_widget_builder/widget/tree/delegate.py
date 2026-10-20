@@ -40,7 +40,7 @@ from omni.flux.property_widget_builder.delegates import (
 from omni.flux.property_widget_builder.delegates.default import DefaultField
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase as _TreeDelegateBase
 
-from . import clipboard
+from .clipboard import AttributeCopyPasteHelper
 from .model import HEADER_DICT, Item, ItemGroup, Model
 
 if TYPE_CHECKING:
@@ -406,11 +406,16 @@ class Delegate(_TreeDelegateBase):
         """
         Display a context menu if the item was right-clicked for extra actions.
         """
-        selected_items = [x for x in self.selection if not x.read_only]
-        all_items = model.get_all_items()
+        all_items = [
+            candidate
+            for candidate in model.get_all_items(include_hidden=True)
+            if id(candidate) in self._builder_map and not isinstance(candidate, ItemGroup) and not candidate.read_only
+        ]
+        allowed_ids = {id(candidate) for candidate in all_items}
+        selected_items = [candidate for candidate in self.selection if id(candidate) in allowed_ids]
 
         # Early out optimization. No need to show a menu that can't actually do anything.
-        if not selected_items and not all_items:
+        if not all_items:
             return
 
         # NOTE: The context menu is stored on the object like this to avoid it being garbage collected and
@@ -424,13 +429,13 @@ class Delegate(_TreeDelegateBase):
                 "Copy All",
                 identifier="copy_all",
                 enabled=bool(all_items),
-                triggered_fn=lambda: clipboard.copy(all_items),
+                triggered_fn=lambda: AttributeCopyPasteHelper.copy(source_rows=all_items),
             )
             ui.MenuItem(
                 "Copy Selected",
                 identifier="copy_selected",
                 enabled=bool(selected_items),
-                triggered_fn=lambda: clipboard.copy(selected_items),
+                triggered_fn=lambda: AttributeCopyPasteHelper.copy(source_rows=selected_items),
             )
             ui.Separator(
                 delegate=ui.MenuDelegate(
@@ -442,14 +447,14 @@ class Delegate(_TreeDelegateBase):
             ui.MenuItem(
                 "Paste All",
                 identifier="paste_all",
-                enabled=any(clipboard.iter_clipboard_changes(all_items)),
-                triggered_fn=lambda: clipboard.paste(all_items),
+                enabled=AttributeCopyPasteHelper.can_paste(target_rows=all_items),
+                triggered_fn=lambda: AttributeCopyPasteHelper.paste(target_rows=all_items),
             )
             ui.MenuItem(
                 "Paste Selected",
                 identifier="paste_selected",
-                enabled=any(clipboard.iter_clipboard_changes(selected_items)),
-                triggered_fn=lambda: clipboard.paste(selected_items),
+                enabled=AttributeCopyPasteHelper.can_paste(target_rows=selected_items),
+                triggered_fn=lambda: AttributeCopyPasteHelper.paste(target_rows=selected_items),
             )
 
         self._context_menu.show()

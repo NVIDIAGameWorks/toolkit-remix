@@ -12,6 +12,8 @@ Build property rows backed by USD attributes, with layer-aware writes, undo, and
 
 Numeric widget input and bounds belong to the shared property delegates and widget utilities. Stage Manager owns its
 tree refreshes; this extension participates in the shared USD notice deferral used during property interactions.
+Clipboard parsing, matching, structural checks, and paste grouping belong to the
+[shared property widget helper](../../omni.flux.property_widget_builder.widget/docs/README.md#clipboard-and-row-editing).
 
 ## Architecture
 
@@ -56,11 +58,32 @@ USD property rows can represent one authored USD attribute or a logical group of
 
 - Normal scalar rows use their own value models and USD attributes.
 - Grouped rows, such as particle gradients, use suffix-based logical group definitions so `:times` and `:values` are handled as one row.
-- Logical group outlets, such as particle curves, keep their display model inert but report the backing curve primvars through `get_owned_attributes()`.
+- Logical group outlets, such as particle curves, have no display value models but report their backing curve primvars. Their `read_only` property honors owned-model restrictions without treating an empty display-model list as a restriction.
 - Active reset indicator tooltips show the default USD value when the row can resolve the value that reset will restore.
 - Three-channel transform rows use synchronized link icons in both inter-field gaps. Their tooltips indicate whether multi-channel editing is on or off. Enabling them copies each represented object's X value to its Y and Z channels in one undoable edit, then activates a row-, label-, and links-highlighted grouped-edit state. The first field uses an inline text editor for immediate keyboard focus, and one validated field value is applied to every axis through a single USD write.
 - Double-clicking any field while grouped editing remains active uses that field's native text editor without replacing the native drag behavior.
 - Vector rows accept `tooltip_channel_names` when their components have semantic names instead of axis names.
+
+### Logical Row Editing
+
+`get_logical_row_attribute_names()` expands declared group IDs through `logical_group_definition` in suffix order,
+then appends `logical_group_extra_attribute_names`. Standalone rows use their primary attribute's base name; outlets
+use `edit_group_layout["curve_map"]` order. The clipboard helper and logical setter share this ordering rather than
+deriving completeness from reset/delete ownership, which can omit missing attributes.
+
+`_LogicalRowApiMixin.set_row_values()` delegates ordinary rows to `Item.set_row_values()`. Logical rows accept one
+value per declared attribute, check cardinality, then use `ChangeProperty(prev=None)` in canonical attribute and target
+order with USD notices deferred. Explicit undo restores prior edit-layer opinions, including inherited values without
+leaving overrides. Unchanged animated values are skipped; legacy companions retain their always-author behavior.
+The setter creates no editor, display models, or undo group. Clipboard paste or another caller owns grouping. Reported
+command failure stops further writes; previously successful writes can remain applied until undone. Grouped editors
+continue using `SetDataPrimvars` and their existing preview lifecycle.
+
+Ordinary setters retain metadata, virtual creation, transform, bounds, and callback policies. USD dropdowns receive
+labels without automatic numeric conversion; integer-backed setters translate labels to USD indices. Native typed
+dropdowns retain their typed inputs. Clipboard-only model serialization, deserialization, and paste hooks are removed.
+Texture-field change notifications validate the displayed path without blocking writes; manual begin/end editing owns
+that blocking interval, so a programmatic refresh cannot prevent the following paste.
 
 ## Usage
 

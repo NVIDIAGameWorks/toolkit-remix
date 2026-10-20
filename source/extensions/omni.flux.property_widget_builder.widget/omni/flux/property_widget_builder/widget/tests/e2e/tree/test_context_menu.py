@@ -70,7 +70,11 @@ class TestContextMenu(omni.kit.test.AsyncTestCase):
                 if raw is not None:
                     break
                 await omni.kit.ui_test.wait_n_updates(1)
-            self.assertEqual(raw, '[{"names": ["N_1"], "values": ["V_1"]}, {"names": ["N_2"], "values": ["V_2"]}]')
+            self.assertEqual(
+                raw,
+                '[{"properties": [{"name": ["N_1"], "value": ["V_1"]}]}, '
+                '{"properties": [{"name": ["N_2"], "value": ["V_2"]}]}]',
+            )
 
     async def test_copy_all_paste_all(self):
         async with AsyncTestPropertyWidget() as helper:

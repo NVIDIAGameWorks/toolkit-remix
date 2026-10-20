@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.3]
+### Fixed
+- Copy and paste complete particle size, rotation, velocity, and color rows with their declared legacy companions without converting between legacy and animated values or changing source and unrelated properties.
+  Regression coverage exercises the real panel's Copy Selected and Paste Selected menus with an explicit clipboard dependency.
+
 ## [1.7.2]
 ### Added
 - Added public expand and collapse all group forwarding for particle property pane headers.

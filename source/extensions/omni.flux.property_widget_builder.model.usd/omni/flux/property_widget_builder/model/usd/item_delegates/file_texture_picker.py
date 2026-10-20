@@ -459,7 +459,6 @@ class FileTexturePicker(_FilePicker):
     def _on_field_changed(
         self, widget: ui.AbstractField, value_model: "_UsdAttributeValueModel", element_current_idx: int, model
     ):
-        value_model.block_set_value(True)
         path = (
             value_model.cached_blocked_value
             if value_model.cached_blocked_value is not None

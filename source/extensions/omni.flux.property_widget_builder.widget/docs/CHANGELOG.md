@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Changed
+- Centralized property clipboard handling in `AttributeCopyPasteHelper` using `source_rows`/`target_rows` keywords and `set_row_values`, with one synchronous paste undo group, hidden editable primaries, effective model defaults, distinct unlinked components, normalized last-source asset paths, and destination-relative USD asset paste. Export `TestItem` directly from its test module. Expose shared read-only `is_virtual` and simplify menu checks. Removed distributed row serialization/application, value-model paste hooks, and support for old clipboard envelopes.
+
 ## [2.12.10]
 ### Fixed
 - Avoid an unnecessary redraw when a property widget first measures an unchanged name column.

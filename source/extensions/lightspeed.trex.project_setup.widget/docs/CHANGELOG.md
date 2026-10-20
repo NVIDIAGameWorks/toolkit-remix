@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.8]
+### Changed
+- Use property widget major version 3 and its shared row clipboard interface.
+
 ## [1.8.7]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.
