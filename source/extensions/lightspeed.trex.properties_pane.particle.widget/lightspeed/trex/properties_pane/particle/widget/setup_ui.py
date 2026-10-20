@@ -188,6 +188,11 @@ def _add_edit_group_outlets(
         # Edit group outlets are curve-only today. Gradient-based outlets need their own
         # seeding list if they are added to PARTICLE_EDIT_GROUPS later.
         animated_attr_names = list(group.get("curve_map", {}))
+        outlet.logical_group_extra_attribute_names = tuple(
+            name
+            for name, mapping in _PARTICLE_LEGACY_ANIMATION_MAPPINGS.items()
+            if any(animated_name in animated_attr_names for animated_name in mapping["animated"].values())
+        )
         outlet.pre_open_callback = pre_open_callback_builder(
             animated_attr_names,
             target_paths,
@@ -490,6 +495,11 @@ class ParticleSystemPropertyWidget(_PropertyGroupExpansionMixin):
 
                 if attr_name.endswith(":values"):
                     animated_attr_name = attr_name[: -len(":values")]
+                    attr_item.logical_group_extra_attribute_names = tuple(
+                        name
+                        for name, mapping in _PARTICLE_LEGACY_ANIMATION_MAPPINGS.items()
+                        if animated_attr_name in mapping["animated"].values()
+                    )
                     attr_item.pre_open_callback = self._build_pre_open_callback(
                         animated_attr_name,
                         [str(attr.GetPrim().GetPath()) for attr in attributes],

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Changed
+- Apply logical row values through native property commands in canonical ownership order with exact edit-layer undo, resolving destinations once per row and keeping button-only outlets eligible, visible texture fields writable after refresh, and numeric-looking dropdown labels intact until USD index conversion. Normalize clipboard lists for native vector companions while preserving USD arrays. File-backed clipboard coverage verifies asset paths relative to the destination edit layer. Inherit read-only `is_virtual` and remove type forwarding and an unused debug helper. Removed model-specific clipboard serialization, deserialization, and paste hooks in favor of the shared clipboard helper.
+
 ## [2.36.10]
 ### Fixed
 - Preview numeric drags live with one undo on release, preserve redo for cancelled or unchanged gestures, and restore property specs on cancellation or destruction; report failures through Carbonite and retain failed reservations and their owners for explicit retry while rejecting further edits.

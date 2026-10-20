@@ -15,10 +15,13 @@
 * limitations under the License.
 """
 
+import omni.kit.clipboard
 import omni.kit.test
+import omni.kit.undo
 import omni.ui as ui
 import omni.usd
-from lightspeed.common.constants import PARTICLE_SCHEMA_NAME
+from carb.input import KeyboardInput
+from lightspeed.common.constants import PARTICLE_PRIMVAR_PREFIX, PARTICLE_SCHEMA_NAME
 from lightspeed.common.constants import PROPERTIES_NAMES_COLUMN_WIDTH
 from lightspeed.trex.properties_pane.particle.widget import ParticleSystemPropertyWidget
 from lightspeed.trex.properties_pane.particle.widget.legacy_support_helper import (
@@ -43,6 +46,91 @@ class TestLegacySilentUpgrade(omni.kit.test.AsyncTestCase):
         self._context = None
         self._stage = None
         self._prim = None
+
+    async def test_copy_paste_particle_rows_transfers_declared_legacy_companions(self):
+        """Verify selected particle rows transfer their declared companions without changing unrelated values."""
+        self.addCleanup(omni.kit.clipboard.copy, omni.kit.clipboard.paste() or "")
+        self.addCleanup(omni.kit.undo.clear_stack)
+        expected_companions = {
+            "Particle Size": (
+                "minSpawnSize",
+                "minTargetSize",
+                "maxSpawnSize",
+                "maxTargetSize",
+            ),
+            "Rotation Speed": (
+                "minSpawnRotationSpeed",
+                "minTargetRotationSpeed",
+                "maxSpawnRotationSpeed",
+                "maxTargetRotationSpeed",
+            ),
+            "Min Color Values": ("minSpawnColor", "minTargetColor"),
+            "Max Color Values": ("maxSpawnColor", "maxTargetColor"),
+            "Velocity": (),
+        }
+        target = self._create_particle_prim("/Target")
+        attribute_names = [
+            f"{PARTICLE_PRIMVAR_PREFIX}{name}" for companions in expected_companions.values() for name in companions
+        ]
+        for index, name in enumerate(attribute_names):
+            source_attribute = self._prim.GetAttribute(name)
+            value_type = type(source_attribute.Get())
+            source_attribute.Set(value_type((index + 1) / 16))
+            target.GetAttribute(name).Set(value_type(0))
+        for suffix, source_value, target_value in (
+            ("times", [0.0, 1.0], [0.0, 0.5]),
+            ("values", [2.0, 4.0], [6.0, 8.0]),
+        ):
+            name = f"{PARTICLE_PRIMVAR_PREFIX}maxVelocity:x:{suffix}"
+            attribute_names.append(name)
+            self._prim.GetAttribute(name).Set(source_value)
+            target.GetAttribute(name).Set(target_value)
+        self._prim.GetAttribute(f"{PARTICLE_PRIMVAR_PREFIX}spawnRatePerSecond").Set(99.0)
+        target.GetAttribute(f"{PARTICLE_PRIMVAR_PREFIX}spawnRatePerSecond").Set(31.0)
+        source_values = {name: self._prim.GetAttribute(name).Get() for name in attribute_names}
+        window, widget = await self._setup_particle_widget()
+        try:
+            # Copy and paste the same rows so legacy companions travel with their visible controls.
+            for prim, action in ((self._prim, "Copy Selected"), (target, "Paste Selected")):
+                widget.refresh([str(prim.GetPath())])
+                await ui_test.human_delay()
+                widget.collapse_all_groups()
+                await ui_test.human_delay()
+                spawn_group = await ui_test.find_with_retry(f"{window.title}//Frame/**/Label[*].text=='Spawn'")
+                await spawn_group.click()
+                await ui_test.human_delay()
+                items = widget.property_model.get_all_items(include_hidden=True)
+                async with ui_test.KeyDownScope(KeyboardInput.LEFT_CONTROL):
+                    for label, companions in expected_companions.items():
+                        with self.subTest(title=f"{action}: {label}"):
+                            matching_items = [
+                                item
+                                for item in items
+                                if "".join(model.get_value_as_string() for model in item.name_models) == label
+                            ]
+                            self.assertEqual(len(matching_items), 1)
+                            self.assertCountEqual(
+                                matching_items[0].logical_group_extra_attribute_names,
+                                [f"{PARTICLE_PRIMVAR_PREFIX}{name}" for name in companions],
+                            )
+                            row_label = await ui_test.find_with_retry(
+                                f"{window.title}//Frame/**/Label[*].text=='{label}'"
+                            )
+                            await row_label.click()
+                            await ui_test.human_delay()
+                await ui_test.human_delay()
+                # Opening the menu on a selected row preserves the five-row selection.
+                await row_label.click(right_click=True)
+                await ui_test.human_delay()
+                await ui_test.menu.select_context_menu(action, offset=ui_test.Vec2(10, 10))
+                await ui_test.human_delay()
+
+            self.assertEqual({name: target.GetAttribute(name).Get() for name in attribute_names}, source_values)
+            self.assertEqual({name: self._prim.GetAttribute(name).Get() for name in attribute_names}, source_values)
+            self.assertEqual(target.GetAttribute(f"{PARTICLE_PRIMVAR_PREFIX}spawnRatePerSecond").Get(), 31.0)
+        finally:
+            widget.destroy()
+            window.destroy()
 
     def _create_particle_prim(self, prim_path):
         prim = self._stage.DefinePrim(prim_path, "Mesh")

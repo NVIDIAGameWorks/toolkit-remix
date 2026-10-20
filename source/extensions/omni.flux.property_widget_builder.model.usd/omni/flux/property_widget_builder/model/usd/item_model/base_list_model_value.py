@@ -58,14 +58,14 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
             value_type_name=value_type_name,
             tooltip_display_name=tooltip_display_name,
         )
-        # Clear out guessed value type, we leave it as str and handle it ourselves for better serialization.
-        self._override_value_type = None
+        # Labels must reach option lookup unchanged, even when they look numeric.
+        self._convert_type = None
         # Guard to avoid inf loop and skip _current_index_changed when updating value in code
         self.__block_set_value = False
         # Whether to save the value in USD as the integer index of options or as the value itself
         self._use_index_in_usd = self._value_type_name == Sdf.ValueTypeNames.Int
 
-        self._default_value = default_value
+        self.default_value = default_value
         self._item_options = []
         self._list_options = options
         self._update_options()
@@ -79,9 +79,6 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
     def get_value(self):
         return self._value
 
-    def deserialize(self, value):
-        self.set_value(self._list_options.index(value))
-
     def get_item_children(
         self,
         parentItem: OptionItem = None,  # noqa: N803 (intentional match for parent kwarg)
@@ -94,12 +91,12 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
         return item.model
 
     def _get_default_value(self, attr) -> str | None:
-        if self._default_value is None:
+        if self.default_value is None:
             default_value_index = _get_default_attribute_value(attr)
             if default_value_index:
                 return self._list_options[default_value_index]
             return None
-        return self._default_value
+        return self.default_value
 
     @property
     def is_default(self):

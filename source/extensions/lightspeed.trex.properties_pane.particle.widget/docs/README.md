@@ -2,6 +2,24 @@
 
 This is the widget that creates a properties panel for RemixParticleSystem prim types.
 
+## Responsibilities
+
+- Build particle property groups and curve/gradient outlets from the particle schema.
+- Declare each logical row's animated attributes and associated legacy companions.
+
+## Non-Responsibilities
+
+Clipboard handling and undo grouping belong to the shared property helper. USD row models and commands own value
+application; this panel does not implement another copy/paste path.
+
+## Architecture
+
+`ParticleSystemPropertyWidget` builds ordinary USD items and logical outlets. Legacy companion ownership comes from
+`PARTICLE_LEGACY_ANIMATION_MAPPINGS`: size and rotation each own four spawn/target fields, each color gradient owns
+two, and velocity owns none. Copy/paste transfers both representations independently without opening editors or seeding
+animation. See [logical row editing](../../omni.flux.property_widget_builder.model.usd/docs/README.md#logical-row-editing)
+for the shared application contract.
+
 ## Usage
 
 ```python

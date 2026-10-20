@@ -282,7 +282,8 @@ class TestFileTexturePicker(omni.kit.test.AsyncTestCase):
         value_model.block_set_value.assert_called_once_with(False)
         value_model.set_value.assert_called_once_with("textures/albedo.dds")
 
-    async def test_field_changed_validates_cached_value(self):
+    async def test_field_changed_validates_cached_value_without_blocking_writes(self):
+        """Validate refreshed texture fields without starting a manual editing interval."""
         # Arrange
         picker = FileTexturePicker()
         widget = MagicMock()
@@ -294,7 +295,7 @@ class TestFileTexturePicker(omni.kit.test.AsyncTestCase):
             picker._on_field_changed(widget, value_model, 0, MagicMock())
 
         # Assert
-        value_model.block_set_value.assert_called_once_with(True)
+        value_model.block_set_value.assert_not_called()
         is_field_path_valid_mock.assert_called_once_with("textures/albedo.dds", widget, value_model, 0)
 
     async def test_set_field_writes_relative_normalized_path_when_selection_is_valid(self):

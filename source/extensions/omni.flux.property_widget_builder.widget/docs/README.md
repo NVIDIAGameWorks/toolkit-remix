@@ -1,77 +1,70 @@
-# Overview
+# Property Widget Builder
 
-This is the base widget that let you build property widget(s) from any attributes (that come from USD, file, or anything...).
+Build property panels from value models backed by USD, files, or other application data.
 
-![alt text](../data/images/preview.png)
+![Property widget](../data/images/preview.png)
 
-Because this is a base widget, by default, crating this widget will do nothing. You need to implement what the widget
-has to show.
+## Responsibilities
 
-When a pixel-sized name column is used, the widget adjusts it as the panel resizes without redrawing rows for an unchanged width.
+- Display name and value models in a property tree with reusable field builders.
+- Coordinate row selection, expansion, hidden primary rows, and linked fields.
+- Centralize clipboard parsing, matching, structural checks, and synchronous paste in `AttributeCopyPasteHelper`.
 
-## Implementation
+## Non-Responsibilities
 
-The widget uses multiple components:
-- an item model class
-- an item class
-- a model class
-- a delegate class
+Value models own conversion, bounds, callbacks, validity checks, and authoring. Feature panels own their dialogs.
+The helper does not provide rollback or manage delayed callbacks.
 
-### Item model class
+## Architecture
 
-This is use a regular `ui.AbstractValueModel`. This item is the value or value of the name that your attribute has.
+`ItemModelBase` supplies names or values through `get_value()` and existing setters. `Item` holds the ordered
+`name_models` and `value_models`; these lists need not have equal lengths. `Model` owns the row tree, and `Delegate`
+selects field builders and renders its two columns.
+`ItemModelBase.is_virtual` is read-only and defaults to `False`; virtual models set protected `_is_virtual` to `True`.
 
-For example, if you have an attribute "translate" with a value "20", you will have 2 instances of the item model claas:
-- one the show the value of the name: "translate"
-- one the show the value of the value: "20"
+`Delegate` owns the shared `DragFieldGroupCoordinator`. Builders returning an `AbstractDragFieldGroup` set
+`supports_field_cleanup=True` and `builds_drag_field_group=True` to receive cleanup and linked-row coordination.
+Pixel-sized name columns adjust to panel size without redrawing rows for an unchanged width.
 
-This class can be subclassed to get the value of any data (name or value) (using a listener or not), like USD values, disk file values, etc etc
+### Clipboard and row editing
 
-You can customize what you want to show using the `set_display_fn()` function.
+`Item` inherits `AttributeCopyPasteHelper`. Copy/Paste Selected and All use the same helper; All includes hidden
+editable primary rows and excludes structural groups and claimed companions. The helper reads the clipboard once,
+matches supplied destination rows, checks complete property membership and eligibility, and arranges values.
+Existing models and commands still validate the values themselves, so later rejection can leave earlier writes applied.
+Copy reads effective ordinary values through their models, preserving configured defaults without authoring the source.
+Assets use the last selected source's raw value; logical rows retain raw backing values.
+Serialization normalizes `Sdf.AssetPath` separators from `\` to `/` without resolving paths or requiring files to exist.
+For USD rows, paste applies the destination stage's existing relative-path policy before calling the model setter.
+The asset does not need to exist.
 
-For example, imagine the value represent some bytes, and the value is `4000`. But you want to display everything as kilobytes.
-You can set a function with `set_display_fn()` that will divide the value by 1000 to show everything in kilobytes (`4`).
-The underneath values will still be `4000`, but the UI will display `4`.
+`Item.set_row_values(prepared_values)` accepts a tuple with one input per value model. It checks cardinality and
+refreshes each model immediately before calling its existing setter. Logical USD rows provide the only other setter
+implementation; their [ownership and authoring](../../omni.flux.property_widget_builder.model.usd/docs/README.md#logical-row-editing)
+remain in the USD extension. Button-only logical outlets remain eligible without fabricated display models.
 
-This feature is mainly used for attribute(s) that are read only. This is a "display" feature, not a "set" one.
+The helper disables linked editing before applying an accepted row, preserving distinct copied components. Linking
+stays off after undo. A row rejected during clipboard checks retains its link state.
 
-### Item class
+One helper-owned native undo group combines synchronous command-backed writes across rows and destination prims.
+The helper opens no group when nothing is accepted. A standalone row setter does not promise one undo action; its
+caller owns grouping when needed. Grouping does not guarantee rollback or make arbitrary setters undoable.
+Texture/import callbacks that write after paste returns retain their existing undo timing and validity ownership.
 
-This is a regular `ui.AbstractItem`. This item has 2 properties:
-- the name(s)
-- the value(S)
+Version 3 removes row serialization/application methods, `Serializable`, value-model paste/deserialization hooks,
+and the free-function clipboard entry points. Old clipboard envelopes are rejected. Use the helper for clipboard
+operations and `set_row_values()` for general row application; no compatibility wrappers are provided.
 
-Those 2 properties will be showed for each item into the property widget.
+## Usage
 
-Each of those properties have to return a list of "item model class".
+```python
+from omni.flux.property_widget_builder.widget.tree.clipboard import AttributeCopyPasteHelper
 
-### Model class
+AttributeCopyPasteHelper.copy(source_rows=source_rows)
+AttributeCopyPasteHelper.paste(target_rows=destination_rows)
+```
 
-This is a regular `ui.AbstractItemModel` that the `ui.TreeView` uses. It will hold all the items "item class".
-
-### Item group expansion
-
-`PropertyWidget.expand_all_groups()` and `PropertyWidget.collapse_all_groups()` expand or collapse every visible
-`ItemGroup` in the current model. These helpers update the widget's expansion state, so the requested state is preserved
-across deferred refreshes.
-
-### Delegate class
-
-This is a regular `ui.AbstractItemDelegate`. The delegate will show each value of each item into 2 columns:
-- name(s) in column 1
-- value(s) in column 2
-
-`_build_widget` has to be subclassed if you want to show your data.
-
-`Delegate` owns the shared `DragFieldGroupCoordinator` used by linked drag-field rows. Factory builders that return an
-`AbstractDragFieldGroup` should set both `supports_field_cleanup=True` and `builds_drag_field_group=True` so the delegate
-passes the row cleanup callback and shared coordinator to the builder.
-
-
-## Implementation example(s)
-
-Please check:
-- `omni.flux.property_widget_builder.model.usd`
-- `omni.flux.property_widget_builder.model.file`
-
-For implementation examples.
+Custom value models can use `set_display_fn()` to format stored values without changing them.
+`PropertyWidget.expand_all_groups()` and `collapse_all_groups()` preserve the requested expansion state across
+deferred refreshes. See the [USD model](../../omni.flux.property_widget_builder.model.usd/docs/README.md) and
+[file model](../../omni.flux.property_widget_builder.model.file/docs/README.md) for concrete integrations.

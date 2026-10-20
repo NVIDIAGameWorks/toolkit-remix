@@ -20,7 +20,6 @@ __all__ = (
     "ItemModel",
     "ItemModelBase",
     "ItemValueModel",
-    "Serializable",
     "_SetValueCallbackManager",
 )
 
@@ -29,8 +28,6 @@ from collections.abc import Callable
 from typing import Any
 
 import omni.ui as ui
-
-from . import clipboard
 
 
 class _SetValueCallbackManager:
@@ -77,65 +74,10 @@ class _SetValueCallbackManager:
             self._callback_post_set_value(callback, value)
 
 
-class Serializable(abc.ABC):
-    """
-    Mixin class to add serialization methods.
-
-    A single `Serializer` instance is shared for all classes that inherit from this class.
-    """
-
-    def __init__(self):
-        super().__init__()
-        self.register_serializer_hooks(clipboard.SERIALIZER)
-
-    def register_serializer_hooks(self, serializer):  # noqa: B027  # optional to override
-        """
-        Register serialization hooks for clipboard copy/paste.
-
-        Subclasses should overwrite this method if their get_value returns a type that is not natively supported by
-        json. See the `Serializer` class documentation for more details.
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_value(self):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def set_value(self, value):
-        raise NotImplementedError
-
-    def serialize(self):
-        """
-        Get a serialized representation of this object.
-
-        Whatever is returned from this method should also be accepted as a value to the `de` method.
-
-        Sometimes special handling is needed for more complex types that are not natively supported in a serialized
-        format.
-        """
-        return self.get_value()
-
-    def deserialize(self, value):
-        self.set_value(value)
-
-    def begin_paste(self):  # noqa: B027  # optional to override
-        """Hook called by ``Item.apply_serialized_data`` immediately before each
-        channel's ``deserialize``. Default is a no-op; subclasses that share state
-        across sibling channel models (e.g. the USD multichannel value model) can
-        override to refresh that state from the source of truth.
-        """
-        pass
-
-    def end_paste(self):  # noqa: B027  # optional to override
-        """Hook called by ``Item.apply_serialized_data`` immediately after each
-        channel's ``deserialize``. Default is a no-op. Paired with ``begin_paste``.
-        """
-        pass
-
-
-class ItemModelBase(Serializable, abc.ABC):
+class ItemModelBase(abc.ABC):
     """The base class for item models that will be used with `Item` and `Model`"""
+
+    _is_virtual = False
 
     def __init__(self):
         super().__init__()
@@ -146,6 +88,16 @@ class ItemModelBase(Serializable, abc.ABC):
 
         self._read_only = True
         self._multiline = (False, 0)
+
+    @property
+    def is_virtual(self) -> bool:
+        """Return whether the model allows a missing backing property."""
+        return self._is_virtual
+
+    @abc.abstractmethod
+    def get_value(self) -> Any:
+        """Return the current value in the representation accepted by the model's setter."""
+        raise NotImplementedError
 
     def set_callback_pre_set_value(self, callback: Callable[[Callable[[Any], Any], Any], Any]):
         """
@@ -234,7 +186,7 @@ class ItemModelBase(Serializable, abc.ABC):
 
     def get_tool_tip(self):
         """Get the tooltip that best represents the current value"""
-        pass
+        return
 
     @property
     def read_only(self):
@@ -263,24 +215,26 @@ class ItemModelBase(Serializable, abc.ABC):
 
     def begin_batch_edit(self) -> None:
         """Begin a batch edit when supported; the default implementation is a no-op."""
-        pass
+        return
 
     def end_batch_edit(self) -> None:
         """End a batch edit when supported; the default implementation is a no-op."""
-        pass
+        return
 
     def set_property_edit_callbacks(
         self,
         begin_callback: Callable[["ItemModelBase"], None] | None,
         end_callback: Callable[["ItemModelBase"], None] | None,
     ) -> None:
-        pass
+        """Accept editing hooks without changing models that have no editing lifecycle."""
+        return
 
     def subscribe_property_edit_cancel_fn(self, callback: Callable[[], None]) -> Callable[[], None]:
         return lambda: None
 
     def cancel_property_edit_interaction(self) -> None:
-        pass
+        """Leave models without an editing lifecycle unchanged."""
+        return
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.get_value()!r})"

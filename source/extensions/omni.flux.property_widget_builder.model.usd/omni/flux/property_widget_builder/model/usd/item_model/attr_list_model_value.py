@@ -89,7 +89,7 @@ class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):
             raw_value = attr.Get()
             if raw_value is not None:
                 return raw_value
-        return self._default_value
+        return self.default_value
 
     @property
     def metadata(self):
@@ -97,7 +97,7 @@ class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):
 
     def _create_and_set_attribute_value(self, attr: Usd.Attribute, new_value: str) -> bool:
         # If it's the default value, no need to create anything
-        if new_value == self._default_value:
+        if new_value == self.default_value:
             return False
 
         index = self._list_options.index(new_value)

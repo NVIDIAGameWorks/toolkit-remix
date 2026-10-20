@@ -33,6 +33,7 @@ from omni.flux.property_widget_builder.widget import Item as _Item
 from omni.flux.property_widget_builder.widget.tree.item_model import ItemGroupNameModel as _ItemGroupNameModel
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices
 from omni.flux.utils.common.types import ScalarValue as _ScalarValue
 from omni.kit.window.popup_dialog import MessageDialog as _MessageDialog
 from pxr import Sdf, Usd, UsdGeom
@@ -48,6 +49,7 @@ from .logical_group_constants import CURVE_LOGICAL_GROUP_DEFINITION
 from .logical_row import LogicalGroupDefinition as _LogicalGroupDefinition
 from .logical_row import get_grouped_item_value_signature as _get_grouped_item_value_signature
 from .logical_row import LogicalRowState as _LogicalRowState
+from .logical_row import normalize_value_for_signature
 from .mapping import CHANNEL_ELEMENT_BUILDER_TABLE
 from .mapping import DEFAULT_PRECISION as _DEFAULT_PRECISION
 from .mapping import OPS_ATTR_PRECISION_TABLE as _OPS_ATTR_PRECISION_TABLE
@@ -74,8 +76,62 @@ class _LogicalRowApiMixin:
     """Shared row API for explicit logical-row behavior."""
 
     _include_self_value_models_when_unowned = False
+    logical_group_extra_attribute_names: tuple[str, ...] = ()
     logical_group_items: list[Any]
     pre_open_callback: Callable[[Callable[[], None]], None] | None
+
+    def get_logical_row_attribute_names(self) -> list[str] | None:
+        """Return declared logical attributes and legacy companions in application order."""
+        definition = self.logical_group_definition
+        if definition is None:
+            return None
+        if self.edit_group_layout is not None:
+            group_ids = self.edit_group_layout.get("curve_map", {})
+        else:
+            base_name = self._get_logical_group_base_name()
+            group_ids = [base_name] if base_name is not None else []
+        return [name for group_id in group_ids for name in definition.get_attr_names(group_id)] + list(
+            self.logical_group_extra_attribute_names
+        )
+
+    def set_row_values(self, prepared_values: tuple[object, ...]) -> None:
+        """Apply ordered row values through existing models or native USD property commands.
+
+        The caller owns grouping. A reported command failure stops later writes without restoring earlier writes.
+
+        Args:
+            prepared_values: Values ordered by the row's models or declared logical attributes.
+        """
+        names = self.get_logical_row_attribute_names()
+        if names is None:
+            super().set_row_values(prepared_values)
+            return
+        if len(prepared_values) != len(names):
+            raise ValueError("Row value count does not match its declaration")
+
+        stage = omni.usd.get_context(self.context_name).get_stage()
+        with defer_usd_notices(stage):
+            target_paths = self.get_target_paths()
+            for name, value in zip(names, prepared_values):
+                compare_value = name not in self.logical_group_extra_attribute_names and value is not None
+                normalized_value = normalize_value_for_signature(value) if compare_value else None
+                for target in target_paths:
+                    property_path = Sdf.Path(target).AppendProperty(name)
+                    attribute = stage.GetAttributeAtPath(property_path)
+                    if compare_value and normalize_value_for_signature(attribute.Get()) == normalized_value:
+                        continue
+                    native_value = (
+                        tuple(value) if isinstance(value, list) and not attribute.GetTypeName().isArray else value
+                    )
+                    succeeded, result = omni.kit.commands.execute(
+                        "ChangeProperty",
+                        prop_path=property_path,
+                        value=native_value,
+                        prev=None,
+                        usd_context_name=self.context_name,
+                    )
+                    if not succeeded or result is False:
+                        raise RuntimeError(f"Logical property write failed: {property_path}")
 
     def get_owned_value_models(self) -> list[Any]:
         """Return value models owned by this row and its logical companions."""
@@ -198,6 +254,7 @@ class _BaseUSDAttributeItem(_LogicalRowApiMixin, _Item):
 
     _include_self_value_models_when_unowned = True
     _CHANNEL_LABEL_SUFFIXES = (" X", " Y", " Z", " W")
+    metadata_key: str | None = None
 
     def __init__(
         self,
@@ -1014,7 +1071,7 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
             metadata_key: the metadata key to show
         """
         super().__init__(context_name, attribute_paths)
-        self._metadata_key = metadata_key
+        self.metadata_key = metadata_key
         self._metadata = metadata
         self._init_name_models(context_name, attribute_paths, display_attr_names, display_attr_names_tooltip)
         self._init_value_models(
@@ -1074,7 +1131,7 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
                 read_only=read_only,
                 value_type_name=value_type_name,
                 metadata=self._metadata,
-                metadata_key=self._metadata_key,
+                metadata_key=self.metadata_key,
                 tooltip_display_name=display_attr_name,
             )
         ]
@@ -1082,8 +1139,8 @@ class _BaseListModelItem(_BaseUSDAttributeItem):
     def _resolve_display_attr_name(self, display_attr_names: list[str] | None) -> str | None:
         """Resolve the display name shared by the label and value tooltip."""
         display_attr_name = display_attr_names[0] if display_attr_names else None
-        if display_attr_name and self._metadata_key:
-            return f"{display_attr_name} {self._metadata_key}"
+        if display_attr_name and self.metadata_key:
+            return f"{display_attr_name} {self.metadata_key}"
         return display_attr_name
 
 
@@ -1505,6 +1562,11 @@ class USDLogicalGroupOutletItem(_LogicalRowApiMixin, _Item):
     def element_count(self) -> int:
         """Return the single value cell used by the outlet button."""
         return 1
+
+    @property
+    def read_only(self) -> bool:
+        """Honor owned-model restrictions without requiring outlet display models."""
+        return any(model.read_only for model in self.get_owned_value_models())
 
     def get_target_paths(self) -> list[str]:
         """Return the explicit target prim paths for this synthetic logical group outlet.

@@ -24,7 +24,7 @@ __all__ = (
 import abc
 import asyncio
 import typing
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 
 import omni.kit.app
 from omni.flux.utils.common import Event as _Event
@@ -32,6 +32,7 @@ from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 
+from .clipboard import AttributeCopyPasteHelper
 from .item_model import ItemGroupNameModel as _ItemGroupNameModel
 
 if typing.TYPE_CHECKING:
@@ -41,7 +42,7 @@ if typing.TYPE_CHECKING:
 HEADER_DICT = {0: "Name", 1: "Value"}
 
 
-class Item(_TreeItemBase):
+class Item(AttributeCopyPasteHelper, _TreeItemBase):
     """Item of the model"""
 
     def __init__(self):
@@ -147,39 +148,24 @@ class Item(_TreeItemBase):
             if index != source_index:
                 model.set_value(value)
 
-    def serialize(self) -> dict:
-        return {
-            "names": [x.serialize() for x in self.name_models],
-            "values": [x.serialize() for x in self.value_models],
-        }
+    def get_logical_row_attribute_names(self) -> list[str] | None:
+        """Return declared backing attributes for logical rows, or None for ordinary rows."""
+        return None
 
-    def matches_serialized_data(self, serialized_item: dict):
-        if not isinstance(serialized_item, Mapping):
-            return False
-        if "names" not in serialized_item:
-            return False
-        if "values" not in serialized_item:
-            return False
-        if [x.serialize() for x in self.name_models] != serialized_item["names"]:
-            return False
-        try:
-            val_len = len(serialized_item["values"])
-        except TypeError:
-            return False
-        return val_len == len(self.value_models)
+    def set_row_values(self, prepared_values: tuple[object, ...]) -> None:
+        """Apply one prepared input per value model through its existing setter.
 
-    def apply_serialized_data(self, serialized_item: dict):
-        # Interleave begin_paste/deserialize/end_paste per channel: begin_paste on
-        # channel N runs AFTER channel N-1's deserialize has written to USD, so USD
-        # multichannel models can pick up sibling writes within the same paste tick.
-        # The hooks are no-ops on the Serializable base, so non-USD models inherit
-        # safe defaults without subclass-specific checks.
-        for value_model, value in zip(self.value_models, serialized_item["values"]):
-            value_model.begin_paste()
-            try:
-                value_model.deserialize(value)
-            finally:
-                value_model.end_paste()
+        Args:
+            prepared_values: Values in the row's value-model order.
+
+        Raises:
+            ValueError: If the number of values does not match the row.
+        """
+        if len(prepared_values) != len(self.value_models):
+            raise ValueError("Row value count does not match its models")
+        for model, value in zip(self.value_models, prepared_values):
+            model.refresh()
+            model.set_value(value)
 
     def __repr__(self):
         return f"<{self.__class__.__name__}({repr(''.join(str(x) for x in self._name_models))})"

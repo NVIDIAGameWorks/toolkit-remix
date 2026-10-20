@@ -16,11 +16,15 @@
 """
 
 from types import SimpleNamespace
+from unittest import mock
 
 import omni.kit.test
+import omni.kit.undo
 import omni.ui as ui
 from omni.flux.property_widget_builder.delegates import AbstractDragFieldGroup
 from omni.flux.property_widget_builder.widget import Delegate, FieldBuilder, claim_each
+from omni.flux.property_widget_builder.widget.tree.clipboard import AttributeCopyPasteHelper
+from omni.flux.property_widget_builder.widget.tests.ui_components import TestItem
 
 
 class _Delegate(Delegate):
@@ -181,3 +185,76 @@ class TestDelegate(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(value_model.begin_callbacks, [])
         self.assertEqual(value_model.end_callbacks, [])
+
+    async def test_context_menu_keeps_empty_model_outlets_and_hidden_editable_primaries(self):
+        """Keep editable outlets and hidden primaries eligible while excluding restricted rows."""
+        # Arrange
+        delegate = _Delegate()
+        normal = TestItem([("Visible", 1)])
+        hidden = TestItem([("Hidden", 2)])
+        hidden.hidden = True
+        outlet = mock.Mock(read_only=False, value_models=[])
+        restricted = mock.Mock(read_only=True, value_models=[])
+        structural = TestItem([])
+        companion = TestItem([("Companion", 3)])
+        rows = [normal, hidden, outlet, restricted, structural, companion]
+        model = mock.Mock()
+        model.get_all_items.return_value = rows
+        delegate.selection = [outlet, restricted, structural, companion]
+        delegate._builder_map.update({id(row): object() for row in rows[:-1]})
+        with (
+            mock.patch.object(ui, "Menu"),
+            mock.patch.object(ui, "MenuItem") as menu_item,
+            mock.patch.object(ui, "Separator"),
+            mock.patch.object(ui, "MenuDelegate"),
+            mock.patch.object(AttributeCopyPasteHelper, "can_paste", return_value=True) as available,
+        ):
+            # Act
+            delegate._show_context_menu(model, outlet)
+
+        # Assert
+        model.get_all_items.assert_called_once_with(include_hidden=True)
+        self.assertEqual(
+            available.call_args_list,
+            [mock.call(target_rows=[normal, hidden, outlet]), mock.call(target_rows=[outlet])],
+        )
+        items = {call.kwargs["identifier"]: call.kwargs for call in menu_item.call_args_list}
+        self.assertTrue(items["paste_selected"]["enabled"])
+        self.assertTrue(items["paste_all"]["enabled"])
+
+    async def test_paste_menu_actions_share_helper_entry_without_own_undo_group(self):
+        """Route both paste menu actions through the helper without opening another undo group."""
+        for identifier in ("paste_selected", "paste_all"):
+            with self.subTest(title=identifier):
+                # Arrange
+                delegate = _Delegate()
+                selected = TestItem([("Selected", 1)])
+                hidden = TestItem([("Hidden", 2)])
+                hidden.hidden = True
+                model = mock.Mock()
+                model.get_all_items.return_value = [selected, hidden]
+                delegate.selection = [selected]
+                delegate._builder_map.update({id(selected): object(), id(hidden): object()})
+                with (
+                    mock.patch.object(ui, "Menu"),
+                    mock.patch.object(ui, "MenuItem") as menu_item,
+                    mock.patch.object(ui, "Separator"),
+                    mock.patch.object(ui, "MenuDelegate"),
+                    mock.patch.object(AttributeCopyPasteHelper, "can_paste", return_value=True),
+                    mock.patch.object(AttributeCopyPasteHelper, "paste") as paste,
+                    mock.patch.object(omni.kit.undo, "group") as group,
+                ):
+                    delegate._show_context_menu(model, selected)
+                    callback = next(
+                        call.kwargs["triggered_fn"]
+                        for call in menu_item.call_args_list
+                        if call.kwargs["identifier"] == identifier
+                    )
+
+                    # Act
+                    callback()
+
+                # Assert
+                expected = [selected] if identifier == "paste_selected" else [selected, hidden]
+                paste.assert_called_once_with(target_rows=expected)
+                group.assert_not_called()

@@ -75,8 +75,4 @@ from .property_group_expansion import PropertyGroupExpansionMixin, PropertyGroup
 from .setup_ui import USDPropertyWidget
 
 
-def _vdir(obj):
-    return [x for x in dir(obj) if not x.startswith("__")]
-
-
 __all__.extend(dir(_mapping))
