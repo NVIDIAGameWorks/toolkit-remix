@@ -20,7 +20,7 @@ __all__ = ("TestColorField",)
 import sys
 import uuid
 from asyncio import Event
-from contextlib import nullcontext
+from contextlib import AsyncExitStack, nullcontext
 from math import isclose
 
 import omni.kit.test
@@ -48,7 +48,7 @@ from omni.kit.commands import execute
 from omni.kit.app import get_app
 from omni.kit.ui_test.input import emulate_keyboard, emulate_mouse
 from omni.kit.undo import can_redo, can_undo, clear_stack, group, redo, undo
-from omni.usd import get_context
+from omni.usd import create_context, get_context
 from pxr import Gf, Sdf, Tf, Usd, UsdLux
 
 
@@ -315,6 +315,111 @@ class TestColorField(omni.kit.test.AsyncTestCase):
             await omni.kit.ui_test.human_delay()
             self.assertEqual(self.color_attribute.Get(), expected)
         self.assertFalse(can_redo())
+
+    async def test_named_context_selection_commits_pending_color_only_on_owning_selection_change(self):
+        """Named picker dismissal commits one edit without touching the default stage or its history."""
+        context_name = f"{__name__}.named_context"
+        named_context = get_context(context_name)
+        if named_context is None:
+            named_context = create_context(context_name)
+        self.assertIsNone(named_context.get_stage())
+        async with AsyncExitStack() as cleanup:
+            cleanup.push_async_callback(named_context.close_stage_async)
+            cleanup.callback(clear_stack)
+            await named_context.new_stage_async()
+            prim_path = str(self.color_attribute.GetPrim().GetPath())
+            named_prim = named_context.get_stage().DefinePrim(prim_path, "Xform")
+            named_attribute = named_prim.CreateAttribute("color", Sdf.ValueTypeNames.Color3f)
+            original_named_color = Gf.Vec3f(0.6, 0.4, 0.2)
+            named_attribute.Set(original_named_color)
+            named_context.get_stage().DefinePrim("/World/Other", "Xform")
+            model = USDModel(context_name=context_name)
+            cleanup.callback(model.destroy)
+            window = ui.Window("Named color context", width=400, height=200, position_x=0, position_y=240)
+            cleanup.callback(window.destroy)
+            delegate = USDDelegate()
+            with window.frame:
+                widget = USDPropertyWidget(context_name=context_name, model=model, delegate=delegate)
+            cleanup.callback(widget.destroy)
+            model.set_items([USDAttributeItem(context_name, [named_attribute.GetPath()])])
+            cleanup.callback(model.set_items, [])
+            model.set_prim_paths([named_prim.GetPath()])
+            self.usd_listener.add_model(model)
+            cleanup.callback(self.usd_listener.remove_model, model)
+            cleanup.push_async_callback(self._close_picker)
+            default_selection = self.context.get_selection()
+            named_selection = named_context.get_selection()
+            default_selection.set_selected_prim_paths([prim_path], False)
+            named_selection.set_selected_prim_paths([prim_path], False)
+            await omni.kit.ui_test.human_delay()
+
+            # Identical property paths in both stages expose edits accidentally routed through the default context.
+            clear_stack()
+            original_default_color = self.color_attribute.Get()
+            edited_default_color = Gf.Vec3f(0.3, 0.5, 0.7)
+            execute(
+                "ChangeProperty",
+                prop_path=self.color_attribute.GetPath(),
+                value=edited_default_color,
+                prev=original_default_color,
+                usd_context_name="",
+            )
+            await omni.kit.ui_test.human_delay()
+            swatch = omni.kit.ui_test.find(f"{window.title}//Frame/**/ColorPicker[*].identifier=='color_swatch'")
+            await swatch.click()
+            self.picker_window_title = swatch.widget.window_title
+            await omni.kit.ui_test.human_delay()
+            picker_window = ui.Workspace.get_window(self.picker_window_title)
+            self.assertTrue(picker_window.visible)
+            await self._focus_picker_hex()
+            await omni.kit.ui_test.emulate_char_press("#4080C0")
+            await omni.kit.ui_test.human_delay()
+
+            # An unrelated stage selection must leave the named editor and its buffered input intact.
+            default_selection.set_selected_prim_paths([], False)
+            await self.context.selection_changed_async()
+            await omni.kit.ui_test.human_delay()
+            self.assertTrue(picker_window.visible)
+            self.assertEqual(named_attribute.Get(), original_named_color)
+            self.assertEqual(self.color_attribute.Get(), edited_default_color)
+
+            # Owning selection dismissal finishes the original property's pending text exactly once.
+            interaction_ended = Event()
+
+            def record_interaction_end(stage):
+                """Observe completion after the named model flushes its deferred USD notices."""
+                if stage == named_context.get_stage():
+                    interaction_ended.set()
+
+            subscription = register_interaction_end_listener(record_interaction_end)
+            cleanup.callback(subscription.revoke)
+            named_selection.set_selected_prim_paths(["/World/Other"], False)
+            await named_context.selection_changed_async()
+            await interaction_ended.wait()
+            await omni.kit.ui_test.human_delay()
+            self._assert_picker_closed()
+            committed_color = Gf.Vec3f(64 / 255, 128 / 255, 192 / 255)
+            await self.assertTrueWithRetry(lambda: named_attribute.Get() == committed_color)
+            self.assertEqual(self.color_attribute.Get(), edited_default_color)
+            self.assertFalse(is_any_interaction_active())
+            undo()
+            await omni.kit.ui_test.human_delay()
+            self.assertEqual(named_attribute.Get(), original_named_color)
+            self.assertEqual(self.color_attribute.Get(), edited_default_color)
+            undo()
+            await omni.kit.ui_test.human_delay()
+            self.assertEqual(named_attribute.Get(), original_named_color)
+            self.assertEqual(self.color_attribute.Get(), original_default_color)
+            self.assertFalse(can_undo())
+            redo()
+            await omni.kit.ui_test.human_delay()
+            self.assertEqual(named_attribute.Get(), original_named_color)
+            self.assertEqual(self.color_attribute.Get(), edited_default_color)
+            redo()
+            await omni.kit.ui_test.human_delay()
+            self.assertEqual(named_attribute.Get(), committed_color)
+            self.assertEqual(self.color_attribute.Get(), edited_default_color)
+            self.assertFalse(can_redo())
 
     async def test_mouse_wheel_over_color_controls_preserves_content_color_and_history_after_resize(self):
         """Wheel input cannot scroll color content or edit values, including when native resizing clips controls."""
