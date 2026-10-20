@@ -1,6 +1,6 @@
 ---
 name: add-pip-dep
-description: Add pip package to extension; OSRB/license/build steps.
+description: Add a third-party pip package dependency to an extension, including OSRB license check and build integration.
 ---
 
 @.agents/commands/add-pip-dep.md
