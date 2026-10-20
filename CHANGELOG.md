@@ -15,9 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Corrected the Toolkit release version from 1.6.0 to 1.6.0-0.
+
 ### Removed
 
-## [1.6.0]
+## [1.6.0-0]
 
 ### Added
 
