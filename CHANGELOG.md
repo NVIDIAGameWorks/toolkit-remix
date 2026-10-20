@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Corrected the Toolkit release version from 1.6.0 to 1.6.0-0.
 - REMIX-4585: Centralized property copy/paste for ordinary and logical rows, preserving displayed defaults, visible textures, legacy particle companions, hidden editable settings, and distinct linked XYZ components, with one synchronous paste undo action that restores prior logical-property opinions.
+- Fix model-facing description of agent skill shims. Includes minor metadata fix toward spec adhesion.
 
 ### Removed
 

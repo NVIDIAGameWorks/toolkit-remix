@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Create commit from staged/unstaged changes using repo git style.
+description: Create a conventional commit from staged or unstaged changes, following the project's git workflow conventions.
 ---
 
 @.agents/commands/commit.md
