@@ -77,8 +77,8 @@ class TestDlssSettings(AsyncTestCase):
         self.assertEqual(contract, (expected_runtime_names, expected_defaults))
         self.assertFalse(DLSS_ENABLE.default)
         self.assertTrue(DLSS_AUTO_MASK.default)
-        self.assertEqual(DLSS_SETTINGS_TITLE, "DLSS 3D-Guided Neural Generation")
-        self.assertEqual(DLSS_ENABLE.label, "DLSS 3D-Guided Neural Generation")
+        self.assertEqual(DLSS_SETTINGS_TITLE, "DLSS 3D-Guided Neural Rendering")
+        self.assertEqual(DLSS_ENABLE.label, "DLSS 3D-Guided Neural Rendering")
         self.assertEqual(DLSS_MODEL.options, ("Model A", "Model B", "Model C"))
         self.assertEqual(
             DLSS_MAIN_SETTINGS,

@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - REMIX-6108: install-runtime.md changed to reflect new runtime folder structure.
 
+- Renamed DLSS 3D-Guided Neural Generation controls to DLSS 3D-Guided Neural Rendering while preserving availability gating for older material-group names.
+
 ### Fixed
 
 - Corrected the Toolkit release version from 1.6.0 to 1.6.0-0.

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.9]
+### Fixed
+- Recognized DLSS 3D-Guided Neural Rendering material groups while preserving availability gating for older names.
+
 ## [2.3.8]
 ### Fixed
 - Applied runtime availability gating to the DLSS 3D-Guided Neural Generation material group without the experimental label while retaining support for older group names.
