@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.5]
+### Changed
+- Renamed the shared DLSS group to DLSS 3D-Guided Neural Rendering in the viewport Render Settings pane.
+
 ## [1.2.4]
 ### Changed
 - Removed the experimental label from the DLSS 3D-Guided Neural Generation group in the viewport Render Settings pane.

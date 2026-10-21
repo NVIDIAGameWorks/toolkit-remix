@@ -21,16 +21,16 @@ Exposes live HdRemix renderer controls in **Edit > Preferences > HdRemix Rendere
 
 ## Preferences
 
-Settings are exposed as a dedicated **Edit > Preferences > HdRemix Renderer** page registered as a sibling of Kit's built-in "Viewport" page. The extension also stubs Kit's "Viewport" page content with a one-line redirect notice (its built-in settings — Auto Frame on stage open, viewport-toolbar visibility, Area Select Occluded Objects — are no-ops against the customized Remix viewport). The Viewport page is kept registered (only its `build` is wrapped) so the viewport menubar's "Preferences" navigation, which looks the page up by title, keeps working. The DLSS 3D-Guided Neural Generation settings are also available in the viewport **Render Settings** pane.
+Settings are exposed as a dedicated **Edit > Preferences > HdRemix Renderer** page registered as a sibling of Kit's built-in "Viewport" page. The extension also stubs Kit's "Viewport" page content with a one-line redirect notice (its built-in settings — Auto Frame on stage open, viewport-toolbar visibility, Area Select Occluded Objects — are no-ops against the customized Remix viewport). The Viewport page is kept registered (only its `build` is wrapped) so the viewport menubar's "Preferences" navigation, which looks the page up by title, keeps working. The DLSS 3D-Guided Neural Rendering settings are also available in the viewport **Render Settings** pane.
 
-### DLSS 3D-Guided Neural Generation
+### DLSS 3D-Guided Neural Rendering
 
-Controls the global DLSS 3D-Guided Neural Generation settings. The group remains hidden until the running dxvk-remix runtime reports support. A missing feature DLL, unsupported platform, or initialization failure keeps it hidden.
+Controls the global DLSS 3D-Guided Neural Rendering settings. The group remains hidden until the running dxvk-remix runtime reports support. A missing feature DLL, unsupported platform, or initialization failure keeps it hidden.
 
 
 | Control | Runtime config variable | Default |
 |---|---|---|
-| DLSS 3D-Guided Neural Generation | `rtx.dlssNeuralRendering.enable` | `false` |
+| DLSS 3D-Guided Neural Rendering | `rtx.dlssNeuralRendering.enable` | `false` |
 | Model | `rtx.dlssNeuralRendering.model` | `Model A` |
 | Structure Intensity | `rtx.dlssNeuralRendering.structuralStrength` | `0.7` |
 | Tone Intensity | `rtx.dlssNeuralRendering.toneStrength` | `0.3` |
@@ -74,7 +74,7 @@ Settings survive restarts, but a loaded capture's resolved DLSS NR values take p
 
 | Setting path | Type | Default | Description |
 |---|---|---|---|
-| `/persistent/exts/lightspeed.hdremix.renderer_settings/enableDlssNeuralRendering` | bool | `false` | Enables DLSS 3D-Guided Neural Generation globally |
+| `/persistent/exts/lightspeed.hdremix.renderer_settings/enableDlssNeuralRendering` | bool | `false` | Enables DLSS 3D-Guided Neural Rendering globally |
 | `/persistent/exts/lightspeed.hdremix.renderer_settings/dlssNeuralRenderingModel` | int | `0` | Model: 0: Model A, 1: Model B, 2: Model C |
 | `/persistent/exts/lightspeed.hdremix.renderer_settings/dlssNeuralRenderingIntensity` | float | `1.0` | Internal global effect intensity synchronized with capture configuration |
 | `/persistent/exts/lightspeed.hdremix.renderer_settings/dlssNeuralRenderingToneIntensity` | float | `0.3` | Global tone intensity |

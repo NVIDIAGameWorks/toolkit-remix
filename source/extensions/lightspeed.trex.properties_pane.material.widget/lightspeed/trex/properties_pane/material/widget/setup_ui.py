@@ -66,6 +66,7 @@ from .texture_assignment_model import Delegate, Model
 
 
 _DLSS_NEURAL_RENDERING_GROUP_NAMES = {
+    "DLSS 3D-Guided Neural Rendering",
     "DLSS 3D-Guided Neural Generation",
     "DLSS 3D-Guided Neural Generation [Experimental]",
     "DLSS Neural Rendering",

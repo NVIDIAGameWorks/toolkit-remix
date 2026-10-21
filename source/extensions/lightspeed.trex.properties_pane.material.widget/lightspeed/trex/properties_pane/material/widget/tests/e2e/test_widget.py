@@ -57,6 +57,7 @@ RELATIVE_SOURCE_TEXTURE_PATH = "project_example/sources/textures/"
 RELATIVE_CAPTURE_TEXTURE_PATH = "project_example/deps/captures/materials/textures/"
 METAL_WALL_ASSET_PARTIAL_BASENAME = "T_MetalPanelWall_HeavyRust_"
 DLSS_MATERIAL_GROUP_PREFIXES = (
+    "DLSS 3D-Guided Neural Rendering",
     "DLSS 3D-Guided Neural Generation",
     "DLSS Neural Rendering",
 )

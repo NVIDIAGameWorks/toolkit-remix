@@ -73,7 +73,7 @@ class DlssSetting:
 
 _SETTING_PREFIX = "/persistent/exts/lightspeed.hdremix.renderer_settings"
 _RUNTIME_PREFIX = "rtx.dlssNeuralRendering"
-DLSS_SETTINGS_TITLE = "DLSS 3D-Guided Neural Generation"
+DLSS_SETTINGS_TITLE = "DLSS 3D-Guided Neural Rendering"
 DLSS_UNIT_FLOAT_RANGE = (0.0, 1.0)
 DLSS_FLOAT4_RANGE = (0.0, 32.0)
 SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE = "/exts/lightspeed.hdremix.renderer_settings/dlssNeuralRenderingAvailable"
@@ -82,8 +82,8 @@ _DLSS_SETTING_DATA = (
         "enableDlssNeuralRendering",
         "enable",
         False,
-        "DLSS 3D-Guided Neural Generation",
-        "Enables DLSS 3D-Guided Neural Generation.",
+        "DLSS 3D-Guided Neural Rendering",
+        "Enables DLSS 3D-Guided Neural Rendering.",
         DlssSettingKind.BOOL,
     ),
     (
