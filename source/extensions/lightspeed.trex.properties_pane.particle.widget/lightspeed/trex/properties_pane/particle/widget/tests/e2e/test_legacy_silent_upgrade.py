@@ -31,6 +31,8 @@ from omni.kit import ui_test
 from omni.flux.property_widget_builder.model.usd.logical_group_constants import SCALAR_CURVE_LOGICAL_SUFFIXES
 from pxr import Gf, Sdf
 
+_MIN_COLOR_ATTRIBUTE = "primvars:particle:minColor"
+
 
 class TestLegacySilentUpgrade(omni.kit.test.AsyncTestCase):
     async def setUp(self):
@@ -41,6 +43,7 @@ class TestLegacySilentUpgrade(omni.kit.test.AsyncTestCase):
         self._context.get_selection().set_selected_prim_paths([str(self._prim.GetPath())], False)
 
     async def tearDown(self):
+        """Close the fixture stage after selection changes close native editors."""
         if self._context:
             await self._context.close_stage_async()
         self._context = None
@@ -222,34 +225,21 @@ class TestLegacySilentUpgrade(omni.kit.test.AsyncTestCase):
             expected_values,
         )
 
-    async def _click_particle_size_button(self, widget):
-        action_window = ui.Window("Legacy Silent Upgrade Action Button", height=100, width=360)
-        action_widgets = []
-        try:
-            size_item = next(
-                item
-                for item in widget.property_model.get_all_items(include_hidden=True)
-                if "".join(model.get_value_as_string() for model in item.name_models) == "Particle Size"
-            )
-            widget._property_delegate.resolve_claims(widget.property_model)
-            size_builder = widget._property_delegate.get_widget_builder(size_item)
-            with action_window.frame:
-                with ui.VStack(height=0):
-                    ui.Spacer(height=ui.Pixel(12))
-                    with ui.HStack(height=ui.Pixel(32)):
-                        ui.Spacer(width=ui.Pixel(12))
-                        action_widgets.extend(size_builder(size_item))
-                        ui.Spacer(width=ui.Pixel(12))
-                    ui.Spacer(height=ui.Pixel(12))
-            await ui_test.human_delay(human_delay_speed=3)
-            size_button = ui_test.find(f"{action_window.title}//Frame/**/Button[*].text=='Particle Size'")
-            self.assertIsNotNone(size_button, "Expected Particle Size button to be visible.")
-            await size_button.click()
-            await ui_test.human_delay(human_delay_speed=5)
-        finally:
-            action_window.destroy()
+    async def _click_particle_size_button(self, window: ui.Window) -> None:
+        """Open the size editor from the real pane, expanding its group when needed."""
+        size_button_path = f"{window.title}//Frame/**/Button[*].text=='Particle Size'"
+        if ui_test.find(size_button_path) is None:
+            spawn_group = ui_test.find(f"{window.title}//Frame/**/Label[*].text=='Spawn'")
+            self.assertIsNotNone(spawn_group, "Expected the particle Spawn group to be visible.")
+            await spawn_group.click()
+            await ui_test.human_delay()
+        size_button = ui_test.find(size_button_path)
+        self.assertIsNotNone(size_button, "Expected Particle Size button to be visible.")
+        await size_button.click()
+        await ui_test.human_delay(human_delay_speed=5)
 
     async def test_particle_size_button_silently_upgrades_all_size_channels(self):
+        """Seed all legacy size channels through the rendered particle editor control."""
         self._author_size_legacy_values(self._prim)
         for animated_attr_name in (
             "primvars:particle:minSize:x",
@@ -269,7 +259,7 @@ class TestLegacySilentUpgrade(omni.kit.test.AsyncTestCase):
             self.assertNotIn("Minimum Spawn Size", visible_item_names)
             self.assertNotIn("Maximum Target Size", visible_item_names)
 
-            await self._click_particle_size_button(widget)
+            await self._click_particle_size_button(window)
 
             self._assert_curve_seeded(
                 self._prim,
@@ -282,10 +272,17 @@ class TestLegacySilentUpgrade(omni.kit.test.AsyncTestCase):
             )
             self.assertIsNone(ui_test.find("Upgrade Legacy Particle Attributes//Frame/**/Button[*]"))
         finally:
-            widget.destroy()
-            window.destroy()
+            try:
+                self._context.get_selection().set_selected_prim_paths([], False)
+                await self._context.selection_changed_async()
+                await ui_test.human_delay(1)
+            finally:
+                widget.destroy()
+                window.destroy()
+                await ui_test.human_delay()
 
     async def test_particle_size_button_silently_upgrades_multi_select_size_channels(self):
+        """Seed each selected particle through the rendered size editor control."""
         other_prim = self._create_particle_prim("/OtherParticle")
         self._author_size_legacy_values(self._prim)
         self._author_size_legacy_values(
@@ -316,7 +313,7 @@ class TestLegacySilentUpgrade(omni.kit.test.AsyncTestCase):
         window, widget = await self._setup_particle_widget([self._prim, other_prim])
 
         try:
-            await self._click_particle_size_button(widget)
+            await self._click_particle_size_button(window)
 
             self._assert_curve_seeded(
                 self._prim,
@@ -337,21 +334,14 @@ class TestLegacySilentUpgrade(omni.kit.test.AsyncTestCase):
                 },
             )
         finally:
-            widget.destroy()
-            window.destroy()
-
-    async def test_legacy_gradient_seed_authors_single_selected_particle_color(self):
-        self._author_min_color_legacy_values(self._prim)
-        self._assert_gradient_schema_ready(self._prim, "primvars:particle:minColor")
-
-        result = seed_current_animated_attrs_from_legacy("primvars:particle:minColor", "", [str(self._prim.GetPath())])
-
-        self.assertTrue(result)
-        self._assert_gradient_seeded(
-            self._prim,
-            "primvars:particle:minColor",
-            [[1.0, 0.5, 0.25, 1.0], [0.0, 0.25, 0.5, 0.75]],
-        )
+            try:
+                self._context.get_selection().set_selected_prim_paths([], False)
+                await self._context.selection_changed_async()
+                await ui_test.human_delay(1)
+            finally:
+                widget.destroy()
+                window.destroy()
+                await ui_test.human_delay()
 
     async def test_legacy_gradient_seed_authors_multi_selected_particle_colors(self):
         other_prim = self._create_particle_prim("/OtherParticle")
@@ -361,21 +351,21 @@ class TestLegacySilentUpgrade(omni.kit.test.AsyncTestCase):
             spawn=Gf.Vec4f(0.1, 0.2, 0.3, 1.0),
             target=Gf.Vec4f(0.7, 0.8, 0.9, 0.5),
         )
-        self._assert_gradient_schema_ready(self._prim, "primvars:particle:minColor")
-        self._assert_gradient_schema_ready(other_prim, "primvars:particle:minColor")
+        self._assert_gradient_schema_ready(self._prim, _MIN_COLOR_ATTRIBUTE)
+        self._assert_gradient_schema_ready(other_prim, _MIN_COLOR_ATTRIBUTE)
 
         result = seed_current_animated_attrs_from_legacy(
-            "primvars:particle:minColor", "", [str(self._prim.GetPath()), str(other_prim.GetPath())]
+            _MIN_COLOR_ATTRIBUTE, "", [str(self._prim.GetPath()), str(other_prim.GetPath())]
         )
 
         self.assertTrue(result)
         self._assert_gradient_seeded(
             self._prim,
-            "primvars:particle:minColor",
+            _MIN_COLOR_ATTRIBUTE,
             [[1.0, 0.5, 0.25, 1.0], [0.0, 0.25, 0.5, 0.75]],
         )
         self._assert_gradient_seeded(
             other_prim,
-            "primvars:particle:minColor",
+            _MIN_COLOR_ATTRIBUTE,
             [[0.1, 0.2, 0.3, 1.0], [0.7, 0.8, 0.9, 0.5]],
         )

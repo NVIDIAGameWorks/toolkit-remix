@@ -22,13 +22,14 @@ A ghost line should show the user's actual drag position vs the clamped position
 """
 
 import os
+from copy import deepcopy
 
 import omni.kit.app
 import omni.kit.test
 import omni.kit.ui_test as ui_test
 from omni import ui
 
-from omni.flux.fcurve.widget import FCurveWidget, FCurve, FCurveKey
+from ... import CurveBounds, FCurve, FCurveKey, FCurveWidget, KeyReference, TangentType
 
 __all__ = ["TestKeyframeClamping"]
 
@@ -101,13 +102,15 @@ class TestKeyframeClamping(omni.kit.test.AsyncTestCase):
                     ui.Spacer(width=PADDING)
                 ui.Spacer(height=PADDING)
 
-        await omni.kit.app.get_app().next_update_async()
+        await ui_test.human_delay()
 
     async def tearDown(self):
         """Clean up."""
+        self.widget.destroy()
+        self.window.destroy()
         self.widget = None
         self.window = None
-        await omni.kit.app.get_app().next_update_async()
+        await ui_test.human_delay()
 
     def _on_continue_clicked(self):
         self._continue_clicked = True
@@ -180,6 +183,148 @@ class TestKeyframeClamping(omni.kit.test.AsyncTestCase):
         await ui_test.human_delay(3)
         await ui_test.emulate_mouse_drag_and_drop(start, end)
         await omni.kit.app.get_app().next_update_async()
+
+    async def test_add_key_outside_bounds_emits_processed_coordinates(self):
+        """A key-added event reports the inserted key's clamped coordinates."""
+        self.widget.set_curves(
+            {"test": FCurve(id="test", keys=[FCurveKey(time=0.0, value=0.0), FCurveKey(time=1.0, value=1.0)])}
+        )
+        self.widget.set_curve_bounds("test", CurveBounds(time_min=0.0, time_max=2.0, value_min=0.0, value_max=1.0))
+        await ui_test.human_delay()
+        events = []
+        self._add_key_subscription = self.widget.subscribe_key_added(events.append)
+        try:
+            # API consumers must receive the processed coordinates when inserting beyond the curve bounds.
+            new_key = self.widget.add_key("test", 3.0, 2.0)
+            await ui_test.human_delay()
+            self.assertEqual(len(events), 1)
+            self.assertEqual((events[0].time, events[0].value), (new_key.time, new_key.value))
+            self.assertEqual((new_key.time, new_key.value), (2.0, 1.0))
+        finally:
+            self._add_key_subscription = None
+
+    async def test_add_key_with_linked_tangents_notifies_processed_state_without_rebuild_drift(self):
+        """Insertion notifications and repeated display rebuilds preserve the processed tangents."""
+        for tangent_type in (TangentType.AUTO, TangentType.CUSTOM, TangentType.SMOOTH):
+            with self.subTest(title=tangent_type.name):
+                curve = FCurve(
+                    id="test",
+                    keys=[
+                        FCurveKey(time=0.0, value=0.0),
+                        FCurveKey(
+                            time=0.5,
+                            value=0.8,
+                            in_tangent_x=-0.2,
+                            in_tangent_y=-0.1,
+                            out_tangent_x=0.2,
+                            out_tangent_y=0.1,
+                            in_tangent_type=tangent_type,
+                            out_tangent_type=tangent_type,
+                            tangent_broken=False,
+                        ),
+                        FCurveKey(time=1.0, value=0.0),
+                    ],
+                )
+                self.widget.set_curves({"test": curve})
+                await ui_test.human_delay()
+                snapshots = []
+                self._add_key_subscriptions = (
+                    self.widget.subscribe_key_added(
+                        lambda event, snapshots=snapshots: snapshots.append(
+                            ("key_added", deepcopy(self.widget.curves[event.curve_id]))
+                        )
+                    ),
+                    self.widget.subscribe_curve_changed(
+                        lambda curve_id, snapshots=snapshots: snapshots.append(
+                            ("curve_changed", deepcopy(self.widget.curves[curve_id]))
+                        )
+                    ),
+                )
+                try:
+                    # Subscribers must see the same processed tangents that the widget displays after insertion.
+                    new_key = self.widget.add_key("test", 0.4, 0.4)
+                    await ui_test.human_delay()
+                    expected = deepcopy(self.widget.curves["test"])
+                    self.assertEqual(snapshots, [("key_added", expected), ("curve_changed", expected)])
+                    self.assertEqual(new_key.in_tangent_type, TangentType.LINEAR)
+                    self.assertEqual(new_key.out_tangent_type, TangentType.LINEAR)
+                    self.assertTrue(new_key.tangent_broken)
+
+                    # A two-rebuild round trip must return the same processed tangent state.
+                    for _ in range(2):
+                        self.widget.update_curve(curve)
+                        await ui_test.human_delay()
+                    self.assertEqual(self.widget.curves["test"], expected)
+                finally:
+                    self._add_key_subscriptions = None
+
+    async def test_selected_key_edits_with_hidden_or_locked_curves_preserve_ineligible_data(self):
+        """Selected-key operations change only the visible, unlocked curve."""
+        for condition in ("hidden", "locked"):
+            operations = ("tangent_type", "link", "break", "delete") if condition == "hidden" else ("delete",)
+            for operation in operations:
+                with self.subTest(title=f"{operation}: {condition}"):
+                    self.widget.set_curves(
+                        {
+                            curve_id: FCurve(
+                                id=curve_id,
+                                keys=[
+                                    FCurveKey(time=time, value=value, tangent_broken=operation != "break")
+                                    for time in (0.0, 0.5, 1.0)
+                                ],
+                            )
+                            for curve_id, value in (("editable", 0.3), ("protected", 0.7))
+                        }
+                    )
+                    self.widget.select_keys([KeyReference("editable", 1), KeyReference("protected", 1)])
+                    if condition == "hidden":
+                        self.widget.set_curve_visible("protected", False)
+                    else:
+                        self.widget.curves["protected"].locked = True
+                    await ui_test.human_delay()
+                    protected_before = deepcopy(self.widget.curves["protected"])
+                    deleted_events = []
+                    changed_curves = []
+                    self._key_edit_test_subscriptions = (
+                        self.widget.subscribe_key_deleted(deleted_events.append),
+                        self.widget.subscribe_curve_changed(changed_curves.append),
+                    )
+                    try:
+                        # A public API consumer may retain selected keys after hiding or locking their curve.
+                        if operation == "tangent_type":
+                            count = self.widget.set_selected_keys_tangent_type(TangentType.FLAT)
+                        elif operation == "delete":
+                            count = self.widget.delete_selected_keys()
+                        else:
+                            count = self.widget.set_selected_keys_tangent_broken(operation == "break")
+                        await ui_test.human_delay()
+                        self.assertEqual(count, 1)
+                        self.assertEqual(self.widget.curves["protected"], protected_before)
+                        self.assertEqual(changed_curves, ["editable"])
+
+                        if operation == "delete":
+                            self.assertEqual([key.time for key in self.widget.curves["editable"].keys], [0.0, 1.0])
+                            self.assertEqual(
+                                [(event.curve_id, event.key_index) for event in deleted_events], [("editable", 1)]
+                            )
+                            self.assertEqual(self.widget.selected_keys, [])
+
+                            # Repeating Delete with no selection must not mutate data or send more data events.
+                            after = deepcopy(self.widget.curves)
+                            self.assertEqual(self.widget.delete_selected_keys(), 0)
+                            await ui_test.human_delay()
+                            self.assertEqual(self.widget.curves, after)
+                            self.assertEqual(len(deleted_events), 1)
+                            self.assertEqual(changed_curves, ["editable"])
+                        else:
+                            key = self.widget.curves["editable"].keys[1]
+                            if operation == "tangent_type":
+                                self.assertEqual((key.in_tangent_type, key.out_tangent_type), (TangentType.FLAT,) * 2)
+                            else:
+                                self.assertEqual(key.tangent_broken, operation == "break")
+                            self.assertEqual(deleted_events, [])
+                    finally:
+                        self._key_edit_test_subscriptions = None
 
     # =========================================================================
     # Test: Keyframe cannot cross previous neighbor

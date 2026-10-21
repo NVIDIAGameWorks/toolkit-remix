@@ -1,7 +1,7 @@
 [package]
 kit_sdk_version = "110.*"
 # Semantic Versionning is used: https://semver.org/
-version = "2.0.1"
+version = "3.1.2"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -31,6 +31,7 @@ preview_image = "data/images/preview.png"
 icon = "data/images/icon.png"
 
 [dependencies]
+"omni.appwindow" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
 "omni.client" = {}
@@ -43,7 +44,9 @@ name = "omni.flux.property_widget_builder.delegates"
 [[test]]
 dependencies = [
     "omni.flux.tests.dependencies",
-    "omni.flux.property_widget_builder.model.usd",
+    "omni.flux.property_widget_builder.widget",
+    # Lock the capture API used for direct provider-texture readback.
+    "omni.kit.renderer.capture-2.0.1",
 ]
 
 

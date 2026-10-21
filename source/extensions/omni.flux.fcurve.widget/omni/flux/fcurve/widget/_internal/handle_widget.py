@@ -20,6 +20,7 @@ Constructor = build: call inside a parent ``with`` context (ZStack inside Canvas
 Visual appearance is inherited from the parent's name-based style via the
 ``handle_name`` parameter (e.g. ``"FCurveKey"`` or ``"FCurveTangent"``).
 Per-curve ``color`` is applied as an inline override on the drag rectangle.
+Selected handles brighten that color and use a native selected-state border.
 
 Each instance wraps its widgets in its own ZStack so destroy() can clear() it.
 """
@@ -36,7 +37,12 @@ _DEFAULT_SIZE = 8
 _DEFAULT_PLACER_SIZE = 20
 _GHOST_THRESHOLD_SQ = 4.0
 
-_FALLBACK_SELECTED_COLOR = 0xFFFFAA00
+_COLOR_ALPHA_MASK = 0xFF000000
+_COLOR_CHANNEL_MASK = 0xFF
+_RGB_CHANNEL_SHIFTS = (0, 8, 16)
+_SELECTED_COLOR_GAMMA = 6.0
+_SELECTION_BORDER_BRIGHTNESS_WEIGHTS = (299, 587, 114)
+_SELECTION_BORDER_BRIGHTNESS_THRESHOLD = 128000
 _FALLBACK_HOVERED_COLOR = 0xFFCCCCCC
 
 
@@ -201,14 +207,19 @@ class HandleWidget:
     def _resolve_color(self) -> int:
         """Resolve the current background color based on selection/hover state.
 
-        Reads ``FCurveKeySelected`` / ``FCurveKeyHovered`` from the inherited
-        style if the drag rect is available; falls back to the per-curve color.
+        Selected handles brighten the original curve RGB while preserving alpha.
+        Unselected handles retain inherited hover styling and the per-curve color.
         """
-        if self._selected and self._drag_rect:
-            resolved = self._drag_rect.style.get(f"Rectangle::{self._handle_name}Selected", {})
-            if "background_color" in resolved:
-                return int(resolved["background_color"])
-            return _FALLBACK_SELECTED_COLOR
+        if self._selected:
+            return (self._color & _COLOR_ALPHA_MASK) | sum(
+                round(
+                    _COLOR_CHANNEL_MASK
+                    * (((self._color >> shift) & _COLOR_CHANNEL_MASK) / _COLOR_CHANNEL_MASK)
+                    ** (1 / _SELECTED_COLOR_GAMMA)
+                )
+                << shift
+                for shift in _RGB_CHANNEL_SHIFTS
+            )
         if self._hovered and self._drag_rect:
             resolved = self._drag_rect.style.get(f"Rectangle::{self._handle_name}Hovered", {})
             if "background_color" in resolved:
@@ -217,8 +228,25 @@ class HandleWidget:
         return self._color
 
     def _apply_style(self) -> None:
+        """Apply curve-relative fill and a contrasting native selected-state border."""
         if self._drag_rect:
-            self._drag_rect.set_style({"background_color": self._resolve_color()})
+            color = self._resolve_color()
+            red, green, blue = ((color >> shift) & _COLOR_CHANNEL_MASK for shift in _RGB_CHANNEL_SHIFTS)
+            brightness = sum(
+                channel * weight
+                for channel, weight in zip((red, green, blue), _SELECTION_BORDER_BRIGHTNESS_WEIGHTS, strict=True)
+            )
+            border_rgb = 0x000000 if brightness >= _SELECTION_BORDER_BRIGHTNESS_THRESHOLD else 0xFFFFFF
+            self._drag_rect.set_style(
+                {
+                    "background_color": color,
+                    f"Rectangle::{self._handle_name}:selected": {
+                        "border_width": 1.0,
+                        "border_color": (self._color & _COLOR_ALPHA_MASK) | border_rgb,
+                    },
+                }
+            )
+            self._drag_rect.selected = self._selected
 
     # ── Ghost line (internal) ────────────────────────────────────────────────
 
@@ -249,10 +277,18 @@ class HandleWidget:
             self._on_moved_cb(self)
 
     def _handle_press(self, _x: float, _y: float, btn: int, mod: int) -> None:
-        if btn == 0 and self._on_pressed_cb:
+        """Claim a left press and select an unselected handle before movement."""
+        if btn != 0:
+            return
+        if self._on_pressed_cb:
             self._on_pressed_cb(self, mod)
+        if not self.selected:
+            self.selected = True
+            if self._on_selection_changed_cb:
+                self._on_selection_changed_cb(self, mod)
 
     def _handle_release(self, _x: float, _y: float, btn: int, mod: int) -> None:
+        """Finish handle movement without changing the press-time selection."""
         if btn != 0:
             return
         was_dragging = self.is_dragging
@@ -264,13 +300,8 @@ class HandleWidget:
             self.raw_px = (x, y)
             self._drag_placer.offset_x, self._drag_placer.offset_y = x, y
             self._suppress = False
-        if was_dragging:
-            if self._on_moved_cb:
-                self._on_moved_cb(self)
-        else:
-            self.selected = not self.selected
-            if self._on_selection_changed_cb:
-                self._on_selection_changed_cb(self, mod)
+        if was_dragging and self._on_moved_cb:
+            self._on_moved_cb(self)
         if self._on_released_cb:
             self._on_released_cb(self, mod)
 

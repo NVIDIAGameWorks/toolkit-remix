@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.6]
+### Changed
+
+- Updated legacy particle-upgrade coverage for the shared Curve editor workflow.
+- Moved Curve Editor colors to application-owned semantic styles and corrected published documentation links.
+- Updated particle Size deselection coverage to use blank-canvas input before verifying that Delete preserves every channel.
+- Declared the particle palette workflow test module's public exports.
+
 ## [1.7.3]
 ### Fixed
 - Copy and paste complete particle size, rotation, velocity, and color rows with their declared legacy companions without converting between legacy and animated values or changing source and unrelated properties.

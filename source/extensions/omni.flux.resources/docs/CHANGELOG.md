@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0]
+
+### Added
+
+- Added Frame Time and Frame Value icons for the Curve Editor toolbar.
+
 ## [2.1.4]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

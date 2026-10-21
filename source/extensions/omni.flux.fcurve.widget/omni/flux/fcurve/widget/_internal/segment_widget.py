@@ -27,8 +27,11 @@ inline override; when ``None`` the color comes entirely from the style.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import IntEnum
 
+import carb.input
+import omni.appwindow
 from omni import ui
 
 from .handle_widget import HandleWidget
@@ -50,12 +53,14 @@ class SegmentWidget:
         end: HandleWidget,
         color: int | None = None,
         segment_name: str = "FCurveSegment",
+        on_pressed: Callable[[float, float, float], None] | None = None,
     ):
         self._start = start
         self._end = end
         self._color = color
         self._segment_name = segment_name
         self._mode = mode
+        self._on_pressed = on_pressed
 
         self._container: ui.ZStack | None = None
         self._bezier: ui.FreeBezierCurve | None = None
@@ -111,6 +116,7 @@ class SegmentWidget:
 
     def destroy(self) -> None:
         self._clear_mode()
+        self._on_pressed = None
         self._container = None
         self._start = self._end = None
 
@@ -140,6 +146,7 @@ class SegmentWidget:
                     s_rect,
                     e_rect,
                     name=name,
+                    identifier=name,
                     style=inline_style,
                 )
 
@@ -154,6 +161,7 @@ class SegmentWidget:
                     s_rect,
                     self._elbow_rect,
                     name=name,
+                    identifier=name,
                     alignment=ui.Alignment.UNDEFINED,
                     style=inline_style,
                 )
@@ -164,6 +172,22 @@ class SegmentWidget:
                     alignment=ui.Alignment.UNDEFINED,
                     style=inline_style,
                 )
+
+        interactive_segment = self._bezier or self._step_h
+        if self._on_pressed and interactive_segment:
+            # Native curve callbacks miss some on-curve presses; the manager validates container hits.
+            self._container.set_mouse_pressed_fn(self._handle_press)
+
+    def _handle_press(self, _x: float, _y: float, button: int, _modifier: int) -> None:
+        """Report a left press at the native segment's nearest parameter."""
+        if button == 0 and self._on_pressed:
+            segment = self._bezier or self._step_h
+            # The native parameter lookup uses device pixels; the drag poll uses logical pixels.
+            mouse = omni.appwindow.get_default_app_window().get_mouse()
+            mouse_x, mouse_y = carb.input.acquire_input_interface().get_mouse_coords_pixel(mouse)
+            dpi_scale = ui.Workspace.get_dpi_scale()
+            parameter = segment.get_closest_parametric_position(mouse_x, mouse_y)
+            self._on_pressed(parameter, mouse_x / dpi_scale, mouse_y / dpi_scale)
 
     def _clear_mode(self) -> None:
         if self._container:

@@ -10,13 +10,15 @@ TreeView model/delegate pattern as the Stage Manager.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from asyncio import ensure_future
+from collections.abc import Callable, Iterable
 
 from omni import ui
 from omni.flux.curve_editor.widget.payload import payload_to_curve
 from omni.flux.utils.widget.scrolling_tree_view import ScrollingTreeWidget
 from omni.flux.utils.widget.tree_widget import TreeDelegateBase, TreeItemBase, TreeModelBase
 from omni.flux.utils.widget import GroupedKeysModel
+from omni.kit.app import get_app
 
 from ..layout import CurveEditorLayout
 
@@ -24,7 +26,6 @@ _ROW_HEIGHT = 24
 _INDENT_PX = 12
 _ICON_SIZE = 20
 _DEFAULT_COLOR = 0xFFAAAAAA
-_CHECKBOX_STYLE = {"background_color": 0xFF323232, "color": 0x4DFFFFFF, "border_radius": 2}
 
 
 def _half_alpha(color: int) -> int:
@@ -43,20 +44,24 @@ class _CurveTreeItem(TreeItemBase):
 
     def __init__(
         self,
+        item_id: str,
         display_name: str,
         curve_id: str | None = None,
         color: int = _DEFAULT_COLOR,
         tooltip: str = "",
         has_data: bool = False,
         parent: TreeItemBase | None = None,
-    ):
+        label_style_name: str = "",
+    ) -> None:
+        """Create a group or channel row with its display metadata."""
         super().__init__(parent=parent)
+        self.item_id = item_id
         self.display_name = display_name
         self.curve_id = curve_id
         self.color = color
         self.tooltip = tooltip
-        self.visible = True
         self.has_data = has_data
+        self.label_style_name = label_style_name
 
     @property
     def is_curve(self) -> bool:
@@ -64,7 +69,13 @@ class _CurveTreeItem(TreeItemBase):
 
     @property
     def default_attr(self) -> dict[str, None]:
+        """Return attributes handled by inherited legacy cleanup."""
         return {**super().default_attr, "display_name": None, "curve_id": None, "color": None}
+
+    def destroy(self) -> None:
+        """Release the item identity and inherited tree state."""
+        self.item_id = None
+        super().destroy()
 
     @property
     def can_have_children(self) -> bool:
@@ -116,11 +127,13 @@ class CurveTreeModel(TreeModelBase[_CurveTreeItem]):
         inherited_color: int,
         parent: _CurveTreeItem | None,
     ) -> None:
+        """Build hierarchy items with inherited colors and explicit leaf styles."""
         color = node.get("display_color", inherited_color)
 
         for child_id, child in node.get("children", {}).items():
             child_color = child.get("display_color", color)
             group = _CurveTreeItem(
+                item_id=child_id,
                 display_name=child.get("display_name", child_id),
                 color=child_color,
                 tooltip=child.get("tooltip", ""),
@@ -133,11 +146,13 @@ class CurveTreeModel(TreeModelBase[_CurveTreeItem]):
         for curve in node.get("curves", []):
             cid = curve["id"]
             leaf = _CurveTreeItem(
+                item_id=cid,
                 display_name=curve.get("display_name", cid),
                 curve_id=cid,
                 color=curve.get("display_color", color),
                 has_data=self._has_curve_data(cid),
                 parent=parent,
+                label_style_name=curve.get("label_style_name", ""),
             )
             if parent is None:
                 self._root_items.append(leaf)
@@ -148,6 +163,11 @@ class CurveTreeModel(TreeModelBase[_CurveTreeItem]):
             if item.is_curve:
                 item.has_data = self._has_curve_data(item.curve_id)
         self._item_changed(None)
+
+    @property
+    def curve_items(self) -> list[_CurveTreeItem]:
+        """Return every curve leaf from the explicit model roots."""
+        return [item for item in self._iter_all(self._root_items) if item.is_curve]
 
     def _iter_all(self, items):
         for item in items:
@@ -167,27 +187,38 @@ class CurveTreeModel(TreeModelBase[_CurveTreeItem]):
 
 
 class CurveTreeDelegate(TreeDelegateBase):
-    """Renders each row: visibility checkbox + colored label + add/delete icon."""
+    """Render each tree row with its colored label and create/delete control."""
 
     def __init__(
         self,
-        on_visibility_changed: Callable[[str, bool], None] | None = None,
         on_create_curve: Callable[[str], None] | None = None,
         on_delete_curve: Callable[[str], None] | None = None,
     ):
         super().__init__()
-        self._on_visibility_changed = on_visibility_changed
         self._on_create_curve = on_create_curve
         self._on_delete_curve = on_delete_curve
+        self._channel_labels: dict[_CurveTreeItem, ui.Label] = {}
 
     @property
     def default_attr(self) -> dict[str, None]:
         return {
             **super().default_attr,
-            "_on_visibility_changed": None,
             "_on_create_curve": None,
             "_on_delete_curve": None,
         }
+
+    @TreeDelegateBase.selection.setter
+    def selection(self, value: Iterable[_CurveTreeItem]) -> None:
+        """Update channel label states with native tree selection."""
+        self._selection = list(value)
+        selected_items = set(self.selection)
+        for item, label in self._channel_labels.items():
+            label.selected = item in selected_items
+
+    def destroy(self) -> None:
+        """Release channel labels and delegate callbacks."""
+        self._channel_labels.clear()
+        super().destroy()
 
     def build_branch(self, model, item, column_id, level, expanded):
         if column_id == 0:
@@ -207,26 +238,22 @@ class CurveTreeDelegate(TreeDelegateBase):
         level: int,
         expanded: bool,
     ) -> None:
+        """Build a colored tree label with its current selection and authored state."""
         with ui.HStack(name="CurveEditorTreeRow", height=_ROW_HEIGHT, spacing=4):
-            if item.is_curve:
-                with ui.VStack(width=0):
-                    ui.Spacer()
-                    cb = ui.CheckBox(width=_ICON_SIZE, height=_ICON_SIZE, style=_CHECKBOX_STYLE)
-                    cb.model.set_value(item.visible)
-                    cb.model.add_value_changed_fn(
-                        lambda m, it=item, mdl=model: self._toggle_visibility(it, m.get_value_as_bool(), mdl)
-                    )
-                    ui.Spacer()
-
-            faint = item.is_curve and (not item.visible or not item.has_data)
+            faint = item.is_curve and not item.has_data
             label_color = _half_alpha(item.color) if faint else item.color
-            ui.Label(
+            label_name = (item.label_style_name or "CurveEditorChannel") if item.is_curve else "CurveEditorGroup"
+            label = ui.Label(
                 item.display_name,
+                name=label_name,
+                identifier=f"CurveTree{'Channel' if item.is_curve else 'Group'}::{item.item_id}",
                 tooltip=item.tooltip,
-                style={"font_size": 13, "color": label_color},
+                selected=item.is_curve and item in self.selection,
+                style={f"Label::{label_name}": {"font_size": 13, "color": label_color}},
             )
 
             if item.is_curve:
+                self._channel_labels[item] = label
                 ui.Spacer()
                 icon_name = "CurveEditorTreeDelete" if item.has_data else "CurveEditorTreeAdd"
                 tip = "Delete curve data" if item.has_data else "Create default curve"
@@ -236,6 +263,7 @@ class CurveTreeDelegate(TreeDelegateBase):
                     img = ui.Image(
                         "",
                         name=icon_name,
+                        identifier=f"{icon_name}::{item.curve_id}",
                         width=_ICON_SIZE,
                         height=_ICON_SIZE,
                         tooltip=tip,
@@ -244,19 +272,6 @@ class CurveTreeDelegate(TreeDelegateBase):
                         lambda x, y, b, m, cid=item.curve_id, cb=fn: cb(cid) if cb else None,
                     )
                     ui.Spacer()
-
-    def _toggle_visibility(self, item: _CurveTreeItem, visible: bool, model: CurveTreeModel) -> None:
-        """Update one curve item's visibility and notify external subscribers.
-
-        Args:
-            item: Tree item whose visibility changed.
-            visible: New visibility state.
-            model: Tree model that owns the item.
-        """
-        item.visible = visible
-        model._item_changed(item)  # noqa: SLF001
-        if self._on_visibility_changed and item.curve_id:
-            self._on_visibility_changed(item.curve_id, visible)
 
 
 # ---------------------------------------------------------------------------
@@ -270,7 +285,7 @@ class CurveTreePanel:
     Args:
         layout: CurveEditorLayout dict describing the hierarchy.
         curve_model: GroupedKeysModel to check authored state and create/delete curves.
-        on_visibility_changed: Called with (curve_id, visible) when user toggles.
+        on_curves_selected: Called with the selected curve ids when row selection changes.
         on_create_curve: Called with curve_id when user clicks the add icon.
         on_delete_curve: Called with curve_id when user clicks the delete icon.
     """
@@ -279,7 +294,7 @@ class CurveTreePanel:
         self,
         layout: CurveEditorLayout,
         curve_model: GroupedKeysModel | None = None,
-        on_visibility_changed: Callable[[str, bool], None] | None = None,
+        on_curves_selected: Callable[[set[str]], None] | None = None,
         on_create_curve: Callable[[str], None] | None = None,
         on_delete_curve: Callable[[str], None] | None = None,
     ) -> None:
@@ -288,12 +303,14 @@ class CurveTreePanel:
         Args:
             layout: Curve editor hierarchy and curve display metadata.
             curve_model: Grouped-key model used to show authored state.
-            on_visibility_changed: Optional callback when a curve visibility toggle changes.
+            on_curves_selected: Optional callback when selected curve rows change.
             on_create_curve: Optional callback when the add icon is clicked.
             on_delete_curve: Optional callback when the delete icon is clicked.
         """
         self._model = CurveTreeModel(layout, curve_model)
-        self._delegate = CurveTreeDelegate(on_visibility_changed, on_create_curve, on_delete_curve)
+        self._delegate = CurveTreeDelegate(on_create_curve, on_delete_curve)
+        self._on_curves_selected = on_curves_selected
+        self._curve_items = self._model.curve_items
         self._tree = ScrollingTreeWidget(
             self._model,
             self._delegate,
@@ -301,7 +318,25 @@ class CurveTreePanel:
             row_height=_ROW_HEIGHT,
             header_visible=False,
             root_visible=False,
+            identifier="CurveTreeChannels",
         )
+        self._tree.set_expanded(None, True, True)
+        self._selection_sub = self._tree.subscribe_selection_changed(self._on_tree_selection_changed)
+        self._on_tree_selection_changed(self._curve_items)
+        self._initial_selection_task = ensure_future(self._initialize_selection())
+
+    async def _initialize_selection(self) -> None:
+        """Select the initial channels after the native tree initializes its item cache."""
+        await get_app().next_update_async()
+        self._tree.selection = self._curve_items
+
+    def _on_tree_selection_changed(self, items: list[_CurveTreeItem]) -> None:
+        """Normalize native group selection to curve leaves and publish their ids."""
+        selected_curves = [item for item in items if item.is_curve]
+        if len(selected_curves) != len(items):
+            self._tree.selection = selected_curves
+        if self._on_curves_selected:
+            self._on_curves_selected({item.curve_id for item in selected_curves if item.curve_id is not None})
 
     def refresh(self) -> None:
         """Re-check curve data state and redraw icons."""
@@ -309,8 +344,16 @@ class CurveTreePanel:
         self._tree.dirty_widgets()
 
     def destroy(self) -> None:
-        """Release tree widget and delegate references."""
-        self._tree = None
+        """Release the selection task, callbacks, and tree references."""
+        if self._initial_selection_task:
+            self._initial_selection_task.cancel()
+            self._initial_selection_task = None
+        self._selection_sub = None
+        self._on_curves_selected = None
+        self._curve_items.clear()
+        if self._tree:
+            self._tree.destroy()
+            self._tree = None
         if self._delegate:
             self._delegate.destroy()
             self._delegate = None

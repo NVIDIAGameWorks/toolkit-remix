@@ -26,7 +26,9 @@ from .e2e.test_infinity_curves import TestInfinityCurves
 from .e2e.test_keyframes import TestKeyframeClamping
 from .e2e.test_smooth_tangents import TestSmoothTangents
 from .e2e.test_step_tangents import TestStepTangents
+from .unit.test_curve_widgets_manager import TestCurveWidgetsManager
 from .unit.test_public_api import (
+    TestFCurveWidget,
     TestGetSelectionTangentType,
     TestSelectionInfo,
     TestSelectionProperty,
@@ -42,6 +44,7 @@ from .unit.test_tangent_linking import (
 from .e2e.test_tangent_mirroring import TestTangentMirroringDrag
 from .unit.test_tangent_math import (
     TestAutoTangentBoundary,
+    TestCurveEvaluation,
     TestFlatTangent,
     TestLinearTangent,
 )
@@ -52,8 +55,11 @@ __all__ = [
     "TestAutoTangents",
     "TestBoundaryKeyBehavior",
     "TestBrokenTangentIndependence",
+    "TestCurveEvaluation",
+    "TestCurveWidgetsManager",
     "TestCustomTangents",
     "TestEditor",
+    "TestFCurveWidget",
     "TestFlatTangent",
     "TestFlatTangents",
     "TestGetSelectionTangentType",

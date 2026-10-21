@@ -23,7 +23,7 @@ import omni.kit.app
 import omni.kit.undo
 import omni.kit.test
 import omni.usd
-from omni.flux.fcurve.widget import FCurve, FCurveKey, InfinityType, TangentType
+from omni.flux.fcurve.widget import FCurve, FCurveKey
 from omni.flux.curve_editor.widget.payload import curve_to_payload
 from omni.flux.property_widget_builder.model.usd import model as _model_module
 from omni.flux.property_widget_builder.model.usd.curve_primvar import PropertyPrimvarCurveModel
@@ -116,58 +116,6 @@ def _write_curve_to_prim(prim, curve_id: str, curve: FCurve) -> None:
         if not attr or not attr.IsValid():
             attr = prim.CreateAttribute(attr_name, _curve_attr_type(suffix))
         attr.Set(payload[suffix])
-
-
-def _snapshot_curve_payload(prim, curve_id: str) -> dict:
-    return {
-        suffix: prim.GetAttribute(_curve_attr_name(curve_id, suffix)).Get()
-        for suffix in CURVE_LOGICAL_GROUP_DEFINITION.suffixes
-    }
-
-
-def _detailed_curve(curve_id: str, middle_time: float | None = None, tangent_seed: float = 0.0) -> FCurve:
-    keys = [
-        FCurveKey(
-            time=0.0,
-            value=0.0 + tangent_seed,
-            in_tangent_type=TangentType.FLAT,
-            out_tangent_type=TangentType.CUSTOM,
-            out_tangent_x=0.12 + tangent_seed,
-            out_tangent_y=0.04 + tangent_seed,
-            tangent_broken=True,
-        )
-    ]
-    if middle_time is not None:
-        keys.append(
-            FCurveKey(
-                time=middle_time,
-                value=0.5 + tangent_seed,
-                in_tangent_type=TangentType.CUSTOM,
-                out_tangent_type=TangentType.CUSTOM,
-                in_tangent_x=-0.15 - tangent_seed,
-                in_tangent_y=-0.05 - tangent_seed,
-                out_tangent_x=0.15 + tangent_seed,
-                out_tangent_y=0.05 + tangent_seed,
-                tangent_broken=True,
-            )
-        )
-    keys.append(
-        FCurveKey(
-            time=1.0,
-            value=1.0 + tangent_seed,
-            in_tangent_type=TangentType.CUSTOM,
-            out_tangent_type=TangentType.LINEAR,
-            in_tangent_x=-0.12 - tangent_seed,
-            in_tangent_y=-0.04 - tangent_seed,
-            tangent_broken=True,
-        )
-    )
-    return FCurve(
-        id=curve_id,
-        keys=keys,
-        pre_infinity=InfinityType.LINEAR,
-        post_infinity=InfinityType.CONSTANT,
-    )
 
 
 class _TabFieldModel:
@@ -1974,27 +1922,20 @@ class TestCurvePrimvarModelInteractiveNotices(omni.kit.test.AsyncTestCase):
         finally:
             subscription.Revoke()
 
-    async def test_mixed_state_recheck_ignores_unrelated_usd_notice(self):
+    async def test_unrelated_usd_notice_does_not_notify_subscriber(self):
         # Arrange
         notice = _Notice(changed_paths=["/OtherPrim.primvars:test:x:values"])
 
-        # Act
-        with patch.object(self.model, "_is_group_mixed") as mixed_check:
+        notified_curve_ids = []
+        subscription = self.model.subscribe(notified_curve_ids.append)
+        try:
+            # Act
             self.model._on_usd_objects_changed(notice, self.stage)
 
-        # Assert
-        mixed_check.assert_not_called()
-
-    async def test_mixed_state_recheck_runs_for_managed_curve_notice(self):
-        # Arrange
-        notice = _Notice(changed_paths=[f"{self.prim_path}.primvars:{self.curve_id}:values"])
-
-        # Act
-        with patch.object(self.model, "_is_group_mixed", return_value=False) as mixed_check:
-            self.model._on_usd_objects_changed(notice, self.stage)
-
-        # Assert
-        mixed_check.assert_called_once()
+            # Assert
+            self.assertEqual(notified_curve_ids, [])
+        finally:
+            del subscription
 
     async def test_managed_curve_notice_notifies_with_public_curve_id(self):
         # Arrange
@@ -2004,107 +1945,9 @@ class TestCurvePrimvarModelInteractiveNotices(omni.kit.test.AsyncTestCase):
 
         try:
             # Act
-            with patch.object(self.model, "_is_group_mixed", return_value=False):
-                self.model._on_usd_objects_changed(notice, self.stage)
+            self.model._on_usd_objects_changed(notice, self.stage)
 
             # Assert
             self.assertEqual(notified_curve_ids, [self.curve_id])
         finally:
             del subscription
-
-
-class TestCurvePrimvarModelMixedFirstEdit(omni.kit.test.AsyncTestCase):
-    async def setUp(self):
-        self.context = omni.usd.get_context()
-        await self.context.new_stage_async()
-        self.stage = self.context.get_stage()
-        self.prim_path = "/CurveMixedPrimA"
-        self.other_prim_path = "/CurveMixedPrimB"
-        self.curve_id = "test:x"
-        self.model = None
-        omni.kit.undo.clear_stack()
-        omni.kit.undo.clear_history()
-
-        UsdGeom.Xform.Define(self.stage, self.prim_path)
-        UsdGeom.Xform.Define(self.stage, self.other_prim_path)
-        _write_curve_to_prim(self.stage.GetPrimAtPath(self.prim_path), self.curve_id, _detailed_curve(self.curve_id))
-        _write_curve_to_prim(
-            self.stage.GetPrimAtPath(self.other_prim_path),
-            self.curve_id,
-            _detailed_curve(self.curve_id, middle_time=0.25, tangent_seed=0.1),
-        )
-
-    async def tearDown(self):
-        if self.model:
-            self.model.destroy()
-        omni.kit.undo.clear_stack()
-        omni.kit.undo.clear_history()
-        if self.context:
-            await self.context.close_stage_async()
-        self.context = None
-        self.stage = None
-        self.model = None
-
-    def _build_model(self) -> None:
-        self.model = PropertyPrimvarCurveModel(
-            prim_paths=[self.prim_path, self.other_prim_path],
-            curve_ids=[self.curve_id],
-            usd_context_name="",
-            mixed_curve_ids={self.curve_id},
-        )
-
-    def _read_curve_payload(self, prim_path: str) -> dict:
-        return _snapshot_curve_payload(self.stage.GetPrimAtPath(prim_path), self.curve_id)
-
-    async def test_mixed_discrete_edit_flattens_and_edits_targets(self):
-        # Arrange
-        self._build_model()
-        first_before = self._read_curve_payload(self.prim_path)
-        second_before = self._read_curve_payload(self.other_prim_path)
-        final_curve = _detailed_curve(self.curve_id, middle_time=0.5, tangent_seed=0.2)
-
-        # Act
-        _commit_payload(self.model, final_curve)
-
-        # Assert
-        self.assertEqual(self._read_curve_payload(self.prim_path), self._read_curve_payload(self.other_prim_path))
-        self.assertNotEqual(self._read_curve_payload(self.prim_path), first_before)
-
-        self.assertNotEqual(first_before, second_before)
-
-    async def test_mixed_drag_flattens_on_start_and_commits_drag(self):
-        # Arrange
-        self._build_model()
-        first_before = self._read_curve_payload(self.prim_path)
-        second_before = self._read_curve_payload(self.other_prim_path)
-        source_before = self._read_curve_payload(self.other_prim_path)
-        final_curve = _detailed_curve(self.curve_id, middle_time=0.5, tangent_seed=0.2)
-
-        # Act
-        self.model.begin_edit(self.curve_id)
-
-        # Assert
-        self.assertEqual(self._read_curve_payload(self.prim_path), source_before)
-        self.assertEqual(self._read_curve_payload(self.other_prim_path), source_before)
-
-        # Act
-        _commit_payload(self.model, final_curve)
-        self.model.end_edit(self.curve_id)
-
-        # Assert
-        self.assertEqual(self._read_curve_payload(self.prim_path), self._read_curve_payload(self.other_prim_path))
-        self.assertNotEqual(self._read_curve_payload(self.prim_path), source_before)
-
-        self.assertNotEqual(first_before, second_before)
-
-    async def test_mixed_drag_flatten_uses_generic_set_command(self):
-        # Arrange
-        self._build_model()
-
-        # Act
-        with patch("omni.kit.commands.execute") as execute_mock:
-            self.model.begin_edit(self.curve_id)
-
-        # Assert
-        execute_mock.assert_called_once()
-        self.assertEqual(execute_mock.call_args.args[0], "SetDataPrimvars")

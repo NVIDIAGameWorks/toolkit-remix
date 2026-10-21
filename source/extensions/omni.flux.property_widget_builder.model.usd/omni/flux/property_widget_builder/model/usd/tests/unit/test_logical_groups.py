@@ -37,7 +37,7 @@ from omni.flux.property_widget_builder.model.usd.logical_row import LogicalRowSt
 from omni.flux.property_widget_builder.model.usd.logical_row import is_logical_group_mixed
 from omni.flux.property_widget_builder.widget.tree.item_model import ItemGroupNameModel
 from omni.flux.property_widget_builder.model.usd.field_builders import ALL_FIELD_BUILDERS, GRADIENT_FIELD_BUILDERS
-from omni.flux.property_widget_builder.model.usd.field_builders.curve import _claim_curves, _curve_attr_names
+from omni.flux.property_widget_builder.model.usd.field_builders.curve import _claim_curves
 from omni.flux.property_widget_builder.model.usd.field_builders.gradient import _claim_gradients
 from pxr import Gf, Sdf, UsdGeom, Vt
 
@@ -263,7 +263,7 @@ class TestLogicalGroups(omni.kit.test.AsyncTestCase):
         # Arrange
         self._create_curve_attrs()
         target_paths = [self._prim_path, self._other_prim_path]
-        curve_attr_names = _curve_attr_names(self._curve_base_name.removeprefix("primvars:"))
+        curve_attr_names = CURVE_LOGICAL_GROUP_DEFINITION.get_attr_names(self._curve_base_name)
 
         self.assertFalse(is_logical_group_mixed("", target_paths, curve_attr_names))
 
@@ -462,7 +462,7 @@ class TestLogicalGroups(omni.kit.test.AsyncTestCase):
         attr_names = set()
         for attr in attributes:
             attr_names.add(attr.GetName())
-        self.assertEqual(attr_names, set(_curve_attr_names("particle:size:x")))
+        self.assertEqual(attr_names, set(CURVE_LOGICAL_GROUP_DEFINITION.get_attr_names(self._curve_base_name)))
         self.assertTrue(state.is_mixed)
 
     async def test_curve_outlet_row_exposes_hidden_models_and_backing_attributes(self):
@@ -483,7 +483,7 @@ class TestLogicalGroups(omni.kit.test.AsyncTestCase):
         attr_names = set()
         for attr in attributes:
             attr_names.add(attr.GetName())
-        self.assertEqual(attr_names, set(_curve_attr_names("particle:size:x")))
+        self.assertEqual(attr_names, set(CURVE_LOGICAL_GROUP_DEFINITION.get_attr_names(self._curve_base_name)))
 
     async def test_attribute_row_owned_value_models_api_returns_logical_group_models(self):
         # Arrange
@@ -604,7 +604,7 @@ class TestLogicalGroups(omni.kit.test.AsyncTestCase):
         deleted_attr_names = set()
         for call in delete_all_overrides_mock.call_args_list:
             deleted_attr_names.add(call.args[0].GetName())
-        self.assertEqual(deleted_attr_names, set(_curve_attr_names("particle:size:x")))
+        self.assertEqual(deleted_attr_names, set(CURVE_LOGICAL_GROUP_DEFINITION.get_attr_names(self._curve_base_name)))
 
     async def test_curve_outlet_layer_delete_uses_backing_attributes(self):
         # Arrange

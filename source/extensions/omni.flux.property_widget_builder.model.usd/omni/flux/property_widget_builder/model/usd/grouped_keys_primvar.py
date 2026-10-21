@@ -26,6 +26,7 @@ import omni.kit.commands
 import omni.usd
 from omni.flux.utils.common.interactive_usd_notices import InteractionToken, begin_interaction, end_interaction
 from omni.flux.utils.widget import GroupedKeysModel, GroupedKeysPayload
+from omni.kit.undo import group
 from pxr import Tf, Usd
 
 from .commands import (
@@ -52,8 +53,7 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
     writes, defers USD notices for grouped writes/restores, and uses an internal commit flag to ignore its own
     USD change notices. Continuous edits are bracketed with ``begin_edit`` and ``end_edit`` so drag-like changes
     write directly during interaction and collapse to one undoable command at the end. This is the shared
-    replacement for the old quiet curve model behavior; curve and gradient adapters should only provide
-    constructor wiring and widget-facing affordances such as ``pre_open_callback``.
+    replacement for the old quiet curve model behavior.
     """
 
     @staticmethod
@@ -79,8 +79,6 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
             group_ids=[base_name] if base_name is not None else [],
             logical_group_definition=logical_group_definition,
             usd_context_name=item.context_name,
-            mixed_group_ids={base_name} if base_name is not None and item.get_row_state().is_mixed else set(),
-            pre_open_callback=item.pre_open_callback,
         )
 
     @staticmethod
@@ -107,8 +105,6 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
         logical_group_definition: LogicalGroupDefinition,
         usd_context_name: str = "",
         display_names: dict[str, str] | None = None,
-        mixed_group_ids: set[str] | None = None,
-        pre_open_callback: Callable[[Callable[[], None]], None] | None = None,
         auto_begin_session: bool = False,
     ) -> None:
         """Create a USD-backed grouped-key model for already-defined schema attributes.
@@ -119,8 +115,6 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
             logical_group_definition: Suffix definition that maps each group id to concrete USD attrs.
             usd_context_name: USD context containing the targets.
             display_names: Optional UI labels keyed by full group id.
-            mixed_group_ids: Groups known to be mixed before the editor opens.
-            pre_open_callback: Optional callback run by adapters before opening an editor.
             auto_begin_session: Whether to immediately start the USD notice/listener session.
         """
         super().__init__(display_names=display_names)
@@ -131,8 +125,6 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
         self._group_ids = list(group_ids)
         self._logical_group_definition = logical_group_definition
         self._usd_context_name = usd_context_name
-        self._mixed_group_ids = set(mixed_group_ids or set())
-        self._pre_open_callback = pre_open_callback
         self._editing: dict[str, dict[str, GroupedKeysPayload]] = {}
         self._is_committing = False
         self._usd_listener = None
@@ -145,15 +137,6 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
 
         if auto_begin_session:
             self.begin_session()
-
-    @property
-    def pre_open_callback(self) -> Callable[[Callable[[], None]], None] | None:
-        """Optional adapter callback run before opening the widget editor.
-
-        Returns:
-            Callback that accepts the final open action, or ``None``.
-        """
-        return self._pre_open_callback
 
     @property
     def usd_notice_token(self) -> InteractionToken | None:
@@ -227,7 +210,7 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
         """Commit one complete grouped payload to all targets.
 
         During an interactive edit this writes directly under listener suppression. Outside an edit it uses the
-        undoable ``SetDataPrimvars`` command, with mixed groups first flattened into one per-target undo snapshot.
+        undoable ``SetDataPrimvars`` command.
 
         Args:
             group_id: Full USD base name for the logical group.
@@ -241,10 +224,6 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
                         self._get_stage(), self._prim_paths, self._logical_group_definition, group_id, payload
                     )
                 )
-                return
-            if group_id in self._mixed_group_ids:
-                self._with_commit_flag(lambda: self._commit_mixed_group_as_single_undo(group_id, payload))
-                self._mixed_group_ids.discard(group_id)
                 return
             self._with_commit_flag(
                 lambda: omni.kit.commands.execute(
@@ -265,13 +244,29 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
             group_id: Full USD base name for the logical group.
         """
         self._validate_group_id(group_id)
-        if group_id in self._mixed_group_ids:
-            self._flatten_mixed_group(group_id)
         if group_id in self._editing:
             return
         self._editing[group_id] = _snapshot_targets(
             self._get_stage(), self._prim_paths, self._logical_group_definition, group_id
         )
+
+    def create_finalization_context(self) -> contextlib.AbstractContextManager:
+        """Group pending continuous edits only when their stored payloads changed.
+
+        Call immediately before synchronously finalizing the pending edits with ``end_edit()``.
+        Discrete writes must use their own undo group because they have no pending snapshots.
+
+        Returns:
+            An undo group for changed, readable edits, or an inert context preserving existing history.
+        """
+        if not self._editing:
+            return contextlib.nullcontext()
+        stage = self._get_stage()
+        for group_id, baseline in self._editing.items():
+            current = _snapshot_targets(stage, self._prim_paths, self._logical_group_definition, group_id)
+            if self._source_prim_path in current and current != baseline:
+                return group(remove_if_empty=True)
+        return contextlib.nullcontext()
 
     def end_edit(self, group_id: str) -> None:
         """Finish a continuous edit and collapse changed direct writes into one undo command.
@@ -343,51 +338,8 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
         if group_id not in self._group_ids:
             raise ValueError(f"group_id not in managed groups: {group_id}")
 
-    def _commit_mixed_group_as_single_undo(self, group_id: str, payload: GroupedKeysPayload) -> None:
-        """Commit a mixed group using current per-target values as the undo snapshot.
-
-        Args:
-            group_id: Full USD base name for the mixed logical group.
-            payload: Source payload to apply to every target.
-        """
-        old_values = _snapshot_targets(self._get_stage(), self._prim_paths, self._logical_group_definition, group_id)
-        omni.kit.commands.execute(
-            "SetDataPrimvars",
-            prim_paths=self._prim_paths,
-            group_id=group_id,
-            payload=payload,
-            logical_group_definition=self._logical_group_definition,
-            usd_context_name=self._usd_context_name,
-            stage=self._get_stage(),
-            old_values=old_values,
-        )
-
-    def _flatten_mixed_group(self, group_id: str) -> None:
-        """Apply the source payload to every target before starting an edit on a mixed group.
-
-        Args:
-            group_id: Full USD base name for the mixed logical group.
-        """
-        payload = self.get_payload(group_id)
-        if payload is None:
-            self._mixed_group_ids.discard(group_id)
-            return
-        with self._suppress_panel_listener():
-            self._with_commit_flag(
-                lambda: omni.kit.commands.execute(
-                    "SetDataPrimvars",
-                    prim_paths=self._prim_paths,
-                    group_id=group_id,
-                    payload=payload,
-                    logical_group_definition=self._logical_group_definition,
-                    usd_context_name=self._usd_context_name,
-                    stage=self._get_stage(),
-                )
-            )
-        self._mixed_group_ids.discard(group_id)
-
     def _on_usd_objects_changed(self, notice: Usd.Notice.ObjectsChanged, stage: Usd.Stage) -> None:
-        """Refresh mixed state for groups touched by external USD notices.
+        """Notify subscribers for groups touched by external USD notices.
 
         Args:
             notice: USD object-change notice.
@@ -402,10 +354,6 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
         for group_id in self._group_ids:
             if not self._notice_touches_group(group_id, changed_paths):
                 continue
-            if self._is_group_mixed(group_id):
-                self._mixed_group_ids.add(group_id)
-            else:
-                self._mixed_group_ids.discard(group_id)
             self._notify(group_id)
 
     def _notice_touches_group(self, group_id: str, changed_paths: list[str]) -> bool:
@@ -420,17 +368,6 @@ class PropertyGroupedKeysModel(GroupedKeysModel):
         """
         prefixes = tuple(f"{prim_path}.{group_id}:" for prim_path in self._prim_paths)
         return any(changed_path.startswith(prefixes) for changed_path in changed_paths)
-
-    def _is_group_mixed(self, group_id: str) -> bool:
-        """Return whether this logical group has different payload values across targets.
-
-        Args:
-            group_id: Full USD base name for the logical group.
-
-        Returns:
-            ``True`` when target payload signatures differ.
-        """
-        return self._logical_group_definition.is_mixed(self._usd_context_name, self._prim_paths, group_id)
 
     def _with_commit_flag(self, callback: Callable[[], None]) -> None:
         """Run ``callback`` while self-authored USD notices are ignored.

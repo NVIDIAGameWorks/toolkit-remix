@@ -17,69 +17,75 @@
 
 from __future__ import annotations
 
-__all__ = ["GRADIENT_PRESETS", "ColorGradientWidget"]
+__all__ = [
+    "DEFAULT_GRADIENT_COLOR",
+    "GRADIENT_BACKGROUND_COLOR",
+    "GRADIENT_BAR_HEIGHT",
+    "GRADIENT_BAR_PADDING",
+    "GRADIENT_BORDER_RADIUS",
+    "GRADIENT_MARKER_SIZE",
+    "GRADIENT_PRESETS",
+    "ColorGradientWidget",
+    "GradientPreview",
+    "get_color_gradient_style",
+    "keyframes_from_payload",
+    "normalize_gradient_keyframes",
+]
 
 import itertools
 import random
-import weakref
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import partial
-from typing import Any
 
 import carb
-import carb.input
-import omni.appwindow
-import omni.kit.app
 import omni.ui as ui
+from carb.input import (
+    KEYBOARD_MODIFIER_FLAG_ALT,
+    KEYBOARD_MODIFIER_FLAG_CONTROL,
+    KEYBOARD_MODIFIER_FLAG_SHIFT,
+    KEYBOARD_MODIFIER_FLAG_SUPER,
+    DeviceType,
+    InputEvent,
+    KeyboardEventType,
+    KeyboardInput,
+    acquire_input_interface,
+)
 
 from .gradient import create_checkerboard, create_multi_stop_gradient, sample_gradient_at_time
 from .grouped_keys_model import GroupedKeysModel, GroupedKeysPayload
 from .resources import get_icons
+
+DEFAULT_GRADIENT_COLOR = (0.2, 0.2, 0.2, 1.0)
 
 # ---------------------------------------------------------------------------
 # Layout constants — derived from the standard property-panel row height
 # ---------------------------------------------------------------------------
 _GRADIENT_IMAGE_WIDTH = 128
 _GRADIENT_IMAGE_HEIGHT = 1
-_CHECKER_IMAGE_WIDTH = 2048  # Large enough to avoid stretching on most displays
+_CHECKER_IMAGE_WIDTH = 2048
 _CHECKER_IMAGE_HEIGHT = 16
 
 _STANDARD_ROW_HEIGHT = 24  # matches DEFAULT_IMAGE_ICON_SIZE across the property panel
 
-_MARKER_SIZE = 12  # marker SVG width
-_HALF_MARKER = _MARKER_SIZE // 2
+GRADIENT_MARKER_SIZE = 12  # marker SVG width
+_HALF_MARKER = GRADIENT_MARKER_SIZE // 2
 _MARKER_COLOR = 0xFFBBBBBB  # default marker tint
 _MARKER_SELECTED_COLOR = 0xFFFFFFFF  # selected marker tint
 
-_TOP_PAD = 2  # small gap so the gradient bar doesn't touch the row above
-_GRADIENT_BAR_HEIGHT = _STANDARD_ROW_HEIGHT  # gradient image strip, matches normal field height
+GRADIENT_BAR_PADDING = 2  # small gap so the gradient bar doesn't touch the row above
+GRADIENT_BAR_HEIGHT = _STANDARD_ROW_HEIGHT  # gradient image strip, matches normal field height
 _EDIT_ROW_HEIGHT = _STANDARD_ROW_HEIGHT  # keyframe controls row
-_KF_LABEL_WIDTH = 38  # fits "12/12" comfortably
 _KF_TIME_FIELD_WIDTH = 58  # fits "0.10494" with room to spare
 _EDIT_ICON_SIZE = 20  # icon button size for the edit row (trash, menu, arrows)
 _EDIT_GROUP_SPACING = 12  # space between logical groups in the edit row
-_GRADIENT_BORDER_RADIUS = 5  # corner radius for the gradient bar background rectangle
+GRADIENT_BORDER_RADIUS = 5  # corner radius for the gradient bar background rectangle
 _TIME_DECIMAL_PLACES = 5  # decimal precision for stored keyframe times
 
 _POPUP_MARKER_HEIGHT = 18  # total marker SVG height
-_POPUP_MARKER_HEIGHT_TOTAL = _POPUP_MARKER_HEIGHT + 4  # room below markers
 _POPUP_MARKER_BOTTOM_PAD = 10  # breathing room between marker row and edit row
-_POPUP_MIN_WIDTH = 500  # minimum popup content width; keeps the edit row readable on narrow panels
 _POPUP_BOTTOM_PAD = 4  # small gap below the edit row so the bottom isn't flush with the window edge
-_POPUP_WIDGET_HEIGHT = (
-    _TOP_PAD
-    + _GRADIENT_BAR_HEIGHT
-    + _POPUP_MARKER_HEIGHT_TOTAL
-    + _POPUP_MARKER_BOTTOM_PAD
-    + _EDIT_ROW_HEIGHT
-    + _POPUP_BOTTOM_PAD
-)
-
-# Inline widget shows only the gradient bar (collapsed); full UI appears in the hover popup.
-_GRADIENT_WIDGET_HEIGHT = _TOP_PAD + _GRADIENT_BAR_HEIGHT + _TOP_PAD
-
 # Opaque background for the gradient region so TreeView row highlights don't bleed through.
-_GRADIENT_BG_COLOR = 0xFF242424
+GRADIENT_BACKGROUND_COLOR = 0xFF242424
 
 _MAX_KEYFRAMES = 128  # gradient image is 128 px wide; more keyframes exceed 1-px-per-stop resolution
 
@@ -97,7 +103,7 @@ def _gradient_kf_icon() -> str:
     return _GRADIENT_KF_ICON
 
 
-def _get_local_style() -> dict:
+def get_color_gradient_style() -> dict:
     """Lazily build the local style fallback, resolving icon paths at runtime."""
     global _LOCAL_STYLE
     if _LOCAL_STYLE is not None:
@@ -109,7 +115,7 @@ def _get_local_style() -> dict:
     _LOCAL_STYLE = {
         "Rectangle::ColorGradientBarOverlay": {
             "background_color": 0x00000000,
-            "border_radius": _GRADIENT_BORDER_RADIUS,
+            "border_radius": GRADIENT_BORDER_RADIUS,
             "border_width": 1,
             "border_color": 0x33FFFFFF,
         },
@@ -161,6 +167,92 @@ GRADIENT_PRESETS = {
 Color4 = tuple[float, float, float, float]
 Keyframe = tuple[float, Color4]
 
+
+def keyframes_from_payload(payload: GroupedKeysPayload | None) -> list[Keyframe]:
+    """Convert a grouped-key payload into full-precision time/color pairs."""
+    if payload is None:
+        return []
+    return [
+        (float(time), tuple(float(channel) for channel in value))
+        for time, value in zip(payload.get("times") or [], payload.get("values") or [])
+    ]
+
+
+def normalize_gradient_keyframes(keyframes: Sequence[Keyframe]) -> list[Keyframe]:
+    """Cap input keys before sorting them by time, preserving duplicate-time order."""
+    if len(keyframes) > _MAX_KEYFRAMES:
+        carb.log_warn(
+            f"ColorGradientWidget: keyframe count {len(keyframes)} exceeds _MAX_KEYFRAMES={_MAX_KEYFRAMES}; "
+            f"truncating to {_MAX_KEYFRAMES}."
+        )
+        keyframes = list(keyframes)[:_MAX_KEYFRAMES]
+    return sorted(keyframes, key=lambda keyframe: keyframe[0])
+
+
+class GradientPreview:
+    """Share Gradient images and its nonserialized fallback color across editor openings."""
+
+    def __init__(
+        self,
+        default_color: Color4 = DEFAULT_GRADIENT_COLOR,
+        time_range: tuple[float, float] = (0.0, 1.0),
+        *,
+        gradient_provider: ui.ByteImageProvider | None = None,
+        checker_provider: ui.ByteImageProvider | None = None,
+    ) -> None:
+        """Create image storage and initialize the checkerboard once.
+
+        Args:
+            default_color: Full-precision fallback used when there are no keys.
+            time_range: Inclusive time bounds mapped to the gradient image.
+            gradient_provider: Existing gradient storage, or None to create it.
+            checker_provider: Existing checkerboard storage, or None to create it.
+        """
+        self.fallback_color = default_color
+        self.time_range = time_range
+        self.gradient_provider = gradient_provider if gradient_provider is not None else ui.ByteImageProvider()
+        self.checker_provider = checker_provider if checker_provider is not None else ui.ByteImageProvider()
+        checker = create_checkerboard(_CHECKER_IMAGE_WIDTH, _CHECKER_IMAGE_HEIGHT, cell_size=4)
+        self.checker_provider.set_bytes_data(checker.ravel().tolist(), [_CHECKER_IMAGE_WIDTH, _CHECKER_IMAGE_HEIGHT])
+
+    def build_checkerboard(self) -> ui.Frame:
+        """Build a clipped checkerboard that scales uniformly with its own view."""
+        frame = ui.Frame(horizontal_clipping=True, vertical_clipping=True)
+
+        def build() -> None:
+            """Cover the frame without stretching checker cells into rectangles."""
+            # ImageWithProvider's aspect-crop policy distorts checker cells in omni.ui 3.1.3.
+            scale = max(frame.computed_width / _CHECKER_IMAGE_WIDTH, frame.computed_height / _CHECKER_IMAGE_HEIGHT)
+            ui.ImageWithProvider(
+                self.checker_provider,
+                width=ui.Pixel(_CHECKER_IMAGE_WIDTH * scale),
+                height=ui.Pixel(_CHECKER_IMAGE_HEIGHT * scale),
+                fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
+                name="ColorGradientBar",
+                identifier="GradientCheckerboard",
+            )
+
+        frame.set_build_fn(build)
+        frame.set_computed_content_size_changed_fn(frame.rebuild)
+        return frame
+
+    def render(self, keyframes: Sequence[Keyframe]) -> None:
+        """Render sorted keys without retaining them or changing the fallback color."""
+        minimum, maximum = self.time_range
+        span = maximum - minimum or 1.0
+        if keyframes:
+            stops = [
+                ((time - minimum) / span, tuple(int(channel * 255) for channel in color)) for time, color in keyframes
+            ]
+        else:
+            color = tuple(int(channel * 255) for channel in self.fallback_color)
+            stops = [(0.0, color), (1.0, color)]
+        gradient = create_multi_stop_gradient(_GRADIENT_IMAGE_WIDTH, _GRADIENT_IMAGE_HEIGHT, stops)
+        self.gradient_provider.set_bytes_data(
+            gradient.ravel().tolist(), [_GRADIENT_IMAGE_WIDTH, _GRADIENT_IMAGE_HEIGHT]
+        )
+
+
 _uid_counter = itertools.count(1)
 
 
@@ -185,70 +277,44 @@ class ColorGradientWidget:
     Args:
         model: Grouped-key payload storage model.
         group_id: Group id to edit in ``model``.
-        default_color: Solid fill color when no keyframes are present.
+        preview: Shared images, fallback color, and time bounds.
         read_only: If ``True``, all mouse interactions and editing are disabled.
-        time_range: ``(min, max)`` bounds for keyframe time values.
-            Defaults to ``(0.0, 1.0)``.  The gradient left edge corresponds to
-            *min* and the right edge to *max*.
     """
-
-    # Inline row height: gradient bar only (no markers/edit row).
-    HEIGHT: int = _GRADIENT_WIDGET_HEIGHT
-
-    # Class-level sentinel: at most one gradient popup is visible at a time.
-    # Stored as a weakref so that a lingering class reference cannot prevent GC.
-    _active_popup_widget: weakref.ref[ColorGradientWidget] | None = None
 
     def __init__(
         self,
         model: GroupedKeysModel,
         group_id: str,
-        default_color: Color4 = (0.2, 0.2, 0.2, 1.0),
+        preview: GradientPreview,
+        *,
         read_only: bool = False,
-        time_range: tuple[float, float] = (0.0, 1.0),
-        title: str = "",
-        **kwargs: Any,
+        child_popup_dismissed_fn: Callable[[], None] | None = None,
     ) -> None:
         """Create a grouped-key-backed color gradient widget.
 
         Args:
             model: Grouped-key payload storage model.
             group_id: Group id to edit in ``model``.
-            default_color: Solid fill color when no keyframes are present.
+            preview: Shared images, fallback color, and time bounds.
             read_only: Whether to disable editing interactions.
-            time_range: Inclusive time bounds for keyframe placement.
-            title: Optional popup window title prefix.
-            **kwargs: UI options forwarded to the outer container.
+            child_popup_dismissed_fn: Optional handler called when a nested menu or picker is dismissed.
         """
         self._model: GroupedKeysModel | None = model
+        self._preview: GradientPreview | None = preview
         self._group_id = group_id
         self._model_sub = self._model.subscribe(self._on_model_changed)
-        self._time_min, self._time_max = time_range
-        self._title = title
+        self._time_min, self._time_max = preview.time_range
 
         self._keyframes: list[_KF] = []
-        self._default_color: Color4 = default_color
         self._read_only: bool = read_only
+        self._child_popup_dismissed_fn = child_popup_dismissed_fn
         self._is_editing_model = False
         self._set_keyframes(self._read_model_keyframes(), refresh=False)
 
-        # Auto-select first keyframe if available
-        self._selected_uid: int | None = self._keyframes[0].uid if self._keyframes else None
-
         # Widget references
-        self._checker_provider: ui.ByteImageProvider | None = None
-        self._gradient_provider: ui.ByteImageProvider | None = None
-        self._gradient_overlay: ui.Widget | None = None
-        self._gradient_bar_stack: ui.ZStack | None = None
         self._color_widget: ui.ColorWidget | None = None
-        self._presets_button: ui.Button | ui.Image | None = None
         self._presets_menu: ui.Menu | None = None
 
-        # Outer container reference (used for popup positioning)
-        self._outer_container: ui.VStack | None = None
-
-        # Popup window and its frames
-        self._popup_window: ui.Window | None = None
         self._popup_markers_frame: ui.Frame | None = None
         self._popup_edit_frame: ui.Frame | None = None
         # Transparent overlay on the popup gradient bar (used for click-to-add position math)
@@ -262,19 +328,10 @@ class ColorGradientWidget:
         self._subs: list = []
         self._color_subs: list = []
         self._ignore_swatch_change = False
-        # Ref-count: > 0 while the color picker popup is open (suppress outside-click dismiss).
-        self._color_picker_active: int = 0
+        self._color_picker_active = False
+        self._picker_input_subscription: int | None = None
+        self._destroyed = False
 
-        # Outside-click watcher: per-frame LMB poll that hides the popup when the
-        # user clicks anywhere outside the popup window.
-        self._carb_input = carb.input.acquire_input_interface()
-        app_window = omni.appwindow.get_default_app_window()
-        self._app_mouse = app_window.get_mouse() if app_window else None
-        self._outside_click_lmb_was_down: bool = False
-        self._update_sub = None  # Created lazily when popup is shown; see _show_popup
-
-        self._build_ui(**kwargs)
-        self._init_checkerboard()
         self._update_gradient_image()
 
     # ------------------------------------------------------------------
@@ -300,212 +357,26 @@ class ColorGradientWidget:
     def _clamp_time(self, t: float) -> float:
         return max(self._time_min, min(self._time_max, t))
 
-    # ------------------------------------------------------------------
-    # UI construction
-    # ------------------------------------------------------------------
-
-    def _build_ui(self, **kwargs):
-        self._outer_container = ui.VStack(spacing=0, **kwargs)
-        if "Rectangle::ColorGradientBarOverlay" not in ui.Style.get_instance().default:
-            self._outer_container.set_style(_get_local_style())
-        with self._outer_container:
-            ui.Spacer(height=ui.Pixel(_TOP_PAD))
-
-            # --- Inline gradient bar — full-width, no marker inset ---
-            with ui.HStack(spacing=0, height=ui.Pixel(_GRADIENT_BAR_HEIGHT)):
-                self._gradient_bar_stack = ui.ZStack(
-                    width=ui.Fraction(1),
-                    tooltip="Click to open gradient editor" if not self._read_only else "",
-                )
-                with self._gradient_bar_stack:
-                    ui.Rectangle(
-                        style={"background_color": _GRADIENT_BG_COLOR, "border_radius": _GRADIENT_BORDER_RADIUS}
-                    )
-                    self._checker_provider = ui.ByteImageProvider()
-                    ui.ImageWithProvider(
-                        self._checker_provider,
-                        fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
-                        name="ColorGradientBar",
-                    )
-                    self._gradient_provider = ui.ByteImageProvider()
-                    ui.ImageWithProvider(
-                        self._gradient_provider,
-                        fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
-                        name="ColorGradientBar",
-                    )
-                    self._gradient_overlay = ui.Rectangle(
-                        name="ColorGradientBarOverlay",
-                        mouse_released_fn=self._on_inline_bar_released if not self._read_only else _NOOP,
-                    )
-            ui.Spacer(height=ui.Pixel(_TOP_PAD))
-        # Marker row and edit row are shown only in the hover popup.
-
-    def _init_checkerboard(self):
-        checker = create_checkerboard(_CHECKER_IMAGE_WIDTH, _CHECKER_IMAGE_HEIGHT, cell_size=4)
-        self._checker_provider.set_bytes_data(
-            checker.ravel().tolist(),
-            [_CHECKER_IMAGE_WIDTH, _CHECKER_IMAGE_HEIGHT],
-        )
-
-    # ------------------------------------------------------------------
-    # Gradient image
-    # ------------------------------------------------------------------
-
-    def _keyframes_to_stops(self) -> list[tuple[float, tuple[int, int, int, int]]]:
-        """Return gradient stops with times normalized to [0, 1] for image creation."""
-        if not self._keyframes:
-            c = tuple(int(ch * 255) for ch in self._default_color)
-            return [(0.0, c), (1.0, c)]
-        span = self._time_span()
-        return [((kf.time - self._time_min) / span, tuple(int(ch * 255) for ch in kf.color)) for kf in self._keyframes]
-
     def _update_gradient_image(self):
-        stops = self._keyframes_to_stops()
-        gradient = create_multi_stop_gradient(_GRADIENT_IMAGE_WIDTH, _GRADIENT_IMAGE_HEIGHT, stops)
-        if self._gradient_provider:
-            self._gradient_provider.set_bytes_data(
-                gradient.ravel().tolist(),
-                [_GRADIENT_IMAGE_WIDTH, _GRADIENT_IMAGE_HEIGHT],
-            )
+        """Refresh the shared image without retaining editing controls in the preview."""
+        if self._preview is not None:
+            self._preview.render(self.get_keyframes())
 
     # ------------------------------------------------------------------
     # Popup open / close
     # ------------------------------------------------------------------
 
-    def _on_inline_bar_released(self, x: float, y: float, button: int, modifier: int) -> None:
-        """Left-click on the collapsed inline bar opens the editor popup."""
-        if button == 0:
-            self._show_popup()
-
-    def _show_popup(self) -> None:
-        """Open the floating gradient editor popup and load current model state."""
-        if self._popup_window and self._popup_window.visible:
-            return  # Already shown
-        self._load_from_model()
-
-        # Dismiss any other gradient popup that may be open.
-        active_ref = ColorGradientWidget._active_popup_widget
-        active = active_ref() if active_ref is not None else None
-        if active is not None and active is not self:
-            active._hide_popup()  # noqa: SLF001 — same class, singleton management
-        ColorGradientWidget._active_popup_widget = weakref.ref(self)
-
-        x = self._outer_container.screen_position_x
-        y = self._outer_container.screen_position_y
-        # The popup gradient bar is inset from the popup window's left edge by 4 * _HALF_MARKER
-        # (window border + padding_x + spacer).  Add the same amount to the width so the popup
-        # bar left/right edges overlay the inline bar exactly.
-        w = max(self._outer_container.computed_width + 2 * _MARKER_SIZE, _POPUP_MIN_WIDTH)
-
-        flags = (
-            ui.WINDOW_FLAGS_NO_DOCKING
-            | ui.WINDOW_FLAGS_NO_COLLAPSE
-            | ui.WINDOW_FLAGS_NO_SCROLLBAR
-            | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
-            | ui.WINDOW_FLAGS_NO_RESIZE
-        )
-        if not self._popup_window:
-            window_name = (
-                f"{self._title} - Gradient Editor##{id(self)}" if self._title else f"Gradient Editor##{id(self)}"
-            )
-            self._popup_window = ui.Window(
-                window_name,
-                width=w,
-                height=_POPUP_WIDGET_HEIGHT + _STANDARD_ROW_HEIGHT,
-                visible=False,
-                flags=flags,
-                padding_x=0,
-                padding_y=0,
-            )
-            self._popup_window.set_visibility_changed_fn(self._on_window_close)
-            with self._popup_window.frame:
-                if "Rectangle::ColorGradientBarOverlay" not in ui.Style.get_instance().default:
-                    self._popup_window.frame.set_style(_get_local_style())
-                with ui.ZStack():
-                    ui.Rectangle(style={"background_color": _GRADIENT_BG_COLOR})
-                    self._build_popup_content()
-        else:
-            # Rebuild dynamic parts on re-show
-            self._popup_markers_frame.rebuild()
-            self._popup_edit_frame.rebuild()
-
-        self._popup_window.width = w
-        self._popup_window.height = _POPUP_WIDGET_HEIGHT + _STANDARD_ROW_HEIGHT
-        self._popup_window.position_x = x - _MARKER_SIZE
-        self._popup_window.position_y = y - _STANDARD_ROW_HEIGHT
-        self._outside_click_lmb_was_down = False
-        if self._update_sub is None:
-            self._update_sub = (
-                omni.kit.app.get_app()
-                .get_update_event_stream()
-                .create_subscription_to_pop(
-                    self._check_outside_click,
-                    name=f"gradient_outside_click_{id(self)}",
-                )
-            )
-        self._popup_window.visible = True
-
-    def _hide_popup(self) -> None:
-        """Hide the popup window and clear active popup/color-picker state."""
-        self._color_picker_active = 0
-        self._update_sub = None
-        active_ref = ColorGradientWidget._active_popup_widget
-        if active_ref is not None and active_ref() is self:
-            ColorGradientWidget._active_popup_widget = None
-        if self._popup_window:
-            self._popup_window.visible = False
-
-    def _on_window_close(self, visible: bool) -> None:
-        """Handle the title-bar X close button or any external visibility change.
-
-        Args:
-            visible: New popup visibility state reported by the window.
-        """
-        if not visible:
-            self._fire_drag_ended()
-            self._color_picker_active = 0
-            self._update_sub = None
-            active_ref = ColorGradientWidget._active_popup_widget
-            if active_ref is not None and active_ref() is self:
-                ColorGradientWidget._active_popup_widget = None
-
-    def _check_outside_click(self, _event) -> None:
-        """Per-frame check: dismiss the popup when LMB is pressed outside its bounds.
-
-        Runs every frame while the widget is alive (cheap when popup is hidden).
-        Detects the rising edge of LMB so dragging outside doesn't re-trigger.
-        """
-        if not self._popup_window or not self._popup_window.visible:
-            # Reset so the next show doesn't misfire on a stale True state.
-            self._outside_click_lmb_was_down = False
+    def build_editor(self) -> None:
+        """Build Gradient editing content in the current UI container."""
+        if self._destroyed:
             return
-        if not self._app_mouse or not self._carb_input:
-            return
-        lmb_down = bool(self._carb_input.get_mouse_value(self._app_mouse, carb.input.MouseInput.LEFT_BUTTON))
-        just_pressed = lmb_down and not self._outside_click_lmb_was_down
-        self._outside_click_lmb_was_down = lmb_down
-        if not just_pressed:
-            return
-        # Don't dismiss while the user is interacting with the presets menu.
-        if self._presets_menu is not None and self._presets_menu.visible:
-            return
-        # Get current mouse position in logical (DPI-independent) pixels.
-        px, py = self._carb_input.get_mouse_coords_pixel(self._app_mouse)
-        dpi = ui.Workspace.get_dpi_scale()
-        mx, my = px / dpi, py / dpi
-        pw_x = self._popup_window.position_x
-        pw_y = self._popup_window.position_y
-        pw_w = self._popup_window.width
-        pw_h = self._popup_window.height
-        if pw_x <= mx <= pw_x + pw_w and pw_y <= my <= pw_y + pw_h:
-            # User clicked inside our popup (e.g. returning from the color picker).
-            # Treat this as closing any auxiliary popup and stay open.
-            self._color_picker_active = 0
-            return
-        # Outside our popup: don't dismiss while the color picker is active.
-        if self._color_picker_active > 0:
-            return
-        self._hide_popup()
+        self.set_keyframes(self._read_model_keyframes())
+        content = ui.ZStack()
+        if "Rectangle::ColorGradientBarOverlay" not in ui.Style.get_instance().default:
+            content.set_style(get_color_gradient_style())
+        with content:
+            ui.Rectangle(style={"background_color": GRADIENT_BACKGROUND_COLOR})
+            self._build_popup_content()
 
     def _build_popup_content(self) -> None:
         with ui.VStack(spacing=0):
@@ -514,24 +385,20 @@ class ColorGradientWidget:
             with popup_container:
                 with ui.HStack(spacing=0):
                     with ui.VStack(spacing=0):
-                        ui.Spacer(height=ui.Pixel(_TOP_PAD))
-                        # Gradient bar — same layout as inline, sharing the same providers
-                        with ui.HStack(spacing=0, height=ui.Pixel(_GRADIENT_BAR_HEIGHT)):
+                        ui.Spacer(height=ui.Pixel(GRADIENT_BAR_PADDING))
+                        # Optional shared providers keep separate views synchronized without another model listener.
+                        with ui.HStack(spacing=0, height=ui.Pixel(GRADIENT_BAR_HEIGHT)):
                             ui.Spacer(width=ui.Pixel(_HALF_MARKER))
                             with ui.ZStack(width=ui.Fraction(1)):
                                 ui.Rectangle(
                                     style={
-                                        "background_color": _GRADIENT_BG_COLOR,
-                                        "border_radius": _GRADIENT_BORDER_RADIUS,
+                                        "background_color": GRADIENT_BACKGROUND_COLOR,
+                                        "border_radius": GRADIENT_BORDER_RADIUS,
                                     }
                                 )
+                                self._preview.build_checkerboard()
                                 ui.ImageWithProvider(
-                                    self._checker_provider,
-                                    fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
-                                    name="ColorGradientBar",
-                                )
-                                ui.ImageWithProvider(
-                                    self._gradient_provider,
+                                    self._preview.gradient_provider,
                                     fill_policy=ui.IwpFillPolicy.IWP_STRETCH,
                                     name="ColorGradientBar",
                                 )
@@ -541,16 +408,31 @@ class ColorGradientWidget:
                                     mouse_released_fn=self._on_popup_bar_released if not self._read_only else _NOOP,
                                 )
                             ui.Spacer(width=ui.Pixel(_HALF_MARKER))
-                        ui.Spacer(height=ui.Pixel(_TOP_PAD))
+                        ui.Spacer(height=ui.Pixel(GRADIENT_BAR_PADDING))
                         # Marker row — fraction height fills remaining VStack space.
                         with ui.HStack(spacing=0, height=ui.Fraction(1)):
                             self._popup_markers_frame = ui.Frame(width=ui.Fraction(1))
                             self._popup_markers_frame.set_build_fn(self._build_popup_markers)
-                            ui.Spacer(width=ui.Pixel(_MARKER_SIZE))
+                            ui.Spacer(width=ui.Pixel(GRADIENT_MARKER_SIZE))
                         ui.Spacer(height=ui.Pixel(_POPUP_MARKER_BOTTOM_PAD))
                         # Edit row
-                        self._popup_edit_frame = ui.Frame(height=ui.Pixel(_EDIT_ROW_HEIGHT))
-                        self._popup_edit_frame.set_build_fn(self._build_edit_row)
+                        with ui.HStack(height=ui.Pixel(_EDIT_ROW_HEIGHT), spacing=0):
+                            ui.Spacer(width=ui.Pixel(_HALF_MARKER))
+                            kf = self._find_kf(self._selected_uid) if self._selected_uid else None
+                            initial = kf.color if kf else self._preview.fallback_color
+                            self._color_widget = ui.ColorWidget(
+                                *initial,
+                                width=ui.Percent(25),
+                                height=ui.Pixel(_EDIT_ROW_HEIGHT),
+                                name="ColorsWidgetFieldRead",
+                                enabled=not self._read_only,
+                            )
+                            if not self._read_only:
+                                self._subscribe_color_widget()
+                            ui.Spacer(width=ui.Pixel(_EDIT_GROUP_SPACING))
+                            # Keep the swatch/picker alive when history rebuilds the selected-key controls.
+                            self._popup_edit_frame = ui.Frame(width=ui.Fraction(1))
+                            self._popup_edit_frame.set_build_fn(self._build_edit_row)
                         ui.Spacer(height=ui.Pixel(_POPUP_BOTTOM_PAD))
 
     def _build_popup_markers(self):
@@ -573,13 +455,13 @@ class ColorGradientWidget:
                 )
                 with placer:
                     with ui.Frame(
-                        width=ui.Pixel(_MARKER_SIZE),
+                        width=ui.Pixel(GRADIENT_MARKER_SIZE),
                         height=ui.Pixel(_POPUP_MARKER_HEIGHT),
                         tooltip=self._format_marker_tooltip(kf.time, kf.color),
                     ):
                         marker = ui.Image(
                             _gradient_kf_icon(),
-                            width=ui.Pixel(_MARKER_SIZE),
+                            width=ui.Pixel(GRADIENT_MARKER_SIZE),
                             height=ui.Pixel(_POPUP_MARKER_HEIGHT),
                             identifier="GradientKeyframeMarker",
                             style={"color": marker_color, "Tooltip": {"color": 0xFF000000}},
@@ -593,7 +475,8 @@ class ColorGradientWidget:
                 self._marker_placers[kf.uid] = placer
 
     def _rebuild_markers(self):
-        if self._popup_markers_frame and self._popup_window and self._popup_window.visible:
+        """Schedule keyframe-marker rebuilding while editing content is attached."""
+        if self._popup_markers_frame:
             self._popup_markers_frame.rebuild()
 
     def _update_marker_selection(self, old_uid: int | None, new_uid: int | None):
@@ -617,7 +500,8 @@ class ColorGradientWidget:
     # ------------------------------------------------------------------
 
     def _build_edit_row(self):
-        """Built by ``_edit_frame``; shows controls for the selected keyframe (always visible)."""
+        """Build the popup's controls for the selected keyframe."""
+        self._subs.clear()
         kf = self._find_kf(self._selected_uid) if self._selected_uid else None
         has_selection = kf is not None
 
@@ -631,25 +515,8 @@ class ColorGradientWidget:
         }
         nav_enabled = has_selection and len(self._keyframes) > 1 and not self._read_only
 
-        # Layout groups:  color | time | arrows + counter | delete + options
+        # Layout groups: time | arrows + counter | delete + options
         with ui.HStack(height=h, spacing=0, style=row_style):
-            ui.Spacer(width=ui.Pixel(_HALF_MARKER))
-
-            # --- Group 1: Color swatch ---
-            initial = kf.color if has_selection else self._default_color
-            self._color_widget = ui.ColorWidget(
-                *initial,
-                width=ui.Percent(25),
-                height=h,
-                name="ColorsWidgetFieldRead",
-                enabled=not self._read_only,
-            )
-            if not self._read_only:
-                self._color_subs.clear()
-                self._subscribe_color_widget()
-
-            ui.Spacer(width=group_gap)
-
             # --- Group 2: Time field ---
             time_model = ui.SimpleFloatModel(kf.time if has_selection else self._time_min)
             ui.FloatDrag(
@@ -662,7 +529,13 @@ class ColorGradientWidget:
                 enabled=has_selection and not self._read_only,
             )
             if has_selection:
-                self._subs.append(time_model.subscribe_value_changed_fn(partial(self._on_edit_time_changed, kf.uid)))
+                self._subs.extend(
+                    (
+                        time_model.subscribe_begin_edit_fn(lambda *_: self._fire_drag_started()),
+                        time_model.subscribe_value_changed_fn(partial(self._on_edit_time_changed, kf.uid)),
+                        time_model.subscribe_end_edit_fn(lambda *_: self._fire_drag_ended()),
+                    )
+                )
 
             ui.Spacer(width=group_gap)
 
@@ -713,7 +586,7 @@ class ColorGradientWidget:
             # --- Options icon, pushed to far right ---
             if not self._read_only:
                 ui.Spacer()
-                self._presets_button = ui.Image(
+                ui.Image(
                     "",
                     name="MenuBurger",
                     width=icon,
@@ -725,9 +598,8 @@ class ColorGradientWidget:
             ui.Spacer(width=ui.Pixel(_HALF_MARKER))
 
     def _rebuild_edit_row(self):
-        # Rebuilding destroys and replaces the color widget, which closes any open color picker.
-        self._color_picker_active = 0
-        if self._popup_edit_frame and self._popup_window and self._popup_window.visible:
+        """Rebuild selected-key controls without replacing the native swatch."""
+        if self._popup_edit_frame:
             self._popup_edit_frame.rebuild()
 
     def _on_edit_time_changed(self, uid, model):
@@ -745,48 +617,81 @@ class ColorGradientWidget:
     # ------------------------------------------------------------------
 
     def _subscribe_color_widget(self):
-        """Subscribe to per-component value changes for real-time gradient updates."""
+        """Observe color changes and the root model's native picker lifetime."""
         cw = self._color_widget
         for child in cw.model.get_item_children():
             sub_model = cw.model.get_item_value_model(child)
             self._color_subs.append(sub_model.subscribe_value_changed_fn(self._on_swatch_component_changed))
-            # Try to detect picker close via sub-model end_edit (fires on slider release).
-            self._color_subs.append(sub_model.subscribe_end_edit_fn(lambda *_: self._on_color_picker_end()))
-        # Use mouse_pressed_fn to reliably detect when the swatch is clicked and the picker opens.
-        cw.set_mouse_pressed_fn(lambda x, y, b, m: self._on_color_widget_pressed(b))
-        # Also try model-level end_edit as a fallback (fires when the overall edit session ends).
+        self._color_subs.append(cw.model.subscribe_begin_edit_fn(lambda *_: self._on_color_picker_begin()))
         self._color_subs.append(cw.model.subscribe_end_edit_fn(lambda *_: self._on_color_picker_end()))
 
-    def _on_color_widget_pressed(self, button: int) -> None:
-        if button == 0:
-            if self._color_picker_active == 0:
-                self._fire_drag_started()
-            self._color_picker_active += 1
+    def _on_color_picker_begin(self) -> None:
+        """Observe scene-history shortcuts while the native picker is open."""
+        if self._destroyed or self._color_picker_active:
+            return
+        self._color_picker_active = True
+        self._picker_input_subscription = acquire_input_interface().subscribe_to_input_events(
+            self._on_picker_input, order=-1
+        )
+
+    def _on_picker_input(self, event: InputEvent) -> bool:
+        """Checkpoint picker edits before Kit executes its asynchronously queued history action."""
+        if self._destroyed or not self._color_picker_active or event.deviceType != DeviceType.KEYBOARD:
+            return True
+        keyboard = event.event
+        modifiers = (
+            KEYBOARD_MODIFIER_FLAG_CONTROL
+            | KEYBOARD_MODIFIER_FLAG_SHIFT
+            | KEYBOARD_MODIFIER_FLAG_ALT
+            | KEYBOARD_MODIFIER_FLAG_SUPER
+        )
+        if (
+            keyboard.type == KeyboardEventType.KEY_PRESS
+            and keyboard.input in (KeyboardInput.Z, KeyboardInput.Y)
+            and keyboard.modifiers & modifiers == KEYBOARD_MODIFIER_FLAG_CONTROL
+        ):
+            self._fire_drag_ended()
+        return True
 
     def _on_color_picker_end(self) -> None:
-        self._color_picker_active = max(0, self._color_picker_active - 1)
-        if self._color_picker_active == 0:
+        """Finish the picker edit and report its dismissal, not component drag releases."""
+        if not self._color_picker_active:
+            return
+        self._color_picker_active = False
+        try:
             self._fire_drag_ended()
+        finally:
+            subscription, self._picker_input_subscription = self._picker_input_subscription, None
+            if subscription is not None:
+                acquire_input_interface().unsubscribe_to_input_events(subscription)
+            if not self._destroyed and self._child_popup_dismissed_fn is not None:
+                self._child_popup_dismissed_fn()
 
     def _on_swatch_component_changed(self, model):
         """Called on every R/G/B/A change from the swatch color picker."""
-        if self._ignore_swatch_change:
+        if self._destroyed or self._ignore_swatch_change:
             return
         cw = self._color_widget
         children = cw.model.get_item_children()
         new_color: Color4 = tuple(cw.model.get_item_value_model(c).get_value_as_float() for c in children)
 
+        kf = self._find_kf(self._selected_uid) if self._selected_uid else None
+        if kf is None and self._keyframes:
+            kf = self._keyframes[0]
+        current_color = kf.color if kf else self._preview.fallback_color
+        if new_color == current_color:
+            return
+        if self._color_picker_active:
+            self._fire_drag_started()
+
         # If no keyframes exist, update the default color (Constant preset behavior)
         if not self._keyframes:
-            self._default_color = new_color
+            self._preview.fallback_color = new_color
             self._update_gradient_image()
             self._fire_changed()
             return
 
         # Edit the selected keyframe
-        kf = self._find_kf(self._selected_uid) if self._selected_uid else None
-        if kf is None:
-            kf = self._keyframes[0]
         kf.color = new_color
         self._update_gradient_image()
         self._fire_changed()
@@ -795,15 +700,17 @@ class ColorGradientWidget:
         """Sync the swatch to the selected (or first) keyframe color."""
         if not self._color_widget:
             return
-        self._ignore_swatch_change = True
         kf = self._find_kf(self._selected_uid) if self._selected_uid else None
         if kf is None and self._keyframes:
             kf = self._keyframes[0]
-        color = kf.color if kf else self._default_color
+        color = kf.color if kf else self._preview.fallback_color
         children = self._color_widget.model.get_item_children()
-        for child, value in zip(children, color):
-            self._color_widget.model.get_item_value_model(child).set_value(value)
-        self._ignore_swatch_change = False
+        self._ignore_swatch_change = True
+        try:
+            for child, value in zip(children, color):
+                self._color_widget.model.get_item_value_model(child).set_value(value)
+        finally:
+            self._ignore_swatch_change = False
 
     # ------------------------------------------------------------------
     # Bar click (release)
@@ -812,9 +719,8 @@ class ColorGradientWidget:
     def _on_popup_bar_released(self, x, y, button, modifier):
         """Click-to-add handler for the popup gradient bar.
 
-        Uses the popup bar's own overlay widget for position math so that the
-        wider popup bar (when _POPUP_MIN_WIDTH is larger than the inline bar)
-        maps clicks correctly to keyframe times.
+        Uses the editing bar's own overlay bounds to map clicks to keyframe times
+        independently of the host size.
         """
         if button != 0:
             return
@@ -886,7 +792,7 @@ class ColorGradientWidget:
 
         # Preserve color when deleting the last keyframe
         if len(self._keyframes) == 1:
-            self._default_color = deleted_kf.color
+            self._preview.fallback_color = deleted_kf.color
 
         self._keyframes = [kf for kf in self._keyframes if kf.uid != uid]
 
@@ -962,6 +868,7 @@ class ColorGradientWidget:
 
         # Create new menu (stored as member to avoid garbage collection)
         self._presets_menu = ui.Menu("Presets + Operations")
+        self._presets_menu.set_shown_changed_fn(self._on_presets_menu_shown_changed)
 
         def _section_header(text: str) -> None:
             ui.Separator()
@@ -979,17 +886,35 @@ class ColorGradientWidget:
             # Presets section
             _section_header("Presets")
             for preset_name in GRADIENT_PRESETS:
-                ui.MenuItem(preset_name, triggered_fn=lambda p=preset_name: self._apply_preset(p))
+                ui.MenuItem(
+                    preset_name, triggered_fn=partial(self._on_presets_action, partial(self._apply_preset, preset_name))
+                )
 
             # Operations section
             _section_header("Operations")
-            ui.MenuItem("Reverse", triggered_fn=self._reverse_gradient)
-            ui.MenuItem("Distribute Evenly", triggered_fn=self._distribute_evenly)
-            ui.MenuItem("Randomize Colors", triggered_fn=self._randomize_colors)
-            ui.MenuItem("Clear All", triggered_fn=self._clear_all_keyframes)
+            ui.MenuItem("Reverse", triggered_fn=partial(self._on_presets_action, self._reverse_gradient))
+            ui.MenuItem("Distribute Evenly", triggered_fn=partial(self._on_presets_action, self._distribute_evenly))
+            ui.MenuItem("Randomize Colors", triggered_fn=partial(self._on_presets_action, self._randomize_colors))
+            ui.MenuItem("Clear All", triggered_fn=partial(self._on_presets_action, self._clear_all_keyframes))
 
         # Show the menu
         self._presets_menu.show()
+
+    def _on_presets_action(self, action: Callable[[], None]) -> None:
+        """Keep menu selection distinct from outside dismissal."""
+        # The native menu hides before focus returns to the editor; selection must not dismiss it.
+        self._presets_menu.set_shown_changed_fn(None)
+        action()
+
+    def _on_presets_menu_shown_changed(self, shown: bool) -> None:
+        """Report menu dismissal without notifying during content destruction."""
+        if not shown and not self._destroyed and self._child_popup_dismissed_fn is not None:
+            self._child_popup_dismissed_fn()
+
+    @property
+    def child_popup_active(self) -> bool:
+        """Whether a native picker or presets menu currently owns input."""
+        return self._color_picker_active or (self._presets_menu is not None and self._presets_menu.shown)
 
     def _apply_preset(self, preset_name: str) -> None:
         """Apply a gradient preset."""
@@ -998,12 +923,6 @@ class ColorGradientWidget:
 
         keyframes = GRADIENT_PRESETS[preset_name]
         self.set_keyframes(keyframes)
-        # Auto-select first keyframe if available
-        if self._keyframes:
-            self._selected_uid = self._keyframes[0].uid
-        else:
-            self._selected_uid = None
-        self._rebuild_edit_row()
         self._fire_changed()
 
     def _reverse_gradient(self) -> None:
@@ -1096,7 +1015,7 @@ class ColorGradientWidget:
     def _sample_gradient_at(self, time: float) -> Color4:
         """Linearly interpolate the gradient at the given *time*."""
         if not self._keyframes:
-            return self._default_color
+            return self._preview.fallback_color
         # Convert internal keyframes to the format expected by sample_gradient_at_time
         stops = [(kf.time, kf.color) for kf in self._keyframes]
         return sample_gradient_at_time(stops, time)
@@ -1122,37 +1041,11 @@ class ColorGradientWidget:
     def _fire_changed(self) -> None:
         """Commit current keyframes as one grouped payload."""
         if self._model is not None:
-            self._model.commit_payload(self._group_id, self._keyframes_to_payload())
-
-    def _keyframes_to_payload(self) -> GroupedKeysPayload:
-        """Serialize current keyframes to the generic grouped-key payload.
-
-        Returns:
-            Payload with ``times`` and ``values`` suffix entries.
-        """
-        return {
-            "times": [kf.time for kf in self._keyframes],
-            "values": [kf.color for kf in self._keyframes],
-        }
-
-    @staticmethod
-    def _payload_to_keyframes(payload: GroupedKeysPayload | None) -> list[Keyframe]:
-        """Convert a grouped-key payload into widget keyframes.
-
-        Args:
-            payload: Payload read from the grouped-key model, or ``None``.
-
-        Returns:
-            List of ``(time, color)`` keyframes.
-        """
-        if payload is None:
-            return []
-        times = payload.get("times") or []
-        values = payload.get("values") or []
-        keyframes = []
-        for time, value in zip(times, values):
-            keyframes.append((float(time), tuple(float(channel) for channel in value)))
-        return keyframes
+            payload: GroupedKeysPayload = {
+                "times": [kf.time for kf in self._keyframes],
+                "values": [kf.color for kf in self._keyframes],
+            }
+            self._model.commit_payload(self._group_id, payload)
 
     def _read_model_keyframes(self) -> list[Keyframe]:
         """Read current keyframes from the grouped-key model.
@@ -1160,11 +1053,7 @@ class ColorGradientWidget:
         Returns:
             Keyframes converted from the current model payload.
         """
-        return self._payload_to_keyframes(self._model.get_payload(self._group_id) if self._model is not None else None)
-
-    def _load_from_model(self) -> None:
-        """Reload widget state from the grouped-key model and refresh visible UI."""
-        self._set_keyframes(self._read_model_keyframes(), refresh=True)
+        return keyframes_from_payload(self._model.get_payload(self._group_id) if self._model is not None else None)
 
     def _on_model_changed(self, group_id: str) -> None:
         """Reload when the backing model reports an external change for this group.
@@ -1174,7 +1063,7 @@ class ColorGradientWidget:
         """
         if group_id != self._group_id or self._is_editing_model:
             return
-        self._load_from_model()
+        self.set_keyframes(self._read_model_keyframes())
 
     def _set_keyframes(self, keyframes: Sequence[Keyframe], refresh: bool) -> None:
         """Replace internal keyframes and optionally refresh dependent UI.
@@ -1183,16 +1072,7 @@ class ColorGradientWidget:
             keyframes: Keyframes to store in the widget.
             refresh: Whether to rebuild gradient, swatch, marker, and edit-row UI.
         """
-        if len(keyframes) > _MAX_KEYFRAMES:
-            carb.log_warn(
-                f"ColorGradientWidget: keyframe count {len(keyframes)} exceeds _MAX_KEYFRAMES={_MAX_KEYFRAMES}; "
-                f"truncating to {_MAX_KEYFRAMES}."
-            )
-            keyframes = list(keyframes)[:_MAX_KEYFRAMES]
-        self._keyframes = sorted(
-            [_KF(t, c) for t, c in keyframes],
-            key=lambda kf: kf.time,
-        )
+        self._keyframes = [_KF(time, color) for time, color in normalize_gradient_keyframes(keyframes)]
         self._selected_uid = self._keyframes[0].uid if self._keyframes else None
         if refresh:
             self._update_gradient_image()
@@ -1222,36 +1102,37 @@ class ColorGradientWidget:
         return self._read_only
 
     def destroy(self) -> None:
-        """Release resources."""
-        self._fire_drag_ended()
-        self._color_picker_active = 0
-        self._update_sub = None
-        self._color_subs.clear()
-        self._subs.clear()
-        if self._presets_menu is not None:
-            self._presets_menu.destroy()
-            self._presets_menu = None
-        if self._popup_window is not None:
-            self._popup_window.visible = False
-            self._popup_window.destroy()
-            self._popup_window = None
-        self._popup_markers_frame = None
-        self._popup_edit_frame = None
-        self._marker_widgets.clear()
-        self._marker_placers.clear()
-        self._popup_gradient_overlay = None
-        self._app_mouse = None
-        self._carb_input = None
-        self._checker_provider = None
-        self._gradient_provider = None
-        self._gradient_overlay = None
-        self._gradient_bar_stack = None
-        self._color_widget = None
-        self._presets_button = None
-        self._outer_container = None
-        self._keyframes.clear()
-        active_ref = ColorGradientWidget._active_popup_widget
-        if active_ref is not None and active_ref() is self:
-            ColorGradientWidget._active_popup_widget = None
+        """Finish gestures and release this opening's controls, preserving its model and preview."""
+        if self._destroyed:
+            return
+        self._destroyed = True
         self._model_sub = None
-        self._model = None
+        try:
+            try:
+                subscription, self._picker_input_subscription = self._picker_input_subscription, None
+                if subscription is not None:
+                    acquire_input_interface().unsubscribe_to_input_events(subscription)
+            finally:
+                self._fire_drag_ended()
+        finally:
+            try:
+                self._color_picker_active = False
+                self._color_subs.clear()
+                self._subs.clear()
+                for frame in (self._popup_markers_frame, self._popup_edit_frame):
+                    if frame is not None:
+                        frame.set_build_fn(None)
+                if self._presets_menu is not None:
+                    self._presets_menu.destroy()
+            finally:
+                self._presets_menu = None
+                self._popup_markers_frame = None
+                self._popup_edit_frame = None
+                self._marker_widgets.clear()
+                self._marker_placers.clear()
+                self._popup_gradient_overlay = None
+                self._color_widget = None
+                self._child_popup_dismissed_fn = None
+                self._keyframes.clear()
+                self._model = None
+                self._preview = None

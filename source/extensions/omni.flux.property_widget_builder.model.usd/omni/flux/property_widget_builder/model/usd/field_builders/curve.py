@@ -11,27 +11,32 @@ Handles two modes:
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Callable
 
-import carb.input
-import omni.kit.app
 import omni.usd
 import omni.ui as ui
+from carb.input import (
+    KEYBOARD_MODIFIER_FLAG_ALT,
+    KEYBOARD_MODIFIER_FLAG_CONTROL,
+    KEYBOARD_MODIFIER_FLAG_SHIFT,
+    KEYBOARD_MODIFIER_FLAG_SUPER,
+    KeyboardInput,
+)
 from omni.flux.curve_editor.widget import CurveEditorLayout, CurveEditorWidget
 from omni.flux.curve_editor.widget.payload import curve_to_payload
 from omni.flux.fcurve.widget import CurveBounds, FCurve, FCurveKey
+from omni.flux.property_widget_builder.delegates import FieldPopupWindow
 from omni.flux.property_widget_builder.widget import ClaimResult, FieldBuilder, Item
+from omni.kit.undo import group
 
 from ..curve_primvar import PropertyPrimvarCurveModel
 from ..items import USDLogicalGroupOutletItem, _BaseUSDAttributeItem
 from ..logical_group_constants import CURVE_LOGICAL_GROUP_DEFINITION, CURVE_LOGICAL_SUFFIXES, PRIMVAR_PREFIX
 from ..logical_row import LogicalGroupDefinition
-from ..logical_row import is_logical_group_mixed
 from .base import _generate_identifier
 
 
-__all__ = ("CURVE_FIELD_BUILDERS",)
+__all__ = ("CURVE_FIELD_BUILDERS", "CurveFieldEditor")
 
 _PRIMARY_SUFFIX = "values"
 _FIELD_ROW_HEIGHT = 24
@@ -39,21 +44,6 @@ _FIELD_LEADING_SPACER_WIDTH = 8
 _FIELD_VERTICAL_SPACER_HEIGHT = 2
 _EDITOR_WIDTH = 700
 _EDITOR_HEIGHT = 400
-
-
-def _curve_attr_names(
-    curve_id: str, logical_group_definition: LogicalGroupDefinition = CURVE_LOGICAL_GROUP_DEFINITION
-) -> list[str]:
-    """Return concrete primvar attr names for one curve id.
-
-    Args:
-        curve_id: Curve-editor id without the ``primvars:`` prefix.
-        logical_group_definition: Suffix definition supported by the schema.
-
-    Returns:
-        Concrete USD attr names for the curve.
-    """
-    return [f"{PRIMVAR_PREFIX}{curve_id}:{suffix}" for suffix in logical_group_definition.suffixes]
 
 
 # ---------------------------------------------------------------------------
@@ -134,10 +124,9 @@ def _panel_to_editor_layout(layout: dict) -> dict:
         Curve-editor layout dictionary with curve entries placed under their
         layout-tree parents.
     """
-    curve_map: dict[str, str] = layout.get("curve_map", {})
+    curve_map: dict[str, str | dict] = layout.get("curve_map", {})
 
     # Index curves by their parent path in the layout tree.
-    # curve_map values: plain "path" string OR {"path": ..., "display_color": ..., "display_name": ...}
     curves_by_parent: dict[str, list[dict]] = {}
     for full_primvar, raw_entry in curve_map.items():
         entry = {"path": raw_entry} if isinstance(raw_entry, str) else raw_entry
@@ -145,13 +134,18 @@ def _panel_to_editor_layout(layout: dict) -> dict:
         parts = rel_path.rsplit("/", 1)
         parent_path = parts[0] if len(parts) > 1 else ""
         leaf_name = parts[-1]
-        model_id = _strip_primvar_prefix(full_primvar)
+        model_id = full_primvar.removeprefix(PRIMVAR_PREFIX)
         curve_entry = {
             "id": model_id,
             "display_name": entry.get("display_name", leaf_name.upper() if len(leaf_name) == 1 else leaf_name),
         }
         if "display_color" in entry:
             curve_entry["display_color"] = entry["display_color"]
+        if label_style_name := entry.get("label_style_name"):
+            curve_entry["label_style_name"] = label_style_name
+            normal_color = ui.Style.get_instance().default.get(f"Label::{label_style_name}", {}).get("color")
+            if normal_color is not None:
+                curve_entry["display_color"] = normal_color
         curves_by_parent.setdefault(parent_path, []).append(curve_entry)
 
     def _build_node(node: dict, path_prefix: str) -> dict:
@@ -197,115 +191,110 @@ def _create_default_curve(model: PropertyPrimvarCurveModel, curve_id: str) -> No
     model.commit_payload(curve_id, curve_to_payload(default_curve))
 
 
-def _delete_curve(model: PropertyPrimvarCurveModel, curve_id: str) -> None:
-    """Delete a curve by committing an empty FCurve.
+class CurveFieldEditor(FieldPopupWindow):
+    """Build Curve editing content with an owned model for each opening."""
 
-    Args:
-        model: USD-backed curve model that owns the curve payload.
-        curve_id: Curve-editor id to clear.
-    """
-    model.commit_payload(curve_id, curve_to_payload(FCurve(id=curve_id, keys=[])))
-
-
-def _open_curve_editor(
-    target_paths: list[str],
-    curve_ids: list[str],
-    context_name: str,
-    editor_layout: CurveEditorLayout | None = None,
-    per_curve_bounds: dict[str, CurveBounds] | None = None,
-    mixed_curve_ids: set[str] | None = None,
-    logical_group_definition: LogicalGroupDefinition = CURVE_LOGICAL_GROUP_DEFINITION,
-) -> None:
-    """Open a curve editor window backed by a USD grouped-key model.
-
-    Args:
-        target_paths: Ordered prim paths controlled by the editor.
-        curve_ids: Curve-editor ids to expose in the widget.
-        context_name: USD context containing targets.
-        editor_layout: Optional hierarchy and display metadata for multi-curve editors.
-        per_curve_bounds: Optional value/time bounds keyed by curve id.
-        mixed_curve_ids: Curve ids known to differ across selected targets.
-        logical_group_definition: Suffix definition supported by the target schema.
-    """
-    title = editor_layout.get("display_name", curve_ids[0]) if editor_layout else curve_ids[0]
-    window = ui.Window(
-        f"CurveEditor_{title}",
-        width=_EDITOR_WIDTH,
-        height=_EDITOR_HEIGHT,
-        flags=ui.WINDOW_FLAGS_POPUP | ui.WINDOW_FLAGS_NO_SCROLLBAR | ui.WINDOW_FLAGS_NO_COLLAPSE,
-        padding_x=0,
-        padding_y=0,
-        exclusive_keyboard=True,
-    )
-
-    def close_on_escape(key, _mod, down):
-        if key == int(carb.input.KeyboardInput.ESCAPE) and down:
-            window.visible = False
-
-    window.set_key_pressed_fn(close_on_escape)
-    try:
-        model = PropertyPrimvarCurveModel(
-            prim_paths=target_paths,
-            curve_ids=curve_ids,
-            usd_context_name=context_name,
-            mixed_curve_ids=mixed_curve_ids,
-            logical_group_definition=logical_group_definition,
-        )
-    except Exception:
-        window.destroy()
-        raise
-    model_destroyed = False
-    window_destroyed = False
-    cleanup_task = None
-
-    def destroy_model() -> None:
-        """Destroy the grouped-key model once."""
-        nonlocal model_destroyed
-        if not model_destroyed:
-            model_destroyed = True
-            model.destroy()
-
-    def destroy_window() -> None:
-        """Destroy the editor window once."""
-        nonlocal window_destroyed
-        if not window_destroyed:
-            window_destroyed = True
-            window.destroy()
-
-    async def destroy_after_update() -> None:
-        """Destroy the model and window after UI event dispatch completes."""
-        await omni.kit.app.get_app().next_update_async()
-        destroy_model()
-        destroy_window()
-
-    def destroy_model_on_close(visible: bool) -> None:
-        """Schedule cleanup after the editor window is hidden.
+    def __init__(
+        self,
+        *,
+        target_paths: list[str],
+        curve_ids: list[str],
+        context_name: str,
+        property_name: str,
+        per_curve_bounds: dict[str, CurveBounds],
+        pre_open_fn: Callable[[Callable[[], None]], None],
+        editor_layout: CurveEditorLayout | None = None,
+        logical_group_definition: LogicalGroupDefinition = CURVE_LOGICAL_GROUP_DEFINITION,
+    ) -> None:
+        """Construct a hidden Curve editor without acquiring its model or preparing row data.
 
         Args:
-            visible: Current window visibility.
+            target_paths: Ordered USD prim paths edited by this row.
+            curve_ids: Curve-editor ids exposed by the content.
+            context_name: Owning USD context for data and selection tracking.
+            property_name: Friendly property name displayed in the window title.
+            per_curve_bounds: Curve bounds captured while constructing the row.
+            pre_open_fn: Row preparation that runs before acquiring the model.
+            editor_layout: Optional hierarchy for multi-curve editors.
+            logical_group_definition: Suffix definition supported by the target schema.
         """
-        nonlocal cleanup_task
-        if visible or model_destroyed or window_destroyed:
-            return
-        if cleanup_task is not None and not cleanup_task.done():
-            cleanup_task.cancel()
-        cleanup_task = asyncio.ensure_future(destroy_after_update())
+        self._model: PropertyPrimvarCurveModel | None = None
+        self._widget: CurveEditorWidget | None = None
+        super().__init__(
+            title=f"{property_name} - Curve Editor" if property_name else "Curve Editor",
+            context_name=context_name,
+            pre_open_fn=pre_open_fn,
+        )
+        self._target_paths = target_paths
+        self._curve_ids = curve_ids
+        self._context_name = context_name
+        self._per_curve_bounds = per_curve_bounds
+        self._editor_layout = editor_layout
+        self._logical_group_definition = logical_group_definition
 
-    window.set_visibility_changed_fn(destroy_model_on_close)
-    try:
-        with window.frame:
-            widget = CurveEditorWidget(
-                model=model,
-                layout=editor_layout,
-                per_curve_bounds=per_curve_bounds or {},
-                on_create_curve=lambda cid: _create_default_curve(model, cid),
-                on_delete_curve=lambda cid: _delete_curve(model, cid),
-            )
+    def _build_content(self) -> None:
+        """Build this opening's Curve controls after preparation."""
+        model = self._model = PropertyPrimvarCurveModel(
+            prim_paths=self._target_paths,
+            curve_ids=self._curve_ids,
+            usd_context_name=self._context_name,
+            logical_group_definition=self._logical_group_definition,
+            auto_begin_session=False,
+        )
+
+        if self._closing:
+            return
+        model.begin_session()
+        if self._closing:
+            return
+        widget = self._widget = CurveEditorWidget(
+            model=model,
+            layout=self._editor_layout,
+            per_curve_bounds=self._per_curve_bounds,
+            on_create_curve=lambda curve_id: _create_default_curve(model, curve_id),
+            on_delete_curve=lambda curve_id: model.commit_payload(
+                curve_id, curve_to_payload(FCurve(id=curve_id, keys=[]))
+            ),
+            edit_context_factory=lambda: group(remove_if_empty=True),
+            finalization_context_factory=model.create_finalization_context,
+        )
         widget.fit_all()
-    except Exception:
-        destroy_model()
-        destroy_window()
-        raise
+
+    def _release_content(self) -> None:
+        """Finish editor gestures before releasing this opening's storage model."""
+        widget, self._widget = self._widget, None
+        model, self._model = self._model, None
+        try:
+            if widget is not None:
+                widget.destroy()
+        finally:
+            if model is not None:
+                model.destroy()
+
+    def _on_key_pressed(self, key: int, modifiers: int, is_down: bool) -> None:
+        """Delete selected keys on a plain press while native text editing is inactive."""
+        super()._on_key_pressed(key, modifiers, is_down)
+        if (
+            not self.is_open
+            or self._widget is None
+            or not is_down
+            or key not in (int(KeyboardInput.DEL), int(KeyboardInput.NUMPAD_DEL))
+            or modifiers
+            & (
+                KEYBOARD_MODIFIER_FLAG_CONTROL
+                | KEYBOARD_MODIFIER_FLAG_SHIFT
+                | KEYBOARD_MODIFIER_FLAG_ALT
+                | KEYBOARD_MODIFIER_FLAG_SUPER
+            )
+        ):
+            return
+        fcurve_widget = self._widget.fcurve_widget
+        # Native mouse gestures also set keyboard capture; the owned insertion can finish safely.
+        if modifiers & ui.Widget.FLAG_WANT_CAPTURE_KEYBOARD and (
+            fcurve_widget is None or not fcurve_widget.is_inserting_key
+        ):
+            return
+        self._widget.delete_selected_keys()
 
 
 # ---------------------------------------------------------------------------
@@ -313,30 +302,17 @@ def _open_curve_editor(
 # ---------------------------------------------------------------------------
 
 
-def _curve_builder(item: Item) -> list[ui.Widget]:
-    """Build either a logical outlet curve button or a standalone curve button.
+def _curve_builder(item: Item) -> list[ui.Widget] | None:
+    """Build a Curve button for a logical outlet or standalone attribute.
 
     Args:
         item: Claimed curve item.
-
     Returns:
-        Widgets to render in the value column.
+        Curve button for the value column, or ``None`` when unavailable.
     """
     if isinstance(item, USDLogicalGroupOutletItem):
-        return _build_edit_group_button(item)
-    return _build_single_curve_button(item)
-
-
-def _strip_primvar_prefix(name: str) -> str:
-    """Remove the USD primvar namespace from a curve id.
-
-    Args:
-        name: Curve id or full primvar base name.
-
-    Returns:
-        Curve id without ``primvars:``.
-    """
-    return name.removeprefix(PRIMVAR_PREFIX)
+        return _create_grouped_curve_button(item)
+    return _create_single_curve_button(item)
 
 
 def _read_per_curve_bounds(
@@ -388,92 +364,107 @@ def _read_per_curve_bounds(
     return result
 
 
-def _build_edit_group_button(item: USDLogicalGroupOutletItem) -> list[ui.Widget]:
-    """Build the multi-curve editor button for a logical outlet item.
+def _create_grouped_curve_button(item: USDLogicalGroupOutletItem) -> list[ui.Widget] | None:
+    """Build a multi-curve button for a logical outlet item.
 
     Args:
         item: Synthetic logical group outlet item.
-
     Returns:
-        Button widgets for the row value column.
+        Curve button for the row value column, or ``None`` when unavailable.
     """
     layout = item.edit_group_layout
-    curve_ids = [_strip_primvar_prefix(k) for k in layout.get("curve_map", {})]
+    curve_ids = [k.removeprefix(PRIMVAR_PREFIX) for k in layout.get("curve_map", {})]
     editor_layout = _panel_to_editor_layout(layout)
-    target_paths = item.get_target_paths()
-    if not target_paths:
-        return []
-    source_path = target_paths[-1]
-    bounds = _read_per_curve_bounds(source_path, curve_ids, item.context_name)
+    logical_group_definition = item.logical_group_definition
+    property_name = layout.get("display_name") or "Curves"
 
-    def _open() -> None:
-        """Open the multi-curve editor after pre-open callbacks run."""
-        logical_group_definition = item.logical_group_definition
-        mixed_curve_ids = {
-            curve_id
-            for curve_id in curve_ids
-            if is_logical_group_mixed(
-                item.context_name, target_paths, _curve_attr_names(curve_id, logical_group_definition)
-            )
-        }
-        _open_curve_editor(
-            target_paths,
-            curve_ids,
-            item.context_name,
-            editor_layout,
-            bounds,
-            mixed_curve_ids,
-            logical_group_definition,
-        )
-
-    with ui.HStack(height=ui.Pixel(_FIELD_ROW_HEIGHT)):
-        ui.Spacer(width=ui.Pixel(_FIELD_LEADING_SPACER_WIDTH))
-        with ui.VStack():
-            ui.Spacer(height=ui.Pixel(_FIELD_VERTICAL_SPACER_HEIGHT))
-            button = ui.Button(
-                layout.get("display_name", "Curves"),
-                style_type_name_override="PropertiesWidgetField",
-                tooltip=layout.get("tooltip", ""),
-                clicked_fn=_wrap_pre_open_callback(item, _open),
-            )
-            ui.Spacer(height=ui.Pixel(_FIELD_VERTICAL_SPACER_HEIGHT))
-    return [button]
+    return _create_curve_button(
+        item,
+        curve_ids=curve_ids,
+        property_name=property_name,
+        editor_layout=editor_layout,
+        logical_group_definition=logical_group_definition,
+        tooltip=layout.get("tooltip", ""),
+    )
 
 
-def _build_single_curve_button(item: _BaseUSDAttributeItem) -> list[ui.Widget]:
-    """Build the single-curve editor button for a primary curve attr item.
+def _create_single_curve_button(item: _BaseUSDAttributeItem) -> list[ui.Widget] | None:
+    """Build a single-curve button for a primary curve attribute item.
 
     Args:
         item: Primary curve attr item.
-
     Returns:
-        Button widgets for the row value column.
+        Curve button for the row value column, or ``None`` when unavailable.
     """
     identifier = _generate_identifier(item)
     attr_paths = item.attribute_paths
     if not attr_paths:
-        return []
+        return None
     attr_path = attr_paths[0]
-    target_paths = item.get_target_paths()
-    if not target_paths:
-        return []
     curve_id = attr_path.name.rsplit(":", 1)[0]
     curve_id = curve_id.removeprefix(PRIMVAR_PREFIX)
-    context_name = item.context_name
-    display_name = item.name_models[0].get_value_as_string() if item.name_models else curve_id
-    bounds = _read_per_curve_bounds(target_paths[-1], [curve_id], context_name)
+    display_name = item.name_models[0].get_value_as_string() if item.name_models else ""
+    display_name = display_name or curve_id
 
-    def _open() -> None:
-        """Open the single-curve editor after pre-open callbacks run."""
-        mixed_curve_ids = (
-            {curve_id} if is_logical_group_mixed(context_name, target_paths, _curve_attr_names(curve_id)) else set()
+    return _create_curve_button(
+        item,
+        curve_ids=[curve_id],
+        property_name=display_name,
+        identifier=identifier,
+    )
+
+
+def _create_curve_button(
+    item: _BaseUSDAttributeItem | USDLogicalGroupOutletItem,
+    *,
+    curve_ids: list[str],
+    property_name: str,
+    editor_layout: CurveEditorLayout | None = None,
+    logical_group_definition: LogicalGroupDefinition = CURVE_LOGICAL_GROUP_DEFINITION,
+    identifier: str = "",
+    tooltip: str = "",
+) -> list[ui.Widget] | None:
+    """Build a Curve button with a lazy editor.
+
+    Args:
+        item: Property widget item that owns pre-open behavior.
+        curve_ids: Curve-editor ids exposed by the widget.
+        property_name: Friendly property name displayed in the window title.
+        editor_layout: Optional hierarchy for multi-curve editors.
+        logical_group_definition: Suffix definition supported by the target schema.
+        identifier: Optional interactive-widget identifier.
+        tooltip: Optional button tooltip.
+
+    Returns:
+        Curve button for the row value column, or ``None`` when unavailable.
+    """
+    target_paths = item.get_target_paths()
+    if not target_paths:
+        return None
+    context_name = item.context_name
+    per_curve_bounds = _read_per_curve_bounds(target_paths[-1], curve_ids, context_name)
+
+    def open_editor() -> None:
+        """Launch a fresh Curve editor using the button's current bounds."""
+        anchor_rect = (
+            button.screen_position_x,
+            button.screen_position_y,
+            button.computed_width,
+            button.computed_height,
         )
-        _open_curve_editor(
-            target_paths,
-            [curve_id],
-            context_name,
-            per_curve_bounds=bounds,
-            mixed_curve_ids=mixed_curve_ids,
+        editor = CurveFieldEditor(
+            target_paths=target_paths,
+            curve_ids=curve_ids,
+            property_name=property_name,
+            context_name=context_name,
+            per_curve_bounds=per_curve_bounds,
+            pre_open_fn=item.run_pre_open_callback,
+            editor_layout=editor_layout,
+            logical_group_definition=logical_group_definition,
+        )
+        editor.open(
+            preferred_size=(_EDITOR_WIDTH, _EDITOR_HEIGHT),
+            anchor_rect=anchor_rect,
         )
 
     with ui.HStack(height=ui.Pixel(_FIELD_ROW_HEIGHT)):
@@ -481,33 +472,14 @@ def _build_single_curve_button(item: _BaseUSDAttributeItem) -> list[ui.Widget]:
         with ui.VStack():
             ui.Spacer(height=ui.Pixel(_FIELD_VERTICAL_SPACER_HEIGHT))
             button = ui.Button(
-                display_name,
-                style_type_name_override="PropertiesWidgetField",
+                property_name,
                 identifier=identifier,
-                clicked_fn=_wrap_pre_open_callback(item, _open),
+                tooltip=tooltip,
+                style_type_name_override="PropertiesWidgetField",
+                clicked_fn=open_editor,
             )
             ui.Spacer(height=ui.Pixel(_FIELD_VERTICAL_SPACER_HEIGHT))
     return [button]
-
-
-def _wrap_pre_open_callback(
-    item: _BaseUSDAttributeItem | USDLogicalGroupOutletItem, action: Callable[[], None]
-) -> Callable[[], None]:
-    """Wrap an editor action with an optional pre-open callback.
-
-    Args:
-        item: Property widget item that owns pre-open callback behavior.
-        action: Editor-opening action to run directly or after pre-open handling.
-
-    Returns:
-        Button click callback.
-    """
-
-    def _clicked() -> None:
-        """Run the row pre-open callback when present, otherwise run the action directly."""
-        item.run_pre_open_callback(action)
-
-    return _clicked
 
 
 CURVE_FIELD_BUILDERS = [

@@ -20,6 +20,7 @@ __all__ = (
     "TestAbstractDragFieldUnit",
     "TestColorField",
     "TestColorGradientField",
+    "TestFieldPopupWindow",
     "TestFilePicker",
     "TestFloatDragFieldGroup",
     "TestFloatDragFieldUnit",
@@ -34,9 +35,5 @@ from .e2e import (
     TestFloatDragFieldGroup,
     TestIntDragFieldGroup,
 )
-from .unit import (
-    TestAbstractDragFieldUnit,
-    TestFilePicker,
-    TestFloatDragFieldUnit,
-    TestIntDragFieldUnit,
-)
+from .e2e.test_field_popup_window import TestFieldPopupWindow
+from .unit import TestAbstractDragFieldUnit, TestFilePicker, TestFloatDragFieldUnit, TestIntDragFieldUnit

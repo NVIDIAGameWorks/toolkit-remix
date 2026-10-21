@@ -42,11 +42,17 @@ from omni.flux.property_widget_builder.widget import ItemGroup
 from omni.flux.property_widget_builder.widget import PropertyWidget
 from omni.flux.utils.tests.projects import copy_test_project_to_temp
 from omni.flux.utils.widget.file_pickers import destroy_file_picker
+from omni.flux.utils.tests.context_managers import open_test_project
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage
 from omni.kit.ui_test import Vec2
-from pxr import Sdf, Usd
+from pxr import Gf, Sdf, Usd
+
+__all__ = ["TestAssetReplacementsWidget"]
+
+_PARTICLE_GRADIENT_EDITOR_TITLE = "Min Color Values - Gradient Editor"
+_EDITOR_IDENTITY = "###PropertyPanelFloatingEditor_"
 
 NUM_PIN_ICONS = 4  # Object, Material, Particles, Logic
 NUM_COLLAPSABLE_FRAMES = 7  # Object, Material, Particles, Logic, Selection Tree, Bookmark Tree, History
@@ -1511,6 +1517,113 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
+    async def test_selection_changes_close_pinned_particle_editors_without_retargeting(self):
+        """Selection dismisses a pinned Gradient without retargeting its field."""
+        async with open_test_project(
+            "usd/project_example/combined.usda", ext_name="lightspeed.trex.app.resources", context_name=""
+        ) as project_url:
+            context = omni.usd.get_context("")
+            stage = context.get_stage()
+            selection = context.get_selection()
+            layer = Sdf.Layer.FindOrOpen(str(Path(project_url.path).parent / "replacements.usda"))
+            self.assertIsNotNone(layer)
+            window, widget = await self.__setup_widget("Pinned Particle Editor Selection")
+            gradient_selector = (
+                f"{window.title}//Frame/**/Frame[*].identifier=='{self.PARTICLE_MESH_PATH}.primvars:particle:minColor:values'"
+                "//Rectangle[*].name=='ColorGradientBarOverlay'"
+            )
+
+            async def open_gradient():
+                """Open the rendered pinned Gradient field."""
+                await self.__scroll_to_label(window.title, "Min Color Values", alignment=0.5)
+                overlay = ui_test.find(gradient_selector)
+                self.assertIsNotNone(overlay)
+                await overlay.click()
+                await ui_test.human_delay(1)
+                editor = next(
+                    (
+                        candidate
+                        for candidate in ui.Workspace.get_windows()
+                        if candidate.title.startswith(f"{_PARTICLE_GRADIENT_EDITOR_TITLE}{_EDITOR_IDENTITY}")
+                        and candidate.visible
+                    ),
+                    None,
+                )
+                self.assertIsNotNone(editor)
+                return editor
+
+            try:
+                stage.SetEditTarget(layer)
+                prim = stage.GetPrimAtPath(self.PARTICLE_MESH_PATH)
+                prim.GetAttribute("primvars:particle:minColor:times").Set([0.0, 1.0])
+                values = prim.GetAttribute("primvars:particle:minColor:values")
+                values.Set([Gf.Vec4f(0.0, 0.0, 0.0, 1.0), Gf.Vec4f(1.0, 1.0, 1.0, 1.0)])
+                await self.__set_selection([self.PARTICLE_MESH_PATH])
+                await self.__select_header_menu_item(
+                    window.title, "PARTICLE PROPERTIES", "particle_properties_transfer_overrides", "Expand All"
+                )
+                await self.__scroll_to_label(window.title, "PARTICLE PROPERTIES", alignment=0.5)
+                pin_icons = ui_test.find_all(f"{window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'")
+                self.assertEqual(len(pin_icons), NUM_PIN_ICONS)
+                await pin_icons[2].click()
+                await ui_test.human_delay()
+
+                gradient = await open_gradient()
+
+                particle_frame = widget._particle_properties_collapsable_frame.root
+                header_selector = f"{window.title}//Frame/**/Label[*].text=='PARTICLE PROPERTIES'"
+                self.assertFalse(particle_frame.collapsed)
+                await self.__scroll_to_label(window.title, "PARTICLE PROPERTIES", alignment=0.5)
+                await ui_test.find(header_selector).click()
+                await ui_test.human_delay()
+                self.assertTrue(particle_frame.collapsed)
+                self.assertFalse(gradient.visible)
+
+                await ui_test.find(header_selector).click()
+                await ui_test.human_delay()
+                self.assertFalse(particle_frame.collapsed)
+
+                gradient = await open_gradient()
+                selection.set_selected_prim_paths([], False)
+                await context.selection_changed_async()
+                await ui_test.human_delay(1)
+                self.assertFalse(gradient.visible)
+
+                gradient = await open_gradient()
+                await ui_test.find(f"{gradient.title}//Frame/**/Image[*].name=='MenuBurger'").click()
+                await ui_test.human_delay()
+                await ui_test.select_context_menu("Linear Red")
+                await ui_test.human_delay()
+                self.assertEqual(
+                    [list(value) for value in values.Get()],
+                    [[0.0, 0.0, 0.0, 1.0], [1.0, 0.0, 0.0, 1.0]],
+                )
+                self.assertEqual(selection.get_selected_prim_paths(), [])
+            finally:
+                try:
+                    try:
+                        selection.set_selected_prim_paths(
+                            [] if selection.get_selected_prim_paths() else [self.PARTICLE_MESH_PATH], False
+                        )
+                        await context.selection_changed_async()
+                        await ui_test.human_delay(1)
+                    finally:
+                        if widget._particle_properties_collapsable_frame.pinned:
+                            await self.__scroll_to_label(window.title, "PARTICLE PROPERTIES", alignment=0.5)
+                            pin_icons = ui_test.find_all(
+                                f"{window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'"
+                            )
+                            await pin_icons[2].click()
+                            await ui_test.human_delay()
+                finally:
+                    try:
+                        await self.__destroy(window, widget)
+                        await ui_test.human_delay(1)
+                    finally:
+                        omni.kit.undo.clear_stack()
+                        omni.kit.undo.clear_history()
+                        await ui_test.human_delay()
+
     async def test_object_pinning(self):
         # setup
         _window, _wid = await self.__setup_widget("test_object_pinning")
@@ -1669,9 +1782,11 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
-    async def test_object_and_material_pin_labels_exist(self):
-        # setup
-        _window, _wid = await self.__setup_widget("test_object_and_material_pin_labels_exist")
+    async def test_stage_close_clears_hidden_pins_and_rebinds_rows(self):
+        """Clear hidden stage-owned pins and bind reopened material rows to the new stage."""
+        _window, _wid = await self.__setup_widget("test_stage_close_clears_hidden_pins_and_rebinds_rows")
+        _window.position_y = 0
+        await ui_test.human_delay()
 
         # ensure the material frame exists
         frame_material = ui_test.find(f"{_window.title}//Frame/**/Frame[*].identifier=='frame_material_widget'")
@@ -1683,17 +1798,52 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         await ui_test.human_delay(human_delay_speed=10)
         self.assertTrue(frame_material.widget.visible)
 
-        # click the pin icons to pin and reveal text
+        # Collapse pinned sections so every subsequent pin stays inside the test window.
         pin_icon_images = ui_test.find_all(f"{_window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'")
         self.assertEqual(len(pin_icon_images), NUM_PIN_ICONS)
-        for pin_icon_image in pin_icon_images:
-            await pin_icon_image.click()
+        for title in ("OBJECT PROPERTIES", "MATERIAL PROPERTIES", "PARTICLE PROPERTIES", "LOGIC PROPERTIES"):
+            header = await self.__scroll_to_label(_window.title, title)
+            pin_icon_images = ui_test.find_all(
+                f"{_window.title}//Frame/**/Image[*].identifier=='property_frame_pin_icon'"
+            )
+            pin_icon = min(pin_icon_images, key=lambda icon: abs(icon.center.y - header.center.y))
+            await pin_icon.click()
+            await ui_test.human_delay()
+            header = await self.__scroll_to_label(_window.title, title)
+            await header.click()
             await ui_test.human_delay()
 
-        # ensure the pin label texts are not empty
-        pin_label_texts = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].identifier=='pin_label_text'")
-        for pin_label_text in pin_label_texts:
-            self.assertNotEqual(pin_label_text, "")
+        property_frames = (
+            _wid._mesh_properties_collapsable_frame,
+            _wid._material_properties_collapsable_frame,
+            _wid._particle_properties_collapsable_frame,
+            _wid._logic_properties_collapsable_frame,
+        )
+        self.assertEqual([frame.pinned for frame in property_frames], [True] * NUM_PIN_ICONS)
+        self.assertTrue(_wid._mesh_properties_collapsable_frame.root.collapsed)
+        _wid.show(False)
+
+        # Stage closure must clear pins without a visible pane or a selection refresh.
+        await usd_context.close_stage_async()
+        await ui_test.human_delay()
+        self.assertTrue(all(not frame.pinned for frame in property_frames))
+
+        await open_stage(_get_test_data("usd/project_example/combined.usda"))
+        _wid.show(True)
+        await ui_test.human_delay()
+        self.assertTrue(_wid._mesh_properties_collapsable_frame.root.collapsed)
+        self.assertEqual(usd_context.get_selection().get_selected_prim_paths(), [])
+        self.assertFalse(frame_material.widget.visible)
+
+        # Reusing the same prim path must create rows bound to the newly opened stage.
+        material_header = await self.__scroll_to_label(_window.title, "MATERIAL PROPERTIES")
+        await material_header.click()
+        await ui_test.human_delay()
+        await self.__set_selection(["/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"])
+        self.assertTrue(frame_material.widget.visible)
+        model = _wid._material_properties_widget._material_properties_widget.property_model
+        row = next(item for item in model.get_all_items() if isinstance(item, USDAttributeItem) and item.value_models)
+        self.assertEqual(row.value_models[0].stage, usd_context.get_stage())
 
         await self.__destroy(_window, _wid)
 

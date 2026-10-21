@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.3]
+### Changed
+- Centralized Curve Editor channel colors under semantic style names, with brighter selected RGB labels.
+
 ## [1.27.2]
 ### Added
 - Added active and hovered link-icon styles for grouped transform editing.

@@ -2,6 +2,25 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.0.0]
+
+### Added
+
+- Added focused-popup Delete-key editing with grouped multi-channel undo and text-editing protection, and finalized active curve edits before releasing popup storage.
+- Added `PropertyGroupedKeysModel.create_finalization_context()` for grouped Curve gesture finalization that preserves Redo when every target's complete payload is unchanged.
+
+### Changed
+
+- Moved Curve, Gradient, and texture previews to shared floating windows while preserving per-target values for undo.
+- Added semantic channel-color resolution and grouped Curve toolbar undo while preserving numeric fallbacks and redo for no-op actions.
+- Grouped continuous Curve numeric edits into one undo step and finalized active edits before popup model cleanup.
+- Separated gradient command execution, undo, and redo tests, aligned popup lifecycle assertions with retained preview subscriptions, and declared the direct actions test dependency.
+- Added regression coverage for ignored Undo/Redo shortcuts during Gradient marker and time-field mouse drags and normal undo after release.
+
+### Removed
+
+- Removed `UsdColorGradientWidget`, the `mixed_group_ids` and `pre_open_callback` model constructor arguments, the model's `pre_open_callback` property, and the `mixed_curve_ids` constructor argument; see the README's floating property editor migration guidance.
+
 ## [3.0.0]
 ### Changed
 - Apply logical row values through native property commands in canonical ownership order with exact edit-layer undo, resolving destinations once per row and keeping button-only outlets eligible, visible texture fields writable after refresh, and numeric-looking dropdown labels intact until USD index conversion. Normalize clipboard lists for native vector companions while preserving USD arrays. File-backed clipboard coverage verifies asset paths relative to the destination edit layer. Inherit read-only `is_virtual` and remove type forwarding and an unused debug helper. Removed model-specific clipboard serialization, deserialization, and paste hooks in favor of the shared clipboard helper.

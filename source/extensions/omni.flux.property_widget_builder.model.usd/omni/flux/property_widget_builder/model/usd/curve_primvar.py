@@ -35,8 +35,8 @@ class PropertyPrimvarCurveModel(PropertyGroupedKeysModel):
         curve_ids: list[str],
         usd_context_name: str = "",
         display_names: dict[str, str] | None = None,
-        mixed_curve_ids: set[str] | None = None,
         logical_group_definition: LogicalGroupDefinition = CURVE_LOGICAL_GROUP_DEFINITION,
+        auto_begin_session: bool = True,
     ) -> None:
         """Create an adapter that exposes curve-editor ids over full USD primvar group ids.
 
@@ -48,8 +48,8 @@ class PropertyPrimvarCurveModel(PropertyGroupedKeysModel):
             curve_ids: Curve-editor ids or full primvar base names.
             usd_context_name: USD context containing targets.
             display_names: Optional UI labels keyed by curve id or full group id.
-            mixed_curve_ids: Curve ids known to differ across targets.
             logical_group_definition: Suffix definition for these curve attrs.
+            auto_begin_session: Start immediately unless a property editor owns session timing.
         """
         self._curve_ids = [curve_id.removeprefix(PRIMVAR_PREFIX) for curve_id in curve_ids]
         self._curve_to_group_id = {curve_id: f"{PRIMVAR_PREFIX}{curve_id}" for curve_id in self._curve_ids}
@@ -63,10 +63,7 @@ class PropertyPrimvarCurveModel(PropertyGroupedKeysModel):
             logical_group_definition=logical_group_definition,
             usd_context_name=usd_context_name,
             display_names=group_display_names,
-            mixed_group_ids={
-                f"{PRIMVAR_PREFIX}{curve_id.removeprefix(PRIMVAR_PREFIX)}" for curve_id in mixed_curve_ids or set()
-            },
-            auto_begin_session=True,
+            auto_begin_session=auto_begin_session,
         )
 
     @property

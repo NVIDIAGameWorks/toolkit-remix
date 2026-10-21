@@ -17,30 +17,50 @@
 Bezier curve math utilities.
 
 Internal module providing curve evaluation and automatic tangent computation.
-These functions are used by the widget internals and are not part of the public API.
+``evaluate_curve`` is re-exported by the public package.
 """
 
 from __future__ import annotations
 
 import math as _math
+from bisect import bisect_left
 from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
     from ..model import CurveBounds, FCurve, FCurveKey
 
-from ..model import TangentType
+from ..model import InfinityType, TangentType
 
 __all__ = [
     "BoundingRect",
     "KeyframeGestureData",
     "Vector2",
+    "bezier_parameter_at_time",
     "clamp",
     "compute_keyframe_tangents",
+    "evaluate_curve",
+    "is_key_time_gap_valid",
     "lerp",
     "process_curve",
     "process_keyframes",
 ]
+
+_KEY_TIME_ORDER_TOLERANCE = 1e-12
+_BEZIER_INVERSION_ITERATIONS = 48
+
+
+def is_key_time_gap_valid(left: float, right: float, minimum_gap: float) -> bool:
+    """Accept ordered key times within the minimum-gap roundoff tolerance."""
+    if left > right or (minimum_gap > 0 and left == right):
+        return False
+    return (
+        left + minimum_gap <= right
+        or _math.isclose(left + minimum_gap, right, rel_tol=0.0, abs_tol=_KEY_TIME_ORDER_TOLERANCE)
+    ) and (
+        left <= right - minimum_gap
+        or _math.isclose(left, right - minimum_gap, rel_tol=0.0, abs_tol=_KEY_TIME_ORDER_TOLERANCE)
+    )
 
 
 def lerp(a: float, b: float, t: float) -> float:
@@ -51,6 +71,93 @@ def lerp(a: float, b: float, t: float) -> float:
 def clamp(value: float, min_val: float, max_val: float) -> float:
     """Clamp value to range [min_val, max_val]."""
     return max(min_val, min(max_val, value))
+
+
+def _cubic_bezier(start: float, start_control: float, end_control: float, end: float, parameter: float) -> float:
+    """Evaluate one coordinate of a cubic Bezier curve."""
+    first = lerp(start, start_control, parameter)
+    second = lerp(start_control, end_control, parameter)
+    third = lerp(end_control, end, parameter)
+    return lerp(lerp(first, second, parameter), lerp(second, third, parameter), parameter)
+
+
+def bezier_parameter_at_time(left: FCurveKey, right: FCurveKey, time: float) -> float:
+    """Find the parameter for a finite interior time on a processed Bezier segment.
+
+    Args:
+        left: Earlier key with processed tangent offsets.
+        right: Later key with processed tangent offsets.
+        time: Requested time strictly between the two key times.
+    """
+    lower = 0.0
+    upper = 1.0
+    for _ in range(_BEZIER_INVERSION_ITERATIONS):
+        parameter = (lower + upper) / 2.0
+        curve_time = _cubic_bezier(
+            left.time,
+            left.time + left.out_tangent_x,
+            right.time + right.in_tangent_x,
+            right.time,
+            parameter,
+        )
+        if curve_time == time:
+            break
+        if curve_time < time:
+            lower = parameter
+        else:
+            upper = parameter
+    else:
+        parameter = (lower + upper) / 2.0
+    return parameter
+
+
+def evaluate_curve(curve: FCurve, time: float) -> float:
+    """Evaluate a processed curve at a finite time without mutating it.
+
+    Args:
+        curve: A curve with keys ordered by time and processed tangent offsets.
+        time: The time to evaluate.
+
+    Returns:
+        The curve value at the requested time.
+
+    Raises:
+        ValueError: If the curve is empty or time is not finite.
+    """
+    if not curve.keys or not _math.isfinite(time):
+        raise ValueError("Curve must contain keys and time must be finite")
+
+    keys = curve.keys
+    if len(keys) == 1:
+        return keys[0].value
+
+    if time < keys[0].time:
+        key = keys[0]
+        if curve.pre_infinity == InfinityType.LINEAR and key.out_tangent_x:
+            return key.value + (time - key.time) * key.out_tangent_y / key.out_tangent_x
+        return key.value
+    if time > keys[-1].time:
+        key = keys[-1]
+        if curve.post_infinity == InfinityType.LINEAR and key.in_tangent_x:
+            return key.value + (time - key.time) * key.in_tangent_y / key.in_tangent_x
+        return key.value
+
+    right_index = bisect_left(keys, time, key=lambda key: key.time)
+    right = keys[right_index]
+    if right.time == time:
+        return right.value
+    left = keys[right_index - 1]
+    if left.out_tangent_type == TangentType.STEP or right.time == left.time:
+        return left.value
+
+    parameter = bezier_parameter_at_time(left, right, time)
+    return _cubic_bezier(
+        left.value,
+        left.value + left.out_tangent_y,
+        right.value + right.in_tangent_y,
+        right.value,
+        parameter,
+    )
 
 
 class Vector2:
@@ -369,7 +476,15 @@ def process_keyframes(
         if next_key is not None:
             keyframe_bounds.max.x = next_key.key.time - x_flip_threshold  # Leave a gap for the tangents.
 
+        requested_time = keyframe_pos.x
         keyframe_pos = keyframe_pos.clamped(keyframe_bounds.min, keyframe_bounds.max)
+        if (
+            bounds.min.x <= requested_time <= bounds.max.x
+            and _math.isclose(requested_time, keyframe_pos.x, rel_tol=0.0, abs_tol=_KEY_TIME_ORDER_TOLERANCE)
+            and (prev_key is None or is_key_time_gap_valid(prev_key.key.time, requested_time, x_flip_threshold))
+            and (next_key is None or is_key_time_gap_valid(requested_time, next_key.key.time, x_flip_threshold))
+        ):
+            keyframe_pos.x = requested_time
         current.key.time = keyframe_pos.x
         current.key.value = keyframe_pos.y
 

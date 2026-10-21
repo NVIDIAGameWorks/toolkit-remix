@@ -141,6 +141,15 @@ class PropertyCollapsableFrame:
     def pinned(self):
         return self.__pinned
 
+    def reset_pin(self) -> None:
+        """Clear the pin without invoking the selection-refresh callback."""
+        if not self.__pinned:
+            return
+
+        self.__pinned = False
+        self.__pinned_text = ""
+        self.__frame.rebuild()
+
     def _click_pin(self, button: int) -> None:
         if button != 0:
             return

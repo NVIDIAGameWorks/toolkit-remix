@@ -17,12 +17,9 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import omni.ui as ui
+from omni.flux.property_widget_builder.delegates import ColorGradientField
 from omni.flux.property_widget_builder.widget import ClaimResult, FieldBuilder, Item
-from omni.flux.utils.common.interactive_usd_notices import InteractionToken
-from omni.flux.utils.widget.color_gradient import ColorGradientWidget
 from pxr import Sdf
 
 from ..grouped_keys_primvar import PropertyGroupedKeysModel
@@ -30,10 +27,9 @@ from ..items import _BaseUSDAttributeItem
 from ..logical_group_constants import GRADIENT_LOGICAL_GROUP_DEFINITION, GRADIENT_LOGICAL_SUFFIXES
 from .base import _generate_identifier
 
-__all__ = ("GRADIENT_FIELD_BUILDERS", "UsdColorGradientWidget")
+__all__ = ("GRADIENT_FIELD_BUILDERS",)
 
 _PRIMARY_SUFFIX = "values"
-_FIELD_LEADING_SPACER_WIDTH = 8
 
 _COLOR_ARRAY_TYPES = {
     Sdf.ValueTypeNames.Color3fArray,
@@ -93,103 +89,33 @@ def _claim_gradients(items: list[Item]) -> ClaimResult:
 
 
 # ---------------------------------------------------------------------------
-# USD-aware gradient widget
-# ---------------------------------------------------------------------------
-
-
-class UsdColorGradientWidget(ColorGradientWidget):
-    """Thin ColorGradientWidget adapter that delegates USD behavior to its row item."""
-
-    def __init__(self, model: PropertyGroupedKeysModel, **kwargs: Any) -> None:
-        """Create a gradient widget bound to the row-owned USD grouped-key model.
-
-        Args:
-            model: USD grouped-key model that reads/writes the gradient payload.
-            **kwargs: UI construction options forwarded to ``ColorGradientWidget``.
-        """
-        self._model = model
-        group_ids = model.group_ids
-        super().__init__(
-            model=model,
-            group_id=group_ids[0],
-            **kwargs,
-        )
-
-    @property
-    def _usd_notice_token(self) -> InteractionToken | None:
-        """Return the row model's active USD notice token for compatibility with older tests.
-
-        Returns:
-            Active interaction token, or ``None`` when the popup edit session is closed.
-        """
-        return self._model.usd_notice_token
-
-    def _show_popup(self) -> None:
-        """Run any row pre-open work before showing the gradient popup."""
-        if callable(self._model.pre_open_callback):
-            self._model.pre_open_callback(self._show_popup_after_pre_open)
-            return
-
-        self._show_popup_impl()
-
-    def _show_popup_after_pre_open(self) -> None:
-        """Continue popup opening after pre-open work; the base popup path refreshes model data."""
-        self._show_popup_impl()
-
-    def _show_popup_impl(self) -> None:
-        """Begin the row edit session and show the base gradient popup."""
-        self._model.begin_session()
-        try:
-            super()._show_popup()
-        except Exception:
-            self._model.finish_session()
-            raise
-
-    def _on_window_close(self, visible: bool) -> None:
-        """Finish the row edit session when the popup window becomes hidden.
-
-        Args:
-            visible: Current popup window visibility.
-        """
-        super()._on_window_close(visible)
-        if not visible and self._model is not None:
-            self._model.finish_session()
-
-    def destroy(self) -> None:
-        """Release callback references and row-owned edit listeners."""
-        model = self._model
-        try:
-            super().destroy()
-        finally:
-            if model is not None:
-                model.destroy()
-            self._model = None
-
-
-# ---------------------------------------------------------------------------
 # Builder
 # ---------------------------------------------------------------------------
 
 
-def _gradient_builder(item: Item) -> list[ui.Widget]:
-    """Build a USD-backed color gradient field for the primary gradient item.
+def _gradient_builder(item: Item) -> list[ui.Widget] | None:
+    """Build USD-backed color gradient controls for the primary gradient item.
 
     Args:
         item: Primary gradient item claimed by ``_claim_gradients``.
-
     Returns:
-        Widgets to render in the value column.
+        Gradient controls for the value column, or ``None`` when unavailable.
     """
     identifier = _generate_identifier(item)
     if not item.attribute_paths:
-        return []
+        return None
 
-    frame = ui.Frame(identifier=identifier)
-    with frame:
-        with ui.HStack(spacing=0):
-            ui.Spacer(width=ui.Pixel(_FIELD_LEADING_SPACER_WIDTH))
-            UsdColorGradientWidget(PropertyGroupedKeysModel.from_item(item))
-    return [frame]
+    model = PropertyGroupedKeysModel.from_item(item)
+    display_name = item.name_models[0].get_value_as_string() if item.name_models else ""
+    field = ColorGradientField(
+        model=model,
+        group_id=model.group_ids[0],
+        context_name=item.context_name,
+        pre_open_fn=item.pre_open_callback,
+        title=display_name or model.group_ids[0],
+        identifier=identifier,
+    )
+    return field.build_ui(item)
 
 
 GRADIENT_FIELD_BUILDERS = [

@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.7]
+
+### Fixed
+
+- Cleared Object, Material, Particle, and Logic pins and property targets when their USD stage closes, including hidden or collapsed panels.
+
 ## [1.17.6]
 ### Added
 - Added end-to-end coverage for the Material Properties panel with a replacement mesh whose materials are bound on GeomSubsets.

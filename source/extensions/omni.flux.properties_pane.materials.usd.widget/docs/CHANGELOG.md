@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.12.4]
+### Changed
+- Updated texture-preview coverage for the shared disposable property window.
+
 ## [1.12.3]
 ### Fixed
 - Reduced redundant material refresh and metadata work while preserving common properties.

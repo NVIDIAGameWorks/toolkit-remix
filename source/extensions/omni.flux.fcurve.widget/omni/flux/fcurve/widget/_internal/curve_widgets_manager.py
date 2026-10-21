@@ -25,6 +25,7 @@ Selection changes are deferred to next frame (can't addChild during draw).
 
 from __future__ import annotations
 
+from math import hypot, isclose, isfinite
 from typing import TYPE_CHECKING
 
 import carb.input
@@ -33,20 +34,22 @@ from omni import ui
 
 from .handle_widget import HandleWidget
 from .infinity_curve_widget import InfinityCurveWidget
-from .math import process_curve
+from .math import Vector2, bezier_parameter_at_time, lerp, process_curve
 from .segment_widget import SegmentMode, SegmentWidget
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from ..model import CurveBounds, FCurve, FCurveKey
+    from ..model import CurveBounds, FCurve
     from .viewport import ViewportState
 
-from ..model import TangentType
+from ..model import FCurveKey, TangentType
 
 __all__ = ["CurveWidgetsManager"]
 
 _DEFAULT_X_FLIP_THRESHOLD = 0.001
+_INSERTION_HIT_RADIUS_LOGICAL_PIXELS = 6.0
+_KEY_POSITION_ROUND_TRIP_TOLERANCE_LOCAL_PIXELS = 1e-9
 _DRAGGABLE_TANGENT_TYPES = {TangentType.SMOOTH, TangentType.CUSTOM}
 
 
@@ -101,6 +104,9 @@ class CurveWidgetsManager:
         on_tangent_moved: Callable[[int, bool], None] | None = None,
         on_tangent_released: Callable[[int, bool], None] | None = None,
         on_selection_changed: Callable[[int], None] | None = None,
+        on_insert_started: Callable[[], bool] | None = None,
+        on_key_added: Callable[[int], None] | None = None,
+        on_key_dragged: Callable[[int, tuple[float, float]], None] | None = None,
     ):
         self._curve = curve
         self._vp = viewport
@@ -116,14 +122,22 @@ class CurveWidgetsManager:
         self._on_tangent_moved_cb = on_tangent_moved
         self._on_tangent_released_cb = on_tangent_released
         self._on_selection_changed_cb = on_selection_changed
+        self._on_insert_started = on_insert_started
+        self._on_key_added = on_key_added
+        self._on_key_dragged = on_key_dragged
 
         self._stack: ui.ZStack | None = None
+        self._segment_stack: ui.ZStack | None = None
         self._groups: list[_KeyGroup] = []
         self._curve_segments: list[SegmentWidget] = []
         self._pre_infinity: InfinityCurveWidget | None = None
         self._post_infinity: InfinityCurveWidget | None = None
         self._positions_dirty: bool = False
         self._tangents_dirty: bool = False
+        self._topology_dirty = False
+        self._selected_indices: set[int] = set()
+        self._inserted_key: FCurveKey | None = None
+        self._insert_pointer_offset = (0.0, 0.0)
         self._update_sub = None
         self._zoom: float = 1.0
 
@@ -131,8 +145,15 @@ class CurveWidgetsManager:
     def key_handles(self) -> list[HandleWidget]:
         return [g.key_h for g in self._groups]
 
-    def build(self, stack: ui.ZStack) -> None:
+    @property
+    def is_inserting_key(self) -> bool:
+        """Whether a native segment press owns an inserted key."""
+        return self._inserted_key is not None
+
+    def build(self, stack: ui.ZStack, segment_stack: ui.ZStack | None = None) -> None:
+        """Build handles and segments in their supplied input layers."""
         self._stack = stack
+        self._segment_stack = segment_stack or stack
         process_curve(self._curve, self._bounds, self.x_flip_threshold)
         self._update_sub = (
             omni.kit.app.get_app()
@@ -143,6 +164,10 @@ class CurveWidgetsManager:
 
     def sync(self) -> None:
         self._sync()
+
+    def request_position_sync(self) -> None:
+        """Synchronize changed key positions on the next Kit update without rebuilding handles."""
+        self._positions_dirty = True
 
     def sync_viewport(self) -> None:
         """Position-only sync for viewport changes (pan/zoom/resize). No rebuild."""
@@ -173,6 +198,10 @@ class CurveWidgetsManager:
                 inf.set_line_thickness(line_thickness)
 
     def set_selection(self, selected_indices: set[int]) -> None:
+        """Cache selection immediately and apply it when key handles match the model."""
+        self._selected_indices = set(selected_indices)
+        if self._topology_dirty:
+            return
         changed = False
         for i, g in enumerate(self._groups):
             should = i in selected_indices
@@ -183,9 +212,23 @@ class CurveWidgetsManager:
             self._tangents_dirty = True
 
     def get_selected_indices(self) -> list[int]:
-        return [i for i, g in enumerate(self._groups) if g.key_h.selected]
+        """Return logical selection, including keys awaiting their first handle."""
+        return sorted(self._selected_indices)
+
+    def update_insertion(self, position: tuple[float, float] | None) -> None:
+        """Move the inserted key in local pixels, or finish its original press."""
+        if self._inserted_key is None:
+            return
+        if position is None:
+            key, self._inserted_key = self._inserted_key, None
+            if self._on_key_released:
+                self._on_key_released(self._curve.keys.index(key))
+        else:
+            offset_x, offset_y = self._insert_pointer_offset
+            self._move_key(self._inserted_key, (position[0] + offset_x, position[1] + offset_y))
 
     def destroy(self) -> None:
+        self.update_insertion(None)
         self._update_sub = None
         for inf in (self._pre_infinity, self._post_infinity):
             if inf:
@@ -198,8 +241,12 @@ class CurveWidgetsManager:
             g.destroy()
         self._groups.clear()
         self._stack = None
+        self._segment_stack = None
 
     def _on_update(self, _event) -> None:
+        """Apply deferred topology, selection, and position changes outside drawing."""
+        if self._topology_dirty:
+            self._sync()
         if self._tangents_dirty:
             self._tangents_dirty = False
             self._rebuild_tangents()
@@ -212,13 +259,17 @@ class CurveWidgetsManager:
     # ── Core sync ───────────────────────────────────────────────────────────
 
     def _sync(self) -> None:
+        """Synchronize handles before applying selection and rebuilding segments."""
         topology_changed = self._sync_topology(self._curve.keys)
+        self._topology_dirty = False
+        self.set_selection(self._selected_indices)
         if topology_changed:
             self._rebuild_curve_segments()
             self._rebuild_infinity()
         self._rebuild_tangents()
         self._tangents_dirty = False
         self._sync_positions()
+        self._positions_dirty = False
         self._apply_zoom()
 
     def _sync_topology(self, keys: list) -> bool:
@@ -279,6 +330,7 @@ class CurveWidgetsManager:
                         handle_name="FCurveTangent",
                         handle_size=self._tangent_size,
                         on_moved=lambda h, _k=key: self._on_tangent_moved(h, _k, is_in=True),
+                        on_pressed=lambda _h, mod, _k=key: self._on_handle_pressed(_k, mod),
                         on_released=lambda h, _m, _k=key: self._on_tangent_released(h, _k, is_in=True),
                     )
                     g.in_seg = SegmentWidget(
@@ -297,6 +349,7 @@ class CurveWidgetsManager:
                         handle_name="FCurveTangent",
                         handle_size=self._tangent_size,
                         on_moved=lambda h, _k=key: self._on_tangent_moved(h, _k, is_in=False),
+                        on_pressed=lambda _h, mod, _k=key: self._on_handle_pressed(_k, mod),
                         on_released=lambda h, _m, _k=key: self._on_tangent_released(h, _k, is_in=False),
                     )
                     g.out_seg = SegmentWidget(
@@ -318,22 +371,29 @@ class CurveWidgetsManager:
             handle_size=self._key_size,
             on_moved=self._on_key_moved,
             on_released=self._on_key_released_internal,
-            on_pressed=self._on_key_pressed_internal,
+            on_pressed=lambda _h, mod: self._on_handle_pressed(key, mod),
             on_selection_changed=self._on_key_selection_changed,
         )
         return _KeyGroup(key, kh)
 
     def _rebuild_curve_segments(self) -> None:
+        """Rebuild finite segments after the shared handle layer."""
         for seg in self._curve_segments:
             seg.destroy()
         self._curve_segments.clear()
         if not self._stack:
             return
-        with self._stack:
+        with self._segment_stack:
             for i in range(len(self._groups) - 1):
                 mode = self._segment_mode_for(i)
                 self._curve_segments.append(
-                    SegmentWidget(mode, self._groups[i].key_h, self._groups[i + 1].key_h, color=self._curve_color)
+                    SegmentWidget(
+                        mode,
+                        self._groups[i].key_h,
+                        self._groups[i + 1].key_h,
+                        color=self._curve_color,
+                        on_pressed=lambda parameter, x, y, index=i: self._insert_key(index, parameter, x, y),
+                    )
                 )
 
     def _update_curve_segments(self) -> None:
@@ -352,13 +412,14 @@ class CurveWidgetsManager:
                 seg.update_step_elbow()
 
     def _rebuild_infinity(self) -> None:
+        """Rebuild the noninteractive infinity segments."""
         for inf in (self._pre_infinity, self._post_infinity):
             if inf:
                 inf.destroy()
         self._pre_infinity = self._post_infinity = None
         if not self._stack or not self._groups:
             return
-        with self._stack:
+        with self._segment_stack:
             self._pre_infinity = InfinityCurveWidget(self._groups[0].key_h, is_pre=True, color=self._curve_color)
             self._post_infinity = InfinityCurveWidget(self._groups[-1].key_h, is_pre=False, color=self._curve_color)
 
@@ -378,6 +439,105 @@ class CurveWidgetsManager:
     def _segment_mode_for(self, i: int) -> SegmentMode:
         return SegmentMode.STEP if self._curve.keys[i].out_tangent_type == TangentType.STEP else SegmentMode.BEZIER
 
+    def _insert_key(self, index: int, parameter: float, x: float, y: float) -> None:
+        """Split a native segment without changing its shape and begin a held edit."""
+        curve = self._curve
+        if (
+            self._on_insert_started is None
+            or self.is_inserting_key
+            or curve.locked
+            or not curve.visible
+            or not 0.0 <= parameter <= 1.0
+            or not 0 <= index < len(curve.keys) - 1
+        ):
+            return
+
+        start, end = curve.keys[index : index + 2]
+        is_step = start.out_tangent_type == TangentType.STEP
+        pointer_x = (x - self._stack.screen_position_x) / self._zoom
+        pointer_y = (y - self._stack.screen_position_y) / self._zoom
+        for attempt in range(2):
+            if attempt:
+                if is_step:
+                    return
+                # ponytail: Pointer-time retry is not a nearest-point solve; expand only for measured remaining misses.
+                time = self._vp.x_to_time(pointer_x)
+                if not start.time < time < end.time:
+                    return
+                parameter = bezier_parameter_at_time(start, end, time)
+            if not 0.0 < parameter < 1.0:
+                continue
+            if is_step:
+                position = Vector2(lerp(start.time, end.time, parameter), start.value)
+            else:
+                start_point = Vector2(start.time, start.value)
+                end_point = Vector2(end.time, end.value)
+                start_control = start_point + Vector2(start.out_tangent_x, start.out_tangent_y)
+                end_control = end_point + Vector2(end.in_tangent_x, end.in_tangent_y)
+                first = start_point + (start_control - start_point) * parameter
+                middle = start_control + (end_control - start_control) * parameter
+                last = end_control + (end_point - end_control) * parameter
+                incoming = first + (middle - first) * parameter
+                outgoing = middle + (last - middle) * parameter
+                position = incoming + (outgoing - incoming) * parameter
+                start_tangent, end_tangent = first - start_point, last - end_point
+                incoming_tangent, outgoing_tangent = incoming - position, outgoing - position
+                left_width, right_width = position.x - start.time, end.time - position.x
+
+            if not isfinite(position.x) or not isfinite(position.y) or not start.time < position.x < end.time:
+                return
+            key_x, key_y = self._vp.model_to_pixel(position.x, position.y)
+            pointer_offset = (key_x - pointer_x, key_y - pointer_y)
+            if hypot(*pointer_offset) * self._zoom <= _INSERTION_HIT_RADIUS_LOGICAL_PIXELS:
+                break
+        else:
+            return
+        if any(abs(key.time - position.x) < self.x_flip_threshold or key.time == position.x for key in curve.keys):
+            carb.log_info(f"Key insertion skipped on curve '{curve.id}': the time is too close to an existing key.")
+            return
+        # Reject splits whose handles would change shape when process_curve clamps them.
+        if not is_step and not (
+            self.x_flip_threshold <= start_tangent.x <= left_width
+            and self.x_flip_threshold <= -incoming_tangent.x <= left_width
+            and self.x_flip_threshold <= outgoing_tangent.x <= right_width
+            and self.x_flip_threshold <= -end_tangent.x <= right_width
+        ):
+            carb.log_info(
+                f"Key insertion skipped on curve '{curve.id}': preserving the curve shape would exceed tangent limits."
+            )
+            return
+        if not self._on_insert_started():
+            return
+
+        inserted = FCurveKey(time=position.x, value=position.y)
+        if is_step:
+            inserted.in_tangent_type = inserted.out_tangent_type = TangentType.STEP
+        else:
+            start.out_tangent_x, start.out_tangent_y = start_tangent.x, start_tangent.y
+            end.in_tangent_x, end.in_tangent_y = end_tangent.x, end_tangent.y
+            inserted.in_tangent_x, inserted.in_tangent_y = incoming_tangent.x, incoming_tangent.y
+            inserted.out_tangent_x, inserted.out_tangent_y = outgoing_tangent.x, outgoing_tangent.y
+            start.out_tangent_type = end.in_tangent_type = TangentType.CUSTOM
+            inserted.in_tangent_type = inserted.out_tangent_type = TangentType.CUSTOM
+
+        # AUTO depends on both neighbors; linked tangents also copy the opposite type.
+        if index > 0 and (start.in_tangent_type == TangentType.AUTO or (not is_step and not start.tangent_broken)):
+            start.in_tangent_type = TangentType.CUSTOM
+        if index + 2 < len(curve.keys):
+            if not is_step and not end.tangent_broken and end.out_tangent_type == TangentType.STEP:
+                end.tangent_broken = True
+            elif end.out_tangent_type == TangentType.AUTO or (not is_step and not end.tangent_broken):
+                end.out_tangent_type = TangentType.CUSTOM
+                if not end.tangent_broken:
+                    end.in_tangent_type = TangentType.CUSTOM
+
+        curve.keys.insert(index + 1, inserted)
+        self._inserted_key = inserted
+        self._insert_pointer_offset = pointer_offset
+        self._topology_dirty = True
+        if self._on_key_added:
+            self._on_key_added(index + 1)
+
     # ── Drag callbacks ──────────────────────────────────────────────────────
 
     def _group_for(self, handle: HandleWidget) -> tuple[_KeyGroup | None, int]:
@@ -386,16 +546,32 @@ class CurveWidgetsManager:
                 return g, i
         return None, -1
 
-    def _on_key_pressed_internal(self, handle: HandleWidget, mod: int) -> None:
-        _, idx = self._group_for(handle)
-        if idx >= 0 and self._on_key_pressed:
-            self._on_key_pressed(idx, mod)
+    def _on_handle_pressed(self, key: FCurveKey, mod: int) -> None:
+        """Claim key and tangent presses through the existing edit callback."""
+        if self._on_key_pressed:
+            self._on_key_pressed(self._curve.keys.index(key), mod)
 
     def _on_key_moved(self, handle: HandleWidget) -> None:
-        _, idx = self._group_for(handle)
-        if idx < 0:
+        """Delegate held key movement to the selection owner when supplied."""
+        group, index = self._group_for(handle)
+        if group:
+            if self._on_key_dragged:
+                # Release snaps the placer to its model position; it is not another pointer delta.
+                if handle.is_dragging:
+                    self._on_key_dragged(index, handle.raw_px)
+            else:
+                self._move_key(group.key_ref, handle.raw_px)
+
+    def _move_key(self, key: FCurveKey, position: tuple[float, float]) -> None:
+        """Constrain a dragged key and publish its changed position."""
+        # Ignore floating-point round trips before reprocessing automatic tangents.
+        if all(
+            isclose(a, b, rel_tol=0.0, abs_tol=_KEY_POSITION_ROUND_TRIP_TOLERANCE_LOCAL_PIXELS)
+            for a, b in zip(position, self._vp.model_to_pixel(key.time, key.value))
+        ):
             return
-        raw_t, raw_v = self._vp.pixel_to_model(*handle.raw_px)
+        raw_t, raw_v = self._vp.pixel_to_model(*position)
+        idx = self._curve.keys.index(key)
         process_curve(self._curve, self._bounds, self.x_flip_threshold, key_positions={idx: (raw_t, raw_v)})
         self._positions_dirty = True
         if self._on_key_moved_cb:
@@ -408,11 +584,13 @@ class CurveWidgetsManager:
             self._on_key_released(idx)
 
     def _on_key_selection_changed(self, handle: HandleWidget, mod: int) -> None:
+        """Update logical selection from native handle selection."""
         multi = bool(mod & carb.input.KEYBOARD_MODIFIER_FLAG_SHIFT)
         if handle.selected and not multi:
             for g in self._groups:
                 if g.key_h is not handle and g.key_h.selected:
                     g.key_h.selected = False
+        self._selected_indices = {i for i, group in enumerate(self._groups) if group.key_h.selected}
         # Defer tangent rebuild to next frame -- can't addChild during draw callback
         self._tangents_dirty = True
         if self._on_selection_changed_cb:

@@ -30,6 +30,7 @@ __all__ = (
     "DefaultField",
     "DefaultLabelField",
     "DragFieldGroupCoordinator",
+    "FieldPopupWindow",
     "FileAccess",
     "FileFlags",
     "FilePicker",
@@ -45,6 +46,7 @@ from omni.flux.utils.common.types import RealNumber, ScalarValue
 
 from .base import AbstractDragFieldGroup, AbstractField, DragFieldGroupCoordinator
 from .default import ComboboxField, CreatorField, DefaultField
+from .field_popup_window import FieldPopupWindow
 from .float_value import ColorField, ColorGradientField, FloatDragFieldGroup
 from .int_value import BytesToHuman, IntDragFieldGroup
 from .string_value import DefaultLabelField, FileAccess, FileFlags, FilePicker, MultilineField, NameField

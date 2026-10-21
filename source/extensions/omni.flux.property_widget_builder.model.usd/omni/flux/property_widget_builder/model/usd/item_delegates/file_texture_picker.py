@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ("FileTexturePicker",)
+__all__ = ("FileTexturePicker", "TexturePreviewEditor")
 
 import functools
 import os
@@ -31,6 +31,7 @@ import omni.client
 import omni.ui as ui
 import omni.usd
 from omni.flux.asset_importer.core.data_models import SUPPORTED_TEXTURE_EXTENSIONS as _SUPPORTED_TEXTURE_EXTENSIONS
+from omni.flux.property_widget_builder.delegates import FieldPopupWindow
 from omni.flux.property_widget_builder.delegates.string_value.file_picker import FilePicker as _FilePicker
 from omni.kit.widget.prompt import PromptButtonInfo as _PromptButtonInfo
 from omni.kit.widget.prompt import PromptManager as _PromptManager
@@ -48,10 +49,178 @@ if TYPE_CHECKING:
     from omni.flux.property_widget_builder.widget import ItemModelBase
 
 
+class TexturePreviewEditor(FieldPopupWindow):
+    """Display one texture and its file metadata in the shared disposable property window."""
+
+    def __init__(
+        self,
+        *,
+        resolved_path: str | None,
+        title: str,
+        context_name: str,
+    ) -> None:
+        """Capture preview inputs without loading the image or creating metadata controls.
+
+        Args:
+            resolved_path: Resolved texture path captured from the clicked attribute.
+            title: Existing filename and property label shown in the native title.
+            context_name: Owning USD context whose selection dismisses the preview.
+        """
+        self._resolved_path = resolved_path
+        self._texture_attributes_widget = None
+        super().__init__(title=title, context_name=context_name)
+
+    def _build_content(self) -> None:
+        """Build the captured texture preview without a grouped-key editing session."""
+        if not self._resolved_path or not _path_utils.is_file_path_valid(self._resolved_path):
+            self._build_no_image_ui()
+        else:
+            self._build_image_preview_ui(self._resolved_path)
+
+    def _release_content(self) -> None:
+        """Release detached preview controls and their owned file metadata."""
+        try:
+            if self._texture_attributes_widget is not None:
+                self._texture_attributes_widget.destroy()
+        finally:
+            self._texture_attributes_widget = None
+            self._resolved_path = None
+
+    def _build_no_image_ui(self) -> None:
+        """Build the existing empty-preview presentation."""
+        with ui.ZStack():
+            with ui.ScrollingFrame(
+                name="PreviewWindowBackground",
+                vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                scroll_y_max=0,
+            ):
+                with ui.HStack():
+                    for _ in range(5):
+                        with ui.VStack():
+                            for _ in range(5):
+                                ui.Image(
+                                    "",
+                                    name="TreePanelLinesBackground",
+                                    fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT,
+                                    height=ui.Pixel(256),
+                                    width=ui.Pixel(256),
+                                )
+            with ui.Frame(separate_window=True):
+                ui.Label(
+                    "No texture to preview",
+                    alignment=ui.Alignment.CENTER,
+                    name="PropertiesPaneSectionCaptureTreeItemNoImage",
+                )
+
+    @staticmethod
+    def _get_resolution(path: str) -> tuple[int, int]:
+        """
+        Get the width and height of the provided image file.
+        """
+        try:
+            im = Image.open(path)
+        except NotImplementedError as exc:
+            carb.log_warn(f"Error reading image {path!r}, attempting workaround to extract resolution")
+
+            # TODO: REMIX-2468
+            #  There is an issue with BC4 dds images in PIL. The issue is nvtt uses the DX10 header so it can
+            #  specify the exact DXGI format, but PIL lacks support for BC4 with this header. The ticket above
+            #  is for opening a PR with PIL and once that is merged we can update the PIL dependency and remove
+            #  this fix.
+
+            # Below code extracted from Pillow's DdsImagePlugin implementation
+            # https://github.com/python-pillow/Pillow/blob/main/src/PIL/DdsImagePlugin.py
+
+            with open(path, "rb") as fp:
+                if fp.read(4)[:4] != b"DDS ":
+                    # Re-raise the original error here if the file isn't a candidate for our hack
+                    raise
+                (header_size,) = struct.unpack("<I", fp.read(4))
+                if header_size != 124:
+                    raise OSError(f"Unsupported header size {repr(header_size)}") from exc
+                header_bytes = fp.read(header_size - 4)
+                if len(header_bytes) != 120:
+                    raise OSError(f"Incomplete header: {len(header_bytes)} bytes") from exc
+                header = BytesIO(header_bytes)
+                _, height, width = struct.unpack("<3I", header.read(12))
+            return width, height
+
+        width, height = im.width, im.height
+        im.close()
+        return width, height
+
+    def _build_image_preview_ui(self, resolved_path: str) -> None:
+        """Build the image and its existing file metadata controls."""
+        # Get the image file attributes
+        file_attributes = []
+
+        width, height = self._get_resolution(resolved_path)
+        file_attributes.append(_CustomFileAttributeItem([f"{width} px", f"{height} px"], "Resolution"))
+
+        file_attributes.extend(
+            _FileAttributeItem(resolved_path, attr, display_attr_name=attr.replace("_", " ").capitalize())
+            for attr in dir(omni.client.ListEntry)
+            if not attr.startswith("_")
+        )
+        file_attributes_delegate = _FileDelegate()
+        file_attributes_model = _FileModel(resolved_path)
+        file_attributes_model.set_items(file_attributes)
+
+        with ui.HStack():
+            with ui.ZStack():
+                with ui.ScrollingFrame(
+                    name="PreviewWindowBackground",
+                    vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                    horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                    scroll_y_max=0,
+                ):
+                    with ui.HStack():
+                        for _ in range(5):
+                            with ui.VStack():
+                                for _ in range(5):
+                                    ui.Image(
+                                        "",
+                                        name="TreePanelLinesBackground",
+                                        fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT,
+                                        height=ui.Pixel(256),
+                                        width=ui.Pixel(256),
+                                    )
+                with ui.CanvasFrame(style_type_name_override="ImagePreviewCanvas"):
+                    with Image.open(resolved_path) as im:
+                        provider = ui.ByteImageProvider()
+                        rgba_im = im.convert("RGBA")
+                        provider.set_bytes_data(list(rgba_im.getdata()), [rgba_im.size[0], rgba_im.size[1]])
+                        ui.ImageWithProvider(provider)
+            with ui.ScrollingFrame(name="WorkspaceBackground", width=ui.Pixel(300)):
+                with ui.HStack():
+                    ui.Spacer(width=ui.Pixel(16))
+                    with ui.VStack():
+                        ui.Spacer(height=ui.Pixel(16))
+                        self._texture_attributes_widget = _PropertyWidget(
+                            file_attributes_model, file_attributes_delegate
+                        )
+                        ui.Spacer(height=ui.Pixel(8))
+                        ui.Button(
+                            "Show File in Explorer",
+                            height=ui.Pixel(24),
+                            mouse_released_fn=lambda x, y, b, m: self._open_explorer(b, resolved_path),
+                        )
+                        ui.Spacer(height=ui.Pixel(16))
+                    ui.Spacer(width=ui.Pixel(8))
+
+    @staticmethod
+    def _open_explorer(button: int, file_path: str) -> None:
+        """Open the file's containing folder for a left-button release."""
+        if button != 0:
+            return
+        path = Path(file_path)
+        os.startfile(path.parent if path.is_file() else path)
+
+
 class FileTexturePicker(_FilePicker):
     """Delegate of the tree"""
 
-    POPUP_OFFSET = 40
     POPUP_WIDTH = 600
     POPUP_HEIGHT = 320
 
@@ -67,8 +236,6 @@ class FileTexturePicker(_FilePicker):
         super().__init__(file_extension_options=file_extension_options, style_name=style_name)
 
         self._regex_hash = regex_hash
-        self._preview_window = None
-        self._preview_button = None
 
         # Populated during a right click event within `_show_copy_menu` to avoid garbage collection
         self._context_menu: ui.Menu | None = None
@@ -147,180 +314,57 @@ class FileTexturePicker(_FilePicker):
                     ui.Spacer(width=ui.Pixel(8))
                     with ui.VStack(width=ui.Pixel(20)):
                         ui.Spacer()
-                        self._preview_button = ui.Image(
+                        preview_button = ui.Image(
                             "",
                             name="Preview",
+                            width=ui.Pixel(20),
                             height=ui.Pixel(20),
-                            mouse_pressed_fn=functools.partial(self._preview_image, item.value_models[i], i),
+                        )
+                        preview_button.set_mouse_pressed_fn(
+                            functools.partial(
+                                self._preview_image, item.value_models[i], i, preview_button, item.name_models[0]
+                            )
                         )
                         ui.Spacer()
 
-            # Initialize the preview window with a unique title/window ID so that it has its own instance in memory
-            item_raw_value = item.value_models[0].get_attributes_raw_value(0)
-            # Use the texture path as part of the title and fallback on using the asset name
-            if item_raw_value is not None and item_raw_value != "":
-                title_path = os.path.basename(item_raw_value.resolvedPath)
-            else:
-                title_path = item.value_models[0].attribute_paths[0].pathString.split("/")[3]
-
-            self._preview_window = ui.Window(
-                title=f"{title_path} - {item.name_models[0].get_value_as_string()}",
-                name="PropertiesPaneSectionWindow",
-                width=self.POPUP_WIDTH,
-                height=self.POPUP_HEIGHT,
-                visible=False,
-                flags=(ui.WINDOW_FLAGS_NO_DOCKING | ui.WINDOW_FLAGS_NO_COLLAPSE | ui.WINDOW_FLAGS_NO_SCROLLBAR),
-            )
         return widgets
 
-    def _preview_image(self, value_model: "ItemModelBase", element_index, x, y, button, modifier):
+    def _preview_image(
+        self,
+        value_model: "_UsdAttributeValueModel",
+        element_index: int,
+        preview_button: ui.Image,
+        name_model: "ItemModelBase",
+        x,
+        y,
+        button,
+        modifier,
+    ) -> None:
+        """Open a fresh preview using the clicked value and its launcher bounds."""
         if button != 0:
             return
 
-        # Get the raw path attribute to get the resolved path
         raw_value = value_model.get_attributes_raw_value(element_index)
         resolved_path = raw_value.resolvedPath if raw_value is not None else None
-
-        self._preview_window.frame.clear()
-        if not resolved_path or not _path_utils.is_file_path_valid(resolved_path):
-            self._build_no_image_ui()
+        if raw_value is not None and raw_value != "":
+            title_path = os.path.basename(raw_value.resolvedPath)
         else:
-            self._build_image_preview_ui(resolved_path)
-
-        self._preview_window.setPosition(
-            self._preview_button.screen_position_x + ui.Pixel(self.POPUP_OFFSET),
-            self._preview_button.screen_position_y - ui.Pixel(self.POPUP_HEIGHT / 2),
+            title_path = value_model.attribute_paths[0].pathString.split("/")[3]
+        title = f"{title_path} - {name_model.get_value_as_string()}"
+        context_name = value_model.context_name
+        anchor_rect = (
+            preview_button.screen_position_x,
+            preview_button.screen_position_y,
+            preview_button.computed_width,
+            preview_button.computed_height,
         )
-        self._preview_window.visible = True
 
-    def _build_no_image_ui(self):
-        with self._preview_window.frame:
-            with ui.ZStack():
-                with ui.ScrollingFrame(
-                    name="PreviewWindowBackground",
-                    vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                    horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                    scroll_y_max=0,
-                ):
-                    with ui.HStack():
-                        for _ in range(5):
-                            with ui.VStack():
-                                for _ in range(5):
-                                    ui.Image(
-                                        "",
-                                        name="TreePanelLinesBackground",
-                                        fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT,
-                                        height=ui.Pixel(256),
-                                        width=ui.Pixel(256),
-                                    )
-                with ui.Frame(separate_window=True):
-                    ui.Label(
-                        "No texture to preview",
-                        alignment=ui.Alignment.CENTER,
-                        name="PropertiesPaneSectionCaptureTreeItemNoImage",
-                    )
-
-    @staticmethod
-    def _get_resolution(path: str) -> tuple[int, int]:
-        """
-        Get the width and height of the provided image file.
-        """
-        try:
-            im = Image.open(path)
-        except NotImplementedError as exc:
-            carb.log_warn(f"Error reading image {path!r}, attempting workaround to extract resolution")
-
-            # TODO: REMIX-2468
-            #  There is an issue with BC4 dds images in PIL. The issue is nvtt uses the DX10 header so it can
-            #  specify the exact DXGI format, but PIL lacks support for BC4 with this header. The ticket above
-            #  is for opening a PR with PIL and once that is merged we can update the PIL dependency and remove
-            #  this fix.
-
-            # Below code extracted from Pillow's DdsImagePlugin implementation
-            # https://github.com/python-pillow/Pillow/blob/main/src/PIL/DdsImagePlugin.py
-
-            with open(path, "rb") as fp:
-                if fp.read(4)[:4] != b"DDS ":
-                    # Re-raise the original error here if the file isn't a candidate for our hack
-                    raise
-                (header_size,) = struct.unpack("<I", fp.read(4))
-                if header_size != 124:
-                    raise OSError(f"Unsupported header size {repr(header_size)}") from exc
-                header_bytes = fp.read(header_size - 4)
-                if len(header_bytes) != 120:
-                    raise OSError(f"Incomplete header: {len(header_bytes)} bytes") from exc
-                header = BytesIO(header_bytes)
-                _, height, width = struct.unpack("<3I", header.read(12))
-            return width, height
-
-        width, height = im.width, im.height
-        im.close()
-        return width, height
-
-    def _build_image_preview_ui(self, resolved_path):
-        # Get the image file attributes
-        file_attributes = []
-
-        width, height = self._get_resolution(resolved_path)
-        file_attributes.append(_CustomFileAttributeItem([f"{width} px", f"{height} px"], "Resolution"))
-
-        file_attributes.extend(
-            _FileAttributeItem(resolved_path, attr, display_attr_name=attr.replace("_", " ").capitalize())
-            for attr in dir(omni.client.ListEntry)
-            if not attr.startswith("_")
+        editor = TexturePreviewEditor(
+            resolved_path=resolved_path,
+            title=title,
+            context_name=context_name,
         )
-        file_attributes_delegate = _FileDelegate()
-        file_attributes_model = _FileModel(resolved_path)
-        file_attributes_model.set_items(file_attributes)
-
-        with self._preview_window.frame:
-            with ui.HStack():
-                with ui.ZStack():
-                    with ui.ScrollingFrame(
-                        name="PreviewWindowBackground",
-                        vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                        horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
-                        scroll_y_max=0,
-                    ):
-                        with ui.HStack():
-                            for _ in range(5):
-                                with ui.VStack():
-                                    for _ in range(5):
-                                        ui.Image(
-                                            "",
-                                            name="TreePanelLinesBackground",
-                                            fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT,
-                                            height=ui.Pixel(256),
-                                            width=ui.Pixel(256),
-                                        )
-                    with ui.CanvasFrame(style_type_name_override="ImagePreviewCanvas"):
-                        with Image.open(resolved_path) as im:
-                            provider = ui.ByteImageProvider()
-                            rgba_im = im.convert("RGBA")
-                            provider.set_bytes_data(list(rgba_im.getdata()), [rgba_im.size[0], rgba_im.size[1]])
-                            self._texture_viewer_widget = ui.ImageWithProvider(provider)
-                with ui.ScrollingFrame(name="WorkspaceBackground", width=ui.Pixel(300)):
-                    with ui.HStack():
-                        ui.Spacer(width=ui.Pixel(16))
-                        with ui.VStack():
-                            ui.Spacer(height=ui.Pixel(16))
-                            self._texture_attributes_widget = _PropertyWidget(
-                                file_attributes_model, file_attributes_delegate
-                            )
-                            ui.Spacer(height=ui.Pixel(8))
-                            ui.Button(
-                                "Show File in Explorer",
-                                height=ui.Pixel(24),
-                                mouse_released_fn=lambda x, y, b, m: self._open_explorer(b, resolved_path),
-                            )
-                            ui.Spacer(height=ui.Pixel(16))
-                        ui.Spacer(width=ui.Pixel(8))
-
-    def _open_explorer(self, button, file_path):
-        if button != 0:
-            return
-        path = Path(file_path)
-        os.startfile(path.parent if path.is_file() else path)
+        editor.open(preferred_size=(self.POPUP_WIDTH, self.POPUP_HEIGHT), anchor_rect=anchor_rect)
 
     def _on_navigate_to(
         self, path, value_model: "_UsdAttributeValueModel", element_current_idx: int

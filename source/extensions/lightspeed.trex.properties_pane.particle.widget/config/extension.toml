@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.7.3"
+version = "1.7.6"
 authors = ["Emanuel Kozerski <ekozerski@nvidia.com>"]
 title = "Remix Particle System Properties Widget"
 description = "Properties panel for RemixParticleSystem prim types"
@@ -30,5 +30,10 @@ name = "lightspeed.trex.properties_pane.particle.widget"
 
 [[test]]
 dependencies = [
-    "omni.flux.tests.dependencies",
+    "lightspeed.trex.app.style",
+    "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
 ]

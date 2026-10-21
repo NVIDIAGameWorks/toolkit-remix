@@ -41,6 +41,8 @@ TOOLBAR_BUTTON_ICONS: dict[str, str] = {
     "TangentAuto": "Tangent_Auto",
     "TangentSmooth": "Tangent_Smooth",
     "TangentCustom": "Tangent_Custom",
+    "FrameTime": "Frame_Time",
+    "FrameValue": "Frame_Value",
 }
 
 DEFAULT_STYLE: dict[str, dict] = {
@@ -89,9 +91,6 @@ DEFAULT_STYLE: dict[str, dict] = {
     # ── Panels ────────────────────────────────────────────────────────────────
     "Rectangle::CurveEditorToolbarBg": {
         "background_color": 0xFF343434,
-    },
-    "HStack::CurveEditorToolbar": {
-        "margin_width": 8,
     },
     "Rectangle::CurveEditorTreePanelBg": {
         "background_color": 0xFF252525,

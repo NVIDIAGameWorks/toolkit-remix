@@ -21,6 +21,7 @@ from .e2e.test_collapsable_frame import TestPropertyCollapsableFrame
 from .e2e.test_hover_helper import TestHoverHelper
 from .e2e.test_scrolling_tree_widget import TestScrollingTreeWidgetLifecycle
 from .unit.test_combo_box import TestSectionedComboBox
+from .unit.test_color_gradient_widget import TestColorGradientWidgetLogic
 from .unit.test_gradient import TestGradientUtils
 from .unit.test_grouped_keys_model import TestInMemoryGroupedKeysModel
 from .unit.test_prim_string_field import TestUsdPrimNameFieldStyle
@@ -40,6 +41,7 @@ __all__ = [
     "TestAlternatingRowWidget",
     "TestBoundedNumericDragBase",
     "TestColorGradientWidget",
+    "TestColorGradientWidgetLogic",
     "TestFilePicker",
     "TestGradientUtils",
     "TestHoverHelper",

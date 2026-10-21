@@ -1,7 +1,7 @@
 [package]
 kit_sdk_version = "110.*"
 # Semantic Versionning is used: https://semver.org/
-version = "3.0.0"
+version = "4.0.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -58,6 +58,9 @@ icon = "data/images/icon.png"
 [[test]]
 dependencies = [
     "omni.flux.utils.tests",
+    # Lock the action-registry API used by the editor lifecycle tests.
+    "omni.kit.actions.core-1.0.0",
+    "omni.kit.hotkeys.core",
     "omni.kit.ui_test",
 ]
 

@@ -26,15 +26,9 @@ Keep these mappings aligned with generatedSchema.usda so edit groups mirror runt
 Outlet placement comes from schema display group metadata on the first controlled ``:values`` attr, not from
 Python grouping overrides.
 
-``curve_map`` values can be a plain path string or a dict with ``path`` and optional ``display_color`` /
-``display_name`` metadata.
+``curve_map`` values can be a plain path string or a dict with ``path`` and optional ``label_style_name`` /
+``display_name`` metadata. Named channel palettes belong to the application stylesheet.
 """
-
-_RED = 0xFF0E20AD
-_GREEN = 0xFF0D7A0F
-_BLUE = 0xFF9C2619
-_ORANGE = 0xFFDDA844
-_CYAN = 0xFF44AAAA
 
 PARTICLE_EDIT_GROUPS = {
     "size": {
@@ -45,10 +39,10 @@ PARTICLE_EDIT_GROUPS = {
             "maxSize": {"display_name": "Max Size", "children": {}},
         },
         "curve_map": {
-            "primvars:particle:minSize:x": {"path": "minSize/x", "display_color": _RED},
-            "primvars:particle:minSize:y": {"path": "minSize/y", "display_color": _GREEN},
-            "primvars:particle:maxSize:x": {"path": "maxSize/x", "display_color": _RED},
-            "primvars:particle:maxSize:y": {"path": "maxSize/y", "display_color": _GREEN},
+            "primvars:particle:minSize:x": {"path": "minSize/x", "label_style_name": "CurveEditorChannelX"},
+            "primvars:particle:minSize:y": {"path": "minSize/y", "label_style_name": "CurveEditorChannelY"},
+            "primvars:particle:maxSize:x": {"path": "maxSize/x", "label_style_name": "CurveEditorChannelX"},
+            "primvars:particle:maxSize:y": {"path": "maxSize/y", "label_style_name": "CurveEditorChannelY"},
         },
         "legacy": {
             "spawn": ["primvars:particle:minSpawnSize", "primvars:particle:maxSpawnSize"],
@@ -66,9 +60,9 @@ PARTICLE_EDIT_GROUPS = {
             "maxVelocity": {"display_name": "Max Velocity", "children": {}},
         },
         "curve_map": {
-            "primvars:particle:maxVelocity:x": {"path": "maxVelocity/x", "display_color": _RED},
-            "primvars:particle:maxVelocity:y": {"path": "maxVelocity/y", "display_color": _GREEN},
-            "primvars:particle:maxVelocity:z": {"path": "maxVelocity/z", "display_color": _BLUE},
+            "primvars:particle:maxVelocity:x": {"path": "maxVelocity/x", "label_style_name": "CurveEditorChannelX"},
+            "primvars:particle:maxVelocity:y": {"path": "maxVelocity/y", "label_style_name": "CurveEditorChannelY"},
+            "primvars:particle:maxVelocity:z": {"path": "maxVelocity/z", "label_style_name": "CurveEditorChannelZ"},
         },
     },
     "rotationSpeed": {
@@ -79,12 +73,12 @@ PARTICLE_EDIT_GROUPS = {
             "primvars:particle:minRotationSpeed": {
                 "path": "minRotationSpeed",
                 "display_name": "Min",
-                "display_color": _ORANGE,
+                "label_style_name": "CurveEditorRotationMinimum",
             },
             "primvars:particle:maxRotationSpeed": {
                 "path": "maxRotationSpeed",
                 "display_name": "Max",
-                "display_color": _CYAN,
+                "label_style_name": "CurveEditorRotationMaximum",
             },
         },
         "legacy": {
