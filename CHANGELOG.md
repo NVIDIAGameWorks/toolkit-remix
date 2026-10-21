@@ -9,13 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Created 1.6.1-0 build
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [1.6.1-0]
+
+### Added
+
 - Created 1.6.0 build
 
 ### Changed
-- REMIX-6108: install-runtime.md changed to reflect new runtime folder structure.
 
+- REMIX-6108: install-runtime.md changed to reflect new runtime folder structure.
 - Renamed DLSS 3D-Guided Neural Generation controls to DLSS 3D-Guided Neural Rendering while preserving availability gating for older material-group names.
 - REMIX-5618: Updated the Curve Editor with channel multiselection, key insertion and deletion, numeric editing, tangent and axis framing controls, grouped undo/redo, and shared Curve, Gradient, and texture-preview windows with synchronized previews.
+- Update hdremix and omni_core_materials to `ext-5a7eec8-main`
+- Update remix_runtime to `remix-1.6.1`
 
 ### Fixed
 
