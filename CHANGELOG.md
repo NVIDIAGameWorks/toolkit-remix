@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created 1.6.0 build
 
 ### Changed
+- REMIX-6108: install-runtime.md changed to reflect new runtime folder structure.
 
 ### Fixed
 
