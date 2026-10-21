@@ -24,7 +24,7 @@ Contains:
 - Tick utilities: Shared interval calculation (ticks module)
 """
 
-from .main import CurveEditorCanvas
+from .main import CurveEditorCanvas, FrameType
 from .grid import GridRenderer
 from .rulers import Ruler, RulerOrientation, TimelineRuler, ValueRuler
 from .viewport import ViewportState
@@ -32,6 +32,7 @@ from .ticks import TickInfo, TickConfig, compute_nice_interval, generate_ticks
 
 __all__ = [
     "CurveEditorCanvas",
+    "FrameType",
     "GridRenderer",
     "Ruler",
     "RulerOrientation",

@@ -1,8 +1,16 @@
-# Overview
+# omni.flux.utils.widget
 
 Utilities to help to build Flux Widget(s)
 
-## Implementation
+## Responsibilities
+
+- Provides Flux widgets, tree helpers, field controls, resource lookup, and reusable Gradient preview and editor content.
+
+## Non-Responsibilities
+
+- Does not own application resources, property-editor windows, or selection tracking.
+
+## Architecture
 
 This extension uses resources (icons, images, fonts, etc etc).
 You need to set the setting `/exts/omni.flux.utils.widget/default_resources_ext` in your app, to let the module
@@ -31,6 +39,32 @@ Your resource extension should have this type of architecture:
 `data/images`
 
 `data/images/background_images`
+
+## Gradient Content
+
+`GradientPreview` holds image providers, time bounds, and full-precision fallback color. `render(keyframes)` updates
+images without retaining keys or a model.
+
+Inline and editor previews share these providers. Both call `GradientPreview.build_checkerboard()` to scale the
+checker image uniformly and clip it to the bar. Each view owns its size callback, so resizing either view preserves
+square cells without regenerating the shared texture. This handles omni.ui 3.1.3's `ImageWithProvider` aspect-crop
+distortion. Cell size may vary with the bar's dimensions; the foreground gradient stretches across the bar so its
+full color range remains visible.
+
+Move `default_color` and `time_range` to `GradientPreview(default_color=..., time_range=...)`.
+Construct `ColorGradientWidget(model, group_id, preview, read_only=...)` with keyword-only `read_only`, then call
+`build_editor()` in the current UI container. `ColorGradientWidget` no longer accepts `title` or arbitrary UI keyword
+arguments and no longer exposes `HEIGHT`; the caller owns window title and layout.
+`destroy()` releases controls and subscriptions, leaving the caller-owned model and preview intact.
+
+Marker drags and native time fields group each gesture into one edit. Picker changes update live and remain grouped
+until close; application Ctrl+Z/Ctrl+Y checkpoints pending changes first. Native fields retain local undo; unchanged
+picker sessions add no history, and the swatch survives model refreshes.
+
+Property rows compose this content through
+[ColorGradientField and FieldPopupWindow](../../omni.flux.property_widget_builder.delegates/docs/README.md#floating-property-editors).
+For native color-picker dismissal restrictions, see the delegates extension's
+[known limitations](../../omni.flux.property_widget_builder.delegates/docs/README.md#known-limitations).
 
 ## File Pickers
 

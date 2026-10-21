@@ -23,3 +23,8 @@ when a transfer target is available.
 - `AssetReplacementsPane` builds the pane, owns the root scrolling frame, and responds to USD selection changes.
 - Specialized property-widget extensions supply the editors hosted in each collapsible panel.
 - The shared viewport extension owns the surrounding viewport/Properties pane splitter.
+
+Selection changes close floating Curve and Gradient editors even when the pane is pinned. The pane stays pinned;
+reopening edits its original targets. Closing or replacing the owning USD stage clears the Object, Material, Particle,
+and Logic pins and property targets, even when the pane is hidden or a section is collapsed. See the
+[shared window](../../omni.flux.property_widget_builder.delegates/docs/README.md#floating-property-editors).

@@ -19,7 +19,6 @@ __all__ = ("TestMaterialPropertyWidget",)
 
 import asyncio
 import functools
-import os
 import pathlib
 import uuid
 from typing import Any, cast
@@ -31,9 +30,11 @@ import omni.kit.test_suite.helpers
 import omni.kit.ui_test
 import omni.ui as ui
 import omni.usd
+from carb.input import MouseEventType
 from omni.flux.material_api import ShaderInfoAPI
 from omni.flux.properties_pane.materials.usd.widget import MaterialPropertyWidget
 from omni.flux.utils.common.omni_url import OmniUrl
+from omni.kit.ui_test import Vec2
 from pxr import UsdShade
 
 
@@ -181,6 +182,7 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
             self.assertTrue(emissive_intensity_item.hidden)
 
     async def test_preview_window(self):
+        """Open real texture metadata through the magnifier and reopen after native closure."""
         stage = omni.usd.get_context().get_stage()
 
         prim = stage.GetPrimAtPath("/World/Cube")
@@ -196,18 +198,44 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
             self.assertTrue(len(preview_image_ref) > 0, "No preview image button found")
             preview_image_ref = preview_image_ref[0]
 
-            await preview_image_ref.click()
+            preview = None
+            previous_title = None
+            try:
+                for _ in range(2):
+                    await preview_image_ref.click()
+                    await omni.kit.ui_test.human_delay()
+                    preview = next(
+                        (
+                            window
+                            for window in ui.Workspace.get_windows()
+                            if window.visible
+                            and window.title.startswith("16px_Diffuse.dds - Albedo Map###PropertyPanelFloatingEditor_")
+                        ),
+                        None,
+                    )
+                    self.assertIsNotNone(preview, "Texture preview window not found")
+                    self.assertNotEqual(preview.title, previous_title)
+                    previous_title = preview.title
+                    self.assertIsNotNone(omni.kit.ui_test.find(f"{preview.title}//Frame/**/ImageWithProvider[*]"))
+                    self.assertIsNotNone(
+                        omni.kit.ui_test.find(f"{preview.title}//Frame/**/Label[*].text=='Resolution'")
+                    )
+                    values = omni.kit.ui_test.find_all(f"{preview.title}//Frame/**/StringField[*]")
+                    self.assertEqual(2, sum(value.widget.model.get_value_as_string() == "16 px" for value in values))
+                    self.assertIsNotNone(omni.kit.ui_test.find(f"{preview.title}//Frame/**/Label[*].text=='Access'"))
 
-            # Obtain the texture file path basename from the string field
-            string_field_ref = omni.kit.ui_test.find_all(
-                f"{helper.window.title}//Frame/**/StringField[*].identifier=='file_texture_string_field'"
-            )
-            self.assertTrue(len(string_field_ref) > 0, "No texture string field found")
-            asset_path = string_field_ref[0].widget.model.get_attributes_raw_value(0).resolvedPath
-            texture_file_basename = os.path.basename(asset_path)
-
-            # The texture preview window title should be: ({texture file basename} - {texture type})
-            window_refs = omni.kit.ui_test.find_all(f"{texture_file_basename} - Albedo Map")
-            self.assertTrue(len(window_refs) == 1, "Preview window not found")
-            for window_ref in window_refs:
-                window_ref.widget.destroy()
+                    header_height = preview.frame.screen_position_y - preview.position_y
+                    close_position = Vec2(
+                        preview.position_x + preview.width - header_height / 2,
+                        preview.position_y + header_height / 2,
+                    )
+                    await omni.kit.ui_test.emulate_mouse_move_and_click(close_position)
+                    await omni.kit.ui_test.human_delay(1)
+                    self.assertFalse(preview.visible)
+            finally:
+                try:
+                    await omni.kit.ui_test.input.emulate_mouse(MouseEventType.LEFT_BUTTON_UP, Vec2(1, 1))
+                finally:
+                    if preview is not None:
+                        preview.visible = False
+                    await omni.kit.ui_test.human_delay(1)

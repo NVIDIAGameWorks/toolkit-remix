@@ -2,6 +2,34 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.2]
+
+### Fixed
+
+- Kept inline Gradient previews subscribed to model notifications after popup dismissal and in read-only fields, releasing the subscription on field destruction.
+
+### Changed
+
+- Added preview rendering regression coverage and its direct renderer capture test dependency.
+
+## [3.1.1]
+
+### Fixed
+
+- Preserve square checkerboard cells when resizing inline Gradient previews while keeping the full gradient range visible.
+
+## [3.1.0]
+
+### Added
+
+- Added a protected popup-window key handler for editor shortcuts while preserving Escape dismissal.
+
+## [3.0.0]
+
+### Changed
+
+- Standardized property-window placement, dismissal, keyboard handling, and app-owned inline Gradient styling, with disposable Gradient editors sharing the field's model and preview.
+
 ## [2.0.1]
 ### Added
 - Added optional persistent-selection styling for shared property labels.

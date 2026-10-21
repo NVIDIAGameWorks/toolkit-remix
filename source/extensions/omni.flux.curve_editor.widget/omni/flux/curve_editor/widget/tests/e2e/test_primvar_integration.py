@@ -29,14 +29,18 @@ Every test asserts against the expected primvar naming format:
 
 import carb.input
 import os
+from copy import deepcopy
+from math import hypot
 
 import omni.appwindow
 import omni.kit.app
 import omni.kit.test
 import omni.kit.ui_test as ui_test
+import omni.kit.undo
 import omni.usd
-from carb.input import KeyboardEventType, KeyboardInput
+from carb.input import KeyboardEventType, KeyboardInput, MouseEventType
 from omni import ui
+from omni.kit.undo import get_undo_stack, redo, undo
 from pxr import Sdf, UsdGeom
 
 from omni.flux.fcurve.widget import FCurve, FCurveKey, TangentType
@@ -147,6 +151,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         # Clear selection first to prevent dangling references
         if self._widget and self._widget.fcurve_widget:
             self._widget.fcurve_widget.clear_selection()
+            self._widget.destroy()
 
         if self._window:
             self._window.visible = False
@@ -194,6 +199,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
                     time_range=(-0.1, 1.1),
                     value_range=(-0.1, 1.1),
                     show_toolbar=True,
+                    edit_context_factory=lambda: omni.kit.undo.group(remove_if_empty=True),
                 )
 
         # CurveEditorWidget needs 2 frames: frame 1 computes canvas layout and
@@ -503,8 +509,8 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         self._assert_primvar_arrays_consistent(curve_id)
         self.assertEqual(len(self._read_primvar(curve_id, "times")), 4)
 
-        # Delete a keyframe (click key 1, click delete)
-        await self._click_key(curve_id, 1)
+        # Add selects the new key for the following Delete action.
+        self.assertEqual([(ref.curve_id, ref.key_index) for ref in self._fcurve_widget.selected_keys], [(curve_id, 1)])
         await self._click_button(self._toolbar._delete_key_btn)
         self._assert_primvar_arrays_consistent(curve_id)
         self.assertEqual(len(self._read_primvar(curve_id, "times")), 3)
@@ -1024,7 +1030,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         orig_out_types = list(self._read_primvar(curve_id, "outTangentTypes"))
 
         await self._click_key(curve_id, 1)
-        await self._click_button(self._toolbar._broken_tangents_btn)
+        await self._click_button(self._toolbar._link_tangents_btn)
 
         broken_arr = list(self._read_primvar(curve_id, "tangentBrokens"))
         self.assertTrue(broken_arr[1], "tangentBrokens[1] should be true after Break")
@@ -1101,17 +1107,19 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
             )
 
     async def test_simultaneous_tangent_type_change_across_different_attributes(self):
-        """Multi-selecting keys from different attribute curves and changing type updates both."""
+        """Mixed linked and broken keys respect the clicked side and undo together across attributes."""
         cid_opacity = "opacity:x"
         cid_size = "size:x"
-        model = self._create_model([cid_opacity, cid_size])
+        curve_ids = (cid_opacity, cid_size)
+        model = self._create_model(list(curve_ids))
 
-        # Use distinct value positions so ctrl+click targets don't overlap
+        # Distinct positions let the selection include linked and broken keys without overlapping targets.
         _commit_payload(
             model,
             cid_opacity,
             self._make_curve(
                 cid_opacity,
+                broken=False,
                 color=0xFF3560FF,
                 key_positions=[(0.0, 0.3), (0.5, 0.9), (1.0, 0.5)],
             ),
@@ -1126,18 +1134,210 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
             ),
         )
         await self._build_widget()
+        omni.kit.undo.clear_stack()
+        changed_curves = []
+        self._tangent_edit_subscription = self._widget.fcurve_widget.subscribe_curve_changed(changed_curves.append)
+        try:
+            for identifier, linked_type, broken_out_type in (
+                ("CurveEditorBtnLeftTangentFlat", "flat", "linear"),
+                ("CurveEditorBtnRightTangentSmooth", "smooth", "smooth"),
+            ):
+                # Begin linked, then expand to a mixed selection; undo below clears selection between actions.
+                await self._click_key(cid_opacity, 1)
+                await self._shift_click_key(cid_opacity, 0)
+                await self._shift_click_key(cid_size, 1)
+                selected_before = self._widget.fcurve_widget.selected_keys
+                self.assertCountEqual(
+                    [(key.curve_id, key.key_index) for key in selected_before],
+                    [(cid_opacity, 1), (cid_opacity, 0), (cid_size, 1)],
+                )
+                before = {curve_id: self._snapshot_all_primvars(curve_id) for curve_id in curve_ids}
+                undo_count = sum(entry.level == 0 for entry in omni.kit.undo.get_undo_stack())
+                changed_curves.clear()
 
-        # Multi-select middle keys from both curves via Ctrl+click
-        await self._click_key(cid_opacity, 1)
-        await self._shift_click_key(cid_size, 1)
+                button = ui_test.find(f"{self._window.title}//Frame/**/Button[*].identifier=='{identifier}'")
+                await button.click()
+                await ui_test.human_delay()
 
-        # Change in-tangent to FLAT
+                after = {curve_id: self._snapshot_all_primvars(curve_id) for curve_id in curve_ids}
+                self.assertEqual(after[cid_opacity]["inTangentTypes"], (linked_type, linked_type, "linear"))
+                self.assertEqual(after[cid_opacity]["outTangentTypes"], (linked_type, linked_type, "linear"))
+                self.assertEqual(after[cid_size]["inTangentTypes"], ("linear", "flat", "linear"))
+                self.assertEqual(after[cid_size]["outTangentTypes"], ("linear", broken_out_type, "linear"))
+                self.assertEqual(
+                    (after[cid_opacity]["inTangentTimes"][0], after[cid_opacity]["inTangentValues"][0]),
+                    (0.0, 0.0),
+                )
+                for curve_id in curve_ids:
+                    for suffix in ("tangentBrokens", "times", "values"):
+                        self.assertEqual(after[curve_id][suffix], before[curve_id][suffix])
+                self.assertCountEqual(self._widget.fcurve_widget.selected_keys, selected_before)
+                self.assertCountEqual(changed_curves, curve_ids)
+                self.assertEqual(sum(entry.level == 0 for entry in omni.kit.undo.get_undo_stack()), undo_count + 1)
+
+                # One Undo and Redo must restore every stored tangent, including the other attribute's curve.
+                self.assertTrue(omni.kit.undo.undo())
+                await ui_test.wait_n_updates(2)
+                for curve_id in curve_ids:
+                    self._assert_primvars_match_snapshot(curve_id, before[curve_id], identifier)
+                self.assertTrue(omni.kit.undo.redo())
+                await ui_test.wait_n_updates(2)
+                for curve_id in curve_ids:
+                    self._assert_primvars_match_snapshot(curve_id, after[curve_id], identifier)
+
+            # Left Flat is already satisfied after undoing Right Smooth, despite the broken outgoing Linear side.
+            self.assertTrue(omni.kit.undo.undo())
+            await ui_test.wait_n_updates(2)
+            await self._click_key(cid_opacity, 1)
+            await self._shift_click_key(cid_opacity, 0)
+            await self._shift_click_key(cid_size, 1)
+            selected_before = self._widget.fcurve_widget.selected_keys
+            undo_before = list(omni.kit.undo.get_undo_stack())
+            redo_before = list(omni.kit.undo.get_redo_stack())
+            self.assertTrue(redo_before)
+            changed_curves.clear()
+            button = ui_test.find(
+                f"{self._window.title}//Frame/**/Button[*].identifier=='CurveEditorBtnLeftTangentFlat'"
+            )
+            await button.click()
+            await ui_test.human_delay()
+
+            for curve_id in curve_ids:
+                self._assert_primvars_match_snapshot(curve_id, before[curve_id])
+            self.assertCountEqual(self._widget.fcurve_widget.selected_keys, selected_before)
+            self.assertEqual(changed_curves, [])
+            self.assertEqual(list(omni.kit.undo.get_undo_stack()), undo_before)
+            self.assertEqual(list(omni.kit.undo.get_redo_stack()), redo_before)
+            self.assertTrue(omni.kit.undo.redo())
+            await ui_test.wait_n_updates(2)
+            for curve_id in curve_ids:
+                self._assert_primvars_match_snapshot(curve_id, after[curve_id])
+        finally:
+            self._tangent_edit_subscription = None
+
+    async def test_toolbar_actions_on_two_channels_undo_and_redo_as_single_steps(self):
+        """Undo and redo each toolbar action across both displayed channels together."""
+        curve_ids = ("translate:x", "translate:y")
+        model = self._create_model(list(curve_ids))
+        for curve_id, values in zip(curve_ids, ((0.2, 0.4, 0.6), (0.8, 0.6, 0.4))):
+            _commit_payload(
+                model,
+                curve_id,
+                self._make_curve(curve_id, key_positions=list(zip((0.0, 0.5, 1.0), values))),
+            )
+        await self._build_widget()
+        omni.kit.undo.clear_stack()
+
+        # Add uses all displayed channels; later actions use keys selected in both curves.
+        actions = (
+            ("Add", self._toolbar._add_key_btn),
+            ("Delete", self._toolbar._delete_key_btn),
+            ("Flat", self._toolbar._left_tangent_btns[TangentType.FLAT]),
+            ("Link", self._toolbar._link_tangents_btn),
+            ("Break", self._toolbar._link_tangents_btn),
+        )
+        for action, button in actions:
+            with self.subTest(action=action):
+                if action != "Add":
+                    await self._click_key(curve_ids[0], 1)
+                    await self._shift_click_key(curve_ids[1], 1)
+                before = {curve_id: self._snapshot_all_primvars(curve_id) for curve_id in curve_ids}
+                undo_count = sum(entry.level == 0 for entry in omni.kit.undo.get_undo_stack())
+
+                await self._click_button(button)
+
+                after = {curve_id: self._snapshot_all_primvars(curve_id) for curve_id in curve_ids}
+                for curve_id in curve_ids:
+                    self.assertNotEqual(after[curve_id], before[curve_id], f"{action} must change {curve_id}")
+                self.assertEqual(sum(entry.level == 0 for entry in omni.kit.undo.get_undo_stack()), undo_count + 1)
+                if action == "Add":
+                    self.assertEqual(after[curve_ids[0]]["times"], (0.0, 0.25, 0.5, 1.0))
+                    self.assertEqual(after[curve_ids[1]]["times"], (0.0, 0.25, 0.5, 1.0))
+                    self.assertAlmostEqual(after[curve_ids[0]]["values"][1], 0.3)
+                    self.assertAlmostEqual(after[curve_ids[1]]["values"][1], 0.7)
+
+                # A single Undo restores every channel, and a single Redo restores the whole action.
+                self.assertTrue(omni.kit.undo.undo())
+                await ui_test.wait_n_updates(2)
+                for curve_id in curve_ids:
+                    self._assert_primvars_match_snapshot(curve_id, before[curve_id], action)
+                self.assertTrue(omni.kit.undo.redo())
+                await ui_test.wait_n_updates(2)
+                for curve_id in curve_ids:
+                    self._assert_primvars_match_snapshot(curve_id, after[curve_id], action)
+
+    async def test_toolbar_framing_and_noops_preserve_existing_redo_for_two_channels(self):
+        """Framing and nonmodifying toolbar actions preserve stored channels and the existing redo action."""
+        curve_ids = ("translate:x", "translate:y")
+        model = self._create_model(list(curve_ids))
+        for curve_id, values in zip(curve_ids, ((0.2, 0.4, 0.6), (0.8, 0.6, 0.4))):
+            _commit_payload(
+                model,
+                curve_id,
+                self._make_curve(curve_id, broken=False, key_positions=list(zip((0.0, 0.5, 1.0), values))),
+            )
+        await self._build_widget()
+        omni.kit.undo.clear_stack()
+        await self._click_key(curve_ids[0], 1)
+        await self._shift_click_key(curve_ids[1], 1)
         await self._click_button(self._toolbar._left_tangent_btns[TangentType.FLAT])
+        edited = {curve_id: self._snapshot_all_primvars(curve_id) for curve_id in curve_ids}
+        self.assertTrue(omni.kit.undo.undo())
+        await ui_test.wait_n_updates(2)
+        before = {curve_id: self._snapshot_all_primvars(curve_id) for curve_id in curve_ids}
+        redo_before = list(omni.kit.undo.get_redo_stack())
+        undo_before = list(omni.kit.undo.get_undo_stack())
+        self.assertTrue(redo_before)
 
-        opacity_in_types = list(self._read_primvar(cid_opacity, "inTangentTypes"))
-        size_in_types = list(self._read_primvar(cid_size, "inTangentTypes"))
-        self.assertEqual(opacity_in_types[1], "flat")
-        self.assertEqual(size_in_types[1], "flat")
+        # Undo clears key selection, so disabled edit controls must preserve the available Redo.
+        self.assertEqual(self._widget.fcurve_widget.selected_keys, [])
+        self.assertFalse(self._toolbar._delete_key_btn.enabled)
+        self.assertFalse(self._toolbar._link_tangents_btn.enabled)
+        await self._click_button(self._toolbar._delete_key_btn)
+        await self._click_button(self._toolbar._link_tangents_btn)
+        self.assertEqual(list(omni.kit.undo.get_redo_stack()), redo_before)
+        self.assertEqual(list(omni.kit.undo.get_undo_stack()), undo_before)
+        for curve_id in curve_ids:
+            self._assert_primvars_match_snapshot(curve_id, before[curve_id])
+
+        # Framing remains available without a selection and must never consume a pending Redo.
+        self._widget.set_time_range(0.3, 0.7)
+        self._widget.set_value_range(0.3, 0.7)
+        await ui_test.human_delay()
+        for identifier in ("CurveEditorBtnFrameTime", "CurveEditorBtnFrameValue"):
+            button = ui_test.find(f"{self._window.title}//Frame/**/Button[*].identifier=='{identifier}'")
+            await button.click()
+            await ui_test.human_delay()
+            self.assertEqual(list(omni.kit.undo.get_redo_stack()), redo_before)
+            self.assertEqual(list(omni.kit.undo.get_undo_stack()), undo_before)
+            self.assertEqual(self._widget.fcurve_widget.selected_keys, [])
+            for curve_id in curve_ids:
+                self._assert_primvars_match_snapshot(curve_id, before[curve_id])
+        for actual, expected in zip(self._widget.fcurve_widget.time_range, (-0.1, 1.1)):
+            self.assertAlmostEqual(actual, expected)
+        for actual, expected in zip(self._widget.fcurve_widget.value_range, (0.14, 0.86)):
+            self.assertAlmostEqual(actual, expected)
+
+        # Both keys are already Linear, so applying the same type must not open an empty undo group.
+        await self._click_key(curve_ids[0], 1)
+        await self._shift_click_key(curve_ids[1], 1)
+        await self._click_button(self._toolbar._left_tangent_btns[TangentType.LINEAR])
+        self.assertEqual(list(omni.kit.undo.get_redo_stack()), redo_before)
+        self.assertEqual(list(omni.kit.undo.get_undo_stack()), undo_before)
+
+        # Adding to the right of the last keys exceeds the default time bound and must change neither channel.
+        await self._click_key(curve_ids[0], 2)
+        await self._shift_click_key(curve_ids[1], 2)
+        await self._click_button(self._toolbar._add_key_btn)
+        self.assertEqual(list(omni.kit.undo.get_redo_stack()), redo_before)
+        self.assertEqual(list(omni.kit.undo.get_undo_stack()), undo_before)
+        for curve_id in curve_ids:
+            self._assert_primvars_match_snapshot(curve_id, before[curve_id])
+
+        self.assertTrue(omni.kit.undo.redo())
+        await ui_test.wait_n_updates(2)
+        for curve_id in curve_ids:
+            self._assert_primvars_match_snapshot(curve_id, edited[curve_id])
 
     # ═════════════════════════════════════════════════════════════════════════
     # Group 7: Multi-Curve - Same Attribute, Different Channels
@@ -1271,6 +1471,186 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         self.assertEqual(tangent_brokens, (False, True, False))
         self.assertEqual(pre_infinity, "constant")
         self.assertEqual(post_infinity, "constant")
+
+    async def test_insert_key_held_curve_press_preserves_shape_and_creates_one_undo(self):
+        """Insert and drag fixture keys on curved and STEP segments with exact shape preservation and one undo."""
+        await self._open_fixture_stage()
+        curve_id = "opacity:x"
+        self._create_model([curve_id])
+        await self._build_widget()
+        self._widget.set_time_range(-0.5, 1.5)
+        self._widget.set_value_range(-0.5, 1.5)
+        await ui_test.human_delay()
+        widget = self._widget.fcurve_widget
+
+        def sample_value(keys: list[FCurveKey], time: float) -> float:
+            """Sample right-continuous STEP holds or cubics independently using Bernstein weights."""
+            if time == keys[-1].time:
+                return keys[-1].value
+            start, end = next((start, end) for start, end in zip(keys, keys[1:]) if start.time <= time < end.time)
+            if start.out_tangent_type == TangentType.STEP:
+                return start.value
+            points = (
+                (start.time, start.value),
+                (start.time + start.out_tangent_x, start.value + start.out_tangent_y),
+                (end.time + end.in_tangent_x, end.value + end.in_tangent_y),
+                (end.time, end.value),
+            )
+            lower, upper = 0.0, 1.0
+            for _ in range(32):
+                parameter = (lower + upper) / 2
+                weights = (
+                    (1 - parameter) ** 3,
+                    3 * parameter * (1 - parameter) ** 2,
+                    3 * parameter**2 * (1 - parameter),
+                    parameter**3,
+                )
+                if sum(point[0] * weight for point, weight in zip(points, weights)) < time:
+                    lower = parameter
+                else:
+                    upper = parameter
+            return sum(point[1] * weight for point, weight in zip(points, weights))
+
+        for segment_index, is_step in ((0, False), (1, True)):
+            with self.subTest(segment="STEP" if is_step else "Bezier"):
+                if is_step:
+                    # The first insertion leaves four keys, so this interior hold retains both curved neighbors.
+                    await self._click_key(curve_id, segment_index)
+                    step_button = ui_test.find(
+                        f"{self._window.title}//Frame/**/Button[*].identifier=='CurveEditorBtnRightTangentStep'"
+                    )
+                    await step_button.click()
+                    await ui_test.human_delay()
+
+                original = self._snapshot_all_primvars(curve_id)
+                original_keys = deepcopy(widget.curves[curve_id].keys)
+                history_count = len(get_undo_stack())
+                inserted_index = segment_index + 1
+                time = (original_keys[segment_index].time + original_keys[inserted_index].time) / 2
+
+                # Inspect the insertion before movement or release, including the neighboring segment shapes.
+                start = ui_test.Vec2(*self._model_to_screen(time, sample_value(original_keys, time)))
+                target = start + ui_test.Vec2(30, -25)
+                frame = self._fcurve_widget._stack
+                outside = ui_test.Vec2(target.x, frame.screen_position_y + frame.computed_height + 12)
+                await ui_test.input.emulate_mouse(MouseEventType.MOVE, start)
+                await ui_test.human_delay()
+                try:
+                    await ui_test.input.emulate_mouse(MouseEventType.LEFT_BUTTON_DOWN, start)
+                    await ui_test.human_delay()
+                    inserted = self._snapshot_all_primvars(curve_id)
+                    self.assertEqual(len(inserted["times"]), len(original["times"]) + 1)
+                    inserted_x, inserted_y = self._model_to_screen(
+                        inserted["times"][inserted_index], inserted["values"][inserted_index]
+                    )
+                    self.assertLessEqual(hypot(inserted_x - start.x, inserted_y - start.y), 6.0)
+                    self.assertEqual(
+                        [(key.curve_id, key.key_index) for key in widget.selected_keys], [(curve_id, inserted_index)]
+                    )
+                    self.assertEqual(len(get_undo_stack()), history_count)
+                    if is_step:
+                        self.assertEqual(inserted["values"][inserted_index], original_keys[segment_index].value)
+                        self.assertEqual(inserted["inTangentTypes"][inserted_index], "step")
+                        self.assertEqual(inserted["outTangentTypes"][inserted_index], "step")
+                    for index in range(21):
+                        time = index / 20
+                        self.assertAlmostEqual(
+                            sample_value(widget.curves[curve_id].keys, time),
+                            sample_value(original_keys, time),
+                            places=6,
+                        )
+
+                    # The held press edits both coordinates live without creating intermediate undo entries.
+                    await ui_test.input.emulate_mouse(MouseEventType.MOVE, target)
+                    await ui_test.human_delay()
+                    moved = self._snapshot_all_primvars(curve_id)
+                    self.assertNotAlmostEqual(
+                        moved["times"][inserted_index], inserted["times"][inserted_index], places=4
+                    )
+                    self.assertNotAlmostEqual(
+                        moved["values"][inserted_index], inserted["values"][inserted_index], places=4
+                    )
+                    self.assertEqual(len(get_undo_stack()), history_count)
+                    await ui_test.input.emulate_mouse(MouseEventType.MOVE, outside)
+                    await ui_test.human_delay()
+                    self.assertEqual(len(get_undo_stack()), history_count)
+                finally:
+                    await ui_test.input.emulate_mouse(MouseEventType.LEFT_BUTTON_UP, outside)
+                    await ui_test.human_delay()
+
+                # Releasing outside completes the gesture; later pointer movement cannot keep editing the key.
+                final = self._snapshot_all_primvars(curve_id)
+                self.assertEqual(len(get_undo_stack()), history_count + 1)
+                await ui_test.input.emulate_mouse(MouseEventType.MOVE, start)
+                await ui_test.human_delay()
+                self.assertEqual(self._snapshot_all_primvars(curve_id), final)
+
+                # One undo restores every original tangent and key; redo restores the final dragged payload.
+                for action, expected in ((undo, original), (redo, final)):
+                    action()
+                    await ui_test.human_delay()
+                    self.assertEqual(self._snapshot_all_primvars(curve_id), expected)
+
+                # Existing handles retain native input priority over the curve beneath them.
+                keys = ui_test.find_all(f"{self._window.title}//Frame/**/Rectangle[*].name=='FCurveKey'")
+                key = sorted(keys, key=lambda key: key.center.x)[inserted_index + 1]
+                await ui_test.input.emulate_mouse(MouseEventType.MOVE, key.center)
+                await ui_test.human_delay()
+                await key.click()
+                await ui_test.human_delay()
+                self.assertEqual(self._snapshot_all_primvars(curve_id), final)
+                self.assertEqual(len(get_undo_stack()), history_count + 1)
+
+    async def test_insert_key_flat_segment_accepts_curve_click_and_rejects_background(self):
+        """Insert near a FLAT curve press while background and footer presses leave storage unchanged."""
+        await self._open_fixture_stage()
+        curve_id = "opacity:x"
+        self._create_model([curve_id])
+        curve = self._make_curve(curve_id, TangentType.FLAT, TangentType.FLAT, key_positions=[(0.0, 0.0), (1.0, 1.0)])
+        _commit_payload(self._model, curve_id, curve)
+        await self._build_widget()
+        self._widget.set_time_range(-0.5, 1.5)
+        self._widget.set_value_range(-0.5, 1.5)
+        await ui_test.human_delay()
+        original = self._snapshot_all_primvars(curve_id)
+        history = list(get_undo_stack())
+        field = ui_test.find(f"{self._window.title}//Frame/**/FloatDrag[*].identifier=='CurveEditorTimeDrag'")
+        self.assertFalse(field.widget.enabled)
+
+        # Container delivery must reject background inside the segment bounds and the separate footer.
+        for point in (ui_test.Vec2(*self._model_to_screen(0.5, 0.95)), field.center):
+            await ui_test.input.emulate_mouse(MouseEventType.MOVE, point)
+            await ui_test.human_delay()
+            try:
+                await ui_test.input.emulate_mouse(MouseEventType.LEFT_BUTTON_DOWN, point)
+                await ui_test.human_delay()
+            finally:
+                await ui_test.input.emulate_mouse(MouseEventType.LEFT_BUTTON_UP, point)
+                await ui_test.human_delay()
+            self.assertEqual(self._snapshot_all_primvars(curve_id), original)
+            self.assertEqual(list(get_undo_stack()), history)
+
+        # This FLAT segment location reproduces a missed press when only native curve routing is used.
+        parameter = 0.37
+        time = 1.5 * parameter - 1.5 * parameter**2 + parameter**3
+        value = 3 * parameter**2 - 2 * parameter**3
+        point = ui_test.Vec2(*self._model_to_screen(time, value))
+        await ui_test.input.emulate_mouse(MouseEventType.MOVE, point)
+        await ui_test.human_delay()
+        try:
+            await ui_test.input.emulate_mouse(MouseEventType.LEFT_BUTTON_DOWN, point)
+            await ui_test.human_delay()
+            inserted = self._snapshot_all_primvars(curve_id)
+            self.assertEqual(len(inserted["times"]), 3)
+            self.assertEqual(
+                [(key.curve_id, key.key_index) for key in self._widget.fcurve_widget.selected_keys], [(curve_id, 1)]
+            )
+            inserted_x, inserted_y = self._model_to_screen(inserted["times"][1], inserted["values"][1])
+            self.assertLessEqual(hypot(inserted_x - point.x, inserted_y - point.y), 6.0)
+        finally:
+            await ui_test.input.emulate_mouse(MouseEventType.LEFT_BUTTON_UP, point)
+            await ui_test.human_delay()
+        self.assertEqual(len(get_undo_stack()), len(history) + 1)
 
     async def test_load_usda_fixture_fcurve_widget_model_matches_primvars(self):
         """Open a .usda fixture, build widget, assert FCurveWidget model matches primvar data."""

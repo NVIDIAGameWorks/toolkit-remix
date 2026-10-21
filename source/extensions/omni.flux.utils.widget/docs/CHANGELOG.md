@@ -2,6 +2,18 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.0]
+
+### Fixed
+
+- Preserve square checkerboard cells when resizing the Gradient editor while keeping the full gradient range visible.
+
+## [2.0.0]
+
+### Changed
+
+- Separated Gradient previews from editor controls, grouped editing gestures for undo, and added `PropertyCollapsableFrame.reset_pin()` for silent pin reset.
+
 ## [1.31.2]
 ### Added
 - Added scrolling-tree select-all support that notifies subscribers without changing expansion or scroll state.

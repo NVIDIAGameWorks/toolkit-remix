@@ -7,6 +7,7 @@ Build property rows backed by USD attributes, with layer-aware writes, undo, and
 - Read and edit scalar, vector, and virtual USD attributes across the selected prims.
 - Keep property rows synchronized with USD and expose their reset and override state.
 - Preview numeric drags live while preserving one undoable change on release.
+- Build logical Curve/Gradient rows with USD-backed models and editor controls.
 
 ## Non-Responsibilities
 
@@ -14,18 +15,19 @@ Numeric widget input and bounds belong to the shared property delegates and widg
 tree refreshes; this extension participates in the shared USD notice deferral used during property interactions.
 Clipboard parsing, matching, structural checks, and paste grouping belong to the
 [shared property widget helper](../../omni.flux.property_widget_builder.widget/docs/README.md#clipboard-and-row-editing).
+Popup lifetime, selection observation, and generic Gradient controls belong to shared widget extensions.
+Curve editing and channel selection belong to [the curve editor](../../omni.flux.curve_editor.widget/docs/README.md).
 
 ## Architecture
 
 `USDModel` owns property items and the interaction lifecycle. Attribute value models read and write USD through the
 existing commands. `USDListener` routes USD changes back to the model. The delegate builds the corresponding controls.
+`USDModel` also supplies logical-group rows, `USDDelegate` claims them through field builders, and
+`USDPropertyWidget` connects the tree to layer notices. Models own USD synchronization and undoable authoring.
 
 You can show custom names for attributes. For example here, `translateY` is just `Y`:
 
 ![alt text](../data/images/preview.png)
-
-
-There is a listener that will update the widget properties in real time.
 
 ### Numeric Drag Preview
 
@@ -51,6 +53,82 @@ reachable for an explicit retry.
 Default virtual attributes support previews. Virtual attributes with custom creation callbacks keep release-only
 writes because their callback may modify properties outside the model's reservation scope. Typed edits keep their
 existing immediate-write behavior.
+
+## Floating Property Editors
+
+Curve, Gradient, and texture-preview controls use the shared
+[`FieldPopupWindow` lifecycle](../../omni.flux.property_widget_builder.delegates/docs/README.md#floating-property-editors).
+
+`CurveFieldEditor` owns a per-opening model and session; standalone `PropertyPrimvarCurveModel` keeps
+`auto_begin_session=True`. `GradientFieldEditor` borrows the field model and preview but owns its session and controls.
+Texture preview is sessionless and loads data on activation.
+
+`CurveFieldEditor` retains its editor widget and destroys it before its model during content release, so active
+numeric edits finish while storage is still available. The shared popup lifecycle defers active close cleanup to
+the next update; the release hook also handles canceled or partial builds. Repeated cleanup is safe.
+
+Replace `UsdColorGradientWidget` with `ColorGradientField(model, model.group_ids[0], context_name=item.context_name,
+pre_open_fn=item.pre_open_callback).build_ui(item)`. Remove `mixed_group_ids` and `pre_open_callback` from
+`PropertyGroupedKeysModel` construction, and `mixed_curve_ids` from `PropertyPrimvarCurveModel` construction.
+Preparation stays on the item; the model no longer exposes `pre_open_callback`. Logical mixed rows remain,
+and the model owns USD notices and writes.
+
+Each Curve or Gradient model edit creates one undo command: `begin_edit()` snapshots each target without writing, and
+`end_edit()` records changed payloads with the original values. Discrete `SetDataPrimvars` commands snapshot on their
+own. Mixed targets share a logical row yet retain distinct undo values; unchanged edits add no history. Gradient picker
+and time-field behavior is described in
+[Gradient content edit lifecycle](../../omni.flux.utils.widget/docs/README.md#gradient-content).
+
+During a Gradient marker or time-field mouse drag, Ctrl+Z and Ctrl+Y leave scene history unchanged and are not queued
+for release. A changed gesture adds one undo entry on release; normal Undo then restores its starting state.
+
+Curve field builders pass `edit_context_factory=lambda: omni.kit.undo.group(remove_if_empty=True)` to group
+multi-channel toolbar edits and keyboard deletion, plus
+`finalization_context_factory=model.create_finalization_context` for
+[numeric key gestures](../../omni.flux.curve_editor.widget/docs/README.md#numeric-key-editing) and canvas drags.
+The [editor hook contract](../../omni.flux.curve_editor.widget/docs/README.md#storage-backend) separates discrete actions
+from gesture finalization.
+
+`PropertyGroupedKeysModel.create_finalization_context()` returns a fresh context without consuming pending edits.
+It returns `contextlib.nullcontext()` when there are no pending edits or none can produce a command. Otherwise it
+returns `omni.kit.undo.group(remove_if_empty=True)` when a pending group's source target is readable and its complete
+current per-target snapshot differs from the captured baseline. Exact comparison includes tangent and infinity data;
+returning only the displayed source coordinates to their starting values can leave other targets changed.
+
+The check runs synchronously immediately before the existing `end_edit()` calls, which still consume the snapshots
+and record commands. Unchanged gestures preserve pending Redo because they never open an undo group. Discrete actions
+retain their unconditional grouping factory even while edit snapshots are pending. This context does not provide
+transaction isolation for concurrent external edits or reentrant callbacks.
+
+With the Curve popup focused, select keys and press Delete or numpad Delete to remove them. The shortcut follows
+window focus even when the pointer leaves the canvas. Text and numeric fields retain Delete while editing; modified
+shortcuts and key releases do not remove keys. Keyboard deletion uses the toolbar's selection rules and grouped undo,
+and does nothing when no selected keys can be removed.
+
+Numeric gestures keep model edits open while writing USD continuously. The editor clears its active gesture state,
+then enters the finalization context only while synchronously closing those model edits. For a changed gesture, one
+Undo restores each target's distinct original payload. The editor also handles Ctrl+Z cancellation of a held numeric
+drag while preserving native text history. Self-authored notices and property-panel listeners retain their existing
+suppression.
+
+Genuine external notices invalidate numeric input and defer finalization and reload to a Kit update. This prevents
+late field updates from applying an old gesture baseline, but retains the backend's existing concurrent-edit limits:
+`end_edit()` records and reapplies the source target's current payload to all targets. An external change to another
+target can therefore be replaced at finalization. Concurrent commands, structural edits, and authored-layer changes
+are not isolated from the active edit.
+
+## Curve Layout Styling
+
+At property-control construction, the layout adapter resolves each leaf's `label_style_name` from the global
+`omni.ui.Style` default dictionary's `Label::<name>` color. It forwards the name and the resolved `display_color`
+for matching labels and curves without changing the source layout or writing display fields to USD.
+
+Named colors, including `0`, override numeric fallbacks. Missing styles or colors preserve numeric fallbacks;
+without one, group-color inheritance and editor defaults apply. Names are leaf-only. Load the application palette
+before control construction; existing controls do not observe live theme changes.
+
+See the [Curve Editor styling contract](../../omni.flux.curve_editor.widget/docs/README.md#channel-styling) for direct
+editor consumers and selected-label styling.
 
 ## Row-Owned Property State
 
@@ -118,3 +196,10 @@ usd_listener_instance.add_model(property_model)
 with ui.Frame():
     property_widget = _PropertyWidget(property_model, property_delegate)
 ```
+
+## Testing
+
+The Curve editor named-context workflow reuses one USD context for the Kit process lifetime. Each run opens a fresh
+stage and closes it during teardown, preserving stage isolation. Keep the native context alive because queued
+`omni.kit.usd.layers` events can reference it after cleanup; destroying it can crash a later test. See the
+[pipeline context lifecycle guidance](../../lightspeed.trex.asset_pipeline.core/docs/README.md) for the same constraint.

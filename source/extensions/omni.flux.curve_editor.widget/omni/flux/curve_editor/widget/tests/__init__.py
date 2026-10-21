@@ -24,8 +24,16 @@ from .e2e.test_integration import (
 )
 from .e2e.test_toolbar import TestToolbar
 from .e2e.test_primvar_integration import TestPrimvarIntegration
+from .e2e.test_numeric_undo import TestCurveEditorNumericUndo
+from .unit.test_toolbar import TestCurveEditorToolbar
+from .unit.test_canvas import TestCurveEditorCanvas
+from .unit.test_curve_editor_widget import TestCurveEditorWidget
 
 __all__ = [
+    "TestCurveEditorCanvas",
+    "TestCurveEditorNumericUndo",
+    "TestCurveEditorToolbar",
+    "TestCurveEditorWidget",
     "TestInfinityTypes",
     "TestMultiCurveEditing",
     "TestPrimvarIntegration",

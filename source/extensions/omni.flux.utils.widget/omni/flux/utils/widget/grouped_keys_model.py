@@ -81,6 +81,14 @@ class GroupedKeysModel(ABC):
         """
         raise NotImplementedError
 
+    def begin_session(self) -> None:
+        """Start observing an editor session when the model requires external resources."""
+        return
+
+    def finish_session(self) -> None:
+        """Release editor-session resources while retaining the model's payload."""
+        return
+
     def begin_edit(self, group_id: str) -> None:  # noqa: B027
         """Signal that a continuous interactive edit for ``group_id`` is starting.
 

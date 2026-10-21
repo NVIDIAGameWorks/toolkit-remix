@@ -57,6 +57,7 @@ Example:
     >>> sub = widget.subscribe_key_changed(lambda e: print(f"Key changed: {e}"))
 """
 
+from ._internal.math import evaluate_curve
 from .fcurve_widget import FCurveWidget
 from .model import (
     # Data types
@@ -93,4 +94,5 @@ __all__ = [
     "TangentChangedEvent",
     "TangentReference",
     "TangentType",
+    "evaluate_curve",
 ]

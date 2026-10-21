@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import tempfile
 from pathlib import Path
 
@@ -31,7 +30,7 @@ from omni.flux.property_widget_builder.model.usd import USDAttributeItem, USDDel
 from omni.flux.property_widget_builder.model.usd.setup_ui import USDPropertyWidget
 from omni.flux.property_widget_builder.widget import ItemGroup
 from omni.flux.utils.tests.menu import assert_menu_items_render_top_to_bottom, wait_for_menu_items
-from omni.flux.utils.widget.color_gradient import ColorGradientWidget
+from omni.flux.property_widget_builder.delegates import ColorGradientField
 from pxr import Gf, Sdf, Usd, Vt
 
 
@@ -52,19 +51,9 @@ async def _wait(n: int = 5):
 
 
 def _find_gradient_and_scalar_rows(delegate):
-    """Find the gradient (tall) and scalar (standard) rows from the delegate."""
-    gradient_row = None
-    scalar_row = None
-    for row in delegate._rows.values():
-        max_h = 0
-        for w in row.attribute_widgets:
-            with contextlib.suppress(RuntimeError):
-                max_h = max(max_h, w.computed_height)
-        if max_h >= ColorGradientWidget.HEIGHT and gradient_row is None:
-            gradient_row = row
-        elif max_h > 0 and max_h < ColorGradientWidget.HEIGHT and scalar_row is None:
-            scalar_row = row
-    return gradient_row, scalar_row
+    """Find the gradient and scalar rows by their fixture property names."""
+    rows_by_name = {row.name: row for row in delegate._rows.values()}
+    return rows_by_name.get("primvars:particle:testColor:values"), rows_by_name.get("primvars:particle:mass")
 
 
 def _print_row_diagnostics(label, row):
@@ -93,7 +82,7 @@ class TestDelegateAlignment(omni.kit.test.AsyncTestCase):
         self._prim = self._stage.DefinePrim(prim_path, "Xform")
         self._prim_path = prim_path
 
-        # Gradient attributes (tall rows)
+        # Gradient attributes
         self._prim.CreateAttribute("primvars:particle:testColor:values", Sdf.ValueTypeNames.Color4fArray).Set(
             Vt.Vec4fArray([Gf.Vec4f(1, 0, 0, 1), Gf.Vec4f(0, 0, 1, 1)])
         )
@@ -101,7 +90,7 @@ class TestDelegateAlignment(omni.kit.test.AsyncTestCase):
             Vt.FloatArray([0.0, 1.0])
         )
 
-        # Scalar attributes (standard rows)
+        # Scalar attributes
         self._prim.CreateAttribute("primvars:particle:mass", Sdf.ValueTypeNames.Float).Set(1.5)
         self._prim.CreateAttribute("primvars:particle:lifetime", Sdf.ValueTypeNames.Float).Set(3.0)
 
@@ -171,10 +160,10 @@ class TestDelegateAlignment(omni.kit.test.AsyncTestCase):
         _print_row_diagnostics("Scalar", scalar_row)
         carb.log_info("=== END DIAGNOSTICS ===")
 
-        # The gradient row's value widget should be taller than standard
+        # The gradient row's value widget should meet its configured height.
         gradient_value_height = max((w.computed_height for w in gradient_row.attribute_widgets), default=0)
         self.assertGreaterEqual(
-            gradient_value_height, ColorGradientWidget.HEIGHT, "Gradient value widget should be tall"
+            gradient_value_height, ColorGradientField.HEIGHT, "Gradient value widget should meet its configured height"
         )
 
         # For each indicator type, check that the Y offset from the row's
@@ -252,7 +241,7 @@ class TestDelegateAlignment(omni.kit.test.AsyncTestCase):
                 menu.destroy()
 
     async def test_branch_indicators_top_aligned_flat(self):
-        """Branch indicators should be top-aligned in tall rows (flat items, no groups)."""
+        """Branch indicators should be top-aligned in gradient rows (flat items, no groups)."""
         window, delegate, model, widget = await self._build_flat_property_widget()
         try:
             gradient_row, scalar_row = _find_gradient_and_scalar_rows(delegate)
@@ -264,7 +253,7 @@ class TestDelegateAlignment(omni.kit.test.AsyncTestCase):
             window.destroy()
 
     async def test_branch_indicators_top_aligned_grouped(self):
-        """Branch indicators should be top-aligned in tall rows (grouped items matching playground)."""
+        """Branch indicators should be top-aligned in gradient rows (grouped items matching playground)."""
         window, delegate, model, widget = await self._build_grouped_property_widget()
         try:
             gradient_row, scalar_row = _find_gradient_and_scalar_rows(delegate)

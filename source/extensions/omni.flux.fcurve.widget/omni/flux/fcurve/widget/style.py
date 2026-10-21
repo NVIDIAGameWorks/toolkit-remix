@@ -29,9 +29,6 @@ DEFAULT_STYLE: dict[str, dict] = {
         "background_color": 0xFFFFFFFF,
         "border_radius": 2,
     },
-    "Rectangle::FCurveKeySelected": {
-        "background_color": 0xFFFFAA00,
-    },
     "Rectangle::FCurveKeyHovered": {
         "background_color": 0xFFCCCCCC,
     },

@@ -201,6 +201,11 @@ class AssetReplacementsPane(_WorkspaceWidget):
         self._collapsible_frame_states = {}
 
         self.__create_ui()
+        self._sub_stage_event = self._usd_context.get_stage_event_stream().create_subscription_to_pop_by_type(
+            int(omni.usd.StageEventType.CLOSED),
+            self._on_stage_closed,
+            name="PropertiesPaneStageClosed",
+        )
 
         self.__on_go_to_ingest_tab = _Event()
 
@@ -887,6 +892,21 @@ class AssetReplacementsPane(_WorkspaceWidget):
             message=message,
             disable_cancel_button=True,
         )
+
+    def _on_stage_closed(self, _event) -> None:
+        """Clear stage-owned pins and displayed targets, including hidden panels."""
+        for frame in (
+            self._mesh_properties_collapsable_frame,
+            self._material_properties_collapsable_frame,
+            self._particle_properties_collapsable_frame,
+            self._logic_properties_collapsable_frame,
+        ):
+            frame.reset_pin()
+
+        self._mesh_properties_widget.refresh([])
+        self._material_properties_widget.refresh([])
+        self._particle_properties_widget.refresh([], [])
+        self._logic_properties_widget.refresh([], valid_target_prims=[])
 
     def _on_tree_selection_changed(self, items):
         """Tree selection changed callback - skipped when window invisible."""
