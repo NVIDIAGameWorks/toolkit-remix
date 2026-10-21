@@ -154,7 +154,7 @@ Preview restoration preserves externally changed property fields, including meta
 preview values on the other selected objects.
 Row removal finishes the color preview before canceling remaining property interactions, so the row and USD retain
 the last previewed color. Explicit cancellation discards unfinished input while retaining field subscriptions.
-`ColorField.cleanup()` releases those subscriptions and its owned picker and color model even when ending the edit
+`ColorField.cleanup()` releases those subscriptions and its owned picker and channel models even when ending the edit
 raises. The default USD color builder registers that cleanup with the owning delegate so a full row reset releases
 the field even when its backing value model remains alive. Picker cancellation keeps the current field usable until
 that reset. `USDDelegate.reset()` clears cached rows and context menus even when registered field cleanup raises.
@@ -237,8 +237,10 @@ with ui.Frame():
 
 ## Testing
 
-USD-backed color-picker workflows live in this extension's E2E suite alongside the numeric, Curve, and Gradient
-integrations. The generic delegates test suite does not depend on this USD model extension.
+USD-backed color-picker tests cover live scene authoring, Undo/Redo, virtual attribute creation, rollback and
+interrupted edits. Generic parsing, normalized controls, selector synchronization and display rounding are tested
+once in the delegates picker E2E suite, without this USD model dependency. Shared floating-window tests cover host
+placement and chrome behavior.
 
 The Curve editor named-context workflow reuses one USD context for the Kit process lifetime. Each run opens a fresh
 stage and closes it during teardown, preserving stage isolation. Keep the native context alive because queued

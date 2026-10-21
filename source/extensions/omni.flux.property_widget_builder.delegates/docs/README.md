@@ -28,23 +28,27 @@ keyword-only `stage_resolver` callback; constructing `FilePicker(use_relative_pa
 stage capability raises `ValueError`. `ComboboxField` consumes an `ui.AbstractItemModel` supplied by the property
 value model.
 
-`ColorField` owns the model shared by its read-only component fields and Frame-based RGB/RGBA `ColorPicker`.
+`ColorField` owns RGB/RGBA channel models shared by its read-only fields and native drag controls in `ColorPickerWindow`.
 The picker provides live saturation/value, hue, RGB/HSV, hex, and Current preview controls; read-only fields disable it.
 Edits clamp the whole color to normalized `[0, 1]` channels, including alpha and HSV Value. Opening, external refresh,
 and Undo preserve authored HDR or negative values.
 
 Hex accepts `RRGGBB` or `RRGGBBAA` with optional `#`, or parenthesized RGB/RGBA tuples matching the channel count.
 Tuple channels must be finite numbers in `[0, 1]`. Text commits on end-edit or normal dismissal; invalid input preserves
-the color and Undo history. Formatting hex does not alter authored HDR values.
+the color and Undo history. Hex, Current previews and the inline swatch use the same rounded display bytes.
+Formatting display colors does not alter authored HDR values.
 
 With a batch-capable backing model, held drags preview the color; each release or completed typed edit commits one
 Undo entry when the color changes. Row removal retains the latest preview. External edits or Undo discard interrupted
 input so it cannot overwrite the restored color.
 
-`ColorPickerPopup` uses shared [`FieldPopupWindow`](#floating-property-editors); the USD builder supplies `context_name`
+`ColorPickerWindow` extends shared [`FieldPopupWindow`](#floating-property-editors); the USD builder supplies `context_name`
 for selection dismissal. Generic fields can omit it. Normal dismissal commits input; cancellation discards it.
 Pass `register_cleanup` to `ColorField.build_ui()` or call `cleanup()`; the USD builder registers delegate cleanup.
-Cleanup releases the picker, model, and subscriptions even if ending an edit fails, then propagates the error.
+The picker reports gesture boundaries and complete colors; the field owns property transactions. Weak subscriptions avoid
+retaining callback owners. Explicit finalization handles a row removed during an active edit; cleanup also releases
+resources if an edit observer fails. The `omni.flux.resources` dependency supplies selector SVGs; the application supplies
+the styles.
 
 `AbstractDragFieldGroup` builds and coordinates numeric fields in one row. Pass `linkable=True` to opt a Float or Int
 group into link controls, linked presentation, focus, commit, cancel, unlink, and value routing. The item owns the
@@ -94,6 +98,13 @@ when it rebuilds the property row.
 
 Clicks inside Gradient's picker or preset menu preserve the parent editor. Clicking back in the editor dismisses the
 child; clicking outside both closes the editor. Selecting a preset closes its menu and keeps the editor open.
+
+## Testing
+
+Color-picker E2E tests exercise production controls without a USD property model: parsing, normalized RGB/HSV/alpha
+input, display-byte consistency, selectors and gesture notifications. USD scene authoring, Undo/Redo, rollback and
+interruption recovery are covered in the USD model extension. Shared floating-window tests cover native chrome and
+placement once for all property editors.
 
 ## Known Limitations
 

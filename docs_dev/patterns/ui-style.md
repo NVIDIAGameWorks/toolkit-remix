@@ -460,3 +460,10 @@ Define the background color in the style dictionary on the Rectangle:
 This pattern is used consistently throughout the codebase for workspace backgrounds
 (`WorkspaceBackground`), toolbar backgrounds (`QueueToolbarBackground`), footer backgrounds
 (`TabBackground`), and log areas (`QueueLogBackground`).
+
+
+### Python value model lifetime
+
+Keep Python subclasses of `ui.AbstractValueModel` alive while native widgets can call their overridden getters.
+A weak callback does not retain the model's Python owner. For formatted readouts, prefer native `ui.SimpleStringModel`
+values retained by the field; native getters remain available when Python references are released during teardown.

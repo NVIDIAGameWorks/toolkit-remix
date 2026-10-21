@@ -32,6 +32,7 @@ icon = "data/images/icon.png"
 
 [dependencies]
 "omni.appwindow" = {}
+# The SV and hue controls load their selector SVGs from this extension.
 "omni.flux.resources" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}

@@ -17,94 +17,68 @@
 
 __all__ = ("ColorField",)
 
-from functools import partial
+import weakref
+from math import isfinite
 
 import omni.ui as ui
+from omni.flux.utils.common import Event
 from pxr import Gf
 
 from ..base import AbstractField
-from .color_picker import ColorPicker
+from .color_picker import ColorPickerWindow, _display_color_to_hex, _weak_callback
 
 
-class _ColorItemModel(ui.AbstractItemModel):
-    """Own the color components independently of the native picker widget."""
+class _ChannelModel(ui.AbstractValueModel):
+    """Clamp picker input while preserving authored values during synchronization."""
 
-    def __init__(self, values):
-        """Create the root and component models for an RGB or RGBA color."""
+    def __init__(self, value: float):
+        """Initialize one RGB or alpha channel."""
         super().__init__()
-        self._root_model = ui.SimpleIntModel()
-        self._components = {ui.AbstractItem(): ui.SimpleFloatModel(float(value)) for value in values}
-        self._updating_values = False
-        self._subscriptions = [self._root_model.subscribe_value_changed_fn(lambda _: self._item_changed(None))]
-        self._subscriptions.extend(
-            model.subscribe_value_changed_fn(lambda _, item=item: self._item_changed(item))
-            for item, model in self._components.items()
-        )
+        self._value = float(value)
+        self.input_changed = Event(copy=True)
 
-    def get_item_children(self, parent_item=None):
-        """Return the component items belonging to the root."""
-        return list(self._components) if parent_item is None else []
-
-    def get_item_value_model(self, item=None, column_id=0):
-        """Return the root or requested color component value model."""
-        return self._root_model if item is None else self._components[item]
-
-    def get_item_value_model_count(self, item=None):
-        """Return the single value column for each item."""
-        return 1
-
-    def begin_edit(self, item):
-        """Accept the native popup's begin-edit dispatch."""
-
-    def end_edit(self, item):
-        """Accept the native popup's end-edit dispatch."""
-
-    def set_values(self, values):
-        """Notify item listeners only after the complete external color is restored."""
-        components = tuple(self._components.values())
-        if all(model.get_value_as_float() == value for model, value in zip(components, values)):
-            return
-        self._updating_values = True
-        try:
-            for model, value in zip(components, values):
-                model.set_value(value)
-        finally:
-            self._updating_values = False
-        self._item_changed(None)
-
-    def destroy(self):
-        """Release notifications from the owned component value models."""
-        self._subscriptions.clear()
-
-    def _item_changed(self, item):
-        """Keep intermediate component values out of complete-color notifications."""
-        if not self._updating_values:
-            super()._item_changed(item)
-
-
-class ColorValueModel(ui.AbstractValueModel):
-    """
-    Wrapper value model that allows for tweaking how the value is displayed as a string.
-    """
-
-    def __init__(self, parent: ui.AbstractValueModel, display_precision: int = 2):
-        super().__init__()
-        self._parent = parent
-        self.display_precision = display_precision
-        # Echo any value changes to ensure the widget updates
-        self._sub = parent.subscribe_value_changed_fn(lambda _: self._value_changed())
-
-    def __getattr__(self, attr):
-        if attr in self.__dict__:
-            return getattr(self, attr)
-        return getattr(self._parent, attr)
+    def get_value_as_float(self):
+        """Return the unquantized channel value."""
+        return self._value
 
     def get_value_as_string(self):
-        return f"{self._parent.get_value_as_float():.{self.display_precision}f}"
+        """Return the channel text used by native drag controls."""
+        return str(self._value)
+
+    def set_value(self, value):
+        """Clamp user input to the normalized picker range."""
+        value = float(value)
+        if not isfinite(value):
+            return
+        self.mirror(min(1.0, max(0.0, value)))
+        # Row observers may cancel native input before its complete color is published.
+        self.input_changed(self)
+
+    def mirror(self, value):
+        """Reflect authored HDR and negative values without clamping."""
+        if value != self._value:
+            self._value = float(value)
+            self._value_changed()
+
+
+class _ColorSwatch(ui.Rectangle):
+    """Preserve named swatch styles when the property row changes state."""
+
+    @property
+    def style_type_name_override(self):
+        """Return the shared field's selected and mixed style state."""
+        name = self.name.removesuffix("Mixed")
+        return name + ("Selected" if self.selected else "") + ("Mixed" if self.name.endswith("Mixed") else "")
+
+    @style_type_name_override.setter
+    def style_type_name_override(self, value):
+        """Apply selected and mixed styles to the native rectangle."""
+        self.name = value.replace("Selected", "")
+        self.selected = "Selected" in value
 
 
 class ColorField(AbstractField):
-    """Delegate of the tree"""
+    """Own color channels and property transactions for a floating picker."""
 
     def __init__(
         self,
@@ -125,14 +99,15 @@ class ColorField(AbstractField):
         self.display_precision = display_precision
         self._context_name = context_name
 
-        # The color widget is a bit unique as the provided item's model is not used directly within the widget. We
-        # instead connect change events between the two models to ensure that updates properly flow both ways.
-        self._picker_subscriptions = []
         self._value_model_value_changed_sub = None
         self._unsubscribe_property_edit_cancel = None
         self._property_edit_finish_subscription = None
         self._value_model = None
-        self._color_widget_model = None
+        self._components = []
+        self._readouts = []
+        self._swatch = None
+        self._title = ""
+        self._vector_type = None
         self._picker = None
 
         # Both change callbacks ignore updates echoed from the other model.
@@ -158,38 +133,40 @@ class ColorField(AbstractField):
         vec = value_model.get_value() if value_model.is_batch_editing else value_model.get_attributes_raw_value(0)
         if vec is None:
             vec = Gf.Vec3f(0, 0, 0)
-        color_model = _ColorItemModel(vec)
-        self._color_widget_model = color_model
-        component_models = tuple(color_model.get_item_value_model(child) for child in color_model.get_item_children())
+        self._vector_type = type(vec)
+        self._components = [_ChannelModel(value) for value in vec]
         property_name = "".join(model.get_value_as_string() for model in item.name_models)
 
+        self._title = f"{property_name} - Color Editor" if property_name else "Color Editor"
         widgets = []
 
         with ui.HStack(height=ui.Pixel(24)):
             ui.Spacer(width=ui.Pixel(8))
             with ui.VStack():
                 ui.Spacer()
-                self._picker = ColorPicker(
-                    color_model,
-                    context_name=self._context_name,
-                    title=f"{property_name} - Color Editor" if property_name else "Color Editor",
+                swatch = _ColorSwatch(
+                    width=ui.Pixel(48),
+                    height=ui.Pixel(20),
                     name=self.style_name,
                     identifier="color_swatch",
                     enabled=not value_model.read_only,
-                    height=0,
+                    mouse_released_fn=self._on_swatch_released,
                 )
-                widgets.append(self._picker)
+                self._swatch = weakref.ref(swatch)
+                widgets.append(swatch)
                 ui.Spacer()
 
             ui.Spacer(width=ui.Pixel(4))
 
-            for index, child_model in enumerate(component_models):
+            for index in range(len(self._components)):
                 ui.Spacer(width=ui.Pixel(4))
                 with ui.VStack():
                     ui.Spacer(height=ui.Pixel(2))
+                    readout = ui.SimpleStringModel()
+                    self._readouts.append(readout)
                     widgets.append(
                         ui.StringField(
-                            model=ColorValueModel(child_model, display_precision=self.display_precision),
+                            model=readout,
                             style_type_name_override=self.style_name,
                             read_only=True,
                         )
@@ -202,45 +179,85 @@ class ColorField(AbstractField):
                         ui.Rectangle(name="ColorsWidgetSeparator")
                         ui.Spacer(height=ui.Pixel(4))
 
-            self._picker_subscriptions = [
-                self._picker.subscribe_edit_started(partial(self._begin_edit, value_model)),
-                self._picker.subscribe_color_changed(partial(self._preview_color, type(vec), value_model)),
-                self._picker.subscribe_edit_finished(partial(self._finish_edit, value_model)),
-            ]
-
-        self._value_model_value_changed_sub = value_model.subscribe_value_changed_fn(self._value_model_changed)
-        self._unsubscribe_property_edit_cancel = value_model.subscribe_property_edit_cancel_fn(self._cancel_edit)
-        self._property_edit_finish_subscription = value_model.subscribe_property_edit_finish_fn(self._end_edit)
+        self._value_model_value_changed_sub = value_model.subscribe_value_changed_fn(
+            _weak_callback(self._value_model_changed)
+        )
+        self._unsubscribe_property_edit_cancel = value_model.subscribe_property_edit_cancel_fn(
+            _weak_callback(self._cancel_edit)
+        )
+        self._property_edit_finish_subscription = value_model.subscribe_property_edit_finish_fn(
+            _weak_callback(self._end_edit)
+        )
         if register_cleanup is not None:
             # Delegate reset can release the row while its backing model remains alive.
             register_cleanup(self.cleanup)
 
+        self._update_swatch()
         return widgets
 
     def cleanup(self) -> None:
-        """Release field subscriptions and close any active picker edit sessions."""
+        """End the property edit and retire its controls even when a subscriber fails."""
         if self._unsubscribe_property_edit_cancel is not None:
             self._unsubscribe_property_edit_cancel()
             self._unsubscribe_property_edit_cancel = None
         self._property_edit_finish_subscription = None
-        self._picker_subscriptions.clear()
         self._value_model_value_changed_sub = None
-        picker = self._picker
-        self._picker = None
-        color_model = self._color_widget_model
-        self._color_widget_model = None
         try:
-            try:
-                self._end_edit()
-            finally:
-                try:
-                    if picker is not None:
-                        picker.destroy()
-                finally:
-                    if color_model is not None:
-                        color_model.destroy()
+            self._end_edit()
         finally:
-            self._value_model = None
+            try:
+                if self._picker is not None:
+                    self._picker.cancel()
+            finally:
+                self._picker = None
+                self._components = []
+                self._readouts = []
+                self._swatch = None
+                self._value_model = None
+
+    def _on_swatch_released(self, _x, _y, button, _modifier):
+        """Open the color editor from an editable inline swatch."""
+        swatch = self._swatch() if self._swatch is not None else None
+        if button != 0 or swatch is None or self._value_model.read_only:
+            return
+        self._picker_edit_cancelled = False
+        self._picker = ColorPickerWindow(self._components, title=self._title, context_name=self._context_name)
+        self._picker.edit_started.add(_weak_callback(self._begin_picker_edit))
+        self._picker.color_changed.add(_weak_callback(self._preview_picker_color))
+        self._picker.edit_finished.add(_weak_callback(self._finish_picker_edit))
+        self._picker.open(
+            preferred_size=(ColorPickerWindow.WINDOW_WIDTH, ColorPickerWindow.WINDOW_HEIGHT),
+            anchor_rect=(
+                swatch.screen_position_x,
+                swatch.screen_position_y,
+                swatch.computed_width,
+                swatch.computed_height,
+            ),
+        )
+
+    def _begin_picker_edit(self):
+        """Start a property transaction before the picker changes channels."""
+        self._begin_edit(self._value_model)
+
+    def _preview_picker_color(self, values):
+        """Apply one complete picker color through the backing model."""
+        if self._ignore_value_change_events:
+            return
+        self._preview_color(self._vector_type, self._value_model, values)
+        self._update_swatch()
+
+    def _finish_picker_edit(self):
+        """Commit the completed picker gesture."""
+        self._finish_edit(self._value_model)
+
+    def _update_swatch(self):
+        """Refresh the inline preview from the authored channel values."""
+        for readout, model in zip(self._readouts, self._components):
+            readout.set_value(f"{model.get_value_as_float():.{self.display_precision}f}")
+        swatch = self._swatch() if self._swatch is not None else None
+        if swatch is not None:
+            values = tuple(model.get_value_as_float() for model in self._components)
+            swatch.set_style({"background_color": _display_color_to_hex(values)})
 
     def _cancel_edit(self) -> None:
         """Discard interrupted input before dismissing an active picker edit."""
@@ -250,7 +267,7 @@ class ColorField(AbstractField):
         finally:
             if self._picker is not None:
                 self._picker.cancel()
-            if self._color_widget_model is not None:
+            if self._components:
                 self._value_model_changed(self._value_model)
 
     def _begin_edit(self, value_model):
@@ -287,9 +304,14 @@ class ColorField(AbstractField):
             vec = Gf.Vec3f(0, 0, 0)
         self._ignore_value_change_events = True
         try:
-            self._color_widget_model.set_values(vec)
+            if self._picker is not None and self._picker.is_open:
+                self._picker.sync_color(vec)
+            else:
+                for model, value in zip(self._components, vec):
+                    model.mirror(value)
         finally:
             self._ignore_value_change_events = False
+        self._update_swatch()
 
     def _finish_edit(self, value_model):
         """Commit the final preview when a gesture ends."""
