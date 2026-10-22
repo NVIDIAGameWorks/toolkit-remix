@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.6]
+### Fixed
+- Fixed a test process deadlock between the first USD call on the main thread and the MDL preload on worker threads: the USD asset resolver is now created on the main thread when the app starts, before the first app update
+
 ## [2.1.5]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

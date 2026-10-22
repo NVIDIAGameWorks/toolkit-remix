@@ -16,7 +16,9 @@
 """
 
 import carb
+import carb.eventdispatcher
 import omni.ext
+from pxr import Ar
 
 TEST_DEFERRED_DEPENDENCIES_SETTING = "/exts/omni.flux.tests.dependencies/deferred_dependencies"
 
@@ -24,6 +26,12 @@ TEST_DEFERRED_DEPENDENCIES_SETTING = "/exts/omni.flux.tests.dependencies/deferre
 class FluxTestDependenciesExtension(omni.ext.IExt):
     def on_startup(self, _):
         carb.log_info("[omni.flux.tests.dependencies] Flux Test Dependencies Extension startup")
+
+        self._app_started_sub = carb.eventdispatcher.get_eventdispatcher().observe_event(
+            observer_name="omni.flux.tests.dependencies create USD resolver",
+            event_name=omni.kit.app.GLOBAL_EVENT_APP_STARTED,
+            on_event=self._create_resolver,
+        )
 
         settings = carb.settings.get_settings()
 
@@ -40,5 +48,18 @@ class FluxTestDependenciesExtension(omni.ext.IExt):
             except Exception as e:  # noqa: BLE001
                 carb.log_warn(f"Failed to enable deferred extension {ext}: {e}")
 
+    def _create_resolver(self, _):
+        # Create the USD asset resolver on the main thread before the first app update.
+        # After app ready, omni.kit.material.library loads MDL modules on worker threads. If a worker creates the
+        # resolver first, it imports Python modules and waits for the GIL. A main-thread USD call that holds the GIL
+        # then waits for that resolver, and the test process deadlocks. The product apps avoid this because they
+        # create the resolver during extension startup.
+        # Not in on_startup: the HdRemix extension expects to be the first code that queries the USD plugin registry.
+        # Not in an update task: a main-thread Ar.GetResolver() during the first update hung the validator window
+        # test apps at startup (main thread waiting on carb.tasking, probably the same kind of deadlock).
+        self._app_started_sub = None
+        Ar.GetResolver()
+
     def on_shutdown(self):
         carb.log_info("[omni.flux.tests.dependencies] Flux Test Dependencies Extension shutdown")
+        self._app_started_sub = None

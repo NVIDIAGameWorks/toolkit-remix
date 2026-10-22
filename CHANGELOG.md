@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Made `tools/ci/scripts/notify_remix_target_dep_bot.sh` use a bash 3.2-compatible channel de-duplication so its test suite passes with the default macOS `/bin/bash` (associative arrays require bash 4.0+).
 - Constrained the docs build to the `pydantic` version in `deps/pip_flux.toml` because `pydantic` 2.14 broke `autodoc` for parametrized generic models
+- Fixed an intermittent test hang: the first USD call in a test could deadlock with the MDL preload, which made `lss-e2e-tests-windows-a2s` lose 5 minutes per job and sometimes time out.
 
 ### Removed
 
