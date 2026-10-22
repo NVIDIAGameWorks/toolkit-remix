@@ -67,22 +67,6 @@ INT_TYPES = (
     tf_uint64,
 )
 
-VEC_TYPES = (
-    Gf.Vec2d,
-    Gf.Vec2f,
-    Gf.Vec2h,
-    Gf.Vec2i,
-    Gf.Vec3d,
-    Gf.Vec3f,
-    Gf.Vec3h,
-    Gf.Vec3i,
-    Gf.Vec4d,
-    Gf.Vec4f,
-    Gf.Vec4h,
-    Gf.Vec4i,
-)
-
-
 GF_TO_PYTHON_TYPE = {
     tf_half: float,
     tf_float: float,

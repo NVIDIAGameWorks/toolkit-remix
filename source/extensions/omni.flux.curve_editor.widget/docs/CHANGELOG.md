@@ -1,10 +1,5 @@
 # Changelog
 
-## [2.4.2]
-
-### Changed
-- Cached channel-selection membership, named framing padding, and simplified editor tests while retaining native insertion and rebuild coverage.
-
 ## [2.4.1]
 
 ### Changed

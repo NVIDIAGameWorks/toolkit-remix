@@ -1177,17 +1177,17 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
 
                 # One Undo and Redo must restore every stored tangent, including the other attribute's curve.
                 self.assertTrue(omni.kit.undo.undo())
-                await ui_test.human_delay(2)
+                await ui_test.wait_n_updates(2)
                 for curve_id in curve_ids:
                     self._assert_primvars_match_snapshot(curve_id, before[curve_id], identifier)
                 self.assertTrue(omni.kit.undo.redo())
-                await ui_test.human_delay(2)
+                await ui_test.wait_n_updates(2)
                 for curve_id in curve_ids:
                     self._assert_primvars_match_snapshot(curve_id, after[curve_id], identifier)
 
             # Left Flat is already satisfied after undoing Right Smooth, despite the broken outgoing Linear side.
             self.assertTrue(omni.kit.undo.undo())
-            await ui_test.human_delay(2)
+            await ui_test.wait_n_updates(2)
             await self._click_key(cid_opacity, 1)
             await self._shift_click_key(cid_opacity, 0)
             await self._shift_click_key(cid_size, 1)
@@ -1209,7 +1209,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
             self.assertEqual(list(omni.kit.undo.get_undo_stack()), undo_before)
             self.assertEqual(list(omni.kit.undo.get_redo_stack()), redo_before)
             self.assertTrue(omni.kit.undo.redo())
-            await ui_test.human_delay(2)
+            await ui_test.wait_n_updates(2)
             for curve_id in curve_ids:
                 self._assert_primvars_match_snapshot(curve_id, after[curve_id])
         finally:
@@ -1258,11 +1258,11 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
 
                 # A single Undo restores every channel, and a single Redo restores the whole action.
                 self.assertTrue(omni.kit.undo.undo())
-                await ui_test.human_delay(2)
+                await ui_test.wait_n_updates(2)
                 for curve_id in curve_ids:
                     self._assert_primvars_match_snapshot(curve_id, before[curve_id], action)
                 self.assertTrue(omni.kit.undo.redo())
-                await ui_test.human_delay(2)
+                await ui_test.wait_n_updates(2)
                 for curve_id in curve_ids:
                     self._assert_primvars_match_snapshot(curve_id, after[curve_id], action)
 
@@ -1283,7 +1283,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
         await self._click_button(self._toolbar._left_tangent_btns[TangentType.FLAT])
         edited = {curve_id: self._snapshot_all_primvars(curve_id) for curve_id in curve_ids}
         self.assertTrue(omni.kit.undo.undo())
-        await ui_test.human_delay(2)
+        await ui_test.wait_n_updates(2)
         before = {curve_id: self._snapshot_all_primvars(curve_id) for curve_id in curve_ids}
         redo_before = list(omni.kit.undo.get_redo_stack())
         undo_before = list(omni.kit.undo.get_undo_stack())
@@ -1335,7 +1335,7 @@ class TestPrimvarIntegration(omni.kit.test.AsyncTestCase):
             self._assert_primvars_match_snapshot(curve_id, before[curve_id])
 
         self.assertTrue(omni.kit.undo.redo())
-        await ui_test.human_delay(2)
+        await ui_test.wait_n_updates(2)
         for curve_id in curve_ids:
             self._assert_primvars_match_snapshot(curve_id, edited[curve_id])
 

@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Remix Review rules from human review feedback: whole-change simplification and shared-consumer checks, API, configuration, typing, module structure, `extension.py` scope, core shape, Flux mechanism reuse, undo, widget isolation, layer ownership, window layout scope, app `.kit` contents, dependency pin, test-setting, root export, mock-heavy unit test, test fidelity, E2E step comment, and published-documentation rules, and E2E subsumption in test redundancy checks.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-0b1da77-main`
 
-- REMIX-3047: Added a floating RGB/HSV/hex color editor with live previews and per-gesture Undo, preserved interrupted edits and external changes, and simplified editor cleanup and curve selection handling.
+- REMIX-3047: Added a floating RGB/HSV/hex color editor with live previews and per-gesture Undo, preserved interrupted edits and external changes, and ensured reliable color-field cleanup.
 
 ### Fixed
 

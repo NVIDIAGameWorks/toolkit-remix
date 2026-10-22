@@ -8,7 +8,6 @@ Build property rows backed by USD attributes, with layer-aware writes, undo, and
 - Keep property rows synchronized with USD and expose their reset and override state.
 - Preview numeric drags live while preserving one undoable change on release.
 - Build logical Curve/Gradient rows with USD-backed models and editor controls.
-- Own grouped undo, edit failure recovery, and listener-driven value refresh.
 
 ## Non-Responsibilities
 
@@ -18,7 +17,6 @@ Clipboard parsing, matching, structural checks, and paste grouping belong to the
 [shared property widget helper](../../omni.flux.property_widget_builder.widget/docs/README.md#clipboard-and-row-editing).
 Popup lifetime, selection observation, and generic Gradient controls belong to shared widget extensions.
 Curve editing and channel selection belong to [the curve editor](../../omni.flux.curve_editor.widget/docs/README.md).
-The shared property widget owns tree layout and field cleanup registration.
 
 ## Architecture
 

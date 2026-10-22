@@ -38,9 +38,11 @@ from .e2e import (
 )
 from .e2e.test_color_picker import TestColorPickerWindow
 from .e2e.test_field_popup_window import TestFieldPopupWindow
-from .unit.test_abstract_drag import TestAbstractDragFieldUnit
-from .unit.test_color import TestChannelModel
-from .unit.test_color_picker import TestWeakCallback
-from .unit.test_file_picker import TestFilePicker
-from .unit.test_float_drag import TestFloatDragFieldUnit
-from .unit.test_int_drag import TestIntDragFieldUnit
+from .unit import (
+    TestAbstractDragFieldUnit,
+    TestChannelModel,
+    TestFilePicker,
+    TestFloatDragFieldUnit,
+    TestIntDragFieldUnit,
+    TestWeakCallback,
+)

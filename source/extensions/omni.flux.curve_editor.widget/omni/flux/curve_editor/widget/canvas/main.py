@@ -79,9 +79,6 @@ class CurveEditorCanvas:
         edit_context_factory: Create a context grouping completed drag edits.
     """
 
-    _FRAME_PADDING_RATIO = 0.1
-    _FRAME_ZERO_SPAN_PADDING = 0.1
-
     def __init__(
         self,
         model: GroupedKeysModel,
@@ -605,8 +602,8 @@ class CurveEditorCanvas:
                 values.append(key.value)
         if not times:
             return
-        time_padding = (max(times) - min(times)) * self._FRAME_PADDING_RATIO or self._FRAME_ZERO_SPAN_PADDING
-        value_padding = (max(values) - min(values)) * self._FRAME_PADDING_RATIO or self._FRAME_ZERO_SPAN_PADDING
+        time_padding = (max(times) - min(times)) * 0.1 or 0.1
+        value_padding = (max(values) - min(values)) * 0.1 or 0.1
         if frame_type in (FrameType.ALL, FrameType.TIME):
             self._viewport.set_time_range(min(times) - time_padding, max(times) + time_padding)
         if frame_type in (FrameType.ALL, FrameType.VALUE):

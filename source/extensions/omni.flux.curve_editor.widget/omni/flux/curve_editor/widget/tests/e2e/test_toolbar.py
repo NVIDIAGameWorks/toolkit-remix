@@ -35,6 +35,7 @@ from omni import ui
 
 from omni.flux.fcurve.widget import CurveBounds, FCurve, FCurveKey, KeyReference, TangentType
 from omni.flux.curve_editor.widget import CurveEditorWidget
+from omni.flux.curve_editor.widget.canvas import FrameType
 from omni.flux.curve_editor.widget.payload import curve_to_payload, payload_to_curve
 from omni.flux.utils.widget import InMemoryGroupedKeysModel
 
@@ -940,6 +941,17 @@ class TestToolbar(omni.kit.test.AsyncTestCase):
         self.assertEqual(self._fcurve_widget.time_range, fitted_time_range)
         self.assertEqual(self._fcurve_widget.value_range, fitted_value_range)
 
+        # Explicit full framing must match the default full framing used by the editor.
+        self._widget.set_time_range(0.45, 0.55)
+        self._widget.set_value_range(0.45, 0.55)
+        self._widget._canvas.fit_to_data(FrameType.ALL)
+        await ui_test.human_delay()
+        self._assert_viewport_ranges(fitted_time_range, fitted_value_range)
+        self._widget.set_time_range(0.45, 0.55)
+        self._widget.set_value_range(0.45, 0.55)
+        self._widget.fit_all()
+        await ui_test.human_delay()
+        self._assert_viewport_ranges(fitted_time_range, fitted_value_range)
         self.assertEqual(self._fcurve_widget.time_range, fitted_time_range)
         self.assertEqual(self._fcurve_widget.value_range, fitted_value_range)
         self.assertEqual(self._fcurve_widget.selected_keys, selection)

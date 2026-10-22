@@ -13,7 +13,7 @@
 
 ## Non-Responsibilities
 
-- Does not author USD or implement USD multi-selection, refresh, or failure recovery. The USD property model owns
+- Does not author USD or implement USD multi-selection, undo, refresh, or failure recovery. The USD property model owns
   those operations through its item and value models.
 - Does not choose which field represents an item. Property-widget models and field-builder registrations own that
   mapping.

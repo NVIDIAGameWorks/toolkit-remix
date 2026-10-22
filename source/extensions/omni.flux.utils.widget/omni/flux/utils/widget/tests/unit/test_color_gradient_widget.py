@@ -45,6 +45,21 @@ def _payload_from_keyframes(keyframes):
 class TestColorGradientWidgetLogic(omni.kit.test.AsyncTestCase):
     """Test UI-independent color-gradient editing logic."""
 
+    def _make_widget(self, keyframes, *, default_color=DEFAULT_GRADIENT_COLOR):
+        """Create a model-backed widget and register both cleanup steps."""
+        model = InMemoryGroupedKeysModel(
+            group_ids=[_GROUP_ID], payloads={_GROUP_ID: _payload_from_keyframes(keyframes)}
+        )
+        self.addCleanup(model.destroy)
+        preview = GradientPreview(
+            default_color=default_color,
+            gradient_provider=mock.Mock(name="gradient_provider"),
+            checker_provider=mock.Mock(name="checker_provider"),
+        )
+        widget = ColorGradientWidget(model, _GROUP_ID, preview)
+        self.addCleanup(widget.destroy)
+        return widget, model
+
     async def test_construct_from_model_returns_exact_configuration(self):
         """Return exact stored keyframes and read-only state for supported configurations."""
         populated = [
@@ -230,18 +245,3 @@ class TestColorGradientWidgetLogic(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertEqual(widget.get_keyframes(), [])
         self.assertEqual(model.get_payload(_GROUP_ID), expected_payload)
-
-    def _make_widget(self, keyframes, *, default_color=DEFAULT_GRADIENT_COLOR):
-        """Create a model-backed widget and register both cleanup steps."""
-        model = InMemoryGroupedKeysModel(
-            group_ids=[_GROUP_ID], payloads={_GROUP_ID: _payload_from_keyframes(keyframes)}
-        )
-        self.addCleanup(model.destroy)
-        preview = GradientPreview(
-            default_color=default_color,
-            gradient_provider=mock.Mock(name="gradient_provider"),
-            checker_provider=mock.Mock(name="checker_provider"),
-        )
-        widget = ColorGradientWidget(model, _GROUP_ID, preview)
-        self.addCleanup(widget.destroy)
-        return widget, model

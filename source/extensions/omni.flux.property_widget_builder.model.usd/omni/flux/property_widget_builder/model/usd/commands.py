@@ -35,7 +35,6 @@ from .logical_group_constants import (
     SCALAR_CURVE_LOGICAL_GROUP_DEFINITION,
 )
 from .logical_row import LogicalGroupDefinition, normalize_value_for_signature
-from .mapping import VEC_TYPES
 
 __all__ = ["SetDataPrimvarsCommand"]
 
@@ -56,8 +55,6 @@ def _copy_snapshot_value(value: Any) -> Any:
     """
     if value is None or isinstance(value, (str, bytes, int, float, bool)):
         return value
-    if isinstance(value, VEC_TYPES):
-        return type(value)(value)
     if isinstance(value, dict):
         return copy.deepcopy(value)
     try:

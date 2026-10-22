@@ -107,11 +107,6 @@ class CurveTreeModel(TreeModelBase[_CurveTreeItem]):
         """Return attributes reset by the model cleanup helper."""
         return {"_root_items": None}
 
-    @property
-    def curve_items(self) -> list[_CurveTreeItem]:
-        """Return every curve leaf from the explicit model roots."""
-        return [item for item in self._iter_all(self._root_items) if item.is_curve]
-
     def _has_curve_data(self, curve_id: str) -> bool:
         """Return whether one curve currently has authored keys.
 
@@ -169,6 +164,11 @@ class CurveTreeModel(TreeModelBase[_CurveTreeItem]):
                 item.has_data = self._has_curve_data(item.curve_id)
         self._item_changed(None)
 
+    @property
+    def curve_items(self) -> list[_CurveTreeItem]:
+        """Return every curve leaf from the explicit model roots."""
+        return [item for item in self._iter_all(self._root_items) if item.is_curve]
+
     def _iter_all(self, items):
         for item in items:
             yield item
@@ -198,7 +198,6 @@ class CurveTreeDelegate(TreeDelegateBase):
         self._on_create_curve = on_create_curve
         self._on_delete_curve = on_delete_curve
         self._channel_labels: dict[_CurveTreeItem, ui.Label] = {}
-        self._selected_items: set[_CurveTreeItem] = set()
 
     @property
     def default_attr(self) -> dict[str, None]:
@@ -212,14 +211,13 @@ class CurveTreeDelegate(TreeDelegateBase):
     def selection(self, value: Iterable[_CurveTreeItem]) -> None:
         """Update channel label states with native tree selection."""
         self._selection = list(value)
-        self._selected_items = set(self._selection)
+        selected_items = set(self.selection)
         for item, label in self._channel_labels.items():
-            label.selected = item in self._selected_items
+            label.selected = item in selected_items
 
     def destroy(self) -> None:
         """Release channel labels and delegate callbacks."""
         self._channel_labels.clear()
-        self._selected_items.clear()
         super().destroy()
 
     def build_branch(self, model, item, column_id, level, expanded):
@@ -250,7 +248,7 @@ class CurveTreeDelegate(TreeDelegateBase):
                 name=label_name,
                 identifier=f"CurveTree{'Channel' if item.is_curve else 'Group'}::{item.item_id}",
                 tooltip=item.tooltip,
-                selected=item.is_curve and item in self._selected_items,
+                selected=item.is_curve and item in self.selection,
                 style={f"Label::{label_name}": {"font_size": 13, "color": label_color}},
             )
 
@@ -323,7 +321,7 @@ class CurveTreePanel:
             identifier="CurveTreeChannels",
         )
         self._tree.set_expanded(None, True, True)
-        self._selection_subscription = self._tree.subscribe_selection_changed(self._on_tree_selection_changed)
+        self._selection_sub = self._tree.subscribe_selection_changed(self._on_tree_selection_changed)
         self._on_tree_selection_changed(self._curve_items)
         self._initial_selection_task = ensure_future(self._initialize_selection())
 
@@ -350,7 +348,7 @@ class CurveTreePanel:
         if self._initial_selection_task:
             self._initial_selection_task.cancel()
             self._initial_selection_task = None
-        self._selection_subscription = None
+        self._selection_sub = None
         self._on_curves_selected = None
         self._curve_items.clear()
         if self._tree:
