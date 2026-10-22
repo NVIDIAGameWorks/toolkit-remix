@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.1]
+### Fixed
+- Refreshed Stage Manager when a workflow input changes its getter or a preset is applied.
+
 ## [2.0.0]
 ### Changed
 - Routed ComfyUI workflow, endpoint, and state changes through context-filtered shared events while preserving the active listener across repeated setup and cleanup.

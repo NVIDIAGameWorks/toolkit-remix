@@ -61,6 +61,7 @@ from lightspeed.trex.comfyui.core.enums import ComfyUIEventType, ComfyUIRetarget
 from lightspeed.trex.comfyui.core.events import ComfyUIEventPayload, subscribe_comfyui_event
 from lightspeed.trex.comfyui.core.extension import get_comfyui_core_instance
 from lightspeed.trex.comfyui.core.job import ComfyUIAssetJob, ComfyUIJob
+from lightspeed.trex.comfyui.core.models import ComfyUIWorkflowRequest
 from lightspeed.trex.comfyui.core.url import Endpoint, build_url, canonical_endpoint
 
 # Prototype owners are invisible by design. The hash and the child path map each owner to the instance paths
@@ -339,11 +340,11 @@ class ComfyUIDisplayAdapter(JobDisplayAdapter):
         details: QueueJobDetailsSnapshot,
         context_name: str,
     ) -> tuple[JobDetailSection, ...]:
-        """Expose the job's exact saved and currently connected ComfyUI servers.
+        """Expose the job's exact saved and currently connected ComfyUI servers and its saved timeout.
 
         Args:
             job: Persisted ComfyUI job whose saved endpoint controls execution.
-            details: Typed queue details retained for the adapter contract.
+            details: Typed queue details whose decoded inputs hold the saved workflow request.
             context_name: Caller context retained for the adapter contract; the job's saved context is used.
 
         Returns:
@@ -355,6 +356,14 @@ class ComfyUIDisplayAdapter(JobDisplayAdapter):
             saved_server = "Invalid saved server address"
         connected = get_connected_endpoint(job.context_name)
         connected_server = build_url(*connected) if connected is not None else "Not connected"
+        request = details.inputs.get(ComfyUIJob.WORKFLOW_REQUEST) if details.inputs is not None else None
+        if isinstance(request, ComfyUIWorkflowRequest) and request.timeout == 0:
+            timeout = "No timeout"
+        elif isinstance(request, ComfyUIWorkflowRequest):
+            minutes = request.timeout / 60
+            timeout = f"{minutes:g} minute" if minutes == 1 else f"{minutes:g} minutes"
+        else:
+            timeout = "Unavailable"
         return (
             JobDetailSection(
                 "comfyui_server",
@@ -371,6 +380,12 @@ class ComfyUIDisplayAdapter(JobDisplayAdapter):
                         "Connected server",
                         connected_server,
                         "The ComfyUI server currently connected for this job's USD context.",
+                    ),
+                    JobDetailField(
+                        "comfyui.timeout",
+                        "Timeout",
+                        timeout,
+                        "This job stops as Timed Out when ComfyUI does not finish the prompt in this time.",
                     ),
                 ),
                 JobDetailSectionPlacement.BEFORE_INPUTS,

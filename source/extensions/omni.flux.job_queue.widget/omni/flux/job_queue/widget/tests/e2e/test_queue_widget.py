@@ -73,7 +73,7 @@ from omni.flux.job_queue.widget.display_adapter_base import (
     JobDetailSection,
     JobDisplayAdapter,
 )
-from omni.flux.job_queue.widget.enums import JobDetailSectionPlacement
+from omni.flux.job_queue.widget.enums import DisplayState, JobDetailSectionPlacement
 from omni.flux.job_queue.widget.extension import get_display_adapter_registry
 from omni.flux.job_queue.widget.row import Row
 from omni.flux.job_queue.widget.widget import QueueWidget
@@ -189,6 +189,8 @@ class _WidgetJob(Job):
     output_ports = (RESULT, DETAILS)
     execution_started: ClassVar[asyncio.Event | None] = None
     execution_release: ClassVar[asyncio.Event | None] = None
+    cancellation_entered: ClassVar[asyncio.Event | None] = None
+    cancellation_release: ClassVar[asyncio.Event | None] = None
 
     async def execute(
         self,
@@ -209,7 +211,14 @@ class _WidgetJob(Job):
         if self.execution_started is not None:
             self.execution_started.set()
         if self.execution_release is not None:
-            await self.execution_release.wait()
+            try:
+                await self.execution_release.wait()
+            except asyncio.CancelledError:
+                # Hold external cleanup the way a product job waits for its server to confirm a stop.
+                if self.cancellation_release is not None:
+                    self.cancellation_entered.set()
+                    await self.cancellation_release.wait()
+                raise
         return JobOutputs({RESULT: self.value, DETAILS: self.details})
 
 
@@ -455,6 +464,8 @@ class TestQueueWidget(AsyncTestCase):
         _TestApplyHandler.operation_block_reasons = {}
         _WidgetJob.execution_started = None
         _WidgetJob.execution_release = None
+        _WidgetJob.cancellation_entered = None
+        _WidgetJob.cancellation_release = None
         destroy_all_notifications()
 
         self._window = ui.Window(f"QueueWidgetE2E_{uuid.uuid4()}", width=1000, height=500)
@@ -905,6 +916,128 @@ class TestQueueWidget(AsyncTestCase):
 
         graph_time = self._find(f"Label[*].identifier=='queue_graph_completed_{graph.graph_id}'")
         self.assertEqual(graph_time.widget.text, "Just now")
+
+    async def test_scheduler_controls_retry_timed_out_job_dispatches_same_job(self):
+        """The Retry control dispatches the same job and excludes other execution states."""
+        # Persist a timeout, an ordinary failure, and a completed sibling in one real graph.
+        timed_out = _WidgetJob(name="Timed-out generation", value=17, details={"result": "retained"})
+        failed = _WidgetJob(name="Failed generation", value=2)
+        done = _WidgetJob(name="Completed processing", value=3)
+        self._submit_graph("Retry workflow", timed_out, failed, done)
+        for job, error in ((timed_out, TimeoutError("private timeout")), (failed, RuntimeError("private failure"))):
+            self.assertIn(job.job_id, self._interface.claim_runnable_jobs())
+            self.assertTrue(self._interface.start_job(job.job_id))
+            self.assertTrue(self._interface.fail_job(job.job_id, JobError.from_exception(error), "Execution stopped."))
+        self._complete(done)
+        await ui_test.human_delay()
+        await self._find("Image[*].identifier=='queue_graph_branch'").click()
+        await ui_test.human_delay()
+
+        retry = self._find(f"Image[*].identifier=='retry_job_{timed_out.job_id}'")
+        self.assertIsNotNone(retry)
+        self.assertTrue(retry.widget.enabled)
+        self.assertIsNone(self._find(f"Image[*].identifier=='retry_job_{failed.job_id}'"))
+        self.assertIsNone(self._find(f"Image[*].identifier=='retry_job_{done.job_id}'"))
+
+        # Start real dispatch, then retry through the visible control.
+        _WidgetJob.execution_started = asyncio.Event()
+        _WidgetJob.execution_release = asyncio.Event()
+        scheduler = JobScheduler(self._interface)
+        scheduler.start()
+        try:
+            await retry.click()
+            await self._widget.model.wait_for_background_tasks()
+            await asyncio.wait_for(_WidgetJob.execution_started.wait(), 2)
+            await ui_test.human_delay()
+
+            snapshot = self._interface.get_job_snapshot(timed_out.job_id)
+            retained = self._interface.get_job(timed_out.job_id)
+            self.assertIs(snapshot.state, JobState.IN_PROGRESS)
+            self.assertIsNone(snapshot.error)
+            self.assertEqual(retained.job_id, timed_out.job_id)
+            self.assertEqual(retained.value, timed_out.value)
+            self.assertEqual(retained.details, timed_out.details)
+            self.assertIsNone(self._find(f"Image[*].identifier=='retry_job_{timed_out.job_id}'"))
+            self.assertIs(self._interface.get_job_snapshot(failed.job_id).state, JobState.FAILED)
+
+            # Let the real executor finish and observe the completed row.
+            _WidgetJob.execution_release.set()
+            await asyncio.wait_for(scheduler.stop(), 2)
+            await ui_test.human_delay()
+            snapshot = self._interface.get_job_snapshot(timed_out.job_id)
+            self.assertIs(snapshot.state, JobState.DONE)
+            self.assertTrue(snapshot.has_outputs)
+            self.assertIsNone(self._find(f"Image[*].identifier=='retry_job_{timed_out.job_id}'"))
+        finally:
+            _WidgetJob.execution_release.set()
+            await scheduler.stop()
+
+    async def test_stop_control_waits_for_cleanup_then_allows_retry(self):
+        """Stop replaces Delete, stays disabled during job cleanup, and leaves a retryable Stopped child."""
+        # Run one real job through the scheduler and hold it in progress.
+        running = _WidgetJob(name="Long generation", value=5)
+        graph = self._submit_graph("Stop workflow", running)
+        _WidgetJob.execution_started = asyncio.Event()
+        _WidgetJob.execution_release = asyncio.Event()
+        _WidgetJob.cancellation_entered = asyncio.Event()
+        _WidgetJob.cancellation_release = asyncio.Event()
+        scheduler = JobScheduler(self._interface)
+        scheduler.start()
+        try:
+            await asyncio.wait_for(_WidgetJob.execution_started.wait(), 2)
+            await ui_test.human_delay()
+            await self._find("Image[*].identifier=='queue_graph_branch'").click()
+            await ui_test.human_delay()
+
+            stop = self._find(f"Image[*].identifier=='stop_graph_{graph.graph_id}'")
+            self.assertIsNotNone(stop)
+            self.assertTrue(stop.widget.enabled)
+            self.assertIsNone(self._find(f"Image[*].identifier=='delete_graph_{graph.graph_id}'"))
+
+            # Stop through the visible control. The job holds its cleanup until the test releases it.
+            await stop.click()
+            await asyncio.wait_for(_WidgetJob.cancellation_entered.wait(), 2)
+            await ui_test.human_delay()
+
+            stop = self._find(f"Image[*].identifier=='stop_graph_{graph.graph_id}'")
+            self.assertIsNotNone(stop)
+            self.assertFalse(stop.widget.enabled)
+            self.assertEqual(stop.widget.tooltip, "Stopping. Waiting for the running job to stop.")
+            self._interface.cancel_job(running.job_id)
+            await ui_test.human_delay()
+            self.assertIs(self._interface.get_job_snapshot(running.job_id).state, JobState.IN_PROGRESS)
+
+            # Cleanup confirmation settles the job as Stopped.
+            _WidgetJob.cancellation_release.set()
+            for _ in range(20):
+                if self._interface.get_job_snapshot(running.job_id).state is JobState.FAILED:
+                    break
+                await ui_test.human_delay()
+            await ui_test.human_delay()
+
+            snapshot = self._interface.get_job_snapshot(running.job_id)
+            self.assertIs(snapshot.state, JobState.FAILED)
+            self.assertTrue(snapshot.error.cancelled)
+            item = self._widget.model.all_items[0]
+            self.assertIs(self._widget.model.resolve_display_state(item.row), DisplayState.STOPPED)
+            self.assertIsNone(self._find(f"Image[*].identifier=='stop_graph_{graph.graph_id}'"))
+            self.assertIsNotNone(self._find(f"Image[*].identifier=='delete_graph_{graph.graph_id}'"))
+            retry = self._find(f"Image[*].identifier=='retry_job_{running.job_id}'")
+            self.assertIsNotNone(retry)
+            self.assertTrue(retry.widget.enabled)
+
+            # Retry runs the same job again to completion.
+            _WidgetJob.execution_started = asyncio.Event()
+            await retry.click()
+            await self._widget.model.wait_for_background_tasks()
+            await asyncio.wait_for(_WidgetJob.execution_started.wait(), 2)
+            _WidgetJob.execution_release.set()
+            await asyncio.wait_for(scheduler.stop(), 2)
+            self.assertIs(self._interface.get_job_snapshot(running.job_id).state, JobState.DONE)
+        finally:
+            _WidgetJob.execution_release.set()
+            _WidgetJob.cancellation_release.set()
+            await scheduler.stop()
 
     async def test_hidden_timestamp_mode_change_renders_when_shown(self):
         """A hidden widget uses the latest persistent completion-time mode when reopened."""

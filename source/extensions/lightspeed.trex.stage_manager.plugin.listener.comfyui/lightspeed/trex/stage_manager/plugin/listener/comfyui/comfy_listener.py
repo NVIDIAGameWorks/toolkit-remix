@@ -60,6 +60,7 @@ class StageManagerComfyListenerPlugin(StageManagerUSDListenerPlugin[ComfyUIEvent
             ComfyUIEventType.STATE_CHANGED,
             ComfyUIEventType.SETTINGS_CHANGED,
             ComfyUIEventType.WORKFLOW_CHANGED,
+            ComfyUIEventType.WORKFLOW_INPUTS_CHANGED,
         }
         if payload.event_type in relevant_events:
             self._event_occurred(payload.event_type)

@@ -148,6 +148,8 @@ READY_TO_APPLY_FILTER_STATES = frozenset(
 FAILED_FILTER_STATES = frozenset(
     (
         DisplayState.FAILED,
+        DisplayState.TIMED_OUT,
+        DisplayState.STOPPED,
         DisplayState.APPLY_FAILED,
         DisplayState.REAPPLY_FAILED,
         DisplayState.REVERT_FAILED,
@@ -159,6 +161,8 @@ SKIPPED_FILTER_STATES = frozenset((DisplayState.SKIPPED, DisplayState.SKIPPED_WI
 AGGREGATE_PRECEDENCE = (
     DisplayState.CORRUPTED,
     DisplayState.FAILED,
+    DisplayState.TIMED_OUT,
+    DisplayState.STOPPED,
     DisplayState.APPLY_FAILED,
     DisplayState.REAPPLY_FAILED,
     DisplayState.REVERT_FAILED,
@@ -175,6 +179,8 @@ AGGREGATE_PRECEDENCE = (
 PROBLEM_DISPLAY_STATES = frozenset(
     (
         DisplayState.FAILED,
+        DisplayState.TIMED_OUT,
+        DisplayState.STOPPED,
         DisplayState.SKIPPED,
         DisplayState.WAITING_FOR_DEPENDENCIES,
         DisplayState.WAITING,

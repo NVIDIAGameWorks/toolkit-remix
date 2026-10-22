@@ -1,6 +1,16 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0]
+### Added
+- Added a persistent Timeout field in Workflow Inputs, in minutes, with the shared input-row layout, a drag range of 1–360 minutes, and a hard minimum of 0. A Timeout of 0 means no timeout.
+- Added the saved Timeout of each ComfyUI job, in minutes or as "No timeout", to the job details panel.
+
+### Fixed
+- Run adds the valid items to the queue without a confirmation. A dialog shows only when no selected item is valid.
+- Workflow Inputs and Workflow Outputs rows use the same property label style as the Item Properties and the material properties.
+- A getter change or an applied preset publishes `WORKFLOW_INPUTS_CHANGED`, so Stage Manager refreshes its AI Tools action.
+
 ## [2.1.9]
 ### Changed
 - Updated the texture choice test to exclude texture types without a material input, such as Skybox.

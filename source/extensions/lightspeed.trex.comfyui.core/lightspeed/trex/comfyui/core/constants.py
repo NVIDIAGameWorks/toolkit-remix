@@ -22,6 +22,7 @@ __all__ = (
     "COMFYUI_PROCESSED_FOLDER",
     "COMFYUI_SETTINGS_ROOT",
     "COMFYUI_WORKFLOWS_ROUTE",
+    "DEFAULT_JOB_TIMEOUT_SECONDS",
     "HOSTNAME_REGEX",
     "INVALID_LOCAL_LEAF_CHARACTERS",
     "SUPPORTED_COMFYUI_SCHEMES",
@@ -41,6 +42,7 @@ COMFYUI_INPUTS_FOLDER = "inputs"
 COMFYUI_OUTPUTS_FOLDER = "outputs"
 #: RTX Remix node pack route that lists, types, and serves workflows.
 COMFYUI_WORKFLOWS_ROUTE = "/rtx-remix/v1/workflows"
+DEFAULT_JOB_TIMEOUT_SECONDS = 3600.0
 HOSTNAME_REGEX = re.compile(r"^(?!-)[a-zA-Z0-9-]{1,63}(?<!-)(\.(?!-)[a-zA-Z0-9-]{1,63}(?<!-))*$")
 INVALID_LOCAL_LEAF_CHARACTERS = frozenset('<>:"/\\|?*')
 SUPPORTED_COMFYUI_SCHEMES = frozenset(("http", "https"))

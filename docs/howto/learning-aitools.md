@@ -70,9 +70,15 @@ inputs and outputs, saving textures with type metadata, and exporting workflows 
 ComfyUI Manager:
 
 1. Open ComfyUI in your browser.
-2. Open ComfyUI Manager (button in the top menu bar).
-3. Search for **RTX Remix** and install the node pack.
-4. Restart ComfyUI.
+2. Open the ComfyUI Manager (the **Manager** button in the top menu bar).
+3. Search for **RTX Remix** in the search field of the ComfyUI Manager.
+4. Find **NVIDIA RTX Remix Nodes** in the search results, then click its **Install** button.
+5. Accept the restart when ComfyUI asks you to restart the backend.
+6. Click the **Templates** button in the left sidebar after the restart.
+7. Scroll to the bottom of the left panel, then click **ComfyUI-RTX-Remix**. The template workflows of the node pack
+   appear.
+8. Check the installation status in the ComfyUI Manager and the ComfyUI backend startup log for import errors if the
+   templates do not appear.
 
 ```{note}
 Requires ComfyUI v0.3.72 or newer (V3 schema API support).
@@ -85,7 +91,7 @@ that are not installed by default. Before using a template for the first time, i
 
 1. Open ComfyUI in your browser.
 2. Click **Templates** in the left sidebar.
-3. Scroll down to the **EXTENSIONS** section in the left panel and select **ComfyUI RTX Remix**.
+3. Scroll to the bottom of the left panel and click **ComfyUI-RTX-Remix**.
 4. Click on the template workflow you want to use. The workflow loads onto the canvas.
 5. If the **This workflow has missing nodes** dialog appears, click **Skip for Now**. You will install the listed
    nodes through ComfyUI Manager in the next step.
@@ -206,8 +212,22 @@ Click the expansion arrow at the start of a job row to view its stages. A stage 
 ### Selecting a Workflow
 
 The **Workflow** dropdown lists all RTX Remix-compatible workflows available on the connected ComfyUI instance by
-their display names. Workflows are grouped by source: those bundled with the node pack and those you exported. Use the
-**Workflow Type** dropdown to show only the workflows of one type. Select a workflow to load its configurable fields.
+their display names. The dropdown shows workflows in two sections. **Built-in** holds the workflows that the node pack
+supplies. **User** holds the workflows that you exported. Hover over a workflow to see its description. Select a
+workflow to load its configurable fields.
+
+Use the **Workflow Type** dropdown to show only the workflows of one type. The workflow author selects the type at
+export. The dropdown groups the types by category:
+
+| Category | Workflow types |
+|----------|----------------|
+| **Generation** | **Asset Generation**, **Material Generation** |
+| **Upscaling** | **Asset Upscaling**, **Mesh Upscaling**, **Texture Upscaling** |
+| **Miscellaneous** | **Asset Tagging** |
+| **Other** | **Other** |
+
+Hover over a type to see the description that the node pack gives for it. A workflow with a type that the Toolkit does
+not know shows only under **All**.
 
 Click the **Refresh** icon to reload the workflow list. Refresh also reloads the selected workflow, so the inputs and
 outputs of a re-exported workflow appear.
@@ -242,14 +262,45 @@ input to its default value.
 Some workflow inputs can read data from your Remix scene instead of using a fixed value:
 
 1. In **Workflow Inputs**, find the input that you want to configure.
-2. Open the dropdown beside the input and choose how it gets its value. Choose **Selected Texture** or **Selected Mesh**
-   to read one selected stage asset. Choose **All Textures** or **All Meshes** to process every stage asset in order.
-3. Select the input row, then configure its options in **Item Properties**. Choose **Constant** to process one fixed
-   file without changing the stage. A mesh input has **Reference Selection**: **Selected** uses only the reference
-   that composes the prim you picked in the Selection panel, and **All** uses every reference of the mesh.
-   **Selected Mesh** defaults to **Selected**. **All Meshes** defaults to **All**.
+2. Open the dropdown beside the input and choose how it gets its value.
+3. Select the input row, then configure the options of that choice in **Item Properties**.
+
+| Choice | Input type | Value sent to ComfyUI | Options |
+|--------|------------|-----------------------|---------|
+| **Constant** | All | One fixed value or file. It does not read the stage. | The value |
+| **Selected Texture** | Texture | The texture of each selected material | **Texture Type** |
+| **All Textures** | Texture | The texture of each material in the stage | **Texture Type**, **Introducing Layer** |
+| **Selected Mesh** | Mesh | The model of each selected mesh | **Reference Selection** (default **Selected**) |
+| **All Meshes** | Mesh | The model of each mesh in the stage | **Reference Selection** (default **All**) |
+| **Selected Prim** | Text | The path of the prim that each job processes. A workflow with a mesh output, or with a **Selected Mesh** or **All Meshes** input, sends the mesh prim. Other workflows send the material, also when you select a mesh. | None |
+| **Current Layer** | Text | The identifier of the root layer of the stage | None |
+
+- **Texture Type** sets the material texture to read, for example **Albedo** or **Roughness**.
+- **Introducing Layer** sets which textures **All Textures** processes. **Capture** processes only the textures from
+  the game capture. **Mod** processes only the textures that your mod added. **Any** processes all textures.
+- **Reference Selection** sets which references of a mesh the workflow uses. **Selected** uses only the reference that
+  composes the prim you picked. **All** uses every reference of the mesh.
 
 The available choices depend on the input type. Values are resolved when you submit the job.
+
+The inputs control how many jobs one submission creates:
+
+- If every input is a **Constant** or **Current Layer**, the submission creates one job. The selection has no effect.
+  The Toolkit processes the result but does not apply it, because no input points to a stage prim.
+- If an input is **Selected Texture**, **Selected Mesh**, or **Selected Prim**, the submission creates one job for
+  each selected item.
+- If an input is **All Textures** or **All Meshes**, the submission creates one job for each matching stage item.
+
+Items that send the same request to ComfyUI share one job. For example, two meshes that bind the same material share
+one texture job. Two meshes that reference the same model with the same inputs share one model job. The Toolkit
+applies the shared result to each item.
+
+When a workflow has a mesh input, its texture inputs must use the same scope. A **Constant** mesh needs **Constant**
+textures. **Selected Mesh** needs **Selected Texture**. **All Meshes** needs **All Textures**. Submission rejects
+other combinations.
+
+A workflow with a **Selected Mesh** or **All Meshes** input and texture outputs reads the model from each mesh
+reference. Its textures replace the textures of the materials under that mesh.
 
 ### Configuring Workflow Outputs
 
@@ -265,19 +316,24 @@ reference it started from. Append adds the generated model beside each target re
 set to **Selected Mesh** or **All Meshes**. Submission rejects Replace when the mesh input is a **Constant**, because
 there is no stage reference to replace.
 
-```{note}
-Scene-based inputs make batch processing possible. You can submit many prims at once, and each job resolves the
-appropriate value from its prim.
-```
+### Setting the Job Timeout
+
+The **Job Queue** group in **Workflow Inputs** has a **Timeout** field. It sets the maximum time in minutes that a job
+waits for ComfyUI. The default is 60 minutes. Type `0` to remove the time limit. Each job keeps the timeout that was
+set when you submitted it.
+
+When a job times out, the Toolkit cancels its prompt on the ComfyUI server. The next ComfyUI job starts only after the
+server confirms the cancellation, so a timed-out prompt cannot slow the jobs after it. The job queue then shows
+**Timed Out**.
 
 ### Submitting a Job
 
-1. Select one or more prims in the viewport or Stage Manager.
+1. If the workflow has a **Selected** input, select one or more prims in the viewport or Stage Manager. **All**,
+   **Constant**, and **Current Layer** inputs do not use the selection.
 2. Configure the workflow fields.
 3. Click **Run Workflow**.
-4. If some selected prims do not provide the inputs that the workflow requires, a dialog shows how many jobs the
-   Toolkit will skip. Click **Proceed** to submit the other jobs. Hover over a skipped job in the queue to see why the
-   Toolkit skipped it.
+4. If some items do not provide the inputs that the workflow requires, the Toolkit does not add jobs for them. The
+   other jobs go to the queue. If no item is valid, a dialog tells you that no jobs were added.
 5. If the scheduler is stopped, click the **Play** (▶️) button in the job queue toolbar to start the job
    scheduler. Jobs will not be sent to ComfyUI until the scheduler is running.
 
@@ -285,8 +341,9 @@ When processing finishes, the job row provides **Apply** (✔️) and **Decline*
 the same buttons become **Reapply** and **Revert**.
 
 ```{note}
-The scheduler only needs to be started once per session. It continues processing queued jobs until you stop it with
-the **Stop** button.
+The scheduler continues to process queued jobs until you select **Stop**.
+Stop pauses new jobs. Jobs that already run continue until they finish. To stop one running job, use the **Stop**
+action on its job graph row.
 ```
 
 ### Applying Results
@@ -313,27 +370,57 @@ each result and click **Apply** yourself.
 For more deliberate workflows, leave it off and apply jobs individually after reviewing them.
 ```
 
+### Managing Jobs in the Queue
+
+Each job graph row has these actions:
+
+- **Focus in Viewport** selects the prims of the job and frames them in the viewport. Click it again to go to the next
+  prim.
+- **Open Workflow** loads the saved workflow and input values of the job into the AI Tools panel. Use it to change
+  the values and run the workflow again.
+- **Retarget** sends a queued job to the ComfyUI server that is now connected, when that server is different from the
+  saved server. It is available only while the generation step waits in the queue.
+- **Stop** replaces **Delete** while a job of the graph runs. It cancels the prompt on the ComfyUI server. The job
+  shows **Stopped** only after the server confirms that the prompt stopped. The next queued ComfyUI job then starts.
+  While the job waits for that confirmation, **Stop** is unavailable. An optimization stage shows **Running** until
+  its current step finishes, and then shows **Stopped**.
+- **Retry** queues a **Timed Out** or **Stopped** job again with the same inputs.
+
+A stage can show **Skipped**. Hover over the status to see the reason. For example, the optimization stages skip an
+asset that is already optimized, and the job can still apply the result.
+
+Click the filter icon in the job queue toolbar to open **Additional Filters**. You can search by job or stage name, and
+filter by job, stage, status, and Apply state. Click **Reset All** to remove all filters.
+
 ### Job Details
 
 Select a job row to open its information in the **Job Details** panel. The panel includes:
 
 - **Open Job Input Folder** and **Open Job Generated Output Folder** actions.
 - The job ID and total processing time.
+- The **ComfyUI server** section: the **Saved server** of the job, the **Connected server**, and the job **Timeout**.
 - An execution log with timestamps for each stage.
 - The job graph and its data flow.
 
 ## Processing at Scale
 
-### Batch Submission
+### Processing the Whole Stage
 
-Select multiple prims and click **Run Workflow** to queue jobs for all of them at once. When combined with dynamic
-inputs, each prim's job resolves its own input values automatically.
+To process every texture or mesh of your mod in one submission, use the **All** choices:
 
-### Job Deduplication
+1. Set the texture input to **All Textures**, or the mesh input to **All Meshes**. A workflow with both inputs must use
+   **All** for both.
+2. For **All Textures**, set **Introducing Layer**. Select **Capture** to remaster the original game textures. Select
+   **Mod** to process only the textures that your mod added.
+3. Click **Run Workflow**. You do not need to select prims.
 
-The system automatically detects when multiple prims share the same input data. Rather than submitting duplicate jobs to
-ComfyUI, it groups these prims and submits a single job, then applies the results to all prims in the group. This
-significantly reduces processing time for scenes with shared assets.
+The submission creates one job for each matching stage item. Use **Selected Texture** or **Selected Mesh** to try the
+workflow on a few items first.
+
+```{tip}
+Set **Auto** in the job queue toolbar to apply each result when it is ready. Increase **Timeout** if one generation can
+take longer than 60 minutes on your hardware.
+```
 
 ### Job Persistence
 
@@ -348,9 +435,11 @@ currently configured workflow and field values.
 
 ![Stage Manager showing the AI Tools submit icon with tooltip](../data/images/remix-aitexturetools-stagemanager.png)
 
-The icon appears enabled when ComfyUI is connected and a workflow is selected. Its tooltip names the selected
-workflow. When ComfyUI is not connected or no workflow is selected, the icon is disabled. Click it to open the AI Tools
-layout. If some selected prims do not provide the required inputs, the Toolkit shows the skipped-jobs dialog.
+The icon appears enabled when ComfyUI is connected, a workflow is selected, and the workflow has at least one
+**Selected Texture** or **Selected Mesh** input. Its tooltip names the selected workflow. If one of these conditions is
+false, the icon is disabled, because Constant, **All Meshes**, and **All Textures** inputs do not use the selection.
+Click the disabled icon to open the AI Tools layout. Selected prims that do not provide the required inputs do not
+create jobs. If no selected prim provides them, the Toolkit shows a dialog and adds no jobs.
 
 ```{tip}
 Submit from the **Materials** tab in the Stage Manager to apply results at the Material prim level. This creates an
@@ -428,8 +517,11 @@ If you have multiple GPUs, you can run separate ComfyUI instances on different G
 |---------|----------|
 | **Connection Failed** banner | Paste the correct complete URL into **Host** to repopulate the connection fields, then ensure ComfyUI is running and select **Retry**. Select **Show Logs** to view the exact endpoint and captured connection error. |
 | No workflows appear after connecting | Ensure the RTX Remix Node Pack is installed and ComfyUI has been restarted after installation. |
-| A dialog says that jobs will be skipped | Some selected prims do not provide the inputs that the workflow requires, for example a texture. Click **Proceed** to submit the other jobs, or assign the required data and run the workflow again. |
+| A dialog says that no jobs were created | No selected prim provides the inputs that the workflow requires, for example a texture. Prims without these inputs never create jobs. Assign the required data and run the workflow again. |
 | Results not appearing on prim | Verify the prim hierarchy includes a shader that the Toolkit can locate. |
+| A job shows **Timed Out** | ComfyUI did not finish the prompt in the job **Timeout**. Select **Retry** to run the job again with the same timeout. To use a longer timeout, increase **Timeout** in the **Job Queue** group, then run the workflow again. |
+| A submission rejects the texture and mesh inputs | The texture inputs must use the same scope as the mesh input. Use **Selected Texture** with **Selected Mesh**, **All Textures** with **All Meshes**, or **Constant** with **Constant**. |
+| The Stage Manager **AI Tools** icon is disabled | The workflow has no **Selected Texture** or **Selected Mesh** input. Click the icon to open the AI Tools layout and run the workflow from there. |
 
 For general ComfyUI issues (model loading, out of memory, node errors), check the external ComfyUI console or process
 logs and refer to the [ComfyUI documentation](https://docs.comfy.org/). Those logs are separate from the connection

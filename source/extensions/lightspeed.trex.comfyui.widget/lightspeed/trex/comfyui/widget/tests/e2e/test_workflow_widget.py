@@ -19,10 +19,12 @@ import pathlib
 from copy import deepcopy
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from carb.input import MouseEventType
+from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardInput, MouseEventType
+from carb.settings import get_settings
 from omni.kit import ui_test, undo
 from omni.kit.test import AsyncTestCase
 from lightspeed.trex.comfyui.core.api import ComfyUIAPI
+from lightspeed.trex.comfyui.core.constants import COMFYUI_SETTINGS_ROOT
 from lightspeed.trex.comfyui.core.core import ComfyUICore
 from lightspeed.trex.comfyui.core.enums import (
     ComfyUIEventType,
@@ -464,7 +466,9 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
         input_label = next(
             (
                 candidate
-                for candidate in ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].name=='WorkflowInputName'")
+                for candidate in ui_test.find_all(
+                    f"{self._window.title}//Frame/**/Label[*].identifier=='ComfyWorkflowItemName'"
+                )
                 if candidate.widget.text == label
             ),
             None,
@@ -541,7 +545,7 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
 
         # The output persists the choice, and the row and breadcrumb follow the new label.
         self.assertEqual(texture.texture_type, "roughness")
-        rows = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].name=='WorkflowInputName'")
+        rows = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].identifier=='ComfyWorkflowItemName'")
         self.assertIn("Roughness", [label.widget.text for label in rows])
         self.assertNotIn("Albedo", [label.widget.text for label in rows])
         breadcrumb = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].name=='Breadcrumb'")
@@ -559,7 +563,7 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
         _apply_combo, texture_combo = self._find_output_combos()
         await select_combo_item(texture_combo, "Roughness")
         await self._click_input("Enabled")
-        row_selector = f"{self._window.title}//Frame/**/Label[*].name=='WorkflowInputName'"
+        row_selector = f"{self._window.title}//Frame/**/Label[*].identifier=='ComfyWorkflowItemName'"
         row = next(label for label in ui_test.find_all(row_selector) if label.widget.text == "Roughness")
         self.assertEqual(row.widget.text, "Roughness")
         self.assertIn("Roughness", row.widget.tooltip)
@@ -567,6 +571,8 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
 
         # Undo with the output controls closed must also restore the retained output row.
         undo.undo()
+        # The outputs tree sits below the scroll area and only redraws its rows once scrolled into view.
+        self._real_widget._inputs_property_widgets[1].tree_view.scroll_here_y(0.5)
         await ui_test.human_delay()
         row = next(label for label in ui_test.find_all(row_selector) if label.widget.text == "Albedo")
         self.assertEqual(texture.texture_type, "albedo")
@@ -592,7 +598,7 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
         self.assertEqual(titles, ["WORKFLOW INPUTS", "WORKFLOW OUTPUTS"])
         self.assertEqual(
             [item.name_models[0].get_value_as_string() for item in inputs_tree.model.get_item_children(None)],
-            ["Ungrouped", "Material"],
+            ["Ungrouped", "Material", "Job Queue"],
         )
         self.assertEqual(
             [item.name_models[0].get_value_as_string() for item in outputs_tree.model.get_item_children(None)],
@@ -611,6 +617,58 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
         self.assertEqual([item.workflow_output for item in outputs_tree.selection], workflow.output_specs)
         self.assertIsNotNone(ui_test.find(f"{self._window.title}//Frame/**/Label[*].text=='Apply Behavior'"))
 
+    async def test_job_queue_timeout_edit_persists_seconds_and_survives_widget_rebuild(self):
+        """A timeout control edit persists seconds and remains visible after widget reconstruction."""
+        backend = get_settings()
+        timeout_key = f"/persistent{COMFYUI_SETTINGS_ROOT}/job_timeout"
+        original_timeout = backend.get(timeout_key)
+        workflow = _make_workflow()
+        timeout_selector = f"{self._window.title}//Frame/**/FloatBoundedDrag[*].identifier=='ComfyJobTimeoutField'"
+
+        try:
+            backend.set(timeout_key, 3600.0)
+            core = await self._build_core_widget(workflow)
+
+            # Edit the real timeout control after the user expands Job Queue.
+            await self._expand_group("Job Queue")
+            timeout_field = await _wait_for_widget(timeout_selector)
+            self.assertIsNotNone(timeout_field)
+            self.assertEqual(timeout_field.widget.model.get_value_as_float(), 60.0)
+            await timeout_field.double_click()
+            await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
+            await ui_test.emulate_keyboard_press(KeyboardInput.BACKSPACE)
+            await ui_test.emulate_char_press("120")
+            await ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
+            await ui_test.human_delay()
+
+            # The real persistent settings store contains seconds, not the displayed minutes.
+            self.assertEqual(backend.get(timeout_key), 7200.0)
+            self.assertEqual(core.settings.job_timeout, 7200.0)
+
+            # A typed 0 is accepted and persists as no timeout.
+            await timeout_field.double_click()
+            await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
+            await ui_test.emulate_keyboard_press(KeyboardInput.BACKSPACE)
+            await ui_test.emulate_char_press("0")
+            await ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
+            await ui_test.human_delay()
+            self.assertEqual(backend.get(timeout_key), 0.0)
+            self.assertEqual(core.settings.job_timeout, 0.0)
+
+            # Reconstruct the widget, then expand Job Queue to read the retained value.
+            await self._build_real_widget(workflow, core)
+            await self._expand_group("Job Queue")
+            rebuilt_timeout_field = await _wait_for_widget(timeout_selector)
+            self.assertIsNotNone(rebuilt_timeout_field)
+            self.assertEqual(rebuilt_timeout_field.widget.model.get_value_as_float(), 0.0)
+            self.assertEqual(backend.get(timeout_key), 0.0)
+        finally:
+            if original_timeout is None:
+                backend.destroy_item(timeout_key)
+            else:
+                backend.set(timeout_key, original_timeout)
+            await ui_test.human_delay()
+
     async def test_build_real_widget_uses_context_and_builds_inputs(self):
         """A user sees the workflow inputs and stable workflow controls."""
         workflow = _make_workflow()
@@ -628,7 +686,7 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
         )
         self.assertIsNotNone(ui_test.find(f"{self._window.title}//Frame/**/Button[*].identifier=='ComfyWorkflowRun'"))
         for workflow_input in workflow.inputs:
-            labels = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].name=='WorkflowInputName'")
+            labels = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].identifier=='ComfyWorkflowItemName'")
             self.assertIn(workflow_input.label, [label.widget.text for label in labels])
 
     async def test_disconnected_workflow_shows_broken_link_icon_above_guidance(self):
@@ -703,7 +761,9 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
         getter = await _wait_for_widget(f"{self._window.title}//Frame/**/ComboBox[*].identifier=='ComfyGetterPicker'")
         input_label = next(
             label
-            for label in ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].name=='WorkflowInputName'")
+            for label in ui_test.find_all(
+                f"{self._window.title}//Frame/**/Label[*].identifier=='ComfyWorkflowItemName'"
+            )
             if label.widget.text == "Texture"
         )
         self.assertIsNotNone(getter)
@@ -720,7 +780,9 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
         )
         resized_input_label = next(
             label
-            for label in ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].name=='WorkflowInputName'")
+            for label in ui_test.find_all(
+                f"{self._window.title}//Frame/**/Label[*].identifier=='ComfyWorkflowItemName'"
+            )
             if label.widget.text == "Texture"
         )
 
@@ -794,6 +856,7 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
                     for label in ui_test.find_all(
                         f"{self._window.title}//Frame/**/Label[*].name=='PropertiesWidgetLabel'"
                     )
+                    if label.widget.identifier != "ComfyWorkflowItemName"
                 ]
                 self.assertIn(property_label, property_labels)
                 self.assertNotIn(input_label, property_labels)

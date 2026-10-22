@@ -27,17 +27,19 @@ class TestStageManagerComfyListenerPlugin(AsyncTestCase):
     """Test the Stage Manager ComfyUI listener integration."""
 
     async def test_workflow_event_forwards_actual_event_type(self):
-        """Workflow changes retain their event type when forwarded."""
-        # Arrange
-        listener = StageManagerComfyListenerPlugin()
-        listener._event_occurred = MagicMock()
-        payload = ComfyUIEventPayload("", ComfyUIEventType.WORKFLOW_CHANGED)
+        """Workflow and workflow input changes retain their event type when forwarded."""
+        for event_type in (ComfyUIEventType.WORKFLOW_CHANGED, ComfyUIEventType.WORKFLOW_INPUTS_CHANGED):
+            with self.subTest(event_type=event_type):
+                # Arrange
+                listener = StageManagerComfyListenerPlugin()
+                listener._event_occurred = MagicMock()
+                payload = ComfyUIEventPayload("", event_type)
 
-        # Act
-        listener._on_comfy_event(payload)
+                # Act
+                listener._on_comfy_event(payload)
 
-        # Assert
-        listener._event_occurred.assert_called_once_with(ComfyUIEventType.WORKFLOW_CHANGED)
+                # Assert
+                listener._event_occurred.assert_called_once_with(event_type)
 
     async def test_irrelevant_event_is_not_forwarded(self):
         """Non-Stage-Manager ComfyUI events are ignored."""

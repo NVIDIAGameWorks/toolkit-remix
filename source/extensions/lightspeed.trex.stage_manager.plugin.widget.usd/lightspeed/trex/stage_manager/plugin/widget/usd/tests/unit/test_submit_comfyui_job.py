@@ -32,7 +32,6 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
     async def setUp(self):
         """Reset class-owned asynchronous task state before each test."""
         SubmitComfyUIJobActionWidgetPlugin._submit_tasks.clear()
-        SubmitComfyUIJobActionWidgetPlugin._pending_confirmations.clear()
         SubmitComfyUIJobActionWidgetPlugin._layout_task = None
 
     async def tearDown(self):
@@ -131,7 +130,7 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
                 "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
                 return_value=core,
             ) as get_core_mock,
-            patch.object(SubmitComfyUIJobActionWidgetPlugin, "_is_comfy_ready", return_value=True),
+            patch.object(SubmitComfyUIJobActionWidgetPlugin, "_can_submit_selection", return_value=True),
         ):
             SubmitComfyUIJobActionWidgetPlugin._on_submit_comfyui_job(
                 {
@@ -159,7 +158,7 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
         item = MagicMock()
 
         with (
-            patch.object(SubmitComfyUIJobActionWidgetPlugin, "_is_comfy_ready", return_value=True),
+            patch.object(SubmitComfyUIJobActionWidgetPlugin, "_can_submit_selection", return_value=True),
             patch(
                 "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.asyncio.ensure_future"
             ) as ensure_future,
@@ -169,29 +168,6 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
                 {
                     "context_name": "texturecraft",
                     "right_clicked_item": item,
-                    "selected_paths": ["/World/MaterialA"],
-                }
-            )
-
-        # Assert
-        ensure_future.assert_not_called()
-
-    async def test_submit_ignores_context_with_open_skip_confirmation(self):
-        """A context cannot prepare another graph while its skip dialog is open."""
-        # Arrange
-        SubmitComfyUIJobActionWidgetPlugin._pending_confirmations.add("texturecraft")
-
-        with (
-            patch.object(SubmitComfyUIJobActionWidgetPlugin, "_is_comfy_ready", return_value=True),
-            patch(
-                "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.asyncio.ensure_future"
-            ) as ensure_future,
-        ):
-            # Act
-            SubmitComfyUIJobActionWidgetPlugin._on_submit_comfyui_job(
-                {
-                    "context_name": "texturecraft",
-                    "right_clicked_item": MagicMock(),
                     "selected_paths": ["/World/MaterialA"],
                 }
             )
@@ -221,7 +197,7 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
                 "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
                 return_value=core,
             ),
-            patch.object(SubmitComfyUIJobActionWidgetPlugin, "_is_comfy_ready", return_value=True),
+            patch.object(SubmitComfyUIJobActionWidgetPlugin, "_can_submit_selection", return_value=True),
         ):
             SubmitComfyUIJobActionWidgetPlugin._on_submit_comfyui_job(
                 {
@@ -257,7 +233,6 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
         await asyncio.gather(submit_task, layout_task, return_exceptions=True)
         await asyncio.sleep(0)
         self.assertEqual(SubmitComfyUIJobActionWidgetPlugin._submit_tasks, {})
-        self.assertEqual(SubmitComfyUIJobActionWidgetPlugin._pending_confirmations, set())
         self.assertIsNone(SubmitComfyUIJobActionWidgetPlugin._layout_task)
 
     async def test_extension_shutdown_cancels_pending_submissions(self):
@@ -280,124 +255,12 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
         cancel_submissions.assert_called_once_with()
         factory.unregister_plugins.assert_called_once_with(extension._PLUGINS)
 
-    async def test_prepared_jobs_with_skips_require_exact_material_confirmation(self):
-        """Skipped materials show the complete approved confirmation copy before queue submission."""
-        # Arrange
-        core = MagicMock()
-        core.prepare_submission = AsyncMock(return_value=ComfyUISubmission((MagicMock(),), 1))
-
-        with (
-            patch(
-                "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
-                return_value=core,
-            ),
-            patch.object(SubmitComfyUIJobActionWidgetPlugin, "_is_comfy_ready", return_value=True),
-            patch("lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job._TrexMessageDialog") as dialog,
-        ):
-            # Act
-            SubmitComfyUIJobActionWidgetPlugin._on_submit_comfyui_job(
-                {
-                    "context_name": "texturecraft",
-                    "right_clicked_item": MagicMock(),
-                    "selected_paths": ["/World/MaterialA"],
-                }
-            )
-            await SubmitComfyUIJobActionWidgetPlugin._submit_tasks["texturecraft"]
-
-        # Assert
-        self.assertEqual(
-            dialog.call_args.args[0],
-            "1 selected material does not provide the inputs required by the active workflow.\n\n"
-            "These jobs will be skipped.\n\n"
-            "Do you want to proceed anyway?",
-        )
-        self.assertIn("texturecraft", SubmitComfyUIJobActionWidgetPlugin._pending_confirmations)
-
-    async def test_closing_skip_confirmation_allows_new_submission(self):
-        """Cancelling the skipped-job dialog releases its context guard."""
-        # Arrange
-        SubmitComfyUIJobActionWidgetPlugin._pending_confirmations.add("texturecraft")
-
-        # Act
-        SubmitComfyUIJobActionWidgetPlugin._on_confirmation_closed("texturecraft")
-
-        # Assert
-        self.assertNotIn("texturecraft", SubmitComfyUIJobActionWidgetPlugin._pending_confirmations)
-
-    async def test_cancelled_skip_confirmation_cannot_restart_submission(self):
-        """Extension shutdown invalidates callbacks retained by an open dialog."""
-        # Arrange
-        submission = ComfyUISubmission((MagicMock(),), 0)
-        SubmitComfyUIJobActionWidgetPlugin._pending_confirmations.add("texturecraft")
-        SubmitComfyUIJobActionWidgetPlugin.cancel_pending_submissions()
-
-        # Act
-        with patch(
-            "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.asyncio.ensure_future"
-        ) as ensure_future:
-            SubmitComfyUIJobActionWidgetPlugin._submit_prepared_submission("texturecraft", submission)
-
-        # Assert
-        ensure_future.assert_not_called()
-
-    async def test_dialog_construction_failure_releases_confirmation_guard(self):
-        """A failed confirmation dialog cannot permanently block later submissions."""
-        # Arrange
-        core = MagicMock()
-        core.prepare_submission = AsyncMock(return_value=ComfyUISubmission((MagicMock(),), 1))
-
-        # Act
-        with (
-            patch(
-                "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
-                return_value=core,
-            ),
-            patch(
-                "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job._TrexMessageDialog",
-                side_effect=RuntimeError("window unavailable"),
-            ),
-            patch("lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.post_notification"),
-        ):
-            await SubmitComfyUIJobActionWidgetPlugin._prepare_and_submit("texturecraft", ["/World/Material"])
-
-        # Assert
-        self.assertNotIn("texturecraft", SubmitComfyUIJobActionWidgetPlugin._pending_confirmations)
-
-    async def test_confirmed_graph_is_submitted_by_retained_owner_task(self):
-        """Confirmation schedules one retained task that emits the exact prepared submission."""
-        # Arrange
-        core = MagicMock()
-        submission = ComfyUISubmission((MagicMock(),), 0)
-        core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(1, 0))
-        SubmitComfyUIJobActionWidgetPlugin._pending_confirmations.add("texturecraft")
-
-        # Act
-        with (
-            patch(
-                "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
-                return_value=core,
-            ),
-            patch(
-                "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.post_notification"
-            ) as post_notification_mock,
-        ):
-            SubmitComfyUIJobActionWidgetPlugin._submit_prepared_submission("texturecraft", submission)
-            task = SubmitComfyUIJobActionWidgetPlugin._submit_tasks["texturecraft"]
-            await task
-
-        # Assert
-        core.submit_prepared_submission.assert_awaited_once_with(submission)
-        post_notification_mock.assert_called_once()
-        self.assertIn("selection was added", post_notification_mock.call_args.args[0])
-        self.assertNotIn("texturecraft", SubmitComfyUIJobActionWidgetPlugin._submit_tasks)
-
     async def test_submit_owner_reports_queue_recovery_without_technical_details(self):
         """An all-failed submission reports exact counts without exposing exception details."""
         # Arrange
         core = MagicMock()
         submission = ComfyUISubmission((MagicMock(),), 0)
         core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(0, 1))
-        SubmitComfyUIJobActionWidgetPlugin._pending_confirmations.add("texturecraft")
 
         # Act
         with (
@@ -409,8 +272,7 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
                 "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.post_notification"
             ) as post_notification_mock,
         ):
-            SubmitComfyUIJobActionWidgetPlugin._submit_prepared_submission("texturecraft", submission)
-            await SubmitComfyUIJobActionWidgetPlugin._submit_tasks["texturecraft"]
+            await SubmitComfyUIJobActionWidgetPlugin._submit_submission("texturecraft", submission)
 
         # Assert
         core.submit_prepared_submission.assert_awaited_once_with(submission)
@@ -427,7 +289,6 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
         core = MagicMock()
         submission = ComfyUISubmission(tuple(MagicMock(name=name) for name in ("first", "second", "third")), 0)
         core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(2, 1))
-        SubmitComfyUIJobActionWidgetPlugin._pending_confirmations.add("texturecraft")
 
         # Act
         with (
@@ -439,8 +300,7 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
                 "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.post_notification"
             ) as post_notification_mock,
         ):
-            SubmitComfyUIJobActionWidgetPlugin._submit_prepared_submission("texturecraft", submission)
-            await SubmitComfyUIJobActionWidgetPlugin._submit_tasks["texturecraft"]
+            await SubmitComfyUIJobActionWidgetPlugin._submit_submission("texturecraft", submission)
 
         # Assert
         core.submit_prepared_submission.assert_awaited_once_with(submission)
@@ -467,7 +327,7 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
                 "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
                 return_value=core,
             ),
-            patch.object(SubmitComfyUIJobActionWidgetPlugin, "_is_comfy_ready", return_value=True),
+            patch.object(SubmitComfyUIJobActionWidgetPlugin, "_can_submit_selection", return_value=True),
             patch(
                 "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.post_notification"
             ) as post_notification_mock,

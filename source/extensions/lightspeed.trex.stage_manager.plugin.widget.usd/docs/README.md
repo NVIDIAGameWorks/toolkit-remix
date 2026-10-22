@@ -9,7 +9,7 @@ USD-specific Stage Manager state and action widgets for RTX Remix capture editin
 - Render capture, category, nickname, particle, skeleton, logic-graph, rename, focus, and delete/restore controls.
 - Route viewport Delete requests to the matching USD context and publish context-bound frame requests.
 - Execute regular and capture deletion as one undoable operation.
-- Snapshot explicit selections, confirm skipped prepared jobs, and pass accepted submissions back to the ComfyUI core.
+- Snapshot explicit selections and pass prepared submissions with valid graphs back to the ComfyUI core.
 - Observe and cancel asynchronous ComfyUI submission and AI Tools layout tasks owned by the extension.
 
 ## Non-Responsibilities
@@ -29,7 +29,8 @@ USD-specific Stage Manager state and action widgets for RTX Remix capture editin
 - `LightspeedStageManagerUSDWidgetPluginsExtension` consumes shared viewport-delete events without requiring the
   Remix viewport implementation.
 - `SubmitComfyUIJobActionWidgetPlugin` snapshots the explicit selection and connection readiness, then lets the
-  ComfyUI core resolve candidates and create skipped jobs for missing inputs.
+  ComfyUI core resolve candidates and leave out items without the workflow inputs. The action is disabled unless the
+  workflow has a Selected Texture or Selected Mesh input, because other inputs ignore the selection.
 - `DeleteRestoreActionWidgetPlugin` applies undoable capture-reference and light-intensity edits.
 - `LightClipboardMenuPlugin` connects Stage Manager context-menu actions to the shared asset-replacement core.
 - The remaining action, state, and information plugins each provide one Stage Manager column or context-menu behavior.
@@ -37,9 +38,9 @@ USD-specific Stage Manager state and action widgets for RTX Remix capture editin
 ### ComfyUI Submission
 
 The ComfyUI action snapshots the active USD context's selected prim paths, asks the ComfyUI core to prepare one job per
-unique material, confirms any skipped jobs, and passes the accepted immutable submission back to the context-bound
-core. It renders exact returned counts and never mutates the queue directly. It reports preparation or submission
-failures through Toolkit notifications, and its menu opens the organized AI Tools layout.
+unique material, and passes the prepared immutable submission back to the context-bound core. If no item is valid, it
+shows a dialog and adds nothing. It renders exact returned counts and never mutates the queue directly. It reports
+preparation or submission failures through Toolkit notifications, and its menu opens the organized AI Tools layout.
 
 ### Delete And Restore
 

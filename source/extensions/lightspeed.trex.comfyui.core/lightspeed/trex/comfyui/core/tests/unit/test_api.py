@@ -16,6 +16,7 @@
 """
 
 import asyncio
+import itertools
 import pathlib
 import threading
 from unittest.mock import AsyncMock, MagicMock, call, mock_open, patch
@@ -826,3 +827,18 @@ class TestComfyUIAPI(AsyncTestCase):
         # Assert
         self.assertIsInstance(exception.exception, TimeoutError)
         api.get_history.assert_awaited_once_with("prompt-123")
+
+    async def test_wait_for_prompt_completion_without_timeout_waits_until_completed(self):
+        """A timeout of 0 keeps polling past any elapsed time until the prompt completes."""
+        # Arrange
+        api = ComfyUIAPI("http", "127.0.0.1", 8188)
+        completed = {"prompt-123": {"outputs": {}, "status": {"completed": True, "status_str": "success"}}}
+        api.get_history = AsyncMock(side_effect=({}, {}, completed))
+
+        # Act
+        with patch("lightspeed.trex.comfyui.core.api.monotonic", side_effect=itertools.count(0.0, 1_000_000.0)):
+            history = await api.wait_for_prompt_completion("prompt-123", timeout=0, poll_interval=0)
+
+        # Assert
+        self.assertEqual(history, completed)
+        self.assertEqual(api.get_history.await_count, 3)

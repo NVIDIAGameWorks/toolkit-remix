@@ -432,7 +432,7 @@ class QueueWidget:
             start_tooltip = status_tooltip
         elif stopping_graphs:
             status_text = "Stopping"
-            start_tooltip = "Resume dispatching after active work finishes"
+            start_tooltip = "Resume dispatching while active jobs finish"
             if len(stopping_graphs) == 1:
                 status_tooltip = f'Waiting for graph "{stopping_graphs[0]}" to finish before stopping.'
             else:

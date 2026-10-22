@@ -17,6 +17,7 @@
 
 __all__ = [
     "InputItemGroup",
+    "JobTimeoutItem",
     "OutputItemGroup",
     "ResolverParamItem",
     "WorkflowGroupItem",
@@ -27,7 +28,8 @@ from typing import Any, Literal
 from lightspeed.trex.comfyui.core.enums import OutputApplyBehavior, RemixType
 from lightspeed.trex.comfyui.core.maps import OUTPUT_TEXTURE_TYPE_MAP
 from lightspeed.trex.comfyui.core.models import WorkflowInput, WorkflowOutput
-from lightspeed.trex.comfyui.core.resolvers import ValueResolver
+from lightspeed.trex.comfyui.core.resolvers import ResolverParameter, ValueResolver
+from lightspeed.trex.comfyui.core.settings import ComfyUISettings
 from omni.flux.property_widget_builder.model.native import NativeChoiceModel, NativeItem
 from omni.flux.property_widget_builder.widget import ItemGroup
 from omni.flux.property_widget_builder.widget.tree.item_model import ItemGroupNameModel
@@ -216,6 +218,37 @@ class ResolverParamItem(NativeItem):
             elif choice in OUTPUT_TEXTURE_TYPE_MAP:
                 choice_model.get_item_value_model(choice_item).set_value(OUTPUT_TEXTURE_TYPE_MAP[choice].value)
         return cls(name_model, choice_model, value_type=value_type, field_model=value_model)
+
+
+class JobTimeoutItem(ResolverParamItem):
+    """Job Queue row that edits the global ComfyUI job timeout in minutes."""
+
+    SECONDS_PER_MINUTE = 60.0
+    HARD_MIN_MINUTES = 0.0
+    SOFT_MIN_MINUTES = 1.0
+    SOFT_MAX_MINUTES = 360.0
+
+    def __init__(self, settings: ComfyUISettings):
+        """Bind the row to the persisted timeout, which the settings store in seconds.
+
+        Args:
+            settings: ComfyUI settings that persist the job timeout.
+        """
+        self.tooltip = (
+            "Maximum time in minutes that a ComfyUI job waits for the server, "
+            "including time queued behind other prompts. Set 0 for no timeout. Applies to new jobs."
+        )
+        parameter = ResolverParameter(
+            "job_timeout",
+            float,
+            lambda: settings.job_timeout / JobTimeoutItem.SECONDS_PER_MINUTE,
+            lambda minutes: settings.set_job_timeout(minutes * JobTimeoutItem.SECONDS_PER_MINUTE),
+        )
+        super().__init__(
+            _ParameterNameModel("Timeout", tooltip=self.tooltip),
+            _ResolverFieldValueModel(parameter, float),
+            value_type=float,
+        )
 
 
 class InputItemGroup(ItemGroup):

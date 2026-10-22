@@ -28,6 +28,7 @@ import carb
 from lightspeed.common.constants import LayoutFiles
 from lightspeed.trex.comfyui.core.core import ComfyUICore, ComfyUISubmission
 from lightspeed.trex.comfyui.core.extension import get_comfyui_core_instance
+from lightspeed.trex.comfyui.core.resolvers import SelectedMeshResolver, SelectedTextureResolver, StageExpandingResolver
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget.quicklayout import load_layout
 from omni.flux.stage_manager.factory.plugins import StageManagerMenuMixin as _StageManagerMenuMixin
@@ -52,7 +53,6 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
     """Provide Stage Manager controls for submitting selected prims to ComfyUI."""
 
     _submit_tasks: ClassVar[dict[str, asyncio.Task[None]]] = {}
-    _pending_confirmations: ClassVar[set[str]] = set()
     _layout_task: ClassVar[asyncio.Task | None] = None
 
     def build_icon_ui(
@@ -71,15 +71,16 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
             expanded: Whether the tree item is expanded; unused.
         """
         core = get_comfyui_core_instance(self._context_name)
-        comfy_ready = self._is_comfy_ready(self._context_name)
 
-        if not comfy_ready:
+        if not core.is_ready:
             icon = "AIToolsDisabled"
             tooltip = "ComfyUI is not connected, or no workflow is selected. Select to open AI Tools."
+        elif not self._has_selection_input(core):
+            icon = "AIToolsDisabled"
+            tooltip = "The workflow has no Selected Texture or Selected Mesh input. Select to open AI Tools."
         else:
-            workflow_name = core.workflow.display_name if core.workflow else "Unknown"
             icon = "AITools"
-            tooltip = f"Run '{workflow_name}' for this selection using the current AI Tools settings."
+            tooltip = f"Run '{core.workflow.display_name}' for this selection using the current AI Tools settings."
 
         self.make_action_image(
             model=model,
@@ -106,7 +107,7 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
         if button != 0:
             return
 
-        if not self._is_comfy_ready(self._context_name):
+        if not self._can_submit_selection(self._context_name):
             self._open_ai_tools_layout()
             return
 
@@ -165,13 +166,13 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
             payload: Stage Manager menu payload with a context name and optional clicked item.
 
         Returns:
-            True when ComfyUI is ready and the payload identifies a clicked item.
+            True when the workflow can run on a selection and the payload identifies a clicked item.
 
         Raises:
             KeyError: If the payload does not contain a context name.
         """
         context_name = payload["context_name"]
-        if not cls._is_comfy_ready(context_name):
+        if not cls._can_submit_selection(context_name):
             return False
         item = payload.get("right_clicked_item")
         return bool(item)
@@ -189,9 +190,7 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
         context_name = payload["context_name"]
         item = payload.get("right_clicked_item")
         selected_paths = list(payload.get("selected_paths") or ())
-        if not cls._is_comfy_ready(context_name) or not item or not selected_paths:
-            return
-        if context_name in cls._pending_confirmations:
+        if not cls._can_submit_selection(context_name) or not item or not selected_paths:
             return
         pending_task = cls._submit_tasks.get(context_name)
         if pending_task and not pending_task.done():
@@ -204,7 +203,7 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
 
     @classmethod
     async def _prepare_and_submit(cls, context_name: str, selected_paths: list[str]) -> None:
-        """Prepare a Stage Manager selection and submit it or request confirmation.
+        """Prepare a Stage Manager selection and submit its valid items.
 
         Args:
             context_name: USD context that owns the selected prims.
@@ -219,21 +218,13 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
             submission, cancelled = await cls._prepare_with_progress(core, selected_paths)
             if cancelled:
                 return
-            if submission.skipped_count:
-                material_label = "material" if submission.skipped_count == 1 else "materials"
-                provide_label = "does" if submission.skipped_count == 1 else "do"
+            if not submission.graphs:
                 _TrexMessageDialog(
-                    f"{submission.skipped_count} selected {material_label} {provide_label} not provide the inputs "
-                    "required by "
-                    "the active workflow.\n\n"
-                    "These jobs will be skipped.\n\n"
-                    "Do you want to proceed anyway?",
-                    "Skipped ComfyUI Jobs",
-                    ok_handler=functools.partial(cls._submit_prepared_submission, context_name, submission),
-                    ok_label="Proceed",
-                    on_window_closed_fn=functools.partial(cls._on_confirmation_closed, context_name),
+                    "The selected items do not provide the inputs required by the active workflow.\n\n"
+                    "No jobs were added to the queue.",
+                    "No ComfyUI Jobs Created",
+                    disable_cancel_button=True,
                 )
-                cls._pending_confirmations.add(context_name)
                 return
             await cls._submit_submission(context_name, submission)
         except (OSError, RuntimeError, ValueError) as error:
@@ -285,53 +276,6 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
             progress_popup.set_progress(max(0.0, min(1.0, current / total)))
 
     @classmethod
-    def _on_confirmation_closed(cls, context_name: str) -> None:
-        """Release a context after its skipped-job dialog closes.
-
-        Args:
-            context_name: USD context released by the closed dialog.
-        """
-        cls._pending_confirmations.discard(context_name)
-
-    @classmethod
-    def _submit_prepared_submission(cls, context_name: str, submission: ComfyUISubmission) -> None:
-        """Schedule a confirmed submission after validating dialog ownership.
-
-        Args:
-            context_name: USD context that owns the confirmation.
-            submission: Core-prepared material submission approved by the user.
-        """
-        if context_name not in cls._pending_confirmations:
-            return
-        cls._pending_confirmations.discard(context_name)
-        pending_task = cls._submit_tasks.get(context_name)
-        if pending_task and not pending_task.done():
-            return
-        cls._submit_tasks[context_name] = asyncio.ensure_future(cls._submit_confirmed(context_name, submission))
-        cls._submit_tasks[context_name].set_name(f"ComfyUIConfirmedSubmit:{context_name}")
-
-    @classmethod
-    async def _submit_confirmed(cls, context_name: str, submission: ComfyUISubmission) -> None:
-        """Submit a confirmed core-prepared request and release task ownership.
-
-        Args:
-            context_name: USD context that owns the submission task.
-            submission: Confirmed material submission to add to the queue.
-
-        Raises:
-            asyncio.CancelledError: If the owning submission task is cancelled.
-        """
-        task = asyncio.current_task()
-        try:
-            await cls._submit_submission(context_name, submission)
-        except (OSError, RuntimeError, ValueError) as error:
-            carb.log_warn(f"Failed to submit ComfyUI jobs: {error}")
-            post_notification(COMFYUI_SUBMISSION_FAILURE_MESSAGE, status=NotificationStatus.WARNING)
-        finally:
-            if cls._submit_tasks.get(context_name) is task:
-                cls._submit_tasks.pop(context_name, None)
-
-    @classmethod
     async def _submit_submission(cls, context_name: str, submission: ComfyUISubmission) -> None:
         """Submit one core-prepared request and render its exact result.
 
@@ -373,7 +317,6 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
         for task in cls._submit_tasks.values():
             if not task.done():
                 task.cancel()
-        cls._pending_confirmations.clear()
         if cls._layout_task and not cls._layout_task.done():
             cls._layout_task.cancel()
 
@@ -414,14 +357,32 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
             carb.log_warn(f"Failed to open the AI Tools layout: {error}")
 
     @classmethod
-    def _is_comfy_ready(cls, context_name: str) -> bool:
-        """Return whether ComfyUI is ready for the requested context.
+    def _can_submit_selection(cls, context_name: str) -> bool:
+        """Return whether the active workflow can run on a Stage Manager selection.
 
         Args:
             context_name: USD context whose ComfyUI core should be checked.
 
         Returns:
-            True when ComfyUI is connected and has an active workflow.
+            True when ComfyUI is ready and the workflow reads a selected texture or mesh.
         """
         core = get_comfyui_core_instance(context_name)
-        return core.is_ready
+        return core.is_ready and cls._has_selection_input(core)
+
+    @staticmethod
+    def _has_selection_input(core: ComfyUICore) -> bool:
+        """Return whether the active workflow has a Selected Texture or Selected Mesh input.
+
+        Constant and whole-stage inputs ignore the clicked selection, so the action has nothing to run on.
+
+        Args:
+            core: ComfyUI core with an active workflow.
+
+        Returns:
+            True when at least one input reads the selected prims.
+        """
+        return any(
+            isinstance(workflow_input.value, (SelectedTextureResolver, SelectedMeshResolver))
+            and not isinstance(workflow_input.value, StageExpandingResolver)
+            for workflow_input in core.workflow.inputs
+        )

@@ -181,6 +181,18 @@ class DisplayState(StrEnum):
         None,
         "This job could not finish. Edit and submit it again.",
     )
+    TIMED_OUT = (
+        "timed_out",
+        "Timed Out",
+        "StatusFailed",
+        "This job did not finish before its timeout. Select Retry to try again.",
+    )
+    STOPPED = (
+        "stopped",
+        "Stopped",
+        "StatusFailed",
+        "This job was stopped before it finished. Select Retry to try again.",
+    )
     SKIPPED = (
         "skipped",
         "Skipped",

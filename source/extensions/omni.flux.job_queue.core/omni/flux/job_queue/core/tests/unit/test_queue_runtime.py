@@ -1045,6 +1045,28 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
             self.assertIsNone(submitted.started_at)
             self.assertIsNone(submitted.completed_at)
 
+    async def test_ignored_stop_request_does_not_block_stop_of_next_attempt(self):
+        """A Stop that no execution accepted is dropped when a new attempt is claimed."""
+        # Arrange
+        async with temp_db_path() as db_path:
+            interface = QueueInterface(db_path)
+            job = _LaneA()
+            interface.submit(job)
+            requested = []
+            _subscription = interface.subscribe_cancel_requested(requested.append)
+            interface.cancel_job(job.job_id)
+
+            # Act
+            interface.claim_runnable_jobs()
+            cleared = not interface.is_cancel_requested(job.job_id)
+            interface.cancel_job(job.job_id)
+            interface.cancel_job(job.job_id)
+
+            # Assert
+            self.assertTrue(cleared)
+            self.assertEqual(requested, [job.job_id, job.job_id])
+            self.assertTrue(interface.is_cancel_requested(job.job_id))
+
     async def test_claim_snapshot_does_not_set_started_timestamp(self):
         """A scheduler claim alone does not imply that job execution started."""
         # Arrange
@@ -1423,8 +1445,8 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
             self.assertIn(f"Starting {job.name}", log)
             self.assertIn("Completed successfully", log)
 
-    async def test_executor_writes_per_job_failure_log(self):
-        """Failed execution creates the stderr log consumed by Job Details."""
+    async def test_executor_failure_log_finishes_before_failure_publication(self):
+        """Failure diagnostics exist before the queue publishes the failed state."""
         # Arrange
         async with temp_db_path() as db_path:
             interface = QueueInterface(db_path)
@@ -1433,12 +1455,21 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
             interface.claim_runnable_jobs()
             executor = JobExecutor(interface)
             stderr_path = interface.get_job_directory(job.job_id) / "logs" / "stderr.log"
+            fail_job = interface.fail_job
+            logs_at_failure = []
+
+            def record_log_before_failure(job_id, failure, reason):
+                """Capture the diagnostic log at the terminal transition."""
+                logs_at_failure.append(stderr_path.read_text(encoding="utf-8"))
+                return fail_job(job_id, failure, reason)
 
             # Act
-            await executor.execute(job.job_id)
+            with mock.patch.object(interface, "fail_job", side_effect=record_log_before_failure):
+                await executor.execute(job.job_id)
 
             # Assert
-            log = stderr_path.read_text(encoding="utf-8")
+            self.assertEqual(len(logs_at_failure), 1)
+            log = logs_at_failure[0]
             self.assertIn("The generation service could not complete this job.", log)
             self.assertIn("HTTP 500 from http://internal/service", log)
 

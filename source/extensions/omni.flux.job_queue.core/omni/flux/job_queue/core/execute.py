@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import functools
 import pathlib
 import uuid
 from typing import Any
@@ -107,19 +108,18 @@ async def _persist_failure(
         asyncio.CancelledError: After required persistence and logging settle.
     """
     cancellation_received = False
-    persist_task = asyncio.create_task(asyncio.to_thread(interface.fail_job, job_id, failure, reason))
+    log_task = asyncio.create_task(_write_job_log(stderr_path, _format_failure_log(reason, failure)))
     try:
-        changed = await asyncio.shield(persist_task)
+        await asyncio.shield(log_task)
     except asyncio.CancelledError:
         cancellation_received = True
-        changed = await _finish_despite_cancellation(persist_task)
-    if changed:
-        log_task = asyncio.create_task(_write_job_log(stderr_path, _format_failure_log(reason, failure)))
-        try:
-            await asyncio.shield(log_task)
-        except asyncio.CancelledError:
-            cancellation_received = True
-            await _finish_despite_cancellation(log_task)
+        await _finish_despite_cancellation(log_task)
+    persist_task = asyncio.create_task(asyncio.to_thread(interface.fail_job, job_id, failure, reason))
+    try:
+        await asyncio.shield(persist_task)
+    except asyncio.CancelledError:
+        cancellation_received = True
+        await _finish_despite_cancellation(persist_task)
     if cancellation_received:
         raise asyncio.CancelledError
 
@@ -241,16 +241,18 @@ class JobScheduler:
         self.interface = interface
         self.executor = JobExecutor(interface)
         self._running = False
+        self._dispatch_enabled = False
         self._loop: asyncio.AbstractEventLoop | None = None
         self._wake = asyncio.Event()
         self._task: asyncio.Task[None] | None = None
         self._failure: BaseException | None = None
-        self._active: set[asyncio.Task[None]] = set()
+        self._active: dict[uuid.UUID, asyncio.Task[None]] = {}
         self._mutation_subscription: EventSubscription | None = None
         self._conditions_subscription: EventSubscription | None = None
+        self._cancel_subscription = interface.subscribe_cancel_requested(self._on_cancel_requested)
 
     def start(self) -> None:
-        """Start event-driven dispatch if it is not already running.
+        """Start or resume dispatch without interrupting active execution.
 
         Raises:
             RuntimeError: If no event loop is running in the current thread.
@@ -258,13 +260,16 @@ class JobScheduler:
         if self._task is not None:
             if not self._running:
                 raise RuntimeError("The scheduler cannot start while its previous generation is stopping")
+            self._dispatch_enabled = True
+            self._wake.set()
             return
         if self._failure is not None:
             raise RuntimeError(
-                "The previous scheduler generation failed; call stop() to observe the failure"
+                "The previous scheduler generation failed; call pause() or stop() to observe the failure"
             ) from self._failure
         self._loop = asyncio.get_running_loop()
         self._running = True
+        self._dispatch_enabled = True
         mutation_subscription = self.interface.subscribe_mutation(self._on_queue_event)
         try:
             conditions_subscription = self.interface.subscribe_schedule_conditions_changed(self._on_queue_event)
@@ -272,6 +277,7 @@ class JobScheduler:
         except Exception:
             mutation_subscription = None
             self._running = False
+            self._dispatch_enabled = False
             self._loop = None
             raise
         self._mutation_subscription = mutation_subscription
@@ -280,8 +286,23 @@ class JobScheduler:
         task.add_done_callback(self._on_run_finished)
         self._wake.set()
 
+    def pause(self) -> None:
+        """Pause dispatch and preserve active execution capacity.
+
+        Raises:
+            BaseException: If the previous scheduler generation failed.
+        """
+        self._dispatch_enabled = False
+        if self._task is None:
+            failure = self._failure
+            self._failure = None
+            if failure is not None:
+                raise failure
+            return
+        self._wake.set()
+
     async def stop(self) -> None:
-        """Pause new dispatch and wait for active jobs to finish."""
+        """Stop dispatch and wait for active jobs to finish."""
         task = self._task
         if task is None:
             failure = self._failure
@@ -290,6 +311,7 @@ class JobScheduler:
                 raise failure
             return
         self._running = False
+        self._dispatch_enabled = False
         self._mutation_subscription = None
         self._conditions_subscription = None
         self._wake.set()
@@ -308,7 +330,7 @@ class JobScheduler:
         Returns:
             Whether the scheduler accepts dispatch work.
         """
-        return self._running
+        return self._running and self._dispatch_enabled
 
     async def _run(self) -> None:
         """Dispatch runnable jobs when queue or product readiness changes."""
@@ -316,6 +338,9 @@ class JobScheduler:
         try:
             while self._running:
                 self._wake.clear()
+                if not self._dispatch_enabled:
+                    await self._wake.wait()
+                    continue
                 claim_task = asyncio.create_task(asyncio.to_thread(self.interface.claim_runnable_jobs))
                 try:
                     claimed = await asyncio.shield(claim_task)
@@ -325,6 +350,19 @@ class JobScheduler:
                 pending_claims.update(claimed)
                 if not self._running:
                     break
+                if not self._dispatch_enabled:
+                    if pending_claims:
+                        release_task = asyncio.create_task(
+                            asyncio.to_thread(self.interface.release_scheduled_jobs, tuple(pending_claims))
+                        )
+                        try:
+                            await asyncio.shield(release_task)
+                        except asyncio.CancelledError:
+                            await _finish_despite_cancellation(release_task)
+                            pending_claims.clear()
+                            raise
+                        pending_claims.clear()
+                    continue
                 for job_id in claimed:
                     if not self._running:
                         break
@@ -334,13 +372,14 @@ class JobScheduler:
                     except Exception:
                         execution.close()
                         raise
-                    self._active.add(task)
-                    task.add_done_callback(self._on_job_finished)
+                    self._active[job_id] = task
+                    task.add_done_callback(functools.partial(self._on_job_finished, job_id))
                     pending_claims.remove(job_id)
                 if not claimed:
                     await self._wake.wait()
         finally:
             self._running = False
+            self._dispatch_enabled = False
             self._mutation_subscription = None
             self._conditions_subscription = None
             try:
@@ -351,7 +390,7 @@ class JobScheduler:
                     await _finish_despite_cancellation(release_task)
             finally:
                 if self._active:
-                    await asyncio.gather(*tuple(self._active), return_exceptions=True)
+                    await asyncio.gather(*tuple(self._active.values()), return_exceptions=True)
                 self._loop = None
 
     def _on_run_finished(self, task: asyncio.Task[None]) -> None:
@@ -376,13 +415,38 @@ class JobScheduler:
         except RuntimeError as error:
             carb.log_error(f"Could not wake the job scheduler: {error}")
 
-    def _on_job_finished(self, task: asyncio.Task[None]) -> None:
+    def _on_cancel_requested(self, job_id: uuid.UUID) -> None:
+        """Cancel one active execution task from any thread.
+
+        Args:
+            job_id: Job whose execution should stop.
+        """
+        loop = self._loop
+        if loop is None or loop.is_closed():
+            return
+        try:
+            loop.call_soon_threadsafe(self._cancel_job, job_id)
+        except RuntimeError as error:
+            carb.log_error(f"Could not cancel job {job_id}: {error}")
+
+    def _cancel_job(self, job_id: uuid.UUID) -> None:
+        """Cancel one active execution task on the scheduler loop.
+
+        Args:
+            job_id: Job whose execution should stop.
+        """
+        task = self._active.get(job_id)
+        if task is not None:
+            task.cancel()
+
+    def _on_job_finished(self, job_id: uuid.UUID, task: asyncio.Task[None]) -> None:
         """Release exact-type capacity and consume task failure.
 
         Args:
+            job_id: Job executed by the task.
             task: Completed owned execution task.
         """
-        self._active.discard(task)
+        self._active.pop(job_id, None)
         if not task.cancelled():
             error = task.exception()
             if error is not None:

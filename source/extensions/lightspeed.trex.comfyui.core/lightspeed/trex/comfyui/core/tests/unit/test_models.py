@@ -134,7 +134,7 @@ class TestComfyUIWorkflowRequest(AsyncTestCase):
             ("binding_value_type", {"input_bindings": (MagicMock(),)}, TypeError),
             ("duplicate_port", {"input_bindings": (binding, duplicate)}, ValueError),
             ("client_id_type", {"client_id": None}, TypeError),
-            ("nonpositive_timeout", {"timeout": 0.0}, ValueError),
+            ("negative_timeout", {"timeout": -1.0}, ValueError),
             ("blank_output_url", {"output_url": ""}, ValueError),
             ("workflow_type", {"workflow": MagicMock()}, TypeError),
         )

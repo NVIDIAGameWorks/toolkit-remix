@@ -309,3 +309,51 @@ class TestComfyUIJobCandidatesE2E(AsyncTestCase):
             [pathlib.Path(binding.source).resolve() for binding in _workflow_request(graph).input_bindings],
             [self._temp_path / "textures" / "source_albedo.png"],
         )
+
+    async def test_mesh_input_texture_output_uses_reference_and_replaces_owner_materials(self):
+        """A Selected Mesh input reads each owner's reference, and the texture output replaces the owners' materials."""
+        self._core.set_workflow(
+            Workflow(
+                name="Mesh to texture",
+                api={"3": {"class_type": "RTXRemixImportMeshNode", "inputs": {"mesh_file_path": ""}}},
+                inputs=[
+                    WorkflowInput(
+                        port_id="3.inputs.mesh_file_path",
+                        label="Mesh",
+                        native_type=pathlib.Path,
+                        default_value=pathlib.Path(),
+                        value=SelectedMeshResolver(context_name=""),
+                        remix_type=RemixType.MESH_FILE_PATH,
+                    )
+                ],
+                output_specs=[
+                    WorkflowOutput(
+                        node_id="2",
+                        remix_type=RemixType.TEXTURE_FILE_PATH,
+                        texture_type="albedo",
+                        apply_behavior=OutputApplyBehavior.REPLACE,
+                    )
+                ],
+            )
+        )
+
+        submission = await self._core.prepare_submission([_OWNER_A, _OWNER_B])
+
+        # Both owners reference the same model, so they share one request and one texture Apply.
+        self.assertEqual(len(submission.graphs), 1)
+        graph = submission.graphs[0]
+        self.assertIsNone(graph.jobs[0].skip_reason)
+        self.assertEqual(
+            [pathlib.Path(binding.source).resolve() for binding in _workflow_request(graph).input_bindings],
+            [self._temp_path / "model.usda"],
+        )
+        target = next(job for job in graph.jobs if job.apply_binding).apply_binding.target
+        # Apply targets the material that each mesh under the owner binds, as a texture workflow does.
+        bound_materials = (
+            UsdShade.MaterialBindingAPI(self._stage.GetPrimAtPath(f"{owner}/Quad")).ComputeBoundMaterial()[0]
+            for owner in (_OWNER_A, _OWNER_B)
+        )
+        self.assertEqual(
+            set(target.texture_targets),
+            {("2", f"{material.GetPath()}/Shader.inputs:diffuse_texture") for material in bound_materials},
+        )

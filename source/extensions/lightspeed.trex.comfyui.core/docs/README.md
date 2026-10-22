@@ -39,10 +39,12 @@ ComfyUICore
 ### Key Classes
 
 - `ComfyUICore` resolves candidates and builds output-driven graphs for one USD context.
-- `ComfyUICore.prepare_submission(prim_paths)` returns a `ComfyUISubmission` with the built graphs and skip
-  counts. `submit_prepared_submission` adds the whole batch in one queue transaction and returns a
-  `ComfyUISubmissionResult`. `get_retarget_state` returns a `ComfyUIRetargetState` for the Retarget action.
-- `ComfyUIAPI` uploads inputs, submits prompts, reads history, and downloads declared files.
+- `ComfyUICore.prepare_submission(prim_paths)` returns a `ComfyUISubmission` with only valid graphs.
+  `skipped_count` counts excluded items. It does not count graphs in the returned collection.
+  `submit_prepared_submission` adds the valid batch in one queue transaction and returns a `ComfyUISubmissionResult`.
+  `get_retarget_state` returns a `ComfyUIRetargetState` for the Retarget action.
+- `ComfyUIAPI` uploads inputs, submits prompts, reads history, downloads declared files, and cancels prompts.
+  Cancellation retries requests and queue checks until a valid response confirms removal, without a time limit.
 - `WorkflowOutput` stores Apply Behavior and Texture Type.
 - `SelectedMeshResolver` stores input Reference Selection: All references of the mesh, or only the Selected one.
 - `AllStageMeshesResolver` uses that input choice for every mesh with external references in the stage.
@@ -61,7 +63,10 @@ ComfyUICore
 - A workflow can also have multiple texture outputs.
 - The output node ID is the stable processing key. Texture Type remains editable and does not define identity.
 - Every tagged file output produces exactly one final file.
-- Mesh inputs select a Constant file, Selected Mesh, or All Meshes.
+- Mesh inputs select a Constant file, Selected Mesh, or All Meshes. Texture inputs must use the same scope as the
+  mesh input: Constant, Selected Texture, or All Textures.
+- A workflow with only Constant inputs creates one job that is processed but not applied. A workflow without a mesh
+  input seeds its owners from the selection, or from every stage mesh when an input is All Textures.
 - Reference Selection is a mesh input setting, not an output setting. **All** uses every reference of the mesh.
   **Selected** uses only the reference that composes the picked prim, and rejects a pick that is under none.
   Selected Mesh defaults to **Selected**. All Meshes defaults to **All**.

@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.0]
+### Added
+- Added the Timed Out label with the existing error color and a Retry action for the same job.
+- Added a graph Stop action that replaces Delete while a job runs and stays disabled until the job stops, and the Stopped label with Retry.
+
 ## [3.2.3]
 ### Changed
 - Added regression coverage for skipped-job details and the Skipped status filter.

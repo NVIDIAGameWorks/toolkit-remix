@@ -1,6 +1,22 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.0.0]
+### Added
+- Added prompt cancellation that waits for queue removal and a persistent job timeout with a 3600-second default. A timeout of 0 means no time limit.
+- Stopped jobs cancel their prompt on the ComfyUI server.
+- Added the `WORKFLOW_INPUTS_CHANGED` event for getter and preset changes on the active workflow inputs.
+
+### Changed
+- Breaking change: `ComfyUISubmission.graphs` contains only valid graphs. `skipped_count` counts excluded items, not graphs in that collection.
+- A workflow with only Constant inputs creates one processed, unapplied job for any output, even without a texture input.
+- Texture inputs must use the same scope as the mesh input: Constant, Selected, or All. Submission rejects other combinations.
+
+### Fixed
+- Timed-out jobs retry cancellation requests and queue checks until the server confirms removal. Failed requests do not prevent queue checks.
+- A mesh workflow without a mesh input expands All Textures to every stage mesh instead of only the selection.
+- A texture workflow with a Selected Mesh or All Meshes input reads each mesh reference and applies its textures to the materials under that mesh. Before, the mesh input read the material and the item was skipped.
+
 ## [3.0.9]
 ### Fixed
 - Stopped sending the texture of the material a subset-bound mesh inherits from its captured prim to the job queue.

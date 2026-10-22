@@ -205,6 +205,7 @@ def _build_texture_graphs(
         edit_target_layer,
         ("http", "127.0.0.1", 8188),
         core._client_id,
+        core.settings.job_timeout,
         stage=core_module.get_context(core.context_name).get_stage(),
     )
 
@@ -470,6 +471,9 @@ class TestComfyUICore(AsyncTestCase):
                     mock.patch.object(core_module, "run_worker_with_latest_progress", run_worker),
                     mock.patch.object(core, "_get_material_candidates", return_value=[(material, ["/World/Selected"])]),
                     mock.patch.object(core, "_capture_texture_targets", return_value=()),
+                    mock.patch.object(
+                        type(core.settings), "job_timeout", new_callable=mock.PropertyMock, return_value=7200.0
+                    ),
                 ):
                     # Act
                     graphs = await core._create_job_graphs(prim_paths=["/World/Selected"])
@@ -479,6 +483,7 @@ class TestComfyUICore(AsyncTestCase):
                 generation_job = next(job for job in graph.jobs if isinstance(job, ComfyUIJob))
                 request = _get_workflow_request(graph, generation_job)
                 self.assertEqual(request.prompt["1"]["inputs"]["prim"], expected_prim)
+                self.assertEqual(request.timeout, 7200.0)
 
     async def test_create_texture_constant_graph_ends_at_metadata_apply(self) -> None:
         """A Constant texture lane is one generation job and one texture job that applies metadata."""
@@ -510,6 +515,7 @@ class TestComfyUICore(AsyncTestCase):
             "/project/mod.usda",
             ("http", "127.0.0.1", 8188),
             core._client_id,
+            core.settings.job_timeout,
             stage=stage,
         )[0]
 
@@ -574,6 +580,7 @@ class TestComfyUICore(AsyncTestCase):
             "/project/mod.usda",
             ("http", "127.0.0.1", 8188),
             core._client_id,
+            core.settings.job_timeout,
             stage=stage,
         )[0]
 
@@ -1145,6 +1152,7 @@ class TestComfyUICore(AsyncTestCase):
                 "/project/mod.usda",
                 ("http", "127.0.0.1", 8188),
                 core._client_id,
+                core.settings.job_timeout,
                 stage=mock.MagicMock(),
             )
 
@@ -1328,41 +1336,150 @@ class TestComfyUICore(AsyncTestCase):
         self.assertEqual(graphs, [graph])
 
     async def test_all_constant_texture_inputs_ignore_selected_material_targets(self) -> None:
-        """All Constant texture sources create one metadata-only graph despite stage selection."""
-        # Arrange
-        core = ComfyUICore("texturecraft")
-        core._workflow = Workflow(
-            name="Constant",
-            api={"1": {"inputs": {"image": ""}}},
-            inputs=[
+        """A workflow whose inputs are all Constant creates one processed, unapplied graph despite the selection."""
+        for title, workflow_input in (
+            (
+                "constant texture",
                 _workflow_input(
                     "1.inputs.image",
                     ConstantResolver(pathlib.Path(__file__)),
                     native_type=pathlib.Path,
                     remix_type=RemixType.TEXTURE_FILE_PATH,
-                )
-            ],
-            output_specs=[_texture_output("99")],
-        )
-        context = _make_context()
-        stage = context.get_stage.return_value
-        context.get_selection.return_value.get_selected_prim_paths.return_value = ["/World/SelectedMaterial"]
-        run_worker = mock.AsyncMock(side_effect=lambda worker, **_kwargs: worker(mock.MagicMock()))
-
-        with (
-            mock.patch.object(core, "_get_submission_target", return_value=(stage, "/root.usda", "/edit.usda")),
-            mock.patch.object(core_module, "get_context", return_value=context),
-            mock.patch.object(core_module, "run_worker_with_latest_progress", run_worker),
-            mock.patch.object(core, "_get_material_candidates") as material_candidates,
+                ),
+            ),
+            ("constant prompt without texture input", _workflow_input("1.inputs.image", ConstantResolver("brick"))),
         ):
+            with self.subTest(title=title):
+                # Arrange
+                core = ComfyUICore("texturecraft")
+                core._workflow = Workflow(
+                    name="Constant",
+                    api={"1": {"inputs": {"image": ""}}},
+                    inputs=[workflow_input],
+                    output_specs=[_texture_output("99")],
+                )
+                context = _make_context()
+                stage = context.get_stage.return_value
+                context.get_selection.return_value.get_selected_prim_paths.return_value = ["/World/A", "/World/B"]
+                run_worker = mock.AsyncMock(side_effect=lambda worker, **_kwargs: worker(mock.MagicMock()))
+
+                with (
+                    mock.patch.object(core, "_get_submission_target", return_value=(stage, "/root.usda", "/edit.usda")),
+                    mock.patch.object(core_module, "get_context", return_value=context),
+                    mock.patch.object(core_module, "run_worker_with_latest_progress", run_worker),
+                    mock.patch.object(core, "_get_material_candidates") as material_candidates,
+                ):
+                    # Act
+                    graphs = await core._create_job_graphs()
+
+                # Assert
+                material_candidates.assert_not_called()
+                self.assertEqual(len(graphs), 1)
+                self.assertEqual([type(job) for job in graphs[0].jobs], [ComfyUIJob, TextureOptimizationJob])
+                self.assertIs(graphs[0].jobs[-1].apply_binding.handler_type, SaveTextureMetadataHandler)
+                self.assertIsNone(graphs[0].jobs[-1].apply_binding.target)
+
+    async def test_create_job_graphs_requires_texture_getters_to_match_mesh_getter(self) -> None:
+        """Texture inputs must read the same scope as the mesh input: Constant, All, or Selected."""
+        for title, mesh_resolver, texture_resolver, allowed in (
+            (
+                "constant mesh with selected texture",
+                ConstantResolver(pathlib.Path(__file__)),
+                SelectedTextureResolver(),
+                "Constant",
+            ),
+            ("all meshes with selected texture", AllStageMeshesResolver(), SelectedTextureResolver(), "All Textures"),
+            ("selected mesh with all textures", SelectedMeshResolver(), AllStageTexturesResolver(), "Selected Texture"),
+            (
+                "selected mesh with constant texture",
+                SelectedMeshResolver(),
+                ConstantResolver(pathlib.Path(__file__)),
+                "Selected Texture",
+            ),
+        ):
+            with self.subTest(title=title):
+                # Arrange
+                core = ComfyUICore("texturecraft")
+                core._workflow = Workflow(
+                    inputs=[
+                        _workflow_input(
+                            "1.inputs.model",
+                            mesh_resolver,
+                            native_type=pathlib.Path,
+                            remix_type=RemixType.MESH_FILE_PATH,
+                        ),
+                        _workflow_input(
+                            "2.inputs.image",
+                            texture_resolver,
+                            native_type=pathlib.Path,
+                            remix_type=RemixType.TEXTURE_FILE_PATH,
+                        ),
+                    ],
+                    output_specs=[_mesh_output("99")],
+                )
+
+                # Act / Assert
+                with self.assertRaisesRegex(
+                    ResolverConfigurationError,
+                    f"uses {mesh_resolver.label}, so every texture input must use {allowed}",
+                ):
+                    await core._create_job_graphs(["/World/Asset"])
+
+    async def test_get_mesh_candidates_without_mesh_input_and_constant_inputs_returns_one_ownerless_candidate(
+        self,
+    ) -> None:
+        """Without a mesh input, Constant inputs give one ownerless job and ignore the selection."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        stage = Usd.Stage.CreateInMemory()
+        UsdGeom.Mesh.Define(stage, "/World/Mesh")
+        workflow = Workflow(inputs=[_workflow_input("1.inputs.prompt", ConstantResolver("brick"))])
+
+        with mock.patch.object(core, "_capture_mesh_owners") as capture_owners:
             # Act
-            graph = (await core._create_job_graphs())[0]
+            candidates = core._get_mesh_candidates(stage, ["/World/Mesh", "/World/Other"], workflow)
 
         # Assert
-        material_candidates.assert_not_called()
-        self.assertEqual([type(job) for job in graph.jobs], [ComfyUIJob, TextureOptimizationJob])
-        self.assertIs(graph.jobs[-1].apply_binding.handler_type, SaveTextureMetadataHandler)
-        self.assertIsNone(graph.jobs[-1].apply_binding.target)
+        self.assertEqual([(c.source_path, c.owners) for c in candidates], [(None, ())])
+        capture_owners.assert_not_called()
+
+    async def test_get_mesh_candidates_without_mesh_input_and_all_textures_seeds_every_stage_mesh(self) -> None:
+        """Without a mesh input, All Textures seeds every stage mesh, not the selection."""
+        # Arrange
+        core = ComfyUICore("texturecraft")
+        stage = Usd.Stage.CreateInMemory()
+        UsdGeom.Mesh.Define(stage, "/World/Mesh")
+        UsdShade.Material.Define(stage, "/World/Looks/Material")
+        workflow = Workflow(
+            inputs=[
+                _workflow_input(
+                    "1.inputs.image",
+                    AllStageTexturesResolver(context_name="texturecraft"),
+                    native_type=pathlib.Path,
+                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                )
+            ]
+        )
+        seeds = []
+
+        def capture_owners(prim_paths, *_args, **_kwargs):
+            seeds.extend(prim_paths)
+            return [ReferenceTarget(prim_paths[0], None, None)]
+
+        with (
+            mock.patch.object(core, "_capture_mesh_owners", side_effect=capture_owners),
+            mock.patch.object(
+                core, "_resolve_workflow_inputs", return_value=({"1.inputs.image": "a.png"}, (), None, False)
+            ),
+        ):
+            # Act
+            candidates = core._get_mesh_candidates(stage, [], workflow)
+
+        # Assert
+        self.assertEqual(seeds, ["/World/Mesh"])
+        self.assertEqual(
+            [[owner.owner_prim_path for owner in candidate.owners] for candidate in candidates], [["/World/Mesh"]]
+        )
 
     async def test_constant_texture_is_auxiliary_to_selected_texture_candidate(self) -> None:
         """A Constant input does not suppress Apply when another texture getter supplies stage owners."""
@@ -1981,8 +2098,8 @@ class TestComfyUICore(AsyncTestCase):
         settings_changed.assert_not_called()
         self.assertIsNotNone(subscription)
 
-    async def test_prepare_submission_returns_opaque_counts_for_widget_rendering(self) -> None:
-        """Submission preparation exposes counts without requiring widgets to inspect graphs."""
+    async def test_prepare_submission_leaves_skipped_graphs_out_of_the_queue(self) -> None:
+        """Only graphs with every workflow input reach the queue. Skipped items are only counted."""
         # Arrange
         core = ComfyUICore("texturecraft")
         accepted_graph = mock.MagicMock()
@@ -1995,7 +2112,7 @@ class TestComfyUICore(AsyncTestCase):
         submission = await core.prepare_submission(["/World/Material"])
 
         # Assert
-        self.assertEqual(len(submission.graphs), 2)
+        self.assertEqual(submission.graphs, (accepted_graph,))
         self.assertEqual(submission.skipped_count, 1)
         core.prepare_jobs.assert_awaited_once_with(prim_paths=["/World/Material"], progress=None, is_cancelled=None)
 
