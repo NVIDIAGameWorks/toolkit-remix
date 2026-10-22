@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added editor finish subscriptions for committing previews before row teardown.
 
 ### Fixed
-- Ran all field cleanup callbacks and released widget and delegate references before propagating cleanup errors.
+- Shared callback dispatch for edit finishing and cancellation, ran all field cleanup callbacks, and released widget and delegate references before propagating cleanup errors.
 
 ## [3.0.1]
 ### Fixed

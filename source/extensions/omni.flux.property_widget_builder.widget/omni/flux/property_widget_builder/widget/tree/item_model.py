@@ -24,11 +24,24 @@ __all__ = (
 )
 
 import abc
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any
 
 import omni.ui as ui
 from omni.flux.utils.common import Event, EventSubscription
+
+
+def _dispatch_property_edit_callbacks(callbacks: Iterable[Callable[[], None]]) -> None:
+    """Run a callback snapshot before re-raising the first failure."""
+    first_error: Exception | None = None
+    for callback in tuple(callbacks):
+        try:
+            callback()
+        except Exception as exc:  # noqa: BLE001 - run every callback before re-raising.
+            if first_error is None:
+                first_error = exc
+    if first_error is not None:
+        raise first_error
 
 
 class _SetValueCallbackManager:
@@ -308,26 +321,11 @@ class ItemValueModel(ItemModelBase, ui.AbstractValueModel, metaclass=AbstractVal
 
     def finish_property_edit_interaction(self) -> None:
         """Finish every subscribed editor before propagating the first callback failure."""
-        first_error: Exception | None = None
-        for callback in tuple(self.__property_edit_finish):
-            try:
-                callback()
-            except Exception as exc:  # noqa: BLE001 - run every finish callback before re-raising.
-                if first_error is None:
-                    first_error = exc
-        if first_error is not None:
-            raise first_error
+        _dispatch_property_edit_callbacks(self.__property_edit_finish)
 
     def cancel_property_edit_interaction(self) -> None:
-        first_error: Exception | None = None
-        for callback in tuple(self.__property_edit_cancel_callbacks):
-            try:
-                callback()
-            except Exception as exc:  # noqa: BLE001 - run every cancel callback before re-raising.
-                if first_error is None:
-                    first_error = exc
-        if first_error is not None:
-            raise first_error
+        """Cancel every subscribed editor before propagating the first callback failure."""
+        _dispatch_property_edit_callbacks(self.__property_edit_cancel_callbacks)
 
     def begin_edit(self):
         began_property_edit = False

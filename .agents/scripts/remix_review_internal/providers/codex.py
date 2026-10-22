@@ -17,7 +17,6 @@
 
 import json
 import re
-import sys
 from pathlib import Path
 
 from ..process_pool import WorkerSpec, clean_environment, resolve_executable
@@ -216,8 +215,7 @@ class CodexProvider(Provider):
             raise RuntimeError("Codex permission path is not a regular file or directory")
         workspace_roots = ",".join(f"{json.dumps(path)}=true" for path in roots)
         filesystem = [
-            # The elevated Windows sandbox requires root reads even for read-only workers.
-            f"{json.dumps(':root' if sys.platform == 'win32' else ':minimal')}={json.dumps('read')}",
+            f"{json.dumps(':minimal')}={json.dumps('read')}",
             f"{json.dumps(':workspace_roots')}={{{json.dumps('.')}={json.dumps('read')}}}",
             *(f"{json.dumps(path)}={json.dumps('read')}" for path in files),
         ]
