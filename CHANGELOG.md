@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Remix Review rules from human review feedback: whole-change simplification and shared-consumer checks, API, configuration, typing, module structure, `extension.py` scope, core shape, Flux mechanism reuse, undo, widget isolation, layer ownership, window layout scope, app `.kit` contents, dependency pin, test-setting, root export, mock-heavy unit test, test fidelity, E2E step comment, and published-documentation rules, and E2E subsumption in test redundancy checks.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-0b1da77-main`
 
+- REMIX-3047: Added a floating RGB/HSV/hex color editor with live previews and per-gesture Undo, preserved interrupted edits and external changes, and simplified editor cleanup and curve selection handling.
+
 ### Fixed
 
 - REMIX-6266: Gave the Job Queue summary row its own background so it no longer blends into the job rows.
@@ -173,9 +175,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the internal feature freeze and release process to tag `main` directly from one release MR instead of cutting `release/X.Y.x` branches, and added filtered internal skill wrappers so agents detect internal commands.
 - Update hdremix and omni_core_materials to `ext-c22d0c6-main` (`remix-1.6.0` tag)
 - Update remix_runtime to `remix-1.6.0`
-- REMIX-5565: Standardized Curve, Gradient, and texture-preview windows with launcher-relative placement and selection dismissal.
-- REMIX-6067, REMIX-6061: Replaced Curve Editor visibility checkboxes with channel multiselection, shared-time key insertion, and selection-aware edits grouped into one undo step; restricted key deletion to selected keys on visible curves and preserved selection highlighting.
-- REMIX-3047: Color fields provide RGB, HSV, and hex editing in shared floating editors, with live updates and one Undo step per completed drag or typed edit
 
 ### Removed
 

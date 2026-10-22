@@ -115,7 +115,7 @@ class TestVirtualUsdAttributeValueModel(omni.kit.test.AsyncTestCase):
         final_value = Gf.Vec3f(0.8, 0.2, 0.2)
         failure = RuntimeError("Custom color setup failed")
         listener = mock.Mock()
-        command_callbacks = [object(), object()]
+        command_callbacks = [object(), object(), object()]
         event_loop = mock.Mock()
         prior_command = object()
         failed_group = object()

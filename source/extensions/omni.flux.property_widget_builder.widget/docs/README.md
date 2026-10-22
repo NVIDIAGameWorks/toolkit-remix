@@ -26,6 +26,17 @@ selects field builders and renders its two columns.
 `supports_field_cleanup=True` and `builds_drag_field_group=True` to receive cleanup and linked-row coordination.
 Pixel-sized name columns adjust to panel size without redrawing rows for an unchanged width.
 
+### Edit sessions and cleanup
+
+Models expose `supports_batch_edit` and `begin_batch_edit()` / `end_batch_edit()`; supporting models own previews,
+persistence, and Undo. Editors that commit previews on row removal retain a `subscribe_property_edit_finish_fn()`
+subscription. The USD owner calls `finish_property_edit_interaction()` before cancelling remaining interactions.
+Finalization runs every finish callback before propagating the first error.
+
+`PropertyWidget.destroy()` resets a live delegate before releasing it. Delegate reset runs every registered field
+cleanup callback and clears its stored state before propagating cleanup errors. Widget destruction also releases
+owner callbacks and widget references when cleanup raises.
+
 ### Clipboard and row editing
 
 `Item` inherits `AttributeCopyPasteHelper`. Copy/Paste Selected and All use the same helper; All includes hidden

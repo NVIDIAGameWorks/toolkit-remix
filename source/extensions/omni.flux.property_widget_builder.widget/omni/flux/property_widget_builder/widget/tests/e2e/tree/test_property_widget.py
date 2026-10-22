@@ -119,6 +119,7 @@ class TestPropertyWidget(omni.kit.test.AsyncTestCase):
             self.assertIsNone(helper.property_widget.tree_view)
         finally:
             helper.window.destroy()
+            await omni.kit.ui_test.human_delay()
 
     async def test_destroy_clears_delegate_expansion_callback(self):
         delegate = TestDelegate()

@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.2.0]
+
+### Added
+- Added live color previews with per-gesture Undo, matching vector conversion, and virtual attribute creation at commit.
+
+### Fixed
+- Preserved committed Undo baselines during external edits, restored failed or cancelled previews, and finalized opted-in editors before row teardown.
+
 ## [4.1.0]
 ### Fixed
 - Fixed vector attributes to display and preserve full defaults, support first edits before refresh without `TypeError`, and reset each channel to its own default.
@@ -35,7 +43,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [2.36.10]
 ### Fixed
 - Preview numeric drags live with one undo on release, preserve redo for cancelled or unchanged gestures, and restore property specs on cancellation or destruction; report failures through Carbonite and retain failed reservations and their owners for explicit retry while rejecting further edits.
-- Registered color field cleanup with the property widget lifecycle to release live-edit subscriptions and close picker undo groups.
 
 ## [2.36.9]
 ### Added

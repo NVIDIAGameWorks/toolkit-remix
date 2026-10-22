@@ -82,6 +82,19 @@ def _editor(curves, references, events):
 class TestCurveEditorWidget(omni.kit.test.AsyncTestCase):
     """Verify numeric edit targeting and gesture lifetime."""
 
+    async def test_delete_selected_keys_destroyed_editor_does_not_open_an_edit(self):
+        """Deletion after canvas cleanup leaves the edit context untouched."""
+        # Arrange
+        editor = CurveEditorWidget.__new__(CurveEditorWidget)
+        editor._canvas = None
+        editor._edit_context_factory = Mock()
+
+        # Act
+        editor.delete_selected_keys()
+
+        # Assert
+        editor._edit_context_factory.assert_not_called()
+
     async def setUp(self):
         """Isolate native device state and deferred update subscriptions."""
         self._patches = ExitStack()

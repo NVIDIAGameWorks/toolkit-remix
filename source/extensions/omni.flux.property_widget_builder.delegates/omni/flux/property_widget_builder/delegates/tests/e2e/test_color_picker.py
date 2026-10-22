@@ -19,6 +19,7 @@ __all__ = ("TestColorPickerWindow",)
 
 import colorsys
 
+import omni.ui as ui
 from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardEventType, KeyboardInput, MouseEventType
 from omni.flux.property_widget_builder.delegates.float_value.color import _ChannelModel
 from omni.flux.property_widget_builder.delegates.float_value.color_picker import ColorPickerWindow
@@ -260,7 +261,7 @@ class TestColorPickerWindow(AsyncTestCase):
             self.assertAlmostEqual(actual, expected)
 
     async def test_drag_rgb_rgba_controls_emits_complete_gestures_and_reopens_preserved_color(self):
-        """Plane, hue, and native drags publish complete colors; wheel input and reopening preserve them."""
+        """Plane, hue, and native drags publish complete colors that survive reopening."""
         for alpha in ((), (0.4,)):
             with self.subTest(components=3 + len(alpha)):
                 await self._open((0.2, 0.2, 0.8, *alpha))
@@ -269,19 +270,33 @@ class TestColorPickerWindow(AsyncTestCase):
                 for actual, expected in zip(self._values()[:3], (0.5, 0.25, 0.25)):
                     self.assertAlmostEqual(actual, expected, places=5)
                 await self._drag("red", (0.25, 0.5), (0.75, 0.5), "FloatDrag")
-                preserved, emitted = self._values(), len(self.colors)
-                await ui_test.emulate_mouse_move(self._control("sv", "ImageWithProvider").center)
-                await ui_test.human_delay()
-                await ui_test.input.emulate_mouse_scroll(ui_test.Vec2(0, -1200))
-                await ui_test.human_delay()
-                self.assertEqual(self._values(), preserved)
-                self.assertEqual(len(self.colors), emitted)
+                preserved = self._values()
                 await self._close()
                 await self._open()
                 self.assertEqual(self._values(), preserved)
                 self.assertEqual(self.colors, [])
                 self._assert_selectors()
                 await self._close()
+
+    async def test_wheel_over_overflowing_picker_preserves_control_positions_and_color(self):
+        """Native wheel input leaves overflowing picker content and its color unchanged."""
+        await self._open((0.2, 0.2, 0.8, 0.4))
+        plane = self._control("sv", "ImageWithProvider")
+        # A fixed-height plane creates a scroll range even when the workspace can fit the normal picker.
+        plane.widget.height = ui.Pixel(ColorPickerWindow.WINDOW_HEIGHT)
+        self.picker.height = ColorPickerWindow.WINDOW_HEIGHT / 2
+        await ui_test.human_delay()
+        self.assertGreater(plane.size.y, self.picker.height)
+        controls = (plane, self._control("hue", "ImageWithProvider"), self._control("red"))
+        positions = [(control.position.x, control.position.y) for control in controls]
+        preserved, emitted = self._values(), len(self.colors)
+        await ui_test.emulate_mouse_move(plane.position + ui_test.Vec2(4, 4))
+        await ui_test.human_delay()
+        await ui_test.input.emulate_mouse_scroll(ui_test.Vec2(0, -1200))
+        await ui_test.human_delay()
+        self.assertEqual([(control.position.x, control.position.y) for control in controls], positions)
+        self.assertEqual(self._values(), preserved)
+        self.assertEqual(len(self.colors), emitted)
 
     async def test_close_during_first_numeric_hex_notification_preserves_complete_color(self):
         """Normal dismissal during a channel notification completes the input before native teardown."""

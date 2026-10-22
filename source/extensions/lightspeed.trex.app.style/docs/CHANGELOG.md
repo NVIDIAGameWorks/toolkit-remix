@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.29.1]
+### Fixed
+- Styled color-picker SVG handles, Current preview borders, and native Rectangle swatches with the application palette while retaining Kit ColorWidget styles for Gradient controls.
+
 ## [1.29.0]
 ### Added
 - Added the bold `CellLabelBold` style for the Job Queue target count.
@@ -17,9 +21,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.27.3]
 ### Changed
 - Centralized Curve Editor channel colors under semantic style names, with brighter selected RGB labels.
-
-### Fixed
-- Added contrasting color-picker handles and a bordered Current preview using the application palette.
 
 ## [1.27.2]
 ### Added

@@ -33,9 +33,9 @@ from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices as _defer_usd_notices
 from omni.kit.app import get_app
 from omni.kit.usd_undo import UsdLayerUndo
-from pxr import Gf, Sdf, Tf, Usd
+from pxr import Sdf, Tf, Usd
 
-from ..mapping import GF_TO_PYTHON_TYPE, MULTICHANNEL_BUILDER_TABLE, VEC_TYPES, VecType
+from ..mapping import GF_TO_PYTHON_TYPE, MULTICHANNEL_BUILDER_TABLE
 from ..utils import get_default_attribute_value as _get_default_attribute_value
 from ..utils import get_item_attributes as _get_item_attributes
 from ..utils import get_metadata as _get_metadata
@@ -497,6 +497,23 @@ class UsdAttributeBase(abc.ABC):
         if self._is_batch_editing and not self._ignore_refresh:
             self.cancel_property_edit_interaction()
 
+    def _on_preview_change_property(self, command_info) -> None:
+        """Restore matching previews before an external command captures its Undo baseline."""
+        if self._ignore_refresh or not self._is_batch_editing:
+            return
+        property_path = Sdf.Path(command_info["prop_path"])
+        if property_path not in (*self._attribute_paths, *self._related_override_paths):
+            return
+        context = command_info.get("usd_context_name", "")
+        if isinstance(context, Usd.Stage):
+            stage = context
+        elif isinstance(context, omni.usd.UsdContext):
+            stage = context.get_stage()
+        else:
+            stage = omni.usd.get_context(context).get_stage()
+        if stage == self._stage:
+            self.cancel_property_edit_interaction()
+
     @staticmethod
     def _preview_spec(key: tuple[str, Sdf.Path]) -> dict | None:
         """Copy the authored fields of one reserved property spec."""
@@ -696,6 +713,11 @@ class UsdAttributeBase(abc.ABC):
             omni.kit.commands.register_callback(name, omni.kit.commands.PRE_DO_CALLBACK, self._on_preview_undo_redo)
             for name in ("Undo", "Redo")
         ]
+        self._preview_command_callbacks.append(
+            omni.kit.commands.register_callback(
+                "ChangeProperty", omni.kit.commands.PRE_DO_CALLBACK, self._on_preview_change_property
+            )
+        )
 
     def end_batch_edit(self):
         """Replace deferred previews with one synchronous undoable final write."""

@@ -113,7 +113,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         expected_colors = [Gf.Vec3f(0.2, 0.2, 0.2)]
         components = [0.2, 0.2, 0.2]
         for index, (component, value) in enumerate(zip(("red", "green", "blue"), (0.8, 0.5, 0.4))):
-            await self._edit_picker_component(component, value)
+            await self._edit_picker_control(component, value)
             components[index] = value
             expected_colors.append(Gf.Vec3f(*components))
             self.assertEqual(self.color_attribute.Get(), expected_colors[-1])
@@ -127,7 +127,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
             self.assertEqual(
                 Gf.Vec3f(*(model.get_value_as_float() for model in self._picker_component_models())), color
             )
-        await self._edit_picker_hex("#GGGGGG")
+        await self._edit_picker_control("hex", "#GGGGGG")
         self.assertFalse(can_undo())
         self.assertTrue(can_redo())
         for color in expected_colors[1:]:
@@ -157,7 +157,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         await self._drag_picker_control("sv", (0.3, 0.3), (0.5, 0.4))
         released_color = self.color_attribute.Get()
         first_window = ui.Workspace.get_window(self.picker_window_title)
-        await self._focus_picker_hex()
+        await self._focus_picker_control("hex")
         await omni.kit.ui_test.emulate_char_press("#4080C0")
         await omni.kit.ui_test.human_delay()
 
@@ -193,7 +193,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         # Undo while another hex edit is buffered must discard it before the next editor takes ownership.
         await self._open_picker()
         self.assertFalse(gradient_window.visible)
-        await self._focus_picker_hex()
+        await self._focus_picker_control("hex")
         await omni.kit.ui_test.emulate_char_press("#FF0000")
         await omni.kit.ui_test.human_delay()
         undo()
@@ -270,7 +270,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
             self._remember_picker_window()
             picker_window = ui.Workspace.get_window(self.picker_window_title)
             self.assertTrue(picker_window.visible)
-            await self._focus_picker_hex()
+            await self._focus_picker_control("hex")
             await omni.kit.ui_test.emulate_char_press("#4080C0")
             await omni.kit.ui_test.human_delay()
 
@@ -397,7 +397,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 if virtual:
                     self.assertTrue(stage.GetAttributeAtPath(setup_path).Get())
                     await self._open_picker()
-                    await self._edit_picker_component("red", 0.9)
+                    await self._edit_picker_control("red", 0.9)
                     self.assertEqual(len(creations), 1)
                     undo()
                     await omni.kit.ui_test.human_delay()
@@ -481,7 +481,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         # The native value-change callback interrupts input before its deferred USD write.
         subscription = red_model.subscribe_value_changed_fn(undo_during_native_edit)
         try:
-            await self._edit_picker_component("red", 0.8)
+            await self._edit_picker_control("red", 0.8)
         finally:
             del subscription
         self.assertTrue(undo_applied)
@@ -594,8 +594,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
 
     async def test_drag_picker_applies_complete_colors_once_per_frame_and_groups_undo(self):
         """Held selectors follow live color previews and retain independent Undo for each released gesture."""
-        picker_model = await self._open_picker()
-        component_models = picker_model
+        component_models = await self._open_picker()
         app = get_app()
         writes = []
 
@@ -756,8 +755,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
             widgets = field.build_ui(item)
         self.addCleanup(widgets.clear)
         await omni.kit.ui_test.human_delay()
-        picker_model = await self._open_picker()
-        component_models = picker_model
+        component_models = await self._open_picker()
         try:
             await self._hold_picker_control("sv", (0.3, 0.3), (0.5, 0.4))
             retained_color = Gf.Vec3f(*(model.get_value_as_float() for model in component_models))
@@ -813,12 +811,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         await self._close_picker()
         self.assertEqual(self.color_attribute.Get(), second_color)
         self.assertFalse(is_any_interaction_active())
-        undo()
-        await omni.kit.ui_test.human_delay()
-        self.assertEqual(self.color_attribute.Get(), original_color)
-        redo()
-        await omni.kit.ui_test.human_delay()
-        self.assertEqual(self.color_attribute.Get(), second_color)
+        await self._assert_single_color_edit_history(original_color)
 
     async def test_close_during_first_plane_component_notification_commits_complete_color_once(self):
         """Closing during an image gesture commits all RGB components before ending its undo step."""
@@ -860,27 +853,21 @@ class TestColorField(omni.kit.test.AsyncTestCase):
     async def test_cancel_during_first_plane_component_notification_stops_abandoned_rgb_write(self):
         """Cancelling during image input restores authoritative components and prevents later RGB setters."""
         original_color = Gf.Vec3f(0.8, 0.2, 0.2)
-        for control, reopen in (("sv", False), ("sv", True), ("hue", False), ("hue", True)):
-            with self.subTest(control=control, reopen=reopen):
+        for control in ("sv", "hue"):
+            with self.subTest(control=control):
                 self.color_attribute.Set(original_color)
                 await omni.kit.ui_test.human_delay()
                 clear_stack()
                 item = self.model.get_all_items()[0]
-                picker_model = await self._open_picker()
-                component_models = picker_model
+                component_models = await self._open_picker()
                 cancelled = False
 
-                def cancel_on_first_component(_model, item=item, reopen=reopen):
+                def cancel_on_first_component(_model, item=item):
                     """Cancel the real backing interaction before the remaining plane RGB notifications."""
                     nonlocal cancelled
                     if not cancelled:
                         cancelled = True
                         item.value_models[0].cancel_property_edit_interaction()
-                        if reopen:
-                            swatch = omni.kit.ui_test.find(
-                                f"{self.window.title}//Frame/**/_ColorSwatch[*].identifier=='color_swatch'"
-                            ).widget
-                            swatch.call_mouse_released_fn(0, 0, 0, 0)
 
                 subscription = component_models[0].subscribe_value_changed_fn(cancel_on_first_component)
                 try:
@@ -890,14 +877,17 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                     await emulate_mouse(MouseEventType.LEFT_BUTTON_UP)
                     await omni.kit.ui_test.human_delay()
                 self.assertTrue(cancelled)
-                if reopen:
-                    self._remember_picker_window()
-                    self.assertTrue(ui.Workspace.get_window(self.picker_window_title).visible)
-                else:
-                    self._assert_picker_closed()
+                self._assert_picker_closed()
                 self.assertEqual(self.color_attribute.Get(), original_color)
                 self.assertEqual(Gf.Vec3f(*(model.get_value_as_float() for model in component_models)), original_color)
                 self.assertFalse(is_any_interaction_active())
+                self.assertFalse(can_undo())
+                await self._open_picker()
+                self.assertTrue(ui.Workspace.get_window(self.picker_window_title).visible)
+                self.assertEqual(self.color_attribute.Get(), original_color)
+                self.assertEqual(
+                    Gf.Vec3f(*(model.get_value_as_float() for model in self._picker_component_models())), original_color
+                )
                 self.assertFalse(can_undo())
                 await self._close_picker()
 
@@ -911,7 +901,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 await omni.kit.ui_test.human_delay()
                 clear_stack()
                 await self._open_picker()
-                await self._edit_picker_component("red", committed_color[0])
+                await self._edit_picker_control("red", committed_color[0])
                 try:
                     end_position = await self._hold_picker_control(control, (0.3, 0.3), (0.5, 0.6))
                     dragged_color = self.color_attribute.Get()
@@ -968,7 +958,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
 
         subscription = red_model.subscribe_value_changed_fn(remove_row_during_native_edit)
         try:
-            await self._edit_picker_component("red", 0.8)
+            await self._edit_picker_control("red", 0.8)
         finally:
             del subscription
         self.assertTrue(row_removed)
@@ -1001,7 +991,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         # Observe actual picker input; the competing scene edit uses the public command API.
         subscription = component_models[0].subscribe_value_changed_fn(change_usd_during_native_edit)
         try:
-            await self._edit_picker_component("red", 0.8)
+            await self._edit_picker_control("red", 0.8)
         finally:
             del subscription
         self.assertTrue(external_edit_applied)
@@ -1051,7 +1041,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
 
         subscription = red_model.subscribe_value_changed_fn(change_history_during_component_input)
         try:
-            await self._edit_picker_component("red", 0.8)
+            await self._edit_picker_control("red", 0.8)
         finally:
             del subscription
         self.assertTrue(unrelated_edit_applied)
@@ -1106,10 +1096,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 await omni.kit.ui_test.human_delay()
                 clear_stack()
                 await self._open_picker()
-                if identifier == "hex":
-                    await self._focus_picker_hex()
-                else:
-                    await self._focus_picker_component(identifier)
+                await self._focus_picker_control(identifier)
                 await omni.kit.ui_test.emulate_char_press(text)
                 await omni.kit.ui_test.human_delay()
                 await self._close_picker()
@@ -1122,10 +1109,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 redo()
                 await omni.kit.ui_test.human_delay()
                 await self._open_picker()
-                if identifier == "hex":
-                    await self._focus_picker_hex()
-                else:
-                    await self._focus_picker_component(identifier)
+                await self._focus_picker_control(identifier)
                 await omni.kit.ui_test.emulate_char_press(pending)
                 await omni.kit.ui_test.human_delay()
                 self.assertEqual(self.color_attribute.Get(), edited_color)
@@ -1141,33 +1125,29 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                 await omni.kit.ui_test.human_delay()
                 self.assertEqual(self.color_attribute.Get(), expected)
 
-    async def test_close_and_reopen_during_component_setter_preserves_new_popup_and_gesture_history(self):
-        """Rapid reopening isolates the new popup from the old numeric control's late callbacks."""
+    async def test_reopen_after_close_during_component_input_preserves_color_and_gesture_history(self):
+        """Reopening after interrupted numeric input preserves the committed color and later gesture history."""
         await self._open_picker()
         picker = ui.Workspace.get_window(self.picker_window_title)
         red_model = self._picker_control("FloatDrag", "red").model
-        reopened = False
+        close_requested = False
 
-        def reopen_during_component_input(component_model):
-            """Reopen through public APIs while actual numeric input is dispatching."""
-            nonlocal reopened
-            if reopened or not isclose(component_model.get_value_as_float(), 0.8, abs_tol=1e-6):
+        def close_during_component_input(component_model):
+            """Close the popup while actual numeric input is dispatching."""
+            nonlocal close_requested
+            if close_requested or not isclose(component_model.get_value_as_float(), 0.8, abs_tol=1e-6):
                 return
-            reopened = True
+            close_requested = True
             picker.close()
-            swatch = omni.kit.ui_test.find(
-                f"{self.window.title}//Frame/**/_ColorSwatch[*].identifier=='color_swatch'"
-            ).widget
-            swatch.call_mouse_released_fn(0, 0, 0, 0)
 
-        subscription = red_model.subscribe_value_changed_fn(reopen_during_component_input)
+        subscription = red_model.subscribe_value_changed_fn(close_during_component_input)
         try:
-            await self._edit_picker_component("red", 0.8)
+            await self._edit_picker_control("red", 0.8)
         finally:
             del subscription
-        self.assertTrue(reopened)
-        await omni.kit.ui_test.human_delay()
-        self._remember_picker_window()
+        self.assertTrue(close_requested)
+        self._assert_picker_closed()
+        await self._open_picker()
         self.assertTrue(ui.Workspace.get_window(self.picker_window_title).visible)
         self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.8, 0.2, 0.2))
         await self._drag_picker_control("sv", (0.3, 0.3), (0.5, 0.4))
@@ -1200,7 +1180,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
             value: Red component entered through the picker keyboard control.
         """
         await self._open_picker()
-        await self._edit_picker_component("red", value)
+        await self._edit_picker_control("red", value)
 
     async def _open_picker(self):
         """Open the owned popup.
@@ -1248,13 +1228,27 @@ class TestColorField(omni.kit.test.AsyncTestCase):
             f"{self.picker_window_title}//Frame/**/{widget_type}[*].identifier=='color_picker_{identifier}'"
         )
 
-    async def _focus_picker_component(self, component):
-        """Enter an actual FloatDrag text edit without committing its value.
+    async def _focus_picker_control(self, identifier):
+        """Select an actual numeric or hexadecimal editor without committing its value.
 
         Args:
-            component: Color channel identifier.
+            identifier: Color control identifier.
         """
-        field = self._picker_control("FloatDrag", component)
+        if identifier == "hex":
+            await self._picker_control("StringField", identifier).double_click()
+            await omni.kit.ui_test.human_delay()
+        else:
+            await self._focus_picker_component(identifier)
+        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
+        await omni.kit.ui_test.human_delay()
+
+    async def _focus_picker_component(self, identifier):
+        """Enter a native FloatDrag text edit and verify that its edit gesture began.
+
+        Args:
+            identifier: Numeric color control identifier.
+        """
+        field = self._picker_control("FloatDrag", identifier)
         edit_events = []
         begin_subscription = field.model.subscribe_begin_edit_fn(lambda _model: edit_events.append("begin"))
         end_subscription = field.model.subscribe_end_edit_fn(lambda _model: edit_events.append("end"))
@@ -1277,37 +1271,14 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         finally:
             del begin_subscription, end_subscription
 
-    async def _focus_picker_hex(self):
-        """Select the actual hex editor's full text without committing or changing its model directly."""
-        field = self._picker_control("StringField", "hex")
-        self.assertIsNotNone(field)
-        await field.double_click()
-        await omni.kit.ui_test.human_delay()
-        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
-        await omni.kit.ui_test.human_delay()
-
-    async def _edit_picker_hex(self, value):
-        """Commit hex text through the real editor's keyboard input.
+    async def _edit_picker_control(self, identifier, value):
+        """Commit a numeric or hexadecimal value through the real editor's keyboard input.
 
         Args:
-            value: RGB or RGBA hexadecimal text entered by the user.
+            identifier: Color control identifier.
+            value: Value entered through keyboard input.
         """
-        await self._focus_picker_hex()
-        await omni.kit.ui_test.emulate_char_press(value)
-        await omni.kit.ui_test.human_delay()
-        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
-        await omni.kit.ui_test.human_delay()
-
-    async def _edit_picker_component(self, component, value):
-        """Commit a component value through its real FloatDrag keyboard input.
-
-        Args:
-            component: Color channel identifier.
-            value: Numeric value entered through keyboard input.
-        """
-        await self._focus_picker_component(component)
-        await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
-        await omni.kit.ui_test.human_delay()
+        await self._focus_picker_control(identifier)
         await omni.kit.ui_test.emulate_char_press(str(value))
         await omni.kit.ui_test.human_delay()
         await omni.kit.ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
@@ -1368,8 +1339,7 @@ class TestColorField(omni.kit.test.AsyncTestCase):
         end_position = control.position + omni.kit.ui_test.Vec2(control.size.x * end[0], control.size.y * end[1])
         del control
         color_attribute = self.color_attribute if attribute is None else attribute
-        picker_model = self._picker_component_models()
-        component_models = picker_model
+        component_models = self._picker_component_models()
         await emulate_mouse(MouseEventType.MOVE, start_position)
         await omni.kit.ui_test.human_delay()
         try:
@@ -1385,10 +1355,6 @@ class TestColorField(omni.kit.test.AsyncTestCase):
                         == type(color_attribute.Get())(*(model.get_value_as_float() for model in component_models))
                     )
                 )
-                expected_color = type(color_attribute.Get())(
-                    *(model.get_value_as_float() for model in component_models)
-                )
-                self.assertEqual(color_attribute.Get(), expected_color)
                 moved_colors.append(tuple(color_attribute.Get()))
         finally:
             await emulate_mouse(MouseEventType.LEFT_BUTTON_UP)

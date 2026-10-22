@@ -55,6 +55,7 @@ class _LoggingGroupedKeysModel(InMemoryGroupedKeysModel):
     """Observe edits while retaining the production in-memory model's behavior."""
 
     def __init__(self, payload=None):
+        """Initialize the production gradient model and its commit log."""
         super().__init__(group_ids=[_GROUP_ID], payloads={_GROUP_ID: payload} if payload is not None else None)
         self.commit_log = []
 

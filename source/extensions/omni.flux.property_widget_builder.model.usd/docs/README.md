@@ -143,13 +143,15 @@ listeners until editing finishes while authored USD values remain live.
 
 If a write fails, the model rolls back the current batch, restores displayed values, and preserves completed edit
 sessions. Locked target layers are rejected before a write command runs. Color fields use one preview batch per
-drag or typed edit, committing at mouse release or end-edit. Virtual attributes and their creation callbacks wait
+drag or typed edit, committing at mouse release or end-edit. New virtual attributes and custom creation callbacks wait
 until commit. Opening the picker creates no undo entry.
 Undo while the popup is idle restores the previous gesture and allows another edit in the same popup.
 Undo or Redo during a drag cancels the unfinished preview before replaying the completed edit. External writes to
 represented attributes also cancel the preview and retain the external values. These protections belong to the
 active USD batch; the color field does not inspect Undo history or subscribe to application updates.
-Each active batch owns a stage notice and temporary Undo/Redo command callbacks, released when the batch ends.
+Each active batch owns a stage notice and temporary Undo/Redo and ChangeProperty command callbacks, released when
+the batch ends. Before an external ChangeProperty command changes a represented or related property on the same
+stage, its pre-command callback restores the preview so the command captures the committed Undo baseline.
 Preview restoration preserves externally changed property fields, including metadata, while restoring untouched
 preview values on the other selected objects.
 Row removal finishes the color preview before canceling remaining property interactions, so the row and USD retain
@@ -163,9 +165,9 @@ An external change to an actively edited USD property, including global undo, ca
 and refreshes its value. Idle picker controls synchronize with restored USD values without creating an edit.
 A lightweight USD notice listener observes these changes even while application refreshes are deferred.
 
-Virtual color attributes retain their `create_callback(attribute, value)` creation hook. The first live preview
-runs that hook in a synchronous undo group, together with the live color command. Callback setup commands and
-subsequent color previews undo and redo as one operation; no undo group remains open between previews.
+Virtual color attributes retain their `create_callback(attribute, value)` creation hook. Release or end-edit runs
+that hook in the synchronous commit group, together with the final color write. Callback setup commands and the
+committed color undo and redo as one operation; previews do not run the hook or hold an undo group across frames.
 Creation callbacks must author their setup through Kit commands.
 
 ## Row-Owned Property State

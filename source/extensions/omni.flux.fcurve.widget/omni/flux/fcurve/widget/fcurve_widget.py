@@ -334,7 +334,7 @@ class FCurveWidget:
             for curve_id, indices in selected.items()
             for index in indices
         }
-        # ponytail: rare roundoff fallback is quadratic in selected keys; optimize only if measured on dense selections.
+        # shortcut: Rare roundoff fallback is quadratic in selected keys; optimize for measured dense-selection stalls.
         for candidate in sorted(candidates, reverse=offset > 0):
             if (
                 candidate != offset

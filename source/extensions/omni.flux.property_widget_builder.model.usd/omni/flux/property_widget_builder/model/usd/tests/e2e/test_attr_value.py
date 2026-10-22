@@ -91,6 +91,86 @@ class TestUsdAttributePreviewOwnership(omni.kit.test.AsyncTestCase):
             first.destroy()
             second.destroy()
 
+    async def test_external_command_after_published_preview_undo_redo_preserves_committed_history(self):
+        """External command history excludes the preview canceled by that command."""
+        for command_context, history_action in (
+            ("", "undo"),
+            ("", "redo"),
+            (self.context, "undo"),
+            (self.stage, "undo"),
+        ):
+            with self.subTest(command_context=command_context, history_action=history_action):
+                # Arrange
+                model = _create_value_model(self.stage, value=3.0)
+                attribute = self.stage.GetAttributeAtPath(model.attribute_paths[0])
+                omni.kit.undo.clear_stack()
+                try:
+                    model.begin_batch_edit()
+                    model.set_value(7.0)
+                    await omni.kit.app.get_app().next_update_async()
+                    await omni.kit.app.get_app().next_update_async()
+                    self.assertEqual(attribute.Get(), 7.0)
+                    succeeded, _result = omni.kit.commands.execute(
+                        "ChangeProperty",
+                        prop_path=attribute.GetPath(),
+                        value=9.0,
+                        prev=None,
+                        usd_context_name=command_context,
+                    )
+                    self.assertTrue(succeeded)
+                    self.assertEqual(attribute.Get(), 9.0)
+                    self.assertFalse(model.is_batch_editing)
+                    if history_action == "redo":
+                        omni.kit.undo.undo()
+
+                    # Act
+                    if history_action == "undo":
+                        omni.kit.undo.undo()
+                    else:
+                        omni.kit.undo.redo()
+
+                    # Assert
+                    self.assertEqual(attribute.Get(), 3.0 if history_action == "undo" else 9.0)
+                    self.assertEqual(omni.kit.undo.can_undo(), history_action == "redo")
+                finally:
+                    model.destroy()
+
+    async def test_external_command_on_other_property_or_stage_preserves_active_preview(self):
+        """Commands outside this property's stage leave its preview transaction active."""
+        for other_stage in (False, True):
+            with self.subTest(other_stage=other_stage):
+                # Arrange
+                model = _create_value_model(self.stage, value=3.0)
+                attribute = self.stage.GetAttributeAtPath(model.attribute_paths[0])
+                command_stage = Usd.Stage.CreateInMemory() if other_stage else self.stage
+                external_attribute = command_stage.DefinePrim(
+                    "/DragTestPrim" if other_stage else "/UnrelatedPrim"
+                ).CreateAttribute("testFloat", Sdf.ValueTypeNames.Float)
+                external_attribute.Set(4.0)
+                omni.kit.undo.clear_stack()
+                try:
+                    model.begin_batch_edit()
+                    model.set_value(7.0)
+                    await omni.kit.app.get_app().next_update_async()
+                    await omni.kit.app.get_app().next_update_async()
+
+                    # Act
+                    succeeded, _result = omni.kit.commands.execute(
+                        "ChangeProperty",
+                        prop_path=external_attribute.GetPath(),
+                        value=9.0,
+                        prev=None,
+                        usd_context_name=command_stage,
+                    )
+
+                    # Assert
+                    self.assertTrue(succeeded)
+                    self.assertEqual(external_attribute.Get(), 9.0)
+                    self.assertEqual(attribute.Get(), 7.0)
+                    self.assertTrue(model.is_batch_editing)
+                finally:
+                    model.destroy()
+
     async def test_external_write_during_multi_target_preview_preserves_external_spec_and_restores_other_target(self):
         """External value and spec changes survive cancellation of other target previews."""
         for operation in ("default", "time_samples", "erase_time_samples", "type", "delete_attribute", "delete_prim"):

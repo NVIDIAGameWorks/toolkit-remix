@@ -3,8 +3,12 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [3.2.0]
+
+### Added
+- Added an owned RGB/HSV/hex color picker with live previews, per-gesture editing, and native input coverage.
+
 ### Changed
-- Added an owned RGB/RGBA color picker with native drag controls, HSV and validated hex/tuple input, consistent preview rounding, live SVG handles and per-gesture Undo in the shared floating editor, preserving layout, app styling and safe interruption recovery.
+- Reused the shared floating-window lifecycle and simplified callbacks while preserving error-safe field cleanup.
 
 ## [3.1.2]
 

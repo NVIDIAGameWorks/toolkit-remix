@@ -80,6 +80,9 @@ class _ColorSwatch(ui.Rectangle):
 class ColorField(AbstractField):
     """Own color channels and property transactions for a floating picker."""
 
+    _SWATCH_WIDTH = ui.Pixel(48)
+    _SWATCH_HEIGHT = ui.Pixel(20)
+
     def __init__(
         self,
         display_precision: int = 2,
@@ -145,8 +148,8 @@ class ColorField(AbstractField):
             with ui.VStack():
                 ui.Spacer()
                 swatch = _ColorSwatch(
-                    width=ui.Pixel(48),
-                    height=ui.Pixel(20),
+                    width=self._SWATCH_WIDTH,
+                    height=self._SWATCH_HEIGHT,
                     name=self.style_name,
                     identifier="color_swatch",
                     enabled=not value_model.read_only,
@@ -205,15 +208,13 @@ class ColorField(AbstractField):
         try:
             self._end_edit()
         finally:
-            try:
-                if self._picker is not None:
-                    self._picker.cancel()
-            finally:
-                self._picker = None
-                self._components = []
-                self._readouts = []
-                self._swatch = None
-                self._value_model = None
+            picker, self._picker = self._picker, None
+            self._components = []
+            self._readouts = []
+            self._swatch = None
+            self._value_model = None
+            if picker is not None:
+                picker.cancel()
 
     def _on_swatch_released(self, _x, _y, button, _modifier):
         """Open the color editor from an editable inline swatch."""
@@ -222,9 +223,9 @@ class ColorField(AbstractField):
             return
         self._picker_edit_cancelled = False
         self._picker = ColorPickerWindow(self._components, title=self._title, context_name=self._context_name)
-        self._picker.edit_started.add(_weak_callback(self._begin_picker_edit))
-        self._picker.color_changed.add(_weak_callback(self._preview_picker_color))
-        self._picker.edit_finished.add(_weak_callback(self._finish_picker_edit))
+        self._picker.edit_started.add(_weak_callback(self._begin_edit))
+        self._picker.color_changed.add(_weak_callback(self._preview_color))
+        self._picker.edit_finished.add(_weak_callback(self._finish_edit))
         self._picker.open(
             preferred_size=(ColorPickerWindow.WINDOW_WIDTH, ColorPickerWindow.WINDOW_HEIGHT),
             anchor_rect=(
@@ -234,21 +235,6 @@ class ColorField(AbstractField):
                 swatch.computed_height,
             ),
         )
-
-    def _begin_picker_edit(self):
-        """Start a property transaction before the picker changes channels."""
-        self._begin_edit(self._value_model)
-
-    def _preview_picker_color(self, values):
-        """Apply one complete picker color through the backing model."""
-        if self._ignore_value_change_events:
-            return
-        self._preview_color(self._vector_type, self._value_model, values)
-        self._update_swatch()
-
-    def _finish_picker_edit(self):
-        """Commit the completed picker gesture."""
-        self._finish_edit(self._value_model)
 
     def _update_swatch(self):
         """Refresh the inline preview from the authored channel values."""
@@ -270,9 +256,10 @@ class ColorField(AbstractField):
             if self._components:
                 self._value_model_changed(self._value_model)
 
-    def _begin_edit(self, value_model):
+    def _begin_edit(self):
         """Start a deferred property preview before a gesture changes its first component."""
-        if value_model is not self._value_model or value_model.read_only:
+        value_model = self._value_model
+        if value_model is None or value_model.read_only:
             return
         self._picker_edit_cancelled = False
         self._ignore_value_change_events = True
@@ -313,9 +300,10 @@ class ColorField(AbstractField):
             self._ignore_value_change_events = False
         self._update_swatch()
 
-    def _finish_edit(self, value_model):
+    def _finish_edit(self):
         """Commit the final preview when a gesture ends."""
-        if value_model is not self._value_model:
+        value_model = self._value_model
+        if value_model is None:
             return
         try:
             self._end_edit()
@@ -334,22 +322,27 @@ class ColorField(AbstractField):
                 self._value_model_editing = False
                 self._value_model.end_edit()
 
-    def _preview_color(self, vec_type, value_model, values):
-        """Preview one complete picker color without echoing the update.
-
-        Args:
-            vec_type: Vector constructor matching the backing color value.
-            value_model: Destination property value model that receives the color.
-            values: Complete normalized color emitted by the owned picker.
-        """
-        if value_model is not self._value_model or value_model.read_only or self._picker_edit_cancelled:
+    def _preview_color(self, values):
+        """Preview one complete picker color without echoing the update."""
+        value_model = self._value_model
+        if (
+            self._ignore_value_change_events
+            or value_model is None
+            or value_model.read_only
+            or self._picker_edit_cancelled
+        ):
             return
         self._ignore_value_change_events = True
         try:
-            value_model.set_value(vec_type(*values))
+            value_model.set_value(self._vector_type(*values))
         finally:
             self._ignore_value_change_events = False
-            if value_model.supports_batch_edit and not value_model.is_batch_editing:
+            if (
+                value_model is self._value_model
+                and value_model.supports_batch_edit
+                and not value_model.is_batch_editing
+            ):
                 self._batch_editing = False
                 self._end_edit()
                 self._value_model_changed(value_model)
+        self._update_swatch()

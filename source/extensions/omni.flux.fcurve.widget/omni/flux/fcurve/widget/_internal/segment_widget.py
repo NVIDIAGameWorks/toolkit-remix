@@ -30,8 +30,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from enum import IntEnum
 
-import carb.input
-import omni.appwindow
+from carb.input import acquire_input_interface
+from omni.appwindow import get_default_app_window
 from omni import ui
 
 from .handle_widget import HandleWidget
@@ -183,8 +183,8 @@ class SegmentWidget:
         if button == 0 and self._on_pressed:
             segment = self._bezier or self._step_h
             # The native parameter lookup uses device pixels; the drag poll uses logical pixels.
-            mouse = omni.appwindow.get_default_app_window().get_mouse()
-            mouse_x, mouse_y = carb.input.acquire_input_interface().get_mouse_coords_pixel(mouse)
+            mouse = get_default_app_window().get_mouse()
+            mouse_x, mouse_y = acquire_input_interface().get_mouse_coords_pixel(mouse)
             dpi_scale = ui.Workspace.get_dpi_scale()
             parameter = segment.get_closest_parametric_position(mouse_x, mouse_y)
             self._on_pressed(parameter, mouse_x / dpi_scale, mouse_y / dpi_scale)

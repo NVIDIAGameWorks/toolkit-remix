@@ -17,7 +17,6 @@
 
 __all__ = ("ColorPickerWindow",)
 
-import asyncio
 import colorsys
 import weakref
 from collections.abc import Callable
@@ -31,12 +30,15 @@ import omni.ui as ui
 from omni.flux.utils.common import Event, EventSubscription
 from omni.flux.utils.widget.gradient import create_checkerboard
 from omni.flux.utils.widget.resources import get_icons
-from omni.kit.app import get_app
 
 from ..field_popup_window import FieldPopupWindow
 
 if TYPE_CHECKING:
     from .color import _ChannelModel
+
+
+_COLOR_BYTE_MAX = 255
+_HUE_TEXTURE_HEIGHT = 256
 
 
 def _weak_callback(method: Callable) -> Callable:
@@ -63,7 +65,7 @@ def _weak_callback(method: Callable) -> Callable:
 
 def _display_byte(value: float) -> int:
     """Round a clipped display channel with Kit's float32 color arithmetic."""
-    scaled = c_float(min(1.0, max(0.0, value)) * 255).value
+    scaled = c_float(min(1.0, max(0.0, value)) * _COLOR_BYTE_MAX).value
     return int(c_float(scaled + 0.5).value)
 
 
@@ -86,11 +88,11 @@ def _parse_color_text(text: str, component_count: int) -> list[float] | None:
             return None
         if not all(isfinite(value) and 0 <= value <= 1 for value in values):
             return None
-        return [_display_byte(value) / 255 for value in values]
+        return [_display_byte(value) / _COLOR_BYTE_MAX for value in values]
     text = text.removeprefix("#")
     if len(text) != component_count * 2 or not all(character in hexdigits for character in text):
         return None
-    return [int(text[index : index + 2], 16) / 255 for index in range(0, len(text), 2)]
+    return [int(text[index : index + 2], 16) / _COLOR_BYTE_MAX for index in range(0, len(text), 2)]
 
 
 class ColorPickerWindow(FieldPopupWindow):
@@ -108,11 +110,13 @@ class ColorPickerWindow(FieldPopupWindow):
     _HANDLE_SIZE_MD = ui.Pixel(12)
     _NUMERIC_STEP = 0.001
     _SV_TEXTURE_SIZE = 64
-    _HUE_TEXTURE_HEIGHT = 256
     _HUE_BYTES = [
         channel
         for index in range(_HUE_TEXTURE_HEIGHT)
-        for channel in (*(round(value * 255) for value in colorsys.hsv_to_rgb(index / 255, 1, 1)), 255)
+        for channel in (
+            *(round(value * _COLOR_BYTE_MAX) for value in colorsys.hsv_to_rgb(index / (_HUE_TEXTURE_HEIGHT - 1), 1, 1)),
+            _COLOR_BYTE_MAX,
+        )
     ]
 
     def __init__(self, component_models: list["_ChannelModel"], *, title: str, context_name: str | None):
@@ -130,7 +134,7 @@ class ColorPickerWindow(FieldPopupWindow):
         self._gesture_depth = 0
         self._syncing = False
         self._input_enabled = False
-        self._dragging = self._close_task = None
+        self._dragging = None
         self._hsv = [0.0, 0.0, 0.0]
         self._hsv_models = [ui.SimpleFloatModel() for _ in self._hsv]
         self._hex_model = ui.SimpleStringModel()
@@ -142,19 +146,10 @@ class ColorPickerWindow(FieldPopupWindow):
         self._sv_image = self._hue_image = self._sv_marker = self._hue_marker = None
         self._sv_provider = ui.ByteImageProvider()
         self._hue_provider = ui.ByteImageProvider()
-        self._hue_provider.set_bytes_data(self._HUE_BYTES, [1, self._HUE_TEXTURE_HEIGHT])
+        self._hue_provider.set_bytes_data(self._HUE_BYTES, [1, _HUE_TEXTURE_HEIGHT])
         self._checker_provider = None
         super().__init__(title=title, context_name=context_name)
         self.flags |= ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
-
-    def close(self) -> None:
-        """Commit pending native input before the shared host retires the controls."""
-        if self._closing or self._close_task is not None:
-            return
-        if self._input_enabled and (self._gesture_depth or self._syncing):
-            self._close_task = asyncio.ensure_future(self._close_after_input())
-        else:
-            self._finish_close()
 
     def cancel(self) -> None:
         """Disable abandoned input and close without committing buffered text."""
@@ -162,14 +157,11 @@ class ColorPickerWindow(FieldPopupWindow):
         self._gesture_depth = 0
         self._dragging = None
         self._hex_dirty = False
-        if self._close_task is not None:
-            self._close_task.cancel()
-            self._close_task = None
         super().close()
 
     def sync_color(self, values) -> None:
         """Mirror an authoritative color without emitting edits or retaining interrupted native input."""
-        if self._gesture_depth or self._hex_dirty or self._close_task is not None:
+        if self._gesture_depth or self._hex_dirty:
             self.cancel()
         syncing = self._syncing
         self._syncing = True
@@ -316,30 +308,20 @@ class ColorPickerWindow(FieldPopupWindow):
                     identifier=f"color_picker_{identifier}",
                 )
 
-    async def _close_after_input(self) -> None:
-        """Let native input dispatch finish before hiding its controls."""
-        await get_app().next_update_async()
-        self._close_task = None
-        self._finish_close()
-
-    def _finish_close(self) -> None:
-        """Flush hexadecimal input before the shared host's deferred teardown."""
-        try:
-            self._commit_hex()
-        finally:
-            super().close()
-
     def _release_content(self) -> None:
         """Finish surviving gestures and release this opening's native subscriptions and previews."""
         try:
-            if self._gesture_depth:
-                self._gesture_depth = 0
-                self.edit_finished()
+            try:
+                self._commit_hex()
+            finally:
+                if self._gesture_depth:
+                    self._gesture_depth = 0
+                    self.edit_finished()
         finally:
             self._input_enabled = False
             self._subscriptions.clear()
             self._components = ()
-            self._dragging = self._close_task = None
+            self._dragging = None
             self._current_opaque = self._current_alpha = None
             self._sv_image = self._hue_image = self._sv_marker = self._hue_marker = None
             self._sv_provider = self._hue_provider = self._checker_provider = None
@@ -507,8 +489,10 @@ class ColorPickerWindow(FieldPopupWindow):
                 value = 1 - row / (self._SV_TEXTURE_SIZE - 1)
                 for column in range(self._SV_TEXTURE_SIZE):
                     saturation = column / (self._SV_TEXTURE_SIZE - 1)
-                    pixels.extend(round((1 - saturation + saturation * channel) * value * 255) for channel in hue_rgb)
-                    pixels.append(255)
+                    pixels.extend(
+                        round((1 - saturation + saturation * channel) * value * _COLOR_BYTE_MAX) for channel in hue_rgb
+                    )
+                    pixels.append(_COLOR_BYTE_MAX)
             self._sv_provider.set_bytes_data(pixels, [self._SV_TEXTURE_SIZE, self._SV_TEXTURE_SIZE])
         self._update_markers()
 

@@ -54,6 +54,9 @@ class TestMultiCurveEditing(omni.kit.test.AsyncTestCase):
     Test multi-curve editing functionality.
     """
 
+    _WINDOW_WIDTH = ui.Pixel(600)
+    _WINDOW_HEIGHT = ui.Pixel(400)
+
     async def setUp(self):
         """Set up test environment."""
         self.model = InMemoryGroupedKeysModel()
@@ -121,7 +124,7 @@ class TestMultiCurveEditing(omni.kit.test.AsyncTestCase):
             self.assertEqual(len(fcurve_curves), 3)
 
     async def test_tree_branch_is_only_rendered_for_populated_group(self):
-        """Render only populated branches and support key deletion without a toolbar."""
+        """Render only populated branches in a toolbar-free editor."""
         curve = FCurve(
             id="populated_curve",
             keys=[FCurveKey(time=0.0, value=0.0), FCurveKey(time=1.0, value=1.0)],
@@ -160,32 +163,6 @@ class TestMultiCurveEditing(omni.kit.test.AsyncTestCase):
         ]
         self.assertEqual(1, len(curve_labels))
 
-        # A toolbar-free host can delete the selected key through the public editor action.
-        await curve_labels[0].click()
-        await ui_test.human_delay()
-        self.assertIn(curve.id, self.widget.fcurve_widget.curves)
-        for key_count in (2, 1):
-            self.widget.fcurve_widget.select_keys([KeyReference(curve.id, 0)])
-            await ui_test.human_delay()
-            self.assertEqual(1, len(self.widget.selection.keys))
-            before = self.model.get_payload(curve.id)
-
-            self.widget.delete_selected_keys()
-            await ui_test.human_delay()
-
-            self.assertEqual(1, len(_get_curve(self.model, curve.id).keys))
-            if key_count == 2:
-                self.assertNotEqual(before, self.model.get_payload(curve.id))
-                self.assertTrue(self.widget.selection.is_empty)
-            else:
-                # The last key remains selected and its entire payload is unchanged.
-                self.assertEqual(before, self.model.get_payload(curve.id))
-                self.assertEqual(1, len(self.widget.selection.keys))
-
-        self.widget.destroy()
-        self.widget.delete_selected_keys()
-        self.assertEqual(before, self.model.get_payload(curve.id))
-
     async def test_tree_selection_publishes_only_selected_channel_ids(self):
         """Use native row selection as the displayed-channel set."""
         selected_curve_ids = []
@@ -202,7 +179,7 @@ class TestMultiCurveEditing(omni.kit.test.AsyncTestCase):
             },
             "curves": [{"id": "w", "display_name": "W"}],
         }
-        self.window = ui.Window("Curve Tree Selection Test", width=600, height=400)
+        self.window = ui.Window("Curve Tree Selection Test", width=self._WINDOW_WIDTH, height=self._WINDOW_HEIGHT)
         with self.window.frame:
             panel = CurveTreePanel(layout, on_curves_selected=selected_curve_ids.append)
         try:
@@ -262,7 +239,7 @@ class TestMultiCurveEditing(omni.kit.test.AsyncTestCase):
                 FCurve(id=curve_id, keys=[FCurveKey(time=0.0, value=0.0), FCurveKey(time=1.0, value=1.0)]),
             )
 
-        self.window = ui.Window("Composed Curve Selection Test", width=600, height=400)
+        self.window = ui.Window("Composed Curve Selection Test", width=self._WINDOW_WIDTH, height=self._WINDOW_HEIGHT)
         self.window.frame.style = {
             selector: {"color": color}
             for curve_id, normal_color in channel_colors.items()

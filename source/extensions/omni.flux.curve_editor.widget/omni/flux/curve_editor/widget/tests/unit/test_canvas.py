@@ -19,7 +19,8 @@ from contextlib import nullcontext
 from unittest.mock import Mock
 
 import omni.kit.test
-from omni.flux.curve_editor.widget.canvas import CurveEditorCanvas
+from omni.flux.curve_editor.widget.canvas import CurveEditorCanvas, FrameType
+from omni.flux.curve_editor.widget.canvas.viewport import ViewportState
 from omni.flux.curve_editor.widget.payload import curve_to_payload
 from omni.flux.fcurve.widget import FCurve, FCurveKey, FCurveWidget, KeyReference, SelectionInfo
 from omni.flux.utils.widget import GroupedKeysModel
@@ -61,6 +62,29 @@ def _canvas(selected_keys: list[KeyReference] | None = None) -> CurveEditorCanva
 
 class TestCurveEditorCanvas(omni.kit.test.AsyncTestCase):
     """Test channel filtering and continuous-edit ownership without constructing UI."""
+
+    async def test_fit_to_data_explicit_and_default_full_framing_fit_both_axes(self):
+        """Default framing and the explicit full mode fit the same visible-key bounds."""
+        for mode in ((), (FrameType.ALL,)):
+            with self.subTest(title=f"frame arguments={mode}"):
+                # Arrange
+                canvas = _canvas()
+                canvas._fcurve_widget.curves = {
+                    "visible": FCurve(id="visible", keys=[FCurveKey(0.2, 0.1), FCurveKey(0.8, 0.9)]),
+                    "hidden": FCurve(id="hidden", visible=False, keys=[FCurveKey(-5.0, -5.0)]),
+                }
+                canvas._viewport = ViewportState(time_min=0.45, time_max=0.55, value_min=0.45, value_max=0.55)
+                canvas._on_viewport_changed = Mock()
+
+                # Act
+                canvas.fit_to_data(*mode)
+
+                # Assert
+                self.assertAlmostEqual(canvas._viewport.time_min, 0.14)
+                self.assertAlmostEqual(canvas._viewport.time_max, 0.86)
+                self.assertAlmostEqual(canvas._viewport.value_min, 0.02)
+                self.assertAlmostEqual(canvas._viewport.value_max, 0.98)
+                canvas._on_viewport_changed.assert_called_once_with()
 
     async def test_set_selected_curve_ids_retains_only_valid_refs_on_loaded_curves(self):
         """Discard hidden, missing, negative, and out-of-range key references."""

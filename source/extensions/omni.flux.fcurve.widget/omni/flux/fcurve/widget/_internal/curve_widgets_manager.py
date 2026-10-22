@@ -460,7 +460,7 @@ class CurveWidgetsManager:
             if attempt:
                 if is_step:
                     return
-                # ponytail: Pointer-time retry is not a nearest-point solve; expand only for measured remaining misses.
+                # shortcut: Pointer-time retry is not a nearest-point solve; expand only for measured remaining misses.
                 time = self._vp.x_to_time(pointer_x)
                 if not start.time < time < end.time:
                     return

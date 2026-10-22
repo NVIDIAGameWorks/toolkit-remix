@@ -144,6 +144,12 @@ Internal-only procedures live under `.agents/commands/internal/` and are indexed
 not listed in the public command tables. Their `internal-<name>` skill wrappers make them discoverable, and the GitHub
 mirror removes the wrappers with the procedures.
 
+### Review Permissions
+
+Codex review workers on Windows use filesystem-wide read access (`:root = "read"`) because the elevated Windows
+sandbox requires it. Other platforms use `:minimal` plus the declared review paths. Writes and shell network access
+remain disabled on every platform.
+
 ### Review Scheduling
 
 These scheduling rules apply to every caller of the review CLI, including direct local use. `--deadline-seconds`
