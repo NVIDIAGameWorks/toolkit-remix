@@ -216,7 +216,7 @@ class ItemModelBase(abc.ABC):
 
     def begin_batch_edit(self) -> None:
         """Begin a supported batch edit with previews until the batch ends."""
-        pass
+        return
 
     def end_batch_edit(self) -> None:
         """End a batch edit when supported; the default implementation is a no-op."""
@@ -250,7 +250,7 @@ class ItemModelBase(abc.ABC):
 
     def finish_property_edit_interaction(self) -> None:
         """Allow an editor to commit its preview before teardown cancellation."""
-        pass
+        return
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.get_value()!r})"
