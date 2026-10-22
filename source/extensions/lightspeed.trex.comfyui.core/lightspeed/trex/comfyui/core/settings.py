@@ -20,10 +20,11 @@ from __future__ import annotations
 __all__ = ["ComfyUISettings"]
 
 from collections.abc import Callable
+from math import isfinite
 
 from carb.settings import get_settings
 
-from .constants import COMFYUI_SETTINGS_ROOT
+from .constants import COMFYUI_SETTINGS_ROOT, DEFAULT_JOB_TIMEOUT_SECONDS
 from .enums import ComfyUIProtocol
 from .url import is_valid_host, is_valid_port
 
@@ -41,7 +42,7 @@ def _persistent_key(key: str) -> str:
 
 
 class ComfyUISettings:
-    """Read and update persistent ComfyUI connection settings."""
+    """Read and update persistent ComfyUI settings."""
 
     def __init__(
         self,
@@ -143,6 +144,29 @@ class ComfyUISettings:
             value,
         )
         self._push_settings_changed("port", value)
+
+    @property
+    def job_timeout(self) -> float:
+        """Return the job timeout in seconds, where 0 means no limit, or 3600.0 when the stored value is invalid."""
+        value = get_settings().get(_persistent_key(f"{COMFYUI_SETTINGS_ROOT}/job_timeout"))
+        return (
+            float(value)
+            if type(value) in (int, float) and isfinite(value) and value >= 0
+            else DEFAULT_JOB_TIMEOUT_SECONDS
+        )
+
+    def set_job_timeout(self, value: float) -> None:
+        """Persist a finite job timeout of 0 or more without notifying connection observers.
+
+        Args:
+            value: Maximum time in seconds for a new job to wait for the server. 0 means no limit.
+        """
+        if not isfinite(value) or value < 0 or value == self.job_timeout:
+            return
+        get_settings().set(
+            _persistent_key(f"{COMFYUI_SETTINGS_ROOT}/job_timeout"),
+            float(value),
+        )
 
     def _push_settings_changed(self, key: str, value: object) -> None:
         """Notify settings observers without rejecting an already committed write.

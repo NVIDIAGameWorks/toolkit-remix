@@ -94,6 +94,8 @@ class QueueInterface:
         self._mutation_event = Event(copy=True)
         self._schedule_conditions_changed_event = Event(copy=True)
         self._external_conditions_changed_event = Event(copy=True)
+        self._cancel_requested_event = Event(copy=True)
+        self._cancel_requested: set[uuid.UUID] = set()
         self._schedule_conditions_lock = threading.Lock()
         self._schedule_conditions_revision = 0
         self._accepting_submissions = True
@@ -862,6 +864,7 @@ class QueueInterface:
                 )
             connection.commit()
         if cursor.rowcount:
+            self._cancel_requested.discard(job_id)
             self._notify_execution_changed(job_id)
             return True
         return False
@@ -910,11 +913,121 @@ class QueueInterface:
             skipped = self._skip_descendants(connection, job_id) if cursor.rowcount else []
             connection.commit()
         if cursor.rowcount:
+            self._cancel_requested.discard(job_id)
             self._notify_execution_changed(job_id)
             for skipped_id in skipped:
                 self._notify_execution_changed(skipped_id)
             return True
         return False
+
+    def retry_job(self, job_id: uuid.UUID) -> bool:
+        """Queue the same failed job and restore its unblocked skipped descendants.
+
+        Args:
+            job_id: Failed job identifier.
+
+        Returns:
+            Whether the failed job returned to the queue. Unknown or non-failed jobs return False.
+        """
+        reset_sql = """
+            UPDATE jobs SET state = ?, state_reason = NULL, started_at = NULL, completed_at = NULL,
+                outputs = NULL, progress_completed = NULL, progress_total = NULL, progress_detail = NULL,
+                error_type = NULL, error_message = NULL, error_traceback = NULL,
+                apply_disposition = CASE WHEN apply_handler_id IS NULL THEN ? ELSE ? END,
+                apply_operation = ?, apply_reason = NULL, apply_receipt = NULL,
+                apply_error_type = NULL, apply_error_message = NULL, apply_error_traceback = NULL
+            WHERE job_id = ? AND state = ?
+        """
+        reset_values = (
+            JobState.QUEUED.value,
+            ApplyDisposition.NOT_APPLICABLE.value,
+            ApplyDisposition.NOT_READY.value,
+            ApplyOperation.IDLE.value,
+        )
+        with self.connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            # ponytail: An explicit skip that copies the full generated reason, including the failure text,
+            # is still restored. Persist the skip origin if that distinction matters.
+            descendants = connection.execute(
+                """
+                WITH RECURSIVE edges(prerequisite_job_id, target_job_id) AS (
+                    SELECT source_job_id, target_job_id FROM job_connections
+                    UNION
+                    SELECT prerequisite_job_id, target_job_id FROM job_control_edges
+                ), descendants(job_id) AS (
+                    SELECT target_job_id FROM edges WHERE prerequisite_job_id = ?
+                    UNION
+                    SELECT edges.target_job_id FROM descendants
+                    JOIN edges ON edges.prerequisite_job_id = descendants.job_id
+                )
+                SELECT jobs.job_id FROM jobs
+                JOIN descendants ON descendants.job_id = jobs.job_id
+                WHERE jobs.state = ? AND jobs.outputs IS NULL
+                    AND EXISTS (
+                        SELECT 1 FROM edges
+                        JOIN jobs prerequisite ON prerequisite.job_id = edges.prerequisite_job_id
+                        WHERE edges.target_job_id = jobs.job_id
+                            AND (
+                                (
+                                    prerequisite.state = ?
+                                    AND jobs.state_reason = 'Prerequisite "' || prerequisite.name || '" failed: '
+                                        || COALESCE(prerequisite.state_reason, 'No additional details are available.')
+                                )
+                                OR (
+                                    prerequisite.state = ?
+                                    AND jobs.state_reason = 'Prerequisite "' || prerequisite.name || '" was skipped: '
+                                        || prerequisite.state_reason
+                                )
+                            )
+                    )
+                ORDER BY jobs.position
+                """,
+                (str(job_id), JobState.SKIPPED.value, JobState.FAILED.value, JobState.SKIPPED.value),
+            ).fetchall()
+            cursor = connection.execute(reset_sql, (*reset_values, str(job_id), JobState.FAILED.value))
+            if not cursor.rowcount:
+                return False
+            changed = [job_id]
+            for descendant in descendants:
+                blocked_reason = connection.execute(
+                    """
+                    SELECT MIN(
+                        'Prerequisite "' || prerequisite.name || '" '
+                        || CASE WHEN prerequisite.state = ? THEN 'failed' ELSE 'was skipped' END
+                        || ': ' || COALESCE(prerequisite.state_reason, 'No additional details are available.')
+                    )
+                    FROM (
+                        SELECT source_job_id AS predecessor FROM job_connections WHERE target_job_id = ?
+                        UNION
+                        SELECT prerequisite_job_id FROM job_control_edges WHERE target_job_id = ?
+                    ) edges
+                    JOIN jobs prerequisite ON prerequisite.job_id = edges.predecessor
+                    WHERE prerequisite.state = ?
+                        OR (prerequisite.state = ? AND prerequisite.outputs IS NULL)
+                    """,
+                    (
+                        JobState.FAILED.value,
+                        descendant["job_id"],
+                        descendant["job_id"],
+                        JobState.FAILED.value,
+                        JobState.SKIPPED.value,
+                    ),
+                ).fetchone()[0]
+                if blocked_reason is None:
+                    cursor = connection.execute(
+                        reset_sql, (*reset_values, descendant["job_id"], JobState.SKIPPED.value)
+                    )
+                else:
+                    cursor = connection.execute(
+                        "UPDATE jobs SET state_reason = ? WHERE job_id = ? AND state_reason != ?",
+                        (blocked_reason, descendant["job_id"], blocked_reason),
+                    )
+                if cursor.rowcount:
+                    changed.append(uuid.UUID(descendant["job_id"]))
+            connection.commit()
+        for changed_id in changed:
+            self._notify_execution_changed(changed_id)
+        return True
 
     def skip_job(self, job_id: uuid.UUID, reason: str) -> bool:
         """Skip one queued job and recursively skip queued descendants.
@@ -1093,6 +1206,8 @@ class QueueInterface:
                             ),
                         )
                         if cursor.rowcount:
+                            # A new attempt starts here. A Stop that no execution accepted must not block it.
+                            self._cancel_requested.discard(job_id)
                             claimed.append(job_id)
                             active_counts[job_type] = active_counts.get(job_type, 0) + 1
                     connection.commit()
@@ -1789,6 +1904,46 @@ class QueueInterface:
                 )
             connection.commit()
         self._notify_mutation()
+
+    def cancel_job(self, job_id: uuid.UUID) -> None:
+        """Ask the scheduler that runs a job to stop it, once.
+
+        The scheduler cancels the execution task. The job may then wait for external cleanup, for example until a
+        server confirms that its work stopped. The executor then persists the job as failed with a
+        ``CancelledError`` diagnostic, and a later ``retry_job`` can queue it again. Later requests for the same job
+        are ignored until it completes or fails, so a repeated request cannot interrupt that cleanup. Jobs that are
+        not running in this process are ignored.
+
+        Args:
+            job_id: Running job identifier.
+        """
+        if job_id in self._cancel_requested:
+            return
+        self._cancel_requested.add(job_id)
+        self._cancel_requested_event(job_id)
+        self._job_changed_event(job_id)
+
+    def is_cancel_requested(self, job_id: uuid.UUID) -> bool:
+        """Return whether a stop request waits for a running job to settle.
+
+        Args:
+            job_id: Job identifier.
+
+        Returns:
+            Whether ``cancel_job`` was called and the job has not completed or failed since.
+        """
+        return job_id in self._cancel_requested
+
+    def subscribe_cancel_requested(self, callback: Callable[[uuid.UUID], None]) -> EventSubscription:
+        """Subscribe to requests to stop one running job.
+
+        Args:
+            callback: Callback receiving the job identifier to stop.
+
+        Returns:
+            Subscription retained by the caller.
+        """
+        return _isolated_subscription(self._cancel_requested_event, callback, "cancel-request")
 
     def subscribe_job_changed(self, callback: Callable[[uuid.UUID], None]) -> EventSubscription:
         """Subscribe to targeted child changes.

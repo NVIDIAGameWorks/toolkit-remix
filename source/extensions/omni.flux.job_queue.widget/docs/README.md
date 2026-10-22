@@ -7,7 +7,8 @@ Hierarchical UI for queues owned by `omni.flux.job_queue.core`.
 - Render every job graph as a collapsed native TreeView root with topologically ordered job children.
 - Preserve graph expansion and job selection across event-driven refreshes by durable IDs.
 - Filter child jobs while retaining roots with matches; aggregate root status from every child.
-- Provide generic Apply, Reapply, Decline, Revert, and selected-graph Delete controls.
+- Provide generic Apply, Reapply, Decline, Revert, running-job Stop, timed-out and stopped job Retry, and
+  selected-graph Delete controls.
 - Expose persistent Start and Stop controls for the core-owned scheduler, with Running, Stopping, and Stopped status.
 - Confirm Revert and selected-graph Delete, and report exact bulk-action results with native notifications.
 - Provide exact-job-type display adapters for job names, user-facing progress, focus/edit, and product actions.
@@ -46,8 +47,8 @@ visible rows. Native TreeView virtualization builds cells only for the viewport,
 to update. Decorative alternating backgrounds rebuild only when visible membership changes. The widget never polls and
 never owns a scheduler. Its toolbar
 subscribes to the persistent scheduler-enabled setting for the widget lifetime and changes only that setting; core owns
-the scheduler and stops or starts new dispatch work. Active jobs finish before the toolbar changes from **Stopping** to
-**Stopped**, and its tooltip names every graph still finishing.
+the scheduler and pauses or resumes dispatch. Active jobs finish before the toolbar changes from **Stopping** to **Stopped**.
+Its tooltip names each graph still active. **Start** resumes dispatch immediately while those jobs retain their concurrency slots.
 
 `QueueWidget` and `JobDetailsPanel` both report `destroyed` after `destroy()`. An owning workspace window reads that
 state to rebuild dead content instead of showing it again, and to skip a second cleanup.
@@ -55,6 +56,18 @@ state to rebuild dead content instead of showing it again, and to skip a second 
 Filters determine which children are visible and which children graph or footer actions capture. Aggregate root status
 still considers every child, and the root tooltip reports exact state counts plus decisive jobs hidden by filters.
 Graph details merge states that share one user-facing label and describe terminal execution counts as finished jobs.
+
+Execution failures with a `TimeoutError` diagnostic appear as **Timed Out**. Other execution failures remain **Failed**.
+Timed-out jobs use the same error color as other failures. The **Timed Out** label and **Retry** action identify them.
+The **Failed** status filter includes both states. Timeouts count as terminal execution failures in graph status,
+completion times, and Status details. Primary status help uses the safe reason, not the diagnostic message or traceback.
+Execution failures with a `CancelledError` diagnostic appear as **Stopped**, with the same color, filter, and Retry
+behavior as **Timed Out**. While a graph has a running child, a **Stop** action replaces **Delete** in the graph row.
+Stop calls `QueueInterface.cancel_job` for each running child. Stop is disabled while every running child has a stop
+request (`QueueInterface.is_cancel_requested`) and waits for its cleanup to end.
+Only timed-out and stopped children expose **Retry**, before product actions in the **Actions** column. Retry reserves
+the job before it calls `QueueInterface.retry_job` off the UI thread. Core retains the job ID and job data and schedules
+another execution attempt.
 
 Check and X reserve every eligible captured job synchronously before scheduling work, so repeated gestures and jobs later
 in a bulk sequence are disabled immediately. Core Apply execution remains the authoritative cross-view deduplication

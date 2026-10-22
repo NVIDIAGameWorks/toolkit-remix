@@ -121,6 +121,28 @@ wake a full runnable scan; execution, topology, type, and setting changes wake i
 Jobs may raise `JobExecutionError(reason, diagnostic)` to preserve raw diagnostics while exposing explicit safe failure
 text. Unexpected execution failures use a generic user-facing reason.
 
+`JobScheduler.pause()` stops new dispatch without interrupting active executions.
+`start()` resumes dispatch while those executions continue and retain their exact-type concurrency slots.
+The persistent scheduler preference uses these operations. `stop()` drains active executions during runtime shutdown.
+
+A job timed out when its execution diagnostic is a `TimeoutError`. `JobError.timed_out` reports this condition.
+The persisted execution state remains `FAILED`.
+
+Call `QueueInterface.cancel_job(job_id)` to stop one running job. The scheduler of this process cancels the execution
+task once. The executor persists `FAILED` with a `CancelledError` diagnostic and skips dependent jobs.
+`JobError.cancelled` reports this condition. A job may catch `asyncio.CancelledError` to finish external cleanup, for
+example until a server confirms that its work stopped, but it must raise it again. The job stays `IN_PROGRESS` and keeps
+its job-type slot until that cleanup ends. A job that settles a worker thread, for example through
+`run_in_worker_thread`, also waits until the thread returns. `QueueInterface.is_cancel_requested(job_id)` stays true
+until the job completes or fails. Repeated `cancel_job` calls for that job do nothing, so they cannot interrupt cleanup.
+
+Call `QueueInterface.retry_job(job_id)` to queue the same failed job without changing its identifier or saved payload.
+This operation resets execution and Apply fields in one SQLite transaction and notifies the scheduler.
+It restores descendants skipped by failure propagation unless another prerequisite still failed or was skipped without outputs.
+Explicit skips with different reasons and skipped jobs with outputs remain unchanged. Unknown or non-failed jobs return `False`.
+Retry recognizes propagation by the full generated reason. An explicit skip that copies that complete reason is also restored.
+Retry retains the job directory. The executor resets both log files when the next execution starts.
+
 The queue owns each job directory and writes timestamped lifecycle and failure entries to `logs/stdout.log` and
 `logs/stderr.log`. `QueueInterface.delete_graph()` stages those directories on the same volume inside the graph-deletion
 transaction, restores them if the database write fails, and cleans committed staging afterward. Startup restores staged

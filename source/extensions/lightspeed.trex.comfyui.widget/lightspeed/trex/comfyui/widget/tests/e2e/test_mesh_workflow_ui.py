@@ -286,7 +286,7 @@ class _ComfyUIHarness:
 
     async def _use_all_mesh_references(self) -> None:
         """Select the mesh input row, check that Reference Selection starts at Selected, and choose All."""
-        rows = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].name=='WorkflowInputName'")
+        rows = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].identifier=='ComfyWorkflowItemName'")
         await next(candidate for candidate in rows if candidate.widget.text == "Input Mesh").click()
         await ui_test.human_delay(5)
         combo = next(
@@ -343,7 +343,7 @@ class TestMeshWorkflowUIE2E(_ComfyUIHarness, AsyncTestCase):
 
     async def _set_mesh_output_behavior(self, label: str) -> None:
         """Select the mesh output row by its export name and choose one Apply behavior through its combo box popup."""
-        rows = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].name=='WorkflowInputName'")
+        rows = ui_test.find_all(f"{self._window.title}//Frame/**/Label[*].identifier=='ComfyWorkflowItemName'")
         row = next(candidate for candidate in rows if candidate.widget.text == "Upscaled Mesh")
         scroll = self._find("ScrollingFrame[*].identifier=='ComfyWorkflowItemsScroll'")
         scroll.widget.scroll_y += row.center.y - scroll.center.y

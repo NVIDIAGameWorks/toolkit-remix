@@ -572,7 +572,7 @@ class QueueItemDelegate(TreeDelegateBase):
             model.decline_item(item)
 
     def _build_graph_actions(self, model: QueueModel, graph: QueueGraphItem) -> None:
-        """Build Delete followed by adapter-declared graph actions.
+        """Build Delete, or Stop while a job runs, followed by adapter-declared graph actions.
 
         Args:
             model: Queue tree model.
@@ -588,13 +588,30 @@ class QueueItemDelegate(TreeDelegateBase):
         with ui.VStack():
             ui.Spacer()
             with ui.HStack(height=ICON_SIZE_MEDIUM, spacing=PADDING_SMALL):
-                self._build_icon(
-                    "TrashCan",
-                    f"delete_graph_{graph.graph_id}",
-                    delete_tooltip,
-                    model.can_delete_graphs(delete_graphs),
-                    lambda: self._on_delete_graph(graph) if self._on_delete_graph else None,
-                )
+                running = model.get_running_items(graph)
+                if running:
+                    can_stop = model.can_stop_graph(graph)
+                    if not can_stop:
+                        stop_tooltip = "Stopping. Waiting for the running job to stop."
+                    elif len(running) == 1:
+                        stop_tooltip = "Stop the running job"
+                    else:
+                        stop_tooltip = f"Stop the {len(running)} running jobs"
+                    self._build_icon(
+                        "Stop",
+                        f"stop_graph_{graph.graph_id}",
+                        stop_tooltip,
+                        can_stop,
+                        lambda: model.stop_graph(graph),
+                    )
+                else:
+                    self._build_icon(
+                        "TrashCan",
+                        f"delete_graph_{graph.graph_id}",
+                        delete_tooltip,
+                        model.can_delete_graphs(delete_graphs),
+                        lambda: self._on_delete_graph(graph) if self._on_delete_graph else None,
+                    )
                 for child in graph.children:
                     for action in adapter_interaction.get_graph_actions(child.row, model.context_name):
                         self._build_icon(
@@ -609,16 +626,24 @@ class QueueItemDelegate(TreeDelegateBase):
             ui.Spacer()
 
     def _build_job_actions(self, model: QueueModel, item: QueueItem) -> None:
-        """Build only actions explicitly owned by a child job.
+        """Build Retry followed by adapter-owned actions for one child.
 
         Args:
             model: Queue tree model.
-            item: Job child whose adapter owns actions.
+            item: Job child to render.
         """
         row = item.row
         with ui.VStack():
             ui.Spacer()
             with ui.HStack(height=ICON_SIZE_MEDIUM, spacing=PADDING_SMALL):
+                if model.resolve_display_state(row) in (DisplayState.TIMED_OUT, DisplayState.STOPPED):
+                    self._build_icon(
+                        "Restart",
+                        f"retry_job_{row.job_id}",
+                        "Retry this job",
+                        model.can_retry_item(item),
+                        lambda: model.retry_item(item),
+                    )
                 for action in adapter_interaction.get_job_actions(row, model.context_name):
                     self._build_icon(
                         action.style_name,

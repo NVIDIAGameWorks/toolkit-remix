@@ -590,7 +590,6 @@ current_dict.update(
         "Label::QueueLogStdout": {"color": _WHITE_80},
         "Label::QueueLogWarning": {"color": _ORANGE},
         "Label::QueueLogError": {"color": _RED_60},
-        "Label::WorkflowInputName": {"color": _WHITE_60, "font_size": 18, "font": ui.url.nvidia_rg},
         "Label::Breadcrumb": {"color": _WHITE_40, "font_size": 12},
         "Window::SectionedComboPopup": {"background_color": _GREY_60, "border_color": 0x0, "border_radius": 0},
         "Rectangle::SectionedComboItem": {"background_color": _GREY_60},

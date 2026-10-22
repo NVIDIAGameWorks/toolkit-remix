@@ -180,7 +180,7 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         # Assert
         self.assertEqual(
             [item.name_models[0].get_value_as_string() for item in input_items],
-            ["Ungrouped", "Material"],
+            ["Ungrouped", "Material", "Job Queue"],
         )
         self.assertTrue(input_items[0].expanded)
         self.assertEqual(input_items[0].children[0].workflow_input.label, "Enabled")
@@ -894,23 +894,21 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         # Assert
         core.submit_prepared_submission.assert_awaited_once_with(submission)
 
-    async def test_confirmed_queue_submission_failure_reports_recovery_and_reenables_run(self):
-        """A confirmed submission failure reports recovery and releases the Run action."""
+    async def test_queue_submission_failure_reports_recovery(self):
+        """A failed queue submission reports recovery guidance and logs the error."""
         # Arrange
-        submission = ComfyUISubmission((MagicMock(),), 1)
+        submission = ComfyUISubmission((MagicMock(),), 0)
         error = RuntimeError("queue unavailable")
         core = _make_core(_make_workflow())
         core.submit_prepared_submission = AsyncMock(side_effect=error)
         widget = _make_bare_widget(core)
-        widget._submit_button = MagicMock()
-        widget._submit_task = asyncio.current_task()
 
         # Act
         with (
             patch("lightspeed.trex.comfyui.widget.workflow.widget._TrexMessageDialog") as dialog,
             patch("lightspeed.trex.comfyui.widget.workflow.widget.carb.log_error") as log_error,
         ):
-            await widget._submit_confirmed(submission)
+            await widget._submit_prepared_submission(submission)
 
         # Assert
         core.submit_prepared_submission.assert_awaited_once_with(submission)
@@ -922,27 +920,6 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
             ),
         )
         log_error.assert_called_once_with(f"Failed to submit ComfyUI jobs: {error}")
-        self.assertIsNone(widget._submit_task)
-        self.assertTrue(widget._submit_button.enabled)
-
-    async def test_prepare_skips_show_exact_active_workflow_warning(self):
-        """Skipped materials use the exact active-workflow confirmation wording."""
-        # Arrange
-        core = _make_core(_make_workflow())
-        core.prepare_submission = AsyncMock(return_value=ComfyUISubmission((MagicMock(),), 1))
-        widget = _make_bare_widget(core)
-
-        # Act
-        with patch("lightspeed.trex.comfyui.widget.workflow.widget._TrexMessageDialog") as dialog:
-            await widget._prepare_and_submit()
-
-        # Assert
-        self.assertEqual(
-            dialog.call_args.args[0],
-            "1 selected material does not provide the inputs required by the active workflow.\n\n"
-            "These jobs will be skipped.\n\n"
-            "Do you want to proceed anyway?",
-        )
 
     async def test_prepare_failure_reports_recovery_without_technical_details(self):
         """A preparation failure gives recovery guidance while retaining technical details in the log."""
@@ -1009,112 +986,6 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         # Assert
         widget._submit_prepared_submission.assert_awaited_once_with(submission)
         dialog.assert_not_called()
-
-    async def test_prepared_jobs_with_skips_require_confirmation(self):
-        """Skipped prepared jobs are shown before the graph can be queued."""
-        # Arrange
-        core = _make_core(_make_workflow())
-        core.prepare_submission = AsyncMock(return_value=ComfyUISubmission((MagicMock(),), 1))
-        widget = _make_bare_widget(core)
-
-        # Act
-        with (
-            patch("lightspeed.trex.comfyui.widget.workflow.widget._TrexMessageDialog") as dialog,
-        ):
-            await widget._prepare_and_submit()
-
-        # Assert
-        message = dialog.call_args.args[0]
-        self.assertIn("1 selected material does not provide the inputs required by the active workflow", message)
-        self.assertIn("These jobs will be skipped", message)
-        self.assertIn("Do you want to proceed anyway?", message)
-
-    async def test_skip_confirmation_disables_submit(self):
-        """Opening the skipped-job dialog disables Run until the dialog closes."""
-        # Arrange
-        core = _make_core(_make_workflow())
-        core.prepare_submission = AsyncMock(return_value=ComfyUISubmission((MagicMock(),), 1))
-        widget = _make_bare_widget(core)
-        widget._submit_button = MagicMock()
-
-        # Act
-        with patch("lightspeed.trex.comfyui.widget.workflow.widget._TrexMessageDialog") as dialog:
-            await widget._prepare_and_submit()
-
-        # Assert
-        self.assertTrue(widget._submission_confirmation_open)
-        self.assertFalse(widget._submit_button.enabled)
-        self.assertEqual(dialog.call_args.kwargs["on_window_closed_fn"], widget._on_submission_confirmation_closed)
-
-    async def test_submit_is_ignored_while_skip_confirmation_is_open(self):
-        """Repeated Run clicks cannot prepare a second graph behind the confirmation."""
-        # Arrange
-        widget = _make_bare_widget(_make_core(_make_workflow()))
-        widget._submission_confirmation_open = True
-
-        # Act
-        with patch("lightspeed.trex.comfyui.widget.workflow.widget.asyncio.ensure_future") as ensure_future:
-            widget._on_submit_clicked()
-
-        # Assert
-        ensure_future.assert_not_called()
-
-    async def test_closing_skip_confirmation_reenables_submit(self):
-        """Closing the skipped-job dialog releases the Run action."""
-        # Arrange
-        widget = _make_bare_widget(_make_core(_make_workflow()))
-        widget._submission_confirmation_open = True
-        widget._submit_button = MagicMock()
-
-        # Act
-        widget._on_submission_confirmation_closed()
-
-        # Assert
-        self.assertFalse(widget._submission_confirmation_open)
-        self.assertTrue(widget._submit_button.enabled)
-
-    async def test_confirming_skipped_jobs_submits_prepared_graph(self):
-        """Confirming the warning queues the same graph that produced it."""
-        # Arrange
-        submission = ComfyUISubmission((MagicMock(),), 1)
-        widget = _make_bare_widget(_make_core(_make_workflow()))
-        widget._submission_confirmation_open = True
-        owner_coroutine = MagicMock()
-        scheduled_task = MagicMock()
-
-        # Act
-        with (
-            patch.object(
-                widget,
-                "_submit_confirmed",
-                new=MagicMock(return_value=owner_coroutine),
-            ),
-            patch(
-                "lightspeed.trex.comfyui.widget.workflow.widget.asyncio.ensure_future",
-                return_value=scheduled_task,
-            ) as ensure_future,
-        ):
-            widget._on_skipped_jobs_confirmed(submission)
-
-        # Assert
-        ensure_future.assert_called_once_with(owner_coroutine)
-        scheduled_task.set_name.assert_called_once_with("ComfyUIConfirmedSubmission")
-        self.assertIs(widget._submit_task, scheduled_task)
-
-    async def test_stale_skip_confirmation_cannot_submit_after_cancellation(self):
-        """Disconnect or destroy invalidates a retained dialog confirmation callback."""
-        # Arrange
-        submission = ComfyUISubmission((MagicMock(),), 1)
-        widget = _make_bare_widget(_make_core(_make_workflow()))
-        widget._submission_confirmation_open = True
-        widget._cancel_action_tasks()
-
-        # Act
-        with patch("lightspeed.trex.comfyui.widget.workflow.widget.asyncio.ensure_future") as ensure_future:
-            widget._on_skipped_jobs_confirmed(submission)
-
-        # Assert
-        ensure_future.assert_not_called()
 
     async def test_queue_submission_all_failures_reports_exact_counts(self):
         """An entirely failed batch can be retried without duplicating queued work."""
@@ -1291,7 +1162,6 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         self.assertIsNone(widget._workflow_refresh_task)
         self.assertIsNone(widget._workflow_load_task)
         self.assertIsNone(widget._submit_task)
-        self.assertFalse(widget._submission_confirmation_open)
 
     async def test_destroy_cancels_tasks_and_releases_widgets(self):
         """Destroy cancels retained work and clears owned widget references."""

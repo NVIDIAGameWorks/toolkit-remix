@@ -44,7 +44,7 @@ from ...core import ComfyUICore
 from ...enums import MeshReferenceSelection, OutputApplyBehavior, RemixType
 from ...job import ComfyUIJob
 from ...models import ComfyUIFileResult, Workflow, WorkflowInput, WorkflowOutput
-from ...resolvers import ConstantResolver, SelectedMeshResolver, SelectedTextureResolver
+from ...resolvers import ConstantResolver, SelectedMeshResolver, SelectedPrimPathResolver, SelectedTextureResolver
 
 _ALBEDO_OUTPUT = "albedo_output"
 _ROUGHNESS_OUTPUT = "roughness_output"
@@ -366,6 +366,16 @@ class TestComfyUIJobApplyE2E(AsyncTestCase):
         self._core.set_workflow(
             Workflow(
                 name="Texture generation",
+                api={"1": {"inputs": {"material": ""}}},
+                inputs=[
+                    WorkflowInput(
+                        port_id="1.inputs.material",
+                        label="Material",
+                        native_type=str,
+                        default_value="",
+                        value=SelectedPrimPathResolver(),
+                    ),
+                ],
                 output_specs=[
                     _texture_output(_ALBEDO_OUTPUT, "albedo", OutputApplyBehavior.REPLACE, 0),
                     _texture_output(_ROUGHNESS_OUTPUT, "roughness", OutputApplyBehavior.NONE, 1),

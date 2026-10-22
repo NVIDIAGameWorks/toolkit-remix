@@ -132,7 +132,8 @@ class ComfyUIApplyTarget:
         project_path: Root layer identifier captured at submission.
         edit_target_layer: Edit layer identifier captured at submission.
         material_path: Material path used for user-facing validation errors.
-        texture_targets: Stable workflow output keys paired with exact shader input paths.
+        texture_targets: Stable workflow output keys paired with exact shader input paths. One key can target
+            the same texture input on several materials.
     """
 
     context_name: str
@@ -158,7 +159,6 @@ class ComfyUIApplyTarget:
             raise ValueError("material_path must be an absolute USD prim path")
         if type(self.texture_targets) is not tuple:
             raise TypeError("texture_targets must be a tuple")
-        keys = []
         paths = []
         for item in self.texture_targets:
             if type(item) is not tuple or len(item) != 2:
@@ -171,10 +171,7 @@ class ComfyUIApplyTarget:
             target_path = Sdf.Path(path)
             if not target_path.IsAbsolutePath() or not target_path.IsPropertyPath():
                 raise ValueError("texture target paths must be absolute USD property paths")
-            keys.append(key)
             paths.append(path)
-        if len(keys) != len(set(keys)):
-            raise ValueError("texture target keys must be unique")
         if len(paths) != len(set(paths)):
             raise ValueError("texture target paths must be unique")
 
@@ -972,7 +969,7 @@ class ComfyUIWorkflowRequest:
         prompt: Resolved API-format workflow submitted to ComfyUI.
         input_bindings: Semantic workflow file bindings uploaded before submission.
         client_id: ComfyUI client identifier stored with the submitted prompt.
-        timeout: Maximum seconds to wait for the submitted prompt.
+        timeout: Maximum seconds to wait for the submitted prompt. ``0`` means no time limit.
         output_url: Project-owned destination, or ``None`` for queue-owned project-independent outputs.
         workflow: Complete workflow metadata used to validate outputs and reopen the editor.
     """
@@ -989,7 +986,7 @@ class ComfyUIWorkflowRequest:
 
         Raises:
             TypeError: If a field has the wrong concrete type.
-            ValueError: If a required string is blank, a port repeats, or the timeout is not positive.
+            ValueError: If a required string is blank, a port repeats, or the timeout is negative.
         """
         if type(self.prompt) is not dict:
             raise TypeError("prompt must be a dictionary")
@@ -1006,8 +1003,8 @@ class ComfyUIWorkflowRequest:
             raise TypeError("client_id must be a string")
         if type(self.timeout) is not float:
             raise TypeError("timeout must be a float")
-        if self.timeout <= 0:
-            raise ValueError("timeout must be positive")
+        if self.timeout < 0:
+            raise ValueError("timeout must not be negative")
         if self.output_url is not None and type(self.output_url) is not str:
             raise TypeError("output_url must be a string or None")
         if self.output_url is not None and not self.output_url.strip():

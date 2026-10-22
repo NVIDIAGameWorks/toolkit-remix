@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.8]
+### Fixed
+- The ComfyUI submission action adds the valid items to the queue without a confirmation. A dialog shows only when no selected item is valid.
+- The ComfyUI submission action is disabled when the workflow has no Selected Texture or Selected Mesh input.
+
 ## [3.1.7]
 ### Added
 - Added Copy Light and Paste Light actions for mesh asset, descendant, and instance selections to the Stage Manager context menu, separated from the following viewport actions.

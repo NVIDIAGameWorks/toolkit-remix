@@ -34,11 +34,12 @@ _PROTOTYPE_PATH = "/RootNode/meshes/mesh_0AB745B8BEE1F16B"
 _PROTOTYPE_MESH_PATH = f"{_PROTOTYPE_PATH}/mesh"
 
 
-def _request_for_workflow(workflow: Workflow) -> ComfyUIWorkflowRequest:
+def _request_for_workflow(workflow: Workflow, timeout: float = 5400.0) -> ComfyUIWorkflowRequest:
     """Create one typed ComfyUI workflow request.
 
     Args:
         workflow: Workflow restored by the display adapter.
+        timeout: Saved job timeout in seconds.
 
     Returns:
         Typed request exposed by the ComfyUI core.
@@ -47,7 +48,7 @@ def _request_for_workflow(workflow: Workflow) -> ComfyUIWorkflowRequest:
         prompt={},
         input_bindings=(),
         client_id="",
-        timeout=300.0,
+        timeout=timeout,
         output_url="C:/project/assets/ingested/comfyui/test",
         workflow=workflow,
     )
@@ -183,43 +184,65 @@ class TestComfyUIDisplayAdapter(AsyncTestCase):
         # Assert
         self.assertEqual(result, "Connect to the ComfyUI server at http://comfy-a:8188 to run this job.")
 
-    async def test_detail_sections_distinguish_saved_and_connected_servers(self):
-        """Details distinguish the persisted execution target from the live connection."""
-        # Arrange
-        job = ComfyUIJob(context_name="texturecraft", scheme="http", host="saved.example.com", port=8188)
-
-        # Act
-        with patch(
-            "lightspeed.trex.comfyui.widget.display_adapter.get_connected_endpoint",
-            return_value=("https", "connected.example.com", 443),
-        ):
-            result = ComfyUIDisplayAdapter().get_detail_sections(job, MagicMock(), "wrong-context")
-
-        # Assert
-        self.assertEqual(
-            result,
+    async def test_detail_sections_show_servers_and_saved_timeout(self):
+        """Details show the persisted target, the live connection, and the saved job timeout."""
+        workflow = Workflow(name="Saved workflow", api={})
+        for title, inputs, timeout in (
+            ("saved 90-minute timeout", {ComfyUIJob.WORKFLOW_REQUEST: _request_for_workflow(workflow)}, "90 minutes"),
             (
-                JobDetailSection(
-                    "comfyui_server",
-                    "ComfyUI server",
+                "saved 1-minute timeout",
+                {ComfyUIJob.WORKFLOW_REQUEST: _request_for_workflow(workflow, 60.0)},
+                "1 minute",
+            ),
+            (
+                "saved no timeout",
+                {ComfyUIJob.WORKFLOW_REQUEST: _request_for_workflow(workflow, 0.0)},
+                "No timeout",
+            ),
+            ("no decoded inputs", None, "Unavailable"),
+        ):
+            with self.subTest(title=title):
+                # Arrange
+                job = ComfyUIJob(context_name="texturecraft", scheme="http", host="saved.example.com", port=8188)
+
+                # Act
+                with patch(
+                    "lightspeed.trex.comfyui.widget.display_adapter.get_connected_endpoint",
+                    return_value=("https", "connected.example.com", 443),
+                ):
+                    result = ComfyUIDisplayAdapter().get_detail_sections(job, MagicMock(inputs=inputs), "wrong-context")
+
+                # Assert
+                self.assertEqual(
+                    result,
                     (
-                        JobDetailField(
-                            "comfyui.saved_server",
-                            "Saved server",
-                            "http://saved.example.com:8188",
-                            "This exact server address is persisted with the queued generation job.",
-                        ),
-                        JobDetailField(
-                            "comfyui.connected_server",
-                            "Connected server",
-                            "https://connected.example.com:443",
-                            "The ComfyUI server currently connected for this job's USD context.",
+                        JobDetailSection(
+                            "comfyui_server",
+                            "ComfyUI server",
+                            (
+                                JobDetailField(
+                                    "comfyui.saved_server",
+                                    "Saved server",
+                                    "http://saved.example.com:8188",
+                                    "This exact server address is persisted with the queued generation job.",
+                                ),
+                                JobDetailField(
+                                    "comfyui.connected_server",
+                                    "Connected server",
+                                    "https://connected.example.com:443",
+                                    "The ComfyUI server currently connected for this job's USD context.",
+                                ),
+                                JobDetailField(
+                                    "comfyui.timeout",
+                                    "Timeout",
+                                    timeout,
+                                    "This job stops as Timed Out when ComfyUI does not finish the prompt in this time.",
+                                ),
+                            ),
+                            JobDetailSectionPlacement.BEFORE_INPUTS,
                         ),
                     ),
-                    JobDetailSectionPlacement.BEFORE_INPUTS,
-                ),
-            ),
-        )
+                )
 
     @patch("lightspeed.trex.comfyui.widget.display_adapter._get_active_viewport")
     @patch.object(ComfyUIDisplayAdapter, "_get_xformable_paths", return_value=["/World/Mesh"])

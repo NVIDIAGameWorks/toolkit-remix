@@ -24,28 +24,7 @@ import omni.kit.app
 import omni.kit.test
 from omni.flux.job_queue.core import handlers
 from omni.flux.job_queue.core import core as queue_core
-
-
-class _SchedulerProbe:
-    """Expose deterministic stop/start ordering for settings reconciliation."""
-
-    def __init__(self):
-        """Create a running scheduler with a blocked stop."""
-        self.running = True
-        self.stop_started = asyncio.Event()
-        self.allow_stop = asyncio.Event()
-        self.start_calls = 0
-
-    def start(self) -> None:
-        """Record a synchronous scheduler start."""
-        self.running = True
-        self.start_calls += 1
-
-    async def stop(self) -> None:
-        """Wait until the test permits the in-flight stop to finish."""
-        self.stop_started.set()
-        await self.allow_stop.wait()
-        self.running = False
+from omni.flux.job_queue.core.execute import JobScheduler
 
 
 class TestExtensionRuntime(omni.kit.test.AsyncTestCase):
@@ -129,30 +108,28 @@ class TestExtensionRuntime(omni.kit.test.AsyncTestCase):
         handler_shutdown.assert_called_once_with()
         persistence_shutdown.assert_called_once_with()
 
-    async def test_scheduler_setting_reconcile_honors_true_arriving_during_stop(self):
-        """A false-to-true race cannot leave the core scheduler disabled."""
+    async def test_scheduler_setting_reconcile_honors_true_arriving_during_pause(self):
+        """Start honors an enable change during dispatch pause without draining active work."""
         # Arrange
-        scheduler = _SchedulerProbe()
+        scheduler = mock.Mock(spec=JobScheduler)
         settings = types.SimpleNamespace(scheduler_enabled=False)
 
-        async def toggle_during_stop() -> None:
-            """Enable scheduling while one asynchronous stop is in flight."""
-            task = asyncio.create_task(handlers._reconcile_scheduler_setting())
-            await asyncio.wait_for(scheduler.stop_started.wait(), 2)
+        def enable_during_pause() -> None:
+            """Request Start as the Stop setting reaches the scheduler."""
             settings.scheduler_enabled = True
-            scheduler.allow_stop.set()
-            await asyncio.wait_for(task, 2)
 
+        scheduler.pause.side_effect = enable_during_pause
         with (
             mock.patch.object(handlers, "_scheduler", scheduler),
             mock.patch.object(handlers, "_settings", settings),
         ):
             # Act
-            await toggle_during_stop()
+            await asyncio.wait_for(handlers._reconcile_scheduler_setting(), 2)
 
         # Assert
-        self.assertTrue(scheduler.running)
-        self.assertEqual(scheduler.start_calls, 1)
+        scheduler.pause.assert_called_once_with()
+        scheduler.start.assert_called_once_with()
+        scheduler.stop.assert_not_called()
 
     async def test_scheduler_setting_change_without_running_loop_is_marshaled(self):
         """A real settings callback outside asyncio reaches the owning Kit loop."""

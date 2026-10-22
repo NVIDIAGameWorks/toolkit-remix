@@ -39,6 +39,7 @@ class ComfyUIEventType(Enum):
 
     STATE_CHANGED = "state_changed"
     WORKFLOW_CHANGED = "workflow_changed"
+    WORKFLOW_INPUTS_CHANGED = "workflow_inputs_changed"
     WORKFLOWS_LOADED = "workflows_loaded"
     SETTINGS_CHANGED = "settings_changed"
     STAGE_VISIBILITY_CHANGED = "stage_visibility_changed"

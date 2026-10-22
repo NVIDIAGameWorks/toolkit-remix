@@ -502,6 +502,10 @@ class QueueModel(TreeModelBase):
         """
         if row.is_corrupted:
             return DisplayState.CORRUPTED
+        if row.state is JobState.FAILED and row.error is not None and row.error.timed_out:
+            return DisplayState.TIMED_OUT
+        if row.state is JobState.FAILED and row.error is not None and row.error.cancelled:
+            return DisplayState.STOPPED
         if row.state is JobState.QUEUED and self.get_waiting_reason(row):
             return DisplayState.WAITING
         completed = self._has_completed(row)
@@ -745,6 +749,7 @@ class QueueModel(TreeModelBase):
             state
             in (
                 DisplayState.FAILED,
+                DisplayState.TIMED_OUT,
                 DisplayState.SKIPPED,
                 DisplayState.SKIPPED_WITH_OUTPUTS,
                 DisplayState.WAITING_FOR_DEPENDENCIES,
@@ -1084,6 +1089,46 @@ class QueueModel(TreeModelBase):
             f"{'s' if graph_count != 1 else ''}. Their jobs and files were not changed.",
             status=NotificationStatus.WARNING,
         )
+
+    def can_retry_item(self, item: QueueItem) -> bool:
+        """Return whether a child timed out or was stopped and has no action in flight."""
+        state = self.resolve_display_state(item.row)
+        return state in (DisplayState.TIMED_OUT, DisplayState.STOPPED) and not self.is_busy(item)
+
+    def retry_item(self, item: QueueItem) -> None:
+        """Schedule another execution attempt for one timed-out or stopped child."""
+        if self.can_retry_item(item):
+            self._schedule_reserved(self._retry_item(item), (item,))
+
+    @staticmethod
+    def get_running_items(graph: QueueGraphItem) -> tuple[QueueItem, ...]:
+        """Return the children of a graph that are running now."""
+        return tuple(child for child in graph.children if child.row.state is JobState.IN_PROGRESS)
+
+    def can_stop_graph(self, graph: QueueGraphItem) -> bool:
+        """Return whether a running child of a graph has no stop request yet."""
+        return any(not self.interface.is_cancel_requested(child.row.job_id) for child in self.get_running_items(graph))
+
+    def stop_graph(self, graph: QueueGraphItem) -> None:
+        """Ask the scheduler to stop every running child of a graph.
+
+        The stopped jobs settle as failed with a cancellation diagnostic and their dependent jobs are skipped.
+
+        Args:
+            graph: Graph whose running jobs should stop.
+        """
+        for child in self.get_running_items(graph):
+            self.interface.cancel_job(child.row.job_id)
+
+    async def _retry_item(self, item: QueueItem) -> None:
+        """Retry a captured child off the UI thread and report a rejected attempt."""
+        try:
+            retried = await asyncio.to_thread(self.interface.retry_job, item.row.job_id)
+        except GRAPH_DELETE_ERRORS as error:
+            carb.log_warn(f"Retry failed for queue job {item.row.job_id}: {error}")
+            retried = False
+        if not retried:
+            post_notification(f"Retry failed for {item.row.name}.", status=NotificationStatus.WARNING)
 
     def apply_item(self, item: QueueItem) -> None:
         """Apply, retry, or reapply one child without blocking the UI callback.

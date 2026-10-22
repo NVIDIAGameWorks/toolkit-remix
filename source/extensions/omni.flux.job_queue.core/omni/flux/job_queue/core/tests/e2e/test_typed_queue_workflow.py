@@ -23,10 +23,14 @@ import pathlib
 import tempfile
 import uuid
 from typing import ClassVar
+from unittest import mock
 
+import carb.settings
 import omni.kit.test
 import omni.flux.job_queue.core.persistence as persistence
+from omni.flux.job_queue.core import handlers
 from omni.flux.job_queue.core.enums import ApplyDisposition, JobState
+from omni.flux.job_queue.core.errors import JobExecutionError
 from omni.flux.job_queue.core.execute import JobExecutor, JobScheduler
 from omni.flux.job_queue.core.interface import QueueInterface
 from omni.flux.job_queue.core.job import (
@@ -36,9 +40,11 @@ from omni.flux.job_queue.core.job import (
     JobInputs,
     JobOutputPort,
     JobOutputs,
+    JobProgress,
     JobProgressCallback,
 )
 from omni.flux.job_queue.core.persistence import PersistenceCodec
+from omni.flux.job_queue.core.settings import SCHEDULER_ENABLED_SETTING_PATH, JobQueueSettings
 
 __all__ = ("TestTypedQueueWorkflow",)
 
@@ -84,6 +90,22 @@ class _GatedJobTypeA(_GatedJob):
 @dataclasses.dataclass
 class _GatedJobTypeB(_GatedJob):
     """Identify another exact scheduler lane."""
+
+
+@dataclasses.dataclass
+class _CancellationWaitJob(_GatedJob):
+    """Retain execution capacity until cancellation confirmation arrives."""
+
+    async def execute(
+        self,
+        job_directory: pathlib.Path,
+        inputs: JobInputs,
+        progress_callback: JobProgressCallback,
+    ) -> JobOutputs:
+        """Wait on a representative cancellation awaitable before reporting a timeout."""
+        await progress_callback(JobProgress(completed=0, total=1, detail="Waiting for cancellation confirmation."))
+        await super().execute(job_directory, inputs, progress_callback)
+        raise JobExecutionError("The job timed out. Try again.", TimeoutError("Cancellation confirmed after timeout"))
 
 
 @dataclasses.dataclass
@@ -171,6 +193,12 @@ def _decode_producer(value: tuple[uuid.UUID, str, str | None, int]) -> _Producer
     return _ProducerJob(job_id=job_id, name=name, skip_reason=skip_reason, value=number)
 
 
+def _decode_cancellation_wait(value: tuple[uuid.UUID, str, str | None, int]) -> _CancellationWaitJob:
+    """Decode one job that waits for cancellation confirmation."""
+    job_id, name, skip_reason, number = value
+    return _CancellationWaitJob(job_id=job_id, name=name, skip_reason=skip_reason, value=number)
+
+
 def _encode_plain_job(job: Job) -> tuple[uuid.UUID, str, str | None]:
     """Encode one job with only the shared persisted fields."""
     return job.job_id, job.name, job.skip_reason
@@ -194,6 +222,7 @@ def _decode_dependent(value: tuple[uuid.UUID, str, str | None]) -> _DependentJob
 _PERSISTENCE_CODECS = (
     PersistenceCodec("tests.e2e.GatedJobTypeA", _GatedJobTypeA, _encode_job, _decode_gated_a),
     PersistenceCodec("tests.e2e.GatedJobTypeB", _GatedJobTypeB, _encode_job, _decode_gated_b),
+    PersistenceCodec("tests.e2e.CancellationWaitJob", _CancellationWaitJob, _encode_job, _decode_cancellation_wait),
     PersistenceCodec("tests.e2e.ProducerJob", _ProducerJob, _encode_job, _decode_producer),
     PersistenceCodec("tests.e2e.ConsumerJob", _ConsumerJob, _encode_plain_job, _decode_consumer),
     PersistenceCodec("tests.e2e.FailingJob", _FailingJob, _encode_plain_job, _decode_failing),
@@ -230,6 +259,17 @@ class TestTypedQueueWorkflow(omni.kit.test.AsyncTestCase):
         """Create deterministic start and release signals for one submitted job."""
         _GatedJob.started[job.job_id] = asyncio.Event()
         _GatedJob.releases[job.job_id] = asyncio.Event()
+
+    @staticmethod
+    async def _wait_for_scheduler_setting(scheduler: JobScheduler, enabled: bool) -> None:
+        """Wait for the settings callback to reconcile one dispatch state."""
+        while True:
+            reconcile_task = handlers._scheduler_reconcile_task
+            if reconcile_task is not None and reconcile_task.done():
+                reconcile_task.result()
+            if scheduler.is_running() is enabled and (reconcile_task is None or reconcile_task.done()):
+                return
+            await asyncio.sleep(0)
 
     async def test_scheduler_serializes_same_type_while_different_types_overlap(self):
         """Exact job classes own independent one-worker execution lanes."""
@@ -292,6 +332,114 @@ class TestTypedQueueWorkflow(omni.kit.test.AsyncTestCase):
         self.assertEqual([job.job_id for job in graph_snapshot.jobs], [producer.job_id, consumer.job_id])
         self.assertEqual(persisted_producer_outputs[NUMBER], 17)
         self.assertEqual(persisted_consumer_outputs[TEXT], "processed 17")
+
+    async def test_stop_start_settings_during_cancellation_wait_preserve_capacity_and_run_other_type(self):
+        """The real settings callback resumes another type before cancellation confirmation arrives."""
+        # Arrange
+        settings = JobQueueSettings()
+        settings_backend = carb.settings.get_settings()
+        original_setting = settings_backend.get(SCHEDULER_ENABLED_SETTING_PATH)
+        original_scheduler = handlers._scheduler
+        original_reconcile_task = handlers._scheduler_reconcile_task
+        if original_reconcile_task is not None:
+            await asyncio.wait_for(asyncio.shield(original_reconcile_task), 2)
+        self.assertIsNotNone(handlers._scheduler_subscription)
+        active = _CancellationWaitJob(name="Pending cancellation", value=1)
+        queued = _CancellationWaitJob(name="Next same-type job", value=2)
+        unrelated = _GatedJobTypeB(name="Unrelated job", value=17)
+        handles = {}
+        for job in (active, queued):
+            self._prepare_gated_job(job)
+            handles[job.job_id] = self._interface.submit(job)[0]
+        self._prepare_gated_job(unrelated)
+        scheduler = JobScheduler(self._interface)
+        self._scheduler = scheduler
+        runtime_tasks = set()
+        try:
+            with (
+                mock.patch.object(handlers, "_scheduler", scheduler),
+                mock.patch.object(handlers, "_settings", settings),
+                mock.patch.object(handlers, "_main_loop", asyncio.get_running_loop()),
+                mock.patch.object(handlers, "_scheduler_reconcile_task", None),
+                mock.patch.object(handlers, "_background_tasks", runtime_tasks),
+            ):
+                scheduler.start()
+                try:
+                    settings.set_scheduler_enabled(True)
+                    await asyncio.wait_for(self._wait_for_scheduler_setting(scheduler, True), 2)
+                    await asyncio.wait_for(_GatedJob.started[active.job_id].wait(), 2)
+                    owner = scheduler._task
+                    active_execution = scheduler._active[active.job_id]
+
+                    # Act
+                    settings.set_scheduler_enabled(False)
+                    await asyncio.wait_for(self._wait_for_scheduler_setting(scheduler, False), 2)
+                    paused = not scheduler.is_running()
+                    unrelated_handle = self._interface.submit(unrelated)[0]
+                    unrelated_before_resume = self._interface.get_job_snapshot(unrelated.job_id).state
+                    settings.set_scheduler_enabled(True)
+                    await asyncio.wait_for(self._wait_for_scheduler_setting(scheduler, True), 2)
+                    await asyncio.wait_for(_GatedJob.started[unrelated.job_id].wait(), 2)
+                    _GatedJob.releases[unrelated.job_id].set()
+                    unrelated_outputs = await unrelated_handle.outputs(2)
+                    retained_owner = scheduler._task
+                    retained_active_execution = (
+                        scheduler._active.get(active.job_id) is active_execution and not active_execution.done()
+                    )
+                    waiting_snapshot = self._interface.get_job_snapshot(active.job_id)
+                    queued_before_release = self._interface.get_job_snapshot(queued.job_id).state
+                    queued_started_before_release = _GatedJob.started[queued.job_id].is_set()
+                    confirmation_before_release = _GatedJob.releases[active.job_id].is_set()
+                    _GatedJob.releases[active.job_id].set()
+                    with self.assertRaisesRegex(RuntimeError, "Cancellation confirmed after timeout"):
+                        await handles[active.job_id].outputs(2)
+                    await asyncio.wait_for(_GatedJob.started[queued.job_id].wait(), 2)
+                    _GatedJob.releases[queued.job_id].set()
+                    with self.assertRaisesRegex(RuntimeError, "Cancellation confirmed after timeout"):
+                        await handles[queued.job_id].outputs(2)
+                finally:
+                    scheduler.pause()
+                    for job in (active, queued, unrelated):
+                        _GatedJob.releases[job.job_id].set()
+                    reconcile_task = handlers._scheduler_reconcile_task
+                    if reconcile_task is not None:
+                        if not reconcile_task.done():
+                            reconcile_task.cancel()
+                        await asyncio.wait_for(asyncio.gather(reconcile_task, return_exceptions=True), 2)
+                    await asyncio.wait_for(scheduler.stop(), 2)
+                    self._scheduler = None
+                    if runtime_tasks:
+                        await asyncio.wait_for(asyncio.gather(*tuple(runtime_tasks)), 2)
+        finally:
+            if original_setting is None:
+                settings_backend.destroy_item(SCHEDULER_ENABLED_SETTING_PATH)
+            else:
+                settings_backend.set(SCHEDULER_ENABLED_SETTING_PATH, original_setting)
+            if original_scheduler is not None:
+                await asyncio.wait_for(
+                    self._wait_for_scheduler_setting(original_scheduler, settings.scheduler_enabled), 2
+                )
+
+        # Assert
+        self.assertTrue(paused)
+        self.assertIs(unrelated_before_resume, JobState.QUEUED)
+        self.assertEqual(unrelated_outputs[NUMBER], 17)
+        self.assertIs(retained_owner, owner)
+        self.assertTrue(retained_active_execution)
+        self.assertIs(waiting_snapshot.state, JobState.IN_PROGRESS)
+        self.assertIsNone(waiting_snapshot.error)
+        self.assertEqual(waiting_snapshot.progress.detail, "Waiting for cancellation confirmation.")
+        self.assertIs(queued_before_release, JobState.QUEUED)
+        self.assertFalse(queued_started_before_release)
+        self.assertFalse(confirmation_before_release)
+        self.assertEqual(_GatedJob.peak[_CancellationWaitJob], 1)
+        self.assertEqual(_GatedJob.peak[_GatedJobTypeB], 1)
+        for job in (active, queued):
+            snapshot = self._interface.get_job_snapshot(job.job_id)
+            self.assertIs(snapshot.state, JobState.FAILED)
+            self.assertTrue(snapshot.error.timed_out)
+            self.assertEqual(snapshot.error.message, "Cancellation confirmed after timeout")
+        self.assertIs(self._interface.get_job_snapshot(unrelated.job_id).state, JobState.DONE)
 
     async def test_stop_waits_for_active_job_without_dispatching_next_same_type(self):
         """Stopping pauses claims while the already active job finishes."""

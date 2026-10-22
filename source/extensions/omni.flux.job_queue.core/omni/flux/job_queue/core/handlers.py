@@ -229,7 +229,7 @@ def _schedule_scheduler_reconcile() -> None:
 
 
 async def _reconcile_scheduler_setting() -> None:
-    """Serialize scheduler stop/start changes and honor the latest desired value."""
+    """Apply the latest dispatch setting without draining active executions."""
     while True:
         scheduler = _scheduler
         settings = _settings
@@ -239,7 +239,7 @@ async def _reconcile_scheduler_setting() -> None:
         if desired:
             scheduler.start()
         else:
-            await scheduler.stop()
+            scheduler.pause()
         if scheduler is not _scheduler or settings is not _settings or desired == settings.scheduler_enabled:
             return
 

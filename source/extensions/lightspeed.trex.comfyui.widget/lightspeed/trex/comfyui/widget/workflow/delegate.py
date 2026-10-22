@@ -21,10 +21,13 @@ import functools
 from collections.abc import Callable
 
 from omni import ui
+from omni.flux.property_widget_builder.delegates import FloatDragFieldGroup
 from omni.flux.property_widget_builder.model.native import NativeDelegate
 from omni.flux.property_widget_builder.widget import FieldBuilder, Model, claim_each
 
-from .items import InputItemGroup, OutputItemGroup, WorkflowGroupItem
+from .items import InputItemGroup, JobTimeoutItem, OutputItemGroup, WorkflowGroupItem
+
+_ROW_ITEM_TYPES = (InputItemGroup, OutputItemGroup, JobTimeoutItem)
 
 
 class WorkflowItemDelegate(NativeDelegate):
@@ -50,6 +53,10 @@ class WorkflowItemDelegate(NativeDelegate):
                     claim_func=claim_each(lambda item: isinstance(item, InputItemGroup)),
                     build_func=functools.partial(_build_getter_combo, item_pressed_fn=item_pressed_fn),
                 ),
+                FieldBuilder(
+                    claim_func=claim_each(lambda item: isinstance(item, JobTimeoutItem)),
+                    build_func=_build_job_timeout_drag,
+                ),
             ],
             right_aligned_labels=False,
         )
@@ -64,14 +71,14 @@ class WorkflowItemDelegate(NativeDelegate):
             level: Depth of the item in the property tree.
             expanded: Whether the item is currently expanded.
         """
-        if column_id == 0 and isinstance(item, (InputItemGroup, OutputItemGroup)):
+        if column_id == 0 and isinstance(item, _ROW_ITEM_TYPES):
             with ui.HStack(width=ui.Pixel(32), height=self.DEFAULT_IMAGE_ICON_SIZE):
                 ui.Spacer()
             return
         super().build_branch(model, item, column_id, level, expanded)
 
     def _build_item_widgets(self, model: Model, item, column_id: int, level: int, expanded: bool):
-        """Build workflow rows with regular-weight name labels.
+        """Build workflow rows with the shared property name labels.
 
         Args:
             model: Property tree model that owns the item.
@@ -85,16 +92,16 @@ class WorkflowItemDelegate(NativeDelegate):
         """
         if column_id == 1 and isinstance(item, (WorkflowGroupItem, OutputItemGroup)):
             return None
-        if column_id == 0 and isinstance(item, (InputItemGroup, OutputItemGroup)):
+        if column_id == 0 and isinstance(item, _ROW_ITEM_TYPES):
             return _build_workflow_name_label(item, self._item_pressed_fn)
         return super()._build_item_widgets(model, item, column_id, level, expanded)
 
 
 def _build_workflow_name_label(
-    item: InputItemGroup | OutputItemGroup,
-    item_pressed_fn: Callable[[InputItemGroup | OutputItemGroup], None],
+    item: InputItemGroup | OutputItemGroup | JobTimeoutItem,
+    item_pressed_fn: Callable[[InputItemGroup | OutputItemGroup | JobTimeoutItem], None],
 ) -> list[ui.Widget]:
-    """Build a regular-weight name label for a workflow item.
+    """Build a workflow item label with the shared property label style.
 
     Args:
         item: Workflow item whose label and tooltip should be displayed.
@@ -108,7 +115,8 @@ def _build_workflow_name_label(
 
     label = ui.Label(
         text,
-        name="WorkflowInputName",
+        name="PropertiesWidgetLabel",
+        style_type_name_override="PropertiesWidgetLabel",
         identifier="ComfyWorkflowItemName",
         elided_text=True,
         tooltip=tooltip_text or text,
@@ -139,3 +147,36 @@ def _build_getter_combo(
         )
         ui.Spacer()
     return [container]
+
+
+def _build_job_timeout_drag(item: JobTimeoutItem) -> list[ui.Widget]:
+    """Build the timeout drag with the input-row value inset and a soft minute range.
+
+    Args:
+        item: Job timeout row whose value model edits the persisted timeout in minutes.
+
+    Returns:
+        A single-element list containing the drag widget.
+    """
+    field = FloatDragFieldGroup(
+        min_value=JobTimeoutItem.SOFT_MIN_MINUTES,
+        max_value=JobTimeoutItem.SOFT_MAX_MINUTES,
+        hard_min_value=JobTimeoutItem.HARD_MIN_MINUTES,
+        identifier="ComfyJobTimeoutField",
+    )
+    value_model = item.value_models[0]
+    with ui.VStack(height=ui.Pixel(24)):
+        ui.Spacer(height=ui.Pixel(2))
+        widget = field.build_drag_widget(
+            value_model,
+            field.style_name,
+            False,
+            JobTimeoutItem.SOFT_MIN_MINUTES,
+            JobTimeoutItem.SOFT_MAX_MINUTES,
+            JobTimeoutItem.HARD_MIN_MINUTES,
+            None,
+            field.step,
+        )
+        field.set_dynamic_tooltip_fn(widget, value_model)
+        ui.Spacer(height=ui.Pixel(2))
+    return [widget]

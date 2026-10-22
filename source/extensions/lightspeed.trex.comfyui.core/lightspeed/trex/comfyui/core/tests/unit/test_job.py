@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import asyncio
 import dataclasses
 import json
 import pathlib
@@ -32,6 +33,7 @@ from lightspeed.trex.asset_pipeline.core.jobs.models import (
     TextureOptimizationResult,
 )
 from lightspeed.trex.asset_pipeline.core.metadata import MetadataApplyReceipt
+from lightspeed.trex.comfyui.core.api import ComfyUIExecutionError
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.job_queue.core.errors import ApplyExecutionError, JobExecutionError
 from omni.flux.job_queue.core.job import JobInputs, JobProgress
@@ -41,7 +43,6 @@ from pxr import Sdf, Usd, UsdGeom
 
 from ... import apply_handler as apply_handler_module
 from ... import job as job_module
-from ...api import ComfyUIExecutionError
 from ...apply_handler import ComfyUIAssetApplyHandler, ComfyUITextureApplyHandler
 from ...connection import set_connected_endpoint
 from ...enums import MeshReferenceSelection, OutputApplyBehavior, RemixType
@@ -327,6 +328,167 @@ class TestComfyUIJob(AsyncTestCase):
         self.assertIsInstance(error_context.exception.diagnostic, ConnectionError)
         api.wait_for_prompt_completion.assert_not_awaited()
         api.download_file.assert_not_awaited()
+
+    async def test_execute_timed_out_prompt_waits_for_cancellation_before_raising(self):
+        """A timeout waits for API cancellation, then reports the original timeout."""
+        # Arrange
+        timeout_error = TimeoutError("prompt timed out")
+        cancellation_or_completion = asyncio.Event()
+        release_cancellation = asyncio.Event()
+
+        async def wait_for_cancellation(_prompt_id):
+            """Keep API cancellation pending until the test permits completion."""
+            cancellation_or_completion.set()
+            await release_cancellation.wait()
+
+        job = ComfyUIJob()
+        with patch.object(job_module, "ComfyUIAPI", autospec=True) as api_type:
+            api = api_type.return_value
+            api.submit_prompt.return_value = "prompt-123"
+            api.wait_for_prompt_completion.side_effect = timeout_error
+            api.cancel_prompt.side_effect = wait_for_cancellation
+
+            # Act
+            task = asyncio.create_task(
+                job.execute(
+                    pathlib.Path("C:/jobs"),
+                    JobInputs({ComfyUIJob.WORKFLOW_REQUEST: _make_workflow_request()}),
+                    AsyncMock(),
+                )
+            )
+            task.add_done_callback(lambda _task: cancellation_or_completion.set())
+            try:
+                await asyncio.wait_for(cancellation_or_completion.wait(), timeout=2)
+                still_running = not task.done()
+                release_cancellation.set()
+                with self.assertRaises(JobExecutionError) as error_context:
+                    await asyncio.wait_for(task, timeout=2)
+            finally:
+                task.cancel()
+                await asyncio.wait_for(asyncio.gather(task, return_exceptions=True), timeout=2)
+
+        # Assert
+        self.assertTrue(still_running, "The job completed before API cancellation returned.")
+        api.cancel_prompt.assert_awaited_once_with("prompt-123")
+        self.assertEqual(
+            error_context.exception.reason,
+            "ComfyUI did not finish before this job timed out. Check the server and try again.",
+        )
+        self.assertIs(error_context.exception.diagnostic, timeout_error)
+        self.assertIs(error_context.exception.__cause__, timeout_error)
+
+    async def test_execute_stopped_prompt_cancels_server_prompt_then_propagates_cancellation(self):
+        """A stopped job removes its server prompt before the cancellation propagates."""
+        # Arrange
+        polling = asyncio.Event()
+
+        async def wait_forever(*_args):
+            """Hold the prompt in progress until the job task is cancelled."""
+            polling.set()
+            await asyncio.Event().wait()
+
+        job = ComfyUIJob()
+        with patch.object(job_module, "ComfyUIAPI", autospec=True) as api_type:
+            api = api_type.return_value
+            api.submit_prompt.return_value = "prompt-123"
+            api.wait_for_prompt_completion.side_effect = wait_forever
+
+            # Act
+            task = asyncio.create_task(
+                job.execute(
+                    pathlib.Path("C:/jobs"),
+                    JobInputs({ComfyUIJob.WORKFLOW_REQUEST: _make_workflow_request()}),
+                    AsyncMock(),
+                )
+            )
+            await asyncio.wait_for(polling.wait(), timeout=2)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await asyncio.wait_for(task, timeout=2)
+
+        # Assert
+        api.cancel_prompt.assert_awaited_once_with("prompt-123")
+        api.download_file.assert_not_awaited()
+
+    async def test_execute_stop_during_post_submission_progress_cancels_server_prompt(self):
+        """A Stop after submission but before polling still removes the submitted server prompt."""
+        # Arrange
+        reporting = asyncio.Event()
+
+        async def report(progress):
+            """Hold the post-submission progress update until the job task is cancelled."""
+            if progress.detail == "ComfyUI is generating files.":
+                reporting.set()
+                await asyncio.Event().wait()
+
+        job = ComfyUIJob()
+        with patch.object(job_module, "ComfyUIAPI", autospec=True) as api_type:
+            api = api_type.return_value
+            api.submit_prompt.return_value = "prompt-123"
+
+            # Act
+            task = asyncio.create_task(
+                job.execute(
+                    pathlib.Path("C:/jobs"),
+                    JobInputs({ComfyUIJob.WORKFLOW_REQUEST: _make_workflow_request()}),
+                    report,
+                )
+            )
+            await asyncio.wait_for(reporting.wait(), timeout=2)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await asyncio.wait_for(task, timeout=2)
+
+        # Assert
+        api.cancel_prompt.assert_awaited_once_with("prompt-123")
+        api.wait_for_prompt_completion.assert_not_awaited()
+
+    async def test_execute_stop_during_timeout_cleanup_still_waits_for_prompt_removal(self):
+        """One Stop during timeout cleanup cannot release the job before the server removes its prompt."""
+        # Arrange
+        first_cleanup = asyncio.Event()
+        second_cleanup = asyncio.Event()
+        release = asyncio.Event()
+
+        async def cancel_prompt(_prompt_id):
+            """Block the first cleanup until it is cancelled, then hold the restarted cleanup."""
+            if not first_cleanup.is_set():
+                first_cleanup.set()
+                await asyncio.Event().wait()
+            second_cleanup.set()
+            await release.wait()
+
+        job = ComfyUIJob()
+        with patch.object(job_module, "ComfyUIAPI", autospec=True) as api_type:
+            api = api_type.return_value
+            api.submit_prompt.return_value = "prompt-123"
+            api.wait_for_prompt_completion.side_effect = TimeoutError("prompt timed out")
+            api.cancel_prompt.side_effect = cancel_prompt
+
+            # Act
+            task = asyncio.create_task(
+                job.execute(
+                    pathlib.Path("C:/jobs"),
+                    JobInputs({ComfyUIJob.WORKFLOW_REQUEST: _make_workflow_request()}),
+                    AsyncMock(),
+                )
+            )
+            try:
+                await asyncio.wait_for(first_cleanup.wait(), timeout=2)
+                task.cancel()
+                await asyncio.wait_for(second_cleanup.wait(), timeout=2)
+                still_running = not task.done()
+                release.set()
+                with self.assertRaises(asyncio.CancelledError):
+                    await asyncio.wait_for(task, timeout=2)
+            finally:
+                release.set()
+                task.cancel()
+                await asyncio.wait_for(asyncio.gather(task, return_exceptions=True), timeout=2)
+
+        # Assert
+        self.assertTrue(still_running, "The job settled before the restarted cleanup finished.")
+        self.assertEqual(api.cancel_prompt.await_count, 2)
 
     async def test_upload_mesh_preserves_sublayers_references_and_textures(self):
         for mesh_first in (False, True):

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.27.4]
+### Removed
+- Removed the unused `WorkflowInputName` label style. ComfyUI workflow rows use the shared property label style.
+
 ## [1.27.3]
 ### Changed
 - Centralized Curve Editor channel colors under semantic style names, with brighter selected RGB labels.

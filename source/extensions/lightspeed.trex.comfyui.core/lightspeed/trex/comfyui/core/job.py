@@ -21,6 +21,7 @@ __all__ = [
     "ViewerRenderedInputError",
 ]
 
+import asyncio
 import dataclasses
 import hashlib
 import pathlib
@@ -272,14 +273,30 @@ class ComfyUIJob(Job):
                 "ComfyUI could not start this workflow. Check the server connection and workflow, then try again.",
                 error,
             ) from error
-        await progress_callback(JobProgress(completed=2, total=4, detail="ComfyUI is generating files."))
         try:
+            await progress_callback(JobProgress(completed=2, total=4, detail="ComfyUI is generating files."))
             history = await api.wait_for_prompt_completion(prompt_id, request.timeout)
         except TimeoutError as error:
+            try:
+                await progress_callback(
+                    JobProgress(completed=2, total=4, detail="Timed out. Waiting until ComfyUI stops the prompt.")
+                )
+                await api.cancel_prompt(prompt_id)
+            except asyncio.CancelledError:
+                # A Stop during timeout cleanup restarts the cleanup. The job settles only after the server confirms.
+                await api.cancel_prompt(prompt_id)
+                raise
             raise JobExecutionError(
                 "ComfyUI did not finish before this job timed out. Check the server and try again.",
                 error,
             ) from error
+        except asyncio.CancelledError:
+            # The user stopped the job. The job settles only after the server confirms that the prompt stopped.
+            await progress_callback(
+                JobProgress(completed=2, total=4, detail="Stopping. Waiting until ComfyUI stops the prompt.")
+            )
+            await api.cancel_prompt(prompt_id)
+            raise
         except ComfyUIExecutionError as error:
             raise JobExecutionError(error.user_message, error) from error
         except Exception as error:

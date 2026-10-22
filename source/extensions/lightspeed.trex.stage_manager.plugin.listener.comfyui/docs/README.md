@@ -20,5 +20,5 @@ injected USD context.
 
 - `StageManagerComfyListenerPluginsExtension` registers and unregisters the plugin class with the shared factory.
 - `StageManagerComfyListenerPlugin` subscribes with Stage Manager's injected context name, filters shared typed state,
-  workflow, and settings events, and emits the corresponding Stage Manager listener event. Repeated setup owns
-  distinct callback wrappers so cleanup of a displaced subscription cannot remove the active listener.
+  workflow, workflow input, and settings events, and emits the corresponding Stage Manager listener event. Repeated
+  setup owns distinct callback wrappers so cleanup of a displaced subscription cannot remove the active listener.

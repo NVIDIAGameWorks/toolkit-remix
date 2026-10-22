@@ -68,6 +68,16 @@ class JobError:
     message: str
     traceback: str
 
+    @property
+    def timed_out(self) -> bool:
+        """Return whether the execution diagnostic is a TimeoutError."""
+        return self.exception_type == TimeoutError.__name__
+
+    @property
+    def cancelled(self) -> bool:
+        """Return whether execution stopped because its task was cancelled."""
+        return self.exception_type == "CancelledError"
+
     @classmethod
     def from_exception(cls, error: BaseException) -> JobError:
         """Capture serializable details from an exception.

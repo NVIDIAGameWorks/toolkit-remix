@@ -84,12 +84,15 @@ from .models import (
 )
 from .prompt import set_prompt_value
 from .resolvers import (
+    AllStageTexturesResolver,
     ConstantResolver,
     LayerIdentifierResolver,
     ResolverConfigurationError,
     ResolverValueError,
     SelectedMeshResolver,
+    SelectedTextureResolver,
     StageExpandingResolver,
+    ValueResolver,
     is_remix_reference,
 )
 from .settings import ComfyUISettings
@@ -109,8 +112,8 @@ class ComfyUISubmission:
     """Carry the exact graphs prepared for one user submission.
 
     Attributes:
-        graphs: Independently submitted material graphs in deterministic order.
-        skipped_count: Graphs whose generation job was prepared as skipped.
+        graphs: Independently submitted graphs in deterministic order. Skipped items are not included.
+        skipped_count: Selected items left out because they do not provide the workflow inputs.
     """
 
     graphs: tuple[JobGraph, ...]
@@ -732,7 +735,7 @@ class ComfyUICore:
         progress: Callable[[int, int, Any], Any] | None = None,
         is_cancelled: Callable[[], bool] | None = None,
     ) -> ComfyUISubmission:
-        """Prepare exact material graphs and the state needed for UI confirmation.
+        """Prepare valid material graphs and count excluded selections.
 
         Args:
             prim_paths: Explicit selection snapshot, or the current USD selection when omitted.
@@ -740,11 +743,12 @@ class ComfyUICore:
             is_cancelled: Optional callback returning whether the caller requested cancellation.
 
         Returns:
-            Prepared submission returned to the requesting UI for confirmation. Empty when cancelled.
+            Valid graphs and the excluded item count. Empty when cancelled.
         """
         graphs = tuple(await self.prepare_jobs(prim_paths=prim_paths, progress=progress, is_cancelled=is_cancelled))
-        skipped_count = sum(graph.jobs[0].skip_reason is not None for graph in graphs)
-        return ComfyUISubmission(graphs, skipped_count)
+        # Items without the workflow inputs never enter the queue. Only their count reaches the UI.
+        valid_graphs = tuple(graph for graph in graphs if graph.jobs[0].skip_reason is None)
+        return ComfyUISubmission(valid_graphs, len(graphs) - len(valid_graphs))
 
     async def submit_prepared_submission(
         self,
@@ -1130,8 +1134,8 @@ class ComfyUICore:
         if not mesh_outputs and not texture_outputs:
             raise RuntimeError("The ComfyUI workflow does not declare a processable file output.")
 
+        mesh_inputs = [item for item in workflow.inputs if item.remix_type is RemixType.MESH_FILE_PATH]
         if mesh_outputs and mesh_outputs[0].apply_behavior is OutputApplyBehavior.REPLACE:
-            mesh_inputs = [item for item in workflow.inputs if item.remix_type is RemixType.MESH_FILE_PATH]
             if not mesh_inputs:
                 raise RuntimeError("Replace needs a mesh input. Add a mesh input or set the mesh output to Append.")
             if any(isinstance(item.value, ConstantResolver) for item in mesh_inputs):
@@ -1139,6 +1143,8 @@ class ComfyUICore:
                     "Replace needs a mesh input that reads stage references. "
                     "Set the mesh input to Selected Mesh or All Meshes, or set the mesh output to Append."
                 )
+        if mesh_inputs:
+            self._validate_texture_getters(mesh_inputs[0].value, workflow)
 
         stage, project_path, edit_target_layer = self._get_submission_target()
         context = get_context(self._context_name)
@@ -1155,11 +1161,15 @@ class ComfyUICore:
         )
         endpoint = canonical_endpoint(self._settings.protocol.scheme, self._settings.host, self._settings.port)
         client_id = self._client_id
+        job_timeout = self._settings.job_timeout
+        # A mesh input that reads the stage resolves on the selected reference, so texture outputs also start from
+        # mesh candidates. Their textures apply to the materials under each reference owner.
+        reads_meshes = bool(mesh_inputs) and not isinstance(mesh_inputs[0].value, ConstantResolver)
 
         def build_graphs(report: Callable[[int, int | None, Any | None], None]) -> list[JobGraph]:
             candidates: list[_GraphCandidate] = []
             mesh_candidates = []
-            if mesh_outputs:
+            if mesh_outputs or reads_meshes:
                 report(0, INDETERMINATE_PROGRESS_TOTAL, "Listing stage model candidates...")
                 mesh_input_ids = tuple(
                     workflow_input.port_id
@@ -1179,12 +1189,11 @@ class ComfyUICore:
                     candidates.append((None, prim, owner_paths, candidate.owners, overrides))
                 if is_cancelled is not None and is_cancelled():
                     return []
-            elif any(
-                workflow_input.remix_type is RemixType.TEXTURE_FILE_PATH for workflow_input in workflow.inputs
-            ) and all(
+            elif all(
                 isinstance(workflow_input.value, (ConstantResolver, LayerIdentifierResolver))
                 for workflow_input in workflow.inputs
             ):
+                # No input reads the stage, so there is no prim to apply on: one job, processed but not applied.
                 candidates.append((None, stage.GetPseudoRoot(), [], (), {}))
             else:
                 paths: Iterable[str] = selected_paths
@@ -1211,6 +1220,7 @@ class ComfyUICore:
                 edit_target_layer,
                 endpoint,
                 client_id,
+                job_timeout,
                 stage=stage,
                 mesh_candidates=mesh_candidates,
                 report=report,
@@ -1230,6 +1240,31 @@ class ComfyUICore:
         if not graphs:
             raise RuntimeError("The selection does not contain any items that can create ComfyUI jobs")
         return graphs
+
+    @staticmethod
+    def _validate_texture_getters(mesh_resolver: ValueResolver, workflow: Workflow) -> None:
+        """Require texture inputs to read the same scope as the mesh input.
+
+        Args:
+            mesh_resolver: Getter of the workflow mesh input.
+            workflow: Detached workflow whose texture inputs are checked.
+
+        Raises:
+            ResolverConfigurationError: If a texture input reads a different scope than the mesh input.
+        """
+        if isinstance(mesh_resolver, ConstantResolver):
+            allowed: type = ConstantResolver
+        elif isinstance(mesh_resolver, StageExpandingResolver):
+            allowed = AllStageTexturesResolver
+        else:
+            allowed = SelectedTextureResolver
+        if any(
+            workflow_input.remix_type is RemixType.TEXTURE_FILE_PATH and not isinstance(workflow_input.value, allowed)
+            for workflow_input in workflow.inputs
+        ):
+            raise ResolverConfigurationError(
+                f"The mesh input uses {mesh_resolver.label}, so every texture input must use {allowed.label}."
+            )
 
     @staticmethod
     def _get_stage_expanding_resolvers(workflow: Workflow) -> tuple[StageExpandingResolver, ...]:
@@ -1316,10 +1351,21 @@ class ComfyUICore:
         reference_owners_cache = {}
         layer_stack = stage.GetLayerStack()
         if not mesh_inputs:
-            # Owners keyed by path, each with the first selected prim that introduced it. Inputs such as
+            if all(isinstance(item.value, (ConstantResolver, LayerIdentifierResolver)) for item in workflow.inputs):
+                # No input reads the stage, so there is no prim to apply on: one job, processed but not applied.
+                return [MeshCandidate(source_path=None, owners=())]
+            seed_paths: Iterable[str] = selected_paths
+            stage_resolvers = self._get_stage_expanding_resolvers(workflow)
+            if stage_resolvers:
+                seed_paths = (
+                    self._prototype_path(stage, prim_path)
+                    for prim_path in self._stage_expansion_prim_paths(stage, stage_resolvers, is_cancelled=is_cancelled)
+                    if stage.GetPrimAtPath(prim_path).IsA(UsdGeom.Mesh)
+                )
+            # Owners keyed by path, each with the first seed prim that introduced it. Inputs such as
             # Selected Texture resolve on that prim, not on the reference owner, which may have no material.
             owners_by_path: dict[str, tuple[ReferenceTarget, str]] = {}
-            for prim_path in dict.fromkeys(selected_paths):
+            for prim_path in dict.fromkeys(seed_paths):
                 if is_cancelled is not None and is_cancelled():
                     break
                 for owner in self._capture_mesh_owners(
@@ -1828,6 +1874,7 @@ class ComfyUICore:
         edit_target_layer: str,
         endpoint: Endpoint,
         client_id: str,
+        job_timeout: float,
         *,
         stage: Usd.Stage,
         mesh_candidates: list[MeshCandidate] | None = None,
@@ -1846,6 +1893,7 @@ class ComfyUICore:
             edit_target_layer: Edit-layer identifier captured before resolution.
             endpoint: ComfyUI endpoint captured before worker execution.
             client_id: ComfyUI client identifier captured before worker execution.
+            job_timeout: Job timeout in seconds captured before worker execution.
             stage: Live stage used for target capture and publication paths.
             mesh_candidates: Mesh candidates with input results from candidate discovery, in the same order.
             report: Optional worker-thread progress callback.
@@ -1908,7 +1956,7 @@ class ComfyUICore:
                 prompt=prompt,
                 input_bindings=input_bindings if skip_reason is None else (),
                 client_id=client_id,
-                timeout=300.0,
+                timeout=job_timeout,
                 output_url=_get_processed_output_url(stage, generation_job.job_id),
                 workflow=deepcopy(workflow),
             )

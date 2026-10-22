@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.2.0]
+### Added
+- Added `JobError.timed_out`, failed-job Retry, and dispatch pause/resume without waiting for active executions.
+- Added `QueueInterface.cancel_job`, `QueueInterface.is_cancel_requested`, and `JobError.cancelled` to stop one running job once.
+
+### Fixed
+- Retry preserves explicit skips with different prerequisite reasons, and execution writes failure diagnostics before it publishes the failed state.
+
 ## [4.1.1]
 ### Changed
 - Retained skipped outputs now have manual and automatic Apply coverage, and saved outputs require every declared port.

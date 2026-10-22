@@ -27,7 +27,8 @@ from ...api import ComfyUIAPI
 from ...core import ComfyUICore
 from ...enums import RemixType
 from ...job import ComfyUIJob
-from ...models import ComfyUIWorkflowRequest, Workflow, WorkflowOutput
+from ...models import ComfyUIWorkflowRequest, Workflow, WorkflowInput, WorkflowOutput
+from ...resolvers import SelectedPrimPathResolver
 
 
 class TestUsdMaterialCandidatesE2E(AsyncTestCase):
@@ -71,6 +72,16 @@ class TestUsdMaterialCandidatesE2E(AsyncTestCase):
         self._core.set_workflow(
             Workflow(
                 name="Material candidates",
+                api={"1": {"inputs": {"material": ""}}},
+                inputs=[
+                    WorkflowInput(
+                        port_id="1.inputs.material",
+                        label="Material",
+                        native_type=str,
+                        default_value="",
+                        value=SelectedPrimPathResolver(),
+                    ),
+                ],
                 output_specs=[
                     WorkflowOutput(
                         node_id="texture_output",

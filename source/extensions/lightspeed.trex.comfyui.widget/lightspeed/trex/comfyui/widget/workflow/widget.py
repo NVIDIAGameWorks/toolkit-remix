@@ -30,7 +30,7 @@ from lightspeed.trex.comfyui.core.enums import (
     WorkflowCategory,
     WorkflowType,
 )
-from lightspeed.trex.comfyui.core.events import subscribe_comfyui_event
+from lightspeed.trex.comfyui.core.events import publish_comfyui_event, subscribe_comfyui_event
 from lightspeed.trex.comfyui.core.extension import get_comfyui_core_instance
 from lightspeed.trex.comfyui.core.models import Workflow
 from lightspeed.trex.comfyui.core.resolvers import ConstantResolver, ResolverConfigurationError
@@ -50,6 +50,7 @@ from .constants import WORKFLOW_SOURCE_LABELS, get_native_constant_label
 from .delegate import WorkflowItemDelegate
 from .items import (
     InputItemGroup,
+    JobTimeoutItem,
     OutputItemGroup,
     ResolverParamItem,
     WorkflowGroupItem,
@@ -143,7 +144,6 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._splitter_layout_task: asyncio.Task | None = None
         self._selected_workflow_identity: Workflow | None = None
         self._workflow_load_failed = False
-        self._submission_confirmation_open = False
 
         super().__init__()
 
@@ -628,6 +628,10 @@ class WorkflowSetupWidget(WorkspaceWidget):
 
             items.append(workflow_group)
 
+        job_queue = WorkflowGroupItem("Job Queue", expanded=False)
+        JobTimeoutItem(self._core.settings).parent = job_queue
+        items.append(job_queue)
+
         return items
 
     @classmethod
@@ -831,6 +835,7 @@ class WorkflowSetupWidget(WorkspaceWidget):
         if workflow is not None and any(item is group.workflow_input for item in workflow.inputs):
             self._invalidate_active_preset()
             self._select_item_group(group)
+            publish_comfyui_event(self._context_name, ComfyUIEventType.WORKFLOW_INPUTS_CHANGED)
 
     def _select_item_group(self, group: InputItemGroup | OutputItemGroup) -> None:
         """Select a workflow item and show its properties.
@@ -913,6 +918,7 @@ class WorkflowSetupWidget(WorkspaceWidget):
             self._selected_item = None
             self._rebuild_inputs_property_widget()
             self._rebuild_properties_panel()
+            publish_comfyui_event(self._context_name, ComfyUIEventType.WORKFLOW_INPUTS_CHANGED)
 
     def _on_refresh_clicked(self):
         """Re-fetch available workflows from the server."""
@@ -950,26 +956,18 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._update_submit_button_state()
 
     async def _prepare_and_submit(self) -> None:
-        """Prepare jobs, request skip confirmation, and submit eligible graphs."""
+        """Prepare jobs and submit the valid graphs."""
         task = asyncio.current_task()
         try:
             submission, cancelled = await self._prepare_with_progress()
             if cancelled:
                 return
-            if submission.skipped_count:
-                suffix = "" if submission.skipped_count == 1 else "s"
-                verb = "does" if submission.skipped_count == 1 else "do"
-                self._submission_confirmation_open = True
+            if not submission.graphs:
                 _TrexMessageDialog(
-                    f"{submission.skipped_count} selected material{suffix} {verb} not provide the inputs required by "
-                    "the "
-                    "active workflow.\n\n"
-                    "These jobs will be skipped.\n\n"
-                    "Do you want to proceed anyway?",
-                    "Skipped ComfyUI Jobs",
-                    ok_handler=functools.partial(self._on_skipped_jobs_confirmed, submission),
-                    ok_label="Proceed",
-                    on_window_closed_fn=self._on_submission_confirmation_closed,
+                    "The selected items do not provide the inputs required by the active workflow.\n\n"
+                    "No jobs were added to the queue.",
+                    "No ComfyUI Jobs Created",
+                    disable_cancel_button=True,
                 )
             else:
                 await self._submit_prepared_submission(submission)
@@ -1027,38 +1025,6 @@ class WorkflowSetupWidget(WorkspaceWidget):
             progress_popup.set_status_text(str(status))
         if total and total > 0:
             progress_popup.set_progress(max(0.0, min(1.0, current / total)))
-
-    def _on_submission_confirmation_closed(self) -> None:
-        """Release the Run action after the skipped-job dialog closes."""
-        self._submission_confirmation_open = False
-        self._update_submit_button_state()
-
-    def _on_skipped_jobs_confirmed(self, submission: ComfyUISubmission) -> None:
-        """Schedule a submission accepted by the skip dialog.
-
-        Args:
-            submission: Prepared material submission accepted despite skipped jobs.
-        """
-        if not self._submission_confirmation_open:
-            return
-        self._submission_confirmation_open = False
-        self._submit_task = asyncio.ensure_future(self._submit_confirmed(submission))
-        self._submit_task.set_name("ComfyUIConfirmedSubmission")
-        self._update_submit_button_state()
-
-    async def _submit_confirmed(self, submission: ComfyUISubmission) -> None:
-        """Submit a confirmed request and release task ownership.
-
-        Args:
-            submission: Prepared material submission accepted by the skipped-job confirmation.
-        """
-        task = asyncio.current_task()
-        try:
-            await self._submit_prepared_submission(submission)
-        finally:
-            if self._submit_task is task:
-                self._submit_task = None
-            self._update_submit_button_state()
 
     async def _submit_prepared_submission(self, submission: ComfyUISubmission) -> None:
         """Submit one core-prepared request and render its exact result.
@@ -1195,7 +1161,6 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._workflow_load_task = None
         self._submit_task = None
         self._splitter_layout_task = None
-        self._submission_confirmation_open = False
 
     def _update_workflow_combo(self):
         """Populate the workflow dropdown from the server's available workflow list."""
@@ -1449,8 +1414,6 @@ class WorkflowSetupWidget(WorkspaceWidget):
             return project_reason
         if self._submit_task and not self._submit_task.done():
             return "Preparing the selected materials."
-        if self._submission_confirmation_open:
-            return "Close the confirmation message before starting another job."
         return None
 
     @staticmethod
@@ -1507,7 +1470,6 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._cancel_action_tasks()
         self._selected_workflow_identity = None
         self._workflow_load_failed = False
-        self._submission_confirmation_open = False
         self._selected_item = None
         self._getter_subscriptions.clear()
         self._destroy_inputs_property_widget()

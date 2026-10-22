@@ -26,7 +26,17 @@ import omni.kit.commands
 import omni.kit.test
 from lightspeed.common import constants
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
+from lightspeed.trex.comfyui.core.api import ComfyUIAPI
 from lightspeed.trex.comfyui.core.core import ComfyUISubmission, ComfyUISubmissionResult
+from lightspeed.trex.comfyui.core.enums import RemixType
+from lightspeed.trex.comfyui.core.extension import get_comfyui_core_instance
+from lightspeed.trex.comfyui.core.models import Workflow, WorkflowInput
+from lightspeed.trex.comfyui.core.resolvers import (
+    AllStageMeshesResolver,
+    AllStageTexturesResolver,
+    ConstantResolver,
+    SelectedTextureResolver,
+)
 from lightspeed.trex.stage_manager.plugin.tree.usd.category_groups import CategoryGroupsItem as _CategoryGroupsItem
 from lightspeed.trex.stage_manager.plugin.tree.usd.category_groups import CategoryGroupsModel as _CategoryGroupsModel
 from lightspeed.trex.stage_manager.plugin.widget.usd.action_logic_graph import (
@@ -176,6 +186,35 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         shutil.rmtree(self.remix_dir / constants.REMIX_MODS_FOLDER / self.project_path.parent.stem, ignore_errors=True)
         shutil.rmtree(self.project_path.parent / constants.REMIX_DEPENDENCIES_FOLDER, ignore_errors=True)
 
+    async def __click_disabled_comfyui_action(self, widget, window, model, item, tooltip: str):
+        """Click the disabled AI Tools action and return the layout-open spy.
+
+        Args:
+            widget: Stage Manager ComfyUI action plugin under test.
+            window: Window that hosts the action.
+            model: Stage Manager tree model passed to the action.
+            item: Tree item whose row shows the action.
+            tooltip: Expected disabled-state tooltip.
+
+        Returns:
+            The spy for the AI Tools layout opening.
+        """
+        with patch.object(widget, "_open_ai_tools_layout") as open_layout:
+            with window.frame:
+                widget.build_icon_ui(model, item, 0, False)
+            window.focus()
+            await ui_test.human_delay(2)
+
+            action = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='submit_comfyui_job_widget_image'")
+            self.assertIsNotNone(action)
+            self.assertEqual(action.widget.name, "AIToolsDisabled")
+            self.assertEqual(action.widget.tooltip, tooltip)
+
+            # Click the visible disabled-state action and follow its recovery path.
+            await action.click()
+            await ui_test.human_delay()
+        return open_layout
+
     async def test_comfyui_action_icon_shows_setup_state_and_opens_ai_tools(self):
         """A real click on the disconnected action opens AI Tools for setup."""
         # Render the Stage Manager action for a real prim while ComfyUI is unavailable.
@@ -186,33 +225,86 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         )
         core = MagicMock(is_ready=False)
         try:
-            with (
-                patch(
-                    "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
-                    return_value=core,
-                ),
-                patch.object(widget, "_open_ai_tools_layout") as open_layout,
+            with patch(
+                "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
+                return_value=core,
             ):
-                with window.frame:
-                    widget.build_icon_ui(model, item, 0, False)
-                window.focus()
-                await ui_test.human_delay(2)
-
-                action = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='submit_comfyui_job_widget_image'")
-                self.assertIsNotNone(action)
-                self.assertEqual(action.widget.name, "AIToolsDisabled")
-                self.assertEqual(
-                    action.widget.tooltip,
+                open_layout = await self.__click_disabled_comfyui_action(
+                    widget,
+                    window,
+                    model,
+                    item,
                     "ComfyUI is not connected, or no workflow is selected. Select to open AI Tools.",
                 )
 
-                # Click the visible disabled-state action and follow its recovery path.
-                await action.click()
-                await ui_test.human_delay()
-
-                open_layout.assert_called_once_with()
+            open_layout.assert_called_once_with()
+            core.prepare_submission.assert_not_called()
         finally:
             await self.__destroy(window)
+
+    async def test_comfyui_action_is_disabled_for_active_workflow_without_selection_input(self):
+        """The real context core with Constant and whole-stage inputs disables the action and submits nothing."""
+        # Connect the registered context core at the HTTP boundary and select a real workflow without selection inputs.
+        core = get_comfyui_core_instance("")
+        with (
+            patch.object(ComfyUIAPI, "ping", new=AsyncMock()),
+            patch.object(ComfyUIAPI, "get_workflow_list", new=AsyncMock(return_value=[])),
+            patch.object(ComfyUIAPI, "get_workflow_types", new=AsyncMock(return_value=[])),
+        ):
+            await core.connect()
+        core.set_workflow(
+            Workflow(
+                name="whole_stage",
+                api={"1": {"inputs": {"steps": 1, "model": "", "image": ""}}},
+                inputs=[
+                    WorkflowInput(
+                        port_id="1.inputs.steps",
+                        label="Steps",
+                        native_type=int,
+                        default_value=1,
+                        value=ConstantResolver(value=1),
+                    ),
+                    WorkflowInput(
+                        port_id="1.inputs.model",
+                        label="Model",
+                        native_type=Path,
+                        default_value=Path(),
+                        value=AllStageMeshesResolver(),
+                        remix_type=RemixType.MESH_FILE_PATH,
+                    ),
+                    WorkflowInput(
+                        port_id="1.inputs.image",
+                        label="Image",
+                        native_type=Path,
+                        default_value=Path(),
+                        value=AllStageTexturesResolver(),
+                        remix_type=RemixType.TEXTURE_FILE_PATH,
+                    ),
+                ],
+            )
+        )
+        window, widget = await self.__setup_widget(widget_plugin_type=_SubmitComfyUIJobActionWidgetPlugin)
+        model = _StageManagerTreeModel()
+        item = _StageManagerTreeItem(
+            display_name="Material", tooltip="Material", data=self.stage.DefinePrim("/Material")
+        )
+        try:
+            self.assertTrue(core.is_ready)
+            with patch.object(core, "prepare_submission") as prepare_submission:
+                open_layout = await self.__click_disabled_comfyui_action(
+                    widget,
+                    window,
+                    model,
+                    item,
+                    "The workflow has no Selected Texture or Selected Mesh input. Select to open AI Tools.",
+                )
+
+            open_layout.assert_called_once_with()
+            prepare_submission.assert_not_called()
+        finally:
+            await self.__destroy(window)
+            await core.shutdown()
+            core.set_workflow(None)
 
     async def test_comfyui_action_icon_preserves_multi_selection_for_active_workflow(self):
         """A real click on the ready action submits every selected Stage Manager prim."""
@@ -231,9 +323,10 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         core = MagicMock(is_ready=True)
         core.workflow.name = "upscale_4x"
         core.workflow.display_name = "Upscale"
-        submission = ComfyUISubmission((), 0)
+        core.workflow.inputs = [MagicMock(value=SelectedTextureResolver())]
+        submission = ComfyUISubmission((MagicMock(),), 0)
         core.prepare_submission = AsyncMock(return_value=submission)
-        core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(0, 0))
+        core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(1, 0))
         usd.get_context().get_selection().set_selected_prim_paths(
             [str(first_prim.GetPath()), str(second_prim.GetPath())],
             True,

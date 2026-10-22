@@ -21,10 +21,12 @@ import asyncio
 import mimetypes
 import pathlib
 import tempfile
+from math import inf
 from time import monotonic
 from typing import Any
 from urllib.parse import quote
 
+import carb
 from lightspeed.trex.asset_pipeline.core.worker import run_in_worker_thread
 from omni import client
 from omni.flux.utils.common.omni_url import OmniUrl
@@ -35,6 +37,8 @@ from .constants import COMFYUI_WORKFLOWS_ROUTE
 from .enums import WorkflowCategory, WorkflowSourceType
 from .models import ComfyUIFileResult, Workflow, WorkflowTypeCategory
 from .url import build_url, is_valid_local_leaf
+
+_INVALID_QUEUE_RESPONSE_MESSAGE = "Invalid ComfyUI queue response"
 
 
 class ComfyUIExecutionError(RuntimeError):
@@ -413,6 +417,68 @@ class ComfyUIAPI:
             raise RuntimeError("Invalid ComfyUI prompt response")
         return prompt_id
 
+    async def cancel_prompt(self, prompt_id: str, poll_interval: float = 1.0) -> None:
+        """Remove or interrupt a prompt, then wait until the server queue no longer holds it.
+
+        ComfyUI applies an interrupt between node steps, so the running prompt can stay in the
+        queue for some time after the interrupt request returns. The wait has no limit and retries
+        failed or invalid requests. Each attempt checks the queue even if a cancellation request
+        fails. The next job must not start before the server confirms that the prompt is gone.
+
+        Args:
+            prompt_id: Server-assigned identifier returned by submit_prompt.
+            poll_interval: Seconds between attempts.
+        """
+        reported_post_errors = set()
+        reported_queue_error = False
+        cancellation_requests = (
+            ("/queue", {"delete": [prompt_id]}),
+            ("/interrupt", {"prompt_id": prompt_id}),
+        )
+        while True:
+            for endpoint, payload in cancellation_requests:
+                try:
+                    await self._request("POST", endpoint, json=payload)
+                except RuntimeError as error:
+                    if endpoint not in reported_post_errors:
+                        carb.log_warn(
+                            f"Could not cancel ComfyUI prompt {prompt_id} with POST {endpoint}. Retrying: {error}"
+                        )
+                        reported_post_errors.add(endpoint)
+            try:
+                if not await self._is_prompt_queued(prompt_id):
+                    return
+            except RuntimeError as error:
+                if not reported_queue_error:
+                    carb.log_warn(f"Could not confirm that ComfyUI stopped prompt {prompt_id}. Retrying: {error}")
+                    reported_queue_error = True
+            await asyncio.sleep(poll_interval)
+
+    async def _is_prompt_queued(self, prompt_id: str) -> bool:
+        """Report whether the server queue still runs or holds a prompt.
+
+        Args:
+            prompt_id: Server-assigned identifier returned by submit_prompt.
+
+        Returns:
+            True when the prompt is in ``queue_running`` or ``queue_pending``.
+
+        Raises:
+            RuntimeError: If the request fails or the queue response is invalid.
+        """
+        queue = await self._send_request("GET", "/queue")
+        queues = (queue.get("queue_running"), queue.get("queue_pending")) if isinstance(queue, dict) else (None,)
+        if not all(
+            isinstance(entries, list)
+            and all(
+                isinstance(entry, list) and len(entry) > 1 and isinstance(entry[1], str) and entry[1]
+                for entry in entries
+            )
+            for entries in queues
+        ):
+            raise RuntimeError(_INVALID_QUEUE_RESPONSE_MESSAGE)
+        return any(entry[1] == prompt_id for entries in queues for entry in entries)
+
     async def get_history(self, prompt_id: str) -> dict[str, Any]:
         """Fetch execution history for a prompt.
 
@@ -442,7 +508,7 @@ class ComfyUIAPI:
 
         Args:
             prompt_id: Server-assigned identifier returned by ``submit_prompt``.
-            timeout: Maximum seconds to wait for completion.
+            timeout: Maximum seconds to wait for completion. ``0`` waits with no time limit.
             poll_interval: Maximum seconds between history requests.
 
         Returns:
@@ -452,14 +518,16 @@ class ComfyUIAPI:
             RuntimeError: If history reports execution failure or contains invalid data.
             TimeoutError: If the prompt does not complete within the timeout.
         """
-        deadline = monotonic() + timeout
+        deadline = monotonic() + timeout if timeout > 0 else inf
 
         while True:
             remaining = deadline - monotonic()
             if remaining <= 0:
                 raise TimeoutError(f"Timed out waiting for ComfyUI prompt {prompt_id}")
             try:
-                history = await asyncio.wait_for(self.get_history(prompt_id), timeout=remaining)
+                history = await asyncio.wait_for(
+                    self.get_history(prompt_id), timeout=remaining if timeout > 0 else None
+                )
             except TimeoutError as exc:
                 raise TimeoutError(f"Timed out waiting for ComfyUI prompt {prompt_id}") from exc
             entry = history.get(prompt_id)

@@ -63,9 +63,8 @@ Core visibility event --> ComfyUI adapter subscription --> ComfyUI queue rows re
   verified endpoint and **Open Browser**; only Connection Failed exposes **Show Logs** for the current connection
   error. Each compact banner action is right-aligned inline to the right of the flexible wrapped status text.
 - **Widget -> Core separation**: Widgets never manage server state directly. They call `ComfyUICore`
-  methods to prepare an immutable submission, confirm any skipped jobs, submit the accepted request, resolve saved
-  workflows, and retarget queued jobs. Widgets only render the returned state and react to context-qualified shared
-  events.
+  methods to prepare an immutable submission, submit its valid graphs, resolve saved workflows, and retarget queued
+  jobs. Widgets only render the returned state and react to context-qualified shared events.
 - **Mesh input settings**: Selected Mesh and All Meshes expose Reference Selection in Item Properties.
   All uses every reference of the mesh. Selected uses only the one that composes the picked prim. Selected Mesh
   defaults to Selected, and All Meshes defaults to All. Constant uses one model file.

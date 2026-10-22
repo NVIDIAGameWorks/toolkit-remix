@@ -41,7 +41,7 @@ from lightspeed.trex.comfyui.core.models import (
     WorkflowInput,
     WorkflowOutput,
 )
-from lightspeed.trex.comfyui.core.resolvers import SelectedTextureResolver
+from lightspeed.trex.comfyui.core.resolvers import SelectedPrimPathResolver, SelectedTextureResolver
 from ...display_adapter import ComfyUIDisplayAdapter
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni import ui
@@ -155,8 +155,17 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
         Returns:
             Persistable ComfyUI workflow.
         """
-        inputs = []
-        prompt = {"99": {"inputs": {}}}
+        # A Selected Prim input makes the workflow fan out per selected material. Constant-only inputs make one job.
+        inputs = [
+            WorkflowInput(
+                port_id="2.inputs.material",
+                label="Material",
+                native_type=str,
+                default_value="",
+                value=SelectedPrimPathResolver(),
+            )
+        ]
+        prompt = {"2": {"inputs": {"material": ""}}, "99": {"inputs": {}}}
         if missing_normal_input:
             prompt["1"] = {"inputs": {"image": ""}}
             inputs.append(
@@ -719,22 +728,11 @@ class TestTypedComfyUIProductWorkflowE2E(AsyncTestCase):
             apply_registry.destroy()
             ComfyUIDisplayAdapter.set_workspaces(previous_setup_workspace, previous_workflow_workspace)
 
-    async def test_missing_selected_input_skips_exact_generation_and_processing_children(self) -> None:
-        """A missing semantic input persists precise producer and dependency-derived child guidance."""
+    async def test_missing_selected_input_creates_no_queue_job(self) -> None:
+        """A material without the workflow's required input is counted as skipped and never enters the queue."""
         # Resolve a material that cannot provide the workflow's required normal texture.
-        graph = (await self._prepare_graphs(self._mesh_paths[:1], self._workflow(missing_normal_input=True)))[0]
+        graphs = await self._prepare_graphs(self._mesh_paths[:1], self._workflow(missing_normal_input=True))
 
-        # Submission persists the skipped producer and propagates the reason through every typed adapter.
-        self._interface.submit(graph)
-
-        # Each row explains its direct cause, and no row becomes applicable.
-        graph_snapshot = self._interface.get_graph_snapshots()[0]
-        generation, terminal = graph_snapshot.jobs
-        self.assertIs(generation.state, JobState.SKIPPED)
-        self.assertEqual(generation.state_reason, "This material has no normal (OpenGL) texture.")
-        self.assertIs(terminal.state, JobState.SKIPPED)
-        self.assertIn(f'Prerequisite "{graph.jobs[0].name}"', terminal.state_reason)
-        self.assertIn("This material has no normal (OpenGL) texture.", terminal.state_reason)
-        self.assertTrue(
-            all(snapshot.apply_disposition is ApplyDisposition.NOT_APPLICABLE for snapshot in (generation, terminal))
-        )
+        # Preparation leaves the material out. Nothing reaches the queue.
+        self.assertEqual(graphs, [])
+        self.assertEqual(self._interface.get_graph_snapshots(), [])
