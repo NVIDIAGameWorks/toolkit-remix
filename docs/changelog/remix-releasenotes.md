@@ -1,5 +1,130 @@
 # Release Notes
 
+## RTX Remix Release 1.6 Notes (October 23, 2026)
+
+With today's RTX Remix 1.6 update, we are introducing significant leaps in rendering quality, performance, and cross-platform flexibility across both the Remix Runtime and Toolkit. From DLSS 3D-Guided Neural Rendering and Multi Frame Generation to native ARM support and agent-assisted workflows, version 1.6 equips modders with modern AI capabilities to tackle next-generation remasters.
+
+RTX Remix 1.6 is headlined by major DLSS upgrades, and ComfyUI 2.0 asset pipelines. We are also bringing gaming's largest modding community to RTX Remix.
+
+<iframe width="100%" style="aspect-ratio: 16 / 9; height: auto;" src="https://www.youtube-nocookie.com/embed/wxdpnCh_CMg" title="RTX Remix for Minecraft (Beta)" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+### Featured Integration: RTX Remix for Minecraft (Beta)
+
+* **Fabric Mod Release:** A Fabric mod that renders Minecraft Java Edition 1.21.1 through RTX Remix utilizing a new API rendering pipeline with improved performance. We've also created a PBR texture resourcepack and worked with Blockworks to create a demo map. Source code is hosted on GitHub.
+
+**With these new tools, modders and their coding agents can:**
+
+* **Experience Neural Rendering:** Utilize DLSS 3D-Guided Neural Rendering and live artistic controls.
+* **Target Windows on ARM:** Deploy RTX Remix projects natively on ARM64 platforms such as RTX Spark.
+* **Streamline Asset Generation:** Leverage ComfyUI 2.0 for customizable AI texture and mesh workflows.
+* **Expand Agent Automation:** Deploy headless Toolkit instances with standardized MCP tool schemas.
+
+### RTX Remix Toolkit
+
+```{important}
+**Breaking Change: MCP Server Migration**
+
+The MCP server now defaults to Streamable HTTP at `http://127.0.0.1:18014/mcp` (previously SSE at `http://127.0.0.1:8000/sse`). Existing MCP client configurations must be updated to connect to the new endpoint.
+```
+
+#### Workflow & AI Automation
+
+The Toolkit now integrates modular AI nodes and agent orchestration to accelerate asset creation.
+
+<iframe width="100%" style="aspect-ratio: 16 / 9; height: auto;" src="https://www.youtube-nocookie.com/embed/WT3twFB0PD8" title="ComfyUI Integration Version 2.0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+* **ComfyUI Integration Version 2.0:** Replaced legacy AI Tools with a ComfyUI-based workflow for texture and mesh outputs. Workflow names, descriptions, and type filters make workflows easier to discover, while per-output application choices give modders more control over replacing or appending generated assets.
+* **Headless & Agent-Assisted Modding:** Added a headless Toolkit host and a packaged modding-agent skill, with documented setup using public prebuilt development packages. Self-contained MCP tool schemas also expand compatibility with strict clients such as llama.cpp ([GH-1097](https://github.com/NVIDIAGameWorks/rtx-remix/issues/1097)).
+
+#### Rendering & Materials
+
+* **DLSS 3D-Guided Neural Rendering:** Added global controls (Model A/B/C, highlight and volumetric tuning) to Render Settings and Preferences, plus per-material control masks.
+* **Smarter Material Properties:** MDL ranges and conditional (enable-if) rows are now respected so only relevant controls are displayed in the UI.
+
+#### Stage Manager & Ingestion
+
+* **Edit State Filter:** Easily locate modified prims, untouched prims, and prims with unused edits across Stage Manager tabs, with optional filtering by source layer.
+* **Tag Filters & Bulk Actions:** Filter by custom tags and execute operations on entire categories at once from the Stage Manager filter popup.
+* **Select All & Keybindings:** Added app-wide Select All workflow for filtered Stage Manager results and keyboard deletion from the viewport ([GH-340](https://github.com/NVIDIAGameWorks/rtx-remix/issues/340), [GH-359](https://github.com/NVIDIAGameWorks/rtx-remix/issues/359)).
+* **Normal Map Conventions:** Choose preferred normal map conventions during both model and material ingestion.
+* **Reliable Texture Ingestion:** Ingestion no longer depletes VRAM (configurable worker thread count), addresses multi-GPU crash issues, and restores support for uppercase USD file extensions.
+* **Persistent Output Directories:** Model and material output directories are now remembered within each project session.
+
+#### UX & Interface Enhancements
+
+* **Viewport & Camera Navigation:** Added uninterrupted camera dragging beyond screen edges and saved project clipping-plane overrides across sessions ([GH-360](https://github.com/NVIDIAGameWorks/rtx-remix/issues/360), [GH-1008](https://github.com/NVIDIAGameWorks/rtx-remix/issues/1008)).
+* **Transform & Property Controls:** Added linked transform editing, live numeric previews with one-step undo, clearer reset tooltips, and simplified property section expansion.
+* **Layer & Light Editing:** Added layer-edit transfers, reusable light copy/paste, spotlight cone visualization, and multiselection for animated particle properties.
+* **Project Operations & Repairs:** Added Open Project with Capture, faster capture discovery, continuous progress feedback ([GH-1081](https://github.com/NVIDIAGameWorks/rtx-remix/issues/1081)), directory selection without forced expansion, and project repair prompts prior to rebuilding broken deps folders (with a "Reveal in Explorer" option).
+
+#### Performance, Platform & Stability
+
+* **Faster Startup:** StageCraft loads first; IngestCraft and background services load deferred on first demand.
+* **Responsive Stage Manager:** Viewport rendering is no longer blocked during Stage Manager refreshes, filtering performance is accelerated, and large selections no longer stall Properties or the viewport.
+* **Clearer Startup Failures & GPU Crash Reporting:** Incompatible NVIDIA driver errors and renderer startup failures display actionable guidance. Crash data from NVIDIA Aftermath is now automatically captured for GPU crash reports.
+
+#### Notable Toolkit Fixes
+
+* **Older Captures:** Captures taken prior to moving Remix config into the remix namespace load with correct scene scale and up-axis, resolving particle sizing and orientation issues.
+* **Legacy Particles:** Legacy particle properties are upgraded silently in the background while hiding deprecated attributes.
+* **Skinned Assets:** Resolved issue where skinned replacement meshes appeared oversized inside the viewport despite maintaining proper in-game scale.
+* **Capture Cameras & Lights:** Loading captures clears stale game-camera overrides; orthographic cameras properly frame capture meshes; inspection cameras pan and zoom smoothly. Deleting a capture light halts its runtime contribution, and restoring it recovers original intensity settings.
+* **Viewport Light Rigs & Camera Lights:** Light rigs remain active across capture switches; Camera Light no longer leaks into volumetric lighting pass.
+* **Textures & Property Copy/Paste:** "Assign Texture Sets" retains emissive maps and displays them once emission is enabled. Transforms and pending texture paths copy and paste reliably prior to ingestion completion.
+
+### RTX Remix Runtime
+
+#### Next-Gen Rendering & Neural Rendering
+
+Version 1.6 introduces cutting-edge DLSS technologies and expanded hardware compatibility.
+
+<iframe width="100%" style="aspect-ratio: 16 / 9; height: auto;" src="https://www.nvidia.com/en-us/geforce/comparisons/nvidia-dlss-5-rtx-remix-fallout-4-comparison-001/" title="NVIDIA DLSS 5 Fallout 4 RTX Remix On-Off 4K Interactive Comparison" frameborder="0" allowfullscreen></iframe>
+
+* **DLSS 5 Integration:** Integrated DLSS 3D-Guided Neural Rendering and added live artistic controls in the Toolkit. These controls give modders a way to adjust the effect while working on their scenes. In addition, integrated the beta performance mode feature for frame generation model (Preset C for Frame Generation).
+* **Sparse Rendering:** Added uniform sparse rendering with a compact GBuffer and DLSS Ray Reconstruction. Sampling-rate controls give users a performance-versus-image-quality tradeoff, while compact resources reduce memory requirements.
+* **Up to 6× Multi Frame Generation:** Added 5× and 6× frame-generation choices on supported hardware. The additional modes expand smoothness options, while resource allocation follows the selected multiplier.
+* **HDR Texture & Skybox Ingestion:** Added OpenEXR support across texture types and HDR skybox processing without an intermediate 8-bit conversion ([GH-319](https://github.com/NVIDIAGameWorks/rtx-remix/issues/319)), preserving high-dynamic-range values through processing and skybox compression.
+
+#### Platform & Driver Requirements
+
+* **Driver Baseline:** Raised the minimum NVIDIA driver requirement to 616.92 and removed unsupported legacy DLSS CNN presets.
+* **Windows on ARM:** Added Windows on Arm runtime support and public ARM64/ARM64EC build artifacts. Day 1 support for Portal RTX, Half-Life 2 RTX Demo and RTX Remix for Minecraft (Beta).
+
+#### Bug Fixes & Stability
+
+* **Lighting & Shading Corrections:** Corrected Thin Opaque subsurface backlighting (existing materials may require retuning as transmission is now smoother and brighter). Corrected several shadow, reflection, subsurface-lighting, geometry-flicker, and texture-streaming issues.
+* **Legacy UI & Geometry:** Corrected legacy-game UI rendering, alpha blending, transformed texture coordinates, and adapter/process selection ([GH-265](https://github.com/NVIDIAGameWorks/rtx-remix/issues/265), [GH-392](https://github.com/NVIDIAGameWorks/rtx-remix/issues/392), [GH-421](https://github.com/NVIDIAGameWorks/rtx-remix/issues/421), [GH-157](https://github.com/NVIDIAGameWorks/rtx-remix/issues/157), [GH-18](https://github.com/NVIDIAGameWorks/rtx-remix/issues/18)).
+* **Particle Systems & Volumetrics:** Corrected particle-system visibility, stale particles, and incorrect small-particle culling. Made volumetric dust size consistent across resolutions and corrected volumetric-lighting preset behavior.
+* **Compatibility & Multi-GPU:** Addressed community-reported multi-GPU texture-ingestion failures and uppercase USD-file rejection ([GH-1074](https://github.com/NVIDIAGameWorks/rtx-remix/issues/1074), [GH-396](https://github.com/NVIDIAGameWorks/rtx-remix/issues/396)).
+* **Toolkit & Packaging Stability:** Improved project repair, packaging validation, property editing, light restoration, and stability during file deletion, resolution changes, and shutdown.
+
+#### Performance Optimizations
+
+* **AMD Driver Improvements:** Selected TraceRay by default on AMD Windows drivers, improving performance by approximately 20% in community measurements (from 53 to 63 FPS on driver 26.6.4, [PR-146](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/146)).
+* **Sparse Rendering:** Reduced sparse-rendering frame time by ~0.25 ms via resource and thread compaction.
+* **Draw Calls & Memory:** Reduced repeated CPU processing for static draw calls and avoided GPU-memory allocations for unused rendering features.
+* **USD Hot Reload:** Made USD hot reload faster and non-freezing by processing changed data rather than rebuilding the stage.
+* **Startup & DDS Processing:** Reduced Toolkit startup work, accelerated large-scene filtering and selection, and removed per-texture exporter overhead from DDS conversion.
+
+### Code & Community Contributions
+
+This release features direct maintenance and optimizations submitted by the open-source community:
+
+* [PR-136](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/136): Refactored Visual Studio path discovery and build-script environment setup.
+* [PR-142](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/142): Changed BLAS linked-instance storage to support constant-time unlinking.
+* @BinqAdams ([PR-143](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/143)): Restored NEE-cache sample aging to prevent stale lighting from persisting.
+* [PR-146](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/146): Selected TraceRay by default on AMD Windows drivers for improved frame rates.
+* [PR-148](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/148): Used full FP32 precision for distant-light direction and orientation.
+* [PR-155](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/155): Submitted preserve-path maintenance work.
+
+```{seealso}
+For GitHub release notes, see the [RTX Remix releases](https://github.com/NVIDIAGameWorks/rtx-remix/releases).
+For a full toolkit changelog, please click [here](remix-full-changelog.md)
+```
+
+***
+
+
 ## RTX Remix Release 1.5 Notes (June 16, 2026)
 
 We recently introduced Remix Skills, text-based context files that transform AI agents into intelligent collaborators. By lowering the barrier to entry, these agents are already helping the community add features and make previously unsupported titles compatible with RTX Remix. With today's RTX Remix 1.5 update, we are significantly increasing the performance and compatibility for both the Remix Runtime and Toolkit, so you and your coding agents can accelerate the modding pipeline.

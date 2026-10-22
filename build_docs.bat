@@ -12,6 +12,9 @@ if not exist "%DOCS_PYTHON%" (
     exit /b 1
 )
 set "PM_PYTHON_EXT=%DOCS_PYTHON%"
-call "%DOCS_PYTHON%" -m pip install -r "%~dp0requirements.docs.txt"
+rem Use the app pydantic version (deps/pip_flux.toml) so autodoc imports the extensions the same way.
+call "%DOCS_PYTHON%" "%~dp0tools\utils\docs_constraints.py" > "%~dp0_build\docs_constraints.txt"
+if %errorlevel% neq 0 ( exit /b %errorlevel% )
+call "%DOCS_PYTHON%" -m pip install -r "%~dp0requirements.docs.txt" -c "%~dp0_build\docs_constraints.txt"
 if %errorlevel% neq 0 ( exit /b %errorlevel% )
 call "%~dp0repo" docs %*

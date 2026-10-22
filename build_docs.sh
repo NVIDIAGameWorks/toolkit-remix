@@ -12,5 +12,7 @@ if [ ! -x "$DOCS_PYTHON" ]; then
     exit 1
 fi
 export PM_PYTHON_EXT="$DOCS_PYTHON"
-"$DOCS_PYTHON" -m pip install -r "$SCRIPT_DIR/requirements.docs.txt"
+# Use the app pydantic version (deps/pip_flux.toml) so autodoc imports the extensions the same way.
+"$DOCS_PYTHON" "$SCRIPT_DIR/tools/utils/docs_constraints.py" > "$SCRIPT_DIR/_build/docs_constraints.txt"
+"$DOCS_PYTHON" -m pip install -r "$SCRIPT_DIR/requirements.docs.txt" -c "$SCRIPT_DIR/_build/docs_constraints.txt"
 "$SCRIPT_DIR/repo.sh" docs "$@"
