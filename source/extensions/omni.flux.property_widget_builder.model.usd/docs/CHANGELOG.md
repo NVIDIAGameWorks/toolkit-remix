@@ -7,10 +7,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Added live color previews with per-gesture Undo, matching vector conversion, and virtual attribute creation at commit.
 
-### Fixed
-- Preserved committed Undo baselines during external edits, restored failed or cancelled previews, and finalized opted-in editors before row teardown.
-- Consolidated USD color-picker tests into focused native workflows, leaving generic control coverage in the delegates suite.
-
 ## [4.1.0]
 ### Fixed
 - Fixed vector attributes to display and preserve full defaults, support first edits before refresh without `TypeError`, and reset each channel to its own default.

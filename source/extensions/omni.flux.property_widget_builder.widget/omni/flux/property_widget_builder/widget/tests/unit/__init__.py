@@ -22,7 +22,6 @@ __all__ = (
     "TestInitialColumnLayout",
     "TestItemGroupExpansion",
     "TestItemValueModel",
-    "TestPropertyWidgetCleanup",
 )
 
 from .test_callback_value_model import TestCallbackValueModel
@@ -30,4 +29,3 @@ from .test_expansion_with_existing_items import TestItemGroupExpansion
 from omni.flux.property_widget_builder.widget.tests.unit.test_initial_column_layout import TestInitialColumnLayout
 from .test_item_model import TestItemValueModel
 from .tree import TestClipboard, TestDelegate
-from omni.flux.property_widget_builder.widget.tests.unit.test_property_widget_builder import TestPropertyWidgetCleanup

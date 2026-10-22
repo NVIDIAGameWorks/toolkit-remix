@@ -97,33 +97,6 @@ class _BuildingDelegate(_Delegate):
 
 
 class TestDelegate(omni.kit.test.AsyncTestCase):
-    async def test_reset_with_failing_field_cleanup_releases_remaining_rows_and_reports_error(self):
-        """Release all registered fields and delegate state when one cleanup fails."""
-        # Arrange
-        delegate = _Delegate()
-        cleanup_calls = []
-
-        def fail_cleanup():
-            """Record a failed field release."""
-            cleanup_calls.append("failed")
-            raise RuntimeError("field cleanup failed")
-
-        delegate._field_cleanup_callbacks.extend((fail_cleanup, lambda: cleanup_calls.append("remaining")))
-        delegate._name_widgets[1] = object()
-        delegate._builder_map[1] = object()
-        delegate._selection.append(object())
-
-        # Act
-        with self.assertRaisesRegex(RuntimeError, "field cleanup failed"):
-            delegate.reset()
-
-        # Assert
-        self.assertEqual(cleanup_calls, ["failed", "remaining"])
-        self.assertEqual(delegate._field_cleanup_callbacks, [])
-        self.assertEqual(delegate._name_widgets, {})
-        self.assertEqual(delegate._builder_map, {})
-        self.assertEqual(delegate._selection, [])
-
     async def test_reset_runs_field_cleanup_without_destroying_shared_builder(self):
         # Arrange
         delegate = _Delegate()

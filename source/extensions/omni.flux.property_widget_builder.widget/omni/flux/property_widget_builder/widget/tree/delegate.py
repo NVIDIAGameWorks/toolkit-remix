@@ -27,7 +27,6 @@ import abc
 import asyncio
 import dataclasses
 from collections.abc import Callable
-from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
 import omni.ui as ui
@@ -175,22 +174,16 @@ class Delegate(_TreeDelegateBase):
 
         This method is called when the parent widget is hidden.
         """
-        callbacks = tuple(self._field_cleanup_callbacks)
+        for cleanup in tuple(self._field_cleanup_callbacks):
+            cleanup()
         self._field_cleanup_callbacks.clear()
-        try:
-            with ExitStack() as cleanup:
-                for callback in reversed(callbacks):
-                    cleanup.callback(callback)
-        finally:
-            try:
-                self._drag_field_group_coordinator.reset()
-            finally:
-                self._name_widgets.clear()
-                self._builder_map.clear()
-                self._claim_hidden_companion_items.clear()
-                self._subscriptions.clear()
-                self._selection.clear()
-                self._context_menu = None
+        self._drag_field_group_coordinator.reset()
+        self._name_widgets.clear()
+        self._builder_map.clear()
+        self._claim_hidden_companion_items.clear()
+        self._subscriptions.clear()
+        self._selection.clear()
+        self._context_menu = None
 
     def set_apply_item_expanded_fn(self, callback: Callable[[Item, bool], None] | None) -> None:
         self._apply_item_expanded_fn = callback

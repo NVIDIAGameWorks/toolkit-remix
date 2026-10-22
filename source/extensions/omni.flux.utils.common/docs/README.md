@@ -4,6 +4,9 @@ Assorted utilities and/or wrappers around KIT functions.
 
 A place for functionality that is applicable for use in any other flux extension.
 
+`weak_callback(bound_method)` forwards calls without retaining the method owner and returns `None` after the owner
+is released. Retain the model subscription separately for as long as notifications are needed.
+
 ## TaskTracker
 
 `TaskTracker` runs at most one asyncio task per key, for example one submission per USD context, or one per widget

@@ -21,12 +21,10 @@ __all__ = (
     "TestFilePicker",
     "TestFloatDragFieldUnit",
     "TestIntDragFieldUnit",
-    "TestWeakCallback",
 )
 
 from .test_abstract_drag import TestAbstractDragFieldUnit
 from .test_color import TestChannelModel
-from .test_color_picker import TestWeakCallback
 from .test_file_picker import TestFilePicker
 from .test_float_drag import TestFloatDragFieldUnit
 from .test_int_drag import TestIntDragFieldUnit

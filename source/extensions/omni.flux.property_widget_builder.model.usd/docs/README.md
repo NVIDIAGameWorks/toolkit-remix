@@ -152,13 +152,9 @@ the batch ends. Before an external ChangeProperty command changes a represented 
 stage, its pre-command callback restores the preview so the command captures the committed Undo baseline.
 Preview restoration preserves externally changed property fields, including metadata, while restoring untouched
 preview values on the other selected objects.
-Row removal finishes the color preview before canceling remaining property interactions, so the row and USD retain
-the last previewed color. Explicit cancellation discards unfinished input while retaining field subscriptions.
-`ColorField.cleanup()` releases those subscriptions and its owned picker and channel models even when ending the edit
-raises. The default USD color builder registers that cleanup with the owning delegate so a full row reset releases
-the field even when its backing value model remains alive. Picker cancellation keeps the current field usable until
-that reset. `USDDelegate.reset()` clears cached rows and context menus even when registered field cleanup raises.
-Write failure rolls back the whole current batch.
+Row removal cancels unfinished previews through the existing property-edit cancellation path. Normal popup dismissal
+commits focused input. The row widgets and open picker own the color field; model subscriptions hold it weakly.
+Closing the picker releases its subscriptions and native preview resources.
 An external change to an actively edited USD property, including global undo, cancels that edit, closes the popup,
 and refreshes its value. Idle picker controls synchronize with restored USD values without creating an edit.
 A lightweight USD notice listener observes these changes even while application refreshes are deferred.

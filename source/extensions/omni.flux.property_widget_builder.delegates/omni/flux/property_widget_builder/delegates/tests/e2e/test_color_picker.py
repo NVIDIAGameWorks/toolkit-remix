@@ -39,6 +39,7 @@ class TestColorPickerWindow(AsyncTestCase):
         self.retained_models = []
         self.events = []
         self.colors = []
+        self.subscriptions = []
         self.mouse_held = False
 
     async def tearDown(self):
@@ -49,9 +50,9 @@ class TestColorPickerWindow(AsyncTestCase):
         for window in self.windows:
             window.cancel()
             window.edit_started.clear()
-            window.color_changed.clear()
             window.edit_finished.clear()
         await ui_test.human_delay(2)
+        self.subscriptions.clear()
         self.picker = None
         self.windows = self.models = self.retained_models = []
 
@@ -64,14 +65,18 @@ class TestColorPickerWindow(AsyncTestCase):
         self.picker = ColorPickerWindow(self.models, title="Color picker workflow", context_name=None)
         self.windows.append(self.picker)
         self.picker.edit_started.add(lambda: self.events.append("begin"))
-        self.picker.color_changed.add(self._record_color)
         self.picker.edit_finished.add(lambda: self.events.append("end"))
         self.picker.open(preferred_size=(ColorPickerWindow.WINDOW_WIDTH, ColorPickerWindow.WINDOW_HEIGHT))
         await ui_test.human_delay()
+        self.subscriptions = [model.subscribe_value_changed_fn(self._record_color) for model in self.models]
 
-    def _record_color(self, values):
+    def _record_color(self, _model):
         """Observe complete normalized colors after every component has updated."""
-        self.assertEqual(values, self._values())
+        if not self.picker._gesture_depth:
+            return
+        values = self._values()
+        if self.colors and self.colors[-1] == values:
+            return
         self.assertTrue(all(0 <= value <= 1 for value in values))
         self.colors.append(values)
         self.events.append(values)
@@ -227,7 +232,7 @@ class TestColorPickerWindow(AsyncTestCase):
                     self.assertEqual(self._control(identifier).model.get_value_as_float(), 0 if value < 0 else 1)
                     self.assertTrue(all(0 <= component <= 1 for component in self._values()))
         emitted = len(self.colors)
-        self.picker.sync_color(authored)
+        _ChannelModel.mirror_values(self.models, authored)
         await ui_test.human_delay()
         self.assertEqual(self._values(), authored)
         self.assertEqual(len(self.colors), emitted)
@@ -239,7 +244,7 @@ class TestColorPickerWindow(AsyncTestCase):
         await self._edit("hue_value", 0.5)
         await self._edit("saturation", 0.75)
         self.assertEqual(self.colors, [])
-        self.picker.sync_color((0.0, 0.0, 0.0))
+        _ChannelModel.mirror_values(self.models, (0.0, 0.0, 0.0))
         await ui_test.human_delay()
         self.assertEqual(self._control("hue_value").model.get_value_as_float(), 0.5)
         self.assertEqual(self._control("saturation").model.get_value_as_float(), 0.75)
@@ -250,7 +255,7 @@ class TestColorPickerWindow(AsyncTestCase):
         await self._edit("hue_value", 0.75)
         emitted = len(self.colors)
         for color in ((1.0, 1.0, 1.0), (0.0, 0.0, 0.0)):
-            self.picker.sync_color(color)
+            _ChannelModel.mirror_values(self.models, color)
             await ui_test.human_delay()
             self.assertEqual(self._values(), color)
             self.assertEqual(self._control("hue_value").model.get_value_as_float(), 0.75)
@@ -306,7 +311,13 @@ class TestColorPickerWindow(AsyncTestCase):
         ):
             with self.subTest(control=identifier):
                 await self._open((0.2, 0.2, 0.2))
-                subscription = self.models[0].subscribe_value_changed_fn(lambda _model: self.picker.close())
+                observed = []
+
+                def close_on_first_change(_model, observed=observed):
+                    observed.append(self._values())
+                    self.picker.close()
+
+                subscription = self.models[0].subscribe_value_changed_fn(close_on_first_change)
                 try:
                     await self._edit(identifier, text)
                     await ui_test.human_delay(2)
@@ -314,5 +325,7 @@ class TestColorPickerWindow(AsyncTestCase):
                     for actual, wanted in zip(self._values(), expected):
                         self.assertAlmostEqual(actual, wanted)
                     self.assertEqual(self.colors[-1], self._values())
+                    for actual, wanted in zip(observed[0], expected):
+                        self.assertAlmostEqual(actual, wanted)
                 finally:
                     del subscription

@@ -39,16 +39,15 @@ the color and Undo history. Hex, Current previews and the inline swatch use the 
 Formatting display colors does not alter authored HDR values.
 
 With a batch-capable backing model, held drags preview the color; each release or completed typed edit commits one
-Undo entry when the color changes. Row removal retains the latest preview. External edits or Undo discard interrupted
+Undo entry when the color changes. Row removal cancels the unfinished preview. External edits or Undo discard interrupted
 input so it cannot overwrite the restored color.
 
 `ColorPickerWindow` extends shared [`FieldPopupWindow`](#floating-property-editors); the USD builder supplies `context_name`
 for selection dismissal. Generic fields can omit it. Normal dismissal commits input; cancellation discards it.
-Pass `register_cleanup` to `ColorField.build_ui()` or call `cleanup()`; the USD builder registers delegate cleanup.
-The picker reports gesture boundaries and complete colors; the field owns property transactions. Weak subscriptions avoid
-retaining callback owners. Explicit finalization handles a row removed during an active edit; cleanup also releases
-resources if an edit observer fails. The `omni.flux.resources` dependency supplies selector SVGs; the application supplies
-the styles.
+The picker and field share channel models and their native value-change notifications. The picker reports gesture
+boundaries; the field owns property transactions. Weak model subscriptions let row widgets release the field, while
+an open picker retains it until its content closes. Cancellation unsubscribes native model callbacks and ignores
+retired mouse input. The `omni.flux.resources` dependency supplies selector SVGs; the application supplies the styles.
 
 `AbstractDragFieldGroup` builds and coordinates numeric fields in one row. Pass `linkable=True` to opt a Float or Int
 group into link controls, linked presentation, focus, commit, cancel, unlink, and value routing. The item owns the

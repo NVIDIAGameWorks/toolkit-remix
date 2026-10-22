@@ -27,7 +27,6 @@ __all__ = (
     "TestFloatDragFieldUnit",
     "TestIntDragFieldGroup",
     "TestIntDragFieldUnit",
-    "TestWeakCallback",
 )
 
 from .e2e import (
@@ -44,5 +43,4 @@ from .unit import (
     TestFilePicker,
     TestFloatDragFieldUnit,
     TestIntDragFieldUnit,
-    TestWeakCallback,
 )

@@ -20,11 +20,11 @@ __all__ = ("TestWeakCallback",)
 import weakref
 
 import omni.kit.test
-from omni.flux.property_widget_builder.delegates.float_value.color_picker import _weak_callback
+from omni.flux.utils.common import weak_callback
 
 
 class TestWeakCallback(omni.kit.test.AsyncTestCase):
-    """Exercise the picker callback's forwarding and ownership contracts."""
+    """Exercise weak callback forwarding and ownership contracts."""
 
     async def test_weak_callback_with_live_owner_forwards_arguments_and_return_value(self):
         """A weak callback preserves the bound method's calling contract."""
@@ -43,7 +43,7 @@ class TestWeakCallback(omni.kit.test.AsyncTestCase):
                 return value * scale
 
         owner = Owner()
-        callback = _weak_callback(owner.on_change)
+        callback = weak_callback(owner.on_change)
 
         # Act
         result = callback(2, scale=3)
@@ -64,7 +64,7 @@ class TestWeakCallback(omni.kit.test.AsyncTestCase):
                 return value
 
         owner = Owner()
-        callback = _weak_callback(owner.on_change)
+        callback = weak_callback(owner.on_change)
         owner_reference = weakref.ref(owner)
         del owner
 

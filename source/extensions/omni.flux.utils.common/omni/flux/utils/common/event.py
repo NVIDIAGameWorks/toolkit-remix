@@ -15,6 +15,10 @@
 * limitations under the License.
 """
 
+__all__ = ("Event", "EventSubscription", "weak_callback")
+
+import weakref
+from collections.abc import Callable
 from typing import Any
 
 
@@ -69,3 +73,25 @@ class EventSubscription:
     def __del__(self):
         """Called by GC."""
         self._event.remove(self._fn)
+
+
+def weak_callback(method: Callable) -> Callable:
+    """Forward a bound method without keeping its owner alive.
+
+    Calls return None after the owner is released.
+
+    Args:
+        method: Bound method of a weak-referenceable Python object.
+
+    Returns:
+        A callable with the same arguments that holds the owner weakly.
+    """
+    reference = weakref.WeakMethod(method)
+
+    def callback(*args, **kwargs):
+        bound = reference()
+        if bound is not None:
+            return bound(*args, **kwargs)
+        return None
+
+    return callback

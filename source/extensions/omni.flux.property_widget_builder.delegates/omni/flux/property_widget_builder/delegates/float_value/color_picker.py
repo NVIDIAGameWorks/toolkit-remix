@@ -18,8 +18,6 @@
 __all__ = ("ColorPickerWindow",)
 
 import colorsys
-import weakref
-from collections.abc import Callable
 from ctypes import c_float
 from functools import partial
 from math import isfinite
@@ -27,7 +25,7 @@ from string import hexdigits
 from typing import TYPE_CHECKING
 
 import omni.ui as ui
-from omni.flux.utils.common import Event, EventSubscription
+from omni.flux.utils.common import Event, weak_callback
 from omni.flux.utils.widget.gradient import create_checkerboard
 from omni.flux.utils.widget.resources import get_icons
 
@@ -39,28 +37,6 @@ if TYPE_CHECKING:
 
 _COLOR_BYTE_MAX = 255
 _HUE_TEXTURE_HEIGHT = 256
-
-
-def _weak_callback(method: Callable) -> Callable:
-    """Forward a bound method without keeping its owner alive.
-
-    Calls return None after the owner is released.
-
-    Args:
-        method: Bound method of a weak-referenceable Python object.
-
-    Returns:
-        A callable with the same arguments that holds the owner weakly.
-    """
-    reference = weakref.WeakMethod(method)
-
-    def callback(*args, **kwargs):
-        bound = reference()
-        if bound is not None:
-            return bound(*args, **kwargs)
-        return None
-
-    return callback
 
 
 def _display_byte(value: float) -> int:
@@ -129,11 +105,9 @@ class ColorPickerWindow(FieldPopupWindow):
         """
         self._components = component_models
         self.edit_started = Event(copy=True)
-        self.color_changed = Event(copy=True)
         self.edit_finished = Event(copy=True)
         self._gesture_depth = 0
         self._syncing = False
-        self._input_enabled = False
         self._dragging = None
         self._hsv = [0.0, 0.0, 0.0]
         self._hsv_models = [ui.SimpleFloatModel() for _ in self._hsv]
@@ -153,31 +127,22 @@ class ColorPickerWindow(FieldPopupWindow):
 
     def cancel(self) -> None:
         """Disable abandoned input and close without committing buffered text."""
-        self._input_enabled = False
-        self._gesture_depth = 0
         self._dragging = None
         self._hex_dirty = False
+        self._subscriptions.clear()
         super().close()
 
-    def sync_color(self, values) -> None:
-        """Mirror an authoritative color without emitting edits or retaining interrupted native input."""
-        if self._gesture_depth or self._hex_dirty:
-            self.cancel()
-        syncing = self._syncing
-        self._syncing = True
+    def close(self) -> None:
+        """Commit focused text before the floating host retires native callbacks."""
+        if self._closing:
+            return
         try:
-            for model, value in zip(self._components, values):
-                model.mirror(value)
+            self._commit_hex()
         finally:
-            self._syncing = syncing
-        self._last_color = tuple(model.get_value_as_float() for model in self._components)
-        if self._components:
-            self._read_hsv()
-            self._refresh()
+            super().close()
 
     def _build_content(self) -> None:
         """Build this opening's controls after the shared floating host activates."""
-        self._input_enabled = True
         self._read_hsv()
         if len(self._components) == 4:
             self._checker_provider = ui.ByteImageProvider()
@@ -193,19 +158,17 @@ class ColorPickerWindow(FieldPopupWindow):
                 self._build_current_column()
                 ui.Spacer(width=0, height=0)
         for model in self._components:
-            self._subscriptions.append(
-                EventSubscription(model.input_changed, _weak_callback(self._on_component_changed))
-            )
+            self._subscriptions.append(model.subscribe_value_changed_fn(weak_callback(self._on_component_changed)))
         for model in self._hsv_models:
-            self._subscriptions.append(model.subscribe_value_changed_fn(_weak_callback(self._on_hsv_changed)))
+            self._subscriptions.append(model.subscribe_value_changed_fn(weak_callback(self._on_hsv_changed)))
         for model in (*self._components, *self._hsv_models):
-            self._subscriptions.append(model.subscribe_begin_edit_fn(_weak_callback(self._begin_gesture)))
-            self._subscriptions.append(model.subscribe_end_edit_fn(_weak_callback(self._end_gesture)))
+            self._subscriptions.append(model.subscribe_begin_edit_fn(weak_callback(self._begin_gesture)))
+            self._subscriptions.append(model.subscribe_end_edit_fn(weak_callback(self._end_gesture)))
         self._subscriptions.extend(
             (
-                self._hex_model.subscribe_value_changed_fn(_weak_callback(self._on_hex_changed)),
-                self._hex_model.subscribe_begin_edit_fn(_weak_callback(self._begin_gesture)),
-                self._hex_model.subscribe_end_edit_fn(_weak_callback(self._on_hex_committed)),
+                self._hex_model.subscribe_value_changed_fn(weak_callback(self._on_hex_changed)),
+                self._hex_model.subscribe_begin_edit_fn(weak_callback(self._begin_gesture)),
+                self._hex_model.subscribe_end_edit_fn(weak_callback(self._on_hex_committed)),
             )
         )
         self._sv_image.set_computed_content_size_changed_fn(self._update_markers)
@@ -309,16 +272,14 @@ class ColorPickerWindow(FieldPopupWindow):
                 )
 
     def _release_content(self) -> None:
-        """Finish surviving gestures and release this opening's native subscriptions and previews."""
+        """Finish surviving gestures and release subscriptions, owners, and native previews."""
         try:
-            try:
-                self._commit_hex()
-            finally:
-                if self._gesture_depth:
-                    self._gesture_depth = 0
-                    self.edit_finished()
+            if self._gesture_depth:
+                self._gesture_depth = 0
+                self.edit_finished()
         finally:
-            self._input_enabled = False
+            self.edit_started.clear()
+            self.edit_finished.clear()
             self._subscriptions.clear()
             self._components = ()
             self._dragging = None
@@ -328,40 +289,40 @@ class ColorPickerWindow(FieldPopupWindow):
 
     def _begin_gesture(self, _model=None) -> None:
         """Report only the outermost overlapping native edit gesture."""
-        if self._input_enabled:
+        if not self._closing:
             self._gesture_depth += 1
             if self._gesture_depth == 1:
                 self.edit_started()
 
     def _end_gesture(self, _model=None) -> None:
         """Finish an edit once its last overlapping control releases."""
-        if self._input_enabled and self._gesture_depth:
+        if not self._closing and self._gesture_depth:
             self._gesture_depth -= 1
             if not self._gesture_depth:
                 self.edit_finished()
 
     def _on_plane_pressed(self, control, x, y, button, _modifier) -> None:
         """Begin a left-button gesture on the owned color plane."""
-        if self._input_enabled and button == 0:
+        if not self._closing and button == 0:
             self._dragging = control
             self._begin_gesture()
             self._pick_color(control, x, y)
 
     def _on_plane_moved(self, control, x, y, _modifier, _pressed) -> None:
         """Apply continuous color changes from the active plane drag."""
-        if self._input_enabled and self._dragging == control:
+        if not self._closing and self._dragging == control:
             self._pick_color(control, x, y)
 
     def _on_plane_released(self, control, _x, _y, button, _modifier) -> None:
         """Finish a plane gesture when its initiating button releases."""
-        if self._input_enabled and button == 0 and self._dragging == control:
+        if not self._closing and button == 0 and self._dragging == control:
             self._dragging = None
             self._end_gesture()
 
     def _pick_color(self, control, x, y) -> None:
         """Convert pointer coordinates into normalized saturation/value or hue."""
         image = self._sv_image if control == "sv" else self._hue_image
-        if not self._input_enabled or image is None or image.computed_width <= 0 or image.computed_height <= 0:
+        if self._closing or image is None or image.computed_width <= 0 or image.computed_height <= 0:
             return
         horizontal = min(1.0, max(0.0, (x - image.screen_position_x) / image.computed_width))
         vertical = min(1.0, max(0.0, (y - image.screen_position_y) / image.computed_height))
@@ -373,8 +334,8 @@ class ColorPickerWindow(FieldPopupWindow):
         self._apply_hsv()
 
     def _on_component_changed(self, _model) -> None:
-        """Publish native input only after ordinary component notifications finish."""
-        if self._syncing or not self._input_enabled:
+        """Refresh native input through the same shared channel notifications as authored values."""
+        if self._syncing or self._closing:
             return
         if self._gesture_depth:
             self._set_components([model.get_value_as_float() for model in self._components], read_hsv=True)
@@ -384,7 +345,7 @@ class ColorPickerWindow(FieldPopupWindow):
 
     def _on_hsv_changed(self, _model) -> None:
         """Apply a finite normalized HSV edit through the complete-color path."""
-        if self._syncing or not self._input_enabled:
+        if self._syncing or self._closing:
             return
         values = [model.get_value_as_float() for model in self._hsv_models]
         if self._gesture_depth and all(isfinite(value) for value in values):
@@ -395,7 +356,7 @@ class ColorPickerWindow(FieldPopupWindow):
 
     def _on_hex_changed(self, _model) -> None:
         """Keep native hexadecimal input buffered until end-edit or dismissal."""
-        if not self._syncing and self._input_enabled:
+        if not self._syncing and not self._closing:
             self._hex_dirty = True
 
     def _on_hex_committed(self, _model) -> None:
@@ -407,7 +368,7 @@ class ColorPickerWindow(FieldPopupWindow):
 
     def _commit_hex(self) -> None:
         """Apply valid text once and restore canonical text for invalid input."""
-        if not self._input_enabled or not self._hex_dirty:
+        if self._closing or not self._hex_dirty:
             return
         self._hex_dirty = False
         values = _parse_color_text(self._hex_model.get_value_as_string(), len(self._components))
@@ -430,23 +391,17 @@ class ColorPickerWindow(FieldPopupWindow):
         )
 
     def _set_components(self, values, *, read_hsv=False) -> None:
-        """Write normalized channels and emit one complete color unless the gesture was cancelled."""
-        if self._syncing or not self._input_enabled or not all(isfinite(value) for value in values):
+        """Stage a complete normalized color before notifying native channel observers."""
+        if self._syncing or self._closing or not all(isfinite(value) for value in values):
             return
         values = tuple(min(1.0, max(0.0, value)) for value in values)
         if values != self._last_color:
             self._syncing = True
             try:
-                for model, value in zip(self._components, values):
-                    if not self._input_enabled:
-                        return
-                    model.set_value(value)
-                if not self._input_enabled:
-                    return
-                self.color_changed(values)
+                self._components[0].mirror_values(self._components, values)
             finally:
                 self._syncing = False
-        if not self._input_enabled:
+        if self._closing:
             return
         if read_hsv:
             self._read_hsv()
@@ -465,7 +420,7 @@ class ColorPickerWindow(FieldPopupWindow):
 
     def _refresh(self) -> None:
         """Refresh canonical text, split alpha previews, texture, and selectors without authoring values."""
-        if not self._input_enabled:
+        if self._closing:
             return
         values = tuple(model.get_value_as_float() for model in self._components)
         self._last_color = values

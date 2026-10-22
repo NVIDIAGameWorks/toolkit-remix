@@ -117,7 +117,7 @@ class USDModel(_Model):
         return super().default_attrs
 
     def set_items(self, items: list[_ItemGroup | _USDAttributeItem]):
-        """Finish opted-in editors and cancel remaining edits before replacing rows.
+        """Replace shown items only after current edits cancel successfully.
 
         Args:
             items: the items to show
@@ -137,7 +137,7 @@ class USDModel(_Model):
             for child in _item.children:
                 add_listeners(child)
 
-        self.finish_property_edit_interaction()
+        self.cancel_property_edit_interaction()
         for item in tuple(self.get_all_items(include_hidden=True)):
             for value_model in tuple(item.value_models or ()):
                 value_model.set_property_edit_callbacks(None, None)
@@ -162,9 +162,9 @@ class USDModel(_Model):
         self._pending_property_edit_finish_task = None
 
     def destroy(self):
-        """Finish opted-in editors before canceling edits and releasing owned items."""
+        """Release owned items only after live property edits cancel successfully."""
         if self._active_edit_model_counts is not None:
-            self.finish_property_edit_interaction()
+            self.cancel_property_edit_interaction()
         super().destroy()
 
     def _schedule_finish_property_edit_interaction(self):
@@ -226,24 +226,6 @@ class USDModel(_Model):
             self._schedule_finish_property_edit_interaction()
             return
         self._finish_property_edit_interaction()
-
-    def finish_property_edit_interaction(self) -> None:
-        """Finish opted-in editors and cancel remaining edits before row teardown."""
-        first_error = None
-        for item in tuple(self.get_all_items(include_hidden=True)):
-            for value_model in tuple(item.value_models or ()):
-                try:
-                    value_model.finish_property_edit_interaction()
-                except Exception as exc:  # noqa: BLE001 - finish every editor before cleanup.
-                    if first_error is None:
-                        first_error = exc
-        try:
-            self.cancel_property_edit_interaction()
-        except Exception as exc:  # noqa: BLE001 - preserve the first lifecycle failure.
-            if first_error is None:
-                first_error = exc
-        if first_error is not None:
-            raise first_error
 
     def cancel_property_edit_interaction(self):
         self._cancel_pending_property_edit_finish()

@@ -21,11 +21,11 @@ import weakref
 from math import isfinite
 
 import omni.ui as ui
-from omni.flux.utils.common import Event
+from omni.flux.utils.common import weak_callback
 from pxr import Gf
 
 from ..base import AbstractField
-from .color_picker import ColorPickerWindow, _display_color_to_hex, _weak_callback
+from .color_picker import ColorPickerWindow, _display_color_to_hex
 
 
 class _ChannelModel(ui.AbstractValueModel):
@@ -35,7 +35,6 @@ class _ChannelModel(ui.AbstractValueModel):
         """Initialize one RGB or alpha channel."""
         super().__init__()
         self._value = float(value)
-        self.input_changed = Event(copy=True)
 
     def get_value_as_float(self):
         """Return the unquantized channel value."""
@@ -51,14 +50,24 @@ class _ChannelModel(ui.AbstractValueModel):
         if not isfinite(value):
             return
         self.mirror(min(1.0, max(0.0, value)))
-        # Row observers may cancel native input before its complete color is published.
-        self.input_changed(self)
 
-    def mirror(self, value):
+    def mirror(self, value, *, notify=True):
         """Reflect authored HDR and negative values without clamping."""
         if value != self._value:
             self._value = float(value)
-            self._value_changed()
+            if notify:
+                self._value_changed()
+
+    @classmethod
+    def mirror_values(cls, models, values):
+        """Update every channel before notifying observers of the complete color."""
+        changed = []
+        for model, value in zip(models, values):
+            if value != model.get_value_as_float():
+                model.mirror(value, notify=False)
+                changed.append(model)
+        for model in changed:
+            cls._value_changed(model)
 
 
 class _ColorSwatch(ui.Rectangle):
@@ -102,9 +111,7 @@ class ColorField(AbstractField):
         self.display_precision = display_precision
         self._context_name = context_name
 
-        self._value_model_value_changed_sub = None
-        self._unsubscribe_property_edit_cancel = None
-        self._property_edit_finish_subscription = None
+        self._subscriptions = []
         self._value_model = None
         self._components = []
         self._readouts = []
@@ -115,24 +122,15 @@ class ColorField(AbstractField):
 
         # Both change callbacks ignore updates echoed from the other model.
         self._ignore_value_change_events = False
-        self._picker_edit_cancelled = False
-        self._batch_editing = False
-        self._value_model_editing = False
+        self._editing = False
 
-    def build_ui(self, item, *, register_cleanup=None) -> list[ui.Widget]:
-        """Build the color field and connect its cleanup to the owning property row.
-
-        Args:
-            item: Property row whose value model stores the color vector.
-            register_cleanup: Optional callback that registers field cleanup with the owning delegate.
-        """
+    def build_ui(self, item) -> list[ui.Widget]:
+        """Build the color field and subscribe weakly to its backing value model."""
         if len(item.value_models) != 1:
             raise ValueError("Expected 1 value_model that holds the vector values")
 
-        self.cleanup()
         value_model = item.value_models[0]
         self._value_model = value_model
-        self._picker_edit_cancelled = False
         vec = value_model.get_value() if value_model.is_batch_editing else value_model.get_attributes_raw_value(0)
         if vec is None:
             vec = Gf.Vec3f(0, 0, 0)
@@ -182,50 +180,23 @@ class ColorField(AbstractField):
                         ui.Rectangle(name="ColorsWidgetSeparator")
                         ui.Spacer(height=ui.Pixel(4))
 
-        self._value_model_value_changed_sub = value_model.subscribe_value_changed_fn(
-            _weak_callback(self._value_model_changed)
-        )
-        self._unsubscribe_property_edit_cancel = value_model.subscribe_property_edit_cancel_fn(
-            _weak_callback(self._cancel_edit)
-        )
-        self._property_edit_finish_subscription = value_model.subscribe_property_edit_finish_fn(
-            _weak_callback(self._end_edit)
-        )
-        if register_cleanup is not None:
-            # Delegate reset can release the row while its backing model remains alive.
-            register_cleanup(self.cleanup)
-
+        self._subscriptions = [
+            model.subscribe_value_changed_fn(weak_callback(self._color_widget_changed)) for model in self._components
+        ]
+        self._subscriptions.append(value_model.subscribe_value_changed_fn(weak_callback(self._value_model_changed)))
+        unsubscribe_cancel = value_model.subscribe_property_edit_cancel_fn(weak_callback(self._cancel_edit))
+        weakref.finalize(self, unsubscribe_cancel).atexit = False
         self._update_swatch()
         return widgets
-
-    def cleanup(self) -> None:
-        """End the property edit and retire its controls even when a subscriber fails."""
-        if self._unsubscribe_property_edit_cancel is not None:
-            self._unsubscribe_property_edit_cancel()
-            self._unsubscribe_property_edit_cancel = None
-        self._property_edit_finish_subscription = None
-        self._value_model_value_changed_sub = None
-        try:
-            self._end_edit()
-        finally:
-            picker, self._picker = self._picker, None
-            self._components = []
-            self._readouts = []
-            self._swatch = None
-            self._value_model = None
-            if picker is not None:
-                picker.cancel()
 
     def _on_swatch_released(self, _x, _y, button, _modifier):
         """Open the color editor from an editable inline swatch."""
         swatch = self._swatch() if self._swatch is not None else None
         if button != 0 or swatch is None or self._value_model.read_only:
             return
-        self._picker_edit_cancelled = False
         self._picker = ColorPickerWindow(self._components, title=self._title, context_name=self._context_name)
-        self._picker.edit_started.add(_weak_callback(self._begin_edit))
-        self._picker.color_changed.add(_weak_callback(self._preview_color))
-        self._picker.edit_finished.add(_weak_callback(self._finish_edit))
+        self._picker.edit_started.add(self._begin_edit)
+        self._picker.edit_finished.add(self._end_edit)
         self._picker.open(
             preferred_size=(ColorPickerWindow.WINDOW_WIDTH, ColorPickerWindow.WINDOW_HEIGHT),
             anchor_rect=(
@@ -246,103 +217,69 @@ class ColorField(AbstractField):
             swatch.set_style({"background_color": _display_color_to_hex(values)})
 
     def _cancel_edit(self) -> None:
-        """Discard interrupted input before dismissing an active picker edit."""
-        self._picker_edit_cancelled = True
+        """Balance the edit and discard native input after the backing preview is cancelled."""
         try:
             self._end_edit()
         finally:
             if self._picker is not None:
                 self._picker.cancel()
-            if self._components:
-                self._value_model_changed(self._value_model)
+            self._value_model_changed(self._value_model)
 
     def _begin_edit(self):
-        """Start a deferred property preview before a gesture changes its first component."""
-        value_model = self._value_model
-        if value_model is None or value_model.read_only:
+        """Open one property batch for the native gesture."""
+        if self._editing or self._value_model.read_only:
             return
-        self._picker_edit_cancelled = False
-        self._ignore_value_change_events = True
+        self._editing = True
         try:
-            if value_model.supports_batch_edit and not self._batch_editing:
-                value_model.begin_batch_edit()
-                self._batch_editing = True
-            if not self._value_model_editing:
-                try:
-                    value_model.begin_edit()
-                    if value_model is not self._value_model or self._picker_edit_cancelled:
-                        value_model.end_edit()
-                        return
-                    self._value_model_editing = True
-                finally:
-                    if value_model is self._value_model and not self._value_model_editing:
-                        self._end_edit()
-        finally:
-            self._ignore_value_change_events = False
+            self._value_model.begin_edit()
+            if self._editing:
+                self._value_model.begin_batch_edit()
+            else:
+                self._value_model.end_edit()
+        except Exception:
+            self._end_edit()
+            raise
 
     def _value_model_changed(self, value_model):
-        """Synchronize the picker components with the backing property value."""
-        if self._ignore_value_change_events or value_model is not self._value_model:
+        """Mirror authoritative values through the same channel models used by the picker."""
+        if self._ignore_value_change_events:
             return
-        if value_model.supports_batch_edit and not value_model.is_batch_editing:
-            self._batch_editing = False
         vec = value_model.get_value() if value_model.is_batch_editing else value_model.get_attributes_raw_value(0)
         if vec is None:
             vec = Gf.Vec3f(0, 0, 0)
+        if (
+            self._editing
+            and self._picker is not None
+            and tuple(vec) != tuple(model.get_value_as_float() for model in self._components)
+        ):
+            # USD may notify while rollback is still restoring its batch.
+            self._picker.cancel()
         self._ignore_value_change_events = True
         try:
-            if self._picker is not None and self._picker.is_open:
-                self._picker.sync_color(vec)
-            else:
-                for model, value in zip(self._components, vec):
-                    model.mirror(value)
+            _ChannelModel.mirror_values(self._components, vec)
         finally:
             self._ignore_value_change_events = False
         self._update_swatch()
 
-    def _finish_edit(self):
-        """Commit the final preview when a gesture ends."""
-        value_model = self._value_model
-        if value_model is None:
-            return
-        try:
-            self._end_edit()
-        finally:
-            if self._picker_edit_cancelled:
-                self._value_model_changed(value_model)
-
     def _end_edit(self) -> None:
-        """End the picker batch and property edit sessions at most once."""
-        try:
-            if self._batch_editing:
-                self._batch_editing = False
-                self._value_model.end_batch_edit()
-        finally:
-            if self._value_model_editing:
-                self._value_model_editing = False
-                self._value_model.end_edit()
+        """Let the backing value model close its batch and balance the gesture once."""
+        if self._editing:
+            self._editing = False
+            self._value_model.end_edit()
 
-    def _preview_color(self, values):
-        """Preview one complete picker color without echoing the update."""
-        value_model = self._value_model
-        if (
-            self._ignore_value_change_events
-            or value_model is None
-            or value_model.read_only
-            or self._picker_edit_cancelled
-        ):
+    def _color_widget_changed(self, _model):
+        """Preview the complete shared color without echoing it back into the controls."""
+        if self._ignore_value_change_events or not self._editing or self._value_model.read_only:
+            return
+        values = self._vector_type(*(min(1.0, max(0.0, model.get_value_as_float())) for model in self._components))
+        if not self._value_model.is_mixed and values == self._value_model.get_value():
             return
         self._ignore_value_change_events = True
         try:
-            value_model.set_value(self._vector_type(*values))
+            self._value_model.set_value(values)
         finally:
             self._ignore_value_change_events = False
-            if (
-                value_model is self._value_model
-                and value_model.supports_batch_edit
-                and not value_model.is_batch_editing
-            ):
-                self._batch_editing = False
+            if self._value_model.supports_batch_edit and not self._value_model.is_batch_editing:
                 self._end_edit()
-                self._value_model_changed(value_model)
+                self._value_model_changed(self._value_model)
         self._update_swatch()

@@ -5,10 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.2.0]
 
 ### Added
-- Added an owned RGB/HSV/hex color picker with live previews, per-gesture editing, and native input coverage.
-
-### Changed
-- Reused the shared floating-window lifecycle and simplified callbacks while preserving error-safe field cleanup.
+- Added an RGB/HSV/hex color picker with live previews and per-gesture editing.
 
 ## [3.1.2]
 

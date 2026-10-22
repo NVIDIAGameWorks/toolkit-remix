@@ -24,7 +24,6 @@ from uuid import uuid4
 
 import omni.ui as ui
 from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardInput, MouseEventType
-from omni.flux.property_widget_builder.delegates import ColorField
 from omni.flux.property_widget_builder.delegates.float_value.color_picker import ColorPickerWindow
 from omni.flux.property_widget_builder.model.usd import (
     USDAttributeItem,
@@ -297,8 +296,8 @@ class TestColorField(AsyncTestCase):
         self.assertEqual(stage.GetAttributeAtPath(path).Get(), preview)
         self.assertTrue(stage.GetAttributeAtPath(setup_path).Get())
 
-    async def test_remove_dragged_light_row_commits_live_preview_with_independent_undo(self):
-        """Layered light edits survive shared refresh and row removal without merging later history."""
+    async def test_remove_dragged_light_row_cancels_live_preview_with_independent_undo(self):
+        """Layered light edits survive refresh; row removal cancels only the unfinished gesture."""
         stage = self.context.get_stage()
         light_layer = Sdf.Layer.CreateAnonymous("light.usda")
         authoring_layer = stage.GetRootLayer()
@@ -350,68 +349,28 @@ class TestColorField(AsyncTestCase):
         self.assertEqual(self.color_attribute.Get(), first_color)
         self.assertIsNotNone(authoring_layer.GetPropertyAtPath(self.color_attribute.GetPath()))
 
-        # Removing the owner before mouse release must finish the live preview exactly once.
+        # Removing the row cancels its unfinished preview and preserves the preceding committed gesture.
         async with self._held_drag(start=(0.2, 0.2), end=(0.5, 0.6)):
             preview = self.color_attribute.Get()
             self.assertNotEqual(preview, first_color)
             self.model.set_items([])
             await ui_test.human_delay()
-            self.assertEqual(self.color_attribute.Get(), preview)
+            self.assertEqual(self.color_attribute.Get(), first_color)
+        self.assertFalse(self.picker.visible)
+        self.assertFalse(self.picker.edit_started)
+        self.assertFalse(self.picker.edit_finished)
         self.assertFalse(is_any_interaction_active())
+        components[0].set_value(0.9)
+        await ui_test.human_delay()
+        self.assertEqual(self.color_attribute.Get(), first_color)
         execute("ChangeProperty", prop_path=self.other_attribute.GetPath(), value=2.0, prev=1.0, usd_context_name="")
-        for intensity, color in ((1.0, preview), (1.0, first_color), (1.0, Gf.Vec3f(0.2))):
+        for intensity, color in ((1.0, first_color), (1.0, Gf.Vec3f(0.2))):
             undo()
             await ui_test.human_delay()
             self.assertEqual(self.other_attribute.Get(), intensity)
             self.assertEqual(self.color_attribute.Get(), color)
         self.assertFalse(can_undo())
         self.assertIsNone(authoring_layer.GetPropertyAtPath(self.color_attribute.GetPath()))
-
-    async def test_cleanup_failing_end_observer_releases_picker_and_detaches_retained_models(self):
-        """Owner cleanup propagates END failure while releasing providers and disconnecting retained controls."""
-        item = USDAttributeItem("", [self.color_attribute.GetPath()])
-        self.model.set_items([item])
-        await ui_test.human_delay()
-        self.window.frame.clear()
-        field = ColorField()
-        self.addCleanup(field.cleanup)
-        with self.window.frame:
-            widgets = field.build_ui(item)
-        self.addCleanup(widgets.clear)
-        await ui_test.human_delay()
-        components = await self._open_picker()
-        red_proxy = components[0]
-        async with self._held_drag():
-            retained_color = Gf.Vec3f(*(model.get_value_as_float() for model in components))
-            retained_text = red_proxy.get_value_as_string()
-            self.assertNotEqual(self.color_attribute.Get(), Gf.Vec3f(0.2))
-
-            def fail_end_edit(_model):
-                """Report a real backing observer failure while the edit is ending."""
-                raise RuntimeError("Color END observer failed")
-
-            subscription = self.model.subscribe_item_model_end_edit(fail_end_edit)
-            try:
-                with self.assertRaisesRegex(RuntimeError, "Color END observer failed"):
-                    field.cleanup()
-                self.assertIsNone(field._picker)
-                self.assertFalse(field._components)
-                self.assertIsNone(field._value_model)
-            finally:
-                del subscription
-        self.assertFalse(self.picker.visible)
-        self.assertFalse(self.picker._components)
-        self.assertIsNone(self.picker._sv_provider)
-        self.assertIsNone(self.picker._hue_provider)
-        self.assertIsNone(self.picker._checker_provider)
-        await self.assertTrueWithRetry(lambda: not is_any_interaction_active())
-        updated = Gf.Vec3f(0.8, 0.5, 0.4)
-        item.value_models[0].set_value(updated)
-        await ui_test.human_delay()
-        self.assertEqual(self.color_attribute.Get(), updated)
-        self.assertEqual(Gf.Vec3f(*(model.get_value_as_float() for model in components)), retained_color)
-        self.assertEqual(red_proxy.get_value_as_string(), retained_text)
-        field.cleanup()
 
     async def test_undo_before_queued_color_preview_discards_input_and_preserves_unrelated_redo(self):
         """Undo during native input cancels the queued color before its first USD write."""

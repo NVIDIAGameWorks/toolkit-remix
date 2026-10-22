@@ -147,11 +147,8 @@ class UsdAttributeBase(abc.ABC):
         self._on_usd_changed()
 
     def destroy(self) -> None:
-        """Finish opted-in editors and cancel remaining previews before item teardown."""
-        try:
-            self.finish_property_edit_interaction()
-        finally:
-            self.cancel_property_edit_interaction()
+        """Cancel pending previews and restore their specs before item teardown."""
+        self.cancel_property_edit_interaction()
 
     @property
     def context_name(self):

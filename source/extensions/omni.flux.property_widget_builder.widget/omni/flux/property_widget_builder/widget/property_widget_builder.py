@@ -241,14 +241,8 @@ class PropertyWidget:
             self._delegate.value_model_updated(_item)
 
     def destroy(self):
-        """Release the widget and owner callbacks even when field cleanup fails."""
         if self._update_task:
             self._update_task.cancel()
-        try:
-            if self._delegate is not None and self._delegate.field_builders is not None:
-                try:
-                    self._delegate.reset()
-                finally:
-                    self._delegate.set_apply_item_expanded_fn(None)
-        finally:
-            _reset_default_attrs(self)
+        if self._delegate is not None:
+            self._delegate.set_apply_item_expanded_fn(None)
+        _reset_default_attrs(self)

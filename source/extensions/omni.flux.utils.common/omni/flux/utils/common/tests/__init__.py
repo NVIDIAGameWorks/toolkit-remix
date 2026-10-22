@@ -32,6 +32,7 @@ from .unit.test_symlink import TestSymlink
 from .unit.test_task_budget import TestWorkerYieldBudget
 from .unit.test_task_tracker import TestTaskTracker
 from .unit.test_version import TestVersion
+from .unit.test_weak_callback import TestWeakCallback
 
 __all__ = [
     "TestEvent",
@@ -50,6 +51,7 @@ __all__ = [
     "TestSymlink",
     "TestTaskTracker",
     "TestVersion",
+    "TestWeakCallback",
     "TestWidgetDropRouter",
     "TestWorkerYieldBudget",
 ]

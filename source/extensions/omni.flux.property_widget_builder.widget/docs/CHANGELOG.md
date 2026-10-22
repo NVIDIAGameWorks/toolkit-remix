@@ -5,10 +5,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.1.0]
 ### Added
 - Added `CallbackValueModel`, a value model for one typed value that its owner reads and writes through callbacks.
-- Added editor finish subscriptions for committing previews before row teardown.
-
-### Fixed
-- Shared callback dispatch for edit finishing and cancellation, ran all field cleanup callbacks, and released widget and delegate references before propagating cleanup errors.
 
 ## [3.0.1]
 ### Fixed
