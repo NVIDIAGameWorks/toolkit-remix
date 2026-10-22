@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - Preserved committed Undo baselines during external edits, restored failed or cancelled previews, and finalized opted-in editors before row teardown.
+- Consolidated USD color-picker tests into focused native workflows, leaving generic control coverage in the delegates suite.
 
 ## [4.1.0]
 ### Fixed
