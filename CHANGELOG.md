@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Set the development version to 1.7.0-dev
 - Excluded internal CI from future GitHub mirror commits while preserving previously exported history and GitHub workflows.
 - Added contributor names to the community PR entries in the RTX Remix 1.6 release notes
+- Updated Packman to 8.7.0 with its Python 3.12 bootstrap, including the fix for failed `copyPath` renames reporting success.
 
 ### Fixed
 
