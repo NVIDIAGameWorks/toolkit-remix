@@ -584,6 +584,26 @@ class TestQueueWidget(AsyncTestCase):
         """
         return ui_test.find(f"{self._window.title}//Frame/**/{query}")
 
+    async def _wait_for_prompt(self, title: str) -> list:
+        """Wait until a confirmation prompt is visible, as a user does before reading it.
+
+        Args:
+            title: Title of the prompt window.
+
+        Returns:
+            UI-test wrappers for the prompt labels.
+
+        Raises:
+            AssertionError: If the prompt is not visible within 10 seconds.
+        """
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + 10
+        while loop.time() < deadline:
+            await ui_test.human_delay()
+            if any(window.title == title and window.visible for window in ui.Workspace.get_windows()):
+                return ui_test.find_all(f"{title}//Frame/**/Label[*]")
+        raise AssertionError(f'Prompt "{title}" did not open')
+
     def _find_all(self, query: str):
         """Find every matching widget under the owned test window.
 
@@ -2045,8 +2065,7 @@ class TestQueueWidget(AsyncTestCase):
         delete_button = self._find(f"Image[*].identifier=='delete_graph_{graph_snapshot.graph_id}'")
         self.assertIsNotNone(delete_button)
         await delete_button.click()
-        await ui_test.human_delay()
-        prompt_labels = ui_test.find_all("Delete Job Graph//Frame/**/Label[*]")
+        prompt_labels = await self._wait_for_prompt("Delete Job Graph")
         self.assertTrue(any("2 output files" in label.widget.text for label in prompt_labels))
         self.assertTrue(any("changes already applied" in label.widget.text for label in prompt_labels))
         confirm_button = ui_test.find("Delete Job Graph//Frame/**/Button[*].name=='confirm_button'")
@@ -2082,9 +2101,7 @@ class TestQueueWidget(AsyncTestCase):
         delete_button = self._find(f"Image[*].identifier=='delete_graph_{roots[0].graph_id}'")
         self.assertIsNotNone(delete_button)
         await delete_button.click()
-        await ui_test.human_delay()
-
-        prompt_labels = ui_test.find_all("Delete Job Graphs//Frame/**/Label[*]")
+        prompt_labels = await self._wait_for_prompt("Delete Job Graphs")
         self.assertTrue(any("2 selected graphs" in label.widget.text for label in prompt_labels))
         self.assertTrue(any("2 jobs" in label.widget.text for label in prompt_labels))
         self.assertTrue(any("2 output files" in label.widget.text for label in prompt_labels))
@@ -2123,8 +2140,7 @@ class TestQueueWidget(AsyncTestCase):
 
         # Releasing Delete opens the same confirmation the row Delete button uses for the full selection.
         self._widget._on_queue_tree_key_pressed(int(carb.input.KeyboardInput.DEL), 0, False)
-        await ui_test.human_delay()
-        prompt_labels = ui_test.find_all("Delete Job Graphs//Frame/**/Label[*]")
+        prompt_labels = await self._wait_for_prompt("Delete Job Graphs")
         self.assertTrue(any("2 selected graphs" in label.widget.text for label in prompt_labels))
         self.assertTrue(any("2 jobs" in label.widget.text for label in prompt_labels))
         confirm_button = ui_test.find("Delete Job Graphs//Frame/**/Button[*].name=='confirm_button'")

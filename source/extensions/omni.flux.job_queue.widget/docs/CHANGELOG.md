@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.1]
+### Fixed
+- Fixed a race in the delete prompt tests: the tests now wait until the prompt is visible before they read it.
+
 ## [3.3.0]
 ### Added
 - Added the Timed Out label with the existing error color and a Retry action for the same job.
