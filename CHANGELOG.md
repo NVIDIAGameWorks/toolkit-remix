@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Set the development version to 1.7.0-dev
+- Excluded internal CI from future GitHub mirror commits while preserving previously exported history and GitHub workflows.
 
 ### Fixed
 

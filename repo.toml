@@ -874,11 +874,3 @@ start_path = "source\\"
 required_paths = ["/unit/", "/e2e/"]
 # Any path containing any of the 'ignore' strings will be skipped
 ignore = ["extensions/lightspeed.common/lightspeed/common/tools"]
-
-########################################################################################################################
-# Repo CI Jobs
-########################################################################################################################
-[repo_ci]
-
-[repo_ci.jobs."publish_etm_list"]
-script = "${root}/tools/ci/scripts/publish_etm_list.py"
