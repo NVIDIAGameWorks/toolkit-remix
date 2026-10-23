@@ -110,12 +110,12 @@ Version 1.6 introduces cutting-edge DLSS technologies and expanded hardware comp
 
 This release features direct maintenance and optimizations submitted by the open-source community:
 
-* [PR-136](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/136): Refactored Visual Studio path discovery and build-script environment setup.
-* [PR-142](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/142): Changed BLAS linked-instance storage to support constant-time unlinking.
-* @BinqAdams ([PR-143](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/143)): Restored NEE-cache sample aging to prevent stale lighting from persisting.
-* [PR-146](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/146): Selected TraceRay by default on AMD Windows drivers for improved frame rates.
-* [PR-148](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/148): Used full FP32 precision for distant-light direction and orientation.
-* [PR-155](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/155): Submitted preserve-path maintenance work.
+* [PR-136](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/136): Refactored Visual Studio path discovery and build-script environment setup. (Thanks [@ALIENQuake](https://github.com/ALIENQuake))
+* [PR-142](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/142): Changed BLAS linked-instance storage to support constant-time unlinking. (Thanks [@BinqAdams](https://github.com/BinqAdams))
+* [PR-143](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/143): Restored NEE-cache sample aging to prevent stale lighting from persisting. (Thanks [@BinqAdams](https://github.com/BinqAdams))
+* [PR-146](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/146): Selected TraceRay by default on AMD Windows drivers for improved frame rates. (Thanks [@KingVulpes](https://github.com/KingVulpes))
+* [PR-148](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/148): Used full FP32 precision for distant-light direction and orientation. (Thanks [@xoxor4d](https://github.com/xoxor4d))
+* [PR-155](https://github.com/NVIDIAGameWorks/dxvk-remix/pull/155): Submitted preserve-path maintenance work. (Thanks [@xoxor4d](https://github.com/xoxor4d))
 
 ```{seealso}
 For GitHub release notes, see the [RTX Remix releases](https://github.com/NVIDIAGameWorks/rtx-remix/releases).
