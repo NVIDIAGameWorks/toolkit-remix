@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed an intermittent test hang: the first USD call in a test could deadlock with the MDL preload, which made `lss-e2e-tests-windows-a2s` lose 5 minutes per job and sometimes time out.
 - Fixed a race in the Job Queue widget delete tests: on slow CI runners, the delete prompt opened after the test failed, and the open modal prompt blocked the clicks of all later tests.
 - Kept the merge request note token out of the curl command line in the missing-tests comment job, so process monitoring on the CI runners no longer records it.
+- Fixed documentation publishing with Packman 8 by updating the documentation tool's package lookup API.
 
 ### Removed
 
