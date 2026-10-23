@@ -33,7 +33,7 @@ from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices as _defer_usd_notices
 from omni.kit.app import get_app
 from omni.kit.usd_undo import UsdLayerUndo
-from pxr import Sdf, Tf, Usd
+from pxr import Sdf, Usd
 
 from ..mapping import GF_TO_PYTHON_TYPE, MULTICHANNEL_BUILDER_TABLE
 from ..utils import get_default_attribute_value as _get_default_attribute_value
@@ -77,7 +77,7 @@ def _safe_deepcopy(value):
 
 
 def _undo_group_added_since(undo_stack_size: int) -> None:
-    """Undo and discard the completed operation only when this scope added an undo entry."""
+    """Undo and discard the completed group only when this scope added an undo entry."""
     if len(omni.kit.undo.get_undo_stack()) > undo_stack_size and omni.kit.undo.undo():
         # Starting a new top-level action clears Kit's redo stack; remove the empty action itself.
         with omni.kit.undo.group(remove_if_empty=True):
@@ -136,9 +136,6 @@ class UsdAttributeBase(abc.ABC):
         self._is_batch_editing = False
         self._pending_preview_task = None
         self._preview_layer_undos: dict[tuple[str, Sdf.Path], UsdLayerUndo] = {}
-        self._preview_authored_specs: dict[tuple[str, Sdf.Path], dict | None] = {}
-        self._preview_listener = None
-        self._preview_command_callbacks = []
 
     def init_attributes(self):
         # cache the attributes
@@ -432,93 +429,6 @@ class UsdAttributeBase(abc.ABC):
         self._on_dirty()
         return False
 
-    def _on_preview_usd_changed(self, notice, _stage) -> None:
-        """Cancel previews without restoring specs replaced by an external USD write."""
-        if self._ignore_refresh or not self._is_batch_editing:
-            return
-        paths = (*self._attribute_paths, *self._related_override_paths)
-        if not any(
-            path.HasPrefix(changed_path)
-            for changed_path in (*notice.GetChangedInfoOnlyPaths(), *notice.GetResyncedPaths())
-            for path in paths
-        ):
-            return
-        external_specs = {}
-        for key in tuple(self._preview_layer_undos):
-            current_spec = self._preview_spec(key)
-            authored_spec = self._preview_authored_specs.get(key)
-            if current_spec == authored_spec:
-                continue
-            if current_spec is None:
-                # Restoring a removed property would recreate external deletions.
-                del self._preview_layer_undos[key]
-                self._preview_authored_specs.pop(key, None)
-            else:
-                changed_fields = {
-                    name
-                    for name in current_spec.keys() | (authored_spec or {}).keys()
-                    if current_spec.get(name) != (authored_spec or {}).get(name)
-                }
-                external_specs[key] = current_spec, changed_fields
-        self._ignore_refresh = True
-        try:
-            with _defer_usd_notices(self._stage), Sdf.ChangeBlock():
-                self._restore_preview()
-                for (layer_identifier, property_path), (fields, changed_fields) in external_specs.items():
-                    layer = Sdf.Layer.Find(layer_identifier)
-                    spec = layer.GetPropertyAtPath(property_path)
-                    if spec is None:
-                        spec = Sdf.AttributeSpec(
-                            Sdf.CreatePrimInLayer(layer, property_path.GetPrimPath()),
-                            property_path.name,
-                            Sdf.ValueTypeNames.Find(fields["typeName"]),
-                            fields.get("variability", Sdf.VariabilityVarying),
-                            fields.get("custom", False),
-                        )
-                    for name in changed_fields:
-                        if name == "timeSamples":
-                            for time in layer.ListTimeSamplesForPath(property_path):
-                                layer.EraseTimeSample(property_path, time)
-                            for time, value in fields.get(name, {}).items():
-                                layer.SetTimeSample(property_path, time, value)
-                        elif name in fields:
-                            spec.SetInfo(name, fields[name])
-                        else:
-                            spec.ClearInfo(name)
-        finally:
-            self._ignore_refresh = False
-            self.cancel_property_edit_interaction()
-
-    def _on_preview_undo_redo(self, _command_info) -> None:
-        """Restore unfinished previews before Undo or Redo reads the stage."""
-        if self._is_batch_editing and not self._ignore_refresh:
-            self.cancel_property_edit_interaction()
-
-    def _on_preview_change_property(self, command_info) -> None:
-        """Restore matching previews before an external command captures its Undo baseline."""
-        if self._ignore_refresh or not self._is_batch_editing:
-            return
-        property_path = Sdf.Path(command_info["prop_path"])
-        if property_path not in (*self._attribute_paths, *self._related_override_paths):
-            return
-        context = command_info.get("usd_context_name", "")
-        if isinstance(context, Usd.Stage):
-            stage = context
-        elif isinstance(context, omni.usd.UsdContext):
-            stage = context.get_stage()
-        else:
-            stage = omni.usd.get_context(context).get_stage()
-        if stage == self._stage:
-            self.cancel_property_edit_interaction()
-
-    @staticmethod
-    def _preview_spec(key: tuple[str, Sdf.Path]) -> dict | None:
-        """Copy the authored fields of one reserved property spec."""
-        layer_identifier, property_path = key
-        layer = Sdf.Layer.Find(layer_identifier)
-        spec = layer.GetPropertyAtPath(property_path) if layer else None
-        return {name: _safe_deepcopy(spec.GetInfo(name)) for name in spec.ListInfoKeys()} if spec else None
-
     def _write_value_to_usd(self, *, group_undo: bool = False) -> tuple[bool, bool]:
         """Write the current in-memory value to USD for all attribute paths.
 
@@ -565,8 +475,6 @@ class UsdAttributeBase(abc.ABC):
             self._refresh_linked_value_models()
             raise
         finally:
-            if self._is_batch_editing:
-                self._preview_authored_specs = {key: self._preview_spec(key) for key in self._preview_layer_undos}
             self._ignore_refresh = False
         return True, wrote_any
 
@@ -685,7 +593,6 @@ class UsdAttributeBase(abc.ABC):
                             first_error = exc
                     else:
                         del self._preview_layer_undos[reservation_key]
-                        self._preview_authored_specs.pop(reservation_key, None)
         finally:
             self._ignore_refresh = was_ignoring_refresh
         if first_error is not None:
@@ -702,19 +609,6 @@ class UsdAttributeBase(abc.ABC):
         if self._is_batch_editing:
             return
         self._is_batch_editing = True
-        if self._stage:
-            self._preview_listener = Tf.Notice.Register(
-                Usd.Notice.ObjectsChanged, self._on_preview_usd_changed, self._stage
-            )
-        self._preview_command_callbacks = [
-            omni.kit.commands.register_callback(name, omni.kit.commands.PRE_DO_CALLBACK, self._on_preview_undo_redo)
-            for name in ("Undo", "Redo")
-        ]
-        self._preview_command_callbacks.append(
-            omni.kit.commands.register_callback(
-                "ChangeProperty", omni.kit.commands.PRE_DO_CALLBACK, self._on_preview_change_property
-            )
-        )
 
     def end_batch_edit(self):
         """Replace deferred previews with one synchronous undoable final write."""
@@ -727,13 +621,13 @@ class UsdAttributeBase(abc.ABC):
             final_value = _safe_deepcopy(self._value)
             self._restore_preview()
             self._value = final_value
-            self._close_batch_edit()
+            self._is_batch_editing = False
             if not self._stage:
                 return
             undo_stack_size = len(omni.kit.undo.get_undo_stack())
             succeeded, wrote_value = self._write_value_to_usd(group_undo=True)
         finally:
-            self._close_batch_edit()
+            self._is_batch_editing = False
             if not succeeded and undo_stack_size is not None:
                 _undo_group_added_since(undo_stack_size)
                 self.refresh()
@@ -741,27 +635,15 @@ class UsdAttributeBase(abc.ABC):
         if succeeded and wrote_value:
             self.refresh()
 
-    def _close_batch_edit(self) -> None:
-        """Release batch listeners even if preview restoration failed."""
-        self._is_batch_editing = False
-        if self._preview_listener is not None:
-            self._preview_listener.Revoke()
-            self._preview_listener = None
-        callbacks = self._preview_command_callbacks
-        self._preview_command_callbacks = []
-        for callback in callbacks:
-            # Kit iterates its callback list directly; unregister after the current dispatch.
-            asyncio.get_event_loop().call_soon(omni.kit.commands.unregister_callback, callback)
-
     def _cancel_batch_edit(self):
-        """Restore unfinished previews and refresh every affected value model."""
+        """Restore the original authored properties and cache without recording undo."""
         try:
             self._restore_preview()
             if self._stage and self._read_value_from_usd():
                 self._value_changed()
             self._refresh_linked_value_models()
         finally:
-            self._close_batch_edit()
+            self._is_batch_editing = False
 
     def _refresh_after_cancel_property_edit(self) -> None:
         """Allow subclasses to refresh display models after canceled editing."""

@@ -19,7 +19,6 @@ __all__ = ("TestColorField",)
 
 from asyncio import Event
 from contextlib import AsyncExitStack, asynccontextmanager
-from math import isclose
 from uuid import uuid4
 
 import omni.ui as ui
@@ -96,8 +95,8 @@ class TestColorField(AsyncTestCase):
             self.doCleanups()
             await self.context.close_stage_async()
 
-    async def test_type_color_and_dismiss_pending_hex_preserves_undo_and_cancels_later_buffer(self):
-        """Typed edits and focused dismissal author separate steps; Undo discards later buffered text."""
+    async def test_type_color_and_dismiss_pending_hex_preserves_undo(self):
+        """Typed edits and focused dismissal author separate steps that Undo and Redo restore."""
         await self._open_picker()
         colors = [Gf.Vec3f(0.2), Gf.Vec3f(0.8, 0.2, 0.2), Gf.Vec3f(0.8, 0.5, 0.2)]
         for identifier, value, expected in (("red", "0.8", colors[1]), ("green", "0.5", colors[2])):
@@ -127,18 +126,6 @@ class TestColorField(AsyncTestCase):
         undo()
         await ui_test.human_delay()
         self.assertEqual(self.color_attribute.Get(), colors[-1])
-        redo()
-        await ui_test.human_delay()
-        await self._open_picker()
-        await self._type_pending_hex("#FF0000")
-        undo()
-        await ui_test.human_delay()
-        self.assertFalse(self.picker.visible)
-        await ui_test.emulate_keyboard_press(KeyboardInput.ENTER)
-        await ui_test.human_delay()
-        self.assertEqual(self.color_attribute.Get(), colors[-1])
-        self.assertTrue(can_redo())
-        self.assertFalse(is_any_interaction_active())
         redo()
         await ui_test.human_delay()
         self.assertEqual(self.color_attribute.Get(), committed)
@@ -372,68 +359,6 @@ class TestColorField(AsyncTestCase):
         self.assertFalse(can_undo())
         self.assertIsNone(authoring_layer.GetPropertyAtPath(self.color_attribute.GetPath()))
 
-    async def test_undo_before_queued_color_preview_discards_input_and_preserves_unrelated_redo(self):
-        """Undo during native input cancels the queued color before its first USD write."""
-        execute("ChangeProperty", prop_path=self.other_attribute.GetPath(), value=2.0, prev=1.0, usd_context_name="")
-        components = await self._open_picker()
-        undo_applied = False
-
-        def undo_during_native_edit(component_model):
-            """Interrupt the actual red notification before the deferred authoring task runs."""
-            nonlocal undo_applied
-            if not undo_applied and isclose(component_model.get_value_as_float(), 0.8, abs_tol=1e-6):
-                undo_applied = True
-                undo()
-
-        subscription = components[0].subscribe_value_changed_fn(undo_during_native_edit)
-        try:
-            await self._control("red").input("0.8")
-            await ui_test.human_delay()
-        finally:
-            del subscription
-        self.assertTrue(undo_applied)
-        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2))
-        self.assertEqual(self.other_attribute.Get(), 1.0)
-        await ui_test.human_delay()
-        self.assertFalse(is_any_interaction_active())
-        self.assertTrue(can_redo())
-        redo()
-        await ui_test.human_delay()
-        self.assertEqual(self.other_attribute.Get(), 2.0)
-        self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2))
-
-    async def test_undo_held_color_drag_ignores_continued_mouse_input_and_preserves_redo(self):
-        """Undo cancels a published preview and later mouse movement cannot replay the abandoned drag."""
-        await self._open_picker()
-        await self._control("red").input("0.6")
-        await ui_test.human_delay()
-        committed = Gf.Vec3f(0.6, 0.2, 0.2)
-        self.assertEqual(self.color_attribute.Get(), committed)
-        async with self._held_drag() as end_position:
-            self.assertNotEqual(self.color_attribute.Get(), committed)
-            undo()
-            await ui_test.human_delay()
-            self.assertFalse(self.picker.visible)
-            self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2))
-            self.assertTrue(can_redo())
-            await emulate_mouse(MouseEventType.MOVE, end_position + ui_test.Vec2(5, 5))
-            await ui_test.human_delay()
-            self.assertEqual(self.color_attribute.Get(), Gf.Vec3f(0.2))
-        self.assertFalse(is_any_interaction_active())
-        redo()
-        await ui_test.human_delay()
-        self.assertEqual(self.color_attribute.Get(), committed)
-        await self._open_picker()
-        async with self._held_drag(start=(0.2, 0.2), end=(0.7, 0.7)):
-            reopened = self.color_attribute.Get()
-            self.assertNotEqual(reopened, committed)
-        undo()
-        await ui_test.human_delay()
-        self.assertEqual(self.color_attribute.Get(), committed)
-        redo()
-        await ui_test.human_delay()
-        self.assertEqual(self.color_attribute.Get(), reopened)
-
     async def test_locked_preview_target_rolls_back_other_target_without_consuming_prior_history(self):
         """A later native preview failure restores mixed targets and leaves only the prior command in history."""
         stage = self.context.get_stage()
@@ -497,7 +422,7 @@ class TestColorField(AsyncTestCase):
         return ui_test.find(f"{self.picker.title}//Frame/**/{widget_type}[*].identifier=='color_picker_{identifier}'")
 
     async def _type_pending_hex(self, text):
-        """Leave text focused so dismissal or Undo determines whether it commits."""
+        """Leave hex text focused for dismissal."""
         await self._control("hex", "StringField").double_click()
         await ui_test.human_delay()
         await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
@@ -530,7 +455,7 @@ class TestColorField(AsyncTestCase):
             await ui_test.human_delay()
             await emulate_mouse(MouseEventType.MOVE, last)
             await ui_test.human_delay()
-            yield last
+            yield
         finally:
             await emulate_mouse(MouseEventType.LEFT_BUTTON_UP)
             await ui_test.human_delay()

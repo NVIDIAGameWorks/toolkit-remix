@@ -39,8 +39,8 @@ the color and Undo history. Hex, Current previews and the inline swatch use the 
 Formatting display colors does not alter authored HDR values.
 
 With a batch-capable backing model, held drags preview the color; each release or completed typed edit commits one
-Undo entry when the color changes. Row removal cancels the unfinished preview. External edits or Undo discard interrupted
-input so it cannot overwrite the restored color.
+Undo entry when the color changes. Row removal cancels the unfinished preview. Backing-model refreshes discard interrupted
+input; the backing model owns concurrent USD edit behavior.
 
 `ColorPickerWindow` extends shared [`FieldPopupWindow`](#floating-property-editors); the USD builder supplies `context_name`
 for selection dismissal. Generic fields can omit it. Normal dismissal commits input; cancellation discards it.

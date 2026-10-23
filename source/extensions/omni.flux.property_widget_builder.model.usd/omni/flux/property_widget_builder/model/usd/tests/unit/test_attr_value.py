@@ -109,14 +109,11 @@ class TestVirtualUsdAttributeValueModel(omni.kit.test.AsyncTestCase):
     """Test failed custom creation rollback without a live stage or Undo history."""
 
     async def test_end_batch_edit_custom_creation_error_rolls_back_only_failed_group_and_closes_batch(self):
-        """Propagate custom creation failure while requesting rollback and releasing batch listeners."""
+        """Propagate custom creation failure while requesting rollback and closing the batch."""
         # Arrange
         context, attribute, layer = _mock_context(None, attribute_valid=False)
         final_value = Gf.Vec3f(0.8, 0.2, 0.2)
         failure = RuntimeError("Custom color setup failed")
-        listener = mock.Mock()
-        command_callbacks = [object(), object(), object()]
-        event_loop = mock.Mock()
         prior_command = object()
         failed_group = object()
 
@@ -140,9 +137,6 @@ class TestVirtualUsdAttributeValueModel(omni.kit.test.AsyncTestCase):
             mock.patch.object(attr_value.omni.usd, "find_spec_on_session_or_its_sublayers", return_value=(layer, None)),
             mock.patch.object(attr_value, "_defer_usd_notices", side_effect=lambda _: nullcontext()),
             mock.patch.object(attr_value.Sdf, "ChangeBlock", side_effect=nullcontext),
-            mock.patch.object(attr_value.Tf.Notice, "Register", return_value=listener),
-            mock.patch.object(attr_value.omni.kit.commands, "register_callback", side_effect=command_callbacks),
-            mock.patch.object(attr_value.asyncio, "get_event_loop", return_value=event_loop),
             mock.patch.object(attr_value.omni.kit.commands, "execute", return_value=(True, None)) as execute,
             mock.patch.object(
                 attr_value.omni.kit.undo,
@@ -179,11 +173,3 @@ class TestVirtualUsdAttributeValueModel(omni.kit.test.AsyncTestCase):
             self.assertEqual(get_undo_stack.call_count, 2)
             self.assertEqual(undo_group.call_args_list, [mock.call(remove_if_empty=True)] * 2)
             self.assertFalse(model.is_batch_editing)
-            listener.Revoke.assert_called_once_with()
-            self.assertEqual(
-                event_loop.call_soon.call_args_list,
-                [
-                    mock.call(attr_value.omni.kit.commands.unregister_callback, callback)
-                    for callback in command_callbacks
-                ],
-            )

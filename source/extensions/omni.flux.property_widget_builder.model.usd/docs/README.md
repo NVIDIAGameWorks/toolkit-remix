@@ -144,20 +144,13 @@ sessions. Locked target layers are rejected before a write command runs. Color f
 drag or typed edit, committing at mouse release or end-edit. New virtual attributes and custom creation callbacks wait
 until commit. Opening the picker creates no undo entry.
 Undo while the popup is idle restores the previous gesture and allows another edit in the same popup.
-Undo or Redo during a drag cancels the unfinished preview before replaying the completed edit. External writes to
-represented attributes also cancel the preview and retain the external values. These protections belong to the
-active USD batch; the color field does not inspect Undo history or subscribe to application updates.
-Each active batch owns a stage notice and temporary Undo/Redo and ChangeProperty command callbacks, released when
-the batch ends. Before an external ChangeProperty command changes a represented or related property on the same
-stage, its pre-command callback restores the preview so the command captures the committed Undo baseline.
-Preview restoration preserves externally changed property fields, including metadata, while restoring untouched
-preview values on the other selected objects.
+During an active edit, the shared USD listener suppresses application refreshes. Undo/Redo and external writes
+are not isolated from preview writes: Undo may capture an uncommitted preview, and restoring the preview can replace
+an external write to the same attribute made during the gesture.
 Row removal cancels unfinished previews through the existing property-edit cancellation path. Normal popup dismissal
 commits focused input. The row widgets and open picker own the color field; model subscriptions hold it weakly.
 Closing the picker releases its subscriptions and native preview resources.
-An external change to an actively edited USD property, including global undo, cancels that edit, closes the popup,
-and refreshes its value. Idle picker controls synchronize with restored USD values without creating an edit.
-A lightweight USD notice listener observes these changes even while application refreshes are deferred.
+Idle picker controls synchronize with refreshed USD values without creating an edit.
 
 Virtual color attributes retain their `create_callback(attribute, value)` creation hook. Release or end-edit runs
 that hook in the synchronous commit group, together with the final color write. Callback setup commands and the
