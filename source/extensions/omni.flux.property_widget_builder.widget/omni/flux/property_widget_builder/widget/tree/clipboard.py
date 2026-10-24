@@ -132,13 +132,14 @@ class AttributeCopyPasteHelper:
                 elif attribute and attribute.GetTypeName() == Sdf.ValueTypeNames.Asset:
                     value = row.value_models[0].get_attributes_raw_value(-1)
                 else:
-                    # Virtual defaults and label-based choices already have model-facing values.
+                    # A vector default belongs to the whole attribute; serialize each channel's model value.
                     values = []
                     for model in row.value_models:
                         model.refresh()
                         values.append(
                             model.get_attributes_raw_value(-1)
-                            if not attribute or (model.is_virtual and attribute.Get() is None)
+                            if len(row.value_models) == 1
+                            and (not attribute or (model.is_virtual and attribute.Get() is None))
                             else model.get_value()
                         )
                     value = values[0] if len(values) == 1 else values

@@ -366,6 +366,7 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
             ),
             ("metadata", "colorSpace", None, "auto", {"name": "weight", "metadata_key": "colorSpace", "value": "auto"}),
             ("virtual", None, None, 5, {"name": "weight", "value": 5}),
+            ("virtual", None, None, [2, 3, 4], {"name": "weight", "value": [2, 3, 4]}),
             ("virtual_existing", None, None, 5, {"name": "weight", "value": 5}),
             ("virtual_existing", None, None, [2, 3, 4], {"name": "weight", "value": [2, 3, 4]}),
             ("relationship", None, None, "/Target", {"name": ["Display label"], "value": ["/Target"]}),
@@ -392,14 +393,19 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
                             "set_value",
                         ],
                         is_virtual=kind in ("virtual", "virtual_existing"),
-                        default_value=component,
+                        default_value=default if kind in ("virtual", "virtual_existing") else component,
                     )
                     model.get_value.return_value = component if kind == "relationship" else "stale"
-                    if kind not in ("metadata", "virtual", "virtual_existing", "asset", "relationship"):
+                    if kind not in ("metadata", "asset", "relationship"):
                         model.refresh.side_effect = lambda model=model, component=component: setattr(
                             model.get_value, "return_value", component
                         )
-                    model.get_attributes_raw_value.return_value = native if kind == "asset" else component
+                    raw_value = component
+                    if kind == "asset":
+                        raw_value = native
+                    elif model.is_virtual:
+                        raw_value = default
+                    model.get_attributes_raw_value.return_value = raw_value
                     models.append(model)
                 row = SimpleNamespace(
                     read_only=False,
@@ -437,7 +443,7 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
                 self.assertEqual(json.loads(copy.call_args.args[0]), [{"properties": [expected]}])
                 for model in models:
                     model.set_value.assert_not_called()
-                    if kind in ("asset", "virtual", "virtual_existing"):
+                    if kind == "asset" or (kind in ("virtual", "virtual_existing") and len(models) == 1):
                         model.get_attributes_raw_value.assert_called_once_with(-1)
                 last.Set.assert_not_called()
                 first.Set.assert_not_called()

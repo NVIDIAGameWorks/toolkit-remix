@@ -33,6 +33,7 @@ editable primary rows and excludes structural groups and claimed companions. The
 matches supplied destination rows, checks complete property membership and eligibility, and arranges values.
 Existing models and commands still validate the values themselves, so later rejection can leave earlier writes applied.
 Copy reads effective ordinary values through their models, preserving configured defaults without authoring the source.
+Multichannel rows copy one scalar value per channel, including defaults for missing or value-less virtual attributes.
 Assets use the last selected source's raw value; logical rows retain raw backing values.
 Serialization normalizes `Sdf.AssetPath` separators from `\` to `/` without resolving paths or requiring files to exist.
 For USD rows, paste applies the destination stage's existing relative-path policy before calling the model setter.

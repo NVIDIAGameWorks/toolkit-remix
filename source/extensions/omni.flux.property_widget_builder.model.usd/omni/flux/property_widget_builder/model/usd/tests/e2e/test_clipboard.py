@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import json
 import shutil
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
@@ -37,6 +38,7 @@ from omni.flux.property_widget_builder.model.usd import (
     USDLogicalGroupOutletItem,
     USDModel,
     USDPropertyWidget,
+    VirtualUSDAttributeItem,
 )
 from omni.kit import ui_test
 from pxr import Gf, Sdf, Usd, UsdGeom, Vt
@@ -158,6 +160,54 @@ class TestRowClipboard(omni.kit.test.AsyncTestCase):
                 self.assertFalse(
                     self._stage.GetAttributeAtPath(Sdf.Path(_SOURCE).AppendProperty(name)).HasAuthoredValue()
                 )
+
+    async def test_paste_virtual_vector_without_authored_value_preserves_channel_defaults(self):
+        """Copy virtual vector defaults and paste distinct channels without authoring the source."""
+        for has_attribute_spec in (False, True):
+            with self.subTest(title=f"has_attribute_spec={has_attribute_spec}"):
+                async with self.__fixture():
+                    name = "scale"
+                    default_value = Gf.Vec2f(1, 2)
+                    source_prim = self._stage.DefinePrim(_SOURCE, "Xform")
+                    if has_attribute_spec:
+                        source_prim.CreateAttribute(name, Sdf.ValueTypeNames.Float2)
+                    for index, path in enumerate(_TARGETS):
+                        prim = self._stage.DefinePrim(path, "Xform")
+                        prim.CreateAttribute(name, Sdf.ValueTypeNames.Float2).Set(Gf.Vec2f(7 + index, 9 + index))
+                    source = VirtualUSDAttributeItem(
+                        "",
+                        [Sdf.Path(_SOURCE).AppendProperty(name)],
+                        value_type_name=Sdf.ValueTypeNames.Float2,
+                        default_value=default_value,
+                        display_attr_names=["Scale"],
+                    )
+                    target = USDAttributeItem(
+                        "", [Sdf.Path(path).AppendProperty(name) for path in _TARGETS], display_attr_names=["Scale"]
+                    )
+                    originals = self.__values(_TARGETS, [name])
+                    expected = {path: {name: default_value} for path in _TARGETS}
+                    original_layer = self._stage.GetRootLayer().ExportToString()
+
+                    # Copy the missing or value-less source through the real row menu.
+                    await self.__show([source])
+                    await self.__menu(source, "Copy Selected")
+                    self.assertEqual(
+                        json.loads(omni.kit.clipboard.paste()),
+                        [{"properties": [{"name": name, "value": [1, 2]}]}],
+                    )
+                    self.assertEqual(self._stage.GetRootLayer().ExportToString(), original_layer)
+
+                    # Paste each scalar channel into both destinations, then restore and reapply the values.
+                    await self.__show([target])
+                    omni.kit.undo.clear_stack()
+                    await self.__menu(target, "Paste Selected")
+                    self.assertEqual(self.__values(_TARGETS, [name]), expected)
+                    await self.__undo_redo([name], originals, expected)
+                    source_attribute = source_prim.GetAttribute(name)
+                    self.assertEqual(source_attribute.IsValid(), has_attribute_spec)
+                    if has_attribute_spec:
+                        self.assertFalse(source_attribute.HasAuthoredValue())
+                        self.assertIsNone(source_attribute.Get())
 
     async def test_paste_logical_rows_preserves_groups_and_legacy_values(self):
         """Paste curves, gradients, and button-only outlets without opening editors."""

@@ -25,3 +25,9 @@ recognized for older materials.
 The material action menu builds on opening and shows a loading entry until ready. Each open reads the current selection.
 Selection changes, dismissal, hiding, and destruction cancel pending menu work.
 Material labels and MDL paths remain available before the menu opens.
+
+## Usage
+
+See [Texture Transform](../../../../docs/howto/learning-materials.md#texture-transform) for material controls and
+[Updating Capture Material Definitions](../../../../docs/howto/learning-materials.md#updating-capture-material-definitions)
+when an older capture does not expose newly added properties.

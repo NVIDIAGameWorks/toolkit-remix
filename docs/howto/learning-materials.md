@@ -31,6 +31,24 @@ Refer to the [Ingesting Assets](learning-ingestion.md) section for information o
    button at the top of the Material Properties panel or drag and drop the textures onto the panel. A dialog will
    appear, attempting to automatically identify and map the various material inputs.
 
+## Updating Capture Material Definitions
+
+Captures can contain their own AperturePBR material definitions, which take precedence over the Toolkit's
+definitions. Updating the Toolkit therefore may not expose newly added material properties in an existing project.
+If expected properties or groups are missing, check which material definition the project uses:
+
+1. Right-click the material name in Material Properties and choose **Copy Material MDL Path**. Check whether the
+   resolved file is in the project's `deps/captures/materials` folder.
+2. Close the Toolkit and back up the capture's `AperturePBR_*.mdl` files before replacing them. Preserve any custom
+   material changes separately.
+3. Locate the Toolkit's `lightspeed.trex.app.resources` extension and its `deps/omni_core_materials/Base` folder.
+   Copy its complete `AperturePBR_*.mdl` file set into that capture materials folder, replacing the older modules
+   together so their imports remain consistent. Keep the capture's textures and USD files.
+4. Reopen the project and select the material to check that the expected properties are available.
+
+New material properties may also require a compatible RTX Remix Runtime build in the game. Updating material
+definitions does not update an installed game's Runtime.
+
 ## Handling Animated Materials
 
 Working with animated textures requires a few additional steps:
@@ -60,6 +78,25 @@ The spritesheet should be organized from left to right and top to bottom, as sho
 ![Sprite Sheet Example](../data/images/sprite_sheet_example.png)
 
 ## Understanding Material Properties
+
+### Texture Transform
+
+Select a mesh with an AperturePBR opaque or translucent material, then expand **Texture Transform** in the Material
+Properties panel. These controls change the UV coordinates used by all textures on the material:
+
+| Control | Default | Effect |
+| --- | --- | --- |
+| **Texture Scroll Rate** | `0` | UV offset speed in UV units per second. Zero disables scrolling; negative values reverse it. With Repeat wrapping, `0.5` loops a horizontal or vertical scroll every two seconds. |
+| **Texture Scroll Angle** | `0` | Scroll direction in degrees: `0` is positive U and `90` is positive V. Positive V points down the image; visible features move opposite the UV offset. |
+| **Texture Scale** | `(1, 1)` | Scale along U and V before rotation. Positive values below `1` enlarge the texture, values above `1` shrink it, and negative values mirror it. Zero collapses that axis. |
+| **Texture Offset** | `(0, 0)` | Static UV offset applied after scale and rotation. |
+| **Texture Rotation** | `0` | Rotation in degrees around the UV origin at the image's top-left corner. Positive angles rotate positive U toward positive V. |
+
+Use an RTX Remix Runtime build that supports these attributes to view the result in the game. Updating the Toolkit's
+material definitions does not update an installed game's Runtime. UV coordinates outside `0`–`1` follow the material's
+U/V wrap modes.
+
+If the group is missing, see [Updating Capture Material Definitions](#updating-capture-material-definitions).
 
 ### Parallax Occlusion Mapping
 

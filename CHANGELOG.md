@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed a race in the Job Queue widget delete tests: on slow CI runners, the delete prompt opened after the test failed, and the open modal prompt blocked the clicks of all later tests.
 - Kept the merge request note token out of the curl command line in the missing-tests comment job, so process monitoring on the CI runners no longer records it.
 - Fixed documentation publishing with Packman 8 by updating the documentation tool's package lookup API.
+- REMIX-6095: Fixed vector attributes in the Properties panels, including MDL `float2` parameters, raising `TypeError` and showing wrong defaults, and fixed resetting a vector to restore the wrong channel default. Updated HdRemix and material definitions to `ext-e62bf4b-main` for texture transforms.
 
 ### Removed
 

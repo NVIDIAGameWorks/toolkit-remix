@@ -49,7 +49,7 @@ from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage
-from pxr import Sdf, Usd
+from pxr import Gf, Sdf, Usd
 
 MATERIAL_HASH = "BC868CE5A075ABB1"
 MATERIAL_ROOT_PATH = "/RootNode/Looks/"
@@ -68,6 +68,7 @@ PROPERTY_BRANCHES_MAP = {
     "Specular": True,
     "Emission": False,
     "Animation": False,
+    "Texture Transform": False,
     "Remix Flags": False,
     "Alpha Blending": False,
     "Filtering": False,
@@ -1210,6 +1211,111 @@ class TestMaterialPropertyWidget(AsyncTestCase):
 
         finally:
             await self.__destroy(_window, _material_property_wid)
+
+    async def test_texture_transform_vector_controls_author_and_reset_material_defaults(self):
+        """Discover pinned material vector defaults, edit their controls, and reset the authored values."""
+        for material_name in ("AperturePBR_Opacity", "AperturePBR_Translucent"):
+            with self.subTest(title=material_name):
+                await self.__open_temp_project()
+                context = omni.usd.get_context("")
+                stage = context.get_stage()
+                shader_path = f"{MATERIAL_ROOT_PATH}mat_{MATERIAL_HASH}/Shader"
+                material_definition = Path(
+                    carb.tokens.get_tokens_interface().resolve(
+                        f"${{lightspeed.trex.app.resources}}/deps/omni_core_materials/Base/{material_name}.mdl"
+                    )
+                )
+                self.assertTrue(material_definition.is_file())
+                stage.GetAttributeAtPath(f"{shader_path}.info:mdl:sourceAsset").Set(
+                    Sdf.AssetPath(material_definition.as_posix())
+                )
+                stage.GetAttributeAtPath(f"{shader_path}.info:mdl:sourceAsset:subIdentifier").Set(material_name)
+                window, material_widget = await self.__setup_widget()
+                try:
+                    # Select the fixture mesh with the pinned MDL, then expand its discovered material group.
+                    context.get_selection().set_selected_prim_paths(
+                        ["/RootNode/instances/inst_CED45075A077A49A_0/mesh"], False
+                    )
+                    await ui_test.human_delay()
+                    group_label_query = f"{window.title}//Frame/**/Label[*].text=='Texture Transform'"
+                    group_label = await ui_test.find_with_retry(group_label_query)
+                    self.assertIsNotNone(group_label)
+                    group_label.widget.scroll_here_y(0.1)
+                    # Material refresh can replace the label before its new layout has been computed.
+                    branches = []
+                    for _ in range(30):
+                        group_label = ui_test.find(group_label_query)
+                        if (
+                            group_label is not None
+                            and group_label.widget.computed_width > 0
+                            and group_label.widget.computed_height > 0
+                        ):
+                            branches = [
+                                branch
+                                for branch in ui_test.find_all(
+                                    f"{window.title}//Frame/**/Image[*].identifier=='property_branch'"
+                                )
+                                if abs(branch.center.y - group_label.center.y) <= 8
+                                and branch.center.x < group_label.center.x
+                            ]
+                            if branches:
+                                break
+                        await ui_test.wait_n_updates(1)
+                    self.assertTrue(
+                        branches,
+                        f"Texture Transform label and expansion icon did not finish layout for {material_name}",
+                    )
+                    branch = min(branches, key=lambda entry: group_label.center.x - entry.center.x)
+                    if branch.widget.style_type_name_override == "TreeView.Item.Plus":
+                        await branch.click()
+                        await ui_test.human_delay()
+
+                    for name, display_name, default_value in (
+                        ("texture_scale", "Texture Scale", Gf.Vec2f(1, 1)),
+                        ("texture_offset", "Texture Offset", Gf.Vec2f(0, 0)),
+                    ):
+                        with self.subTest(title=f"{material_name}.{name}"):
+                            attribute_path = f"{shader_path}.inputs:{name}"
+                            fields = [
+                                field
+                                for field in ui_test.find_all(f"{window.title}//Frame/**/FloatBoundedDrag[*]")
+                                if attribute_path in field.widget.identifier.split(",")
+                            ]
+                            self.assertEqual(len(fields), 2)
+                            fields.sort(key=lambda field: field.center.x)
+                            self.assertEqual(
+                                [field.widget.model.get_value_as_float() for field in fields], list(default_value)
+                            )
+                            attribute = stage.GetAttributeAtPath(attribute_path)
+                            self.assertFalse(attribute and attribute.HasAuthoredValue())
+
+                            # Editing Y through its drag field must preserve X and the material's reset defaults.
+                            fields[1].widget.scroll_here_y(0.5)
+                            await ui_test.human_delay()
+                            await fields[1].drag_and_drop(fields[1].center + ui_test.Vec2(40, 0))
+                            await ui_test.human_delay()
+                            attribute = stage.GetAttributeAtPath(attribute_path)
+                            self.assertTrue(attribute.HasAuthoredValue())
+                            self.assertEqual(attribute.Get()[0], default_value[0])
+                            self.assertNotEqual(attribute.Get()[1], default_value[1])
+                            self.assertAlmostEqual(attribute.Get()[1], fields[1].widget.model.get_value_as_float())
+
+                            # Click the row's reset indicator and verify the complete authored vector is restored.
+                            reset_indicators = [
+                                indicator
+                                for indicator in ui_test.find_all(f"{window.title}//Frame/**/Circle[*]")
+                                if display_name in indicator.widget.tooltip
+                                and indicator.widget.style_type_name_override == "OverrideIndicator"
+                            ]
+                            self.assertEqual(len(reset_indicators), 1)
+                            await reset_indicators[0].click()
+                            await ui_test.human_delay()
+                            self.assertEqual(stage.GetAttributeAtPath(attribute_path).Get(), default_value)
+                finally:
+                    try:
+                        await self.__destroy(window, material_widget)
+                    finally:
+                        await context.close_stage_async()
 
     async def test_burger_menu_populates(self):
         """Resolve the selected material's MDL file, convert through its menu, and undo."""
