@@ -847,7 +847,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
     def reset_default_value(self):
         """Reset the model's value back to the USD default"""
         self.block_set_value(False)  # be sure that we set the value
-        for index, attribute in enumerate(self.attributes):
+        for attribute in self.attributes:
             if not attribute:
                 continue
             default_value = self._get_default_value(attribute)
@@ -855,7 +855,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
                 continue
             # If the item is subscriptable, get the right value
             if self._is_multichannel:
-                self.set_value(default_value[index])
+                self.set_value(default_value[self._channel_index])
             else:
                 if self._value_type_name == Sdf.ValueTypeNames.Asset:
                     default_value = default_value.path
@@ -1000,14 +1000,12 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         if not value_type_name:
             raise ValueError("value_type_name is required for virtual attribute value models")
         self._metadata = metadata or {Sdf.PrimSpec.TypeNameKey: str(value_type_name)}
-        is_multichannel = MULTICHANNEL_BUILDER_TABLE.get(value_type_name, False)
-        if is_multichannel and default_value is not None:
-            default_value = default_value[channel_index]
 
         super().__init__(
             context_name,
             attribute_paths,
             channel_index,
+            default_value=default_value,
             read_only=read_only,
             value_type_name=value_type_name,
             tooltip_display_name=tooltip_display_name,
@@ -1015,12 +1013,10 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
             related_override_paths=related_override_paths,
         )
 
-        # Set _default_value AFTER super().__init__() to avoid being overwritten by the parent class
-        self._default_value = default_value
-
     def _get_default_value(self, attr):
         # Since the attribute does not exist, we need to retrieve the stored value.
-        return self._default_value
+        # Hand out a copy: the cached value is edited in place per channel and must never alter the default.
+        return _safe_deepcopy(self._default_value)
 
     def _schedule_preview(self) -> None:
         """Preview virtual values only when creation has a known property-only mutation."""
@@ -1035,7 +1031,10 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
     def get_value(self):
         """Get the value for serialization and external consumption."""
         if self._value is None and self.is_virtual:
-            return self._default_value  # not set yet...
+            # Not set yet. The default stays the full vector so every other code path can read and compare it.
+            if self._is_multichannel and self._default_value is not None:
+                return self._default_value[self._channel_index]
+            return _safe_deepcopy(self._default_value)
         return super().get_value()
 
     def get_attributes_raw_value(self, element_current_idx: int) -> Any | None:

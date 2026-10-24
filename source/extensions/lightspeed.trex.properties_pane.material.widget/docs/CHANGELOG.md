@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.10]
+### Added
+- End-to-end coverage for Texture Transform defaults, editing, and reset.
+
 ## [2.3.9]
 ### Fixed
 - Recognized DLSS 3D-Guided Neural Rendering material groups while preserving availability gating for older names.

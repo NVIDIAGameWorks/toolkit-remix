@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.1.0]
+### Fixed
+- Fixed vector attributes to display and preserve full defaults, support first edits before refresh without `TypeError`, and reset each channel to its own default.
+
+### Added
+- End-to-end coverage for virtual numeric defaults, channel editing and reset, and copying vector defaults without authoring the source.
+
 ## [4.0.0]
 
 ### Added

@@ -15,6 +15,10 @@
 * limitations under the License.
 """
 
+from omni.flux.property_widget_builder.model.usd.tests.e2e.test_virtual_attribute_defaults import (
+    TestVirtualAttributeDefaults,
+)
+
 from .unit.test_bounds_adapter import TestBoundsAdapter
 from .unit.test_conditional_visibility_orchestrator import TestConditionalVisibilityOrchestrator
 from .unit.test_curve import TestCurveFieldEditor, TestPanelToEditorLayout
@@ -85,5 +89,6 @@ __all__ = [
     "TestUsdAttributeValueModelEditBatching",
     "TestUsdGradientWidgetLifecycle",
     "TestUsdRelationshipValueModel",
+    "TestVirtualAttributeDefaults",
     "TestVirtualAttributeWrites",
 ]

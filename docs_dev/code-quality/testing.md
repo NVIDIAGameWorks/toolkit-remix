@@ -493,6 +493,21 @@ await field.input("new_value", human_delay_speed=3)
 **When to use `human_delay()`:** after opening/creating a window, after clicking, after expanding/collapsing tree nodes,
 after drag-and-drop, after any async UI update, and in `finally` blocks during cleanup.
 
+After an asynchronous material or tree rebuild, an earlier `WidgetRef` may refer to a replaced widget, while newly
+found widgets may still have zero computed size. Reacquire the live widgets inside a bounded loop that yields to
+application updates and checks the condition needed for the next interaction, such as positive computed
+dimensions before using coordinates or the required controls appearing after expansion. Fail explicitly if the
+bound is exhausted; a fixed delay does not establish readiness.
+
+Give recreated UI fixtures unique window titles, including across subcases: retained `WindowHandle` references can
+keep earlier windows discoverable and make title-based queries ambiguous. For USD vector row fixtures queried by
+label, pass one explicit name, such as `display_attr_names=["Scale"]`; the remaining channel names are filled with
+empty strings. This gives the row one matching label so `find_with_retry()` can resolve it unambiguously within the
+intended window.
+
+For text entry in numeric drag controls, use the native Ctrl+click gesture and release Ctrl in a `finally` block;
+a double-click can produce two drag gestures without opening the text editor.
+
 ### Verifying Results
 
 E2E tests can verify through multiple channels depending on the workflow:
