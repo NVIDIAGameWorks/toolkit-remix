@@ -1025,7 +1025,7 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         return _safe_deepcopy(self._default_value)
 
     def _schedule_preview(self) -> None:
-        """Preview existing virtual attributes while deferring creation until release."""
+        """Preview existing virtual attributes only when no custom creation callback is configured."""
         if self._create_callback is None and all(attr.IsValid() for attr in self._attributes):
             super()._schedule_preview()
 
