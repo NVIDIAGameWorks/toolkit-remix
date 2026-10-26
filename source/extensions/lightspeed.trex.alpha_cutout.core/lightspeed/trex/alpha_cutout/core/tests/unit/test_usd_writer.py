@@ -29,6 +29,7 @@ from lightspeed.trex.alpha_cutout.core.usd_reader import (
     replacement_output_path,
 )
 from lightspeed.trex.alpha_cutout.core.usd_writer import (
+    TEXTURES_FOLDER_NAME,
     MATERIAL_PRIM_NAME,
     REFERENCE_TARGET_PRIM_NAME,
     cutout_file_name,
@@ -135,6 +136,21 @@ class TestWriteCutoutMesh(AsyncTestCase):
         matrix = ops[0].Get()
         self.assertAlmostEqual(matrix[1][2], 1.0)
         self.assertAlmostEqual(matrix[2][1], -1.0)
+
+    async def test_write_cutout_mesh_copies_capture_texture_into_textures_folder(self):
+        # Arrange
+        cut_mesh = quad_cut_mesh()
+
+        # Act
+        path = write_cutout_mesh(self._output_dir, self._source, cut_mesh, self._stage, True)
+
+        # Assert
+        copied = Path(self._output_dir) / TEXTURES_FOLDER_NAME / "alpha.png"
+        self.assertTrue(copied.is_file())
+        self.assertTrue(is_asset_ingested(str(copied)))
+        stage = Usd.Stage.Open(path)
+        shader = next(prim for prim in stage.Traverse() if prim.IsA(UsdShade.Shader))
+        self.assertEqual(shader.GetAttribute("inputs:diffuse_texture").Get().path, "./textures/alpha.png")
 
     async def test_write_cutout_mesh_writes_ingestion_sidecar(self):
         # Arrange

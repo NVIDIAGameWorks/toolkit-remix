@@ -17,7 +17,14 @@
 
 from __future__ import annotations
 
-__all__ = ["ALPHA_THRESHOLD_RANGE", "DEFAULT_DISABLE_ALPHA_TEST", "TRACE_RESOLUTION_RANGE", "AlphaCutoutSettings"]
+__all__ = [
+    "ALPHA_THRESHOLD_RANGE",
+    "DEFAULT_DISABLE_ALPHA_TEST",
+    "TRACE_RESOLUTION_RANGE",
+    "AlphaCutoutSettings",
+    "is_inside_folder",
+    "project_folder",
+]
 
 import omni.usd
 from carb.settings import get_settings
@@ -29,7 +36,7 @@ ALPHA_THRESHOLD_RANGE = (0, 255)
 TRACE_RESOLUTION_RANGE = (64, 1024)
 DEFAULT_DISABLE_ALPHA_TEST = True
 _SETTINGS_ROOT = "/persistent/exts/lightspeed.trex.alpha_cutout.widget"
-_OUTPUT_SUBFOLDER = "alpha_cutout"
+_OUTPUT_SUBFOLDER = "alpha_cutouts"
 _AMOUNT_RANGE = (0.0, 1.0)
 _DEFAULTS = CutoutParameters()
 
@@ -57,6 +64,37 @@ def _clamp(value: float, bounds: tuple[float, float]) -> float:
         The clamped value.
     """
     return min(max(value, bounds[0]), bounds[1])
+
+
+def project_folder(context_name: str) -> str:
+    """Return the folder of the open project.
+
+    Args:
+        context_name: USD context that holds the project.
+
+    Returns:
+        Folder of the root layer with forward slashes, or an empty string without a saved project.
+    """
+    context = omni.usd.get_context(context_name)
+    stage = context.get_stage() if context else None
+    if not stage or stage.GetRootLayer().anonymous:
+        return ""
+    return str(OmniUrl(OmniUrl(stage.GetRootLayer().realPath).parent_url))
+
+
+def is_inside_folder(path: str, folder: str) -> bool:
+    """Return whether a path lies inside a folder, ignoring case and slash direction.
+
+    Args:
+        path: Path to test.
+        folder: Containing folder.
+
+    Returns:
+        ``True`` when the path is the folder or one of its descendants.
+    """
+    normalized = str(OmniUrl(path)).replace("\\", "/").rstrip("/").lower() + "/"
+    root = str(OmniUrl(folder)).replace("\\", "/").rstrip("/").lower() + "/"
+    return normalized.startswith(root)
 
 
 class AlphaCutoutSettings:
@@ -366,14 +404,12 @@ class AlphaCutoutSettings:
             context_name: USD context that holds the project.
 
         Returns:
-            ``<project>/assets/ingested/alpha_cutout`` with forward slashes, or an empty string without a project.
+            ``<project>/assets/alpha_cutouts`` with forward slashes, or an empty string without a project.
         """
-        context = omni.usd.get_context(context_name)
-        stage = context.get_stage() if context else None
-        if not stage or stage.GetRootLayer().anonymous:
+        project = project_folder(context_name)
+        if not project:
             return ""
-        project_url = OmniUrl(OmniUrl(stage.GetRootLayer().realPath).parent_url)
-        return str(project_url / constants.REMIX_ASSETS_FOLDER / "ingested" / _OUTPUT_SUBFOLDER)
+        return str(OmniUrl(project) / constants.REMIX_ASSETS_FOLDER / _OUTPUT_SUBFOLDER)
 
     @staticmethod
     def defaults() -> CutoutParameters:

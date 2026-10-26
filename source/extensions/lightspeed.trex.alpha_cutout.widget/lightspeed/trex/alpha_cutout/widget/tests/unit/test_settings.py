@@ -20,7 +20,7 @@ __all__ = ["TestAlphaCutoutSettings"]
 from unittest.mock import MagicMock, patch
 
 import lightspeed.trex.alpha_cutout.widget.settings as settings_module
-from lightspeed.trex.alpha_cutout.widget.settings import AlphaCutoutSettings
+from lightspeed.trex.alpha_cutout.widget.settings import AlphaCutoutSettings, is_inside_folder
 from omni.kit.test import AsyncTestCase
 
 _ROOT = "/persistent/exts/lightspeed.trex.alpha_cutout.widget"
@@ -159,7 +159,7 @@ class TestAlphaCutoutSettings(AsyncTestCase):
         # Assert
         self.assertEqual(result, "")
 
-    async def test_default_output_folder_with_project_returns_ingested_subfolder(self):
+    async def test_default_output_folder_with_project_returns_alpha_cutouts_subfolder(self):
         # Arrange
         root_layer = MagicMock()
         root_layer.anonymous = False
@@ -174,4 +174,9 @@ class TestAlphaCutoutSettings(AsyncTestCase):
             result = AlphaCutoutSettings.default_output_folder("")
 
         # Assert
-        self.assertTrue(result.replace("\\", "/").endswith("projects/demo/assets/ingested/alpha_cutout"))
+        self.assertTrue(result.replace("\\", "/").endswith("projects/demo/assets/alpha_cutouts"))
+
+    async def test_is_inside_folder_ignores_case_and_slash_direction(self):
+        # Act / Assert
+        self.assertTrue(is_inside_folder("C:\\Projects\\Demo\\assets\\x", "c:/projects/demo"))
+        self.assertFalse(is_inside_folder("C:/projects/demo2/assets", "C:/projects/demo"))

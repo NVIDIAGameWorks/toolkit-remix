@@ -20,6 +20,7 @@ from __future__ import annotations
 __all__ = [
     "MATERIAL_PRIM_NAME",
     "REFERENCE_TARGET_PRIM_NAME",
+    "TEXTURES_FOLDER_NAME",
     "cutout_file_name",
     "cutout_output_path",
     "cutout_root_prim_name",
@@ -31,12 +32,11 @@ import os
 
 import numpy as np
 import omni.client
-from omni.flux.utils.common import path_utils
-from omni.flux.validator.factory import BASE_HASH_KEY, VALIDATION_EXTENSIONS, VALIDATION_PASSED
 from pxr import Gf, Kind, Sdf, Usd, UsdGeom, UsdShade, Vt
 
 from .data_models import CutMesh, MeshSource
 from .material_copy import author_opaque_alpha_state, copy_material_flattened, get_surface_shader
+from .metadata import write_ingestion_metadata
 from .usd_reader import is_replacement_cutout_path
 
 # The prim names deliberately avoid the capture naming scheme (``mesh_HASH`` / ``mat_HASH``) because the
@@ -49,6 +49,7 @@ _ST_PRIMVAR = "st"
 _LOOKS_SCOPE = "Looks"
 _MESH_PRIM_NAME = "mesh"
 _FILE_SUFFIX = ".usda"
+TEXTURES_FOLDER_NAME = "textures"
 
 
 def cutout_file_name(mesh_hash: str) -> str:
@@ -130,23 +131,6 @@ def _open_output_layer(path: str) -> Sdf.Layer:
     return layer
 
 
-def _write_metadata(path: str) -> None:
-    """Write the sidecar that marks the generated file as ingested.
-
-    Args:
-        path: Path of the generated file.
-
-    Raises:
-        RuntimeError: If the file cannot be hashed.
-    """
-    file_hash = path_utils.hash_file(path)
-    if file_hash is None:
-        raise RuntimeError(f"The file {path} could not be hashed.")
-    path_utils.write_metadata(path, BASE_HASH_KEY, file_hash)
-    path_utils.write_metadata(path, VALIDATION_PASSED, True)
-    path_utils.write_metadata(path, VALIDATION_EXTENSIONS, [])
-
-
 def _author_geometry(mesh: UsdGeom.Mesh, cut_mesh: CutMesh) -> None:
     """Replace the topology, texture coordinates, normals and extent of a mesh with cut geometry.
 
@@ -197,6 +181,9 @@ def write_cutout_mesh(
 ) -> str:
     """Write the cut geometry and its material copy as a standalone replacement file.
 
+    Textures the material references from outside the project, such as capture textures, are copied into a
+    ``textures`` folder next to the file so the mod carries everything the runtime needs.
+
     Args:
         output_dir: Folder the file is written to; created when missing.
         source: Mesh the geometry was cut from.
@@ -238,18 +225,22 @@ def write_cutout_mesh(
 
     UsdGeom.Scope.Define(stage, root_path.AppendChild(_LOOKS_SCOPE))
     source_material = UsdShade.Material(source_stage.GetPrimAtPath(source.material_path))
+    root_layer = source_stage.GetRootLayer()
+    project_dir = os.path.dirname(root_layer.realPath) if root_layer.realPath else None
     material = copy_material_flattened(
         source_material,
         stage,
         str(root_path.AppendChild(_LOOKS_SCOPE).AppendChild(MATERIAL_PRIM_NAME)),
         path,
         disable_alpha_test,
+        texture_dir=os.path.join(output_dir, TEXTURES_FOLDER_NAME),
+        project_dir=project_dir,
     )
     UsdShade.MaterialBindingAPI.Apply(mesh.GetPrim()).Bind(material)
 
     if not layer.Save():
         raise RuntimeError(f"The layer {path} could not be saved.")
-    _write_metadata(path)
+    write_ingestion_metadata(path)
     return path
 
 
@@ -300,5 +291,5 @@ def write_cutout_replacement(
             author_opaque_alpha_state(shader)
     if not layer.Save():
         raise RuntimeError(f"The layer {output} could not be saved.")
-    _write_metadata(output)
+    write_ingestion_metadata(output)
     return output

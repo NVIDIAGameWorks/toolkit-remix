@@ -81,6 +81,89 @@ class TestCopyMaterialFlattened(AsyncTestCase):
         resolved = destination.GetRootLayer().ComputeAbsolutePath(asset.path)
         self.assertEqual(omni.client.normalize_url(resolved).lower(), omni.client.normalize_url(self._texture).lower())
 
+    async def test_copy_material_with_texture_dir_copies_outside_texture_and_writes_sidecar(self):
+        # Arrange
+        destination = self._destination_stage
+        texture_dir = str(Path(self._output_file).parent / "textures")
+
+        # Act
+        copy_material_flattened(
+            self._source_material,
+            destination,
+            _DESTINATION_PATH,
+            self._output_file,
+            False,
+            texture_dir=texture_dir,
+            project_dir=str(Path(self._output_file).parent),
+        )
+
+        # Assert
+        asset = destination.GetAttributeAtPath(f"{_DESTINATION_PATH}/Shader.inputs:diffuse_texture").Get()
+        self.assertEqual(asset.path, "./textures/alpha.png")
+        self.assertTrue((Path(texture_dir) / "alpha.png").is_file())
+        self.assertTrue((Path(texture_dir) / "alpha.png.meta").is_file())
+
+    async def test_copy_material_with_texture_inside_project_references_it_without_copying(self):
+        # Arrange
+        destination = self._destination_stage
+        texture_dir = str(Path(self._output_file).parent / "textures")
+
+        # Act
+        copy_material_flattened(
+            self._source_material,
+            destination,
+            _DESTINATION_PATH,
+            self._output_file,
+            False,
+            texture_dir=texture_dir,
+            project_dir=self._temp_dir.name,
+        )
+
+        # Assert
+        asset = destination.GetAttributeAtPath(f"{_DESTINATION_PATH}/Shader.inputs:diffuse_texture").Get()
+        self.assertEqual(asset.path, "../textures/alpha.png")
+        self.assertFalse(Path(texture_dir).exists())
+
+    async def test_copy_material_with_texture_in_project_deps_folder_copies_it(self):
+        # Arrange: the capture texture sits under <project>/deps/captures/textures, inside the project folder.
+        project = Path(self._temp_dir.name) / "project"
+        capture_textures = project / "deps" / "captures" / "textures"
+        capture_textures.mkdir(parents=True)
+        texture = write_alpha_texture(capture_textures / "capture.png", np.full((4, 4), 255, np.uint8))
+        source_stage = build_capture_stage(texture)
+        source_material = UsdShade.Material(source_stage.GetPrimAtPath(MATERIAL_PATH))
+        destination = self._destination_stage
+        texture_dir = str(Path(self._output_file).parent / "textures")
+
+        # Act
+        copy_material_flattened(
+            source_material,
+            destination,
+            _DESTINATION_PATH,
+            self._output_file,
+            False,
+            texture_dir=texture_dir,
+            project_dir=str(project),
+        )
+
+        # Assert
+        asset = destination.GetAttributeAtPath(f"{_DESTINATION_PATH}/Shader.inputs:diffuse_texture").Get()
+        self.assertEqual(asset.path, "./textures/capture.png")
+        self.assertTrue((Path(texture_dir) / "capture.png").is_file())
+
+    async def test_copy_material_writes_bare_mdl_module_and_implementation_source(self):
+        # Arrange
+        destination = self._destination_stage
+
+        # Act
+        copy_material_flattened(self._source_material, destination, _DESTINATION_PATH, self._output_file, False)
+
+        # Assert
+        shader = UsdShade.Shader(destination.GetPrimAtPath(f"{_DESTINATION_PATH}/Shader"))
+        self.assertEqual(shader.GetSourceAsset("mdl").path, "AperturePBR_Opacity.mdl")
+        self.assertEqual(shader.GetImplementationSource(), UsdShade.Tokens.sourceAsset)
+        self.assertEqual(shader.GetSourceAssetSubIdentifier("mdl"), "AperturePBR_Opacity")
+
     async def test_copy_material_connects_surface_output_to_copied_shader(self):
         # Arrange
         destination = self._destination_stage

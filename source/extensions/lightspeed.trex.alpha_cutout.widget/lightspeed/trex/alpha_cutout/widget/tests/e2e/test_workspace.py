@@ -17,6 +17,7 @@
 
 __all__ = ["TestAlphaCutoutWorkspaceE2E"]
 
+import tempfile
 from pathlib import Path
 
 import carb.settings
@@ -349,6 +350,29 @@ class TestAlphaCutoutWorkspaceE2E(AsyncTestCase):
             self.assertTrue(references[0].assetPath.endswith(f"fern01{REPLACEMENT_SUFFIX}.usda"))
             self.assertIn(
                 "reference now points", self._find_all(window, "Label", "alpha_cutout_result_row")[0].widget.text
+            )
+
+    async def test_output_folder_outside_the_project_is_reset_to_the_project_default(self):
+        async with open_test_project(_PROJECT, _RESOURCES_EXT) as project_url:
+            workspace = _TestWindow("")
+            self.addCleanup(workspace.cleanup)
+            workspace.create_window()
+            workspace.open_with_meshes([_MESH_PATH], "")
+            await ui_test.wait_n_updates(4)
+            window = workspace.get_window()
+            output_field = self._find(window, "StringField", "alpha_cutout_output_field")
+
+            with tempfile.TemporaryDirectory() as outside:
+                output_field.widget.model.set_value(outside)
+                workspace._content._on_output_end_edit(output_field.widget.model)
+                await ui_test.wait_n_updates(2)
+
+            expected = str(OmniUrl(project_url.parent_url) / "assets" / "alpha_cutouts")
+            self.assertEqual(
+                output_field.widget.model.get_value_as_string().replace("\\", "/"), expected.replace("\\", "/")
+            )
+            self.assertEqual(
+                self._settings.get_as_string(_OUTPUT_FOLDER_SETTING).replace("\\", "/"), expected.replace("\\", "/")
             )
 
     async def test_global_event_seeds_the_extension_window(self):
