@@ -29,6 +29,9 @@ Non-trivial/risky feature work -> plan tests before impl. Use Plan mode/approval
   fixture project -> explicit fixture layers/paths; no production discovery APIs unless discovery itself under test.
 - Every `tests/__init__.py` must export its test classes.
 - Never skip tests unless the user explicitly authorizes it.
+- Commit only tests that CI runs. Tests for `tools/` scripts and other code outside CI test jobs never run, so do not
+  commit them. Write throwaway regression tests while coding if needed, then delete them. Reviews must not ask to keep
+  or restore such tests.
 - Review only violations introduced or worsened by the delta; unrelated historical test debt remains out of scope.
   Touching a test, class, or file does not make its existing violations reviewable. Require a causal link from the
   changed behavior to each finding and requested fix; proximity or relevance to the same feature is insufficient.
