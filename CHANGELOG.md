@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Removed unused tools: `tools/ci/vault/download_vault.ps1`, `tools/repoman/sign_archive.py`, `tools/repoman/launcher-pipeline-template/`, the `auto_update_deps` repo tool with its `print_published_extensions.py` helper, and the manual test scripts in `tools/ci/scripts/`, `tools/crash_debug/`, and `tools/migrations/tests/`. No CI job, build step, script, or doc calls them.
+
 ## [1.6.1-0]
 
 ### Added

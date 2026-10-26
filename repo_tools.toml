@@ -1,9 +1,3 @@
-[repo_auto_update_deps]
-# Tool name
-command = "auto_update_deps"
-# [python module name or path]:[function name]
-entry_point = "${root}/tools/utils/repo_auto_update_deps.py:setup_repo_tool"
-
 [repo_bump_changed_extensions]
 # Tool name
 command = "bump_changed_extensions"
