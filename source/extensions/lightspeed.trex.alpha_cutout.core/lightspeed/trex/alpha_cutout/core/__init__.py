@@ -20,6 +20,7 @@ __all__ = [
     "MATERIAL_PRIM_NAME",
     "REFERENCE_TARGET_PRIM_NAME",
     "REPLACEMENT_SUFFIX",
+    "TEXTURES_FOLDER_NAME",
     "AlphaCutoutStageEditor",
     "ConversionTarget",
     "CutMesh",
@@ -81,6 +82,7 @@ from .usd_reader import (
 from .usd_writer import (
     MATERIAL_PRIM_NAME,
     REFERENCE_TARGET_PRIM_NAME,
+    TEXTURES_FOLDER_NAME,
     cutout_file_name,
     cutout_output_path,
     cutout_root_prim_name,

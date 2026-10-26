@@ -178,8 +178,10 @@ alpha channel of its diffuse texture so only the opaque area remains.
    **Experimental** > **Convert Alpha Cards to Mesh**. The **Convert Alpha Cards to Mesh** window opens with the
    selected prototype. While the window stays open it follows the selection, so picking another capture mesh
    makes that one the mesh up for conversion.
-2. Pick an **Output Folder**. It defaults to `assets/ingested/alpha_cutout` inside the project. The mesh produces one
-   `cutout_<HASH>.usda` file with an ingestion sidecar, so the replacement passes the packaging checks.
+2. Pick an **Output Folder** inside the project. It defaults to `assets/alpha_cutouts`, and a folder outside the
+   project is reset to that default. The mesh produces one `cutout_<HASH>.usda` file with an ingestion sidecar, so
+   the replacement passes the packaging checks. Capture textures the material uses are copied into a `textures`
+   subfolder next to the file, each with its own sidecar, because the capture folder is not part of the mod.
 3. Adjust the **Parameters** and click **Convert**:
    - **Alpha threshold** is the alpha value at or above which a texel counts as opaque.
    - **Trace resolution** is the size of the mask that is traced. Higher values follow the texture more closely and

@@ -43,7 +43,7 @@ through `lightspeed.trex.alpha_cutout.core`.
 
 | Setting path | Default | Description |
 |---|---|---|
-| `exts.lightspeed.trex.alpha_cutout.widget.output_folder` | `""` | Output folder; empty means `<project>/assets/ingested/alpha_cutout` |
+| `exts.lightspeed.trex.alpha_cutout.widget.output_folder` | `""` | Output folder inside the project; empty or outside means `<project>/assets/alpha_cutouts` |
 | `exts.lightspeed.trex.alpha_cutout.widget.alpha_threshold` | `128` | Alpha value at or above which a texel is opaque |
 | `exts.lightspeed.trex.alpha_cutout.widget.trace_resolution` | `256` | Longest side of the traced mask in texels |
 | `exts.lightspeed.trex.alpha_cutout.widget.simplify_tolerance` | `1.0` | Outline simplification tolerance in texels |

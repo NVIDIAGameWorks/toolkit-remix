@@ -48,11 +48,19 @@ from omni.flux.utils.dialog import ProgressPopup
 from omni.flux.utils.widget.collapsable_frame import PropertyCollapsableFrameWithInfoPopup
 from omni.flux.utils.widget.file_pickers.file_picker import open_file_picker
 
-from .settings import ALPHA_THRESHOLD_RANGE, DEFAULT_DISABLE_ALPHA_TEST, TRACE_RESOLUTION_RANGE, AlphaCutoutSettings
+from .settings import (
+    ALPHA_THRESHOLD_RANGE,
+    DEFAULT_DISABLE_ALPHA_TEST,
+    TRACE_RESOLUTION_RANGE,
+    AlphaCutoutSettings,
+    is_inside_folder,
+    project_folder,
+)
 
 _NO_SELECTION_MESSAGE = "Nothing convertible is selected. Select a capture or replacement mesh in the Stage Manager."
 _NO_ALPHA_MESHES_MESSAGE = "The replacement file has no mesh with a diffuse texture."
 _REPLACEMENT_OUTPUT_TOOLTIP = "Replacements are written next to their original file, which is never overwritten."
+_OUTSIDE_PROJECT_MESSAGE = "The output folder must be inside the project, so it was reset to the project default."
 _FIELD_STYLE = "Field"
 _DRAG_STYLE = "DragField"
 _FIELD_ERROR_STYLE = "FieldError"
@@ -803,7 +811,24 @@ class AlphaCutoutPane(WorkspaceWidget):
             return
         if not self.output_folder:
             self._output_field.model.set_value(AlphaCutoutSettings.default_output_folder(self._context_name))
+        self._keep_output_inside_project()
         self._update_output_valid()
+
+    def _keep_output_inside_project(self) -> bool:
+        """Reset the output folder to the project default when it points outside the open project.
+
+        Returns:
+            ``True`` when the folder was reset.
+        """
+        project = project_folder(self._context_name)
+        folder = self.output_folder
+        if not project or not folder or is_inside_folder(folder, project):
+            return False
+        default = AlphaCutoutSettings.default_output_folder(self._context_name)
+        self._output_field.model.set_value(default)
+        self._settings.set_output_folder(default)
+        carb.log_warn(f"[lightspeed.trex.alpha_cutout.widget] {_OUTSIDE_PROJECT_MESSAGE}")
+        return True
 
     def _rebuild_results(self):
         if not self._results_frame:
@@ -818,7 +843,9 @@ class AlphaCutoutPane(WorkspaceWidget):
         self._update_output_valid()
 
     def _on_output_end_edit(self, model):
-        if not self._output_locked and self._update_output_valid():
+        if self._output_locked or self._keep_output_inside_project():
+            return
+        if self._update_output_valid():
             self._settings.set_output_folder(model.get_value_as_string().strip())
 
     def _on_browse_pressed(self, button: int):
@@ -836,6 +863,8 @@ class AlphaCutoutPane(WorkspaceWidget):
         if not self._output_field:
             return
         self._output_field.model.set_value(folder)
+        if self._keep_output_inside_project():
+            return
         if self._update_output_valid():
             self._settings.set_output_folder(folder.strip())
 

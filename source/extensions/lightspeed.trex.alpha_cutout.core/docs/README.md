@@ -82,7 +82,10 @@ numpy arrays and strings. Keep every `pxr` call out of the worker.
   `ref_*` prim (`remove_if_remix_ref=False`, `create_if_remix_ref=False`); capture references are masked and a
   new `ref_*` child is added as before.
 - `copy_material_flattened` — copies the composed shader attributes so user overrides on the captured material are
-  baked in, rewrites asset paths relative to the generated file and optionally authors the opaque alpha state.
+  baked in, writes MDL modules as bare names with `info:implementationSource = sourceAsset`, references textures
+  inside the project relatively and copies textures from outside it (capture textures) into the `textures` folder
+  next to the generated file with an ingestion sidecar, and optionally authors the opaque alpha state. Replacement
+  cutouts keep their file's own texture references.
 - `write_cutout_mesh` — mirrors the ingestion layout (`ReferenceTarget` ▸ `XForms` ▸ `cutout_<HASH>` with identity
   translate, rotate and scale ops) so the toolkit treats the file like an ingested asset. The cutout prim and the
   material `AlphaCutoutMaterial` avoid the capture naming scheme on purpose:

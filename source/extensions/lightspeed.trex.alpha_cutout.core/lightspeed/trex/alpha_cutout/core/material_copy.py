@@ -25,8 +25,15 @@ __all__ = [
     "get_surface_shader",
 ]
 
+import os
+import shutil
+
 import omni.client
+from lightspeed.common import constants
+from lightspeed.trex.utils.common.asset_utils import is_texture_from_capture
 from pxr import Sdf, Usd, UsdShade
+
+from .metadata import write_ingestion_metadata
 
 # The runtime enum value of AlphaTestType::kAlways. The MDL enum lists "Always" first, but the runtime reads
 # the raw integer, so 7 is the value that disables alpha testing.
@@ -40,6 +47,8 @@ OPAQUE_ALPHA_STATE_INPUTS: tuple[tuple[str, Sdf.ValueTypeName, object], ...] = (
 _MDL_RENDER_CONTEXT = "mdl"
 _SHADER_NAME = "Shader"
 _KIND_KEY = "kind"
+_MDL_SUFFIX = ".mdl"
+_SOURCE_ASSET_ATTR = "info:mdl:sourceAsset"
 
 
 def author_opaque_alpha_state(shader: UsdShade.Shader) -> None:
@@ -67,45 +76,104 @@ def get_surface_shader(material: UsdShade.Material) -> UsdShade.Shader | None:
     return shader or None
 
 
-def _relative_asset_path(asset: Sdf.AssetPath, source_attribute: Usd.Attribute, output_file: str) -> Sdf.AssetPath:
-    """Rewrite an asset path so it resolves from the output file.
+def _is_inside(path: str, folder: str | None) -> bool:
+    if not folder:
+        return False
+    normalized = omni.client.normalize_url(path).lower().rstrip("/") + "/"
+    root = omni.client.normalize_url(folder).lower().rstrip("/") + "/"
+    return normalized.startswith(root)
 
-    MDL module paths resolve through search paths rather than the file system, so a path without a resolved
-    location is copied unchanged.
 
-    Args:
-        asset: Composed asset value.
-        source_attribute: Attribute the value was read from.
-        output_file: Absolute path of the file the copy is written to.
+class _AssetPathRewriter:
+    """Rewrite the asset paths of a material copy so they resolve from the generated file.
 
-    Returns:
-        Asset path relative to the output file, or the original value.
+    MDL modules resolve through search paths, so they are written as bare module names. Textures that live
+    inside the project are referenced relative to the generated file. Textures outside the project or under its
+    ``deps`` folder, such as capture textures, are copied into the texture folder next to the generated file when
+    one is given.
     """
-    absolute = asset.resolvedPath
-    if not absolute:
-        stack = source_attribute.GetPropertyStack(Usd.TimeCode.Default())
-        if stack and asset.path and not asset.path.lower().endswith(".mdl"):
-            absolute = stack[0].layer.ComputeAbsolutePath(asset.path)
-    if not absolute:
-        return Sdf.AssetPath(asset.path)
-    relative = omni.client.make_relative_url(output_file, omni.client.normalize_url(absolute))
-    return Sdf.AssetPath(omni.client.normalize_url(relative).replace("\\", "/"))
+
+    def __init__(self, output_file: str, texture_dir: str | None, project_dir: str | None):
+        self._output_file = omni.client.normalize_url(output_file)
+        self._texture_dir = omni.client.normalize_url(texture_dir) if texture_dir else None
+        self._project_dir = project_dir
+        self._dependencies_dir = (
+            f"{project_dir.rstrip('/')}/{constants.REMIX_DEPENDENCIES_FOLDER}" if project_dir else None
+        )
+
+    def rewrite(self, asset: Sdf.AssetPath, source_attribute: Usd.Attribute) -> Sdf.AssetPath:
+        """Return the asset path to author in the copy.
+
+        Args:
+            asset: Composed asset value.
+            source_attribute: Attribute the value was read from.
+
+        Returns:
+            The rewritten asset path.
+        """
+        if asset.path.lower().endswith(_MDL_SUFFIX):
+            return Sdf.AssetPath(os.path.basename(asset.path))
+        absolute = asset.resolvedPath
+        if not absolute:
+            stack = source_attribute.GetPropertyStack(Usd.TimeCode.Default())
+            if stack and asset.path:
+                absolute = stack[0].layer.ComputeAbsolutePath(asset.path)
+        if not absolute:
+            return Sdf.AssetPath(asset.path)
+        absolute = omni.client.normalize_url(absolute)
+        if self._texture_dir and os.path.isfile(absolute) and self._needs_copy(absolute):
+            absolute = self._copy_texture(absolute)
+        relative = omni.client.make_relative_url(self._output_file, absolute)
+        return Sdf.AssetPath(omni.client.normalize_url(relative).replace("\\", "/"))
+
+    def _needs_copy(self, texture: str) -> bool:
+        """Return whether a texture is not part of the mod and must be copied next to the generated file.
+
+        Capture textures live under the project's ``deps`` folder, which is not packaged with the mod.
+
+        Args:
+            texture: Absolute texture path.
+
+        Returns:
+            ``True`` for textures outside the project, inside its dependencies folder or from a capture.
+        """
+        return (
+            not _is_inside(texture, self._project_dir)
+            or _is_inside(texture, self._dependencies_dir)
+            or is_texture_from_capture(texture)
+        )
+
+    def _copy_texture(self, source: str) -> str:
+        """Copy a texture into the texture folder, writing its ingestion sidecar.
+
+        Args:
+            source: Absolute texture path.
+
+        Returns:
+            Absolute path of the copy.
+        """
+        os.makedirs(self._texture_dir, exist_ok=True)
+        destination = f"{self._texture_dir.rstrip('/')}/{os.path.basename(source)}"
+        if not os.path.isfile(destination) or os.path.getsize(destination) != os.path.getsize(source):
+            shutil.copyfile(source, destination)
+            write_ingestion_metadata(destination)
+        return destination
 
 
-def _copy_attribute(source: Usd.Attribute, destination_prim: Usd.Prim, output_file: str) -> None:
+def _copy_attribute(source: Usd.Attribute, destination_prim: Usd.Prim, rewriter: _AssetPathRewriter) -> None:
     """Copy one composed attribute value and its color space onto a destination prim.
 
     Args:
         source: Attribute to copy.
         destination_prim: Prim that receives the attribute.
-        output_file: Absolute path of the file the copy is written to.
+        rewriter: Rewrites asset path values.
     """
     destination = destination_prim.CreateAttribute(
         source.GetName(), source.GetTypeName(), custom=source.IsCustom(), variability=source.GetVariability()
     )
     value = source.Get(Usd.TimeCode.Default())
     if isinstance(value, Sdf.AssetPath):
-        value = _relative_asset_path(value, source, output_file)
+        value = rewriter.rewrite(value, source)
     if value is not None:
         destination.Set(value)
     if source.HasColorSpace():
@@ -118,12 +186,16 @@ def copy_material_flattened(
     destination_path: str,
     output_file: str,
     disable_alpha_test: bool,
+    texture_dir: str | None = None,
+    project_dir: str | None = None,
 ) -> UsdShade.Material:
     """Define a standalone copy of a material from its composed values.
 
     Every authored attribute of the surface shader is copied with its composed value, so overrides the user
-    authored on the captured material are baked into the copy. Asset paths are rewritten relative to the
-    output file. The copy optionally authors the opaque alpha state the runtime needs to skip alpha testing.
+    authored on the captured material are baked into the copy. MDL modules are written as bare module names,
+    textures inside the project are referenced relative to the output file, and textures outside it are copied
+    into ``texture_dir`` when one is given. The copy optionally authors the opaque alpha state the runtime needs
+    to skip alpha testing.
 
     Args:
         source_material: Material to copy, usually the captured ``mat_HASH``.
@@ -132,6 +204,9 @@ def copy_material_flattened(
         output_file: Absolute path of the generated file.
         disable_alpha_test: Whether to author ``use_legacy_alpha_state``, ``blend_enabled`` and
             ``alpha_test_type`` so the mesh renders fully opaque.
+        texture_dir: Folder that receives copies of textures from outside the project, or ``None`` to only
+            reference them.
+        project_dir: Project folder; textures inside it are never copied.
 
     Returns:
         The new material.
@@ -144,8 +219,15 @@ def copy_material_flattened(
         kind = source_prim.GetMetadata(_KIND_KEY)
         if kind:
             destination_shader.GetPrim().SetMetadata(_KIND_KEY, kind)
+        rewriter = _AssetPathRewriter(output_file, texture_dir, project_dir)
         for attribute in source_prim.GetAuthoredAttributes():
-            _copy_attribute(attribute, destination_shader.GetPrim(), output_file)
+            _copy_attribute(attribute, destination_shader.GetPrim(), rewriter)
+        module = (
+            source_prim.GetAttribute(_SOURCE_ASSET_ATTR).Get() if source_prim.HasAttribute(_SOURCE_ASSET_ATTR) else None
+        )
+        if module:
+            # Author the implementation source alongside the module so the runtime loads the MDL by name.
+            destination_shader.SetSourceAsset(Sdf.AssetPath(os.path.basename(module.path)), _MDL_RENDER_CONTEXT)
         for output in source_material.GetOutputs():
             source, source_name, _ = output.GetConnectedSource()
             if not source or source.GetPrim() != source_prim:
