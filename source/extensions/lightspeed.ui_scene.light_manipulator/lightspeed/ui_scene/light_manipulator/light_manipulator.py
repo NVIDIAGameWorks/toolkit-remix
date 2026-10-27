@@ -357,6 +357,8 @@ class AbstractLightManipulator(sc.Manipulator):
         self._cone_refresh_deferred = False
         self._cone_xform = None
         self._shaping_authored_cache = None
+        if self.model:
+            self.model.destroy()
 
     def _revoke_interaction_end_subscription(self):
         if self._interaction_end_subscription is None:

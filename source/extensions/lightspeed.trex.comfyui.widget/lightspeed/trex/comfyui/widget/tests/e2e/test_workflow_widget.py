@@ -19,9 +19,10 @@ import pathlib
 from copy import deepcopy
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardInput, MouseEventType
+from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardEventType, KeyboardInput, MouseEventType
 from carb.settings import get_settings
 from omni.kit import ui_test, undo
+from omni.kit.ui_test.input import emulate_keyboard
 from omni.kit.test import AsyncTestCase
 from lightspeed.trex.comfyui.core.api import ComfyUIAPI
 from lightspeed.trex.comfyui.core.constants import COMFYUI_SETTINGS_ROOT
@@ -282,6 +283,26 @@ async def _wait_for_widget(selector: str, max_attempts: int = 20):
             return matches[0]
         await ui_test.human_delay()
     return None
+
+
+async def _start_text_edit(drag) -> None:
+    """Open the text editor of a drag field with Ctrl+click.
+
+    A double click only opens the editor when both clicks land inside the 0.3 s real-time double-click window.
+    Slow frames on CI runners put the clicks outside that window. Ctrl+click opens the same editor with one click.
+
+    Args:
+        drag: UI test reference to the drag field.
+    """
+    await ui_test.emulate_mouse_move(drag.center)
+    await emulate_keyboard(KeyboardEventType.KEY_PRESS, KeyboardInput.LEFT_CONTROL)
+    try:
+        await ui_test.human_delay()
+        await ui_test.emulate_mouse_click()
+    finally:
+        # A held Ctrl would turn every later click and key press of the test process into a Ctrl gesture
+        await emulate_keyboard(KeyboardEventType.KEY_RELEASE, KeyboardInput.LEFT_CONTROL)
+        await ui_test.human_delay()
 
 
 async def _select_type(type_picker, label: str) -> None:
@@ -634,7 +655,7 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
             timeout_field = await _wait_for_widget(timeout_selector)
             self.assertIsNotNone(timeout_field)
             self.assertEqual(timeout_field.widget.model.get_value_as_float(), 60.0)
-            await timeout_field.double_click()
+            await _start_text_edit(timeout_field)
             await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
             await ui_test.emulate_keyboard_press(KeyboardInput.BACKSPACE)
             await ui_test.emulate_char_press("120")
@@ -646,7 +667,7 @@ class TestWorkflowSetupWidgetE2E(AsyncTestCase):
             self.assertEqual(core.settings.job_timeout, 7200.0)
 
             # A typed 0 is accepted and persists as no timeout.
-            await timeout_field.double_click()
+            await _start_text_edit(timeout_field)
             await ui_test.emulate_keyboard_press(KeyboardInput.A, KEYBOARD_MODIFIER_FLAG_CONTROL)
             await ui_test.emulate_keyboard_press(KeyboardInput.BACKSPACE)
             await ui_test.emulate_char_press("0")

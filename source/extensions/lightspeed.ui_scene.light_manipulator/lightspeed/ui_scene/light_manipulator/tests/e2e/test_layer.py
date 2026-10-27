@@ -20,6 +20,8 @@ import omni.kit.test
 import omni.usd
 from omni.flux.utils.common.interactive_usd_notices import begin_interaction as _begin_interaction
 from omni.flux.utils.common.interactive_usd_notices import end_interaction as _end_interaction
+from omni.kit.app import get_app
+from omni.kit.commands import execute
 from lightspeed.ui_scene.light_manipulator.constants import (
     CONE_SIDES_MIN_INPUT,
     CONE_THRESHOLD_DEFAULT,
@@ -70,6 +72,38 @@ class TestLightLayer(OmniUiTest):
 
         # make sure we can destroy layer properly
         layer.destroy()
+
+    async def test_layer_rebuild_stops_previous_light_models_following_selection(self):
+        """Verify that only the replacement light model follows the selection after a layer rebuild."""
+        light_path = "/TestLight"
+        viewport_api = ViewportAPI("", 0, lambda: 0)
+        layer = LightManipulatorLayer({"viewport_api": viewport_api})
+        usd_context = omni.usd.get_context()
+
+        async def wait_for_stage_events():
+            for _ in range(5):
+                await get_app().next_update_async()
+
+        try:
+            # The user adds a light: the layer builds a manipulator for it
+            execute("CreatePrim", prim_path=light_path, prim_type="DiskLight", select_new_prim=False)
+            await wait_for_stage_events()
+            previous_model = layer.manipulators[light_path].model
+
+            # The user adds a second light: the layer rebuilds every manipulator
+            execute("CreatePrim", prim_path="/OtherLight", prim_type="DiskLight", select_new_prim=False)
+            await wait_for_stage_events()
+            current_model = layer.manipulators[light_path].model
+            self.assertIsNot(current_model, previous_model)
+
+            # The user selects the first light: only the current manipulator model follows the selection
+            usd_context.get_selection().set_selected_prim_paths([light_path], True)
+            await wait_for_stage_events()
+
+            self.assertIsNotNone(current_model.light)
+            self.assertIsNone(previous_model.light)
+        finally:
+            layer.destroy()
 
     async def test_layer_uses_default_visible_setting(self):
         vp_api = ViewportAPI("", 0, lambda: 0)

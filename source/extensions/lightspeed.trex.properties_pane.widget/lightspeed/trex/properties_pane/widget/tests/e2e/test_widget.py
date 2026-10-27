@@ -141,6 +141,28 @@ class TestAssetReplacementsWidget(AsyncTestCase):
             if transfer_window:
                 transfer_window.destroy()
 
+    async def __wait_until(self, condition, failure_message: str, max_updates: int = 600):
+        """Wait one frame at a time until a condition is true, then return its result.
+
+        CI runners draw frames up to 4 times slower than a workstation, so fixed frame waits are either too short on
+        slow runners or waste time on fast ones. This wait stops at the first frame where the condition is true.
+
+        Args:
+            condition: Callable that returns a truthy value when the UI is ready.
+            failure_message: Message of the test failure when the condition stays false.
+            max_updates: Maximum number of frames to wait.
+
+        Returns:
+            The first truthy result of the condition.
+        """
+        for _ in range(max_updates):
+            result = condition()
+            if result:
+                return result
+            await ui_test.human_delay(1)
+        self.fail(failure_message)
+        raise AssertionError("unreachable")
+
     async def __set_selection(self, prim_paths: list[str], human_delay_speed: int = 10):
         usd_context = omni.usd.get_context()
         usd_context.get_selection().set_selected_prim_paths(prim_paths, False)
@@ -252,6 +274,20 @@ class TestAssetReplacementsWidget(AsyncTestCase):
                 return label
         return None
 
+    async def __wait_for_stable_position(self, widget_ref):
+        """Wait until a scroll request is applied and the widget stays at the same position for two frames.
+
+        Args:
+            widget_ref: Widget that a scroll request moves.
+        """
+        positions = []
+        for _ in range(60):
+            await ui_test.human_delay(1)
+            positions.append(widget_ref.center)
+            if len(positions) >= 3 and positions[-1] == positions[-2] == positions[-3]:
+                return
+        self.fail(f"Expected {widget_ref} to stop moving")
+
     async def __scroll_to_label(self, window_title: str, label_text: str, alignment: float = 0.1):
         scroll_frame = ui_test.find(f"{window_title}//Frame/**/ScrollingFrame[*].name=='WorkspaceBackground'")
         self.assertIsNotNone(scroll_frame)
@@ -259,13 +295,13 @@ class TestAssetReplacementsWidget(AsyncTestCase):
             label = self.__label(window_title, text=label_text)
             if label:
                 label.widget.scroll_here_y(alignment)
-                await ui_test.human_delay(human_delay_speed=8)
+                await self.__wait_for_stable_position(label)
                 frame_top = scroll_frame.widget.screen_position_y
                 frame_bottom = frame_top + scroll_frame.widget.computed_height
                 if not frame_top <= label.center.y <= frame_bottom:
                     target_y = frame_top + scroll_frame.widget.computed_height * alignment
                     scroll_frame.widget.scroll_y += label.center.y - target_y
-                    await ui_test.human_delay(human_delay_speed=8)
+                    await self.__wait_for_stable_position(label)
                 return label
             scroll_frame.widget.scroll_y += 80
             await ui_test.human_delay(human_delay_speed=4)
@@ -280,8 +316,12 @@ class TestAssetReplacementsWidget(AsyncTestCase):
             if abs(branch.center.y - label.center.y) <= 8 and branch.center.x < label.center.x
         ]
         self.assertGreater(len(branches), 0)
+        label_count = len(self.__visible(f"{window_title}//Frame/**/Label[*]"))
         await min(branches, key=lambda branch: label.center.x - branch.center.x).click()
-        await ui_test.human_delay(human_delay_speed=8)
+        await self.__wait_until(
+            lambda: len(self.__visible(f"{window_title}//Frame/**/Label[*]")) > label_count,
+            f"Expected the {group_label!r} group to show its properties",
+        )
 
     def __float_drags_for_attribute(self, window_title: str, attribute_path: str):
         fields = []
@@ -305,24 +345,27 @@ class TestAssetReplacementsWidget(AsyncTestCase):
                     prim_spec.RemoveProperty(prop_spec)
 
     async def __confirm_transfer(self, transfer_window_title: str, target_layer: Sdf.Layer):
-        target_layer_frame = ui_test.find(
-            f"{transfer_window_title}//Frame/**/Frame[*].tooltip=='{target_layer.identifier}'"
+        target_layer_frame = await self.__wait_until(
+            lambda: ui_test.find(f"{transfer_window_title}//Frame/**/Frame[*].tooltip=='{target_layer.identifier}'"),
+            f"Expected the {transfer_window_title!r} window to list {target_layer.identifier}",
         )
-        self.assertIsNotNone(target_layer_frame)
+        # The window expands its layer tree one frame after it opens, which moves the rows
+        await self.__wait_for_stable_position(target_layer_frame)
         await target_layer_frame.click()
-        await ui_test.human_delay(human_delay_speed=4)
 
         transfer_button = ui_test.find(
             f"{transfer_window_title}//Frame/**/Button[*].identifier=='property_transfer_confirm'"
         )
         self.assertIsNotNone(transfer_button)
-        for _ in range(8):
-            if transfer_button.widget.enabled:
-                break
-            await ui_test.human_delay(human_delay_speed=4)
-        self.assertTrue(transfer_button.widget.enabled)
+        await self.__wait_until(
+            lambda: transfer_button.widget.enabled,
+            f"Expected the {transfer_window_title!r} transfer button to become enabled",
+        )
         await transfer_button.click()
-        await ui_test.human_delay(human_delay_speed=8)
+        await self.__wait_until(
+            lambda: not ui.Workspace.get_window(transfer_window_title).visible,
+            f"Expected the {transfer_window_title!r} window to close after the transfer",
+        )
         self.__destroy_transfer_windows()
 
     async def __transfer_property(self, window_title: str, target_layer: Sdf.Layer, *, text=None, tooltip=None):
@@ -338,9 +381,8 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         ]
         self.assertGreater(len(more_buttons), 0)
         await min(more_buttons, key=lambda image: label.center.x - image.center.x).click()
-        await ui_test.human_delay(human_delay_speed=4)
-        await ui_test.select_context_menu("Transfer This Property Modification to Layer...", human_delay_speed=8)
-        await ui_test.human_delay(human_delay_speed=8)
+        # select_context_menu waits until the context menu is shown
+        await ui_test.select_context_menu("Transfer This Property Modification to Layer...")
         await self.__confirm_transfer("Transfer Modification to Layer", target_layer)
 
     async def __transfer_action(self, window_title: str, target_layer: Sdf.Layer, identifier: str, menu_label: str):
@@ -352,11 +394,10 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         self.assertGreater(len(actions), 0)
         action = actions[0]
         action.widget.scroll_here_y(0.5)
-        await ui_test.human_delay(human_delay_speed=8)
+        await self.__wait_for_stable_position(action)
         await action.click()
-        await ui_test.human_delay(human_delay_speed=4)
-        await ui_test.select_context_menu(menu_label, human_delay_speed=8)
-        await ui_test.human_delay(human_delay_speed=8)
+        # select_context_menu waits until the context menu is shown
+        await ui_test.select_context_menu(menu_label)
         await self.__confirm_transfer(
             "Transfer Definition to Layer" if "definition" in menu_label else "Transfer Modification to Layer",
             target_layer,
@@ -386,21 +427,19 @@ class TestAssetReplacementsWidget(AsyncTestCase):
             )
         return item_groups
 
-    def __assert_property_groups_expanded(self, widget, expanded):
-        item_groups = self.__property_item_groups(widget)
-        self.assertGreater(len(item_groups), 0)
-        for property_widget, item in item_groups:
-            item_name = item.name_models[0].get_value_as_string() if item.name_models else repr(item)
-            self.assertEqual(property_widget.tree_view.is_expanded(item), expanded, item_name)
+    async def __wait_for_property_groups_expanded(self, widget, expanded):
+        def groups_match():
+            item_groups = self.__property_item_groups(widget)
+            return item_groups and all(
+                property_widget.tree_view.is_expanded(item) == expanded for property_widget, item in item_groups
+            )
+
+        await self.__wait_until(groups_match, f"Expected every property group of {widget} to have expanded={expanded}")
 
     async def __wait_for_property_item_groups(self, widget):
-        for _ in range(10):
-            item_groups = self.__property_item_groups(widget)
-            if item_groups:
-                return item_groups
-            await ui_test.human_delay(human_delay_speed=8)
-        self.fail("Expected real property groups to be created")
-        raise AssertionError("unreachable")
+        return await self.__wait_until(
+            lambda: self.__property_item_groups(widget), "Expected real property groups to be created"
+        )
 
     async def __select_header_menu_item(self, window_title, header_text, identifier, menu_label):
         await self.__scroll_to_label(window_title, header_text, alignment=0.5)
@@ -409,16 +448,11 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         self.assertEqual(actions[0].widget.name, "More")
 
         await actions[0].click()
-        await ui_test.human_delay(human_delay_speed=8)
 
+        # get_context_menu and select_context_menu wait until the context menu is shown
         context_menu = await ui_test.menu.get_context_menu()
         self.assertTrue(menu_label in context_menu.get("_"))
-        await ui_test.menu.select_context_menu(
-            menu_label,
-            offset=ui_test.Vec2(10, 10),
-            human_delay_speed=8,
-        )
-        await ui_test.human_delay(human_delay_speed=8)
+        await ui_test.menu.select_context_menu(menu_label, offset=ui_test.Vec2(10, 10))
 
     async def test_transfer_full_property_pane_workflow_uses_project_fixture_cases(self):
         object_selection_path = "/RootNode/instances/inst_FEE1DEADF00D0001_0/reference_override/Cube_01"
@@ -993,7 +1027,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
                 identifier,
                 "Expand All",
             )
-            self.__assert_property_groups_expanded(property_group_widget, True)
+            await self.__wait_for_property_groups_expanded(property_group_widget, True)
 
             await self.__select_header_menu_item(
                 _window.title,
@@ -1001,7 +1035,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
                 identifier,
                 "Collapse All",
             )
-            self.__assert_property_groups_expanded(property_group_widget, False)
+            await self.__wait_for_property_groups_expanded(property_group_widget, False)
 
             await self.__select_header_menu_item(
                 _window.title,
@@ -1009,7 +1043,7 @@ class TestAssetReplacementsWidget(AsyncTestCase):
                 identifier,
                 "Expand All",
             )
-            self.__assert_property_groups_expanded(property_group_widget, True)
+            await self.__wait_for_property_groups_expanded(property_group_widget, True)
 
         try:
             await self.__set_selection([object_selection_path])
@@ -1847,48 +1881,88 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         await self.__destroy(_window, _wid)
 
+    async def __open_layer_file_picker(self, window, layer_button_name: str, picker_title: str, confirm_text: str):
+        """Select the sublayer in the LAYERS panel, then open a file picker with one of its layer buttons.
+
+        Args:
+            window: Window that holds the properties pane.
+            layer_button_name: Style name of the layer button that opens the file picker.
+            picker_title: Title of the file picker window.
+            confirm_text: Text of the button that confirms the file picker.
+
+        Returns:
+            The confirm button, the directory field, and the file name field of the file picker.
+        """
+        property_pane_items = ui_test.find_all(f"{window.title}//Frame/**/ScrollingFrame[*]=='PropertiesPaneSection'")
+        await property_pane_items[1].click()
+
+        def sublayer_items():
+            items = ui_test.find_all(f"{window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
+            return items if len(items) > 1 else None
+
+        # Layers are expanded by default, select the sublayer
+        layer_items = await self.__wait_until(sublayer_items, "Expected the LAYERS panel to show a sublayer")
+        await layer_items[1].click()
+
+        layer_button = ui_test.find(f"{window.title}//Frame/**/Image[*].name=='{layer_button_name}'")
+        self.assertIsNotNone(layer_button)
+        await layer_button.click()
+
+        confirm_button = await self.__wait_until(
+            lambda: (
+                ui.Workspace.get_window(picker_title)
+                and ui_test.find(f"{picker_title}//Frame/**/Button[*].text=='{confirm_text}'")
+            ),
+            f"Expected the {picker_title!r} file picker to open",
+        )
+        dir_path_field = ui_test.find(
+            f"{picker_title}//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+        )
+        file_name_field = ui_test.find(f"{picker_title}//Frame/**/StringField[*].style_type_name_override=='Field'")
+        self.assertIsNotNone(dir_path_field)
+        self.assertIsNotNone(file_name_field)
+        # The file picker opens on a placeholder, then navigates to the stage directory and rebuilds its path bar.
+        # Typing before that rebuild clicks where the field used to be, so the input is lost.
+        await self.__wait_until(
+            lambda: any(
+                crumb.widget.text != "omniverse://"
+                for crumb in ui_test.find_all(
+                    f"{picker_title}//Frame/**/Button[*].style_type_name_override=='BreadCrumb'"
+                )
+            ),
+            f"Expected the {picker_title!r} file picker to show its start directory",
+        )
+        await ui_test.human_delay(2)
+        return confirm_button, dir_path_field, file_name_field
+
+    async def __enter_file_picker_path(self, dir_path_field, file_name_field, dir_name: str, file_name: str):
+        """Type a directory and a file name into an open file picker.
+
+        Args:
+            dir_path_field: Directory field of the file picker.
+            file_name_field: File name field of the file picker.
+            dir_name: Directory to navigate to.
+            file_name: File name to type.
+        """
+        await dir_path_field.input(dir_name, end_key=KeyboardInput.ENTER)
+        await self.__wait_until(
+            lambda: dir_path_field.model._path == dir_name + "/",
+            f"Expected the file picker to navigate to {dir_name!r}",
+        )
+        await file_name_field.input(file_name, end_key=KeyboardInput.ENTER)
+        await ui_test.human_delay()
+
     async def test_layer_validation_new_layer(self):
         # setup
         _window, _wid = await self.__setup_widget("test_layer_validation_new_layer")
-
-        property_pane_items = ui_test.find_all(f"{_window.title}//Frame/**/ScrollingFrame[*]=='PropertiesPaneSection'")
-        await property_pane_items[1].click()
-        await ui_test.human_delay(50)
-
-        # Layers are expanded by default, select the sublayer
-        layer_items = ui_test.find_all(f"{_window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
-        await layer_items[1].click()
-        await ui_test.human_delay(50)
-
-        create_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='CreateLayer'")
-        await create_button.click()
-        await ui_test.human_delay(10)
-
-        # The create new file window should now be opened
-        file_picker_window_title = "Create a new layer file"
-        create_button = ui_test.find(f"{file_picker_window_title}//Frame/**/Button[*].text=='Create'")
-        dir_path_field = ui_test.find(
-            f"{file_picker_window_title}//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+        create_button, dir_path_field, file_name_field = await self.__open_layer_file_picker(
+            _window, "CreateLayer", "Create a new layer file", "Create"
         )
-        file_name_field = ui_test.find(
-            f"{file_picker_window_title}//Frame/**/StringField[*].style_type_name_override=='Field'"
-        )
-
-        self.assertIsNotNone(create_button)
-        self.assertIsNotNone(dir_path_field)
-        self.assertIsNotNone(file_name_field)
 
         dir_path = Path(self.temp_dir.name)
         dir_name = str(dir_path.resolve())
         file_name = "test.usda"
-
-        # It takes a while for the tree to update
-        await ui_test.human_delay(50)
-        await dir_path_field.input(dir_name, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay(50)
-
-        await file_name_field.input(file_name, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay()
+        await self.__enter_file_picker_path(dir_path_field, file_name_field, dir_name, file_name)
 
         # Make sure we create the layer in the correct directory
         self.assertEqual(dir_name + "/", dir_path_field.model._path)
@@ -1896,43 +1970,17 @@ class TestAssetReplacementsWidget(AsyncTestCase):
 
         await create_button.click()
 
-        await ui_test.human_delay()
-
         layer_path = dir_path / file_name
-        self.assertTrue(layer_path.exists())
+        await self.__wait_until(layer_path.exists, f"Expected the new layer file {layer_path}")
 
         await self.__destroy(_window, _wid)
 
     async def test_layer_validation_import_layer(self):
         # setup
         _window, _wid = await self.__setup_widget("test_layer_validation_import_layer")
-
-        property_pane_items = ui_test.find_all(f"{_window.title}//Frame/**/ScrollingFrame[*]=='PropertiesPaneSection'")
-        await property_pane_items[1].click()
-        await ui_test.human_delay(50)
-
-        # Layers are expanded by default, select the sublayer
-        layer_items = ui_test.find_all(f"{_window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
-        await layer_items[1].click()
-        await ui_test.human_delay(50)
-
-        import_layer_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='ImportLayer'")
-        await import_layer_button.click()
-        await ui_test.human_delay(50)
-
-        # The create new file window should now be opened
-        file_picker_window_title = "Select an existing layer file"
-        select_button = ui_test.find(f"{file_picker_window_title}//Frame/**/Button[*].text=='Select'")
-        dir_path_field = ui_test.find(
-            f"{file_picker_window_title}//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+        select_button, dir_path_field, file_name_field = await self.__open_layer_file_picker(
+            _window, "ImportLayer", "Select an existing layer file", "Select"
         )
-        file_name_field = ui_test.find(
-            f"{file_picker_window_title}//Frame/**/StringField[*].style_type_name_override=='Field'"
-        )
-
-        self.assertIsNotNone(select_button)
-        self.assertIsNotNone(dir_path_field)
-        self.assertIsNotNone(file_name_field)
 
         dir_path = Path(self.temp_dir.name)
         dir_name = str(dir_path.resolve())
@@ -1940,78 +1988,43 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         layer_path = dir_path / file_name
         layer_path.touch()
         layer_path.write_text("#usda 1.0")
-
-        # It takes a while for the tree to update
-        await ui_test.human_delay(50)
-        await dir_path_field.input(dir_name, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay(50)
-
-        await file_name_field.input(file_name, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay()
+        await self.__enter_file_picker_path(dir_path_field, file_name_field, dir_name, file_name)
 
         await select_button.click()
-        await ui_test.human_delay(50)
 
-        layer_labels = [label.widget.text for label in self.__visible(f"{_window.title}//Frame/**/Label[*]")]
-        self.assertIn(file_name, layer_labels)
+        await self.__wait_until(
+            lambda: file_name in [label.widget.text for label in self.__visible(f"{_window.title}//Frame/**/Label[*]")],
+            f"Expected the imported layer {file_name!r} in the LAYERS panel",
+        )
 
         await self.__destroy(_window, _wid)
 
     async def test_layer_validation_import_invalid_layer(self):
         # setup
         _window, _wid = await self.__setup_widget("test_layer_validation_import_invalid_layer")
-
-        property_pane_items = ui_test.find_all(f"{_window.title}//Frame/**/ScrollingFrame[*]=='PropertiesPaneSection'")
-        await property_pane_items[1].click()
-        await ui_test.human_delay(50)
-
-        # Layers are expanded by default, select the sublayer
-        layer_items = ui_test.find_all(f"{_window.title}//Frame/**/ZStack[*].identifier=='layer_item_root'")
-        await layer_items[1].click()
-        await ui_test.human_delay(50)
-
-        import_layer_button = ui_test.find(f"{_window.title}//Frame/**/Image[*].name=='ImportLayer'")
-        await import_layer_button.click()
-        await ui_test.human_delay(50)
-
-        # The create new file window should now be opened
         file_picker_window_title = "Select an existing layer file"
-        select_button = ui_test.find(f"{file_picker_window_title}//Frame/**/Button[*].text=='Select'")
-        dir_path_field = ui_test.find(
-            f"{file_picker_window_title}//Frame/**/StringField[*].identifier=='filepicker_directory_path'"
+        select_button, dir_path_field, file_name_field = await self.__open_layer_file_picker(
+            _window, "ImportLayer", file_picker_window_title, "Select"
         )
-        file_name_field = ui_test.find(
-            f"{file_picker_window_title}//Frame/**/StringField[*].style_type_name_override=='Field'"
-        )
-
-        self.assertIsNotNone(select_button)
-        self.assertIsNotNone(dir_path_field)
-        self.assertIsNotNone(file_name_field)
 
         dir_path = Path(self.temp_dir.name)
         dir_name = str(dir_path.resolve())
         file_name = "test.usda"
         layer_path = dir_path / file_name
         layer_path.touch()
-
-        # It takes a while for the tree to update
-        await ui_test.human_delay(50)
-        await dir_path_field.input(dir_name, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay(50)
-
-        await file_name_field.input(file_name, end_key=KeyboardInput.ENTER)
-        await ui_test.human_delay()
+        await self.__enter_file_picker_path(dir_path_field, file_name_field, dir_name, file_name)
 
         await select_button.click()
-        await ui_test.human_delay(50)
 
-        buttons = []
-        for other_window in ui.Workspace.get_windows():
-            button = ui_test.find(f"{other_window.title}//Frame/**/Button[*].text=='Okay'")
-            if button:
-                buttons.append(button)
+        def okay_buttons():
+            return [
+                button
+                for other_window in ui.Workspace.get_windows()
+                if (button := ui_test.find(f"{other_window.title}//Frame/**/Button[*].text=='Okay'"))
+            ]
 
         # Making sure that we are hitting a message dialog
+        buttons = await self.__wait_until(okay_buttons, "Expected a message dialog for the invalid layer")
         self.assertEqual(len(buttons), 1)
         await buttons[0].click()
         await ui_test.human_delay(3)
@@ -2026,15 +2039,11 @@ class TestAssetReplacementsWidget(AsyncTestCase):
         # setup widget
         _window, _wid = await self.__setup_widget("test_layers_panel_expanded_by_default")
 
-        await ui_test.human_delay(50)
-
-        # Find all layer item labels in the layers panel
-        layer_labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].name=='PropertiesPaneSectionTreeItem'")
+        def layer_labels():
+            labels = ui_test.find_all(f"{_window.title}//Frame/**/Label[*].name=='PropertiesPaneSectionTreeItem'")
+            return labels if len(labels) > 1 else None
 
         # Should have more than 1 layer visible (root layer should be expanded to show sublayers)
-        layer_names = [label.widget.text for label in layer_labels]
-        self.assertGreater(
-            len(layer_labels), 1, f"Root layer should be expanded to show sublayers. Found only: {layer_names}"
-        )
+        await self.__wait_until(layer_labels, "Root layer should be expanded to show sublayers")
 
         await self.__destroy(_window, _wid)

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.3]
+### Fixed
+- Made the external process executor tests wait for the returned tasks, the same way the mass validation service and CLI do, instead of a fixed number of app updates.
+
 ## [2.2.2]
 ### Added
 - Added an opt-in context footer for mass UI controls that must render after exposed check options

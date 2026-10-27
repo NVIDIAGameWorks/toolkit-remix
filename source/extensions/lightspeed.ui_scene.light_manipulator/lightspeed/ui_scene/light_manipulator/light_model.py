@@ -160,7 +160,19 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
         )
 
     def __del__(self):
-        self._invalidate_object()
+        self.destroy()
+
+    def destroy(self):
+        """Release the stage event subscription and the USD listener.
+
+        The subscription holds a bound method of this model. Without this call the model never
+        becomes unreachable, and it handles every stage event for the rest of the session.
+        """
+        self._stage_event_sub = None
+        if self._stage_listener:
+            self._stage_listener.Revoke()
+            self._stage_listener = None
+        self._light = None
 
     def set_path_redirect(self, path: Sdf.Path):
         self.__redirect_path = path
