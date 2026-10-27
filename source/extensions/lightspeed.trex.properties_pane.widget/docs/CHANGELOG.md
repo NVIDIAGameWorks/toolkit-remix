@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.8]
+### Fixed
+- Replaced fixed frame waits in end-to-end tests with waits for the expected UI state, so that slow CI runners no longer exceed the test timeout.
+
 ## [1.17.7]
 
 ### Fixed

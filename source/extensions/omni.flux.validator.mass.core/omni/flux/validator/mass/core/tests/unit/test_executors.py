@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+import concurrent.futures
+import time
 from unittest.mock import patch
 
 import omni.kit.app
@@ -75,6 +77,29 @@ class TestExecutors(AsyncTestCase):
             self.assertEqual(core_added_mock.call_count, 4)
             self.assertIsNotNone(result)
 
+    async def _wait_for_tasks(self, results, timeout: float = 30.0):
+        """Wait for the tasks of `create_tasks()` the same way the mass validation service and CLI do.
+
+        The callers wait one app update at a time until each returned task is done. The external process executor
+        runs its tasks on a worker thread, so a fixed number of updates is not enough on a slow machine.
+
+        Args:
+            results: The `(core, task)` pairs that `create_tasks()` returns.
+            timeout: Maximum time to wait, in seconds.
+        """
+        tasks = [task for _core, task in results]
+        deadline = time.monotonic() + timeout
+        while not all(task.done() for task in tasks):
+            if time.monotonic() > deadline:
+                # Cancel the queued tasks and let the running worker finish while the caller still mocks
+                # subprocess.run, so that a late worker cannot start a real Kit process after the test fails.
+                # A worker that never finishes is caught by the extension test timeout.
+                for task in tasks:
+                    task.cancel()
+                concurrent.futures.wait(tasks)
+                self.fail(f"Tasks did not finish in {timeout} seconds")
+            await omni.kit.app.get_app().next_update_async()
+
     async def test_create_task_external_process_executor(self):
         with patch("subprocess.run") as run_mock:
             run_mock.return_value.returncode = 0
@@ -83,9 +108,8 @@ class TestExecutors(AsyncTestCase):
 
             # create task will create the task and run them using the executor
             with patch.object(core, "_on_core_added") as core_added_mock:
-                await core.create_tasks(1, [items[0]._data])
-                for _ in range(len(items) * 2):
-                    await omni.kit.app.get_app().next_update_async()
+                result = await core.create_tasks(1, [items[0]._data])
+                await self._wait_for_tasks(result)
                 run_mock.assert_called_once()
                 core_added_mock.assert_called_once()
 
@@ -98,16 +122,14 @@ class TestExecutors(AsyncTestCase):
             # create task will create the task and run them using the executor
             with patch.object(core, "_on_core_added") as core_added_mock:
                 result = await core.create_tasks(1, [item._data for item in items])
-                for _ in range(len(items) * 2):
-                    await omni.kit.app.get_app().next_update_async()
+                await self._wait_for_tasks(result)
                 self.assertEqual(run_mock.call_count, 2)
                 self.assertEqual(core_added_mock.call_count, 2)
                 self.assertIsNotNone(result)
 
                 # add others
-                await core.create_tasks(1, [item._data for item in items])
-                for _ in range(len(items) * 2):
-                    await omni.kit.app.get_app().next_update_async()
+                result = await core.create_tasks(1, [item._data for item in items])
+                await self._wait_for_tasks(result)
                 self.assertEqual(run_mock.call_count, 4)
                 self.assertEqual(core_added_mock.call_count, 4)
                 self.assertIsNotNone(result)

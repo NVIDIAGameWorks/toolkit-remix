@@ -89,6 +89,24 @@ def _push_window_drop_event(asset_path):
     carb.eventdispatcher.get_eventdispatcher().dispatch_event(omni.appwindow.GLOBAL_EVENT_WINDOW_DROP, payload)
 
 
+async def _wait_for_material_actions(max_updates: int = 300) -> None:
+    """Wait until the open material menu replaces its loading item with the material actions.
+
+    The menu loads its actions asynchronously from the MDL subidentifier of each shader. A cold MDL cache on a CI
+    runner can make this load take seconds, so a fixed number of frames is not enough.
+
+    Args:
+        max_updates: Maximum number of app updates to wait before the caller checks the menu content.
+    """
+    for _ in range(max_updates):
+        menu = ui.Menu.get_current()
+        if menu is not None and all(
+            child.identifier != "material_actions_loading" for child in ui.Inspector.get_children(menu)
+        ):
+            return
+        await ui_test.human_delay(1)
+
+
 class TestComponents(Enum):
     """
     Simple Enum used to find the components of interest during tests
@@ -1352,7 +1370,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             menu_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='menu_burger_image'")
             self.assertIsNotNone(menu_image)
             await menu_image.click()
-            await ui_test.human_delay(15)
+            await _wait_for_material_actions()
 
             # grab hamburger menu and ensure it is populated correctly
             context_menu = await omni.kit.ui_test.menu.get_context_menu()
@@ -1375,7 +1393,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             menu_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='menu_burger_image'")
             self.assertIsNotNone(menu_image)
             await menu_image.click()
-            await ui_test.human_delay(15)
+            await _wait_for_material_actions()
 
             # grab hamburger menu and ensure it is populated correctly
             context_menu = await omni.kit.ui_test.menu.get_context_menu()
@@ -1451,7 +1469,7 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             menu_image = ui_test.find(f"{_window.title}//Frame/**/Image[*].identifier=='menu_burger_image'")
             self.assertIsNotNone(menu_image)
             await menu_image.click()
-            await ui_test.human_delay(15)
+            await _wait_for_material_actions()
             context_menu = await ui_test.menu.get_context_menu()
             self.assertIn("_", context_menu, f"No enabled material actions after undo: {context_menu}")
             self.assertIn("Convert to Translucent", context_menu["_"])

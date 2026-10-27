@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.1]
+### Fixed
+- Opened the Timeout field editor with Ctrl+click in the timeout edit test. A double click did not open the editor when slow frames put the two clicks outside the real-time double-click window.
+
 ## [2.2.0]
 ### Added
 - Added a persistent Timeout field in Workflow Inputs, in minutes, with the shared input-row layout, a drag range of 1–360 minutes, and a hard minimum of 0. A Timeout of 0 means no timeout.

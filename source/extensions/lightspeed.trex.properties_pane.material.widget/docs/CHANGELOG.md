@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.11]
+### Fixed
+- Made the material burger menu end-to-end tests wait until the menu loads its actions, so that slow MDL loads on CI no longer fail them.
+
 ## [2.3.10]
 ### Added
 - End-to-end coverage for Texture Transform defaults, editing, and reset.
