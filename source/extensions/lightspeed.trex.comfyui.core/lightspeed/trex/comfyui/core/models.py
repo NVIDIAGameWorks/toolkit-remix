@@ -397,7 +397,8 @@ class WorkflowInput(Generic[InputValueT]):
             context_name: USD context semantic resolvers operate on.
 
         Returns:
-            Parsed workflow input, or ``None`` when the metadata is malformed or unsupported.
+            Parsed workflow input, or ``None`` when the metadata is malformed. Unknown ``remix_type`` and ``type``
+            values are supported: see the Input Contract section of the extension README.
         """
         if (
             not isinstance(node_id, str)
@@ -418,25 +419,26 @@ class WorkflowInput(Generic[InputValueT]):
             if not isinstance(remix_type_str, str):
                 carb.log_warn(f"Skipping input '{node_id}.{port_name}': remix_type must be a string")
                 return None
-            try:
-                remix_type = RemixType(remix_type_str)
-            except ValueError:
-                carb.log_warn(f"Skipping input '{node_id}.{port_name}': unknown remix_type '{remix_type_str}'")
-                return None
+            remix_type = RemixType(remix_type_str) if remix_type_str in RemixType else None
 
         type_str = raw.get("type")
-        if not isinstance(type_str, str) or type_str not in TYPE_MAP:
+        if not isinstance(type_str, str):
             carb.log_warn(f"Skipping input '{node_id}.{port_name}': missing rtx-remix input type")
             return None
         if remix_type in {RemixType.TEXTURE_FILE_PATH, RemixType.MESH_FILE_PATH}:
             native_type = pathlib.Path
+        elif type_str in TYPE_MAP:
+            native_type = TYPE_MAP[type_str]
+        elif type(default_value) in (bool, int, float, str):
+            # A primitive type from a newer node pack keeps the JSON type of its default value.
+            native_type = type(default_value)
         else:
-            native_type = TYPE_MAP.get(type_str, str)
+            native_type = str
         try:
             value = create_default_resolver(remix_type, native_type, default_value, context_name)
         except TypeError:
-            carb.log_warn(f"Skipping input '{node_id}.{port_name}': default value does not match type '{type_str}'")
-            return None
+            default_value = None
+            value = ConstantResolver(value_type=native_type)
 
         raw_additional_data = raw.get("additional_data", {})
         if not isinstance(raw_additional_data, dict):

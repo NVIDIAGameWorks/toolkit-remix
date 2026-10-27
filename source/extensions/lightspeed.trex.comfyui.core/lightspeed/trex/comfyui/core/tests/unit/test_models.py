@@ -223,24 +223,6 @@ class TestWorkflowInput(AsyncTestCase):
         self.assertIs(result.value.value_type, float)
         self.assertEqual(result.value.value, 0.0)
 
-    async def test_unknown_remix_type_is_rejected(self) -> None:
-        """An explicit unknown semantic type cannot silently become a constant input."""
-        # Arrange
-        raw = {"type": "str", "remix_type": "texture_path_typo"}
-
-        # Act
-        with patch("lightspeed.trex.comfyui.core.models.carb.log_warn") as log_warn:
-            result = WorkflowInput.from_dict(
-                "177",
-                "image",
-                raw,
-                "C:/textures/albedo.png",
-            )
-
-        # Assert
-        self.assertIsNone(result)
-        log_warn.assert_called_once()
-
     async def test_malformed_input_metadata_is_rejected(self) -> None:
         """Malformed canonical input fields do not produce partial models."""
         # Arrange
@@ -256,7 +238,6 @@ class TestWorkflowInput(AsyncTestCase):
             ("1", "port", {"type": "str", "additional_data": []}),
             ("1", "port", {"type": "str", "additional_data": {"group": []}}),
             ("group.1", "port", {"type": "str"}),
-            ("1", "port", {"type": "unknown"}),
         )
 
         for node_id, port_name, raw in cases:
@@ -267,26 +248,6 @@ class TestWorkflowInput(AsyncTestCase):
 
                 # Assert
                 self.assertIsNone(result)
-
-    async def test_native_input_default_requires_declared_type(self) -> None:
-        """Workflow parsing rejects native defaults whose exact type does not match metadata."""
-        # Arrange
-        cases = (
-            ({"type": "bool"}, 1),
-            ({"type": "int"}, True),
-            ({"type": "float"}, 1),
-            ({"type": "str"}, pathlib.Path("prompt.txt")),
-            ({"type": "Path"}, 7),
-        )
-        for raw, default_value in cases:
-            with self.subTest(raw=raw):
-                # Act
-                with patch("lightspeed.trex.comfyui.core.models.carb.log_warn") as log_warn:
-                    result = WorkflowInput.from_dict("1", "value", raw, default_value)
-
-                # Assert
-                self.assertIsNone(result)
-                log_warn.assert_called_once()
 
 
 class TestWorkflowOutput(AsyncTestCase):

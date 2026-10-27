@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.2]
+### Added
+- Added an E2E test for node pack inputs that have no Toolkit semantic type, for example a prompt.
+
 ## [2.2.1]
 ### Fixed
 - Opened the Timeout field editor with Ctrl+click in the timeout edit test. A double click did not open the editor when slow frames put the two clicks outside the real-time double-click window.

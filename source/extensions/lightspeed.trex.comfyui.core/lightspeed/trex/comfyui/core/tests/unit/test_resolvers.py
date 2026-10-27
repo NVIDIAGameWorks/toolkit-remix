@@ -299,6 +299,20 @@ class TestValueResolver(AsyncTestCase):
         self.assertEqual(parameter.get_value(), 7)
         self.assertEqual(resolver.value, 7)
 
+    async def test_float_constant_converts_integers_and_rejects_integers_out_of_float_range(self):
+        """ComfyUI saves a whole float as an integer. An integer that no float can hold is a type error."""
+        # Arrange
+        parameter = ConstantResolver(value=0.5).parameters[0]
+
+        # Act
+        parameter.set_value(2)
+        with self.assertRaises(TypeError):
+            parameter.set_value(10**309)
+
+        # Assert
+        self.assertIs(type(parameter.get_value()), float)
+        self.assertEqual(parameter.get_value(), 2.0)
+
     async def test_selected_prim_path_resolver_returns_actual_material_path(self):
         """The selected-prim getter returns the material prim supplied by the generation flow."""
         # Arrange

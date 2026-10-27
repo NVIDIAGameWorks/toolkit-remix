@@ -56,6 +56,18 @@ ComfyUICore
 - `ComfyUIAssetApplyHandler` adds or replaces model references through `Setup` and replaces textures in one undo group.
 - Constant-only asset graphs use the terminal asset Apply handler for metadata. They do not mutate the stage.
 
+### Input Contract
+
+- `texture_file_path` and `mesh_file_path` inputs use their semantic getters. Selected Texture and Selected Mesh are
+  the defaults.
+- Every other `remix_type`, for example `prompt`, `auto`, or a value from a newer node pack, has no semantic getter.
+  The input offers the getters of its primitive type, and Constant is the default.
+- A primitive `type` that the Toolkit does not know uses the JSON type of the workflow value: text, integer, float,
+  or boolean. A linked value uses text.
+- A workflow value that does not match the input type gives an empty Constant of that type.
+- A float input accepts an integer value, for example `1`, because ComfyUI saves a whole float as an integer.
+- Only malformed metadata skips an input, for example a `type` or `remix_type` that is not a string.
+
 ### Output Contract
 
 - `texture_file_path` outputs use the texture pipeline.
