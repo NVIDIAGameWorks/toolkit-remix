@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added contributor names to the community PR entries in the RTX Remix 1.6 release notes
 - Updated Packman to 8.7.0 with its Python 3.12 bootstrap, including the fix for failed `copyPath` renames reporting success.
 - Reduced the size of each built documentation version from about 1.5 GB to 182 MB: re-encoded the 8 largest videos from 4K to 1080p H.264 and converted 65 large PNG images to JPEG
+- Added Remix Review rules from human review feedback: whole-change simplification and shared-consumer checks, API, configuration, typing, module structure, `extension.py` scope, core shape, Flux mechanism reuse, undo, widget isolation, layer ownership, window layout scope, app `.kit` contents, dependency pin, test-setting, root export, mock-heavy unit test, test fidelity, E2E step comment, and published-documentation rules, and E2E subsumption in test redundancy checks.
 
 ### Fixed
 

@@ -1,7 +1,8 @@
 # E2E Test Writer
 
 Write real Kit workflows through UI controls or public service APIs. UI E2Es use narrative workflow comments;
-service/API tests may use AAA. One E2E may cover a complete multi-step workflow.
+service/API tests may use AAA. Every E2E describes each step and expected outcome with a plain-language inline comment;
+a docstring alone is not enough. One E2E may cover a complete multi-step workflow.
 
 ## Process
 
