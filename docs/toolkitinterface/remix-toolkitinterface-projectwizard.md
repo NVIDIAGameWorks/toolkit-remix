@@ -11,7 +11,7 @@
 
 ## Capture Scene File Browser
 
-![ProjectWizard](../data/images/rtxremix_070.png)
+![ProjectWizard](../data/images/rtxremix_070.jpg)
 
 | **Ref** | **Option**            | **Description**                                                                                |
 |---------|-----------------------|------------------------------------------------------------------------------------------------|

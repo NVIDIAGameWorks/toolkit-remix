@@ -75,7 +75,7 @@ After setting these values, ensure that all materials are configured to utilize 
 
 The spritesheet should be organized from left to right and top to bottom, as shown in the following example:
 
-![Sprite Sheet Example](../data/images/sprite_sheet_example.png)
+![Sprite Sheet Example](../data/images/sprite_sheet_example.jpg)
 
 ## Understanding Material Properties
 

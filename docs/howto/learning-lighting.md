@@ -48,7 +48,7 @@ illumination, minimizing noise and maximizing performance.
 
    RTX Remix offers five types of primitive lights: cylinder, disc, rectangular, sphere, and distant lights.
 
-   ![Lighting 1](../data/images/remix-lighting-007.png)
+   ![Lighting 1](../data/images/remix-lighting-007.jpg)
 
 ### Copying a Light to Another Mesh
 

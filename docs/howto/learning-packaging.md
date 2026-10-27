@@ -13,7 +13,7 @@ The packaging process can be completed through a series of straightforward steps
 The packaging tab is accessible within the "Modding" page of the Toolkit interface, situated directly below the "Asset
 Replacement" tab.
 
-![Mod Packaging Tab](../data/images/remix-packaging-tab.png)
+![Mod Packaging Tab](../data/images/remix-packaging-tab.jpg)
 
 ### Mod Details Panel
 

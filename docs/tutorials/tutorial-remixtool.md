@@ -53,12 +53,12 @@ Sample Application.
 3. Move both directories out of the toolkit installation directory to a location of your choice. (In these screenshots, we use E:/Sample)
 4. Install the RTX Remix Runtime by copying the contents of the `runtime` directory into the `sample` directory.
 
-   ![RemixTool Tutorial 3](../data/images/remix_908.png)
+   ![RemixTool Tutorial 3](../data/images/remix_908.jpg)
 
 5. The RTX Remix Sample Application can now be launched by double-clicking the `RemixSample.exe` file. The following
    window should appear:
 
-   ![RemixTool Tutorial 3](../data/images/remix_909.png)
+   ![RemixTool Tutorial 3](../data/images/remix_909.jpg)
 
 6. Since the Sample Application is simple and
    lacks [UI Textures](../gettingstarted/learning-runtimesetup.md#setting-up-ui-textures), texture tagging can be
@@ -69,12 +69,12 @@ Sample Application.
    Open the RTX Remix "Graphics Settings Menu" by pressing `Alt+X`. Then, open the `Developer Settings Menu` by clicking
    the button labeled "Developer Settings Menu."
 
-   ![RemixTool Tutorial 4](../data/images/remix_910.png)
+   ![RemixTool Tutorial 4](../data/images/remix_910.jpg)
 
 7. In the "Developer Settings Menu," click the `Enhancements Tab` to display the "Enhancements" settings, which include
    capture settings.
 
-   ![RemixTool Tutorial 5](../data/images/remix_911.png)
+   ![RemixTool Tutorial 5](../data/images/remix_911.jpg)
 
 8. **After disabling enhancements**, a name can be specified for the capture. Then, click the `Capture Scene` button.
 
@@ -138,7 +138,7 @@ With the Sample Application captured, a project for the Sample Application mod c
 
 7. An RTX Remix Project is now created and ready for authoring.
 
-   ![Remix Project Ready](../data/images/remix-remixtutorial-003.png)
+   ![Remix Project Ready](../data/images/remix-remixtutorial-003.jpg)
 
 ## 5. Ingest and Replace Assets
 
@@ -171,20 +171,20 @@ The following disco ball asset can be used for testing:
 
    After selecting the asset, ensure that the reference is selected in the ["Selection" panel](../howto/learning-toolkit.md#selection-panel). Then, click the **Browse** <img src="../../source/extensions/lightspeed.trex.app.resources/data/icons/folder_open.svg" class="svg-icon" style="height: 1em; vertical-align: text-bottom;"> button in the `Object Properties` panel to select the newly ingested asset.
 
-   ![Remix Asset Replacement](../data/images/remix-remixtutorial-004.png)
+   ![Remix Asset Replacement](../data/images/remix-remixtutorial-004.jpg)
 
 6. After replacing the asset, transform it (translate, rotate, and scale) as needed to match the original asset. Use the
    `Object Properties` panel to perform these transformations.
 
    The new asset should now be visible in the viewport.
 
-   ![Asset Replacement Transform](../data/images/remix-remixtutorial-005.png)
+   ![Asset Replacement Transform](../data/images/remix-remixtutorial-005.jpg)
 
 7. To view the changes in-game, save the mod (`CTRL+S`) and launch the `RemixSample.exe` executable.
 
    The updated asset should now appear in the game.
 
-   ![Asset Replacement Transform](../data/images/remix-remixtutorial-006.png)
+   ![Asset Replacement Transform](../data/images/remix-remixtutorial-006.jpg)
 
 Congratulations! Your first RTX Remix mod was successfully created.
 

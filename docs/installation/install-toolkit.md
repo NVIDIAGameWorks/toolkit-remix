@@ -15,7 +15,7 @@ section.
 2. Follow the instructions to download and install the [NVIDIA App](https://www.nvidia.com/en-us/software/nvidia-app/).
 3. Open the NVIDIA App and install `RTX Remix`.
 
-![Install From THE NVIDIA App](../data/images/remix-install-from-nvapp.png)
+![Install From THE NVIDIA App](../data/images/remix-install-from-nvapp.jpg)
 
 ## Install from GitHub
 

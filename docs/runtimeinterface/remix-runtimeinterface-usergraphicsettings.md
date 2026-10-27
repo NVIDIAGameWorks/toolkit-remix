@@ -1,6 +1,6 @@
 # User Graphic Settings
 
-![UserGraphicSettings](../data/images/rtxremix_024.png)
+![UserGraphicSettings](../data/images/rtxremix_024.jpg)
 
 | **Ref #** | **Option**              |
 |-----------|-------------------------|

@@ -2,7 +2,7 @@
 
 Alpha Test / Blending allows you to toggle alpha testing and blending in the Remix Toolkit.
 
-![AlphaTest](../../data/images/rtxremix_027.png)
+![AlphaTest](../../data/images/rtxremix_027.jpg)
 
 | **Ref** | **Option**                        | **RTX Option**                             | **Default Value** | **Description**                                                                                                                               |
 |---------|-----------------------------------|--------------------------------------------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|

@@ -129,7 +129,7 @@ For a full toolkit changelog, please click [here](remix-full-changelog.md)
 
 We recently introduced Remix Skills, text-based context files that transform AI agents into intelligent collaborators. By lowering the barrier to entry, these agents are already helping the community add features and make previously unsupported titles compatible with RTX Remix. With today's RTX Remix 1.5 update, we are significantly increasing the performance and compatibility for both the Remix Runtime and Toolkit, so you and your coding agents can accelerate the modding pipeline.
 
-![Remix 1.5 Hero](../data/images/remix-1.5-hero.png)
+![Remix 1.5 Hero](../data/images/remix-1.5-hero.jpg)
 
 RTX Remix 1.5 is headlined by a suite of Toolkit features designed to streamline packaging and Runtime improvements that bolster path-tracing stability. From automatic geometry smoothing to massive scene optimization, version 1.5 empowers modders to tackle larger, more complex projects with greater efficiency.
 
@@ -158,7 +158,7 @@ More information about mod packaging is available [here](../howto/learning-packa
 
 #### UX & Workflow Improvements
 
-![Remix 1.5 Unified Lights Menu](../data/images/remix-1.5-lights-menu.png)
+![Remix 1.5 Unified Lights Menu](../data/images/remix-1.5-lights-menu.jpg)
 
 * **Unified Lights Menu:** Access all light manipulators from a single viewport menu, allowing for quick toggles of manipulator visibility and persistent intensity adjustments.
 * **Stage Manager Enhancements:** Added a "Deleted Reference" filter and improved mesh visibility toggles. Property input tooltips are now "field-aware," specifically helping with complex particle settings.
@@ -321,7 +321,7 @@ A major overhaul of the particle system provides a modernized foundation for all
 
 We are excited to announce the official release of **RTX Remix 1.3**. RTX Remix now features a system called **RTX Remix Logic**, which allows Remix to detect game logic and make mods more immersive and dynamic. Remix Logic exposes real time game events that modders can use to trigger visual changes in their mods, all without needing source code or programming knowledge. Remix Logic is powerful–modders can read many aspects of the game state and player behavior, and sculpt visual changes in response with all 900+ settings offered in the RTX Remix Runtime menu.
 
-![Remix 1.3 Hero](../data/images/remix-1.3-hero.png)
+![Remix 1.3 Hero](../data/images/remix-1.3-hero.jpg)
 
 This control over cause and effect unlocks new possibilities. Modders can–
 
@@ -350,7 +350,7 @@ Modders add Remix Logic into their mods by opening the "**Logic Graph**" tab, se
 
 Logic graphs are a node-based workflow where modders can connect nodes that define which game events are detected, and how visuals should change in reaction. Logic graphs do not require any programming knowledge or source code to use.
 
-![Remix Logic Graph Editor](../data/images/remix-logic-graph-editor.png)
+![Remix Logic Graph Editor](../data/images/remix-logic-graph-editor.jpg)
 
 Remix Logic supports four types of nodes:
 
@@ -460,7 +460,7 @@ If you plan to create new conf files for Remix Logic, please follow the steps ou
 
   ![Remix 1.3 Image 8](../data/images/remix-1.3-image-8.png)
 
-  ![Remix 1.3 Image 9](../data/images/remix-1.3-image-9.png)
+  ![Remix 1.3 Image 9](../data/images/remix-1.3-image-9.jpg)
 
   * If you have texture categories in your `user.conf`, the runtime menus will offer you "Migrate" buttons before allowing you to save `rtx.conf` or `user.conf`. Clicking these buttons will move the texture categories into `rtx.conf` (merging with any that are already there), and save both files.
   * After migration, you should be able to add or remove textures as normal
@@ -527,7 +527,7 @@ Let's get into the details —
         * **Option 2**: right-click the mesh in the Stage Manager, and select “Particle System” \> “Add”
         * **Option 3**: choose the particle icon in the Stage Manager, under the Actions column
 
-  ![Remix Particle Creation Options](../data/images/remix-particle-creation-options.png)
+  ![Remix Particle Creation Options](../data/images/remix-particle-creation-options.jpg)
 
     * **Viewport Gizmo and Selection**: You can now select particle systems in the viewport using a new gizmo. When
       selected, the gizmo highlights the emitter mesh.
@@ -786,7 +786,7 @@ adjust the look of the game to meet the monitor’s output
 
 **RTX Volumetrics:** Volumetrics now supports heterogeneous fog as a global setting in the runtime.
 
-![Volumetrics](../data/images/rtx_volumetrics.png)
+![Volumetrics](../data/images/rtx_volumetrics.jpg)
 
 #### Performance and Memory Optimizations:
 
@@ -810,7 +810,7 @@ adjust the look of the game to meet the monitor’s output
   vectors (ex: animated water, animated textures, etc.), in exchange for slightly worse image clarity around those
   textures. To toggle the feature, look under Denoising > DLSS-RR > Disocclusion Mask > “Blur”
 
-  ![Disocclusion Mask Blur](../data/images/disocclusion_mask_blur.png)
+  ![Disocclusion Mask Blur](../data/images/disocclusion_mask_blur.jpg)
 
 #### For Developers/Contributors:
 
@@ -829,7 +829,7 @@ adjust the look of the game to meet the monitor’s output
 - Advanced Developer Menu now provides a “Composite Debug View” setting under Rendering Tab > Debug. Developers can view
   multiple debug views simultaneously from a predefined list
 
-  ![Composite Debug View](../data/images/composite_debug_view.png)
+  ![Composite Debug View](../data/images/composite_debug_view.jpg)
 
 #### Community Contributions
 
