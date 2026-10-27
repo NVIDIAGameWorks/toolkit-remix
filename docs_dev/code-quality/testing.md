@@ -318,6 +318,9 @@ may use AAA and need not drive UI controls.
   action whose path the test claims to exercise
 - **Verify results** through UI state, API responses/status, domain state, filesystem checks, or USD stage values as
   appropriate
+- **Describe each step with an inline comment** in plain language: what the test does and what it expects, so a
+  reviewer can follow the workflow without decoding the calls. A docstring alone is not enough. Service/API E2Es that
+  use AAA markers also describe each step under its marker
 - In UI E2Es, use `await ui_test.human_delay()` for frame waits — **never** `time.sleep()` or `next_update_async()`
 - Local `tests-<extension.name>.bat` runs can stay headless by adding `-- --no-window`. Omit it when visible UI helps
   debug widget focus, rendering, or modal behavior. Add `--dev` when you intentionally want to watch local E2E tests run.
@@ -473,15 +476,23 @@ labels = parent_widget.find_all("/Label[*].identifier=='tag'")
 
 ### Driving Interactions and Waiting
 
-After every UI action, call `await ui_test.human_delay()` to let the Kit event loop process and render. For longer
-operations (ingestion, file I/O), pass a higher frame count:
+After every UI action, call `await ui_test.human_delay()` to let the Kit event loop process and render. This paces
+input; it is not a completion signal. For longer operations (ingestion, file I/O), wait for the same signal that the
+application uses: the returned future or task done state, a UI state, or an event. Yield one update at a time in a
+bounded loop, and fail explicitly if the bound is exhausted. Never pass a higher frame count to stand in for completion:
 
 ```python
 await button.click()
 await ui_test.human_delay()  # default: 1 frame
 
 await ingest_button.click()
-await ui_test.human_delay(50)  # wait longer for heavy operations
+# Wait until ingestion reports completion, as the app does, instead of a fixed frame count
+for _ in range(MAX_UPDATES):
+    await ui_test.human_delay()
+    if ingestion_finished():  # the task done state, UI state, or event that the app uses
+        break
+else:
+    self.fail("Ingestion did not finish")
 ```
 
 For text input, use `human_delay_speed` to control typing simulation:

@@ -79,6 +79,14 @@ from .foo import Foo as Foo
 from .bar import Bar as Bar
 ```
 
+An extension package's root `__init__.py` exports only the entry points that callers start from. For a core, that is
+the extension class, the instance getter, and the commands that callers execute. For example,
+`lightspeed.trex.comfyui.core` exports only `ComfyUICoreExtension`, `get_comfyui_core_instance`, and
+`SetComfyUIOutputFieldCommand`. For a plugin framework, it is the API that providers implement. Internal helpers,
+settings accessors, submission functions, event plumbing, constants, and enums that only sibling extensions use stay
+in their submodules, and callers import them from there, for example `core.modifier` or `core.submission`. Do not
+mirror every submodule symbol at the root.
+
 ## Imports
 
 ### isort Grouping
