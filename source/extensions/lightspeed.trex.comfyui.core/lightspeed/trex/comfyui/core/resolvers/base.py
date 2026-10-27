@@ -30,6 +30,7 @@ import abc
 import dataclasses
 import pathlib
 from collections.abc import Callable, Iterator
+from contextlib import suppress
 from typing import Any, ClassVar, Generic, TypeVar
 
 from omni.flux.factory.base import FactoryBase, PluginBase
@@ -221,6 +222,10 @@ def normalize_native_value(native_type: type, value: object) -> object:
             value = pathlib.Path(value.path)
     elif native_type is pathlib.Path and type(value) is str:
         value = pathlib.Path(value)
+    elif native_type is float and type(value) is int:
+        # An integer outside the float range stays an int, so the type check below raises TypeError.
+        with suppress(OverflowError):
+            value = float(value)
     if native_type is pathlib.Path:
         value_matches_type = isinstance(value, pathlib.Path)
     else:

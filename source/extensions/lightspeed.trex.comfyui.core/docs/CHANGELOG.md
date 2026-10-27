@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.0.1]
+### Fixed
+- Fixed workflow inputs that the Toolkit skipped when it did not know their `remix_type`, for example `prompt` or `auto`, or their primitive `type`. These inputs now get a Constant default. A float input and an active preset accept an integer value such as `1`.
+
 ## [4.0.0]
 ### Added
 - Added prompt cancellation that waits for queue removal and a persistent job timeout with a 3600-second default. A timeout of 0 means no time limit.

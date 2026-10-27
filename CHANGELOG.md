@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-6095: Fixed vector attributes in the Properties panels, including MDL `float2` parameters, raising `TypeError` and showing wrong defaults, and fixed resetting a vector to restore the wrong channel default. Updated HdRemix and material definitions to `ext-e62bf4b-main` for texture transforms.
 - Fixed a light manipulator leak: each manipulator rebuild kept its light models subscribed to all stage events, which made the Properties panel e2e tests 34% slower and close to the CI extension timeout. Fixed the flaky ComfyUI Timeout edit test, which used a double click that slow frames broke.
 - Fixed `github-mirror-sync` rejections when LFS files change by pushing the LFS objects of commits missing from the staging mirror, and checked that the runner has `git-lfs`
+- Fixed ComfyUI workflow inputs that the node pack tags as `prompt`, `auto`, a prim path, a layer identifier, or a type that the Toolkit does not know: they were missing from the AI Tools input list and now use the getters of their primitive type.
 
 ### Removed
 

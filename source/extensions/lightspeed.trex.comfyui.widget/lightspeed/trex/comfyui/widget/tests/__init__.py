@@ -17,6 +17,7 @@
 
 from .e2e.test_job_queue_visibility import TestJobQueueVisibilityE2E
 from .e2e.test_mesh_workflow_ui import TestMeshWorkflowSelectionPanelUIE2E, TestMeshWorkflowUIE2E
+from .e2e.test_node_pack_input_types_ui import TestNodePackInputTypesUIE2E
 from .e2e.test_setup import TestComfySetupAdvancedWidgetE2E
 from .e2e.test_workspace import TestComfySetupWorkspaceE2E
 from .e2e.test_typed_product_workflow import TestTypedComfyUIProductWorkflowE2E
@@ -35,6 +36,7 @@ __all__ = (
     "TestJobQueueVisibilityE2E",
     "TestMeshWorkflowSelectionPanelUIE2E",
     "TestMeshWorkflowUIE2E",
+    "TestNodePackInputTypesUIE2E",
     "TestOutputItemGroup",
     "TestTypedComfyUIProductWorkflowE2E",
     "TestWorkflowModel",
