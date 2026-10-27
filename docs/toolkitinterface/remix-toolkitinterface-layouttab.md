@@ -94,7 +94,7 @@
 
 ## Stage Manager
 
-![Stage Manager](../data/images/remix-toolkitinterface-stagemanager.png)
+![Stage Manager](../data/images/remix-toolkitinterface-stagemanager.jpg)
 
 | Ref | Option                   | Description                                                                                                                                                                                                                                    |
 |:---:|:-------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -108,7 +108,7 @@
 
 ## Mod Packaging
 
-![Mod Package](../data/images/remix-toolkitinterface-modepackage.png)
+![Mod Package](../data/images/remix-toolkitinterface-modepackage.jpg)
 
 | Ref | Option                                      | Description                                                                                                                                                                           |
 |:---:|:--------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

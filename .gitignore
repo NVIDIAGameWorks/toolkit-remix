@@ -101,9 +101,9 @@ _consensus_*.json
 # NICC CLI version tracking (per-user, not committed)
 .nicc_resource_versions.json
 
-# allow anything in data, docs/images, ext data (under Git LFS management)
+# allow anything in data, docs/data, ext data (under Git LFS management)
 !data/**
-!docs/images/**
+!docs/data/**
 !source/extensions/**/data/**
 
 # ignore the cache

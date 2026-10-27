@@ -27,7 +27,7 @@ This is a quick and easy way to see particle effects in game. However there are 
 
 **To tag a texture:**
 
-![Add Texture Tag](../data/images/particles-add-texture-tag.png)
+![Add Texture Tag](../data/images/particles-add-texture-tag.jpg)
 
 1. Open the **Developer Settings**
 2. Go to the **Game Setup** tab
@@ -36,7 +36,7 @@ This is a quick and easy way to see particle effects in game. However there are 
 
 ### Tune Global Particle Settings
 
-![Particle System Global Settings](../data/images/particles-runtime-global-settings.png)
+![Particle System Global Settings](../data/images/particles-runtime-global-settings.jpg)
 
 1. Open the **Developer Settings**
 2. Go to the **Rendering** tab
@@ -86,13 +86,13 @@ To see an effect, set the **Spawn Rate Per Second** attribute to a non-zero valu
 
 1. To select a particle system in the viewport, click on the blue spike icon. Rectangle select also works if the icon
    is hard to click.
-   ![Particles Gizmo](../data/images/particles-gizmo.png)
+   ![Particles Gizmo](../data/images/particles-gizmo.jpg)
 2. Once selected, you will see a hologram for hidden emitters or a wireframe outlining visible ones.
-   ![Particles Gizmo Selected](../data/images/particles-gizmo-selected.png)
+   ![Particles Gizmo Selected](../data/images/particles-gizmo-selected.jpg)
 
 You can toggle particle gizmos on and off in the viewport menu.
 
-![Particles Gizmo Menu](../data/images/particles-gizmo-menu.png)
+![Particles Gizmo Menu](../data/images/particles-gizmo-menu.jpg)
 
 ## Configuring a Particle System
 

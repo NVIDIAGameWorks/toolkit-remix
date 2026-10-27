@@ -67,7 +67,7 @@ The Sample App turns off graphs by default, so in order to see them you'll need 
 
 In the Developer Settings Menu, go to the **Enhancements** tab, look under **"Remix Logic"** and toggle on **"Enable"**.
 
-![Enable Logic in Remix Runtime](../data/images/logic-runtime-enable-logic.png)
+![Enable Logic in Remix Runtime](../data/images/logic-runtime-enable-logic.jpg)
 
 That will change the conf setting to: `rtx.graph.enable = True`
 
@@ -75,7 +75,7 @@ That will change the conf setting to: `rtx.graph.enable = True`
 
 Once enabled, you can view your active Logic Graphs in the same tab, where you can see what parameters are being tuned and review the current game state.
 
-![Logic Image 20](../data/images/logic-image-20.png)
+![Logic Image 20](../data/images/logic-image-20.jpg)
 
 ### Enable Free Camera in Remix Runtime
 
@@ -114,7 +114,7 @@ First, you'll need to take a capture of the Sample App and set up a project, fol
 
 ## Creating or Editing a Logic Graph:
 
-![Logic Graph Create Edit](../data/images/logic-graph-create-edit.png)
+![Logic Graph Create Edit](../data/images/logic-graph-create-edit.jpg)
 
 1.  First, ensure your edit target is set to your desired layer where you'd like to author your graphs. In the Sample App, this is just the mod.usda but you may want a dedicated layer for Component graphs for a more complex project.
 
@@ -124,7 +124,7 @@ First, you'll need to take a capture of the Sample App and set up a project, fol
 
 3.  Creating a new logic graph or editing an existing graph will open the Remix Logic Graph Editor.
 
-    ![Logic Nodes Overview](../data/images/logic-nodes-overview.png)
+    ![Logic Nodes Overview](../data/images/logic-nodes-overview.jpg)
 
 4.  You can now drag nodes from the catalog on the left and connect them up to make a graph. With a node selected you can edit properties with the property editor.
 
@@ -154,7 +154,7 @@ The following examples ship with the Remix Sample App. Read on to learn how each
 
 When the player camera comes near the cube, alter the graphics to a white mode (maxed out albedo bias).
 
-![Example1 Camera Proximity Result](../data/images/logic-example1-camera-proximity-result.png)
+![Example1 Camera Proximity Result](../data/images/logic-example1-camera-proximity-result.jpg)
 
 Here's how our graph looks that is driving this example:
 
@@ -178,15 +178,15 @@ By connecting the Mesh Proximity's "Activation Strength" to the Rtx Option Layer
 ## **Example 2:** "Detect Orientation" Graph
 When the R is backwards, activate a particle effect. Each time the R is backwards, the particle effect changes between deactivated, falling upwards, or falling downwards.
 
-![Example1 Distance Output](../data/images/logic-example1-distance-output.png)
+![Example1 Distance Output](../data/images/logic-example1-distance-output.jpg)
 
 This **"Detect\_mesh\_rotation"** section of this graph reads the mesh's transform using the "Read Transform" node, extracts the y Component of the rotation, and checks if it is between two values.
 
-![Example1 State Switcher](../data/images/logic-example1-state-switcher.png)
+![Example1 State Switcher](../data/images/logic-example1-state-switcher.jpg)
 
 The rest of the graph is a combination of Transform nodes, which will switch between two config files: one that has particles flying upwards, and another that has particles falling down. Each conf file is activated based on the number of times the **Detect\_mesh\_rotation** section has switched from false to true.
 
-![Example1 Albedo Bias](../data/images/logic-example1-albedo-bias.png)
+![Example1 Albedo Bias](../data/images/logic-example1-albedo-bias.jpg)
 
 To break it down, the "Count Toggles" will output either 0 or 1, since it is configured to reset when it reaches a count of 2.
 
@@ -202,12 +202,12 @@ The hardest part with creating this graph is understanding how to populate the "
 
 The values required for the "Between" node are impossible to guess, instead they must be gathered by observing the game at runtime. See [Gathering Values for Configuration](#gathering-values-for-configuration) in the Debugging section for the process. In this case, you would watch the rotation value change as the R rotates, then use those coordinates to populate the "Between" node.
 
-![Example2 Graph](../data/images/logic-example2-graph.png)
+![Example2 Graph](../data/images/logic-example2-graph.jpg)
 
 ## **Example 3:** "Is Camera Looking At Mesh" Graph
 When the player is looking away from the R, animate the paranoia.conf file on and off.
 
-![Example3 Rotation Output](../data/images/logic-example3-rotation-output.png)
+![Example3 Rotation Output](../data/images/logic-example3-rotation-output.jpg)
 
 This example showcases a gameplay mechanic powered by Remix Logic. It resembles a "Spidey Sense" for when an object (or enemy) is nearby, and the player is facing away from it, the player gets "paranoid", warning them of danger. We create this paranoia effect by pulsing the intensity of Remix's "vignette" effect and "chromatic aberration".
 
@@ -224,7 +224,7 @@ Once again the "Remap" node is used, this time to clamp the angle (a 0-180 value
 ## **Example 4:** "Keyboard Input" Graph
 When the player presses Alt+F, activate a flashlight.
 
-![Example4 Set Data](../data/images/logic-example4-set-data.png)
+![Example4 Set Data](../data/images/logic-example4-set-data.jpg)
 
 This simple graph uses a hotkey to activate Remix's fallback flashlight. When the hotkey is released, "Was Clicked" will be true for one frame.  That will switch Toggle's "Is On" from False to True (or vice versa), turning the flashlight on or off.
 
@@ -371,7 +371,7 @@ Modders should rename the `new.conf` file, maintaining the `.conf` extension. Th
 
 In the Remix Toolkit, modders create a graph that features a "RTX Option Layer Action" Node. From the Logic Properties pane, they should point this node to the `.conf` file they want to transition the visuals to. When a particular game event is detected, the `.conf` file will be applied on top of the existing config, enacting a visual change at whatever blend strength the modder has specified.
 
-![Example3 Sphere Light](../data/images/logic-example3-sphere-light.png)
+![Example3 Sphere Light](../data/images/logic-example3-sphere-light.jpg)
 
 ## Understanding `user.conf` Priority
 

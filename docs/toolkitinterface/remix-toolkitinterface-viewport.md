@@ -1,6 +1,6 @@
 # Viewport
 
-![Viewport](../data/images/remix-viewport-001.png)
+![Viewport](../data/images/remix-viewport-001.jpg)
 
 | Ref | Option                        | Description                                                                                                                                                                                                                                                                                        |
 |:---:|:------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -22,7 +22,7 @@
 | Navigation   | Description                                                                                                                                                                                                                                                                                            |                                                                   Image Reference                                                                   |
 |:-------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------:|
 | **Home**     | Use the **Home** control to bring the camera back to where the scene started.                                                                                                                                                                                                                          |                                                                                                                                                     |
-| **Orbit**    | Rotate the camera around a point by using the **Orbit** control. It's like circling around an object while keeping it in view.                                                                                                                                                                         |                                                   ![Orbit](../data/images/view_navigation_1.png)                                                    |
+| **Orbit**    | Rotate the camera around a point by using the **Orbit** control. It's like circling around an object while keeping it in view.                                                                                                                                                                         |                                                   ![Orbit](../data/images/view_navigation_1.jpg)                                                    |
 | **Look**     | To **Orbit**, choose an object with the focus, hold Alt, and left-click while moving the mouse.                                                                                                                                                                                                        |                                                    ![Look](../data/images/view_navigation_2.png)                                                    |
 | **Walk**     | Move the camera in a straight line relative to the current view. Hold the right mouse button to **Look**, and use the arrow keys (W, A, S, D, Q, E) to **Walk**. Alternatively, use the arrow keys plus Page Up and Page Down. Adjust walking speed by scrolling while holding the right mouse button. | ![Walk 1](../data/images/view_navigation_3.png) ![Walk 2](../data/images/view_navigation_6.png) ![Walk Speed](../data/images/view_navigation_5.png) |
 | **Pan**      | Move the camera parallel to the viewpoint by holding the middle mouse button and moving the mouse.                                                                                                                                                                                                     |                                                    ![Pan](../data/images/view_navigation_4.png)                                                     |
@@ -481,7 +481,7 @@ There are a few icons that appear on the left side of these menu options as you 
 Since the Remix Toolkit is built on Omniverse. More information on camera settings can be found here: https://docs.omniverse.nvidia.com/materials-and-rendering/latest/cameras.html
 ```
 
-![Camera Settings](../data/images/remix-viewport-camerasettings.png)
+![Camera Settings](../data/images/remix-viewport-camerasettings.jpg)
 
 | Ref | Option            | Description                                                         |
 |:---:|:------------------|:--------------------------------------------------------------------|

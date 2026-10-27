@@ -116,7 +116,7 @@ be supported through [D3D8to9](https://github.com/crosire/d3d8to9).
 5. Now, run the game. If the Runtime has been installed successfully, you should be be able to open the **User Graphics
    Settings** Remix menu by pressing **Alt + X**.
 
-   ![UserGraphicSettings](../data/images/rtxremix_012.PNG)
+   ![UserGraphicSettings](../data/images/rtxremix_012.jpg)
 
 ```{tip}
 If you are having trouble, try launching your game in Direct X v.7 or lower

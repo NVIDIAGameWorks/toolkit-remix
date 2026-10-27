@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Excluded internal CI from future GitHub mirror commits while preserving previously exported history and GitHub workflows.
 - Added contributor names to the community PR entries in the RTX Remix 1.6 release notes
 - Updated Packman to 8.7.0 with its Python 3.12 bootstrap, including the fix for failed `copyPath` renames reporting success.
+- Reduced the size of each built documentation version from about 1.5 GB to 182 MB: re-encoded the 8 largest videos from 4K to 1080p H.264 and converted 65 large PNG images to JPEG
 
 ### Fixed
 
