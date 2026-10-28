@@ -27,6 +27,7 @@ from lightspeed.hydra.remix.core import RemixSupport as _RemixSupport
 
 _ENSURE_EDITABLE = "lightspeed.trex.viewports.shared.widget.setup_ui._ensure_editable_camera"
 _FRAME_SELECTION = "lightspeed.trex.viewports.shared.widget.setup_ui._frame_viewport_selection"
+_INGESTCRAFT_VIEWPORT_ID = "ingestcraft/Viewport0"
 
 
 class TestSetupUIGameCameraBoundary(omni.kit.test.AsyncTestCase):
@@ -712,7 +713,7 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         """Opening a stage in a hidden viewport leaves renderer initialization deferred."""
         # Arrange
         setup = _setup_ui.SetupUI.__new__(_setup_ui.SetupUI)
-        setup.viewport_id = "ingestcraft/Viewport0"
+        setup.viewport_id = _INGESTCRAFT_VIEWPORT_ID
         setup._window_visible = False
         setup._active = False
         setup._docked = False
@@ -736,7 +737,7 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         """Showing a viewport initializes rendering for its previously opened stage."""
         # Arrange
         setup = _setup_ui.SetupUI.__new__(_setup_ui.SetupUI)
-        setup.viewport_id = "ingestcraft/Viewport0"
+        setup.viewport_id = _INGESTCRAFT_VIEWPORT_ID
         setup._window_visible = False
         setup._active = False
         setup._docked = False
@@ -758,7 +759,7 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         """Hiding a viewport cancels pending initialization and disables rendering updates."""
         # Arrange
         setup = _setup_ui.SetupUI.__new__(_setup_ui.SetupUI)
-        setup.viewport_id = "ingestcraft/Viewport0"
+        setup.viewport_id = _INGESTCRAFT_VIEWPORT_ID
         setup._window_visible = True
         setup._active = True
         setup._docked = False
@@ -779,7 +780,7 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         """Reopening a hidden viewport starts renderer initialization again."""
         # Arrange
         setup = _setup_ui.SetupUI.__new__(_setup_ui.SetupUI)
-        setup.viewport_id = "ingestcraft/Viewport0"
+        setup.viewport_id = _INGESTCRAFT_VIEWPORT_ID
         setup._window_visible = False
         setup._active = False
         setup._docked = False
