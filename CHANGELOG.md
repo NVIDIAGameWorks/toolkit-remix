@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `github-mirror-sync` rejections when LFS files change by pushing the LFS objects of commits missing from the staging mirror, and checked that the runner has `git-lfs`
 - Fixed ComfyUI workflow inputs that the node pack tags as `prompt`, `auto`, a prim path, a layer identifier, or a type that the Toolkit does not know: they were missing from the AI Tools input list and now use the getters of their primitive type.
 - Fixed `publish-etm-list` using a duplicate rules block that overrode its intended `when: always` behavior for pushes to `main`.
+- Fixed standalone IngestCraft startup failures by deferring hidden viewport initialization, resuming it when shown, and propagating ingestion preview visibility.
 
 ### Removed
 

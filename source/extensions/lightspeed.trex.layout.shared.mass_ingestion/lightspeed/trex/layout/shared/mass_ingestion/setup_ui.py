@@ -68,6 +68,7 @@ class SetupUI(_WorkspaceWidget):
         super().show(visible)
         if self._mass_ingest_widget:
             self._mass_ingest_widget.show(visible)
+        self._viewport.show(visible and self._frame_viewport.visible)
 
     def destroy(self):
         """Clean up all resources."""
@@ -140,6 +141,7 @@ class SetupUI(_WorkspaceWidget):
                 value = not self._frame_viewport.visible
                 self._frame_viewport.visible = value
                 self._frame_viewport.width = ui.Fraction(1) if value else ui.Percent(0)
+            self._viewport.show(self._frame_viewport.visible)
             self.__last_show_viewport_item = item
         elif action_name == _MassQueueTreeActions.SHOW_VALIDATION.value:
             self._properties_panel.selection = [self._VALIDATION_TAB_NAME]

@@ -245,20 +245,32 @@ class SetupUI(_WorkspaceWidget):
         """Halt or resume viewport updates depending on state."""
         if not self._viewport_layers or not self._viewport_layers.viewport_api:
             return
-        updates_enabled = True
+        updates_enabled = self.window_visible
         if self._docked and carb.settings.get_settings().get("/app/renderer/skipWhileMinimized"):
             updates_enabled = False
         if not self._active:
             updates_enabled = False
+        was_enabled = self.viewport_api.updates_enabled
         self.viewport_api.updates_enabled = updates_enabled
+        if not updates_enabled:
+            if self._remix_renderer_activation_task is not None:
+                self._remix_renderer_activation_task.cancel()
+                self._remix_renderer_activation_task = None
+        elif not was_enabled and self.viewport_api.stage is not None:
+            self._schedule_remix_renderer_activation("viewport-active")
 
     def _on_minimized(self, event: carb.events.IEvent, *args, **kwargs):
         self._docked = event.payload.get("isMinimized", False)
         self._set_viewport_api_updates_enabled()
 
+    def show(self, visible: bool):
+        """Update viewport activity when its containing workspace is shown or hidden."""
+        super().show(visible)
+        self.set_active(visible)
+
     def set_active(self, active: bool):
-        """Call this method when a higher level ui element obscures or uncovers this shared viewport widget"""
-        self._active = active
+        """Update viewport activity while respecting workspace visibility."""
+        self._active = active and self.window_visible
         if self._active:
             # send an event to deactivate all other viewports
             _get_event_manager_instance().call_global_custom_event(
@@ -286,6 +298,9 @@ class SetupUI(_WorkspaceWidget):
             self._schedule_remix_renderer_activation("stage-opened")
 
     def _schedule_remix_renderer_activation(self, reason: str, retry_support: bool = True):
+        """Schedule renderer initialization for a visible, updating viewport."""
+        if not self.window_visible or not self.viewport_api.updates_enabled:
+            return
         task = self._remix_renderer_activation_task
         if task is not None and not task.done():
             carb.log_info(
