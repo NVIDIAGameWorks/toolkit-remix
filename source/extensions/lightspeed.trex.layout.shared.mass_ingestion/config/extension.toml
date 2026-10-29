@@ -31,13 +31,6 @@ name = "lightspeed.trex.layout.shared.mass_ingestion"
 dependencies = [
     "lightspeed.trex.tests.dependencies",
     "omni.kit.test_suite.helpers",
-    "omni.flux.validator.plugin.context.usd_stage",
-    "omni.flux.validator.plugin.check.usd",
-    "omni.flux.validator.plugin.selector.usd",
-]
-
-args = [
-    "--/exts/lightspeed/trex/viewports/shared/widget/registerOpenGLSceneLayers=false",
 ]
 
 stdoutFailPatterns.exclude = [

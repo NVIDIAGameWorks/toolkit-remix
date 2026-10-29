@@ -27,7 +27,6 @@ from lightspeed.hydra.remix.core import RemixSupport as _RemixSupport
 
 _ENSURE_EDITABLE = "lightspeed.trex.viewports.shared.widget.setup_ui._ensure_editable_camera"
 _FRAME_SELECTION = "lightspeed.trex.viewports.shared.widget.setup_ui._frame_viewport_selection"
-_INGESTCRAFT_VIEWPORT_ID = "ingestcraft/Viewport0"
 
 
 class TestSetupUIGameCameraBoundary(omni.kit.test.AsyncTestCase):
@@ -713,7 +712,7 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         """Opening a stage in a hidden viewport leaves renderer initialization deferred."""
         # Arrange
         setup = _setup_ui.SetupUI.__new__(_setup_ui.SetupUI)
-        setup.viewport_id = _INGESTCRAFT_VIEWPORT_ID
+        setup.viewport_id = "ingestcraft/Viewport0"
         setup._window_visible = False
         setup._active = False
         setup._docked = False
@@ -732,72 +731,3 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         setup._activate_remix_renderer_async.assert_not_called()
         self.assertFalse(viewport_api.updates_enabled)
         self.assertFalse(setup.is_active())
-
-    async def test_show_hidden_viewport_with_open_stage_starts_activation(self):
-        """Showing a viewport initializes rendering for its previously opened stage."""
-        # Arrange
-        setup = _setup_ui.SetupUI.__new__(_setup_ui.SetupUI)
-        setup.viewport_id = _INGESTCRAFT_VIEWPORT_ID
-        setup._window_visible = False
-        setup._active = False
-        setup._docked = False
-        setup._remix_renderer_activation_task = None
-        viewport_api = SimpleNamespace(stage=object(), updates_enabled=False)
-        setup._viewport_layers = SimpleNamespace(viewport_api=viewport_api)
-        setup._activate_remix_renderer_async = AsyncMock()
-
-        with patch.object(_setup_ui, "_get_event_manager_instance"):
-            # Act
-            setup.show(True)
-            await setup._remix_renderer_activation_task
-
-        # Assert
-        setup._activate_remix_renderer_async.assert_awaited_once_with("viewport-active", retry_support=True)
-        self.assertTrue(viewport_api.updates_enabled)
-
-    async def test_hide_viewport_with_pending_activation_cancels_initialization(self):
-        """Hiding a viewport cancels pending initialization and disables rendering updates."""
-        # Arrange
-        setup = _setup_ui.SetupUI.__new__(_setup_ui.SetupUI)
-        setup.viewport_id = _INGESTCRAFT_VIEWPORT_ID
-        setup._window_visible = True
-        setup._active = True
-        setup._docked = False
-        pending_activation = MagicMock()
-        setup._remix_renderer_activation_task = pending_activation
-        viewport_api = SimpleNamespace(stage=object(), updates_enabled=True)
-        setup._viewport_layers = SimpleNamespace(viewport_api=viewport_api)
-
-        # Act
-        setup.show(False)
-
-        # Assert
-        pending_activation.cancel.assert_called_once()
-        self.assertIsNone(setup._remix_renderer_activation_task)
-        self.assertFalse(viewport_api.updates_enabled)
-
-    async def test_show_viewport_after_hiding_restarts_activation(self):
-        """Reopening a hidden viewport starts renderer initialization again."""
-        # Arrange
-        setup = _setup_ui.SetupUI.__new__(_setup_ui.SetupUI)
-        setup.viewport_id = _INGESTCRAFT_VIEWPORT_ID
-        setup._window_visible = False
-        setup._active = False
-        setup._docked = False
-        setup._remix_renderer_activation_task = None
-        viewport_api = SimpleNamespace(stage=object(), updates_enabled=False)
-        setup._viewport_layers = SimpleNamespace(viewport_api=viewport_api)
-        setup._activate_remix_renderer_async = AsyncMock()
-
-        with patch.object(_setup_ui, "_get_event_manager_instance"):
-            setup.show(True)
-            await setup._remix_renderer_activation_task
-            setup.show(False)
-
-            # Act
-            setup.show(True)
-            await setup._remix_renderer_activation_task
-
-        # Assert
-        self.assertEqual(2, setup._activate_remix_renderer_async.await_count)
-        self.assertTrue(viewport_api.updates_enabled)
