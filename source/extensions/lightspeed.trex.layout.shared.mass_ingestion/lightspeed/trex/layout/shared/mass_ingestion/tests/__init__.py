@@ -15,6 +15,9 @@
 * limitations under the License.
 """
 
-from .unit.test_setup_ui import TestSetupUIDestroy
+from lightspeed.trex.layout.shared.mass_ingestion.tests.unit.test_setup_ui import (
+    TestSetupUIDestroy,
+    TestSetupUIVisibility,
+)
 
-__all__ = ["TestSetupUIDestroy"]
+__all__ = ["TestSetupUIDestroy", "TestSetupUIVisibility"]

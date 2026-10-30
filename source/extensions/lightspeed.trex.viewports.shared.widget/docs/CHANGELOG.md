@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.6]
+### Fixed
+- Deferred renderer initialization until a viewport is visible and active, canceled initialization while hidden or inactive, and restored lazy main viewport construction for standalone applications.
+
+### Changed
+- Removed redundant viewport visibility unit tests.
+
 ## [1.8.5]
 ### Fixed
 - Routed Stage Manager frame requests to the viewport matching the requested USD context.

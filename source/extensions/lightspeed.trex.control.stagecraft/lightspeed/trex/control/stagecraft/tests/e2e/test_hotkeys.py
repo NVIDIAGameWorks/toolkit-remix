@@ -69,6 +69,8 @@ class TestHotkeys(AsyncTestCase):
         viewport_was_visible = None
 
         try:
+            # A user opens Stage Craft before its lazily created viewport can receive hotkeys.
+            await _load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
             viewport = _get_viewport_instance(Contexts.STAGE_CRAFT.value)
             self.assertIsNotNone(viewport)
             viewport_path = f"{_WindowNames.VIEWPORT.value}//Frame"
@@ -84,8 +86,6 @@ class TestHotkeys(AsyncTestCase):
             self.assertIsNotNone(viewport_window)
             viewport_was_visible = viewport_window.visible
 
-            # A user opens Stage Craft and works in its existing viewport rather than an isolated test viewport.
-            _load_layout(_get_quicklayout_config(_LayoutFiles.WORKSPACE_PAGE))
             replacement_layer = Sdf.Layer.FindRelativeToLayer(stage.GetRootLayer(), "./replacements.usda")
             self.assertIsNotNone(replacement_layer)
             stage.SetEditTarget(Usd.EditTarget(replacement_layer))

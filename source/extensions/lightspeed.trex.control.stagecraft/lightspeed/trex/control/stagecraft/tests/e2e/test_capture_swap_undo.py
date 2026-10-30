@@ -177,6 +177,10 @@ class TestCaptureSwapUndo(AsyncTestCase):
                 _WindowNames.STAGE_MANAGER.value,
                 _WindowNames.SIDEBAR.value,
             )
+            # Opening workspace panels creates their contents lazily.
+            for title in expected_windows:
+                ui.Workspace.show_window(title, True)
+            await ui_test.human_delay()
             for _ in range(120):
                 windows = {title: ui.Workspace.get_window(title) for title in expected_windows}
                 viewport_widget = _get_viewport_instance(self._context_name)
@@ -186,8 +190,6 @@ class TestCaptureSwapUndo(AsyncTestCase):
             else:
                 self.fail("StageCraft workspace did not load the expected windows")
 
-            for title in expected_windows:
-                ui.Workspace.show_window(title, True)
             await ui_test.wait_n_updates(20)
             await ui_test.human_delay(human_delay_speed=10)
 

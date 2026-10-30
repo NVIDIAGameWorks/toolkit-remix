@@ -38,9 +38,5 @@ class MainViewportWindow(_WorkspaceWindowBase):
     def flags(self) -> int:
         return ui.WINDOW_FLAGS_NO_SCROLLBAR | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
 
-    def create_window(self):
-        super().create_window()
-        self._update_ui()  # Create UI on app init so we don't get HdRemix initialization timeout.
-
     def _create_window_ui(self):
         return self._viewport_create_fn(self._usd_context_name)

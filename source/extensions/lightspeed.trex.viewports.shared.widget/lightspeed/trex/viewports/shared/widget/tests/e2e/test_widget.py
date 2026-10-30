@@ -85,6 +85,8 @@ class TestSharedViewportWidget(OmniUiTest):
                 widget1 = _create_viewport_instance(_CONTEXT_NAME)
                 widget2 = _create_viewport_instance(_CONTEXT_2_NAME)
 
+        widget1.show(True)
+        widget2.show(True)
         await self.__wait_for_viewports(window.title, 2, [widget1, widget2])
 
         return window, [widget1, widget2]
@@ -94,6 +96,7 @@ class TestSharedViewportWidget(OmniUiTest):
         with window.frame:
             widget = _create_viewport_instance(_CONTEXT_NAME)
 
+        widget.show(True)
         await self.__wait_for_viewports(window.title, 1, [widget])
 
         return window, widget

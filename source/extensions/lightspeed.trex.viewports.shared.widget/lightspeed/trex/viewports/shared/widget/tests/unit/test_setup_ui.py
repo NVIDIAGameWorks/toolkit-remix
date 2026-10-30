@@ -707,3 +707,27 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         self.assertNotIn("omni.kit.viewport.LightManipulatorLayer", extension._TrexViewportSharedExtension__registered)
         self.assertIn("omni.kit.viewport.SceneLayer", extension._TrexViewportSharedExtension__registered)
         self.assertIn("omni.kit.viewport.ViewportTools", extension._TrexViewportSharedExtension__registered)
+
+    async def test_stage_opened_hidden_viewport_defers_activation(self):
+        """Opening a stage in a hidden viewport leaves renderer initialization deferred."""
+        # Arrange
+        setup = _setup_ui.SetupUI.__new__(_setup_ui.SetupUI)
+        setup.viewport_id = "ingestcraft/Viewport0"
+        setup._window_visible = False
+        setup._active = False
+        setup._docked = False
+        setup._remix_renderer_activation_task = None
+        viewport_api = SimpleNamespace(stage=object(), updates_enabled=False)
+        setup._viewport_layers = SimpleNamespace(viewport_api=viewport_api)
+        setup._activate_remix_renderer_async = AsyncMock()
+        stage_opened = SimpleNamespace(type=int(_setup_ui.omni.usd.StageEventType.OPENED))
+
+        with patch.object(_setup_ui, "_get_event_manager_instance"):
+            # Act
+            setup._on_stage_event(stage_opened)
+
+        # Assert
+        self.assertIsNone(setup._remix_renderer_activation_task)
+        setup._activate_remix_renderer_async.assert_not_called()
+        self.assertFalse(viewport_api.updates_enabled)
+        self.assertFalse(setup.is_active())

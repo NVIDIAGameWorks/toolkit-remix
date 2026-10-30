@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.1]
+### Fixed
+- Opened the workspace panels before querying lazy viewport content in the capture-swap and viewport hotkey E2E workflows.
+- Matched the application startup settings in StageCraft workflow tests so Kit's stock viewport cannot replace the Remix viewport window.
+
 ## [1.9.0]
 ### Added
 - Added the Asset Modifiers and Job Queue windows to the StageCraft dependencies.

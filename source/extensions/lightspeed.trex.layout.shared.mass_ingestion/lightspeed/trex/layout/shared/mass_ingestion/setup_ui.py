@@ -68,6 +68,7 @@ class SetupUI(_WorkspaceWidget):
         super().show(visible)
         if self._mass_ingest_widget:
             self._mass_ingest_widget.show(visible)
+        self._update_viewport_visibility()
 
     def destroy(self):
         """Clean up all resources."""
@@ -140,6 +141,7 @@ class SetupUI(_WorkspaceWidget):
                 value = not self._frame_viewport.visible
                 self._frame_viewport.visible = value
                 self._frame_viewport.width = ui.Fraction(1) if value else ui.Percent(0)
+            self._update_viewport_visibility()
             self.__last_show_viewport_item = item
         elif action_name == _MassQueueTreeActions.SHOW_VALIDATION.value:
             self._properties_panel.selection = [self._VALIDATION_TAB_NAME]
@@ -156,21 +158,21 @@ class SetupUI(_WorkspaceWidget):
         )
 
     def _on_mass_cores_started(self, core: "_ManagerCore"):
-        """Mass cores started callback - skipped when window invisible."""
-        if not self._window_visible:
-            return
-        if self._viewport:
-            self._viewport.set_active(False)
-        self._stage_view_widget.enable_context_event(False)
+        """Suspend preview updates while ingestion runs, including while the window is hidden."""
         self._mass_cores_are_running[id(core)] = True
+        self._update_viewport_visibility()
+        self._stage_view_widget.enable_context_event(False)
 
     def _on_mass_cores_finished(self, core: "_ManagerCore", _finished: bool, message: str | None = None):
-        """Mass cores finished callback - skipped when window invisible."""
-        if not self._window_visible:
-            return
+        """Resume visible preview updates after every ingestion core has finished."""
         self._mass_cores_are_running[id(core)] = False
         update_viewport = not any(self._mass_cores_are_running.values())
         if update_viewport:
-            if self._viewport:
-                self._viewport.set_active(True)
+            self._update_viewport_visibility()
             self._stage_view_widget.enable_context_event(True)
+
+    def _update_viewport_visibility(self):
+        """Keep the preview suspended until it is visible and ingestion has finished."""
+        self._viewport.show(
+            self._window_visible and self._frame_viewport.visible and not any(self._mass_cores_are_running.values())
+        )

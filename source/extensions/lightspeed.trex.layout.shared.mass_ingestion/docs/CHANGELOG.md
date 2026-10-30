@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.7]
+### Fixed
+- Propagated ingestion window and preview-panel visibility to the viewport so hidden previews defer renderer initialization and resume when shown.
+- Preserved the ingestion preview pause across window visibility changes until every running ingestion core finishes.
+
+### Changed
+- Removed the preview E2E test and its test-only plugin dependencies.
+
 ## [1.4.6]
 ### Fixed
 - Restored the embedded "Show in viewport" panel by creating its viewport in the current mass-ingestion frame.

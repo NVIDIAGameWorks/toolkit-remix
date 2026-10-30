@@ -24,7 +24,11 @@ camera-mutating action is canceled and a warning explains that the capture game 
 
 ## Architecture
 
-- `SetupUI` builds the viewport, Properties pane, and splitter and coordinates their lifecycle.
+- `SetupUI` builds the viewport, Properties pane, and splitter and coordinates their lifecycle. Owners forward effective
+  visibility through `show(visible)`, combining containing-window and preview-panel visibility for embedded viewports.
+  Hidden or inactive viewports cancel pending renderer initialization; re-enabling updates starts initialization when
+  a stage is already open.
+- `MainViewportWindow` creates its viewport content lazily when the window is shown.
 - `TrexViewportSharedExtension` routes frame requests by USD context before delegating camera-safe framing to `SetupUI`.
 - `ViewportLayers` owns the registered viewport-layer instances and their ordering.
 - The `scene`, `stats`, and `tools` packages provide the viewport overlays and interactions hosted by `SetupUI`.
