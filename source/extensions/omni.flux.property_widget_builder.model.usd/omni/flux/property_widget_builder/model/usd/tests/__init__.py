@@ -19,6 +19,7 @@ from omni.flux.property_widget_builder.model.usd.tests.e2e.test_virtual_attribut
     TestVirtualAttributeDefaults,
 )
 
+from .unit.test_attr_value import TestUsdAttributeValueModel, TestVirtualUsdAttributeValueModel
 from .unit.test_bounds_adapter import TestBoundsAdapter
 from .unit.test_conditional_visibility_orchestrator import TestConditionalVisibilityOrchestrator
 from .unit.test_curve import TestCurveFieldEditor, TestPanelToEditorLayout
@@ -45,6 +46,7 @@ from .unit.test_usd_attribute_xform_item import TestUSDAttributeXformItem
 from .unit.test_value_tooltips import TestUSDAttributeChannelTooltips, TestUSDAttributeValueTooltips
 
 from .e2e.test_clipboard import TestRowClipboard
+from .e2e.test_color_field import TestColorField
 from .e2e.test_curve_editor_popup import TestCurveEditorPopupLifecycle, TestCurvePrimvarModelMixedFirstEdit
 from .e2e.test_delegate_alignment import TestDelegateAlignment
 from .e2e.test_drag import TestUSDDragField
@@ -57,6 +59,7 @@ from .e2e.test_gradient_command import (
 
 __all__ = [
     "TestBoundsAdapter",
+    "TestColorField",
     "TestConditionalVisibilityOrchestrator",
     "TestCurveEditorPopupLifecycle",
     "TestCurveFieldEditor",
@@ -86,9 +89,11 @@ __all__ = [
     "TestUSDModelInteractiveNotices",
     "TestUSDPropertyWidget",
     "TestUSDRelationshipItem",
+    "TestUsdAttributeValueModel",
     "TestUsdAttributeValueModelEditBatching",
     "TestUsdGradientWidgetLifecycle",
     "TestUsdRelationshipValueModel",
     "TestVirtualAttributeDefaults",
     "TestVirtualAttributeWrites",
+    "TestVirtualUsdAttributeValueModel",
 ]

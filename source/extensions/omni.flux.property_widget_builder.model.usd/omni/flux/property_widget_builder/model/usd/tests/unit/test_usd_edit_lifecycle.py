@@ -1749,8 +1749,8 @@ class TestVirtualAttributeWrites(omni.kit.test.AsyncTestCase):
         self.assertTrue(attr.IsValid())
         self.assertAlmostEqual(attr.Get(), 2.5)
 
-    async def test_cancel_virtual_preview_removes_created_attribute(self):
-        """A virtual preview restores the original absence of its property."""
+    async def test_cancel_missing_virtual_preview_preserves_attribute_absence(self):
+        """A missing virtual attribute is not created by an unfinished preview."""
         # Arrange
         self.stage.DefinePrim("/VirtualTestPrim")
         path = Sdf.Path("/VirtualTestPrim.virtualFloat")
@@ -1760,13 +1760,13 @@ class TestVirtualAttributeWrites(omni.kit.test.AsyncTestCase):
             model.set_value(2.5)
             await omni.kit.app.get_app().next_update_async()
             await omni.kit.app.get_app().next_update_async()
-            preview_value = self.stage.GetAttributeAtPath(path).Get()
+            preview_created = self.stage.GetAttributeAtPath(path).IsValid()
 
             # Act
             model.cancel_property_edit_interaction()
 
             # Assert
-            self.assertAlmostEqual(preview_value, 2.5)
+            self.assertFalse(preview_created)
             self.assertFalse(self.stage.GetAttributeAtPath(path).IsValid())
             self.assertIsNone(self.stage.GetEditTarget().GetLayer().GetPropertyAtPath(path))
             self.assertAlmostEqual(model.get_value_as_float(), 0.0)

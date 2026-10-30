@@ -247,7 +247,7 @@ def _sdf_asset_path_builder(item) -> list[ui.Widget]:
     mapping.tf_gf_col4h,
 )
 def _color_builder(item):
-    builder = ColorField()
+    builder = ColorField(context_name=item.context_name)
     return builder(item)
 
 

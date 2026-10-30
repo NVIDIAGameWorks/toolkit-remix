@@ -23,7 +23,7 @@
 # In all cases, the __all__ property should be set to expose only the explicitly listed functions/classes from the
 # respective modules.
 
-from .event import Event, EventSubscription
+from .event import Event, EventSubscription, weak_callback
 from .serialize import Converter, Serializer
 from .utils import (
     async_wrap,
@@ -39,4 +39,5 @@ __all__ = [
     "async_wrap",
     "deferred_destroy_tasks",
     "reset_default_attrs",
+    "weak_callback",
 ]

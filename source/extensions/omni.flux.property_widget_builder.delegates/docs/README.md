@@ -28,6 +28,27 @@ keyword-only `stage_resolver` callback; constructing `FilePicker(use_relative_pa
 stage capability raises `ValueError`. `ComboboxField` consumes an `ui.AbstractItemModel` supplied by the property
 value model.
 
+`ColorField` owns RGB/RGBA channel models shared by its read-only fields and native drag controls in `ColorPickerWindow`.
+The picker provides live saturation/value, hue, RGB/HSV, hex, and Current preview controls; read-only fields disable it.
+Edits clamp the whole color to normalized `[0, 1]` channels, including alpha and HSV Value. Opening, external refresh,
+and Undo preserve authored HDR or negative values.
+
+Hex accepts `RRGGBB` or `RRGGBBAA` with optional `#`, or parenthesized RGB/RGBA tuples matching the channel count.
+Tuple channels must be finite numbers in `[0, 1]`. Text commits on end-edit or normal dismissal; invalid input preserves
+the color and Undo history. Hex, Current previews and the inline swatch use the same rounded display bytes.
+Formatting display colors does not alter authored HDR values.
+
+With a batch-capable backing model, held drags preview the color; each release or completed typed edit commits one
+Undo entry when the color changes. Row removal cancels the unfinished preview. Backing-model refreshes discard interrupted
+input; the backing model owns concurrent USD edit behavior.
+
+`ColorPickerWindow` extends shared [`FieldPopupWindow`](#floating-property-editors); the USD builder supplies `context_name`
+for selection dismissal. Generic fields can omit it. Normal dismissal commits input; cancellation discards it.
+The picker and field share channel models and their native value-change notifications. The picker reports gesture
+boundaries; the field owns property transactions. Weak model subscriptions let row widgets release the field, while
+an open picker retains it until its content closes. Cancellation unsubscribes native model callbacks and ignores
+retired mouse input. The `omni.flux.resources` dependency supplies selector SVGs; the application supplies the styles.
+
 `AbstractDragFieldGroup` builds and coordinates numeric fields in one row. Pass `linkable=True` to opt a Float or Int
 group into link controls, linked presentation, focus, commit, cancel, unlink, and value routing. The item owns the
 authoritative linked state and value operations. `DragFieldGroupCoordinator` keeps one row linked within a property
@@ -53,7 +74,9 @@ editors own models and sessions, and release hooks handle canceled or partial bu
 `context_name=None` skips selection observation, `""` observes the default USD context, and a nonempty name observes
 that context. Selection changes cancel preparation or close the editor; any outside mouse-button press also closes it.
 Escape closes the active editor and any open child picker without clearing the scene selection.
-Application Ctrl+Z/Ctrl+Y remain available.
+Application Ctrl+Z/Ctrl+Y remain available. The active host owns an application-level Escape subscription and checks
+mouse-button transitions and pointer bounds on application updates for outside-click dismissal. These shared watches
+are released when the editor closes; color controls add no separate global input listeners.
 
 Editors extend `_on_key_pressed(key, modifiers, is_down)` and call `super()` to preserve Escape dismissal. This native
 window callback follows keyboard focus; a widget's key callback follows pointer dispatch and is unsuitable for
@@ -74,6 +97,13 @@ when it rebuilds the property row.
 
 Clicks inside Gradient's picker or preset menu preserve the parent editor. Clicking back in the editor dismisses the
 child; clicking outside both closes the editor. Selecting a preset closes its menu and keeps the editor open.
+
+## Testing
+
+Color-picker E2E tests exercise production controls without a USD property model: parsing, normalized RGB/HSV/alpha
+input, display-byte consistency, selectors and gesture notifications. USD scene authoring, Undo/Redo, rollback and
+interruption recovery are covered in the USD model extension. Shared floating-window tests cover native chrome and
+placement once for all property editors.
 
 ## Known Limitations
 

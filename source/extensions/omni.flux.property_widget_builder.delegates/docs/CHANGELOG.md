@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.0]
+
+### Added
+- Added an RGB/HSV/hex color picker with live previews and per-gesture editing.
+
 ## [3.1.2]
 
 ### Fixed

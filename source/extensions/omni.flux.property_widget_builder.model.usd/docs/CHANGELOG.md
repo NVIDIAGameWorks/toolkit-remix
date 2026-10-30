@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.2.0]
+
+### Added
+- Added live color previews through shared batch editing with per-gesture Undo, matching vector conversion, and virtual attribute creation at commit.
+
 ## [4.1.0]
 ### Fixed
 - Fixed vector attributes to display and preserve full defaults, support first edits before refresh without `TypeError`, and reset each channel to its own default.

@@ -39,3 +39,13 @@ their widget extensions.
 The [particle panel](../../lightspeed.trex.properties_pane.particle.widget/docs/README.md) assigns these semantic
 names; the [USD layout adapter](../../omni.flux.property_widget_builder.model.usd/docs/README.md#curve-layout-styling)
 resolves their normal colors when constructing property controls.
+
+## Color Picker Handles
+
+The owned color swatch uses `Rectangle::ColorsWidgetFieldRead` and `Rectangle::ColorsWidgetFieldReadMixed` name
+selectors. The existing `ColorWidget` selectors remain available for the native Gradient color control.
+
+The `Image::ColorPickerHandle` and `Image::ColorPickerHueHandle` selectors preserve the contrast of the hollow
+saturation/value ring and paired inward-facing hue markers. Their two-tone SVG assets live in `omni.flux.resources`
+and load directly in the picker, so the handles also render without the Remix application stylesheet.
+`Rectangle::ColorPickerCurrentBorder` outlines the color picker's Current preview using the shared neutral palette.

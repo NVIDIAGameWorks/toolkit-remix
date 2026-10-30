@@ -24,6 +24,7 @@ Curve editing and channel selection belong to [the curve editor](../../omni.flux
 existing commands. `USDListener` routes USD changes back to the model. The delegate builds the corresponding controls.
 `USDModel` also supplies logical-group rows, `USDDelegate` claims them through field builders, and
 `USDPropertyWidget` connects the tree to layer notices. Models own USD synchronization and undoable authoring.
+Whole-color properties convert to their matching Gf vector type; numeric vector channels retain scalar conversion.
 
 You can show custom names for attributes. For example here, `translateY` is just `Y`:
 
@@ -56,7 +57,7 @@ existing immediate-write behavior.
 
 ## Floating Property Editors
 
-Curve, Gradient, and texture-preview controls use the shared
+Color, Curve, Gradient, and texture-preview controls use the shared
 [`FieldPopupWindow` lifecycle](../../omni.flux.property_widget_builder.delegates/docs/README.md#floating-property-editors).
 
 `CurveFieldEditor` owns a per-opening model and session; standalone `PropertyPrimvarCurveModel` keeps
@@ -130,6 +131,32 @@ before control construction; existing controls do not observe live theme changes
 See the [Curve Editor styling contract](../../omni.flux.curve_editor.widget/docs/README.md#channel-styling) for direct
 editor consumers and selected-label styling.
 
+## Color Edit Sessions
+
+`begin_batch_edit()` coalesces color and numeric previews without adding Undo entries. `end_batch_edit()` restores
+the pre-gesture layer specs and authors the final value through the existing property commands in one synchronous
+Undo group. Ending an inactive batch does nothing. No Undo group remains open across frames.
+Field controls also pair `begin_edit()` and `end_edit()` around the session so `USDModel` can defer application
+listeners until editing finishes while authored USD values remain live.
+
+If a write fails, the model rolls back the current batch, restores displayed values, and preserves completed edit
+sessions. Locked target layers are rejected before a write command runs. Color fields use one preview batch per
+drag or typed edit, committing at mouse release or end-edit. New virtual attributes and custom creation callbacks wait
+until commit. Opening the picker creates no undo entry.
+Undo while the popup is idle restores the previous gesture and allows another edit in the same popup.
+During an active edit, the shared USD listener suppresses application refreshes. Undo/Redo and external writes
+are not isolated from preview writes: Undo may capture an uncommitted preview, and restoring the preview can replace
+an external write to the same attribute made during the gesture.
+Row removal cancels unfinished previews through the existing property-edit cancellation path. Normal popup dismissal
+commits focused input. The row widgets and open picker own the color field; model subscriptions hold it weakly.
+Closing the picker releases its subscriptions and native preview resources.
+Idle picker controls synchronize with refreshed USD values without creating an edit.
+
+Virtual color attributes retain their `create_callback(attribute, value)` creation hook. Release or end-edit runs
+that hook in the synchronous commit group, together with the final color write. Callback setup commands and the
+committed color undo and redo as one operation; previews do not run the hook or hold an undo group across frames.
+Creation callbacks must author their setup through Kit commands.
+
 ## Row-Owned Property State
 
 USD property rows can represent one authored USD attribute or a logical group of companion attributes. The delegate asks each row for owned value models, owned attributes, row state, reset, and override deletion.
@@ -198,6 +225,11 @@ with ui.Frame():
 ```
 
 ## Testing
+
+USD-backed color-picker tests cover live scene authoring, Undo/Redo, virtual attribute creation, rollback and
+interrupted edits. Generic parsing, normalized controls, selector synchronization and display rounding are tested
+once in the delegates picker E2E suite, without this USD model dependency. Shared floating-window tests cover host
+placement and chrome behavior.
 
 The Curve editor named-context workflow reuses one USD context for the Kit process lifetime. Each run opens a fresh
 stage and closes it during teardown, preserving stage isolation. Keep the native context alive because queued

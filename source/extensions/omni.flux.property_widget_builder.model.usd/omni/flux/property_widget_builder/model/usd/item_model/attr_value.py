@@ -460,6 +460,8 @@ class UsdAttributeBase(abc.ABC):
                                 undo_scope.enter_context(omni.kit.undo.group(remove_if_empty=True))
                                 group_undo = False
                             target_layer = self._get_target_layer(attr)
+                            if not target_layer.permissionToEdit:
+                                return False, wrote_any
                             succeeded, wrote_related = self._ensure_related_override_specs(attr, target_layer)
                             wrote_any = wrote_related or wrote_any
                             if not succeeded:
@@ -602,13 +604,17 @@ class UsdAttributeBase(abc.ABC):
             raise RuntimeError("Property preview rollback is incomplete; cancel or destroy the model before editing")
 
     def begin_batch_edit(self):
-        """Start a drag batch with live previews that leave undo history unchanged."""
+        """Start a batch that previews values and creates its Undo step on release."""
         self._check_preview_restored()
+        if self._is_batch_editing:
+            return
         self._is_batch_editing = True
 
     def end_batch_edit(self):
-        """Restore previewed properties and commit the final drag value as one undo step."""
+        """Replace deferred previews with one synchronous undoable final write."""
         self._check_preview_restored()
+        if not self._is_batch_editing:
+            return
         succeeded = False
         undo_stack_size = None
         try:
@@ -1019,8 +1025,8 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         return _safe_deepcopy(self._default_value)
 
     def _schedule_preview(self) -> None:
-        """Preview virtual values only when creation has a known property-only mutation."""
-        if self._create_callback is None:
+        """Preview existing virtual attributes only when no custom creation callback is configured."""
+        if self._create_callback is None and all(attr.IsValid() for attr in self._attributes):
             super()._schedule_preview()
 
     @property

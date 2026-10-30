@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.4.0]
+### Added
+- Added `weak_callback()` for bound-method subscriptions that do not retain their owner.
+
 ## [4.3.0]
 ### Added
 - Added `TaskTracker`, which runs at most one task per key and keeps the key taken until the task settles, even after cancellation.

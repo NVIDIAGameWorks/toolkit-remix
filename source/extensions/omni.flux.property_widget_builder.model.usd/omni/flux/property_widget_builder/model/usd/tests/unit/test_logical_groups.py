@@ -648,6 +648,27 @@ class TestLogicalGroups(omni.kit.test.AsyncTestCase):
         # Assert
         item.reset_row_value.assert_called_once_with()
 
+    async def test_delegate_reset_with_failing_cleanup_releases_cached_rows_and_menus(self):
+        """Release USD row state even when a field cleanup reports an error."""
+        # Arrange
+        delegate = USDDelegate()
+        delegate._rows[1] = object()
+        delegate._context_menu_widgets[1] = object()
+
+        def fail_cleanup():
+            """Report a field lifecycle error during delegate reset."""
+            raise RuntimeError("field cleanup failed")
+
+        delegate._field_cleanup_callbacks.append(fail_cleanup)
+
+        # Act
+        with self.assertRaisesRegex(RuntimeError, "field cleanup failed"):
+            delegate.reset()
+
+        # Assert
+        self.assertEqual(delegate._rows, {})
+        self.assertEqual(delegate._context_menu_widgets, {})
+
     async def test_delegate_delete_routes_through_row_api(self):
         # Arrange
         item = _LogicalItem(LogicalRowState(is_overriden=True, is_default=False))
