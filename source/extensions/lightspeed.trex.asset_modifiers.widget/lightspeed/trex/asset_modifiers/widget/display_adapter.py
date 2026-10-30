@@ -32,3 +32,7 @@ class AssetModifierDisplayAdapter(JobDisplayAdapter):
     def get_name_tooltip(self, job: AssetModifierJob) -> str:
         """Show the source prim paths or model path."""
         return "\n".join(job.prim_paths) or job.source_url
+
+    def get_targets(self, job: AssetModifierJob) -> tuple[str, ...]:
+        """Show the source prim paths, or the model path for a File Path Constant source."""
+        return job.prim_paths or (job.source_url,)

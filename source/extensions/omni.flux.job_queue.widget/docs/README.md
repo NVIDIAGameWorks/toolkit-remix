@@ -104,8 +104,10 @@ Exact directories appear as actions in their owning Inputs, Outputs, or product 
 technical sections own actions that copy their identifiers and diagnostics. Technical exception types and tracebacks
 appear only in the final **Technical details** section. Detail labels use the same standard sizes as the rest of the app.
 
-The five columns are **Job / Stage**, **Status**, **Completed**, **Apply**, and **Actions**. Status combines the current
-state with structured job or graph progress. Completed shows execution completion time; clicking its header or any
+The six columns are **Job / Stage**, **Target**, **Status**, **Completed**, **Apply**, and **Actions**. Target shows the
+first path from `JobDisplayAdapter.get_targets()` like the Stage Manager (`mesh_123/mesh`), a bold count of the
+others, and every full path in the tooltip. Only the longer of the parent name and the name elides. A graph
+shows the targets of its first job that has any. Status combines the current state with structured job or graph progress. Completed shows execution completion time; clicking its header or any
 completed timestamp toggles the persistent relative/absolute format. Only graph roots are
 draggable or deletable. A one-job graph still renders as a root and one child. The toolbar filter button opens one
 Stage Manager-style popup containing the graph/stage, status, and Apply filters. The Apply filter exposes the five

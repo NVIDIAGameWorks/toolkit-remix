@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.29.0]
+### Added
+- Added the bold `CellLabelBold` style for the Job Queue target count.
+- Added the `QueueFooterBackground` style for the Job Queue summary row, matching the toolbar band.
+
 ## [1.28.0]
 ### Added
 - Added the MDI vector-square-edit Asset Modifiers action style using the established neutral action palette.

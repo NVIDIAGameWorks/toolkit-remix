@@ -110,6 +110,17 @@ class ComfyUIDisplayAdapter(JobDisplayAdapter):
         """
         return "\n".join(self._get_prim_paths(job))
 
+    def get_targets(self, job: ComfyUIJob) -> tuple[str, ...]:
+        """Return the target prim paths shown in the Target column.
+
+        Args:
+            job: Job whose targets are requested.
+
+        Returns:
+            Saved owner prim paths, or the captured material target.
+        """
+        return tuple(self._get_prim_paths(job))
+
     def get_active_progress_label(self, job: ComfyUIJob, progress: JobProgress | None) -> str | None:
         """Format structured generation step progress.
 

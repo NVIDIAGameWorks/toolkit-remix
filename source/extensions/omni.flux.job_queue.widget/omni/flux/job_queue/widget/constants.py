@@ -101,6 +101,8 @@ MONOSPACE_FONT_PATH = str(pathlib.Path(__file__).parents[4] / "data" / "fonts" /
 
 ROW_COLUMNS: tuple[tuple[ColumnKey, str, ui.Length], ...] = (
     (ColumnKey.JOB_STAGE, "Job / Stage", ui.Fraction(2)),
+    # A target gets as much room as the job name, so its parent name and name both stay readable in most rows.
+    (ColumnKey.TARGET, "Target", ui.Fraction(2)),
     (ColumnKey.STATUS, "Status", STATUS_COLUMN_WIDTH),
     (ColumnKey.COMPLETED, "Completed", COMPLETED_COLUMN_WIDTH),
     (ColumnKey.APPLY, "Apply", APPLY_COLUMN_WIDTH),

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added RTX Remix 1.6 release notes
 - REMIX-6265: Excluded invalid ComfyUI selections and cancelled timed-out prompts before the next ComfyUI job starts. Added a persistent 60-minute timeout (0 for no limit), Timed Out labels with the error color, Retry, and queue resume while active work continues. Added a job graph Stop action that stops a running job and its ComfyUI prompt, with a Stopped label and Retry. Disabled the Stage Manager AI Tools action when the workflow has no Selected Texture or Selected Mesh input. A ComfyUI workflow with only Constant inputs creates one job, texture inputs must match the mesh input scope, and All Textures expands mesh workflows without a mesh input to the whole stage. Texture workflows with a mesh input apply textures to the materials under that mesh. Documented AI Tools workflow types, input getters, the job timeout, and the job queue.
 - REMIX-6266: Added an Asset Modifiers framework for local model transforms, with persistent inputs, Stage Manager actions, Job Queue integration, and reversible replacement.
+- REMIX-6266: Added a Job Queue Target column that shows the prims or model file of each job, and Job Queue and Asset Modifiers user guides, and updated the AI Tools guide and its screenshots.
 
 ### Changed
 
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- REMIX-6266: Gave the Job Queue summary row its own background so it no longer blends into the job rows.
 - Made `tools/ci/scripts/notify_remix_target_dep_bot.sh` use a bash 3.2-compatible channel de-duplication so its test suite passes with the default macOS `/bin/bash` (associative arrays require bash 4.0+).
 - Constrained the docs build to the `pydantic` version in `deps/pip_flux.toml` because `pydantic` 2.14 broke `autodoc` for parametrized generic models
 - Fixed an intermittent test hang: the first USD call in a test could deadlock with the MDL preload, which made `lss-e2e-tests-windows-a2s` lose 5 minutes per job and sometimes time out.

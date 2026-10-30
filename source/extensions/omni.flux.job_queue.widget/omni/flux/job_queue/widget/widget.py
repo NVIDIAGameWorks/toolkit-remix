@@ -278,13 +278,16 @@ class QueueWidget:
 
     def _build_footer(self) -> None:
         """Build the fixed summary row with the same columns as the queue body."""
-        job_stage_width, status_width, completed_width, apply_width, actions_width = Row.get_column_widths()
+        job_stage_width, target_width, status_width, completed_width, apply_width, actions_width = (
+            Row.get_column_widths()
+        )
         with ui.ZStack(width=ui.Fraction(1), height=ROW_HEIGHT):
-            ui.Rectangle(name="TabBackground")
+            ui.Rectangle(name="QueueFooterBackground", identifier="job_queue_footer_background")
             self._build_column_separators()
             with ui.HStack(width=ui.Fraction(1), spacing=0):
                 with ui.Frame(width=job_stage_width):
                     self._build_footer_cell(ColumnKey.JOB_STAGE)
+                ui.Spacer(width=target_width)
                 ui.Spacer(width=status_width)
                 ui.Spacer(width=completed_width)
                 with ui.Frame(width=apply_width):

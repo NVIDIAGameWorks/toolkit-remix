@@ -670,6 +670,38 @@ class QueueModel(TreeModelBase):
             return row.name
 
     @staticmethod
+    def get_targets(row: Row) -> tuple[str, ...]:
+        """Return adapter targets without allowing product failures into rendering.
+
+        Args:
+            row: Child presentation data.
+
+        Returns:
+            Safe targets, or an empty tuple.
+        """
+        if row.adapter is None or row.job is None:
+            return ()
+        try:
+            return tuple(row.adapter.get_targets(row.job))
+        except ADAPTER_ERRORS as error:
+            carb.log_warn(f"Could not resolve targets for queue job {row.job_id}: {error}")
+            return ()
+
+    @classmethod
+    def get_graph_targets(cls, graph: QueueGraphItem) -> tuple[str, ...]:
+        """Return the targets of the first graph job that has any.
+
+        Processing stages have no target of their own, so a graph shows the target of the job that produced its input.
+
+        Args:
+            graph: Graph presentation item.
+
+        Returns:
+            Safe targets, or an empty tuple when no job has one.
+        """
+        return next((targets for child in graph.children if (targets := cls.get_targets(child.row))), ())
+
+    @staticmethod
     def get_active_progress_label(row: Row) -> str | None:
         """Return safe adapter progress text for one active row.
 

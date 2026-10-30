@@ -26,6 +26,20 @@
     Universal Scene Description (ZIP): A compressed container file in the ZIP format that can contain both geometry and
     texture information.
 
+Asset Modifier
+    A Toolkit extension that transforms a model on your computer, without AI, and replaces the model in the project
+    through the [Job Queue](toolkitinterface/remix-toolkitinterface-jobqueue.md). See
+    [Using Asset Modifiers](howto/learning-assetmodifiers.md).
+
+Job Graph
+    One unit of work in the [Job Queue](toolkitinterface/remix-toolkitinterface-jobqueue.md), for example one AI Tools
+    workflow run on one material, or one asset modifier run on one model. A job graph has stages that run in order, and its last stage can apply the result to
+    the project.
+
+Job Queue
+    The Toolkit window that lists the job graphs that run in the background, shows their progress, and applies or
+    declines their results. See [Job Queue](toolkitinterface/remix-toolkitinterface-jobqueue.md).
+
 Anisotropic Roughness
     This term describes surface roughness that varies based on the direction of measurement. Unlike isotropic roughness,
     which is uniform in all directions, anisotropic roughness indicates that the micro-surface irregularities on an object's

@@ -497,6 +497,24 @@ class TestQueueModel(AsyncTestCase):
         self.assertEqual(state, DisplayState.WAITING)
         self.assertEqual(model.get_state_tooltip(row, state), "Waiting for the product server.")
 
+    async def test_target_adapter_failure_shows_no_target_and_warns(self):
+        """A product adapter that fails to resolve targets leaves the job and its graph without a target."""
+        # Arrange
+        snapshot = _snapshot(graph_id=uuid.uuid4())
+        job = _MockJob(job_id=snapshot.job_id)
+        adapter = MagicMock()
+        adapter.get_targets.side_effect = RuntimeError("The product stage is unavailable.")
+        model = _model([_graph(snapshot)], {snapshot.job_id: job}, adapter)
+        graph = model.get_item_children(None)[0]
+
+        # Act
+        with patch("omni.flux.job_queue.widget.model.carb.log_warn") as log_warn:
+            targets = (model.get_targets(model.all_items[0].row), model.get_graph_targets(graph))
+
+        # Assert
+        self.assertEqual(targets, ((), ()))
+        self.assertIn("Could not resolve targets", log_warn.call_args.args[0])
+
     async def test_failure_tooltip_uses_safe_reason_not_diagnostic(self):
         """Primary status help never leaks the durable exception message."""
         # Arrange

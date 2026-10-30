@@ -51,6 +51,7 @@ class ColumnKey(StrEnum):
     """Stable identifiers for visible job queue columns."""
 
     JOB_STAGE = "job_stage"
+    TARGET = "target"
     STATUS = "status"
     COMPLETED = "completed"
     APPLY = "apply"
