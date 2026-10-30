@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.0]
+### Added
+- Added `CallbackValueModel`, a value model for one typed value that its owner reads and writes through callbacks.
+
 ## [3.0.1]
 ### Fixed
 - Fixed copying unauthored virtual vector defaults so pasting receives scalar channel values instead of repeated full vectors.

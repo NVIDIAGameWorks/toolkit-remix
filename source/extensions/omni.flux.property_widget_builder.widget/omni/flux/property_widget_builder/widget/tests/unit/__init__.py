@@ -15,8 +15,16 @@
 * limitations under the License.
 """
 
-__all__ = ("TestClipboard", "TestDelegate", "TestInitialColumnLayout", "TestItemGroupExpansion", "TestItemValueModel")
+__all__ = (
+    "TestCallbackValueModel",
+    "TestClipboard",
+    "TestDelegate",
+    "TestInitialColumnLayout",
+    "TestItemGroupExpansion",
+    "TestItemValueModel",
+)
 
+from .test_callback_value_model import TestCallbackValueModel
 from .test_expansion_with_existing_items import TestItemGroupExpansion
 from omni.flux.property_widget_builder.widget.tests.unit.test_initial_column_layout import TestInitialColumnLayout
 from .test_item_model import TestItemValueModel

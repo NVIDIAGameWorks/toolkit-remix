@@ -66,6 +66,19 @@ AttributeCopyPasteHelper.paste(target_rows=destination_rows)
 ```
 
 Custom value models can use `set_display_fn()` to format stored values without changing them.
+
+`CallbackValueModel(value_type, get_value_fn, set_value_fn)` edits one value that its owner stores, such as a setting.
+The model converts edited text to a `pathlib.Path` for a path value, shows an empty path as empty text, shows zero for a
+value that does not convert to a number, and notifies its fields on change and on `refresh()`. It calls the setter
+only when the value changed. Storage and validation, such as bounds or allowed values, stay in the owner's setter.
+
+```python
+from functools import partial
+
+from omni.flux.property_widget_builder.widget import CallbackValueModel
+
+value_model = CallbackValueModel(float, partial(settings.get_value, "scale"), partial(settings.set_value, "scale"))
+```
 `PropertyWidget.expand_all_groups()` and `collapse_all_groups()` preserve the requested expansion state across
 deferred refreshes. See the [USD model](../../omni.flux.property_widget_builder.model.usd/docs/README.md) and
 [file model](../../omni.flux.property_widget_builder.model.file/docs/README.md) for concrete integrations.

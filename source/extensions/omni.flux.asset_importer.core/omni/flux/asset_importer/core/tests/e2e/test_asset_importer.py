@@ -24,6 +24,7 @@ from tempfile import TemporaryDirectory
 import carb
 import carb.tokens
 import omni.kit
+import omni.kit.app
 import omni.kit.test
 import omni.usd
 from pxr import Sdf, Usd, UsdGeom, UsdUtils
@@ -292,6 +293,60 @@ class TestAssetImporterE2E(omni.kit.test.AsyncTestCase):
 
         # Successful import means the actual USD runtime can construct the stage.
         self.assertIsNotNone(stage)
+
+    async def test_import_batch_with_usd_suffix_rename_preserves_open_project_layers(self):
+        """USD suffix conversion preserves the open project's root and session layers."""
+        # The .usda source has its own time range, so a shared timeline would change the project's range.
+        input_path = self.temp_path / "source.usda"
+        output_folder = self.temp_path / "output"
+        output_folder.mkdir()
+        output_path = output_folder / "source.usd"
+        source_stage = Usd.Stage.CreateNew(str(input_path))
+        source_stage.SetStartTimeCode(7.0)
+        source_stage.SetEndTimeCode(19.0)
+        source_stage.SetDefaultPrim(UsdGeom.Xform.Define(source_stage, "/Imported").GetPrim())
+        source_stage.GetRootLayer().Save()
+        source_stage = None
+
+        # The open project has a different time range, a root layer prim, and a session layer prim.
+        default_context = omni.usd.get_context("")
+        try:
+            opened, error = await default_context.new_stage_async()
+            self.assertTrue(opened, error)
+            project_stage = default_context.get_stage()
+            project_stage.SetStartTimeCode(101.0)
+            project_stage.SetEndTimeCode(203.0)
+            UsdGeom.Xform.Define(project_stage, "/Project")
+            with Usd.EditContext(project_stage, project_stage.GetSessionLayer()):
+                UsdGeom.Xform.Define(project_stage, "/SessionOnly")
+            await omni.kit.app.get_app().next_update_async()
+            layers_before = {
+                layer.identifier: layer.ExportToString()
+                for layer in project_stage.GetLayerStack(includeSessionLayers=True)
+            }
+
+            # Converting .usda to .usd renames the output in a private context with its own timeline.
+            conversion_succeeded = await self._importer.import_batch_async(
+                {"data": [{"input_path": str(input_path)}]}, str(output_folder)
+            )
+
+            # The project layers are unchanged, and the output keeps its default prim and time range.
+            await omni.kit.app.get_app().next_update_async()
+            self.assertTrue(conversion_succeeded)
+            self.assertEqual(default_context.get_stage(), project_stage)
+            self.assertEqual(
+                {
+                    layer.identifier: layer.ExportToString()
+                    for layer in project_stage.GetLayerStack(includeSessionLayers=True)
+                },
+                layers_before,
+            )
+            output_stage = Usd.Stage.Open(str(output_path))
+            self.assertEqual(output_stage.GetDefaultPrim().GetPath(), Sdf.Path("/Imported"))
+            self.assertEqual((output_stage.GetStartTimeCode(), output_stage.GetEndTimeCode()), (7.0, 19.0))
+        finally:
+            if default_context.get_stage() is not None:
+                await default_context.close_stage_async()
 
     async def test_import_batch_with_explicit_output_paths_writes_each_stage(self):
         """Batch conversion honors an explicit output path for each asset."""

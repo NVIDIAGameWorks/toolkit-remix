@@ -35,6 +35,7 @@ from .focus_in_viewport import FocusInViewportActionWidgetPlugin as _FocusInView
 from .info_remap_skeleton import RemapSkeletonInfoWidgetPlugin as _RemapSkeletonInfoWidgetPlugin
 from .state_hidden_category import IsCategoryHiddenStateWidgetPlugin as _IsCategoryHiddenStateWidgetPlugin
 from .state_is_capture import IsCaptureStateWidgetPlugin as _IsCaptureStateWidgetPlugin
+from .submit_asset_modifier_job import SubmitAssetModifierJobActionWidgetPlugin
 from .submit_comfyui_job import SubmitComfyUIJobActionWidgetPlugin as _SubmitComfyUIJobActionWidgetPlugin
 
 
@@ -55,6 +56,7 @@ class LightspeedStageManagerUSDWidgetPluginsExtension(IExt):
         _RemapSkeletonActionWidgetPlugin,
         _RemapSkeletonInfoWidgetPlugin,
         _SubmitComfyUIJobActionWidgetPlugin,
+        SubmitAssetModifierJobActionWidgetPlugin,
     ]
 
     def __init__(self):

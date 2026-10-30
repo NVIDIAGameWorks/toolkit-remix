@@ -18,7 +18,6 @@
 from lightspeed.trex.asset_pipeline.core.metadata import MetadataApplyReceipt
 from omni.flux.job_queue.core.persistence import PersistenceCodec
 from omni.flux.job_queue.core.persistence_codec import decode_positional_payload
-from pxr import Sdf
 
 from .apply_handler import ComfyUIAssetApplyHandler, ComfyUIJobApplyHandler, ComfyUITextureApplyHandler
 from .enums import (
@@ -39,7 +38,6 @@ from .models import (
     ComfyUIFileResult,
     ComfyUIInputBinding,
     ComfyUIWorkflowRequest,
-    ReferenceTarget,
     Workflow,
     WorkflowInput,
     WorkflowOutput,
@@ -103,29 +101,6 @@ def _decode_workflow(payload: object) -> Workflow:
     return decode_positional_payload(Workflow, payload, 14)
 
 
-def _decode_sdf_reference(payload: object) -> Sdf.Reference:
-    """Decode one explicit persisted Sdf.Reference payload.
-
-    Args:
-        payload: Five positional fields from the persistence registry.
-
-    Returns:
-        Reconstructed reference with exact path, offset, scale, and custom data.
-
-    Raises:
-        TypeError: If the payload does not have the expected shape.
-    """
-    if not isinstance(payload, (list, tuple)) or len(payload) != 5:
-        raise TypeError("Sdf.Reference payload must contain five positional fields")
-    asset_path, prim_path, offset, scale, custom_data = payload
-    return Sdf.Reference(
-        assetPath=asset_path,
-        primPath=Sdf.Path(prim_path),
-        layerOffset=Sdf.LayerOffset(offset, scale),
-        customData=custom_data,
-    )
-
-
 COMFYUI_CODECS = (
     PersistenceCodec(ComfyUIJobApplyHandler.name, ComfyUIJobApplyHandler),
     PersistenceCodec(ComfyUITextureApplyHandler.name, ComfyUITextureApplyHandler),
@@ -137,18 +112,6 @@ COMFYUI_CODECS = (
     PersistenceCodec(type_key(WorkflowSourceType), WorkflowSourceType),
     PersistenceCodec(type_key(WorkflowType), WorkflowType),
     PersistenceCodec(type_key(IntroducingLayer), IntroducingLayer),
-    PersistenceCodec(
-        type_key(Sdf.Reference),
-        Sdf.Reference,
-        lambda value: (
-            value.assetPath,
-            str(value.primPath),
-            value.layerOffset.offset,
-            value.layerOffset.scale,
-            value.customData,
-        ),
-        _decode_sdf_reference,
-    ),
     PersistenceCodec(
         type_key(ComfyUIApplyReceipt),
         ComfyUIApplyReceipt,
@@ -171,12 +134,6 @@ COMFYUI_CODECS = (
             value.texture_targets,
         ),
         lambda payload: decode_positional_payload(ComfyUIApplyTarget, payload, 5),
-    ),
-    PersistenceCodec(
-        type_key(ReferenceTarget),
-        ReferenceTarget,
-        lambda value: (value.owner_prim_path, value.source_reference, value.source_layer_identifier),
-        lambda payload: decode_positional_payload(ReferenceTarget, payload, 3),
     ),
     PersistenceCodec(
         type_key(ComfyUIAssetApplyTarget),

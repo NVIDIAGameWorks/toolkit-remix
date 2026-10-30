@@ -53,6 +53,7 @@ class RemixAllMaterialsInteractionPlugin(AllMaterialsInteractionPlugin, RemixSta
             "ParticleSystemsActionWidgetPlugin",
             "PrimRenameNameActionWidgetPlugin",
             "SubmitComfyUIJobActionWidgetPlugin",
+            "SubmitAssetModifierJobActionWidgetPlugin",
         ],
         exclude=True,
     )

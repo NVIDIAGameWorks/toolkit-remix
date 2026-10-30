@@ -21,7 +21,6 @@ __all__ = ["SubmitComfyUIJobActionWidgetPlugin"]
 
 import asyncio
 import functools
-import threading
 from typing import TYPE_CHECKING, ClassVar
 
 import carb
@@ -37,6 +36,7 @@ from omni.flux.stage_manager.plugin.widget.usd.base import (
 )
 from omni.flux.utils.common.menus import MenuGroup as _MenuGroup
 from omni.flux.utils.common.menus import MenuItem as _MenuItem
+from omni.flux.utils.common.task_tracker import TaskTracker
 from omni.flux.utils.dialog.progress_popup import ProgressPopup
 from omni.flux.utils.widget.resources import get_icons as _get_icons
 from omni.flux.utils.widget.resources import get_quicklayout_config
@@ -52,7 +52,7 @@ from .constants import COMFYUI_SUBMISSION_FAILURE_MESSAGE
 class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageManagerMenuMixin):
     """Provide Stage Manager controls for submitting selected prims to ComfyUI."""
 
-    _submit_tasks: ClassVar[dict[str, asyncio.Task[None]]] = {}
+    _submissions: ClassVar[TaskTracker] = TaskTracker()
     _layout_task: ClassVar[asyncio.Task | None] = None
 
     def build_icon_ui(
@@ -192,14 +192,11 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
         selected_paths = list(payload.get("selected_paths") or ())
         if not cls._can_submit_selection(context_name) or not item or not selected_paths:
             return
-        pending_task = cls._submit_tasks.get(context_name)
-        if pending_task and not pending_task.done():
-            return
-
-        cls._submit_tasks[context_name] = asyncio.ensure_future(
-            cls._prepare_and_submit(context_name, list(selected_paths))
+        cls._submissions.start(
+            context_name,
+            functools.partial(cls._prepare_and_submit, context_name, list(selected_paths)),
+            name=f"ComfyUISubmit:{context_name}",
         )
-        cls._submit_tasks[context_name].set_name(f"ComfyUISubmit:{context_name}")
 
     @classmethod
     async def _prepare_and_submit(cls, context_name: str, selected_paths: list[str]) -> None:
@@ -212,10 +209,13 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
         Raises:
             asyncio.CancelledError: If the owning submission task is cancelled.
         """
-        task = asyncio.current_task()
         try:
             core = get_comfyui_core_instance(context_name)
-            submission, cancelled = await cls._prepare_with_progress(core, selected_paths)
+            submission, cancelled = await ProgressPopup.run_cancellable(
+                "Preparing ComfyUI Jobs",
+                "Preparing jobs...",
+                functools.partial(core.prepare_submission, prim_paths=selected_paths),
+            )
             if cancelled:
                 return
             if not submission.graphs:
@@ -230,50 +230,6 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
         except (OSError, RuntimeError, ValueError) as error:
             carb.log_warn(f"Failed to submit ComfyUI jobs: {error}")
             post_notification(COMFYUI_SUBMISSION_FAILURE_MESSAGE, status=NotificationStatus.WARNING)
-        finally:
-            if cls._submit_tasks.get(context_name) is task:
-                cls._submit_tasks.pop(context_name, None)
-
-    @classmethod
-    async def _prepare_with_progress(cls, core: ComfyUICore, prim_paths: list[str]) -> tuple[ComfyUISubmission, bool]:
-        """Prepare a submission behind a cancellable progress popup.
-
-        Args:
-            core: ComfyUI core instance that prepares the submission.
-            prim_paths: Explicit prim paths to prepare for submission.
-
-        Returns:
-            The prepared submission and whether the user cancelled preparation.
-        """
-        cancel_event = threading.Event()
-        progress_popup = ProgressPopup(title="Preparing ComfyUI Jobs", status_text="Preparing jobs...")
-        progress_popup.set_cancel_fn(cancel_event.set)
-        progress_popup.show()
-        try:
-            submission = await core.prepare_submission(
-                prim_paths=prim_paths,
-                progress=functools.partial(cls._update_prepare_progress, progress_popup),
-                is_cancelled=cancel_event.is_set,
-            )
-            return submission, cancel_event.is_set()
-        finally:
-            progress_popup.hide()
-            progress_popup.destroy()
-
-    @staticmethod
-    def _update_prepare_progress(progress_popup: ProgressPopup, current: int, total: int, status: object) -> None:
-        """Render the latest preparation progress on the main thread.
-
-        Args:
-            progress_popup: Popup rendering job-preparation progress.
-            current: Latest processed count reported by the worker.
-            total: Latest total count, or a non-positive value while the total is unknown.
-            status: Latest status message, if any.
-        """
-        if status:
-            progress_popup.set_status_text(str(status))
-        if total and total > 0:
-            progress_popup.set_progress(max(0.0, min(1.0, current / total)))
 
     @classmethod
     async def _submit_submission(cls, context_name: str, submission: ComfyUISubmission) -> None:
@@ -314,9 +270,7 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
     @classmethod
     def cancel_pending_submissions(cls) -> None:
         """Cancel pending ComfyUI submissions and AI Tools layout loads."""
-        for task in cls._submit_tasks.values():
-            if not task.done():
-                task.cancel()
+        cls._submissions.cancel_all()
         if cls._layout_task and not cls._layout_task.done():
             cls._layout_task.cancel()
 

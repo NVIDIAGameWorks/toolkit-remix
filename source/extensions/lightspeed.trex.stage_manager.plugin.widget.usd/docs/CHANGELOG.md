@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.0]
+### Added
+- Added the Asset Modifiers row action and Remix Asset Modifiers context submenu.
+
+### Changed
+- Used the shared `ProgressPopup.run_cancellable()` and `TaskTracker` to prepare and track ComfyUI jobs.
+
 ## [3.1.8]
 ### Fixed
 - The ComfyUI submission action adds the valid items to the queue without a confirmation. A dialog shows only when no selected item is valid.

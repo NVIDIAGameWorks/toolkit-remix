@@ -11,6 +11,7 @@ USD-specific Stage Manager state and action widgets for RTX Remix capture editin
 - Execute regular and capture deletion as one undoable operation.
 - Snapshot explicit selections and pass prepared submissions with valid graphs back to the ComfyUI core.
 - Observe and cancel asynchronous ComfyUI submission and AI Tools layout tasks owned by the extension.
+- Submit selections to the active asset modifier, with the same row action and submenu pattern as AI Tools.
 
 ## Non-Responsibilities
 

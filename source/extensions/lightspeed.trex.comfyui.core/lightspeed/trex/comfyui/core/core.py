@@ -37,6 +37,7 @@ import carb
 from lightspeed.common.constants import REGEX_INSTANCE_PATH, REGEX_IN_INSTANCE_PATH, REMIX_INGESTED_ASSETS_FOLDER
 from lightspeed.trex.asset_pipeline.core.jobs import TextureOptimizationJob, add_asset_optimization_jobs
 from lightspeed.trex.asset_pipeline.core.jobs.apply_handler import SaveTextureMetadataHandler
+from lightspeed.trex.asset_pipeline.core.jobs.models import ReferenceTarget
 from lightspeed.trex.asset_pipeline.core.worker import run_in_worker_thread
 from omni.flux.job_queue.core import get_job_queue
 from omni.flux.job_queue.core.enums import JobState
@@ -76,7 +77,6 @@ from .models import (
     ComfyUIInputBinding,
     ComfyUIWorkflowRequest,
     MeshCandidate,
-    ReferenceTarget,
     Workflow,
     WorkflowOutput,
     WorkflowTypeCategory,
@@ -253,14 +253,12 @@ class ComfyUICore:
         context_name: str,
         *,
         settings_changed_callback: Callable[[str, object], None] | None = None,
-        stage_event_callback: Callable[[Any], None] | None = None,
     ):
         """Initialize the ComfyUI runtime for one USD context.
 
         Args:
             context_name: USD context this runtime operates on.
             settings_changed_callback: Optional process-wide settings change observer.
-            stage_event_callback: Optional observer for this context stage lifecycle.
 
         Raises:
             ValueError: If ``context_name`` is None.
@@ -285,15 +283,6 @@ class ComfyUICore:
         self._connected_base_url: str | None = None
         self._active_operation: ComfyUIOperation | None = None
         self._destroyed = False
-        self._stage_event_subscription = (
-            get_context(context_name)
-            .get_stage_event_stream()
-            .create_subscription_to_pop(
-                stage_event_callback, name=f"ComfyUIApplyProjectState:{context_name or 'default'}"
-            )
-            if stage_event_callback is not None
-            else None
-        )
 
         self._state = ComfyUIState.READY
         self._objects_changed_subscription = Tf.Notice.Register(
@@ -1050,7 +1039,6 @@ class ComfyUICore:
         if self._destroyed:
             return
         self._destroyed = True
-        self._stage_event_subscription = None
         self._objects_changed_subscription.Revoke()
         self._objects_changed_subscription = None
         self._connect_generation += 1

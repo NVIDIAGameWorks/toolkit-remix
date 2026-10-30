@@ -20,9 +20,8 @@ __all__ = [
     "SimpleComboModel",
 ]
 
-import pathlib
 import weakref
-from typing import Generic, Literal, TypeVar
+from typing import Literal
 
 import omni.kit.commands
 import omni.kit.undo
@@ -31,7 +30,6 @@ from lightspeed.trex.comfyui.core.enums import OutputApplyBehavior
 from lightspeed.trex.comfyui.core.models import WorkflowInput, WorkflowOutput
 from lightspeed.trex.comfyui.core.resolvers import (
     ConstantResolver,
-    ResolverParameter,
     create_resolver,
     get_resolver_rule,
 )
@@ -39,8 +37,6 @@ from omni import ui
 from omni.flux.property_widget_builder.widget import ItemValueModel
 
 from .constants import get_native_constant_label
-
-FieldValueT = TypeVar("FieldValueT")
 
 
 class _ComboItem(ui.AbstractItem):
@@ -284,96 +280,6 @@ class _WorkflowOutputFieldValueModel(ItemValueModel):
 
     def _get_value_as_int(self) -> int:
         """Return the output field value as an integer when possible."""
-        try:
-            return int(self.get_value())
-        except (TypeError, ValueError):
-            return 0
-
-
-class _ResolverFieldValueModel(ItemValueModel, Generic[FieldValueT]):
-    """Value model bound to a strongly typed resolver parameter.
-
-    Args:
-        parameter: The resolver parameter binding.
-    """
-
-    def __init__(self, parameter: ResolverParameter[FieldValueT], value_type: type):
-        """Initialize a value model for one resolver field.
-
-        Args:
-            parameter: Typed resolver parameter read and written by this model.
-            value_type: Declared workflow type used to normalize edited values.
-        """
-        super().__init__()
-        self._parameter = parameter
-        self._value_type = value_type
-        self._read_only = False
-
-    def get_value(self) -> FieldValueT:
-        """Return the current field value from the resolver.
-
-        Returns:
-            The parameter's current typed value.
-        """
-        return self._parameter.get_value()
-
-    def _set_value(self, value: FieldValueT) -> None:
-        """Write a new value to the resolver field.
-
-        Args:
-            value: Typed value to persist when it differs from the current value.
-        """
-        if self._value_type is pathlib.Path and type(value) is str:
-            value = pathlib.Path(value)
-        current = self.get_value()
-        if value != current:
-            self._parameter.set_value(value)
-            self._on_dirty()
-
-    def _on_dirty(self) -> None:
-        """Notify listeners that the value has changed."""
-        self._value_changed()
-
-    def refresh(self) -> None:
-        """Re-read the field value and notify listeners."""
-        self._value_changed()
-
-    def _get_value_as_string(self) -> str:
-        """Return the field value as a string.
-
-        Returns:
-            String representation of the current parameter value.
-        """
-        value = self.get_value()
-        if self._value_type is pathlib.Path and value == pathlib.Path():
-            return ""
-        return str(value)
-
-    def _get_value_as_float(self) -> float:
-        """Return the field value as a float.
-
-        Returns:
-            The converted value, or zero when conversion fails.
-        """
-        try:
-            return float(self.get_value())
-        except (TypeError, ValueError):
-            return 0.0
-
-    def _get_value_as_bool(self) -> bool:
-        """Return the field value as a Boolean.
-
-        Returns:
-            Truth value of the current parameter value.
-        """
-        return bool(self.get_value())
-
-    def _get_value_as_int(self) -> int:
-        """Return the field value as an integer.
-
-        Returns:
-            The converted value, or zero when conversion fails.
-        """
         try:
             return int(self.get_value())
         except (TypeError, ValueError):

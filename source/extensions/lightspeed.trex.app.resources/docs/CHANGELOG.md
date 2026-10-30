@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.31.0]
+### Added
+- Added Asset Modifiers and a docked Job Queue to the StageCraft layout, and the MDI `vector-square-edit` icon.
+
 ## [1.30.5]
 ### Added
 - Added a `cube_subsets.usda` ingested test asset whose mesh binds its materials through GeomSubsets only.

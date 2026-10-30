@@ -31,10 +31,10 @@ from lightspeed.trex.comfyui.core.models import WorkflowInput, WorkflowOutput
 from lightspeed.trex.comfyui.core.resolvers import ResolverParameter, ValueResolver
 from lightspeed.trex.comfyui.core.settings import ComfyUISettings
 from omni.flux.property_widget_builder.model.native import NativeChoiceModel, NativeItem
-from omni.flux.property_widget_builder.widget import ItemGroup
+from omni.flux.property_widget_builder.widget import CallbackValueModel, ItemGroup
 from omni.flux.property_widget_builder.widget.tree.item_model import ItemGroupNameModel
 
-from .model import GetterValueModel, _ResolverFieldValueModel, _WorkflowOutputFieldValueModel
+from .model import GetterValueModel, _WorkflowOutputFieldValueModel
 
 
 class _ParameterNameModel(ItemGroupNameModel):
@@ -73,7 +73,7 @@ class ResolverParamItem(NativeItem):
     def __init__(
         self,
         name_model: ItemGroupNameModel,
-        value_model: _ResolverFieldValueModel[Any] | NativeChoiceModel,
+        value_model: CallbackValueModel | NativeChoiceModel,
         value_type: type = str,
         field_model: _WorkflowOutputFieldValueModel | None = None,
     ):
@@ -135,7 +135,7 @@ class ResolverParamItem(NativeItem):
             display_name = labels.get(parameter.name, parameter.label or parameter.name)
             name_model = _ParameterNameModel(display_name, tooltip=parameter.tooltip)
             value_type = parameter.value_type if parameter.value_type is not object else fallback_value_type
-            value_model = _ResolverFieldValueModel(parameter, value_type)
+            value_model = CallbackValueModel(value_type, parameter.get_value, parameter.set_value)
             if parameter.choices is not None:
                 value_model = NativeChoiceModel(value_model, parameter.choices)
             items.append(cls(name_model, value_model, value_type=value_type))
@@ -246,7 +246,7 @@ class JobTimeoutItem(ResolverParamItem):
         )
         super().__init__(
             _ParameterNameModel("Timeout", tooltip=self.tooltip),
-            _ResolverFieldValueModel(parameter, float),
+            CallbackValueModel(float, parameter.get_value, parameter.set_value),
             value_type=float,
         )
 

@@ -59,6 +59,7 @@ class RemixAllPrimsInteractionPlugin(AllPrimsInteractionPlugin, RemixStageManage
             "ParticleSystemsActionWidgetPlugin",
             "PrimRenameNameActionWidgetPlugin",
             "SubmitComfyUIJobActionWidgetPlugin",
+            "SubmitAssetModifierJobActionWidgetPlugin",
         ],
         exclude=True,
     )

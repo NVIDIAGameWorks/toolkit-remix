@@ -30,6 +30,7 @@ from .unit.test_progress import TestProgressWorker
 from .unit.test_serialize import TestSerializer
 from .unit.test_symlink import TestSymlink
 from .unit.test_task_budget import TestWorkerYieldBudget
+from .unit.test_task_tracker import TestTaskTracker
 from .unit.test_version import TestVersion
 
 __all__ = [
@@ -47,6 +48,7 @@ __all__ = [
     "TestProgressWorker",
     "TestSerializer",
     "TestSymlink",
+    "TestTaskTracker",
     "TestVersion",
     "TestWidgetDropRouter",
     "TestWorkerYieldBudget",

@@ -76,7 +76,9 @@ def _lease_ingestion_context() -> _IngestionContextLease:
         return _INGESTION_CONTEXT_FREE_LIST.pop()
 
     name = f"remix_asset_pipeline_ingestion_{next(_INGESTION_CONTEXT_NAME_COUNTER)}"
-    return _IngestionContextLease(name=name, context=omni.usd.create_context(name))
+    context = omni.usd.create_context(name)
+    context.set_timeline(name)
+    return _IngestionContextLease(name=name, context=context)
 
 
 def _return_ingestion_context(lease: _IngestionContextLease) -> None:

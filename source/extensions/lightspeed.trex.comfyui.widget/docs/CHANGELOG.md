@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.3]
+### Changed
+- Used the shared `ProgressPopup.run_cancellable()`, `CallbackValueModel`, and `TaskTracker` instead of local copies. A cancelled submission now keeps the Run button busy until it settles.
+
 ## [2.2.2]
 ### Added
 - Added an E2E test for node pack inputs that have no Toolkit semantic type, for example a prompt.

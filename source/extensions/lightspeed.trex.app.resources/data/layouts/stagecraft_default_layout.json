@@ -52,6 +52,16 @@
                 "title": "Editor",
                 "visible": true,
                 "width": 492.8000183105469
+              },
+              {
+                "dock_id": 3,
+                "height": 874.4000244140625,
+                "position_x": 59.20000076293945,
+                "position_y": 24.80000114440918,
+                "selected_in_dock": false,
+                "title": "Asset Modifiers",
+                "visible": true,
+                "width": 492.8000183105469
               }
             ],
             "dock_id": 3,
@@ -98,6 +108,16 @@
                     "position_y": 516.7999877929688,
                     "selected_in_dock": true,
                     "title": "Stage Manager",
+                    "visible": true,
+                    "width": 1060.800048828125
+                  },
+                  {
+                    "dock_id": 6,
+                    "height": 382.3999938964844,
+                    "position_x": 555.2000122070312,
+                    "position_y": 516.7999877929688,
+                    "selected_in_dock": false,
+                    "title": "Job Queue",
                     "visible": true,
                     "width": 1060.800048828125
                   }
@@ -213,16 +233,6 @@
     "position_y": 0,
     "selected_in_dock": false,
     "title": "ComfyUI Workflow",
-    "visible": false,
-    "width": 400.0
-  },
-  {
-    "dock_id": 0,
-    "height": 600.0,
-    "position_x": 0,
-    "position_y": 0,
-    "selected_in_dock": false,
-    "title": "Job Queue",
     "visible": false,
     "width": 400.0
   },

@@ -17,6 +17,7 @@
 
 __all__ = ["RemixStageManagerUSDInteractionPlugin"]
 
+from lightspeed.trex.asset_modifiers.factory import get_instance as _get_asset_modifier_factory
 from lightspeed.trex.comfyui.core.enums import ComfyUIEventType
 from omni.flux.stage_manager.plugin.interaction.usd.base import StageManagerUSDInteractionPlugin
 
@@ -31,11 +32,15 @@ class RemixStageManagerUSDInteractionPlugin(StageManagerUSDInteractionPlugin):
     """
 
     def _setup_listeners(self):
-        """Subscribe the interaction to base and ComfyUI events."""
+        """Subscribe the interaction to base, ComfyUI, and asset modifier events."""
         super()._setup_listeners()
         # Subscribe to ComfyUI events so interactions can react to connection/workflow changes
         self._listener_event_occurred_subs.extend(
             self._context.subscribe_listener_event_occurred(ComfyUIEventType, self._on_comfy_event_occurred)
+        )
+        # Asset modifier changes refresh the action icons without a USD change.
+        self._listener_event_occurred_subs.append(
+            _get_asset_modifier_factory().subscribe_changed(self._on_asset_modifiers_changed)
         )
 
     def _on_comfy_event_occurred(self, _):
@@ -44,4 +49,8 @@ class RemixStageManagerUSDInteractionPlugin(StageManagerUSDInteractionPlugin):
         Args:
             _: ComfyUI event data supplied by the listener; unused.
         """
+        self._queue_update(update_context_items=False)
+
+    def _on_asset_modifiers_changed(self):
+        """Queue a UI refresh without rebuilding the USD context items after a modifier or its settings change."""
         self._queue_update(update_context_items=False)

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created 1.6.1-0 build
 - Added RTX Remix 1.6 release notes
 - REMIX-6265: Excluded invalid ComfyUI selections and cancelled timed-out prompts before the next ComfyUI job starts. Added a persistent 60-minute timeout (0 for no limit), Timed Out labels with the error color, Retry, and queue resume while active work continues. Added a job graph Stop action that stops a running job and its ComfyUI prompt, with a Stopped label and Retry. Disabled the Stage Manager AI Tools action when the workflow has no Selected Texture or Selected Mesh input. A ComfyUI workflow with only Constant inputs creates one job, texture inputs must match the mesh input scope, and All Textures expands mesh workflows without a mesh input to the whole stage. Texture workflows with a mesh input apply textures to the materials under that mesh. Documented AI Tools workflow types, input getters, the job timeout, and the job queue.
+- REMIX-6266: Added an Asset Modifiers framework for local model transforms, with persistent inputs, Stage Manager actions, Job Queue integration, and reversible replacement.
 
 ### Changed
 

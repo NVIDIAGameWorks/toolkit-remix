@@ -16,6 +16,8 @@
 """
 
 from .e2e.test_apply_processed_textures import TestApplyProcessedTexturesE2E
+from .e2e.test_apply_stage_watcher import TestApplyStageWatcherE2E
+from .e2e.test_commands import TestCommandsE2E
 from .e2e.test_context import TestRemixAssetPipelineContextE2E
 from .e2e.test_convert_materials import TestConvertMaterialsE2E
 from .e2e.test_convert_normal import TestConvertNormalE2E
@@ -59,8 +61,10 @@ __all__ = (
     "TestApplyHandler",
     "TestApplyProcessedTexturesE2E",
     "TestApplyProcessedTexturesStep",
+    "TestApplyStageWatcherE2E",
     "TestAssetPublicationE2E",
     "TestCodecAssemblies",
+    "TestCommandsE2E",
     "TestConvertDDS",
     "TestConvertMaterials",
     "TestConvertMaterialsE2E",

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.0]
+### Added
+- Added `WindowNames.ASSET_MODIFIERS` for the Asset Modifiers window.
+
 ## [3.0.0]
 ### Removed
 - Removed public texture metadata types and constants, now owned by `lightspeed.trex.asset_pipeline.core.constants`.

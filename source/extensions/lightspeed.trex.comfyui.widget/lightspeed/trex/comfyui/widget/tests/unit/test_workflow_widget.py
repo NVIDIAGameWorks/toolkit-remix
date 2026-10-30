@@ -844,27 +844,15 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         # Arrange
         core = _make_core(_make_workflow())
         widget = _make_bare_widget(core)
-        owner_coroutine = MagicMock()
         prepare_task = MagicMock()
 
         # Act
-        with (
-            patch.object(
-                widget,
-                "_prepare_and_submit",
-                new=MagicMock(return_value=owner_coroutine),
-            ),
-            patch(
-                "lightspeed.trex.comfyui.widget.workflow.widget.asyncio.ensure_future",
-                return_value=prepare_task,
-            ) as ensure_future,
-        ):
+        with patch.object(widget._submissions, "start", return_value=prepare_task) as start:
             widget._on_submit_clicked()
 
         # Assert
-        ensure_future.assert_called_once_with(owner_coroutine)
-        prepare_task.set_name.assert_called_once_with("ComfyUIWorkflowSubmission")
-        self.assertIs(widget._submit_task, prepare_task)
+        start.assert_called_once_with(None, widget._prepare_and_submit, name="ComfyUIWorkflowSubmission")
+        prepare_task.add_done_callback.assert_called_once()
 
     async def test_queue_submission_routes_through_core(self):
         """Prepared submissions are passed unchanged to the owning core."""
@@ -1069,10 +1057,10 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         widget = _make_bare_widget(core)
         pending_task = MagicMock()
         pending_task.done.return_value = False
-        widget._submit_task = pending_task
+        widget._submissions._tasks[None] = pending_task
 
         # Act
-        with patch("lightspeed.trex.comfyui.widget.workflow.widget.asyncio.ensure_future") as ensure_future:
+        with patch("omni.flux.utils.common.task_tracker.asyncio.ensure_future") as ensure_future:
             widget._on_submit_clicked()
 
         # Assert
@@ -1150,7 +1138,7 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         submit_task = MagicMock()
         widget._workflow_refresh_task = refresh_task
         widget._workflow_load_task = load_task
-        widget._submit_task = submit_task
+        widget._submissions._tasks[None] = submit_task
 
         # Act
         widget._on_core_event(ComfyUIEventPayload("texturecraft", ComfyUIEventType.STATE_CHANGED))
@@ -1161,14 +1149,13 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         submit_task.cancel.assert_called_once_with()
         self.assertIsNone(widget._workflow_refresh_task)
         self.assertIsNone(widget._workflow_load_task)
-        self.assertIsNone(widget._submit_task)
 
     async def test_destroy_cancels_tasks_and_releases_widgets(self):
         """Destroy cancels retained work and clears owned widget references."""
         # Arrange
         widget = _make_bare_widget(_make_core(_make_workflow()))
         tasks = [MagicMock(), MagicMock(), MagicMock()]
-        widget._workflow_refresh_task, widget._workflow_load_task, widget._submit_task = tasks
+        widget._workflow_refresh_task, widget._workflow_load_task, widget._submissions._tasks[None] = tasks
         widget._event_subscription = MagicMock()
         inputs_widget = MagicMock()
         widget._inputs_property_widgets = [inputs_widget]
@@ -1186,7 +1173,6 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
             task.cancel.assert_called_once_with()
         self.assertIsNone(widget._workflow_refresh_task)
         self.assertIsNone(widget._workflow_load_task)
-        self.assertIsNone(widget._submit_task)
         self.assertIsNone(widget._event_subscription)
         inputs_widget.destroy.assert_called_once_with()
         self.assertEqual(widget._inputs_property_widgets, [])

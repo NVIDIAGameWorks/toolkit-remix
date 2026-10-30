@@ -25,10 +25,12 @@ import uuid
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
+from lightspeed.trex.asset_pipeline.core.jobs import reference_apply as reference_apply_module
 from lightspeed.trex.asset_pipeline.core.jobs.models import (
     MeshOptimizationRequest,
     MeshOptimizationResult,
     ProcessedTexture,
+    ReferenceTarget,
     TextureOptimizationItem,
     TextureOptimizationResult,
 )
@@ -54,7 +56,6 @@ from ...models import (
     ComfyUIFileResult,
     ComfyUIInputBinding,
     ComfyUIWorkflowRequest,
-    ReferenceTarget,
     Workflow,
     WorkflowOutput,
 )
@@ -171,7 +172,7 @@ class TestComfyUIJob(AsyncTestCase):
         """Clear the endpoint and isolate metadata reads from the filesystem."""
         set_connected_endpoint("texturecraft", None)
         metadata_capture = patch.object(
-            apply_handler_module, "capture_metadata_receipt", return_value=MetadataApplyReceipt(prior_meta=())
+            reference_apply_module, "capture_metadata_receipt", return_value=MetadataApplyReceipt(prior_meta=())
         )
         metadata_capture.start()
         self.addCleanup(metadata_capture.stop)
@@ -192,8 +193,8 @@ class TestComfyUIJob(AsyncTestCase):
         with (
             patch.object(apply_handler_module, "_get_apply_stage", return_value=(MagicMock(), layer)),
             patch.object(apply_handler_module, "_reference_state", return_value=("original", {})),
-            patch.object(apply_handler_module, "_write_output_metadata", AsyncMock()) as write_metadata,
-            patch.object(apply_handler_module, "revert_metadata") as revert_metadata,
+            patch.object(reference_apply_module, "_write_output_metadata", AsyncMock()) as write_metadata,
+            patch.object(reference_apply_module, "revert_metadata") as revert_metadata,
             patch.object(apply_handler_module, "Setup") as setup,
             self.assertRaises(ApplyExecutionError) as error_context,
         ):
@@ -215,8 +216,8 @@ class TestComfyUIJob(AsyncTestCase):
         with (
             patch.object(apply_handler_module, "_get_apply_stage", return_value=(MagicMock(), layer)),
             patch.object(apply_handler_module, "_reference_state", return_value=("applied", {})),
-            patch.object(apply_handler_module, "_write_output_metadata", AsyncMock()) as write_metadata,
-            patch.object(apply_handler_module, "revert_metadata") as revert_metadata,
+            patch.object(reference_apply_module, "_write_output_metadata", AsyncMock()) as write_metadata,
+            patch.object(reference_apply_module, "revert_metadata") as revert_metadata,
             patch.object(apply_handler_module, "Setup") as setup,
             self.assertRaises(ApplyExecutionError) as error_context,
         ):
@@ -1372,12 +1373,15 @@ class TestComfyUIJob(AsyncTestCase):
         replacements.replace_textures.side_effect = RuntimeError("stage write failed")
         revert = MagicMock()
         with (
-            patch.object(apply_handler_module, "_get_apply_stage", return_value=(MagicMock(), MagicMock())),
+            patch.object(
+                apply_handler_module, "_get_apply_stage", return_value=(MagicMock(), MagicMock())
+            ) as get_apply_stage,
+            patch.object(reference_apply_module, "get_apply_stage", get_apply_stage),
             patch.object(apply_handler_module, "_verify_texture_receipt"),
             patch.object(apply_handler_module, "_texture_state", return_value="original"),
-            patch.object(apply_handler_module, "capture_metadata_receipt", return_value=rollback_receipt),
-            patch.object(apply_handler_module, "_write_output_metadata", AsyncMock()),
-            patch.object(apply_handler_module, "revert_metadata", revert),
+            patch.object(reference_apply_module, "capture_metadata_receipt", return_value=rollback_receipt),
+            patch.object(reference_apply_module, "_write_output_metadata", AsyncMock()),
+            patch.object(reference_apply_module, "revert_metadata", revert),
             patch.object(apply_handler_module, "TextureReplacementsCore", return_value=replacements),
         ):
             # Act
@@ -1395,7 +1399,7 @@ class TestComfyUIAssetApplyHandler(AsyncTestCase):
     async def setUp(self) -> None:
         """Isolate metadata reads from the filesystem."""
         metadata_capture = patch.object(
-            apply_handler_module, "capture_metadata_receipt", return_value=MetadataApplyReceipt(prior_meta=())
+            reference_apply_module, "capture_metadata_receipt", return_value=MetadataApplyReceipt(prior_meta=())
         )
         metadata_capture.start()
         self.addCleanup(metadata_capture.stop)
@@ -1420,16 +1424,19 @@ class TestComfyUIAssetApplyHandler(AsyncTestCase):
         stack = []
         undo = MagicMock()
         with (
-            patch.object(apply_handler_module, "_get_apply_stage", return_value=(stage, MagicMock())),
+            patch.object(
+                apply_handler_module, "_get_apply_stage", return_value=(stage, MagicMock())
+            ) as get_apply_stage,
+            patch.object(reference_apply_module, "get_apply_stage", get_apply_stage),
             patch.object(apply_handler_module, "_reference_state", return_value=("original", {})),
-            patch.object(apply_handler_module, "_write_output_metadata", AsyncMock()),
-            patch.object(apply_handler_module, "revert_metadata"),
+            patch.object(reference_apply_module, "_write_output_metadata", AsyncMock()),
+            patch.object(reference_apply_module, "revert_metadata"),
             patch.object(apply_handler_module, "Setup", return_value=setup),
             patch.object(apply_handler_module.Usd, "EditContext"),
-            patch.object(apply_handler_module.omni.kit.commands, "execute") as execute,
-            patch.object(apply_handler_module.omni.kit.undo, "group") as group,
-            patch.object(apply_handler_module.omni.kit.undo, "get_undo_stack", side_effect=lambda: stack),
-            patch.object(apply_handler_module.omni.kit.undo, "undo", undo),
+            patch.object(reference_apply_module.omni.kit.commands, "execute") as execute,
+            patch.object(reference_apply_module.omni.kit.undo, "group") as group,
+            patch.object(reference_apply_module.omni.kit.undo, "get_undo_stack", side_effect=lambda: stack),
+            patch.object(reference_apply_module.omni.kit.undo, "undo", undo),
         ):
             group.return_value.__enter__.side_effect = lambda: stack.append("Group")
 
@@ -1441,10 +1448,10 @@ class TestComfyUIAssetApplyHandler(AsyncTestCase):
         self.assertEqual(setup.add_new_reference.call_count, 2)
         execute.assert_called_once_with(
             "CreateUsdAttribute",
-            prim=stage.GetPrimAtPath.return_value,
-            attr_name=apply_handler_module._GENERATED_FOR_ATTR,
+            prim=stage.GetPrimAtPath("/World/AssetA/ref"),
+            attr_name=reference_apply_module._GENERATED_FOR_ATTR,
             attr_type=Sdf.ValueTypeNames.String,
-            attr_value=apply_handler_module._generated_marker("/World/AssetA", value.asset_url),
+            attr_value=reference_apply_module._generated_marker("/World/AssetA", value.asset_url),
         )
         undo.assert_called_once_with()
 
@@ -1458,7 +1465,7 @@ class TestComfyUIAssetApplyHandler(AsyncTestCase):
         stage.GetPrimAtPath.return_value.IsValid.return_value = False
         with (
             patch.object(apply_handler_module, "_get_apply_stage", return_value=(stage, MagicMock())),
-            patch.object(apply_handler_module, "_write_output_metadata", AsyncMock()) as write_metadata,
+            patch.object(reference_apply_module, "_write_output_metadata", AsyncMock()) as write_metadata,
             patch.object(apply_handler_module, "Setup") as setup,
         ):
             # Act
@@ -1489,10 +1496,10 @@ class TestComfyUIAssetApplyHandler(AsyncTestCase):
         stage.GetPrimAtPath.return_value.GetAttribute.return_value.Get.return_value = None
         with (
             patch.object(apply_handler_module, "_get_apply_stage", return_value=(stage, MagicMock())),
-            patch.object(apply_handler_module, "_generated_children", return_value=[child]),
-            patch.object(apply_handler_module, "_source_composed", return_value=True),
-            patch.object(apply_handler_module, "revert_metadata") as revert,
-            patch.object(apply_handler_module.omni.kit.commands, "execute") as execute,
+            patch.object(reference_apply_module, "_generated_children", return_value=[child]),
+            patch.object(reference_apply_module, "_source_composed", return_value=True),
+            patch.object(reference_apply_module, "revert_metadata") as revert,
+            patch.object(reference_apply_module.omni.kit.commands, "execute") as execute,
         ):
             # Act
             with self.assertRaises(ApplyExecutionError) as error_context:
@@ -1511,15 +1518,18 @@ class TestComfyUIAssetApplyHandler(AsyncTestCase):
         receipt = _make_texture_receipt()
         rollback_receipt = MetadataApplyReceipt(prior_meta=((pathlib.Path("C:/published/generated.glb.meta"), "{}"),))
         with (
-            patch.object(apply_handler_module, "_get_apply_stage", return_value=(MagicMock(), MagicMock())),
+            patch.object(
+                apply_handler_module, "_get_apply_stage", return_value=(MagicMock(), MagicMock())
+            ) as get_apply_stage,
+            patch.object(reference_apply_module, "get_apply_stage", get_apply_stage),
             patch.object(
                 apply_handler_module,
                 "_reference_state",
                 side_effect=[("original", {}), ("applied", {"/World/Asset": [MagicMock()]})],
             ),
-            patch.object(apply_handler_module, "capture_metadata_receipt", return_value=rollback_receipt),
-            patch.object(apply_handler_module, "_write_output_metadata", AsyncMock()),
-            patch.object(apply_handler_module, "revert_metadata") as revert,
+            patch.object(reference_apply_module, "capture_metadata_receipt", return_value=rollback_receipt),
+            patch.object(reference_apply_module, "_write_output_metadata", AsyncMock()),
+            patch.object(reference_apply_module, "revert_metadata") as revert,
             patch.object(apply_handler_module, "Setup") as setup,
         ):
             # Act
@@ -1543,11 +1553,11 @@ class TestComfyUIAssetApplyHandler(AsyncTestCase):
             patch.object(
                 apply_handler_module, "_reference_state", return_value=("applied", {"/World/Asset": [MagicMock()]})
             ),
-            patch.object(apply_handler_module, "capture_metadata_receipt", return_value=rollback),
+            patch.object(reference_apply_module, "capture_metadata_receipt", return_value=rollback),
             patch.object(
-                apply_handler_module, "revert_metadata", side_effect=[OSError("second sidecar is locked"), None]
+                reference_apply_module, "revert_metadata", side_effect=[OSError("second sidecar is locked"), None]
             ) as revert_metadata,
-            patch.object(apply_handler_module.omni.kit.commands, "execute") as execute,
+            patch.object(reference_apply_module.omni.kit.commands, "execute") as execute,
             patch.object(apply_handler_module, "TextureReplacementsCore") as replacements,
         ):
             # Act
@@ -1571,11 +1581,14 @@ class TestComfyUIAssetApplyHandler(AsyncTestCase):
         applied = ("applied", {"/World/Asset": [MagicMock()]})
         rollback = MagicMock(name="attempt_rollback")
         with (
-            patch.object(apply_handler_module, "_get_apply_stage", return_value=(MagicMock(), MagicMock())),
+            patch.object(
+                apply_handler_module, "_get_apply_stage", return_value=(MagicMock(), MagicMock())
+            ) as get_apply_stage,
+            patch.object(reference_apply_module, "get_apply_stage", get_apply_stage),
             patch.object(apply_handler_module, "_reference_state", side_effect=[applied, ("original", {})]),
-            patch.object(apply_handler_module, "capture_metadata_receipt", return_value=rollback),
-            patch.object(apply_handler_module, "revert_metadata") as revert_metadata,
-            patch.object(apply_handler_module.omni.kit.commands, "execute") as execute,
+            patch.object(reference_apply_module, "capture_metadata_receipt", return_value=rollback),
+            patch.object(reference_apply_module, "revert_metadata") as revert_metadata,
+            patch.object(reference_apply_module.omni.kit.commands, "execute") as execute,
             patch.object(apply_handler_module, "TextureReplacementsCore") as replacements,
         ):
             # Act
@@ -1599,13 +1612,14 @@ class TestComfyUIAssetApplyHandler(AsyncTestCase):
         with (
             patch.object(
                 apply_handler_module, "_get_apply_stage", side_effect=[(MagicMock(), layer), (MagicMock(), layer)]
-            ),
+            ) as get_apply_stage,
+            patch.object(reference_apply_module, "get_apply_stage", get_apply_stage),
             patch.object(
                 apply_handler_module, "_reference_state", return_value=("applied", {"/World/Asset": [MagicMock()]})
             ),
-            patch.object(apply_handler_module, "capture_metadata_receipt", return_value=rollback),
-            patch.object(apply_handler_module, "revert_metadata") as revert_metadata,
-            patch.object(apply_handler_module.omni.kit.commands, "execute") as execute,
+            patch.object(reference_apply_module, "capture_metadata_receipt", return_value=rollback),
+            patch.object(reference_apply_module, "revert_metadata") as revert_metadata,
+            patch.object(reference_apply_module.omni.kit.commands, "execute") as execute,
         ):
             # Act
             with self.assertRaises(ApplyExecutionError) as error_context:

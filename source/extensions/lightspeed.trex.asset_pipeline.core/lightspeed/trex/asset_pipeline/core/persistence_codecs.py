@@ -22,6 +22,7 @@ from typing import Any
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.job_queue.core.persistence import PersistenceCodec
 from omni.flux.job_queue.core.persistence_codec import decode_positional_payload
+from pxr import Sdf
 
 from .jobs import MeshOptimizationJob, PrepareOptimizationJob, TextureOptimizationJob
 from .jobs.apply_handler import SaveMeshMetadataHandler, SaveTextureMetadataHandler
@@ -30,14 +31,17 @@ from .jobs.models import (
     MeshOptimizationResult,
     PrepareOptimizationResult,
     ProcessedTexture,
+    ReferenceTarget,
     TextureLedgerEntry,
     TextureOptimizationItem,
     TextureOptimizationRequest,
     TextureOptimizationResult,
 )
+from .jobs.asset_replace_apply_handler import AssetReplaceApplyHandler
+from .jobs.asset_replace_apply_target import AssetReplaceApplyTarget
 from .metadata import MetadataApplyReceipt
 
-__all__ = ("MESH_OPTIMIZATION_CODECS", "TEXTURE_PROCESSING_CODECS")
+__all__ = ("MESH_OPTIMIZATION_CODECS", "REFERENCE_APPLY_CODECS", "TEXTURE_PROCESSING_CODECS")
 
 
 def _dataclass_codec(name: str, value_type: type, decoder: Callable[[Any], Any] | None = None) -> PersistenceCodec:
@@ -124,6 +128,29 @@ def _decode_texture_optimization_result(payload: Any) -> TextureOptimizationResu
     return decode_positional_payload(TextureOptimizationResult, payload, 3)
 
 
+def _decode_sdf_reference(payload: object) -> Sdf.Reference:
+    """Decode one explicit persisted Sdf.Reference payload.
+
+    Args:
+        payload: Five positional fields from the persistence registry.
+
+    Returns:
+        Reconstructed reference with exact path, offset, scale, and custom data.
+
+    Raises:
+        TypeError: If the payload does not have the expected shape.
+    """
+    if not isinstance(payload, (list, tuple)) or len(payload) != 5:
+        raise TypeError("Sdf.Reference payload must contain five positional fields")
+    asset_path, prim_path, offset, scale, custom_data = payload
+    return Sdf.Reference(
+        assetPath=asset_path,
+        primPath=Sdf.Path(prim_path),
+        layerOffset=Sdf.LayerOffset(offset, scale),
+        customData=custom_data,
+    )
+
+
 TEXTURE_PROCESSING_CODECS = (
     PersistenceCodec("remix_texture.TextureTypes", TextureTypes),
     _dataclass_codec("remix_texture.TextureProcessingItem", TextureOptimizationItem, _decode_texture_optimization_item),
@@ -151,4 +178,28 @@ MESH_OPTIMIZATION_CODECS = (
     _dataclass_codec("remix_mesh.PrepareOptimizationJob", PrepareOptimizationJob),
     PersistenceCodec(SaveTextureMetadataHandler.name, SaveTextureMetadataHandler),
     PersistenceCodec(SaveMeshMetadataHandler.name, SaveMeshMetadataHandler),
+)
+
+
+REFERENCE_APPLY_CODECS = (
+    PersistenceCodec(
+        "remix_mesh.Reference",
+        Sdf.Reference,
+        lambda value: (
+            value.assetPath,
+            str(value.primPath),
+            value.layerOffset.offset,
+            value.layerOffset.scale,
+            value.customData,
+        ),
+        _decode_sdf_reference,
+    ),
+    PersistenceCodec(
+        "remix_mesh.ReferenceTarget",
+        ReferenceTarget,
+        lambda value: (value.owner_prim_path, value.source_reference, value.source_layer_identifier),
+        lambda payload: decode_positional_payload(ReferenceTarget, payload, 3),
+    ),
+    _dataclass_codec("remix_mesh.AssetReplaceApplyTarget", AssetReplaceApplyTarget),
+    PersistenceCodec(AssetReplaceApplyHandler.name, AssetReplaceApplyHandler),
 )

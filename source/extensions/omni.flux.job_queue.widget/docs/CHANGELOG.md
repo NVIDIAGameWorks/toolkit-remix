@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.4.0]
+### Changed
+- A display adapter registered for a job base type also serves its subclasses.
+
 ## [3.3.1]
 ### Fixed
 - Fixed a race in the delete prompt tests: the tests now wait until the prompt is visible before they read it.

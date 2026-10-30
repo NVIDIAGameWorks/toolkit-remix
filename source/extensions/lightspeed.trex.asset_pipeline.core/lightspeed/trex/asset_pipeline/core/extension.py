@@ -18,27 +18,33 @@
 __all__ = ["AssetPipelineCoreExtension"]
 
 import omni.ext
+import omni.kit.commands
 from omni.flux.job_queue.core import handlers
 from omni.flux.job_queue.core.persistence import get_registry
 
+from . import commands
 from .jobs.apply_handler import SaveMeshMetadataHandler, SaveTextureMetadataHandler
-from .persistence_codecs import MESH_OPTIMIZATION_CODECS, TEXTURE_PROCESSING_CODECS
+from .jobs.apply_stage_watcher import get_apply_stage_watcher
+from .jobs.asset_replace_apply_handler import AssetReplaceApplyHandler
+from .persistence_codecs import MESH_OPTIMIZATION_CODECS, REFERENCE_APPLY_CODECS, TEXTURE_PROCESSING_CODECS
 
 
-_APPLY_HANDLERS = [SaveMeshMetadataHandler, SaveTextureMetadataHandler]
+_APPLY_HANDLERS = [SaveMeshMetadataHandler, SaveTextureMetadataHandler, AssetReplaceApplyHandler]
 
 
 class AssetPipelineCoreExtension(omni.ext.IExt):
     """Register process-owned texture- and mesh-optimization persistence codecs and Apply handlers."""
 
     def on_startup(self, _ext_id: str) -> None:
-        """Register the texture- and mesh-optimization persistence codecs and Apply handlers.
+        """Register the texture- and mesh-optimization persistence codecs, Apply handlers, and commands.
 
         Args:
             _ext_id: Extension identifier supplied by Kit.
         """
-        get_registry().register_codecs(TEXTURE_PROCESSING_CODECS + MESH_OPTIMIZATION_CODECS)
+        get_registry().register_codecs(TEXTURE_PROCESSING_CODECS + MESH_OPTIMIZATION_CODECS + REFERENCE_APPLY_CODECS)
         handlers.register_plugins(_APPLY_HANDLERS)
+        omni.kit.commands.register_all_commands_in_module(commands)
 
     def on_shutdown(self) -> None:
-        """Keep codecs and handlers available until the queue core drains active jobs and destroys its registry."""
+        """Stop watching project stages. Keep codecs, handlers, and commands until the queue core drains active jobs."""
+        get_apply_stage_watcher().destroy()

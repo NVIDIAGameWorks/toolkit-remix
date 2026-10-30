@@ -18,15 +18,12 @@
 __all__ = ["ComfyUICoreExtension", "get_comfyui_core_instance"]
 
 import contextlib
-from functools import partial
 
 import carb
 import omni.kit.commands
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
-from omni import usd
 from omni.ext import IExt
 from omni.flux.job_queue.core import handlers
-from omni.flux.job_queue.core.extension import get_job_queue
 from omni.flux.job_queue.core.persistence import get_registry
 
 from . import commands
@@ -34,7 +31,6 @@ from .apply_handler import ComfyUIAssetApplyHandler, ComfyUIJobApplyHandler, Com
 from .core import ComfyUICore
 from .events import COMFYUI_EVENT_NAME
 from .persistence_codecs import COMFYUI_CODECS
-from .models import ComfyUIApplyTarget, ComfyUIAssetApplyTarget
 from .resolvers import RESOLVER_PLUGINS, get_resolver_factory
 
 _instances: dict[str, ComfyUICore] = {}
@@ -71,7 +67,6 @@ def get_comfyui_core_instance(context_name: str) -> ComfyUICore:
         _instances[context_name] = ComfyUICore(
             context_name=context_name,
             settings_changed_callback=_broadcast_settings_changed,
-            stage_event_callback=partial(ComfyUICoreExtension.on_stage_event, context_name),
         )
     return _instances[context_name]
 
@@ -127,36 +122,3 @@ class ComfyUICoreExtension(IExt):
         cleanup.close()
         _instances.clear()
         _started = False
-
-    @staticmethod
-    def on_stage_event(context_name: str, event) -> None:
-        """Refresh only jobs that target the USD context whose stage changed.
-
-        Args:
-            context_name: USD context that emitted the stage event.
-            event: USD stage lifecycle event.
-        """
-        if event.type not in {int(usd.StageEventType.CLOSED), int(usd.StageEventType.OPENED)}:
-            return
-        queue = get_job_queue()
-        queue.notify_schedule_conditions_changed()
-        if event.type != int(usd.StageEventType.OPENED):
-            return
-        executor = handlers.get_apply_executor()
-        handler_ids = {handler.name for handler in ComfyUICoreExtension._PLUGINS}
-        for snapshot in queue.iter_snapshot():
-            if snapshot.apply_handler_id not in handler_ids:
-                continue
-            try:
-                job = queue.get_job(snapshot.job_id)
-            except (KeyError, RuntimeError, TypeError, ValueError) as error:
-                carb.log_warn(f"Could not inspect ComfyUI Apply target for {snapshot.job_id}: {error}")
-                continue
-            binding = job.apply_binding
-            if binding is None:
-                continue
-            target = binding.target
-            if type(target) not in {ComfyUIApplyTarget, ComfyUIAssetApplyTarget}:
-                continue
-            if target.context_name == context_name:
-                executor.request_reconcile(snapshot.job_id)

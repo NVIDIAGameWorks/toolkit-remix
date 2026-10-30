@@ -17,6 +17,7 @@
 
 __all__ = [
     "AttributeCopyPasteHelper",
+    "CallbackValueModel",
     "ClaimResult",
     "Delegate",
     "FieldBuilder",
@@ -32,6 +33,7 @@ __all__ = [
 ]
 
 from .property_widget_builder import PropertyWidget
+from .tree.callback_value_model import CallbackValueModel
 from .tree.clipboard import AttributeCopyPasteHelper
 from .tree.delegate import ClaimResult, Delegate, FieldBuilder, FieldBuilderList, claim_each
 from .tree.item_model import ItemModel, ItemModelBase, ItemValueModel

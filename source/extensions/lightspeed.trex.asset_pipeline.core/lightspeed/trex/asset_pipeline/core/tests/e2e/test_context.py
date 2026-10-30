@@ -36,6 +36,8 @@ _SECOND_MODEL_PRIM = "/World/SecondModel"
 _SESSION_ONLY_PROBE = "/SessionOnlyProbe"
 _MATERIALLESS_MESH = "/World/MateriallessMesh"
 _ORPHAN_MATERIAL = "/World/Looks/OrphanMaterial"
+_DEFAULT_START_TIME_CODE = 101.0
+_DEFAULT_END_TIME_CODE = 203.0
 _TRIANGLE_POINTS = Vt.Vec3fArray([(0, 0, 0), (1, 0, 0), (0, 1, 0)])
 
 
@@ -52,16 +54,30 @@ class TestRemixAssetPipelineContextE2E(omni.kit.test.AsyncTestCase):
             await default_context.new_stage_async()
             default_stage = default_context.get_stage()
             UsdGeom.Xform.Define(default_stage, _DEFAULT_CONTEXT_MARKER)
+            default_stage.SetStartTimeCode(_DEFAULT_START_TIME_CODE)
+            default_stage.SetEndTimeCode(_DEFAULT_END_TIME_CODE)
 
             try:
+                await _pump_kit_updates()
                 async with RemixAssetPipelineContext() as context:
                     stage = await context.open_stage(model_path)
+                    await _pump_kit_updates()
 
                     self.assertTrue(stage.GetPrimAtPath(_FIRST_MODEL_PRIM).IsValid())
                     self.assertFalse(stage.GetPrimAtPath(_DEFAULT_CONTEXT_MARKER).IsValid())
                     self.assertEqual(default_context.get_stage(), default_stage)
                     self.assertTrue(default_stage.GetPrimAtPath(_DEFAULT_CONTEXT_MARKER).IsValid())
                     self.assertFalse(default_stage.GetPrimAtPath(_FIRST_MODEL_PRIM).IsValid())
+                    self.assertEqual(
+                        (default_stage.GetStartTimeCode(), default_stage.GetEndTimeCode()),
+                        (_DEFAULT_START_TIME_CODE, _DEFAULT_END_TIME_CODE),
+                    )
+
+                await _pump_kit_updates()
+                self.assertEqual(
+                    (default_stage.GetStartTimeCode(), default_stage.GetEndTimeCode()),
+                    (_DEFAULT_START_TIME_CODE, _DEFAULT_END_TIME_CODE),
+                )
             finally:
                 if default_context.can_close_stage():
                     await default_context.close_stage_async()
@@ -369,7 +385,7 @@ def _author_cleanup_model(model_path: pathlib.Path, *, include_bound_material: b
 
 
 async def _pump_kit_updates() -> None:
-    """Process the deferred event after the next lease has opened its sentinel stage."""
+    """Process deferred USD context and timeline events through Kit updates."""
     app = omni.kit.app.get_app()
     for _ in range(20):
         await app.next_update_async()

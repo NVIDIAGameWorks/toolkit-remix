@@ -149,18 +149,17 @@ class TestDisplayAdapter(omni.kit.test.AsyncTestCase):
         # Assert
         self.assertIn("_MockJob", str(context.exception))
 
-    async def test_get_adapter_with_unregistered_subclass_returns_none(self):
-        """An adapter registered for a base job does not handle its subclasses."""
+    async def test_get_adapter_with_unregistered_subclass_returns_base_adapter(self):
+        """An adapter registered for a base job also handles its unregistered subclasses."""
         # Arrange
         self.registry.register(_MockAdapterA)
         job = _DerivedMockJob()
 
         # Act
-        with patch("omni.flux.job_queue.widget.display_adapter_registry.carb"):
-            adapter = self.registry.get_adapter(job)
+        adapter = self.registry.get_adapter(job)
 
         # Assert
-        self.assertIsNone(adapter)
+        self.assertIsInstance(adapter, _MockAdapterA)
 
     async def test_register_duplicate_name_for_different_type_raises_value_error(self):
         """Stable adapter names cannot silently overwrite another exact registration."""

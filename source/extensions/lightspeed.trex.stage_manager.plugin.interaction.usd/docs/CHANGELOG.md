@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.0]
+### Added
+- Added compatible asset modifier actions and refreshed action rows for modifier changes without a USD context update.
+
 ## [3.0.1]
 ### Changed
 - Changed Meshes, Materials, and Categories to use related prims for framing only.

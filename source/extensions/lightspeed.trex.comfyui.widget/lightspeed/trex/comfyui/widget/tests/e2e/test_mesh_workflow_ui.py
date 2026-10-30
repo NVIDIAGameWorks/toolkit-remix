@@ -280,8 +280,8 @@ class _ComfyUIHarness:
         """Press Run Workflow and wait for the submission to settle."""
         await self._find("Button[*].identifier=='ComfyWorkflowRun'").click()
         await ui_test.human_delay(5)
-        if self._widget._submit_task is not None:
-            await self._widget._submit_task
+        if task := self._widget._submissions._tasks.get(None):
+            await task
         await ui_test.human_delay(5)
 
     async def _use_all_mesh_references(self) -> None:

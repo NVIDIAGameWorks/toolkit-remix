@@ -447,6 +447,7 @@ class WindowNames(StrEnum):
     REMIX_LOGIC_GRAPH = "Logic Graph"
     COMFYUI_SETUP = "ComfyUI Setup"
     COMFYUI_WORKFLOW = "ComfyUI Workflow"
+    ASSET_MODIFIERS = "Asset Modifiers"
     JOB_QUEUE = "Job Queue"
     JOB_DETAILS = "Job Details"
 
