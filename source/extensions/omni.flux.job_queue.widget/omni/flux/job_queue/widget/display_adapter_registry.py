@@ -75,18 +75,18 @@ class DisplayAdapterRegistry(FactoryBase[JobDisplayAdapter]):
         self._adapters.clear()
 
     def get_adapter(self, job: Job) -> JobDisplayAdapter | None:
-        """Return the cached adapter registered for the job's exact type.
+        """Return the cached adapter registered for the job's type or its nearest registered base type.
 
         Args:
-            job: Job whose exact concrete type is resolved.
+            job: Job whose concrete type is resolved.
 
         Returns:
-            Cached stateless adapter, or None when no exact registration exists.
+            Cached stateless adapter, or None when no type in the job's MRO is registered.
         """
         job_type = type(job)
-        adapter = self._adapters.get(job_type)
-        if adapter is not None:
-            return adapter
+        for base_type in job_type.__mro__:
+            if base_type in self._adapters:
+                return self._adapters[base_type]
         carb.log_warn(
             f"No display adapter registered for job type {job_type.__name__} "
             f"(job_id={job.job_id}). The job will display with default values."

@@ -100,6 +100,8 @@ class AssetImporterModel(BaseModel):
 
 
 class ImporterCore:
+    _RENAME_CONTEXT_NAME = "asset_importer_renamer"
+
     def __init__(self):
         """
         Importer that can convert batches of mesh files (i.e. fbx, obj, etc) to usd files.
@@ -264,7 +266,8 @@ class ImporterCore:
 
             if rename_task:
                 if rename_context is None:
-                    rename_context = omni.usd.create_context("asset_importer_renamer")
+                    rename_context = omni.usd.create_context(self._RENAME_CONTEXT_NAME)
+                    rename_context.set_timeline(self._RENAME_CONTEXT_NAME)
 
                 if not rename_context.open_stage(rename_task[0]) or not rename_context.save_as_stage(rename_task[1]):
                     all_success = False
@@ -278,7 +281,7 @@ class ImporterCore:
 
         if rename_context is not None:
             rename_context = None
-            omni.usd.destroy_context("asset_importer_renamer")
+            omni.usd.destroy_context(self._RENAME_CONTEXT_NAME)
 
         self._on_batch_progress(100)
         self._on_batch_finished(all_success)

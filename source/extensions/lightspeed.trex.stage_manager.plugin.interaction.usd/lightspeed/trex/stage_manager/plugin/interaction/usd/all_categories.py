@@ -73,6 +73,7 @@ class RemixAllCategoriesInteractionPlugin(RemixStageManagerUSDInteractionPlugin)
             "PrimRenameNameActionWidgetPlugin",
             "PrimTreeWidgetPlugin",
             "SubmitComfyUIJobActionWidgetPlugin",
+            "SubmitAssetModifierJobActionWidgetPlugin",
         ],
         exclude=True,
     )

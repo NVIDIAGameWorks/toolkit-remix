@@ -19,16 +19,15 @@ import asyncio
 import pathlib
 import tempfile
 import threading
-import weakref
 from unittest import mock
 
 from ... import extension
 from ... import core as core_module
 from ... import settings
 from lightspeed.trex.asset_pipeline.core.jobs import TextureOptimizationJob
-from lightspeed.trex.asset_pipeline.core.jobs.models import TextureOptimizationRequest
+from lightspeed.trex.asset_pipeline.core.jobs.models import ReferenceTarget, TextureOptimizationRequest
 from lightspeed.trex.asset_pipeline.core.jobs.apply_handler import SaveTextureMetadataHandler
-from ...apply_handler import ComfyUIAssetApplyHandler, ComfyUITextureApplyHandler
+from ...apply_handler import ComfyUITextureApplyHandler
 from ...connection import get_connected_endpoint, set_connected_endpoint
 from ...core import (
     ComfyUICore,
@@ -50,11 +49,8 @@ from ...enums import (
 from ...events import publish_comfyui_event, subscribe_comfyui_event
 from ...job import ComfyUIJob
 from ...models import (
-    ComfyUIApplyTarget,
-    ComfyUIAssetApplyTarget,
     ComfyUIInputBinding,
     ComfyUIWorkflowRequest,
-    ReferenceTarget,
     Workflow,
     WorkflowInput,
     WorkflowOutput,
@@ -74,7 +70,6 @@ from ...resolvers import (
     ValueResolver,
 )
 from ...tests.unit.fixtures import get_test_workflow_pair
-from omni import usd
 from omni.flux.job_queue.core.enums import JobState
 from omni.flux.job_queue.core.errors import QueueSubmissionError
 from omni.flux.job_queue.core.interface import QueueInterface
@@ -2395,29 +2390,6 @@ class TestComfyUICore(AsyncTestCase):
         self.assertEqual(extension._instances, {})
         self.assertFalse(extension._started)
 
-    async def test_destroy_releases_context_stage_subscription(self) -> None:
-        """A destroyed core no longer retains its stage event subscription."""
-
-        # Arrange
-        class Subscription:
-            pass
-
-        subscription = Subscription()
-        subscription_ref = weakref.ref(subscription)
-        context = mock.MagicMock()
-        subscribe = context.get_stage_event_stream.return_value.create_subscription_to_pop
-        subscribe.return_value = subscription
-        with mock.patch.object(core_module, "get_context", return_value=context):
-            core = ComfyUICore("texturecraft", stage_event_callback=mock.Mock())
-        subscribe.return_value = None
-        del subscription
-
-        # Act
-        core.destroy()
-
-        # Assert
-        self.assertIsNone(subscription_ref())
-
     async def test_extension_lifecycle_is_idempotent(self) -> None:
         """Repeated startup and shutdown retain one exact registration owner."""
         # Arrange
@@ -2495,112 +2467,6 @@ class TestComfyUICore(AsyncTestCase):
         # Assert
         self.assertTrue(completed)
         self.assertEqual(snapshot.state, JobState.DONE)
-
-    async def test_opening_a_stage_reconciles_only_matching_context_apply_work(self) -> None:
-        """Opening one context wakes only Apply bindings that target that context."""
-        # Arrange
-        texture_job_id = mock.sentinel.texture_job_id
-        asset_job_id = mock.sentinel.asset_job_id
-        metadata_job_id = mock.sentinel.metadata_job_id
-        queue = mock.MagicMock()
-        queue.iter_snapshot.return_value = [
-            mock.MagicMock(job_id=texture_job_id, apply_handler_id="ComfyUIJobApplyHandler"),
-            mock.MagicMock(job_id=asset_job_id, apply_handler_id=ComfyUIAssetApplyHandler.name),
-            mock.MagicMock(job_id=metadata_job_id, apply_handler_id=SaveTextureMetadataHandler.name),
-        ]
-        texture_target = ComfyUIApplyTarget(
-            context_name="texturecraft",
-            project_path="/project/project.usda",
-            edit_target_layer="/project/mod.usda",
-            material_path="/World/Looks/Material",
-            texture_targets=(),
-        )
-        asset_target = ComfyUIAssetApplyTarget(
-            context_name="ingestcraft",
-            project_path="/project/project.usda",
-            edit_target_layer="/project/mod.usda",
-            reference_targets=(),
-            texture_targets=(),
-            mesh_apply_behavior=OutputApplyBehavior.APPEND,
-        )
-        queue.get_job.side_effect = (
-            mock.MagicMock(apply_binding=mock.MagicMock(target=texture_target)),
-            mock.MagicMock(apply_binding=mock.MagicMock(target=asset_target)),
-        )
-        executor = mock.MagicMock()
-
-        with (
-            mock.patch.object(extension, "get_job_queue", return_value=queue),
-            mock.patch.object(extension.handlers, "get_apply_executor", return_value=executor),
-        ):
-            # Act
-            extension.ComfyUICoreExtension().on_stage_event(
-                "texturecraft", mock.MagicMock(type=int(usd.StageEventType.OPENED))
-            )
-
-        # Assert
-        queue.notify_schedule_conditions_changed.assert_called_once_with()
-        executor.request_reconcile.assert_called_once_with(texture_job_id)
-
-    async def test_opening_a_stage_skips_unreadable_and_unbound_jobs_and_reconciles_later_valid_job(self) -> None:
-        """One unreadable, unbound, or foreign-target job does not stop reconciliation of a later valid job."""
-        # Arrange
-        valid_job_id = mock.sentinel.valid_job_id
-        queue = mock.MagicMock()
-        queue.iter_snapshot.return_value = [
-            mock.MagicMock(job_id=mock.sentinel.missing_job_id, apply_handler_id=ComfyUITextureApplyHandler.name),
-            mock.MagicMock(job_id=mock.sentinel.unavailable_job_id, apply_handler_id=ComfyUITextureApplyHandler.name),
-            mock.MagicMock(job_id=mock.sentinel.unbound_job_id, apply_handler_id=ComfyUITextureApplyHandler.name),
-            mock.MagicMock(job_id=mock.sentinel.foreign_job_id, apply_handler_id=ComfyUITextureApplyHandler.name),
-            mock.MagicMock(job_id=valid_job_id, apply_handler_id=ComfyUITextureApplyHandler.name),
-        ]
-        texture_target = ComfyUIApplyTarget(
-            context_name="texturecraft",
-            project_path="/project/project.usda",
-            edit_target_layer="/project/mod.usda",
-            material_path="/World/Looks/Material",
-            texture_targets=(),
-        )
-        queue.get_job.side_effect = (
-            KeyError("missing"),
-            TypeError("unavailable persisted type"),
-            mock.MagicMock(apply_binding=None),
-            mock.MagicMock(apply_binding=mock.MagicMock(target=mock.MagicMock(context_name="texturecraft"))),
-            mock.MagicMock(apply_binding=mock.MagicMock(target=texture_target)),
-        )
-        executor = mock.MagicMock()
-
-        with (
-            mock.patch.object(extension, "get_job_queue", return_value=queue),
-            mock.patch.object(extension.handlers, "get_apply_executor", return_value=executor),
-            mock.patch.object(extension.carb, "log_warn") as log_warn,
-        ):
-            # Act
-            extension.ComfyUICoreExtension().on_stage_event(
-                "texturecraft", mock.MagicMock(type=int(usd.StageEventType.OPENED))
-            )
-
-        # Assert
-        executor.request_reconcile.assert_called_once_with(valid_job_id)
-        self.assertEqual(log_warn.call_count, 2)
-
-    async def test_closed_stage_refreshes_apply_availability_without_reconciling(self) -> None:
-        """A fully closed project disables stale Apply actions without starting work."""
-        # Arrange
-        queue = mock.MagicMock()
-
-        with (
-            mock.patch.object(extension, "get_job_queue", return_value=queue),
-            mock.patch.object(extension.handlers, "get_apply_executor") as get_apply_executor,
-        ):
-            # Act
-            extension.ComfyUICoreExtension().on_stage_event(
-                "texturecraft", mock.MagicMock(type=int(usd.StageEventType.CLOSED))
-            )
-
-        # Assert
-        queue.notify_schedule_conditions_changed.assert_called_once_with()
-        get_apply_executor.assert_not_called()
 
     async def test_visibility_notice_from_other_stage_does_not_publish_context_event(self) -> None:
         """A context core ignores visibility notices from another USD stage."""

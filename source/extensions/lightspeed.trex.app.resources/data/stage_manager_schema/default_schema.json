@@ -115,7 +115,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 204
+                        "value": 232
                     },
                     "widgets": [
                         {
@@ -132,6 +132,9 @@
                         },
                         {
                             "name": "SubmitComfyUIJobActionWidgetPlugin"
+                        },
+                        {
+                            "name": "SubmitAssetModifierJobActionWidgetPlugin"
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
@@ -248,7 +251,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 204
+                        "value": 232
                     },
                     "widgets": [
                         {
@@ -265,6 +268,9 @@
                         },
                         {
                             "name": "SubmitComfyUIJobActionWidgetPlugin"
+                        },
+                        {
+                            "name": "SubmitAssetModifierJobActionWidgetPlugin"
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
@@ -378,7 +384,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 176
+                        "value": 204
                     },
                     "widgets": [
                         {
@@ -395,6 +401,9 @@
                         },
                         {
                             "name": "SubmitComfyUIJobActionWidgetPlugin"
+                        },
+                        {
+                            "name": "SubmitAssetModifierJobActionWidgetPlugin"
                         },
                         {
                             "name": "NicknameToggleActionWidgetPlugin"
@@ -777,7 +786,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 204
+                        "value": 232
                     },
                     "widgets": [
                         {
@@ -794,6 +803,9 @@
                         },
                         {
                             "name": "SubmitComfyUIJobActionWidgetPlugin"
+                        },
+                        {
+                            "name": "SubmitAssetModifierJobActionWidgetPlugin"
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"
@@ -905,7 +917,7 @@
                     "display_name": "Actions",
                     "width": {
                         "unit": "Pixel",
-                        "value": 204
+                        "value": 232
                     },
                     "widgets": [
                         {
@@ -922,6 +934,9 @@
                         },
                         {
                             "name": "SubmitComfyUIJobActionWidgetPlugin"
+                        },
+                        {
+                            "name": "SubmitAssetModifierJobActionWidgetPlugin"
                         },
                         {
                             "name": "DeleteRestoreActionWidgetPlugin"

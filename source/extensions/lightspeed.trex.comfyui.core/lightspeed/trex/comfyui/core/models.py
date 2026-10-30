@@ -23,7 +23,6 @@ __all__ = [
     "ComfyUIInputBinding",
     "ComfyUIWorkflowRequest",
     "MeshCandidate",
-    "ReferenceTarget",
     "ResolverParameter",
     "ValueResolver",
     "Workflow",
@@ -38,6 +37,8 @@ import pathlib
 from copy import deepcopy
 from typing import Any, Generic, TypeVar
 
+from lightspeed.trex.asset_pipeline.core.jobs.apply_stage_target import ApplyStageTarget
+from lightspeed.trex.asset_pipeline.core.jobs.models import ReferenceTarget
 from lightspeed.trex.asset_pipeline.core.metadata import MetadataApplyReceipt
 
 import carb
@@ -124,7 +125,7 @@ def _validate_receipt_values(field_name: str, values: object, *, allow_empty: bo
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class ComfyUIApplyTarget:
+class ComfyUIApplyTarget(ApplyStageTarget):
     """Identify the exact project layer and shader inputs changed by Apply.
 
     Attributes:
@@ -136,9 +137,6 @@ class ComfyUIApplyTarget:
             the same texture input on several materials.
     """
 
-    context_name: str
-    project_path: str
-    edit_target_layer: str
     material_path: str
     texture_targets: tuple[tuple[str, str], ...]
 
@@ -149,10 +147,7 @@ class ComfyUIApplyTarget:
             TypeError: If a persisted field has the wrong exact type or tuple shape.
             ValueError: If an identity is blank, duplicated, or not a valid absolute USD path.
         """
-        if type(self.context_name) is not str:
-            raise TypeError("context_name must be a str")
-        _validate_nonblank_string("project_path", self.project_path)
-        _validate_nonblank_string("edit_target_layer", self.edit_target_layer)
+        ApplyStageTarget.__post_init__(self)
         _validate_nonblank_string("material_path", self.material_path)
         material_path = Sdf.Path(self.material_path)
         if not material_path.IsAbsolutePath() or not material_path.IsPrimPath():
@@ -177,28 +172,6 @@ class ComfyUIApplyTarget:
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class ReferenceTarget:
-    """Identify one reference owner and the source reference that Replace removes."""
-
-    owner_prim_path: str
-    source_reference: Sdf.Reference | None
-    source_layer_identifier: str | None
-
-    def __post_init__(self) -> None:
-        """Validate the exact owner and source identities."""
-        _validate_nonblank_string("owner_prim_path", self.owner_prim_path)
-        sdf_path = Sdf.Path(self.owner_prim_path)
-        if not sdf_path.IsAbsolutePath() or not sdf_path.IsPrimPath():
-            raise ValueError("owner_prim_path must be an absolute USD prim path")
-        if self.source_reference is not None and not isinstance(self.source_reference, Sdf.Reference):
-            raise TypeError("source_reference must be an Sdf.Reference or None")
-        if self.source_layer_identifier is not None:
-            _validate_nonblank_string("source_layer_identifier", self.source_layer_identifier)
-        if (self.source_reference is None) is not (self.source_layer_identifier is None):
-            raise ValueError("source reference and layer identifier must both be set or both be None")
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
 class MeshCandidate:
     """Carry one URL-preserving model source and every stage owner that uses it.
 
@@ -216,22 +189,16 @@ class MeshCandidate:
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class ComfyUIAssetApplyTarget:
+class ComfyUIAssetApplyTarget(ApplyStageTarget):
     """Identify the exact references and textures changed by one asset Apply."""
 
-    context_name: str
-    project_path: str
-    edit_target_layer: str
     reference_targets: tuple[ReferenceTarget, ...]
     texture_targets: tuple[tuple[str, str], ...]
     mesh_apply_behavior: OutputApplyBehavior
 
     def __post_init__(self) -> None:
         """Validate one durable asset Apply target."""
-        if type(self.context_name) is not str:
-            raise TypeError("context_name must be a str")
-        _validate_nonblank_string("project_path", self.project_path)
-        _validate_nonblank_string("edit_target_layer", self.edit_target_layer)
+        ApplyStageTarget.__post_init__(self)
         if type(self.reference_targets) is not tuple or not all(
             type(target) is ReferenceTarget for target in self.reference_targets
         ):

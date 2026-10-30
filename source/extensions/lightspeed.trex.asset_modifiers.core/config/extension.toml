@@ -1,0 +1,35 @@
+[package]
+kit_sdk_version = "110.*"
+version = "1.0.0"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix Asset Modifiers Core"
+description = "Local asset modifier settings and job submission for RTX Remix"
+readme = "docs/README.md"
+changelog = "docs/CHANGELOG.md"
+category = "internal"
+keywords = ["asset", "modifier", "job", "remix"]
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.asset_modifiers.factory" = {}
+"lightspeed.trex.asset_pipeline.core" = {}
+"lightspeed.trex.utils.common" = {}
+"omni.client" = {}
+"omni.flux.job_queue.core" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.asset_modifiers.core"
+
+[[test]]
+dependencies = ["lightspeed.trex.tests.dependencies"]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = ["lightspeed.trex.tests.dependencies"]

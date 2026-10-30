@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.1]
+### Fixed
+- USD renaming no longer changes open project timeline bounds.
+
 ## [3.2.0]
 ### Added
 - Added the Skybox texture type and `.s.rtex.dds` suffix without a material input.

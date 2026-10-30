@@ -31,7 +31,7 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
 
     async def setUp(self):
         """Reset class-owned asynchronous task state before each test."""
-        SubmitComfyUIJobActionWidgetPlugin._submit_tasks.clear()
+        SubmitComfyUIJobActionWidgetPlugin._submissions._tasks.clear()
         SubmitComfyUIJobActionWidgetPlugin._layout_task = None
 
     async def tearDown(self):
@@ -139,7 +139,7 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
                     "selected_paths": selected_paths,
                 }
             )
-            task = SubmitComfyUIJobActionWidgetPlugin._submit_tasks["texturecraft"]
+            task = SubmitComfyUIJobActionWidgetPlugin._submissions._tasks["texturecraft"]
             await task
 
         # Assert
@@ -147,21 +147,19 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
         core.prepare_submission.assert_awaited_once_with(prim_paths=selected_paths, progress=ANY, is_cancelled=ANY)
         self.assertIsNot(core.prepare_submission.call_args.kwargs["prim_paths"], selected_paths)
         core.submit_prepared_submission.assert_awaited_once_with(submission)
-        self.assertNotIn("texturecraft", SubmitComfyUIJobActionWidgetPlugin._submit_tasks)
+        self.assertNotIn("texturecraft", SubmitComfyUIJobActionWidgetPlugin._submissions._tasks)
 
     async def test_submit_ignores_duplicate_task_for_context(self):
         """A context cannot enqueue a second submission while one is pending."""
         # Arrange
         pending_task = MagicMock()
         pending_task.done.return_value = False
-        SubmitComfyUIJobActionWidgetPlugin._submit_tasks["texturecraft"] = pending_task
+        SubmitComfyUIJobActionWidgetPlugin._submissions._tasks["texturecraft"] = pending_task
         item = MagicMock()
 
         with (
             patch.object(SubmitComfyUIJobActionWidgetPlugin, "_can_submit_selection", return_value=True),
-            patch(
-                "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.asyncio.ensure_future"
-            ) as ensure_future,
+            patch("omni.flux.utils.common.task_tracker.asyncio.ensure_future") as ensure_future,
         ):
             # Act
             SubmitComfyUIJobActionWidgetPlugin._on_submit_comfyui_job(
@@ -206,7 +204,7 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
                     "selected_paths": ["/World/MaterialA"],
                 }
             )
-            submit_task = SubmitComfyUIJobActionWidgetPlugin._submit_tasks["texturecraft"]
+            submit_task = SubmitComfyUIJobActionWidgetPlugin._submissions._tasks["texturecraft"]
             await started.wait()
 
         started.clear()
@@ -228,11 +226,11 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
         SubmitComfyUIJobActionWidgetPlugin.cancel_pending_submissions()
 
         # Assert
-        self.assertIs(SubmitComfyUIJobActionWidgetPlugin._submit_tasks["texturecraft"], submit_task)
+        self.assertIs(SubmitComfyUIJobActionWidgetPlugin._submissions._tasks["texturecraft"], submit_task)
         self.assertIs(SubmitComfyUIJobActionWidgetPlugin._layout_task, layout_task)
         await asyncio.gather(submit_task, layout_task, return_exceptions=True)
         await asyncio.sleep(0)
-        self.assertEqual(SubmitComfyUIJobActionWidgetPlugin._submit_tasks, {})
+        self.assertEqual(SubmitComfyUIJobActionWidgetPlugin._submissions._tasks, {})
         self.assertIsNone(SubmitComfyUIJobActionWidgetPlugin._layout_task)
 
     async def test_extension_shutdown_cancels_pending_submissions(self):
@@ -339,7 +337,7 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
                     "selected_paths": ["/World/MaterialA"],
                 }
             )
-            await SubmitComfyUIJobActionWidgetPlugin._submit_tasks["texturecraft"]
+            await SubmitComfyUIJobActionWidgetPlugin._submissions._tasks["texturecraft"]
 
         # Assert
         post_notification_mock.assert_called_once()
@@ -348,4 +346,4 @@ class TestSubmitComfyUIJobActionWidgetPlugin(AsyncTestCase):
             "The selected materials could not be added to the AI Tools job queue. "
             "Check the workflow inputs and ComfyUI connection, then try again.",
         )
-        self.assertNotIn("texturecraft", SubmitComfyUIJobActionWidgetPlugin._submit_tasks)
+        self.assertNotIn("texturecraft", SubmitComfyUIJobActionWidgetPlugin._submissions._tasks)

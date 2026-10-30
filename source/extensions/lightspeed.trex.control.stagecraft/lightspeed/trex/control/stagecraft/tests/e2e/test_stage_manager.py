@@ -24,9 +24,15 @@ import omni.kit.commands
 import omni.ui as ui
 import omni.usd as usd
 from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardInput
+from carb.settings import get_settings
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import WindowNames as _WindowNames
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
+from lightspeed.trex.asset_modifiers.factory import get_instance as _get_asset_modifier_factory
+from lightspeed.trex.asset_modifiers.core.constants import SOURCE_INPUT
+from lightspeed.trex.asset_modifiers.core.enums import SourceGetter
+from lightspeed.trex.asset_modifiers.core.settings import AssetModifierSettings
+from lightspeed.trex.asset_modifiers.core.tests.e2e.scale_mesh_modifier import ScaleMeshTestModifier
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.contexts import get_instance as _get_context_manager
 from lightspeed.trex.contexts.setup import Contexts
@@ -369,28 +375,41 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         Returns:
             The Focus action icon for the requested row.
         """
-        row_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Label[*].identifier=='nickname_field'"
-        focus_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Image[*].identifier=='focus_in_viewport_widget_image'"
         for _ in range(120):
-            rows = [
-                row for row in ui_test.find_all(row_selector) if row.widget.visible and row.widget.tooltip == prim_path
-            ]
-            focus_icons = [
-                icon for icon in ui_test.find_all(focus_selector) if icon.widget.visible and icon.widget.enabled
-            ]
-            if rows:
-                row_center_y = rows[0].position.y + (rows[0].size.y / 2)
-                aligned_icons = [
-                    icon for icon in focus_icons if icon.position.y <= row_center_y <= icon.position.y + icon.size.y
-                ]
-                if aligned_icons:
-                    return min(
-                        aligned_icons,
-                        key=lambda icon: abs((icon.position.y + (icon.size.y / 2)) - row_center_y),
-                    )
+            icon = self._find_aligned_action_icon(prim_path, "focus_in_viewport_widget_image")
+            if icon is not None and icon.widget.enabled:
+                return icon
             await ui_test.human_delay()
         self.fail(f"Stage Manager did not expose an enabled Focus icon for {prim_path}")
         return None
+
+    @staticmethod
+    def _find_aligned_action_icon(prim_path: str, identifier: str) -> WidgetRef | None:
+        """Return the visible action icon closest to the center of a prim row, or None when either is not shown.
+
+        Args:
+            prim_path: USD path identifying the Stage Manager row.
+            identifier: Identifier of the action icon.
+
+        Returns:
+            The action icon aligned with the requested row, or None.
+        """
+        row_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Label[*].identifier=='nickname_field'"
+        icon_selector = f"{_WindowNames.STAGE_MANAGER}//Frame/**/Image[*].identifier=='{identifier}'"
+        rows = [row for row in ui_test.find_all(row_selector) if row.widget.visible and row.widget.tooltip == prim_path]
+        if not rows:
+            return None
+        row_center_y = rows[0].position.y + (rows[0].size.y / 2)
+        aligned_icons = [
+            icon
+            for icon in ui_test.find_all(icon_selector)
+            if icon.widget.visible and icon.position.y <= row_center_y <= icon.position.y + icon.size.y
+        ]
+        return min(
+            aligned_icons,
+            key=lambda icon: abs((icon.position.y + (icon.size.y / 2)) - row_center_y),
+            default=None,
+        )
 
     async def _wait_for_stage_manager_selectable_paths(self, interaction, expected_paths, timeout_frames: int = 120):
         """Wait for the Stage Manager model to expose exactly the expected selectable paths.
@@ -652,6 +671,59 @@ class TestStageManagerPropertiesInteraction(AsyncTestCase):
         await self._wait_for_usd_selection([clicked_path])
         await self._wait_for_stage_manager_model_selection_paths(interaction, [clicked_path])
         self.assertEqual([clicked_path], usd_context.get_selection().get_selected_prim_paths())
+
+    async def test_asset_modifier_action_refreshes_after_modifier_changes_without_stage_edit(self):
+        """Refresh the Asset Modifiers row action when a modifier registers or its source changes."""
+        mesh_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"
+        settings = AssetModifierSettings()
+        self.addCleanup(self._remove_scale_mesh_modifier)
+        await self._select_stage_manager_tab("Meshes", "RemixAllMeshesInteractionPlugin")
+
+        # Without a provider extension, the row action is disabled and says why.
+        icon = await self._wait_for_action_icon(
+            mesh_path, "submit_asset_modifier_job_widget_image", "VectorSquareEditDisabled"
+        )
+        self.assertIn("No asset modifiers are installed.", icon.widget.tooltip)
+
+        # Registering a modifier enables the action for the compatible mesh without a stage edit.
+        _get_asset_modifier_factory().register_plugins([ScaleMeshTestModifier])
+        settings.set_active_modifier_name(ScaleMeshTestModifier.name)
+        icon = await self._wait_for_action_icon(mesh_path, "submit_asset_modifier_job_widget_image", "VectorSquareEdit")
+        self.assertIn(ScaleMeshTestModifier.display_name, icon.widget.tooltip)
+
+        # A whole-stage source runs from the Asset Modifiers window, so the row action is disabled again.
+        settings.set_value(ScaleMeshTestModifier, SOURCE_INPUT, SourceGetter.ALL)
+        icon = await self._wait_for_action_icon(
+            mesh_path, "submit_asset_modifier_job_widget_image", "VectorSquareEditDisabled"
+        )
+        self.assertIn(SourceGetter.ALL.value, icon.widget.tooltip)
+
+    @staticmethod
+    def _remove_scale_mesh_modifier():
+        """Unregister the test modifier and remove its settings."""
+        _get_asset_modifier_factory().unregister_plugins([ScaleMeshTestModifier])
+        get_settings().destroy_item(AssetModifierSettings.get_modifier_key(ScaleMeshTestModifier))
+        AssetModifierSettings().set_active_modifier_name("")
+
+    async def _wait_for_action_icon(self, prim_path: str, identifier: str, name: str) -> WidgetRef:
+        """Wait until the action icon aligned with a prim row uses the expected style name.
+
+        Args:
+            prim_path: USD path identifying the Stage Manager row.
+            identifier: Identifier of the action icon.
+            name: Expected style name of the icon.
+
+        Returns:
+            The action icon for the requested row.
+        """
+        icon = None
+        for _ in range(120):
+            icon = self._find_aligned_action_icon(prim_path, identifier)
+            if icon is not None and icon.widget.name == name:
+                return icon
+            await ui_test.human_delay()
+        self.fail(f"The {identifier} icon for {prim_path} is {icon.widget.name if icon else 'missing'}, not {name}")
+        return None
 
     async def test_search_filter_frames_selected_mesh(self):
         target_path = "/RootNode/meshes/mesh_FEE1DEADF00D0001/mesh"

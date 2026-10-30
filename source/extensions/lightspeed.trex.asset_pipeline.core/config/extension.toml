@@ -1,5 +1,5 @@
 [package]
-version = "1.4.0"
+version = "1.5.0"
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "RTX Remix Asset Pipeline Steps"
 description = "Concrete pipeline steps for RTX Remix asset processing (normal conversion, DDS, metadata)"
@@ -13,6 +13,8 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
 
 [dependencies]
 "lightspeed.common" = {}
+"lightspeed.trex.asset_replacements.core.shared" = {}
+"lightspeed.trex.commands" = {}
 "omni.client" = {}
 "omni.usd" = {}
 "omni.kit.usd.layers" = {}
@@ -25,6 +27,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
 "omni.flux.utils.material_converter" = {}
 "omni.flux.utils.octahedral_converter" = {}
 "omni.kit.commands" = {}
+"omni.kit.usd_undo" = {}
 
 [[python.module]]
 name = "lightspeed.trex.asset_pipeline.core"

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.0]
+### Added
+- Added the Asset Modifiers and Job Queue windows to the StageCraft dependencies.
+
 ## [1.8.11]
 ### Added
 - Extended Ctrl+A coverage and corrected viewport ownership in test cleanup.

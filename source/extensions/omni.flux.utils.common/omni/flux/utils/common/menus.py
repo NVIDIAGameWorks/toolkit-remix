@@ -48,6 +48,9 @@ class MenuItem(Enum):
     AI_TOOLS = "Remix AI Tools..."  # ... is used to indicate that the menu item is a submenu
     AI_TOOLS_SUBMIT = "Submit Selection to Job Queue"
     AI_TOOLS_OPEN_LAYOUT = "Open AI Tools Layout"
+    ASSET_MODIFIERS = "Remix Asset Modifiers..."  # ... is used to indicate that the menu item is a submenu
+    ASSET_MODIFIERS_SUBMIT = "Submit Selection to Job Queue"
+    ASSET_MODIFIERS_OPEN = "Open Asset Modifiers"
     DYNAMIC_SPLITTER = ""
     ASSIGN_CATEGORY = "Assign Render Categories..."  # ... is used to indicate that the menu item opens a modal
     PARTICLE_SYSTEM = "Particle System..."  # ... is used to indicate that the menu item is a submenu

@@ -11,7 +11,7 @@ Hierarchical UI for queues owned by `omni.flux.job_queue.core`.
   selected-graph Delete controls.
 - Expose persistent Start and Stop controls for the core-owned scheduler, with Running, Stopping, and Stopped status.
 - Confirm Revert and selected-graph Delete, and report exact bulk-action results with native notifications.
-- Provide exact-job-type display adapters for job names, user-facing progress, focus/edit, and product actions.
+- Provide job-type display adapters for job names, user-facing progress, focus/edit, and product actions.
 - Show graph summaries, topology, exclusive child-state counts, and clickable child navigation in the details panel.
 - Show typed job ports, available values, product metadata/actions, logs, and explicitly labelled technical diagnostics.
 
@@ -75,8 +75,8 @@ boundary. Apply-operation failures retain the prior stable disposition, remain a
 not automatically loop. Filter-scoped root and footer actions remain available for other eligible jobs. Selected-graph
 Delete remains available for completed work and warns that queue cleanup does not restore project changes.
 
-Display adapters register one explicit `name` and one exact `job_type`. Lookup never walks inheritance or depends on
-registration order. Active adapters may provide user-facing status and progress phrases, a temporary waiting reason,
+Display adapters register one explicit `name` and one `job_type`. Lookup uses the nearest registered type in the
+job's MRO, so an exact registration wins over its base type, and never depends on registration order. Active adapters may provide user-facing status and progress phrases, a temporary waiting reason,
 an ordered collection of product actions with stable IDs, and ordered product-detail sections with explicit placement
 and optional local directories. They may create one model-scoped action event subscription while the queue is visible.
 The queue owns that subscription; the product adapter handles its events and requests the appropriate model rows to

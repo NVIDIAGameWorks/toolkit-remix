@@ -2,6 +2,14 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.3.0]
+### Added
+- Added `TaskTracker`, which runs at most one task per key and keeps the key taken until the task settles, even after cancellation.
+
+## [4.2.0]
+### Added
+- Added the Remix Asset Modifiers context submenu labels.
+
 ## [4.1.0]
 ### Added
 - Added `get_bound_material()`, which returns no material for a mesh whose faces are all bound through GeomSubsets

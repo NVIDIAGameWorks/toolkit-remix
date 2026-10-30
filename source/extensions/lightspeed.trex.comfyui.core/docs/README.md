@@ -15,12 +15,13 @@ file transfer, persistence, and output Apply behavior.
 - Build one typed job graph for each resolved source candidate.
 - Register all job, result, resolver, target, receipt, and handler codecs.
 - Apply texture and model changes only at one terminal graph job.
-- Reconcile pending Apply work for each explicit USD context.
 
 ## Non-Responsibilities
 
 - Does not render the AI Tools UI. `lightspeed.trex.comfyui.widget` owns that surface.
 - Does not execute or store the shared queue. `omni.flux.job_queue.core` owns that work.
+- Does not refresh Apply work when a project opens or closes. `ApplyStageWatcher` in
+  `lightspeed.trex.asset_pipeline.core` does that for every stage target.
 - Does not define Remix model and texture processing steps. `lightspeed.trex.asset_pipeline.core` owns them.
 - Does not define general texture or reference mutations.
 - Does not implement tagging outputs until the RTX Remix node pack defines their result contract.

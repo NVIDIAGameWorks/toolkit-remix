@@ -1,0 +1,48 @@
+[package]
+kit_sdk_version = "110.*"
+version = "1.0.0"
+authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
+title = "NVIDIA RTX Remix Asset Modifiers Widget"
+description = "Asset Modifiers controls and Job Queue display adapters for NVIDIA RTX Remix"
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+keywords = ["remix", "asset", "modifiers", "widget"]
+category = "internal"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
+
+[dependencies]
+"lightspeed.common" = {}
+"lightspeed.trex.asset_modifiers.core" = {}
+"lightspeed.trex.asset_modifiers.factory" = {}
+"lightspeed.trex.contexts" = {}
+"lightspeed.trex.asset_pipeline.core" = {}  # Submits graphs off the main thread
+"lightspeed.trex.utils.widget" = {}
+"omni.flux.job_queue.core" = {}
+"omni.flux.job_queue.widget" = {}
+"omni.flux.property_widget_builder.delegates" = {}
+"omni.flux.property_widget_builder.model.native" = {}
+"omni.flux.property_widget_builder.widget" = {}
+"omni.flux.utils.common" = {}
+"omni.flux.utils.dialog" = {}
+"omni.flux.utils.widget" = {}
+"omni.kit.notification_manager" = {}
+"omni.ui" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.asset_modifiers.widget"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]

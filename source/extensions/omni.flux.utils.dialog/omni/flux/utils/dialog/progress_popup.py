@@ -15,6 +15,10 @@
 * limitations under the License.
 """
 
+import threading
+from collections.abc import Awaitable, Callable
+from typing import Any
+
 from omni import ui
 
 
@@ -78,6 +82,37 @@ class ProgressPopup:
 
     def __exit__(self, type_, value, trace):
         self._popup.visible = False
+
+    @classmethod
+    async def run_cancellable(
+        cls, title: str, status_text: str, work: Callable[..., Awaitable[Any]]
+    ) -> tuple[Any, bool]:
+        """Show a popup while `work` runs, and let the user cancel it.
+
+        Args:
+            title: Popup title.
+            status_text: Status shown until `work` reports its own.
+            work: Called with the keywords `progress`, which takes `report_progress()` arguments, and `is_cancelled`,
+                which returns whether the user clicked Cancel.
+
+        Returns:
+            The result of `work`, and whether the user cancelled.
+        """
+        cancelled = threading.Event()
+        popup = cls(title, cancel_button_fn=cancelled.set, status_text=status_text)
+        popup.show()
+        try:
+            return await work(progress=popup.report_progress, is_cancelled=cancelled.is_set), cancelled.is_set()
+        finally:
+            popup.hide()
+            popup.destroy()
+
+    def report_progress(self, current: int, total: int, status: object = None) -> None:
+        """Show a processed count and an optional status. A total of zero or less keeps the bar where it is."""
+        if status:
+            self.set_status_text(str(status))
+        if total and total > 0:
+            self.set_progress(max(0.0, min(1.0, current / total)))
 
     def set_cancel_fn(self, on_cancel_button_clicked):
         self._cancel_button_fn = on_cancel_button_clicked

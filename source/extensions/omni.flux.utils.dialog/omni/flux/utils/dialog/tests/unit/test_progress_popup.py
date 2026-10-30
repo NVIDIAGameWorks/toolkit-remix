@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from unittest import mock
+
 import omni.kit.app
 from omni.flux.utils.dialog import ProgressPopup
 from omni.kit.test import AsyncTestCase
@@ -49,6 +51,27 @@ class TestProgressPopup(AsyncTestCase):
             self.assertEqual(1, cancel_count)
         finally:
             popup.destroy()
+
+    async def test_run_cancellable_reports_progress_and_returns_the_result_and_the_cancel_state(self):
+        """Pass progress and the cancel state to the task, return its result, and close the popup."""
+        popups = []
+        show = ProgressPopup.show
+
+        def record_show(popup):
+            popups.append(popup)
+            show(popup)
+
+        async def work(progress, is_cancelled):
+            progress(1, 4, "Reading")
+            self.assertEqual((popups[0].progress, popups[0].status_text), (0.25, "Reading"))
+            popups[0]._on_cancel_button_fn()
+            return "result" if is_cancelled() else None
+
+        with mock.patch.object(ProgressPopup, "show", autospec=True, side_effect=record_show):
+            result, cancelled = await ProgressPopup.run_cancellable("Test Progress", "Starting", work)
+
+        self.assertEqual((result, cancelled), ("result", True))
+        self.assertIsNone(popups[0]._popup)
 
     async def test_progress_and_status_properties_should_update_popup(self):
         popup = ProgressPopup(title="Test Progress", status_text="Starting")

@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+import asyncio
 import os
 import shutil
 import subprocess
@@ -24,9 +25,18 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import omni.kit.commands
 import omni.kit.test
+from carb.settings import get_settings
 from lightspeed.common import constants
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.trex.comfyui.core.api import ComfyUIAPI
+from lightspeed.trex.asset_modifiers.factory import get_instance as _get_asset_modifier_factory
+from lightspeed.trex.asset_modifiers.core import AssetModifiersCore
+from lightspeed.trex.asset_modifiers.core.settings import AssetModifierSettings
+from lightspeed.trex.asset_modifiers.core.tests.e2e.scale_mesh_job import ScaleMeshTestJob
+from lightspeed.trex.asset_modifiers.core.tests.e2e.scale_mesh_modifier import ScaleMeshTestModifier
+from lightspeed.trex.asset_modifiers.widget.submitter import AssetModifierSubmitter
+from lightspeed.trex.asset_pipeline.core.jobs import MeshOptimizationJob, PrepareOptimizationJob, TextureOptimizationJob
+from lightspeed.trex.asset_pipeline.core.jobs.asset_replace_apply_handler import AssetReplaceApplyHandler
 from lightspeed.trex.comfyui.core.core import ComfyUISubmission, ComfyUISubmissionResult
 from lightspeed.trex.comfyui.core.enums import RemixType
 from lightspeed.trex.comfyui.core.extension import get_comfyui_core_instance
@@ -54,19 +64,28 @@ from lightspeed.trex.stage_manager.plugin.widget.usd.state_hidden_category impor
 from lightspeed.trex.stage_manager.plugin.widget.usd.state_is_capture import (
     IsCaptureStateWidgetPlugin as _IsCaptureStateWidgetPlugin,
 )
+from lightspeed.trex.stage_manager.plugin.widget.usd.submit_asset_modifier_job import (
+    SubmitAssetModifierJobActionWidgetPlugin,
+)
 from lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job import (
     SubmitComfyUIJobActionWidgetPlugin as _SubmitComfyUIJobActionWidgetPlugin,
 )
 from omni import ui, usd
+from omni.flux.job_queue.core import get_job_queue
+from omni.flux.job_queue.core.enums import ApplyDisposition, JobState
+from omni.flux.job_queue.core.handlers import get_apply_executor
+from omni.flux.job_queue.core.models import QueueJob
+from omni.flux.job_queue.core.settings import JobQueueSettings
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItemProxy as _StageManagerTreeItemProxy
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
 from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
 )
+from omni.flux.utils.tests.context_managers import open_test_project
 from omni.kit import ui_test
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
-from pxr import Sdf, Usd
+from pxr import Gf, Sdf, Usd, UsdGeom
 
 
 class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
@@ -360,6 +379,212 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         finally:
             _SubmitComfyUIJobActionWidgetPlugin.cancel_pending_submissions()
             await self.__destroy(window)
+
+    async def test_asset_modifier_action_selected_capture_mesh_scales_processes_and_replaces_reference(self):
+        """Run the selected capture mesh through the modifier, real asset pipeline, Apply, and Revert."""
+        queue = get_job_queue()
+        queue_settings = JobQueueSettings()
+        original_queue_settings = (queue_settings.scheduler_enabled, queue_settings.auto_apply)
+        original_graph_ids = {snapshot.graph_id for snapshot in queue.get_graph_snapshots()}
+        settings = AssetModifierSettings()
+        _get_asset_modifier_factory().register_plugins([ScaleMeshTestModifier])
+        settings.set_active_modifier_name(ScaleMeshTestModifier.name)
+        settings.set_value(ScaleMeshTestModifier, ScaleMeshTestModifier.inputs[0], 2.0)
+        queue_settings.set_scheduler_enabled(True)
+        queue_settings.set_auto_apply(True)
+        mesh_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"
+        model = _StageManagerTreeModel()
+        try:
+            async with open_test_project(
+                "usd/project_example/combined.usda", ext_name="lightspeed.trex.app.resources", context_name=""
+            ):
+                self.stage = self.context.get_stage()
+                window, widget = await self.__setup_widget(SubmitAssetModifierJobActionWidgetPlugin)
+                try:
+                    # 1. Select the capture mesh. Build one compatible and one incompatible row.
+                    self.context.get_selection().set_selected_prim_paths([mesh_path], True)
+                    with window.frame, ui.HStack():
+                        for path in (mesh_path, "/RootNode/Looks/mat_BC868CE5A075ABB1"):
+                            prim = self.stage.GetPrimAtPath(path)
+                            item = _StageManagerTreeItem(display_name=prim.GetName(), tooltip=path, data=prim)
+                            if path == mesh_path:
+                                model.selection = [_StageManagerTreeItemProxy(item)]
+                            widget.build_icon_ui(model, item, 0, False)
+                    await ui_test.human_delay()
+                    action, incompatible = ui_test.find_all(
+                        f"{window.title}//Frame/**/Image[*].identifier=='submit_asset_modifier_job_widget_image'"
+                    )
+
+                    # 2. The icon is enabled for the mesh and disabled with its reason for the material.
+                    self.assertEqual(
+                        (action.widget.name, incompatible.widget.name), ("VectorSquareEdit", "VectorSquareEditDisabled")
+                    )
+                    self.assertIn("does not support this prim", incompatible.widget.tooltip)
+                    owner = self.stage.GetPrimAtPath(mesh_path).GetParent()
+                    [(source_reference, source_layer)] = usd.get_composed_references_from_prim(owner)
+                    source_url = Path(
+                        Sdf.ComputeAssetPathRelativeToLayer(source_layer, source_reference.assetPath)
+                    ).resolve()
+                    source_extent = UsdGeom.PointBased.ComputeExtent(
+                        UsdGeom.Mesh(self.stage.GetPrimAtPath(mesh_path)).GetPointsAttr().Get()
+                    )
+
+                    # 3. The non-default Scale and the stage material reach the plugin job.
+                    await action.click()
+                    async with asyncio.timeout(30):
+                        while not (
+                            graphs := [
+                                snapshot
+                                for snapshot in queue.get_graph_snapshots()
+                                if snapshot.graph_id not in original_graph_ids
+                            ]
+                        ):
+                            await ui_test.human_delay()
+                    (graph,) = graphs
+                    jobs = [queue.get_job(snapshot.job_id) for snapshot in graph.jobs]
+                    (modifier,) = [job for job in jobs if isinstance(job, ScaleMeshTestJob)]
+                    (prepare,) = [job for job in jobs if isinstance(job, PrepareOptimizationJob)]
+                    (texture,) = [job for job in jobs if isinstance(job, TextureOptimizationJob)]
+                    (mesh,) = [job for job in jobs if isinstance(job, MeshOptimizationJob)]
+                    self.assertEqual(modifier.prim_paths, (mesh_path,))
+                    self.assertEqual(
+                        modifier.values, {"scale": 2.0, "material": "/RootNode/Looks/mat_BC868CE5A075ABB1"}
+                    )
+
+                    # 4. The modifier job runs before the shared asset processing jobs.
+                    for source, target in ((modifier, prepare), (prepare, texture), (prepare, mesh), (texture, mesh)):
+                        edges = queue.get_job_details(target.job_id).connections
+                        self.assertIn(
+                            (source.job_id, target.job_id),
+                            {(edge.source_job_id, edge.target_job_id) for edge in edges},
+                        )
+
+                    # 5. Only the mesh optimization job applies, and it replaces the mesh reference.
+                    self.assertEqual(
+                        {snapshot.job_id: snapshot.apply_handler_id for snapshot in graph.jobs},
+                        {
+                            modifier.job_id: None,
+                            prepare.job_id: None,
+                            texture.job_id: None,
+                            mesh.job_id: AssetReplaceApplyHandler.name,
+                        },
+                    )
+
+                    # 6. Every job finishes and automatic Apply settles.
+                    async with asyncio.timeout(90):
+                        for snapshot in graph.jobs:
+                            await QueueJob(queue, graph.graph_id, snapshot.job_id).outputs()
+                        await get_apply_executor().wait_idle()
+                    for job in jobs:
+                        snapshot = queue.get_job_snapshot(job.job_id)
+                        self.assertIs(snapshot.state, JobState.DONE, snapshot.error or snapshot.state_reason)
+                    applied = queue.get_job_snapshot(mesh.job_id)
+                    self.assertIs(applied.apply_disposition, ApplyDisposition.APPLIED, applied.apply_error)
+
+                    # 7. Apply references the processed output, never the source or the raw modifier output.
+                    result = queue.get_job_outputs(mesh.job_id)[MeshOptimizationJob.OPTIMIZED_MESH]
+                    output = Path(result.asset_url).resolve()
+                    raw = queue.get_job_outputs(modifier.job_id)[ScaleMeshTestJob.MESH_REQUEST].source_path.resolve()
+                    self.assertNotIn(output, (source_url, raw))
+                    self.assertEqual(self.__remix_reference_urls(owner), [output])
+                    output_stage = Usd.Stage.Open(str(output))
+                    (output_mesh,) = [UsdGeom.Mesh(prim) for prim in output_stage.Traverse() if prim.IsA(UsdGeom.Mesh)]
+                    output_extent = UsdGeom.PointBased.ComputeExtent(output_mesh.GetPointsAttr().Get())
+                    for actual, original in zip(output_extent, source_extent, strict=True):
+                        self.assertTrue(Gf.IsClose(actual, original * 2.0, 1e-4), (actual, original))
+
+                    # 8. Revert restores the source model.
+                    await asyncio.wait_for(get_apply_executor().revert(mesh.job_id), 10)
+                    self.assertEqual(self.__remix_reference_urls(owner), [source_url])
+                finally:
+                    AssetModifierSubmitter.cancel_pending_submissions()
+                    await asyncio.wait_for(get_apply_executor().wait_idle(), 30)
+                    await self.__destroy(window)
+        finally:
+            # Restore the shared state first, so a failed graph deletion cannot leak it into later tests.
+            model.destroy()
+            _get_asset_modifier_factory().unregister_plugins([ScaleMeshTestModifier])
+            get_settings().destroy_item(AssetModifierSettings.get_modifier_key(ScaleMeshTestModifier))
+            settings.set_active_modifier_name("")
+            try:
+                snapshots = queue.get_graph_snapshots()
+                if added := [
+                    snapshot.graph_id for snapshot in snapshots if snapshot.graph_id not in original_graph_ids
+                ]:
+                    queue.delete_graphs(added)
+            finally:
+                queue_settings.set_scheduler_enabled(original_queue_settings[0])
+                queue_settings.set_auto_apply(original_queue_settings[1])
+
+    async def test_asset_modifier_output_applies_when_its_saved_project_reopens(self):
+        """A modifier job that finishes while its project is closed applies once the same project reopens."""
+        queue = get_job_queue()
+        queue_settings = JobQueueSettings()
+        original_queue_settings = (queue_settings.scheduler_enabled, queue_settings.auto_apply)
+        original_graph_ids = {snapshot.graph_id for snapshot in queue.get_graph_snapshots()}
+        settings = AssetModifierSettings()
+        _get_asset_modifier_factory().register_plugins([ScaleMeshTestModifier])
+        settings.set_active_modifier_name(ScaleMeshTestModifier.name)
+        queue_settings.set_scheduler_enabled(False)
+        queue_settings.set_auto_apply(True)
+        mesh_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"
+        try:
+            async with open_test_project(
+                "usd/project_example/combined.usda", ext_name="lightspeed.trex.app.resources", context_name=""
+            ) as project:
+                # 1. Queue the modifier for the capture mesh of the saved project while the scheduler is stopped.
+                graphs, skipped = await AssetModifiersCore("").prepare_submission([mesh_path])
+                self.assertEqual(skipped, {})
+                queue.submit_graphs(graphs)
+                (graph,) = graphs
+                (mesh,) = [job for job in graph.jobs if isinstance(job, MeshOptimizationJob)]
+
+                # 2. Close the project, then let every job finish. Apply has no project, so it stays pending.
+                await self.context.close_stage_async()
+                queue_settings.set_scheduler_enabled(True)
+                async with asyncio.timeout(90):
+                    for job in graph.jobs:
+                        await QueueJob(queue, graph.graph_id, job.job_id).outputs()
+                    await get_apply_executor().wait_idle()
+                pending = queue.get_job_snapshot(mesh.job_id)
+                self.assertIs(pending.apply_disposition, ApplyDisposition.PENDING, pending.apply_error)
+
+                # 3. Reopening the same project applies the processed output with no user action.
+                await self.context.open_stage_async(project.path)
+                async with asyncio.timeout(30):
+                    while queue.get_job_snapshot(mesh.job_id).apply_disposition is ApplyDisposition.PENDING:
+                        await ui_test.human_delay()
+                    await get_apply_executor().wait_idle()
+                applied = queue.get_job_snapshot(mesh.job_id)
+                self.assertIs(applied.apply_disposition, ApplyDisposition.APPLIED, applied.apply_error)
+                result = queue.get_job_outputs(mesh.job_id)[MeshOptimizationJob.OPTIMIZED_MESH]
+                # Replace removed the source model, so its mesh child no longer exists. Read the owner directly.
+                owner = self.context.get_stage().GetPrimAtPath(str(Sdf.Path(mesh_path).GetParentPath()))
+                self.assertEqual(self.__remix_reference_urls(owner), [Path(result.asset_url).resolve()])
+        finally:
+            _get_asset_modifier_factory().unregister_plugins([ScaleMeshTestModifier])
+            settings.set_active_modifier_name("")
+            try:
+                await asyncio.wait_for(get_apply_executor().wait_idle(), 30)
+                if added := [
+                    snapshot.graph_id
+                    for snapshot in queue.get_graph_snapshots()
+                    if snapshot.graph_id not in original_graph_ids
+                ]:
+                    queue.delete_graphs(added)
+            finally:
+                queue_settings.set_scheduler_enabled(original_queue_settings[0])
+                queue_settings.set_auto_apply(original_queue_settings[1])
+
+    @staticmethod
+    def __remix_reference_urls(owner: Usd.Prim) -> list[Path]:
+        """Return the model files referenced by the owner's Remix reference children."""
+        return [
+            Path(Sdf.ComputeAssetPathRelativeToLayer(layer, reference.assetPath)).resolve()
+            for child in owner.GetChildren()
+            if child.GetAttribute(constants.IS_REMIX_REF_ATTR).Get() is True
+            for reference, layer in usd.get_composed_references_from_prim(child)
+        ]
 
     async def test_prim_is_from_capture_or_mod(self):
         # Set up the test

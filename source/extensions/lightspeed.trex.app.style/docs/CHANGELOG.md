@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.28.0]
+### Added
+- Added the MDI vector-square-edit Asset Modifiers action style using the established neutral action palette.
+
 ## [1.27.4]
 ### Removed
 - Removed the unused `WorkflowInputName` label style. ComfyUI workflow rows use the shared property label style.
