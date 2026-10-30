@@ -181,6 +181,17 @@ class JobDisplayAdapter(PluginBase):
         """
         return self.get_name_display(job)
 
+    def get_targets(self, job: Job) -> tuple[str, ...]:
+        """Return what the job changes, such as prim paths or a file path.
+
+        Args:
+            job: Exact job type owned by this adapter.
+
+        Returns:
+            Targets shown in the Target column, or an empty tuple when the job has none.
+        """
+        return ()
+
     def get_active_status_label(self, job: Job, progress: JobProgress | None) -> str | None:
         """Return a user-facing active status label.
 

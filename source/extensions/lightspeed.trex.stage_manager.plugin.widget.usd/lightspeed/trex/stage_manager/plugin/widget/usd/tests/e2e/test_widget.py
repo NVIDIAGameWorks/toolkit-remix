@@ -76,6 +76,7 @@ from omni.flux.job_queue.core.enums import ApplyDisposition, JobState
 from omni.flux.job_queue.core.handlers import get_apply_executor
 from omni.flux.job_queue.core.models import QueueJob
 from omni.flux.job_queue.core.settings import JobQueueSettings
+from omni.flux.job_queue.widget import get_display_adapter_registry
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItemProxy as _StageManagerTreeItemProxy
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
@@ -449,6 +450,11 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
                     self.assertEqual(modifier.prim_paths, (mesh_path,))
                     self.assertEqual(
                         modifier.values, {"scale": 2.0, "material": "/RootNode/Looks/mat_BC868CE5A075ABB1"}
+                    )
+                    # The Job Queue Target column shows the selected prim, not the model file that the job reads.
+                    self.assertTrue(modifier.source_url)
+                    self.assertEqual(
+                        get_display_adapter_registry().get_adapter(modifier).get_targets(modifier), (mesh_path,)
                     )
 
                     # 4. The modifier job runs before the shared asset processing jobs.

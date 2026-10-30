@@ -35,6 +35,7 @@ from lightspeed.trex.contexts.setup import Contexts
 from omni import ui, usd
 from omni.flux.job_queue.core import get_job_queue
 from omni.flux.job_queue.core.settings import JobQueueSettings
+from omni.flux.job_queue.widget import get_display_adapter_registry
 from omni.flux.utils.tests.context_managers import open_test_project
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
@@ -181,3 +182,5 @@ class TestAssetModifiersWidgetE2E(AsyncTestCase):
             (job,) = [job for job in jobs if isinstance(job, ScaleMeshTestJob)]
             self.assertEqual((job.prim_paths, job.values), ((), {"scale": 2.0}))
             self.assertEqual(job.source_url, project_url.path.replace("\\", "/"))
+            # A File Path Constant source has no prim, so the Target column shows the model file.
+            self.assertEqual(get_display_adapter_registry().get_adapter(job).get_targets(job), (job.source_url,))

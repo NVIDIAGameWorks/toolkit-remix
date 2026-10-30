@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.5.0]
+### Added
+- Added a Target column that shows what each job changes, from `JobDisplayAdapter.get_targets()`.
+
+### Fixed
+- Gave the summary row its own `QueueFooterBackground` band so it no longer blends into the job rows.
+
 ## [3.4.0]
 ### Changed
 - A display adapter registered for a job base type also serves its subclasses.

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.0]
+### Added
+- Showed the target prim paths of ComfyUI jobs in the Job Queue Target column.
+
 ## [2.2.3]
 ### Changed
 - Used the shared `ProgressPopup.run_cancellable()`, `CallbackValueModel`, and `TaskTracker` instead of local copies. A cancelled submission now keeps the Run button busy until it settles.

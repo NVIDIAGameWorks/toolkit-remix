@@ -108,6 +108,18 @@ class TestComfyUIDisplayAdapter(AsyncTestCase):
         self.assertIs(result[1], ComfyUIJob)
         self.assertEqual(result[2:], ("ComfyUI", "ComfyUI generation", "/World/MeshA\n/World/Group/MeshB"))
 
+    async def test_targets_are_the_job_prim_paths(self):
+        """The Target column shows the prim paths that the job applies to."""
+        # Arrange
+        adapter = ComfyUIDisplayAdapter()
+        job = ComfyUIJob(prim_paths=["/World/MeshA", "/World/Group/MeshB"])
+
+        # Act
+        targets = adapter.get_targets(job)
+
+        # Assert
+        self.assertEqual(targets, ("/World/MeshA", "/World/Group/MeshB"))
+
     async def test_registers_with_real_exact_type_registry(self):
         """The production registry accepts and resolves the explicit adapter contract."""
         # Arrange

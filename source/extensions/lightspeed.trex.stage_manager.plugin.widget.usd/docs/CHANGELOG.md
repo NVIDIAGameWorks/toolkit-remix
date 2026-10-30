@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.1]
+### Changed
+- Checked in the asset modifier workflow test that the Job Queue Target column shows the selected prim.
+
 ## [3.2.0]
 ### Added
 - Added the Asset Modifiers row action and Remix Asset Modifiers context submenu.

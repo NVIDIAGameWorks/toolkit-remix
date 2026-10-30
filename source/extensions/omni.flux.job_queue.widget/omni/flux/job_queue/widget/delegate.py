@@ -43,6 +43,7 @@ from .enums import ColumnKey, DisplayState
 from .model import QueueModel
 from .queue_item import QueueGraphItem, QueueItem
 from .row import Row
+from .target_label import TargetLabel
 
 __all__ = ("QueueItemDelegate",)
 
@@ -213,6 +214,8 @@ class QueueItemDelegate(TreeDelegateBase):
                 elided_text=True,
                 tooltip=graph.name,
             )
+        elif key is ColumnKey.TARGET:
+            TargetLabel(model.get_graph_targets(graph), f"queue_graph_target_{graph.graph_id}")
         elif key is ColumnKey.STATUS:
             state = model.resolve_graph_display_state(graph)
             self._graph_status_labels[graph.graph_id] = self._build_status(
@@ -249,6 +252,8 @@ class QueueItemDelegate(TreeDelegateBase):
                 tooltip=model.get_name_tooltip(row),
                 identifier=f"job_name_{row.job_id}",
             )
+        elif key is ColumnKey.TARGET:
+            TargetLabel(model.get_targets(row), f"job_target_{row.job_id}")
         elif key is ColumnKey.STATUS:
             state = model.resolve_display_state(row)
             self._job_status_labels[row.job_id] = self._build_status(

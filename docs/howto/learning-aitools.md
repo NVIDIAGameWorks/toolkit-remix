@@ -151,7 +151,7 @@ speeds.
    $env:HF_TOKEN = "hf_xxxxxxxxxxxxxxxxxxxx"
    ```
 
-   Use the first command on macOS or Linux, the second in Windows Command Prompt, or the third in Windows PowerShell.
+   Use the first command in Windows Command Prompt, or the second in Windows PowerShell.
 
 3. Start ComfyUI from that shell.
 
@@ -163,51 +163,66 @@ on each `RTX Remix Download Model` node — but the environment variable approac
 
 1. Click the **AI Tools** button in the left sidebar (in the **Layouts** group) to open the AI Tools layout.
 
-   ![RTX Remix Toolkit showing the AI Tools layout button in the left sidebar](../data/images/remix-aitexturetools-overview.png)
+   ![RTX Remix Toolkit with the AI Tools layout: ComfyUI Setup and ComfyUI Workflow on the left, the viewport and the Job Queue in the middle, and Job Details on the right](../data/images/remix-aitexturetools-overview.jpg)
 
-2. In the **External** tab, paste the complete URL into the **Host** field. The Toolkit automatically sets the
-   **Protocol**, **Host**, and **Port** fields:
+   The layout has these windows:
+
+   - **ComfyUI Setup** connects the Toolkit to ComfyUI.
+   - **ComfyUI Workflow** selects the workflow, sets its inputs and outputs, and holds **Run Workflow**.
+   - The **Job Queue** below the viewport lists the submitted jobs. See [Job Queue](../toolkitinterface/remix-toolkitinterface-jobqueue.md).
+   - **Job Details** on the right shows the selected job.
+
+2. In **ComfyUI Setup**, open the **External** tab. The **Managed** tab is not available yet.
+3. Paste the complete URL into the **Host** field. The Toolkit automatically sets the **Protocol**, **Host**, and
+   **Port** fields:
    - If ComfyUI is using its default port: `http://127.0.0.1:8188`
    - If the Desktop App shows another local URL, paste that URL instead.
-3. Click **Connect**.
-4. The persistent connection banner updates to **Connected** when the Toolkit verifies the connection. Available
-   workflows populate the workflow dropdown automatically.
+4. Click **Connect** at the bottom of **ComfyUI Setup**.
+5. The connection banner shows **Connected** when the Toolkit verifies the connection. The **Workflow** dropdown then
+   lists the available workflows.
 
-![AI Tools panel showing the connection settings, workflow type, workflow and preset selectors, and workflow inputs and outputs](../data/images/remix-aitexturetools-panel.png)
+![ComfyUI Setup and ComfyUI Workflow windows showing the connection banner, the workflow type, workflow, and preset selectors, the workflow inputs and outputs, and the properties of the selected input](../data/images/remix-aitexturetools-panel.png)
 
 ```{note}
 The parsed Protocol, Host, and Port settings are persisted across sessions. You only need to paste the URL again when
 your ComfyUI setup changes.
 ```
 
-The connection banner explains the current connection state:
+The connection banner explains the current connection state. The button at the bottom of **ComfyUI Setup** changes with
+it:
 
-| Banner | Meaning and available action |
-|--------|------------------------------|
-| **Disconnected** | Paste the complete URL into **Host**, then select **Connect**. |
-| **Connecting** | The Toolkit is checking the configured server. The connection settings are unavailable while it checks. |
-| **Connected** | The banner displays the exact verified ComfyUI URL. Select **Open Browser** to open that verified endpoint. |
-| **Connection Failed** | Paste a corrected complete URL into **Host** if needed, then select **Retry**. **Show Logs** is available for this state only. |
+| Banner | Button | Meaning |
+|--------|--------|---------|
+| **Disconnected** | **Connect** | Paste the complete URL into **Host**, then select **Connect**. |
+| **Connecting** | **Connecting...** | The Toolkit is checking the configured server. |
+| **Connected** | **Disconnect** | The banner shows the verified ComfyUI URL. Select **Open Browser** in the banner to open ComfyUI in your browser. |
+| **Connection Failed** | **Retry** | Paste a corrected URL into **Host** if needed, then select **Retry**. Select **Show Logs** in the banner to see the endpoint and the connection error. |
+| **Connection Unavailable** | **Disconnect** | The Toolkit lost the verified ComfyUI endpoint. Select **Disconnect**, then **Connect** again. |
 
-Each banner action is compact and right-aligned inline to the right of the flexible wrapped status text. **Open
-Browser** is available only while the connection is verified. **Show Logs** opens an in-app modal with the exact
-endpoint and Toolkit-captured connection error in a selectable, copyable, read-only multiline field. It does not show
-the external ComfyUI server's console or process logs.
+The **Protocol**, **Host**, and **Port** fields are locked while the Toolkit connects and while it is connected. Select
+**Disconnect** before you paste another URL. The globe icon beside **Port** sets the standard port of the protocol
+(80 for HTTP, 443 for HTTPS).
+
+**Show Logs** opens a window with the endpoint and the connection error that the Toolkit captured, which you can copy.
+It does not show the console or the logs of the ComfyUI server.
 
 ## Basic Usage: Running Your First Workflow
 
 ### How a Job Is Processed
 
-Each row in the job queue represents a **job graph**. The row shows the display name of the workflow. The graph stages
-depend on the tagged workflow outputs.
+Each submitted job is a **job graph** in the [Job Queue](../toolkitinterface/remix-toolkitinterface-jobqueue.md).
+The graph row shows the display name of the workflow, and the **Target** column shows the prims that the job changes.
+The graph stages depend on the tagged workflow outputs.
 
-- A texture workflow runs ComfyUI generation, then optimizes the textures in one step that holds the Apply result.
-- A mesh workflow runs ComfyUI generation, **Optimization preparation**, **Texture optimization**, and
+- A texture workflow runs **ComfyUI generation**, then **Texture optimization**, which converts the textures and holds
+  the Apply result.
+- A mesh workflow runs **ComfyUI generation**, **Optimization preparation**, **Texture optimization**, and
   **Mesh optimization**. The last stage holds the Apply result.
 
-The graph changes the stage only at its final Apply step. A failed producer leaves the stage unchanged.
+The graph changes the project only at its Apply step. A failed stage leaves the project unchanged.
 
-Click the expansion arrow at the start of a job row to view its stages. A stage can provide a quick output-folder action.
+Click the arrow at the start of a graph row to show its stages. The **Texture optimization** stage row has
+**Reveal in File Explorer**, which opens the folder of the processed textures.
 
 ### Selecting a Workflow
 
@@ -254,8 +269,8 @@ workflow output by its export name. Hover over an output row to see its output k
 rows by the groups set in the workflow export. Select an item in either list to show its settings under
 **Item Properties**. Input fields can use a text box, numeric control, checkbox, dropdown, or file path.
 
-Inputs that have been modified from their default value display a **blue indicator dot**. Click the dot to reset the
-input to its default value.
+The **Job Queue** group in **Workflow Inputs** holds the [job timeout](#setting-the-job-timeout). To restore the values
+of a preset, select the preset again.
 
 ### Sending Scene Data to ComfyUI
 
@@ -267,7 +282,7 @@ Some workflow inputs can read data from your Remix scene instead of using a fixe
 
 | Choice | Input type | Value sent to ComfyUI | Options |
 |--------|------------|-----------------------|---------|
-| **Constant** | All | One fixed value or file. It does not read the stage. | The value |
+| **Constant** | All | One fixed value or file. It does not read the stage. The dropdown names it after the value type: **Text Constant**, **Integer Constant**, **Number Constant**, **Boolean Constant**, or **File Path Constant**. | The value |
 | **Selected Texture** | Texture | The texture of each selected material | **Texture Type** |
 | **All Textures** | Texture | The texture of each material in the stage | **Texture Type**, **Introducing Layer** |
 | **Selected Mesh** | Mesh | The model of each selected mesh | **Reference Selection** (default **Selected**) |
@@ -331,76 +346,74 @@ server confirms the cancellation, so a timed-out prompt cannot slow the jobs aft
 1. If the workflow has a **Selected** input, select one or more prims in the viewport or Stage Manager. **All**,
    **Constant**, and **Current Layer** inputs do not use the selection.
 2. Configure the workflow fields.
-3. Click **Run Workflow**.
-4. If some items do not provide the inputs that the workflow requires, the Toolkit does not add jobs for them. The
-   other jobs go to the queue. If no item is valid, a dialog tells you that no jobs were added.
-5. If the scheduler is stopped, click the **Play** (▶️) button in the job queue toolbar to start the job
-   scheduler. Jobs will not be sent to ComfyUI until the scheduler is running.
+3. Click **Run Workflow**. Hover over the button to see why it is unavailable, for example when ComfyUI is not
+   connected, no workflow is selected, or no project is open.
+4. The **Preparing ComfyUI Jobs** window shows the progress while the Toolkit reads the stage. Click **Cancel** to stop
+   without adding jobs.
+5. If some items do not provide the inputs that the workflow requires, the Toolkit does not add jobs for them. The
+   other jobs go to the queue. If no item is valid, the **No ComfyUI Jobs Created** dialog tells you that no jobs were
+   added.
 
-When processing finishes, the job row provides **Apply** (✔️) and **Decline** (✖️) actions. After you apply a result,
-the same buttons become **Reapply** and **Revert**.
-
-```{note}
-The scheduler continues to process queued jobs until you select **Stop**.
-Stop pauses new jobs. Jobs that already run continue until they finish. To stop one running job, use the **Stop**
-action on its job graph row.
-```
+The jobs start as soon as the [Job Queue](../toolkitinterface/remix-toolkitinterface-jobqueue.md) scheduler runs, which
+it does by default. If the toolbar shows **Stopped**, click **Start** (▶️).
 
 ### Applying Results
 
-Each completed job shows **Apply** (✔️) and **Decline** (✖️) in its queue row. **Apply** performs the actions configured
-on the tagged outputs. Texture Replace updates shader inputs. Mesh Append or Replace updates model references.
-**Decline** keeps the processed files but marks the result as not applied. After you apply a result, the check button
-becomes **Reapply** and the X button becomes **Revert**.
+**Apply** performs the actions configured on the tagged outputs. Texture Replace updates shader inputs. Mesh Append or
+Replace updates model references. **Revert** restores the previous values without deleting the processed files.
 
-The button reflects the current state:
-
-| State | Meaning |
-|-------|---------|
-| Buttons are unavailable | The action cannot be used. Hover over a button to see why. |
-| Neither button is active | The job is ready to be applied or declined. |
-| **Apply** is active | The result is applied. Click **Revert** (✖️) to remove the USD override without deleting the processed files. Click **Reapply** (✔️) to apply the result again. |
-| **Decline** is active | The result is declined and will not be applied automatically. You can still apply it later. |
-
-To apply results as soon as processing finishes, select **Auto** in the job queue toolbar. In **Manual** mode, review
-each result and click **Apply** yourself.
+By default the Job Queue is in **AUTO** mode and applies each result as soon as it is ready. Click the **AUTO** badge
+in the Job Queue toolbar to switch to **MANUAL**, then review each result and select **Apply** (✔️) or
+**Decline** (✖️) yourself. See [Applying Results](../toolkitinterface/remix-toolkitinterface-jobqueue.md#applying-results)
+for the buttons and their states.
 
 ```{tip}
-**Auto Apply** is useful for large batch runs where you want results to land on the stage as soon as they're ready.
-For more deliberate workflows, leave it off and apply jobs individually after reviewing them.
+**AUTO** is useful for large batch runs where you want results to land on the stage as soon as they're ready. For more
+deliberate workflows, switch to **MANUAL** and apply jobs individually after reviewing them.
 ```
 
-### Managing Jobs in the Queue
+### Managing AI Tools Jobs
 
-Each job graph row has these actions:
+The [Job Queue](../toolkitinterface/remix-toolkitinterface-jobqueue.md) page describes the columns, statuses, filters,
+and actions of every job. AI Tools jobs add these actions to their graph row:
 
 - **Focus in Viewport** selects the prims of the job and frames them in the viewport. Click it again to go to the next
   prim.
-- **Open Workflow** loads the saved workflow and input values of the job into the AI Tools panel. Use it to change
-  the values and run the workflow again.
+- **Open Workflow** loads the saved workflow and input values of the job into **ComfyUI Workflow**. The workflow shows
+  under **Saved Job** in the **Workflow** dropdown. Change the values and run the workflow again.
 - **Retarget** sends a queued job to the ComfyUI server that is now connected, when that server is different from the
-  saved server. It is available only while the generation step waits in the queue.
-- **Stop** replaces **Delete** while a job of the graph runs. It cancels the prompt on the ComfyUI server. The job
-  shows **Stopped** only after the server confirms that the prompt stopped. The next queued ComfyUI job then starts.
-  While the job waits for that confirmation, **Stop** is unavailable. An optimization stage shows **Running** until
-  its current step finishes, and then shows **Stopped**.
-- **Retry** queues a **Timed Out** or **Stopped** job again with the same inputs.
+  saved server. Confirm with **Change Server**. It is available only while the **ComfyUI generation** stage waits in
+  the queue.
+
+A **ComfyUI generation** stage shows **Waiting** while the ComfyUI server that it was submitted to is not connected.
+Hover over the status to see the server address.
+
+**Stop** replaces **Delete** on the graph row while a job runs. It cancels the prompt on the ComfyUI server. The job
+shows **Stopped** only after the server confirms that the prompt stopped. The next queued ComfyUI job then starts.
+While the job waits for that confirmation, **Stop** is unavailable. An optimization stage shows **Running** until its
+current step finishes, and then shows **Stopped**.
+
+A **Timed Out** or **Stopped** stage has **Retry** in its row. Retry runs the job again with the same inputs and the
+same timeout.
 
 A stage can show **Skipped**. Hover over the status to see the reason. For example, the optimization stages skip an
 asset that is already optimized, and the job can still apply the result.
 
-Click the filter icon in the job queue toolbar to open **Additional Filters**. You can search by job or stage name, and
-filter by job, stage, status, and Apply state. Click **Reset All** to remove all filters.
-
 ### Job Details
 
-Select a job row to open its information in the **Job Details** panel. The panel includes:
+Select a graph or a stage to show it in the **Job Details** window. The
+[Job Details](../toolkitinterface/remix-toolkitinterface-jobqueue.md#job-details) section of the Job Queue page lists
+every section.
 
-- **Open Job Input Folder** and **Open Job Generated Output Folder** actions.
-- The job ID and total processing time.
-- The **ComfyUI server** section: the **Saved server** of the job, the **Connected server**, and the job **Timeout**.
-- An execution log with timestamps for each stage.
-- The job graph and its data flow.
+![Job Details for the ComfyUI generation stage of an AI Tools job, with its ComfyUI server section](../data/images/remix-aitexturetools-jobdetails.png)
+
+A **ComfyUI generation** stage adds the **ComfyUI server** section:
+
+- **Saved server:** the server that the job was submitted to.
+- **Connected server:** the server that the Toolkit is connected to now, or **Not connected**.
+- **Timeout:** the job timeout, or **No timeout**.
+
+A **Texture optimization** stage adds the **Processed textures** section with the converted textures.
 
 ## Processing at Scale
 
@@ -429,17 +442,27 @@ queued, the jobs remain available. Reconnect to ComfyUI and start the scheduler 
 
 ### Stage Manager Integration
 
-You can submit jobs directly from the Stage Manager without switching to the AI Tools panel. Each prim row in the
-Stage Manager has an **AI Tools** icon in the **Actions** column. Click it to submit the selected prims using the
-currently configured workflow and field values.
+You can submit jobs directly from the Stage Manager without switching to the AI Tools layout. The **Actions** column of
+the **Prims**, **Meshes**, **Materials**, **Categories**, and **Custom Tags** tabs has an **AI Tools** icon. Click it to
+submit the selected prims with the current workflow and field values.
 
-![Stage Manager showing the AI Tools submit icon with tooltip](../data/images/remix-aitexturetools-stagemanager.png)
+![Stage Manager Materials tab with the tooltip of the AI Tools icon in the Actions column](../data/images/remix-aitexturetools-stagemanager.png)
 
-The icon appears enabled when ComfyUI is connected, a workflow is selected, and the workflow has at least one
-**Selected Texture** or **Selected Mesh** input. Its tooltip names the selected workflow. If one of these conditions is
-false, the icon is disabled, because Constant, **All Meshes**, and **All Textures** inputs do not use the selection.
-Click the disabled icon to open the AI Tools layout. Selected prims that do not provide the required inputs do not
-create jobs. If no selected prim provides them, the Toolkit shows a dialog and adds no jobs.
+The icon is enabled when ComfyUI is connected, a workflow is selected, and the workflow has at least one
+**Selected Texture** or **Selected Mesh** input. Its tooltip names the workflow. Otherwise the icon is disabled, and
+its tooltip says why: **Constant**, **All Meshes**, and **All Textures** inputs do not use the selection. Click the
+disabled icon to open the AI Tools layout.
+
+You can also right-click a prim and select **Remix AI Tools...**:
+
+- **Submit Selection to Job Queue** submits the selected prims, like the icon.
+- **Open AI Tools Layout** opens the AI Tools layout.
+
+![Stage Manager context menu with the Remix AI Tools submenu](../data/images/remix-aitexturetools-stagemanager-menu.png)
+
+After a submission, a notification confirms that the selection was added to the job queue. Select
+**Open AI Tools layout** in the notification to see the jobs. Selected prims that do not provide the required inputs do
+not create jobs. If no selected prim provides them, the Toolkit shows a dialog and adds no jobs.
 
 ```{tip}
 Submit from the **Materials** tab in the Stage Manager to apply results at the Material prim level. This creates an
@@ -515,12 +538,15 @@ If you have multiple GPUs, you can run separate ComfyUI instances on different G
 
 | Symptom | Solution |
 |---------|----------|
-| **Connection Failed** banner | Paste the correct complete URL into **Host** to repopulate the connection fields, then ensure ComfyUI is running and select **Retry**. Select **Show Logs** to view the exact endpoint and captured connection error. |
+| **Connection Failed** banner | Ensure ComfyUI is running. Paste the correct complete URL into **Host**, then select **Retry**. Select **Show Logs** to view the endpoint and the connection error. |
+| The **Host** field cannot be edited | The Toolkit is connected or connecting. Select **Disconnect** first. |
 | No workflows appear after connecting | Ensure the RTX Remix Node Pack is installed and ComfyUI has been restarted after installation. |
 | A dialog says that no jobs were created | No selected prim provides the inputs that the workflow requires, for example a texture. Prims without these inputs never create jobs. Assign the required data and run the workflow again. |
 | Results not appearing on prim | Verify the prim hierarchy includes a shader that the Toolkit can locate. |
-| A job shows **Timed Out** | ComfyUI did not finish the prompt in the job **Timeout**. Select **Retry** to run the job again with the same timeout. To use a longer timeout, increase **Timeout** in the **Job Queue** group, then run the workflow again. |
-| A submission rejects the texture and mesh inputs | The texture inputs must use the same scope as the mesh input. Use **Selected Texture** with **Selected Mesh**, **All Textures** with **All Meshes**, or **Constant** with **Constant**. |
+| A job shows **Timed Out** | ComfyUI did not finish the prompt in the job **Timeout**. Select **Retry** to run the job again with the same timeout. To use a longer timeout, increase **Timeout** in the **Job Queue** group of **Workflow Inputs**, then run the workflow again. |
+| A submission rejects the texture and mesh inputs | The texture inputs must use the same scope as the mesh input. Use **Selected Texture** with **Selected Mesh**, **All Textures** with **All Meshes**, or a **File Path Constant** with a **File Path Constant**. |
+| A job stays **Queued** | The scheduler is stopped. Select **Start** (▶️) in the Job Queue toolbar. |
+| A job stays **Waiting** | The ComfyUI server of the job is not connected. Hover over the status to see its address. Connect to that server, or select **Retarget** to send the job to the connected server. |
 | The Stage Manager **AI Tools** icon is disabled | The workflow has no **Selected Texture** or **Selected Mesh** input. Click the icon to open the AI Tools layout and run the workflow from there. |
 
 For general ComfyUI issues (model loading, out of memory, node errors), check the external ComfyUI console or process

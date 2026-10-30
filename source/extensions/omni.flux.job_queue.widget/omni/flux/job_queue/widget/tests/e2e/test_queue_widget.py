@@ -23,7 +23,7 @@ import pathlib
 import re
 import tempfile
 import uuid
-from typing import ClassVar
+from typing import ClassVar, NamedTuple
 
 import carb.input
 import carb.settings
@@ -76,6 +76,7 @@ from omni.flux.job_queue.widget.display_adapter_base import (
 from omni.flux.job_queue.widget.enums import DisplayState, JobDetailSectionPlacement
 from omni.flux.job_queue.widget.extension import get_display_adapter_registry
 from omni.flux.job_queue.widget.row import Row
+from omni.flux.job_queue.widget.target_label import TargetLabel
 from omni.flux.job_queue.widget.widget import QueueWidget
 from omni.kit.notification_manager import destroy_all_notifications, get_all_notifications
 from omni.kit.test import AsyncTestCase
@@ -222,6 +223,14 @@ class _WidgetJob(Job):
         return JobOutputs({RESULT: self.value, DETAILS: self.details})
 
 
+class _FittedTarget(NamedTuple):
+    """Describe one target row after it stops changing."""
+
+    ancestor: str
+    name_elided: bool
+    end: float
+
+
 class _WidgetDisplayAdapter(JobDisplayAdapter):
     """Expose stable user-facing labels for the concrete E2E job."""
 
@@ -238,6 +247,19 @@ class _WidgetDisplayAdapter(JobDisplayAdapter):
             Stable test workflow label.
         """
         return "Test workflow"
+
+    def get_targets(self, job: _WidgetJob) -> tuple[str, ...]:
+        """Return two stable targets so the Target column shows a count, or none for a processing stage.
+
+        Args:
+            job: Exact widget test job handled by this adapter.
+
+        Returns:
+            Test prim paths, or an empty tuple when the job name starts with "Processing".
+        """
+        if job.name.startswith("Processing"):
+            return ()
+        return ("/RootNode/meshes/mesh_A/mesh", "/RootNode/meshes/mesh_B/mesh")
 
     def get_name_display(self, job: _WidgetJob) -> str:
         """Return the persisted child name.
@@ -742,13 +764,13 @@ class TestQueueWidget(AsyncTestCase):
         headers = {header.widget.text: header for header in self._find_all("Label[*].name=='ColumnHeader'")}
         header_cells = {
             key: self._find(f"HStack[*].identifier=='queue_header_cell_{key}'")
-            for key in ("job_stage", "status", "completed", "apply", "actions")
+            for key in ("job_stage", "target", "status", "completed", "apply", "actions")
         }
 
-        self.assertEqual(set(headers), {"Job / Stage", "Status", "Completed", "Apply", "Actions"})
+        self.assertEqual(set(headers), {"Job / Stage", "Target", "Status", "Completed", "Apply", "Actions"})
         self.assertTrue(all(cell is not None for cell in header_cells.values()))
         self.assertEqual(self._find_all("Image[*].name=='QueueFilter'"), [])
-        for key, label_text in zip(header_cells, ("Job / Stage", "Status", "Completed", "Apply", "Actions")):
+        for key, label_text in zip(header_cells, ("Job / Stage", "Target", "Status", "Completed", "Apply", "Actions")):
             label = headers[label_text]
             cell = header_cells[key]
             frame_left = cell.center.x - (cell.widget.computed_width / 2)
@@ -1147,6 +1169,9 @@ class TestQueueWidget(AsyncTestCase):
         footer_apply_cell = self._find("Frame[*].identifier=='queue_footer_apply'")
         self.assertIsNotNone(footer_label_cell)
         self.assertIsNotNone(footer_apply_cell)
+        # The summary row keeps its own band, so it reads apart from the job rows above it.
+        footer_background = self._find("Rectangle[*].identifier=='job_queue_footer_background'")
+        self.assertEqual(footer_background.widget.name, "QueueFooterBackground")
         row_left = row_frame.center.x - (row_frame.widget.computed_width / 2)
         label_left = label.center.x - (label.widget.computed_width / 2)
         self.assertGreaterEqual(label_left - row_left, PADDING_SMALL.value - 1)
@@ -2045,6 +2070,109 @@ class TestQueueWidget(AsyncTestCase):
         updated_label = self._find(f"Label[*].identifier=='job_name_{job.job_id}'")
         self.assertIsNotNone(updated_label)
         self.assertEqual(updated_label.widget.text, "Updated stage name")
+
+    async def test_target_column_shows_the_first_target_and_the_count_of_the_others(self):
+        """The graph and its job show the first target as parent/name, with every full path in the tooltip."""
+        # Show the graph and its child job.
+        job = _WidgetJob(name="Targeted stage")
+        graph = self._submit_graph("Targeted graph", job)
+        await ui_test.human_delay()
+        await self._find("Image[*].identifier=='queue_graph_branch'").click()
+        await ui_test.human_delay()
+
+        # Both rows show the first target like the Stage Manager does: a faded parent name, then the name and the count
+        # of the others.
+        for identifier in (f"queue_graph_target_{graph.graph_id}", f"job_target_{job.job_id}"):
+            ancestor = self._find(f"Label[*].identifier=='{identifier}_ancestor'")
+            label = self._find(f"Label[*].identifier=='{identifier}'")
+            count = self._find(f"Label[*].identifier=='{identifier}_count'")
+            # The test window is narrow, so the parent name may be shortened. The elision test covers that.
+            self.assertEqual(ancestor.widget.name, "FadedLabel")
+            self.assertEqual((count.widget.text, count.widget.name), (" (+1)", "CellLabelBold"))
+            self.assertEqual(
+                (label.widget.text, label.widget.tooltip),
+                ("mesh", "/RootNode/meshes/mesh_A/mesh\n/RootNode/meshes/mesh_B/mesh"),
+            )
+
+    async def test_graph_target_comes_from_the_first_stage_that_has_one(self):
+        """A graph whose first stage has no target, like a processing stage, shows the target of the next stage."""
+        # Submit a graph whose first stage has no target, then show its stages.
+        processing = _WidgetJob(name="Processing stage")
+        targeted = _WidgetJob(name="Targeted stage")
+        graph = self._submit_graph("Processing first", processing, targeted)
+        await ui_test.human_delay()
+        await self._find("Image[*].identifier=='queue_graph_branch'").click()
+        await ui_test.human_delay()
+
+        # The processing stage shows no target, and the graph shows the target of the later stage with every full path.
+        self.assertIsNone(self._find(f"Label[*].identifier=='job_target_{processing.job_id}'"))
+        label = self._find(f"Label[*].identifier=='queue_graph_target_{graph.graph_id}'")
+        self.assertEqual(
+            (label.widget.text, label.widget.tooltip),
+            ("mesh", "/RootNode/meshes/mesh_A/mesh\n/RootNode/meshes/mesh_B/mesh"),
+        )
+
+    async def test_target_label_elides_only_the_longer_part_and_refits_when_widened(self):
+        """A narrow cell elides only the longer of the parent name and the name, and refits when it widens."""
+        # Build one wide and two narrow cells: a long parent name, then a long name.
+        window = ui.Window("TargetLabelE2E", width=600, height=200)
+        try:
+            cells = {
+                "wide": (400, "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"),
+                "ancestor": (120, "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"),
+                "name": (120, "/RootNode/meshes/mesh_0AB745B8BEE1F16B_with_a_long_name"),
+            }
+            frames = {}
+            with window.frame, ui.VStack():
+                for key, (width, target) in cells.items():
+                    frames[key] = ui.Frame(width=ui.Pixel(width))
+                    with frames[key]:
+                        TargetLabel((target,), f"target_{key}")
+            rows = await self._wait_for_fitted_targets({key: width for key, (width, _target) in cells.items()})
+
+            # Only the longer part elides, and a narrow row ends within one character of the 120 px cell edge.
+            self.assertEqual((rows["wide"].ancestor, rows["wide"].name_elided), ("mesh_0AB745B8BEE1F16B", False))
+            self.assertIn("...", rows["ancestor"].ancestor)
+            self.assertFalse(rows["ancestor"].name_elided)
+            self.assertEqual((rows["name"].ancestor, rows["name"].name_elided), ("meshes", True))
+            for key in ("ancestor", "name"):
+                self.assertTrue(108 < rows[key].end <= 121, f"The {key} row ends at {rows[key].end}.")
+
+            # Widen the shortened cell. It refits from the full parent name: more of it shows, and the row still fits.
+            frames["ancestor"].width = ui.Pixel(160)
+            widened = (await self._wait_for_fitted_targets({"ancestor": 160}))["ancestor"]
+            self.assertIn("...", widened.ancestor)
+            self.assertGreater(len(widened.ancestor), len(rows["ancestor"].ancestor))
+            self.assertTrue(148 < widened.end <= 161, f"The widened row ends at {widened.end}.")
+        finally:
+            window.destroy()
+
+    async def _wait_for_fitted_targets(self, widths: dict[str, int]) -> dict[str, _FittedTarget]:
+        """Wait until each target row in the TargetLabelE2E window fits its cell and stops changing.
+
+        Args:
+            widths: Cell width of each target identifier key.
+
+        Returns:
+            The settled row of each key.
+        """
+        previous = None
+        stable_frames = 0
+        for _ in range(300):
+            await ui_test.human_delay(1)
+            rows = {}
+            for key in widths:
+                # Fitting rebuilds the labels, so look them up again on every frame.
+                ancestor = ui_test.find(f"TargetLabelE2E//Frame/**/Label[*].identifier=='target_{key}_ancestor'").widget
+                name = ui_test.find(f"TargetLabelE2E//Frame/**/Label[*].identifier=='target_{key}'").widget
+                end = name.screen_position_x + name.computed_width - ancestor.screen_position_x
+                rows[key] = _FittedTarget(ancestor.text, name.elided_text, end)
+            fits = all(row.end <= widths[key] + 1 for key, row in rows.items())
+            stable_frames = stable_frames + 1 if fits and rows == previous else 0
+            if stable_frames == 3:
+                return rows
+            previous = rows
+        raise self.failureException(f"The target rows did not fit and settle: {previous}")
 
     async def test_delete_graph_removes_real_row_and_all_queue_owned_job_directories(self):
         """Confirming root Delete commits the graph and removes both child folders."""
