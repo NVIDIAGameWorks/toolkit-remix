@@ -1,0 +1,41 @@
+[package]
+kit_sdk_version = "110.*"
+authors = ["#xoxor4d <45299104+xoxor4d@users.noreply.github.com>"]
+title = "NVIDIA RTX Remix Alpha Cutout Core"
+description = "Cuts alpha-tested meshes along their texture alpha for the Alpha Card to Mesh modifier"
+version = "1.0.0"
+readme = "docs/README.md"
+repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tree/main/source/extensions/lightspeed.trex.alpha_cutout.core"
+category = "internal"
+keywords = ["remix", "alpha", "cutout", "mesh"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"omni.client" = {}
+"omni.flux.pip_archive" = {}
+"omni.flux.utils.common" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "lightspeed.trex.alpha_cutout.core"
+
+[[test]]
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/exts/omni.flux.utils.widget/default_resources_ext='lightspeed.trex.app.resources'",
+]
+
+stdoutFailPatterns.exclude = [
+    "*[omni.kit.registry.nucleus.utils.common] Skipping deletion of:*",
+]
+
+[[test]]
+name = "startup"
+dependencies = [
+    "lightspeed.trex.tests.dependencies",
+]
