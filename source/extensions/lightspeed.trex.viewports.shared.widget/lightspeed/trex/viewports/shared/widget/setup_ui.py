@@ -291,15 +291,20 @@ class SetupUI(_WorkspaceWidget):
         self.set_active(True)
 
     def _on_stage_event(self, event):
-        if event.type == int(omni.usd.StageEventType.OPENED):
+        """Keep renderer activation scoped to the lifetime of the current stage."""
+        if event.type in (int(omni.usd.StageEventType.CLOSING), int(omni.usd.StageEventType.OPENING)):
+            if self._remix_renderer_activation_task is not None:
+                self._remix_renderer_activation_task.cancel()
+                self._remix_renderer_activation_task = None
+        elif event.type == int(omni.usd.StageEventType.OPENED):
             # If a new stage is opened on the associated usd_context, we want to activate
             # the viewport in order to make sure we always show the current stage.
             self.set_active(True)
             self._schedule_remix_renderer_activation("stage-opened")
 
     def _schedule_remix_renderer_activation(self, reason: str, retry_support: bool = True):
-        """Schedule renderer initialization for a visible, updating viewport."""
-        if not self.window_visible or not self.viewport_api.updates_enabled:
+        """Schedule renderer initialization for a visible, updating viewport with a stage."""
+        if not self.window_visible or not self.viewport_api.updates_enabled or self.viewport_api.stage is None:
             return
         task = self._remix_renderer_activation_task
         if task is not None and not task.done():
