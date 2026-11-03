@@ -28,6 +28,8 @@ camera-mutating action is canceled and a warning explains that the capture game 
   visibility through `show(visible)`, combining containing-window and preview-panel visibility for embedded viewports.
   Hidden or inactive viewports cancel pending renderer initialization; re-enabling updates starts initialization when
   a stage is already open.
+  Startup follows the stage lifetime: `SetupUI` cancels its pending activation task when a stage starts closing or
+  opening and starts a fresh attempt once the new stage opens.
 - `MainViewportWindow` creates its viewport content lazily when the window is shown.
 - `TrexViewportSharedExtension` routes frame requests by USD context before delegating camera-safe framing to `SetupUI`.
 - `ViewportLayers` owns the registered viewport-layer instances and their ordering.
