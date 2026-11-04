@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-0b1da77-main`
 
 - REMIX-3047: Added a floating RGB/HSV/hex color editor with live previews and per-gesture Undo, cancelled unfinished previews on row removal, and ensured reliable color-field cleanup.
+- Update Remix target dependencies: hdremix and omni_core_materials to `ext-689244e-main`
 
 ### Fixed
 
