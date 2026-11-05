@@ -54,6 +54,8 @@ from omni.flux.property_widget_builder.model.usd import PropertyGroupExpansionWi
 from omni.flux.property_widget_builder.model.usd import USDBuilderList as _USDBuilderList
 from omni.flux.property_widget_builder.model.usd import mapping as _mapping
 from omni.flux.property_widget_builder.model.usd import utils as usd_properties_utils
+from omni.flux.property_widget_builder.widget import ClaimResult as _ClaimResult
+from omni.flux.property_widget_builder.widget import FieldBuilder as _FieldBuilder
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -205,6 +207,57 @@ class SetupUI(_PropertyGroupExpansionMixin):
                 regex_hash=_constants.COMPILED_REGEX_HASH_GENERIC,
             )
             return builder(item)
+
+        # Hide SSS attrs that don't apply to the current subsurface mode.
+        # Runs at highest priority (last in list → first in reversed()) so it claims hidden attrs
+        # before any other builder, keeping them out of the unclaimed pool entirely.
+        # We read subsurface_diffusion_profile via the item's own attribute_paths (which point at
+        # the shader prim) rather than via _current_single_material (which is the material prim).
+        def _sss_mode_claim(items):
+            """Claim subsurface fields hidden by the selected scattering mode."""
+            thin_opaque_sss_attrs = frozenset(
+                {
+                    "inputs:subsurface_single_scattering_albedo",
+                    "inputs:subsurface_single_scattering_texture",
+                    "inputs:subsurface_measurement_distance",
+                    "inputs:subsurface_thickness_texture",
+                }
+            )
+            diffusion_profile_sss_attrs = frozenset(
+                {
+                    "inputs:subsurface_transmittance_color",
+                    "inputs:subsurface_transmittance_texture",
+                    "inputs:subsurface_radius",
+                    "inputs:subsurface_radius_texture",
+                    "inputs:subsurface_radius_scale",
+                    "inputs:subsurface_max_sample_radius",
+                }
+            )
+
+            hidden_attrs: frozenset[str] = frozenset()
+            stage = self._context.get_stage()
+            if stage:
+                found = False
+                for item in items:
+                    for path in getattr(item, "attribute_paths", []):
+                        if str(path.name) == "inputs:subsurface_diffusion_profile":
+                            prim = stage.GetPrimAtPath(path.GetPrimPath())
+                            if prim and prim.IsValid():
+                                attr = prim.GetAttribute(path.name)
+                                if attr and attr.IsValid():
+                                    val = attr.Get()
+                                    if val is not None:
+                                        hidden_attrs = thin_opaque_sss_attrs if val else diffusion_profile_sss_attrs
+                            found = True
+                            break
+                    if found:
+                        break
+            companions = [
+                item for item in items if {str(p.name) for p in getattr(item, "attribute_paths", [])} & hidden_attrs
+            ]
+            return _ClaimResult(companions=companions)
+
+        field_builders.append(_FieldBuilder(claim_func=_sss_mode_claim, build_func=lambda _: None))
 
         return field_builders
 

@@ -22,6 +22,10 @@ The **DLSS 3D-Guided Neural Rendering** material group is shown only when the ac
 reports feature support. Older Neural Generation, experimental, and legacy DLSS Neural Rendering group names remain
 recognized for older materials.
 
+SSS property visibility follows the shader's `inputs:subsurface_diffusion_profile` value. Thin Opaque materials show
+single-scattering and thickness controls; Diffusion Profile materials show transmittance and radius controls.
+The custom field builder hides properties belonging to the other mode.
+
 The material action menu builds on opening and shows a loading entry until ready. Each open reads the current selection.
 Selection changes, dismissal, hiding, and destruction cancel pending menu work.
 Material labels and MDL paths remain available before the menu opens.
