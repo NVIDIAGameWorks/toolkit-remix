@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.0.1]
+### Fixed
+- Used shared schema-aware light classification to group supported derived and versioned light schemas by light type.
+
 ## [4.0.0]
 ### Changed
 - Changed grouped tree models to consume sparse context inputs and refresh-prepared display names, Material bindings,

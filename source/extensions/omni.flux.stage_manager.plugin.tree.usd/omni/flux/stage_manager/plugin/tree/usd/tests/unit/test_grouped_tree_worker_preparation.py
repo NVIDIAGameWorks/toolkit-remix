@@ -242,9 +242,11 @@ class TestUSDGroupedTreeWorkerPreparation(omni.kit.test.AsyncTestCase):
         items[1].prepare_display_name(("KeyLight", "World"))
 
         # Act
-        root_items = _build(model, items)
+        with mock.patch.object(light_groups, "_get_light_type", return_value=LightTypes.SphereLight) as get_light_type:
+            root_items = _build(model, items)
 
         # Assert
+        get_light_type.assert_has_calls([mock.call(item.data) for item in items])
         self.assertEqual(["Sphere Lights"], [item.display_name for item in root_items])
         self.assertEqual(["KeyLight", "KeyLight"], [item.display_name for item in root_items[0].children])
         self.assertEqual(["/", "World"], [item.display_name_ancestor for item in root_items[0].children])

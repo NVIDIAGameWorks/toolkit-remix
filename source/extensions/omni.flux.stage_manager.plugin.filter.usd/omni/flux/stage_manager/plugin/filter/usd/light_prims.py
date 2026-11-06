@@ -64,4 +64,4 @@ class LightPrimsFilterPlugin(_ToggleableUSDFilterPlugin):
         """
         prim = item.data
         is_light = prim.HasAPI(UsdLux.LightAPI) if hasattr(UsdLux, "LightAPI") else prim.IsA(UsdLux.Light)
-        return is_light and get_light_type(prim.GetTypeName()) is not None
+        return is_light and get_light_type(prim) is not None

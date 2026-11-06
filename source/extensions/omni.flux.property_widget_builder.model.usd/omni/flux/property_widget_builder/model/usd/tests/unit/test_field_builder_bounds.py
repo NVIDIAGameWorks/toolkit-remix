@@ -19,7 +19,6 @@ __all__ = ("TestFieldBuilderBounds",)
 
 import omni.kit.test
 from omni.flux.property_widget_builder.model.usd.field_builders.aperture_pbr import MATERIAL_FIELD_BUILDERS
-from omni.flux.property_widget_builder.model.usd.field_builders.lights import LIGHT_FIELD_BUILDERS
 from omni.flux.property_widget_builder.model.usd.items import USDAttributeItem
 from pxr import Sdf, Usd
 
@@ -49,54 +48,6 @@ class TestFieldBuilderBounds(omni.kit.test.AsyncTestCase):
         self.assertEqual(len(claimed_fields), 1)
         return claimed_fields[0]
 
-    async def test_light_field_builders_use_explicit_soft_and_hard_bounds(self):
-        # Arrange
-        fields = {
-            attr_name: self._claimed_field(LIGHT_FIELD_BUILDERS, attr_name)
-            for attr_name in (
-                "inputs:colorTemperature",
-                "inputs:exposure",
-                "inputs:intensity",
-                "inputs:radius",
-                "inputs:shaping:cone:angle",
-                "inputs:shaping:cone:softness",
-                "inputs:shaping:focus",
-                "inputs:volumetric_radiance_scale",
-            )
-        }
-
-        # Act / Assert
-        self.assertEqual(fields["inputs:colorTemperature"].min_value, 2500.0)
-        self.assertEqual(fields["inputs:colorTemperature"].max_value, 8500.0)
-        self.assertIsNone(fields["inputs:colorTemperature"].hard_min_value)
-        self.assertIsNone(fields["inputs:colorTemperature"].hard_max_value)
-        self.assertAlmostEqual(fields["inputs:colorTemperature"].step, 30.0)
-
-        self.assertIsNone(fields["inputs:radius"].min_value)
-        self.assertEqual(fields["inputs:radius"].max_value, 65000.0)
-        self.assertEqual(fields["inputs:radius"].hard_min_value, 0.0)
-        self.assertIsNone(fields["inputs:radius"].hard_max_value)
-        self.assertAlmostEqual(fields["inputs:radius"].step, 325.0)
-
-        self.assertIsNone(fields["inputs:shaping:cone:angle"].min_value)
-        self.assertIsNone(fields["inputs:shaping:cone:angle"].max_value)
-        self.assertEqual(fields["inputs:shaping:cone:angle"].hard_min_value, 0.0)
-        self.assertEqual(fields["inputs:shaping:cone:angle"].hard_max_value, 360.0)
-        self.assertAlmostEqual(fields["inputs:shaping:cone:angle"].step, 1.8)
-
-        for attr_name, soft_max in (
-            ("inputs:exposure", 10.0),
-            ("inputs:intensity", 65000.0),
-            ("inputs:shaping:cone:softness", 10.0),
-            ("inputs:shaping:focus", 10.0),
-            ("inputs:volumetric_radiance_scale", 10.0),
-        ):
-            self.assertIsNone(fields[attr_name].min_value)
-            self.assertEqual(fields[attr_name].max_value, soft_max)
-            self.assertEqual(fields[attr_name].hard_min_value, 0.0)
-            self.assertIsNone(fields[attr_name].hard_max_value)
-            self.assertAlmostEqual(fields[attr_name].step, soft_max * 0.005)
-
     async def test_aperture_pbr_field_builders_use_explicit_soft_and_hard_bounds(self):
         # Arrange
         fields = {
@@ -106,7 +57,6 @@ class TestFieldBuilderBounds(omni.kit.test.AsyncTestCase):
                 "inputs:reflection_roughness_constant",
                 "inputs:metallic_constant",
                 "inputs:thin_film_thickness_constant",
-                "inputs:emissive_intensity",
                 "inputs:displace_in",
                 "inputs:displace_out",
                 "inputs:subsurface_measurement_distance",
@@ -129,7 +79,6 @@ class TestFieldBuilderBounds(omni.kit.test.AsyncTestCase):
 
         for attr_name, hard_min, soft_max in (
             ("inputs:thin_film_thickness_constant", 0.0010000000474974513, 1500.0),
-            ("inputs:emissive_intensity", 0.0, 65504.0),
             ("inputs:displace_in", 0.0, 2.0),
             ("inputs:displace_out", 0.0, 2.0),
             ("inputs:subsurface_measurement_distance", 0.0, 16.0),

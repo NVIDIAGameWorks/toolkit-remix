@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.2.1]
+### Fixed
+- Improved fine dragging for light intensity/radius and material emissive intensity, including a finer distant-light default. Centralized light configuration uses shared schema-aware classification and honors metadata overrides while preserving typed precision, row isolation, and other controls' drag speeds.
+
 ## [4.2.0]
 
 ### Added
