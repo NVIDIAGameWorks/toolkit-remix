@@ -16,6 +16,7 @@
 """
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -207,6 +208,7 @@ class CodexProvider(Provider):
 
     @staticmethod
     def _permissions(request: WorkerRequest) -> str:
+        """Build the read-only permission profile for a review worker."""
         paths = {request.worker_cwd, request.project_root, *request.read_paths}
         resolved = [path.resolve(strict=True) for path in paths]
         roots = sorted(str(path) for path in resolved if path.is_dir())
@@ -219,6 +221,11 @@ class CodexProvider(Provider):
             f"{json.dumps(':workspace_roots')}={{{json.dumps('.')}={json.dumps('read')}}}",
             *(f"{json.dumps(path)}={json.dumps('read')}" for path in files),
         ]
+        if os.name == "nt":
+            shell = resolve_executable("pwsh") or resolve_executable("powershell")
+            if shell is not None:
+                # Self-contained PowerShell needs its adjacent runtime files inside the Windows sandbox.
+                filesystem.append(f"{json.dumps(str(shell.parent))}={json.dumps('read')}")
         return (
             "permissions={remix_reviewer={workspace_roots={"
             + workspace_roots
