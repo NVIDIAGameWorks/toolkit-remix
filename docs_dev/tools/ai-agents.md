@@ -144,6 +144,13 @@ Internal-only procedures live under `.agents/commands/internal/` and are indexed
 not listed in the public command tables. Their `internal-<name>` skill wrappers make them discoverable, and the GitHub
 mirror removes the wrappers with the procedures.
 
+### Codex Reviews on Windows
+
+Codex review workers grant read access to the installation directory of `pwsh` found on `PATH`, falling back to
+`powershell`. Self-contained PowerShell needs adjacent runtime files to start; without this access, the canary can
+fail with `Failed to resolve full path of the current executable`. The grant remains read-only, and shell network
+access remains disabled.
+
 ### Review Scheduling
 
 These scheduling rules apply to every caller of the review CLI, including direct local use. `--deadline-seconds`

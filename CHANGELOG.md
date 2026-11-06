@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed standalone IngestCraft startup failures by deferring hidden viewport initialization, resuming it when shown, and propagating ingestion preview visibility.
 - Fixed viewport startup timeouts during project loading by restarting renderer activation for the newly opened stage.
 - Fixed material properties to show the matching Thin Opaque or Diffusion Profile subsurface scattering fields.
+- Fixed Codex review workers on Windows failing to start bundled PowerShell by granting read access to its runtime directory.
 
 ### Removed
 
