@@ -35,8 +35,8 @@ class TestDeleteRestoreActionWidgetPluginUnit(omni.kit.test.AsyncTestCase):
         plugin._core = None
         plugin._layer_manager = None
         plugin._restore_context_menu = None
-        plugin._get_selected_by_action = Mock(
-            side_effect=lambda action: {
+        plugin._get_paths_by_action = Mock(
+            side_effect=lambda action, paths=None: {
                 plugin.ActionType.DELETE: regular_paths,
                 plugin.ActionType.DELETECAPTURE: capture_paths,
             }[action]
@@ -75,18 +75,24 @@ class TestDeleteRestoreActionWidgetPluginUnit(omni.kit.test.AsyncTestCase):
         plugin._delete_capture_prim_cb.assert_called_once_with(paths=["/RootNode/Capture"], use_undo_group=False)
 
     async def test_delete_selected_prims_without_actionable_paths_skips_undo_group(self):
-        """An ineligible selection does not create an empty undo group."""
+        """Explicitly empty candidates do not read selection or create an undo group."""
         # Arrange
         plugin = self._make_plugin([], [])
+        object.__delattr__(plugin, "_get_paths_by_action")
+        context = self._make_context(plugin, [plugin.ActionType.DELETE])
 
         # Act
-        with patch.object(action_delete_restore.omni.kit.undo, "group") as undo_group:
-            plugin.delete_selected_prims()
+        with (
+            patch.object(action_delete_restore.omni.kit.undo, "group") as undo_group,
+            patch.object(action_delete_restore.omni.usd, "get_context", return_value=context),
+        ):
+            plugin.delete_selected_prims(paths=[])
 
         # Assert
         undo_group.assert_not_called()
         plugin._delete_prim_cb.assert_not_called()
         plugin._delete_capture_prim_cb.assert_not_called()
+        context.get_selection.assert_not_called()
 
     async def test_delete_selected_prims_with_one_ineligible_prim_posts_singular_warning(self):
         """One ineligible selected prim produces the singular warning."""
@@ -128,7 +134,7 @@ class TestDeleteRestoreActionWidgetPluginUnit(omni.kit.test.AsyncTestCase):
         )
 
     async def test_delete_selected_prims_with_mixed_selection_posts_partial_warning_and_deletes(self):
-        """A mixed selection warns and still deletes its actionable prims."""
+        """Explicit mixed candidates warn and delete without reading global selection."""
         # Arrange
         plugin = self._make_plugin(["/RootNode/Regular"], [])
         context = self._make_context(
@@ -142,13 +148,14 @@ class TestDeleteRestoreActionWidgetPluginUnit(omni.kit.test.AsyncTestCase):
             patch.object(action_delete_restore, "post_notification") as post_notification,
             patch.object(action_delete_restore.omni.kit.undo, "group"),
         ):
-            plugin.delete_selected_prims(notify_ineligible=True)
+            plugin.delete_selected_prims(notify_ineligible=True, paths=["/RootNode/Prim0", "/RootNode/Prim1"])
 
         # Assert
         post_notification.assert_called_once_with(
             "Some selected assets can't be deleted.", status=NotificationStatus.WARNING
         )
         plugin._delete_prim_cb.assert_called_once_with(paths=["/RootNode/Regular"], use_undo_group=False)
+        context.get_selection.assert_not_called()
 
     async def test_get_prim_action_type_with_closed_stage_returns_restore_disabled(self):
         """A non-capture prim classified after its stage closed is RESTOREDISABLED instead of an error."""

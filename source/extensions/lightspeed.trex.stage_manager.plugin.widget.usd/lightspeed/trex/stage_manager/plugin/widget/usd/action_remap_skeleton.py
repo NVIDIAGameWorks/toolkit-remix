@@ -20,7 +20,7 @@ from __future__ import annotations
 __all__ = ["RemapSkeletonActionWidgetPlugin"]
 
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from lightspeed.trex.asset_replacements.core.shared import CachedReplacementSkeletons
 from lightspeed.trex.asset_replacements.core.shared import Setup as AssetReplacementsCore
@@ -37,6 +37,8 @@ if TYPE_CHECKING:
 
 class RemapSkeletonActionWidgetPlugin(StageManagerStateWidgetPlugin):
     """Remap replacement skeletons to captured skeletons to drive character animation"""
+
+    _action_row_only: ClassVar[bool] = True
 
     _capture_layer: Sdf.Layer = PrivateAttr(default=None)
     _remap_window: SkeletonRemappingWindow | None = PrivateAttr(default=None)
@@ -95,7 +97,7 @@ class RemapSkeletonActionWidgetPlugin(StageManagerStateWidgetPlugin):
             item=item,
             name=name,
             tooltip=tooltip,
-            mouse_released_fn=partial(self._show_remapping_window, item) if enabled else None,
+            mouse_released_fn=partial(self._show_remapping_window, model, item) if enabled else None,
         )
 
     def get_skel_replacement(self, item: SkeletonBoundMeshItem) -> SkeletonReplacementBinding | None:
@@ -112,8 +114,12 @@ class RemapSkeletonActionWidgetPlugin(StageManagerStateWidgetPlugin):
             stage.GetPrimAtPath(skel_root), stage.GetPrimAtPath(bound_prim)
         )
 
-    def _show_remapping_window(self, item: SkeletonBoundMeshItem, x, y, button, modifier):
+    def _show_remapping_window(self, model: StageManagerTreeModel, item: SkeletonBoundMeshItem, x, y, button, modifier):
+        """Open skeleton remapping for the current clicked row."""
         if button != 0:
             return
-        skel_replacement = self.get_skel_replacement(item)
+        items = self._get_action_items(model, item)
+        if not items:
+            return
+        skel_replacement = self.get_skel_replacement(items[0])
         self._remap_window.show_window(value=True, skel_replacement=skel_replacement)

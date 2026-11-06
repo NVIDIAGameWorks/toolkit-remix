@@ -206,6 +206,23 @@ so it suppresses navigation fallback. `_get_framing_selection()` supplies relate
 exact proxy is available, the loop frames the first data-backed candidate in rendered sorted/filtered order. Custom Tags
 and `get_extended_selection()` keep their existing behavior.
 
+### Row action targets
+
+Row callbacks keep their `(model, item)` arguments and call `StageManagerWidgetPlugin._get_action_items(model, item)`
+to resolve targets. If the clicked row's proxy is in `model.selection` by identity, the helper returns the selected
+canonical items in selection order; otherwise it returns only the clicked canonical item. Candidates must still
+belong to the model's published proxy index. Virtual rows, pathless rows, and duplicate paths are valid generic
+targets, including published rows outside the rendered viewport; filtered-out and stale proxies are excluded.
+
+The helper only reads selection. Set `_action_row_only: ClassVar[bool] = True` to target the clicked row without
+collapsing the UI selection in the helper. Plugins may override `_get_action_items()` completely or filter
+`super()._get_action_items(model, item)`; an empty result means no action, with no fallback to global USD selection.
+Keep existing row press gestures and action-specific reselection behavior separate from target resolution.
+
+`StageManagerUSDWidgetPlugin` filters out missing or invalid prim data. Its `_action_imageable_only` defaults to
+`False`; visibility and viewport-focus actions set it to `True`. Actions obtain USD paths with
+`str(action_item.data.GetPath())`, then retain their own operation eligibility checks and path deduplication.
+
 ### Refresh paths
 
 | | Full context refresh | Filter-only refresh |

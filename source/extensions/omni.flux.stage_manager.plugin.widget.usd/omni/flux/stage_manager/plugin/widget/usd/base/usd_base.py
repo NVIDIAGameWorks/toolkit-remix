@@ -16,10 +16,11 @@
 """
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from omni.flux.stage_manager.factory.plugins import StageManagerWidgetPlugin as _StageManagerWidgetPlugin
 from pydantic import PrivateAttr
+from pxr import UsdGeom
 
 if TYPE_CHECKING:
     from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
@@ -27,32 +28,22 @@ if TYPE_CHECKING:
 
 
 class StageManagerUSDWidgetPlugin(_StageManagerWidgetPlugin, abc.ABC):
+    _action_imageable_only: ClassVar[bool] = False
+
     _context_name: str = PrivateAttr(default="")
 
     def set_context_name(self, name: str):
         """Set usd context to initialize plugin before items are rebuilt."""
         self._context_name = name
 
-    def _get_action_paths(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem") -> list[str]:
-        """
-        Resolve which prim paths an action widget should operate on.
-
-        - If the clicked item is already in the current tree selection, the action applies to
-          all selected prims (preserving multi-selection).
-        - If the clicked item is *not* in the selection, the action applies to that item alone
-          (same behaviour as the original single-item case, without mutating the selection).
-        - If ``item.data`` is ``None``, falls back to the current selection.
-
-        Selection state is read from ``model.selection`` — no USD API is queried.
-        """
-        current = []
-        for selected_item in model.selection:
-            original_item = selected_item.original_tree_item
-            if original_item.data:
-                current.append(str(original_item.data.GetPath()))
-        if item.data:
-            item_path = str(item.data.GetPath())
-            if item_path in current:
-                return current
-            return [item_path]
-        return current
+    def _get_action_items(
+        self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem"
+    ) -> list["_StageManagerTreeItem"]:
+        """Return valid prim rows, optionally restricted to Imageable prims."""
+        return [
+            action_item
+            for action_item in super()._get_action_items(model, item)
+            if action_item.data
+            and action_item.data.IsValid()
+            and (not self._action_imageable_only or UsdGeom.Imageable(action_item.data))
+        ]

@@ -16,7 +16,7 @@
 """
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 from collections.abc import Callable
 
 from omni import ui
@@ -35,6 +35,8 @@ class StageManagerWidgetPlugin(_StageManagerUIPluginBase, abc.ABC):
     """
     A plugin that provides a widget for the TreeView
     """
+
+    _action_row_only: ClassVar[bool] = False
 
     _on_item_clicked: _Event = PrivateAttr(default=_Event())
     _icon_size: ui.Length = PrivateAttr(default=0)
@@ -61,6 +63,28 @@ class StageManagerWidgetPlugin(_StageManagerUIPluginBase, abc.ABC):
             An object that will automatically unsubscribe when destroyed.
         """
         return _EventSubscription(self._on_item_clicked, callback)
+
+    def _get_action_items(
+        self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem"
+    ) -> list["_StageManagerTreeItem"]:
+        """Return published canonical action rows without changing tree selection.
+
+        A selected clicked row uses selection order unless ``_action_row_only`` is set.
+        Otherwise only the clicked row is considered. Override to customize action targets.
+        """
+        clicked_proxy = item.proxy
+        selection = model.selection
+        candidates = (
+            selection
+            if not self._action_row_only and any(proxy is clicked_proxy for proxy in selection)
+            else [clicked_proxy]
+        )
+        published_items = model.items_dict
+        return [
+            proxy.original_tree_item
+            for proxy in candidates
+            if proxy is not None and published_items.get(hash(proxy)) is proxy
+        ]
 
     def _item_clicked(
         self, button: int, should_validate: bool, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem"

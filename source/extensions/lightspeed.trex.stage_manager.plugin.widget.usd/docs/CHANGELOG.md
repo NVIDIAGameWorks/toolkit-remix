@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.0.0]
+### Changed
+- Standardized row-action item queries, including Asset Modifiers, simplified Category callbacks, retained explicit Delete/Restore targets, and tightened regression coverage.
+
 ## [3.2.1]
 ### Changed
 - Checked in the asset modifier workflow test that the Job Queue Target column shows the selected prim.

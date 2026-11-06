@@ -80,6 +80,7 @@ from omni.flux.job_queue.widget import get_display_adapter_registry
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItemProxy as _StageManagerTreeItemProxy
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeModel as _StageManagerTreeModel
+from omni.flux.stage_manager.factory.plugins.tree_plugin import TreeRefreshResult
 from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
 )
@@ -339,7 +340,21 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
             tooltip="Second Material",
             data=second_prim,
         )
-        model.selection = [_StageManagerTreeItemProxy(item), _StageManagerTreeItemProxy(second_item)]
+        proxies = [_StageManagerTreeItemProxy(item), _StageManagerTreeItemProxy(second_item)]
+        model.publish_refresh_result(
+            TreeRefreshResult(
+                canonical_root_items=[item, second_item],
+                root_items=proxies,
+                items_by_path={"/FirstMaterial": [proxies[0]], "/SecondMaterial": [proxies[1]]},
+                item_by_hash={hash(proxy): proxy for proxy in proxies},
+                path_by_hash={hash(proxies[0]): "/FirstMaterial", hash(proxies[1]): "/SecondMaterial"},
+                visible_items_count=2,
+                visible_non_virtual_items_count=2,
+                input_items_count=2,
+                output_items_count=2,
+            )
+        )
+        model.selection = proxies
         core = MagicMock(is_ready=True)
         core.workflow.name = "upscale_4x"
         core.workflow.display_name = "Upscale"
@@ -409,7 +424,21 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
                             prim = self.stage.GetPrimAtPath(path)
                             item = _StageManagerTreeItem(display_name=prim.GetName(), tooltip=path, data=prim)
                             if path == mesh_path:
-                                model.selection = [_StageManagerTreeItemProxy(item)]
+                                proxy = _StageManagerTreeItemProxy(item)
+                                model.publish_refresh_result(
+                                    TreeRefreshResult(
+                                        canonical_root_items=[item],
+                                        root_items=[proxy],
+                                        items_by_path={path: [proxy]},
+                                        item_by_hash={hash(proxy): proxy},
+                                        path_by_hash={hash(proxy): path},
+                                        visible_items_count=1,
+                                        visible_non_virtual_items_count=1,
+                                        input_items_count=1,
+                                        output_items_count=1,
+                                    )
+                                )
+                                model.selection = [proxy]
                             widget.build_icon_ui(model, item, 0, False)
                     await ui_test.human_delay()
                     action, incompatible = ui_test.find_all(
@@ -505,6 +534,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
                 finally:
                     AssetModifierSubmitter.cancel_pending_submissions()
                     await asyncio.wait_for(get_apply_executor().wait_idle(), 30)
+                    model.clear_items()
                     await self.__destroy(window)
         finally:
             # Restore the shared state first, so a failed graph deletion cannot leak it into later tests.
@@ -659,7 +689,22 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
 
         # Build the widget icon with the capture layer sample data
         with _window.frame:
-            _widget.build_icon_ui(_StageManagerTreeModel(), item, level=4, expanded=True)
+            model = _StageManagerTreeModel()
+            proxy = _StageManagerTreeItemProxy(item)
+            model.publish_refresh_result(
+                TreeRefreshResult(
+                    canonical_root_items=[item],
+                    root_items=[proxy],
+                    items_by_path={str(light_prim.GetPath()): [proxy]},
+                    item_by_hash={hash(proxy): proxy},
+                    path_by_hash={hash(proxy): str(light_prim.GetPath())},
+                    visible_items_count=1,
+                    visible_non_virtual_items_count=1,
+                    input_items_count=1,
+                    output_items_count=1,
+                )
+            )
+            _widget.build_icon_ui(model, item, level=4, expanded=True)
         await ui_test.human_delay(5)
 
         # Ensure the widget icon is enabled since it is a light

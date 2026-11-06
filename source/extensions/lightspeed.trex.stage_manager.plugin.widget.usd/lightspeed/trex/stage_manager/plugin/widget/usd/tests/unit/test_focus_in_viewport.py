@@ -23,7 +23,13 @@ from lightspeed.trex.stage_manager.plugin.widget.usd.focus_in_viewport import (
     FocusInViewportActionWidgetPlugin,
     _frame_paths_in_viewport,
 )
-from omni.flux.stage_manager.factory import StageManagerTreeItemProxy
+from omni.flux.stage_manager.factory.plugins.tree_plugin import (
+    StageManagerTreeItem,
+    StageManagerTreeItemProxy,
+    StageManagerTreeModel,
+    TreeRefreshResult,
+)
+from pxr import Usd
 
 __all__ = ["TestFocusInViewportActionWidgetPlugin"]
 
@@ -31,26 +37,51 @@ _MODULE = "lightspeed.trex.stage_manager.plugin.widget.usd.focus_in_viewport"
 
 
 class TestFocusInViewportActionWidgetPlugin(omni.kit.test.AsyncTestCase):
+    async def setUp(self):
+        """Retain a fresh in-memory stage for each test's prims."""
+        self.stage = Usd.Stage.CreateInMemory()
+
     def _make_plugin(self, context_name: str = "") -> FocusInViewportActionWidgetPlugin:
         """Create a plugin bound to the requested USD context."""
         plugin = FocusInViewportActionWidgetPlugin()
         plugin.set_context_name(context_name)
         return plugin
 
-    def _make_item(self, prim_path: str = "/World/Prim") -> Mock:
+    def _make_item(self, prim_path: str = "/World/Prim") -> StageManagerTreeItem:
         """Create an imageable tree item with the requested prim path."""
-        item = Mock()
-        item.data = Mock()
-        item.data.GetPath.return_value = prim_path
+        item = StageManagerTreeItem(
+            display_name=prim_path,
+            tooltip=prim_path,
+            data=self.stage.DefinePrim(prim_path, "Xform"),
+        )
+        self.addCleanup(item.destroy)
         return item
 
-    def _make_model(self, selected_paths: list[str] | None = None) -> Mock:
+    def _make_model(self, item: StageManagerTreeItem, selected_paths: list[str] | None = None) -> StageManagerTreeModel:
         """Create a model whose selection reflects the requested prim paths."""
-        model = Mock()
-        if selected_paths is not None:
-            model.selection = [StageManagerTreeItemProxy(self._make_item(path)) for path in selected_paths]
-        else:
-            model.selection = []
+        model = StageManagerTreeModel()
+        self.addCleanup(model.destroy)
+        selected_items = [
+            item if path == str(item.data.GetPath()) else self._make_item(path) for path in selected_paths or []
+        ]
+        items = list(selected_items)
+        if not any(selected is item for selected in items):
+            items.append(item)
+        proxies = [StageManagerTreeItemProxy(row) for row in items]
+        model.publish_refresh_result(
+            TreeRefreshResult(
+                canonical_root_items=items,
+                root_items=proxies,
+                items_by_path={str(proxy.original_tree_item.data.GetPath()): [proxy] for proxy in proxies},
+                item_by_hash={hash(proxy): proxy for proxy in proxies},
+                path_by_hash={hash(proxy): str(proxy.original_tree_item.data.GetPath()) for proxy in proxies},
+                visible_items_count=len(items),
+                visible_non_virtual_items_count=len(items),
+                input_items_count=len(items),
+                output_items_count=len(items),
+            )
+        )
+        model.selection = [selected.proxy for selected in selected_items]
         return model
 
     async def test_on_icon_clicked_non_left_button_does_not_frame_paths(self):
@@ -83,7 +114,7 @@ class TestFocusInViewportActionWidgetPlugin(omni.kit.test.AsyncTestCase):
         # Arrange
         plugin = self._make_plugin()
         item = self._make_item("/World/D")
-        model = self._make_model(selected_paths=[])
+        model = self._make_model(item, selected_paths=[])
 
         with (
             patch(f"{_MODULE}._frame_paths_in_viewport"),
@@ -95,24 +126,25 @@ class TestFocusInViewportActionWidgetPlugin(omni.kit.test.AsyncTestCase):
         # Assert
         mock_item_clicked.assert_not_called()
 
-    async def test_on_icon_clicked_selected_item_frames_selection_in_plugin_context(self):
+    async def test_on_icon_clicked_selected_item_frames_imageable_selection_in_plugin_context(self):
         # Arrange
         plugin = self._make_plugin("texturecraft")
         item = self._make_item("/World/A")
-        model = self._make_model(selected_paths=["/World/A", "/World/B", "/World/C"])
+        model = self._make_model(item, selected_paths=["/World/A", "/World/B", "/World/C"])
+        self.stage.DefinePrim("/World/B", "Material")
 
         with patch(f"{_MODULE}._frame_paths_in_viewport") as mock_frame_paths_in_viewport:
             # Act
             plugin._on_icon_clicked(0, True, model, item)
 
         # Assert
-        mock_frame_paths_in_viewport.assert_called_once_with(["/World/A", "/World/B", "/World/C"], "texturecraft")
+        mock_frame_paths_in_viewport.assert_called_once_with(["/World/A", "/World/C"], "texturecraft")
 
     async def test_on_icon_clicked_unselected_item_frames_only_clicked_path(self):
         # Arrange
         plugin = self._make_plugin("texturecraft")
         item = self._make_item("/World/D")
-        model = self._make_model(selected_paths=["/World/A", "/World/B", "/World/C"])
+        model = self._make_model(item, selected_paths=["/World/A", "/World/B", "/World/C"])
 
         with patch(f"{_MODULE}._frame_paths_in_viewport") as mock_frame_paths_in_viewport:
             # Act

@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [7.1.0]
+### Added
+- Added a pure, overridable action-item query using filtered model selection and optional row-only targeting.
+
+### Changed
+- Tightened selection-preservation assertions and removed mock-only action-query coverage.
+
 ## [7.0.2]
 ### Changed
 - Exposed interaction Select All behavior for app shortcuts and removed the tree-local Ctrl+A listener.

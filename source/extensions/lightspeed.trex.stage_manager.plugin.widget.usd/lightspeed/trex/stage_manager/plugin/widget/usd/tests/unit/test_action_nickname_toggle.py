@@ -62,7 +62,7 @@ class TestNicknameToggleActionWidgetPlugin(omni.kit.test.AsyncTestCase):
         item.nickname_field.force_prim_name = False
 
         # Act
-        NicknameToggleActionWidgetPlugin._toggle_nickname(model, item, button=1)
+        NicknameToggleActionWidgetPlugin()._toggle_nickname(model, item, button=1)
 
         # Assert
         self.assertFalse(item.nickname_field.force_prim_name)
