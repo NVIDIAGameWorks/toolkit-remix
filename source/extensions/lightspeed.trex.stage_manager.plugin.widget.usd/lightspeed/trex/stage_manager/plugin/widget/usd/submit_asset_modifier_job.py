@@ -73,7 +73,10 @@ class SubmitAssetModifierJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _
         if AssetModifiersCore(self._context_name).get_selection_block_reason(item.data or Usd.Prim()) is not None:
             AssetModifierSubmitter.show_window(WindowNames.ASSET_MODIFIERS.value)
             return
-        selected_paths = self._get_action_paths(model, item)
+        items = self._get_action_items(model, item)
+        if not items:
+            return
+        selected_paths = [str(row.data.GetPath()) for row in items]
         self._item_clicked(button, True, model, item)
         AssetModifierSubmitter.submit(self._context_name, selected_paths)
 

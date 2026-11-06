@@ -20,7 +20,7 @@ from __future__ import annotations
 __all__ = ["ParticleSystemsActionWidgetPlugin"]
 
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 from collections.abc import Callable
 
 import omni.kit.commands
@@ -46,6 +46,8 @@ if TYPE_CHECKING:
 class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageManagerMenuMixin):
     """Action to create or remove Particle Systems"""
 
+    _action_row_only: ClassVar[bool] = True
+
     def build_icon_ui(self, model: StageManagerTreeModel, item: StageManagerTreeItem, level: int, expanded: bool):
         """Build the particle-system action image for the row."""
         if not item.data:
@@ -65,9 +67,9 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
             icon = "DeleteParticle" if has_particle_system else "Particle"
             tooltip = "Remove the Particle System" if has_particle_system else "Create a Particle System"
             callback = (
-                partial(self._build_callback, payload, self._remove_particle_system)
+                partial(self._build_callback, model, item, self._remove_particle_system)
                 if has_particle_system
-                else partial(self._build_callback, payload, self._create_particle_system)
+                else partial(self._build_callback, model, item, self._create_particle_system)
             )
         else:
             icon = "ParticleDisabled"
@@ -87,8 +89,24 @@ class ParticleSystemsActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
             mouse_released_fn=callback,
         )
 
-    def _build_callback(self, payload: dict, callback: Callable, x: int, y: int, button: int, modifiers: int):
-        if button != 0 or not self._modify_particle_system_show_fn(payload):
+    def _build_callback(
+        self,
+        model: StageManagerTreeModel,
+        item: StageManagerTreeItem,
+        callback: Callable,
+        x: int,
+        y: int,
+        button: int,
+        modifiers: int,
+    ):
+        """Invoke the rendered particle action for the current clicked row."""
+        if button != 0:
+            return
+        items = self._get_action_items(model, item)
+        if not items:
+            return
+        payload = {"context_name": self._context_name, "selected_paths": [row.data.GetPrimPath() for row in items]}
+        if not self._modify_particle_system_show_fn(payload):
             return
         callback(payload)
 

@@ -20,7 +20,7 @@ from __future__ import annotations
 __all__ = ["NicknameToggleActionWidgetPlugin"]
 
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import carb.settings
 from lightspeed.common.constants import LSS_NICKNAME as _LSS_NICKNAME
@@ -44,6 +44,8 @@ if TYPE_CHECKING:
 
 class NicknameToggleActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageManagerMenuMixin):
     """Action to toggle the nickname of a prim"""
+
+    _action_row_only: ClassVar[bool] = True
 
     def build_icon_ui(self, model: StageManagerTreeModel, item: _StageManagerTreeItem, level: int, expanded: bool):
         """Build the nickname-toggle action image for the row."""
@@ -103,9 +105,8 @@ class NicknameToggleActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
             )
         ]
 
-    @classmethod
     def _toggle_nickname(
-        cls,
+        self,
         model: StageManagerTreeModel,
         item: _StageManagerTreeItem | None = None,
         x: int = 0,
@@ -113,18 +114,18 @@ class NicknameToggleActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
         button: int = 0,
         modifiers: int = 0,
     ):
+        """Toggle the clicked row nickname or the global overview preference."""
         if not model or button != 0:
             return
 
         if item and isinstance(item, _StageManagerTreeItem):
-            if item.nickname_field:
-                item.nickname_field.force_prim_name = not item.nickname_field.force_prim_name
-                # NOTE: notify_item_changed is required here because this action is triggered
-                # from a context menu callback — external to the TreeView's widget hierarchy.
-                # Unlike in-tree event handlers (e.g. double-click on a cell widget), where
-                # container.rebuild() propagates within the same rendering pass, external
-                # calls don't cause the TreeView to re-render the cell on their own.
-                model.notify_item_changed(item)
+            items = self._get_action_items(model, item)
+            if not items:
+                return
+            for row in items:
+                if row.nickname_field:
+                    row.nickname_field.force_prim_name = not row.nickname_field.force_prim_name
+                    model.notify_item_changed(row)
             return
 
         # Update the global setting - this will trigger updates via settings subscription
@@ -134,7 +135,16 @@ class NicknameToggleActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
 
     @classmethod
     def _on_menu_toggle_nickname(cls, payload: dict):
-        cls._toggle_nickname(payload["model"], payload["item"])
+        """Toggle the context-menu row and notify its tree model."""
+        model, item = payload["model"], payload["item"]
+        if model and item.nickname_field:
+            item.nickname_field.force_prim_name = not item.nickname_field.force_prim_name
+            # NOTE: notify_item_changed is required here because this action is triggered
+            # from a context menu callback — external to the TreeView's widget hierarchy.
+            # Unlike in-tree event handlers (e.g. double-click on a cell widget), where
+            # container.rebuild() propagates within the same rendering pass, external
+            # calls don't cause the TreeView to re-render the cell on their own.
+            model.notify_item_changed(item)
 
     @staticmethod
     def _on_menu_toggle_nickname_show_fn(payload: dict):

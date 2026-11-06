@@ -24,7 +24,12 @@ import omni.kit.undo
 import omni.graph.core as og
 from lightspeed.trex.stage_manager.plugin.widget.usd.action_delete_restore import DeleteRestoreActionWidgetPlugin
 from omni import client, ui, usd
-from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem, StageManagerTreeModel
+from omni.flux.stage_manager.factory.plugins.tree_plugin import (
+    StageManagerTreeItem,
+    StageManagerTreeItemProxy,
+    StageManagerTreeModel,
+    TreeRefreshResult,
+)
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.flux.utils.widget.resources import get_test_data
 from omni.kit import ui_test
@@ -81,6 +86,28 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self._test_window = window
         self._test_widget = widget
         return window, widget
+
+    @staticmethod
+    def _make_model(item: StageManagerTreeItem) -> StageManagerTreeModel:
+        """Publish a real canonical item and its selected visible proxy for action clicks."""
+        item.path = str(item.data.GetPath())
+        proxy = StageManagerTreeItemProxy(item)
+        model = StageManagerTreeModel()
+        model.publish_refresh_result(
+            TreeRefreshResult(
+                canonical_root_items=[item],
+                root_items=[proxy],
+                items_by_path={item.path: [proxy]},
+                item_by_hash={hash(proxy): proxy},
+                path_by_hash={hash(proxy): item.path},
+                visible_items_count=1,
+                visible_non_virtual_items_count=1,
+                input_items_count=1,
+                output_items_count=1,
+            )
+        )
+        model.selection = [proxy]
+        return model
 
     async def _create_graph_at_prim(self, graph_path: Sdf.Path) -> bool:
         graph = og.get_global_orchestration_graphs()[0]
@@ -211,7 +238,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         item = StageManagerTreeItem(display_name=prim.GetName(), tooltip="foobar", data=prim)
 
         with window.frame:
-            widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
+            widget.build_icon_ui(self._make_model(item), item, 1, True)
 
         id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._delete_capture_identifier}'")
         self.assertIsNotNone(id_check)
@@ -229,7 +256,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
         # Render through the plug-in and inspect the actual icon exposed to users.
         with window.frame:
-            widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
+            widget.build_icon_ui(self._make_model(item), item, 1, True)
 
         id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._restore_disabled_identifier}'")
         self.assertIsNotNone(id_check)
@@ -253,7 +280,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
         # Rebuild the action cell after deletion so it switches from delete to restore.
         with window.frame:
-            widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
+            widget.build_icon_ui(self._make_model(item), item, 1, True)
 
         id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._restore_identifier}'")
         self.assertIsNotNone(id_check)
@@ -273,7 +300,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         item = StageManagerTreeItem(display_name=graph_prim.GetName(), tooltip="foobar", data=graph_prim)
 
         with window.frame:
-            widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
+            widget.build_icon_ui(self._make_model(item), item, 1, True)
 
         id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._delete_identifier}'")
         self.assertIsNotNone(id_check)
@@ -286,8 +313,8 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
     # ------------------------------------------------------------------
 
     async def test_delete_via_instance_path(self):
-        """Selecting an instance path deletes the prototype prim."""
-        # Create a prototype child and select the corresponding instance proxy.
+        """An explicit instance path deletes its prototype independently of selection."""
+        # Use the instance as the only candidate so prototype resolution is required.
         mesh_path = Sdf.Path("/RootNode/meshes/mesh_CED45075A077A49A")
         graph_path = mesh_path.AppendChild("RemixLogicGraph")
         instance_graph_path = "/RootNode/instances/inst_CED45075A077A49A_0/RemixLogicGraph"
@@ -296,10 +323,10 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertTrue(self.stage.GetPrimAtPath(graph_path).IsValid())
         self.assertTrue(self.stage.GetPrimAtPath(instance_graph_path).IsValid())
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
-        usd.get_context().get_selection().set_selected_prim_paths([instance_graph_path], False)
+        usd.get_context().get_selection().set_selected_prim_paths(["/RootNode/meshes"], False)
 
         # Delete through the widget callback used by the Stage Manager action.
-        widget._delete_prim_cb()
+        widget.delete_selected_prims(paths=[instance_graph_path])
 
         self.assertFalse(self.stage.GetPrimAtPath(graph_path).IsValid())
         self.assertFalse(self.stage.GetPrimAtPath(instance_graph_path).IsValid())
@@ -335,7 +362,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
 
         # Render its action cell and verify the user sees a disabled restore action.
         with window.frame:
-            widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
+            widget.build_icon_ui(self._make_model(item), item, 1, True)
 
         id_check = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._restore_disabled_identifier}'")
 
@@ -403,12 +430,12 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertTrue(prim.IsValid())
         self.assertTrue(len(usd.get_composed_references_from_prim(prim, False)) > 0)
         window, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
-        usd.get_context().get_selection().set_selected_prim_paths([test_prim_path], False)
+        usd.get_context().get_selection().set_selected_prim_paths(["/RootNode/meshes"], False)
 
         # Click the capture-delete action exposed for the selected prim.
         item = StageManagerTreeItem(display_name=prim.GetName(), tooltip="foobar", data=prim)
         with window.frame:
-            widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
+            widget.build_icon_ui(self._make_model(item), item, 1, True)
         await ui_test.human_delay()
         action = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._delete_capture_identifier}'")
         self.assertIsNotNone(action)
@@ -417,6 +444,7 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         await ui_test.human_delay()
 
         self.assertEqual(len(usd.get_composed_references_from_prim(prim, False)), 0)
+        self.assertEqual(usd.get_context().get_selection().get_selected_prim_paths(), ["/RootNode/meshes"])
 
     async def test_delete_capture_light_removes_reference_and_sets_intensity_to_zero(self):
         """Deleting a capture light removes its reference and authors a zero intensity override."""
@@ -499,13 +527,14 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         # Select the restore action, then choose the capture-reference-only restore option.
         item = StageManagerTreeItem(display_name=prim.GetName(), tooltip="foobar", data=prim)
         with window.frame:
-            widget.build_icon_ui(StageManagerTreeModel(), item, 1, True)
+            widget.build_icon_ui(self._make_model(item), item, 1, True)
         await ui_test.human_delay()
         action = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{self._restore_identifier}'")
         self.assertIsNotNone(action)
         self.assertTrue(action.widget.enabled)
         await action.click()
         await ui_test.human_delay()
+        usd.get_context().get_selection().set_selected_prim_paths(["/RootNode/meshes"], False)
         await ui_test.select_context_menu("Restore captured asset reference", offset=ui_test.Vec2(10, 10))
         await ui_test.human_delay()
 
@@ -563,11 +592,23 @@ class TestDeleteRestoreActionWidgetPlugin(AsyncTestCase):
         self.assertFalse(prim_spec.hasReferences)
         self.assertIsNotNone(prim_spec.attributes.get("testPreservedAttr"))
 
-    async def test_show_restore_context_menu_creates_menu(self):
-        """_show_restore_context_menu creates a context menu."""
+    async def test_show_restore_context_menu_with_explicit_paths_keeps_candidate_snapshot(self):
+        """Restore options keep copied candidates when the caller changes its list and selection."""
+        test_prim_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B"
+        prim = self.stage.GetPrimAtPath(test_prim_path)
         _, widget = await self._setup_widget(DeleteRestoreActionWidgetPlugin)
+        self._set_edit_target_to_replacement()
+        widget._delete_capture_prim_cb(paths=[test_prim_path])
+        self.assertEqual(len(usd.get_composed_references_from_prim(prim, False)), 0)
+        candidates = [test_prim_path]
 
-        # Open the same restore menu requested by a user-facing context-menu gesture.
-        widget._show_restore_context_menu()
+        # Keep the menu open while selection and the caller-owned candidate list change.
+        widget._show_restore_context_menu(paths=candidates)
+        candidates.clear()
+        usd.get_context().get_selection().set_selected_prim_paths(["/RootNode/meshes"], False)
+        await ui_test.human_delay()
+        await ui_test.select_context_menu("Restore captured asset reference", offset=ui_test.Vec2(10, 10))
+        await ui_test.human_delay()
 
         self.assertIsNotNone(widget._restore_context_menu)
+        self.assertGreater(len(usd.get_composed_references_from_prim(prim, False)), 0)

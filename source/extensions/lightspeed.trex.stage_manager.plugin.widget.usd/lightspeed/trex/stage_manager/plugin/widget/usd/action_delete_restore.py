@@ -192,37 +192,43 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
             item=item,
             name=icon,
             tooltip=tooltip,
-            mouse_released_fn=partial(self._build_callback, callback, enabled),
+            mouse_released_fn=partial(self._build_callback, callback, enabled, model, item),
             enabled=enabled,
             identifier=identifier,
         )
 
-    @staticmethod
     def _build_callback(
-        callback: Callable[[], None],
+        self,
+        callback: Callable[..., None],
         enabled: bool,
+        model: StageManagerTreeModel,
+        item: StageManagerTreeItem,
         _x: float,
         _y: float,
         button: int,
         _modifiers: int,
     ) -> None:
+        """Run an enabled left-click action on the visible candidates for its row."""
         if not enabled or button != 0:
             return
-        callback()
+        targets = self._get_action_items(model, item)
+        if not targets:
+            return
+        callback(paths=[str(target.data.GetPath()) for target in targets])
 
-    def _get_selected_by_action(self, action_type: ActionType) -> list[str]:
-        """Return deduplicated prim paths from the current selection that match the given action type.
+    def _get_paths_by_action(self, action_type: ActionType, paths: list[str] | None = None) -> list[str]:
+        """Return deduplicated candidate paths matching the action, using selection when paths are omitted.
 
         Instance paths are resolved to their prototype so layer operations
         target the prim that actually owns the spec.
         """
         context = omni.usd.get_context(self._context_name)
-        sel_paths = context.get_selection().get_selected_prim_paths()
+        candidate_paths = paths if paths is not None else context.get_selection().get_selected_prim_paths()
         stage = context.get_stage()
 
         seen: set[str] = set()
         result: list[str] = []
-        for path in sel_paths:
+        for path in candidate_paths:
             prim = stage.GetPrimAtPath(path)
             if not prim or not prim.IsValid():
                 continue
@@ -286,17 +292,18 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
             usd_context_name=self._context_name,
         )
 
-    def delete_selected_prims(self, notify_ineligible: bool = False) -> None:
-        """Delete every selected and actionable prim action as one undoable operation."""
-        regular_paths = self._get_selected_by_action(self.ActionType.DELETE)
-        capture_paths = self._get_selected_by_action(self.ActionType.DELETECAPTURE)
+    def delete_selected_prims(self, notify_ineligible: bool = False, *, paths: list[str] | None = None) -> None:
+        """Delete actionable candidates as one undoable operation, using selection when paths are omitted."""
+        regular_paths = self._get_paths_by_action(self.ActionType.DELETE, paths)
+        capture_paths = self._get_paths_by_action(self.ActionType.DELETECAPTURE, paths)
 
         if notify_ineligible:
             context = omni.usd.get_context(self._context_name)
             stage = context.get_stage()
+            candidate_paths = paths if paths is not None else context.get_selection().get_selected_prim_paths()
             ineligible_count = sum(
                 self._get_prim_action_type(prim) not in (self.ActionType.DELETE, self.ActionType.DELETECAPTURE)
-                for path in context.get_selection().get_selected_prim_paths()
+                for path in candidate_paths
                 if (prim := stage.GetPrimAtPath(path)) and prim.IsValid()
             )
             if ineligible_count:
@@ -317,7 +324,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
 
     def _delete_prim_cb(self, paths: list[str] | None = None, use_undo_group: bool = True) -> None:
         """Delete selected regular prims from the edit target and replacement layers."""
-        selected_paths = paths if paths is not None else self._get_selected_by_action(self.ActionType.DELETE)
+        selected_paths = paths if paths is not None else self._get_paths_by_action(self.ActionType.DELETE)
         if not selected_paths:
             return
 
@@ -356,7 +363,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         lights also author ``inputs:intensity = 0`` so render runtime stops
         evaluating stale light attributes after the reference is cleared.
         """
-        selected_paths = paths if paths is not None else self._get_selected_by_action(self.ActionType.DELETECAPTURE)
+        selected_paths = paths if paths is not None else self._get_paths_by_action(self.ActionType.DELETECAPTURE)
         if not selected_paths:
             return
 
@@ -375,36 +382,37 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
                         continue
                     self._core.remove_reference(stage, ref_prim.GetPath(), ref, layer)
 
-    def _show_restore_context_menu(self) -> None:
+    def _show_restore_context_menu(self, paths: list[str] | None = None) -> None:
         """Build and display a context menu with selective restore options for RESTORE prims."""
+        paths = list(paths) if paths is not None else None
         if self._restore_context_menu is not None:
             self._restore_context_menu.destroy()
         self._restore_context_menu = ui.Menu("Restore Options")
         with self._restore_context_menu:
             ui.MenuItem(
                 "Revert all modifications",
-                triggered_fn=self._restore_prim_cb,
+                triggered_fn=partial(self._restore_prim_cb, paths=paths),
             )
             ui.Separator()
             ui.MenuItem(
                 "Restore captured asset reference",
-                triggered_fn=self._delete_ref_overrides,
+                triggered_fn=partial(self._delete_ref_overrides, paths=paths),
             )
 
         self._restore_context_menu.show()
 
-    def _restore_prim_cb(self) -> None:
-        """Restore selected prims to their original asset by removing all replacement overrides."""
-        sel_paths = self._get_selected_by_action(self.ActionType.RESTORE)
+    def _restore_prim_cb(self, paths: list[str] | None = None) -> None:
+        """Restore matching candidates to their original asset by removing all replacement overrides."""
+        sel_paths = self._get_paths_by_action(self.ActionType.RESTORE, paths)
         confirm_remove_prim_overrides(sel_paths, self._context_name)
 
-    def _delete_ref_overrides(self) -> None:
-        """Restore selected capture references by clearing replacement-layer reference edits.
+    def _delete_ref_overrides(self, paths: list[str] | None = None) -> None:
+        """Restore matching capture references by clearing replacement-layer reference edits.
 
         Capture lights also remove the delete-authored ``inputs:intensity`` override
         so they resolve back to the capture-authored intensity.
         """
-        sel_paths = self._get_selected_by_action(self.ActionType.RESTORE)
+        sel_paths = self._get_paths_by_action(self.ActionType.RESTORE, paths)
         if not sel_paths:
             return
         stage = omni.usd.get_context(self._context_name).get_stage()
@@ -433,7 +441,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
                 remove_from_layers=[layer],
             )
 
-    def _restore_ghost_prim_cb(self) -> None:
+    def _restore_ghost_prim_cb(self, paths: list[str] | None = None) -> None:
         """Clear stale replacement-layer reference list edits for ghost prims.
 
         A ghost prim has no prototype and no composed references of its own
@@ -441,7 +449,7 @@ class DeleteRestoreActionWidgetPlugin(StageManagerStateWidgetPlugin):
         The cleanup targets the parent's prototype, which is the prim that
         originally held the reference arcs.
         """
-        sel = self._get_selected_by_action(self.ActionType.RESTOREGHOST)
+        sel = self._get_paths_by_action(self.ActionType.RESTOREGHOST, paths)
         if not sel:
             return
         stage = omni.usd.get_context(self._context_name).get_stage()

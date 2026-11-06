@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import omni.kit.commands
 from pxr import Usd, UsdGeom
@@ -30,6 +30,8 @@ if TYPE_CHECKING:
 
 
 class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
+    _action_imageable_only: ClassVar[bool] = True
+
     def build_icon_ui(self, model: _StageManagerTreeModel, item: _StageManagerTreeItem, level: int, expanded: bool):
         """Build the visibility action image for the row."""
         enabled = item.data and UsdGeom.Imageable(item.data)
@@ -59,7 +61,12 @@ class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
         )
 
     def _on_icon_clicked(self, button: int, enabled: bool, model: _StageManagerTreeModel, item: _StageManagerTreeItem):
+        """Apply the clicked row's visibility intent to the action targets."""
         if button != 0 or not enabled:
+            return
+
+        action_items = self._get_action_items(model, item)
+        if not action_items:
             return
 
         # item.data is always non-None here: build_icon_ui sets enabled = item.data and UsdGeom.Imageable(item.data),
@@ -70,7 +77,7 @@ class IsVisibleActionWidgetPlugin(_StageManagerStateWidgetPlugin):
 
         omni.kit.commands.execute(
             "SetVisibilitySelectedPrims",
-            selected_paths=self._get_action_paths(model, item),
+            selected_paths=[str(action_item.data.GetPath()) for action_item in action_items],
             value=target_value,
             context_name=self._context_name,
         )

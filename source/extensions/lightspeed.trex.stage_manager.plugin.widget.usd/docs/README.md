@@ -38,10 +38,18 @@ USD-specific Stage Manager state and action widgets for RTX Remix capture editin
 
 ### ComfyUI Submission
 
-The ComfyUI action snapshots the active USD context's selected prim paths, asks the ComfyUI core to prepare one job per
-unique material, and passes the prepared immutable submission back to the context-bound core. If no item is valid, it
-shows a dialog and adds nothing. It renders exact returned counts and never mutates the queue directly. It reports
+The ComfyUI row action snapshots prim paths from the shared row-target helper; the context-menu action uses its
+explicit selected-path payload. It asks the ComfyUI core to prepare one job per unique material and passes the
+prepared immutable submission back to the context-bound core. If preparation finds no valid job, it shows a dialog
+and adds nothing. It renders exact returned counts and never mutates the queue directly. It reports
 preparation or submission failures through Toolkit notifications, and its menu opens the organized AI Tools layout.
+
+### Row Actions
+
+Row actions use the shared [row action targets](../../../../docs_dev/patterns/stage-manager.md#row-action-targets)
+helper. Nickname, particle-system, and skeleton-remapping controls target only their clicked row; viewport focus
+restricts targets to Imageable prims. Existing row gestures, restore reselection, and category-completion reselection
+remain action-specific behavior.
 
 ### Delete And Restore
 

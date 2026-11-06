@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Changed
+- Replaced action-path queries with the shared item query, valid-prim filtering, and optional imageability filtering.
+
 ## [2.1.12]
 ### Changed
 - Reused published visible-prim counts and one per-row icon value.

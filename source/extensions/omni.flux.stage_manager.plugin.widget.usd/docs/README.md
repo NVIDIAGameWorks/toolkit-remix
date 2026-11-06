@@ -7,17 +7,20 @@ USD-aware tree, state, and action widget plugins for Stage Manager views.
 - Register reusable USD widget plugins with the Stage Manager factory.
 - Provide base classes for widgets that need a USD context or display a state icon.
 - Standardize mouse-gesture ownership and selection validation for actionable row icons.
+- Filter shared row-action targets to valid USD prims, optionally restricted to Imageable prims.
 
 ## Non-Responsibilities
 
 - Does not own Stage Manager tree models, selection synchronization, or plugin discovery; those belong to the Stage
   Manager factory and its consumers.
-- Does not define which rows an action targets. Action plugins resolve their targets independently.
+- Generic row targeting belongs to the factory's widget base; concrete actions own operation eligibility and path
+  deduplication. See [row action targets](../../../../docs_dev/patterns/stage-manager.md#row-action-targets).
 
 ## Architecture
 
 - `StageManagerUSDWidgetPluginsExtension` registers the built-in prim-tree, visibility, and custom-tags plugins.
-- `StageManagerUSDWidgetPlugin` supplies USD context handling for concrete widget plugins.
+- `StageManagerUSDWidgetPlugin` supplies USD context handling and filters `_get_action_items()` results for concrete
+  widget plugins. `_action_imageable_only` defaults to `False`; visibility actions enable it.
 - `StageManagerStateWidgetPlugin` provides state-icon layout and constructs actionable row icons.
 - Concrete plugins render prim data, expose row actions, or contribute context-menu behavior.
 

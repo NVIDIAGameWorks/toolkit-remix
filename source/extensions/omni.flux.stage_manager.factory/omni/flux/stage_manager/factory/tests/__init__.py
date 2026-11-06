@@ -26,6 +26,7 @@ from .unit.test_tree_model_threaded_refresh import (
 )
 from .unit.test_utils_filter_items import TestStageManagerUtilsFilterItems
 from .unit.test_utils_filter_items_by_category import TestStageManagerUtils
+from .unit.test_widget_plugin import TestStageManagerWidgetPlugin
 
 __all__ = [
     "TestStageManagerFilterPlugin",
@@ -37,4 +38,5 @@ __all__ = [
     "TestStageManagerTreeModelThreadedRefresh",
     "TestStageManagerUtils",
     "TestStageManagerUtilsFilterItems",
+    "TestStageManagerWidgetPlugin",
 ]

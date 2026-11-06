@@ -66,9 +66,7 @@ class AssignCategoryActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
                     if actionable
                     else "Render Categories can only be assigned to mesh prims."
                 ),
-                mouse_released_fn=(
-                    partial(self._show_category_window, item, self._context_name) if actionable else None
-                ),
+                mouse_released_fn=partial(self._show_category_window, model, item) if actionable else None,
             )
 
     @classmethod
@@ -92,24 +90,37 @@ class AssignCategoryActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMan
     def _assignment_callback(cls, context_name: str, meshes: list[Usd.Prim]):
         usd.get_context(context_name).get_selection().set_selected_prim_paths([str(m.GetPath()) for m in meshes])
 
-    @classmethod
-    def _show_category_window(cls, item: StageManagerTreeItem, context_name: str, x=0, y=0, b=0, m=None):
+    def _show_category_window(self, model: StageManagerTreeModel, item: StageManagerTreeItem, x=0, y=0, b=0, m=None):
+        """Resolve the row's action targets and open category assignment."""
         if b != 0:
             return
 
+        items = self._get_action_items(model, item)
+        if not items:
+            return
+
+        cls = type(self)
         if cls._categories_dialog:
             cls._categories_dialog = None
 
-        selected_prim_paths = usd.get_context(context_name).get_selection().get_selected_prim_paths()
         cls._categories_dialog = _RemixCategoriesDialog(
-            context_name=context_name,
-            paths=selected_prim_paths or [str(item.data.GetPath())],
-            refresh_func=partial(cls._assignment_callback, context_name),
+            context_name=self._context_name,
+            paths=[str(target.data.GetPath()) for target in items],
+            refresh_func=partial(cls._assignment_callback, self._context_name),
         )
 
     @classmethod
     def _on_menu_assign_category(cls, payload: dict):
-        cls._show_category_window(payload.get("right_clicked_item"), payload.get("context_name", ""))
+        context_name = payload.get("context_name", "")
+        selected_paths = usd.get_context(context_name).get_selection().get_selected_prim_paths()
+        if cls._categories_dialog:
+            cls._categories_dialog = None
+
+        cls._categories_dialog = _RemixCategoriesDialog(
+            context_name=context_name,
+            paths=selected_paths or [str(payload.get("right_clicked_item").data.GetPath())],
+            refresh_func=partial(cls._assignment_callback, context_name),
+        )
 
     @classmethod
     def _on_menu_assign_category_show_fn(cls, payload: dict):

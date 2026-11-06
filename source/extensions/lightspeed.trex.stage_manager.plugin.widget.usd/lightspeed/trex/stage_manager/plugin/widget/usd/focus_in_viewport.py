@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import carb
 from lightspeed.common import constants
@@ -45,6 +45,8 @@ def _frame_paths_in_viewport(paths: list[str], context_name: str) -> None:
 
 
 class FocusInViewportActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageManagerMenuMixin):
+    _action_imageable_only: ClassVar[bool] = True
+
     def build_icon_ui(self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", level: int, expanded: bool):
         """Build the viewport-focus action image for the row."""
         enabled = item.data and UsdGeom.Imageable(item.data)
@@ -72,7 +74,10 @@ class FocusInViewportActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageMa
         if button != 0 or not enabled:
             return
 
-        _frame_paths_in_viewport(self._get_action_paths(model, item), self._context_name)
+        items = self._get_action_items(model, item)
+        if not items:
+            return
+        _frame_paths_in_viewport([str(row.data.GetPath()) for row in items], self._context_name)
 
     @classmethod
     def _get_menu_items(cls):

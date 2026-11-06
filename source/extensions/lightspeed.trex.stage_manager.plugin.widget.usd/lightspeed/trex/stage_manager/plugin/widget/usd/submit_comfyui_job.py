@@ -111,7 +111,10 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
             self._open_ai_tools_layout()
             return
 
-        selected_paths = self._get_action_paths(model, item)
+        items = self._get_action_items(model, item)
+        if not items:
+            return
+        selected_paths = [str(row.data.GetPath()) for row in items]
         self._item_clicked(button, True, model, item)
         self._on_submit_comfyui_job(
             {

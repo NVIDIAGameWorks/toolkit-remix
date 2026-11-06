@@ -159,7 +159,7 @@ class CustomTagsWidgetPlugin(_StageManagerUSDWidgetPlugin):
         self, model: "_StageManagerTreeModel", item: "_StageManagerTreeItem", x: int, y: int, b: int, m: int
     ):
         """
-        Open the Edit Tags window for the resolved action paths (see ``_get_action_paths``)
+        Open the Edit Tags window for the resolved action items.
 
         Args:
              model: The tree model
@@ -172,4 +172,10 @@ class CustomTagsWidgetPlugin(_StageManagerUSDWidgetPlugin):
         if b != 0:
             return
 
-        self._edit_window = EditCustomTagsWindow(self._get_action_paths(model, item), context_name=self._context_name)
+        action_items = self._get_action_items(model, item)
+        if not action_items:
+            return
+
+        self._edit_window = EditCustomTagsWindow(
+            [str(action_item.data.GetPath()) for action_item in action_items], context_name=self._context_name
+        )
