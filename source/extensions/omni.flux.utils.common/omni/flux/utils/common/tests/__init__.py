@@ -15,12 +15,12 @@
 * limitations under the License.
 """
 
+from omni.flux.utils.common.tests.e2e.test_lights import TestPrimLightClassification
 from .unit.test_decorators import TestLimitRecursion
 from .unit.test_event import TestEvent
 from .unit.test_icons import TestIcons
 from .unit.test_interactive_usd_notices import TestInteractiveUsdNoticeService
 from .unit.test_layer_utils import TestLayerUtils
-from .unit.test_lights import TestLights
 from .unit.test_mouse import TestGetMousePosition, TestIsPointInsideWidget
 from .unit.test_omni_url import TestOmniUrl
 from .unit.test_os_drop_router import TestWidgetDropRouter
@@ -41,10 +41,10 @@ __all__ = [
     "TestInteractiveUsdNoticeService",
     "TestIsPointInsideWidget",
     "TestLayerUtils",
-    "TestLights",
     "TestLimitRecursion",
     "TestOmniUrl",
     "TestPathUtils",
+    "TestPrimLightClassification",
     "TestPrims",
     "TestProgressWorker",
     "TestSerializer",

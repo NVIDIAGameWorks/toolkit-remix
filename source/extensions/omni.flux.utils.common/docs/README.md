@@ -1,8 +1,26 @@
-# Overview
+# Flux Common Utilities
 
-Assorted utilities and/or wrappers around KIT functions.
+Shared utilities and wrappers around Kit functionality for use across Flux extensions.
 
-A place for functionality that is applicable for use in any other flux extension.
+## Responsibilities
+
+Provide shared helpers for USD data, light classification, paths, events, and serialization.
+
+## Non-Responsibilities
+
+Application-specific policies and UI controls belong to their consuming extensions.
+
+## Architecture
+
+Helpers are organized by domain. The `lights` module provides the shared `LightTypes` enum and two classifiers:
+
+- `get_light_type(prim)` accepts a USD prim and recognizes supported schema families, including derived and versioned lights.
+- `get_light_type_from_type_name(name)` matches exact type-name strings, including `DomeLight_1`.
+
+Both return a `LightTypes` value or `None` for unsupported types, unknown names, or invalid prims.
+
+**5.0.0 migration:** `get_light_type()` now requires a prim. Pass it directly instead of `prim.GetTypeName()`;
+string-only callers must use `get_light_type_from_type_name()`, which preserves the previous exact-name mappings.
 
 `weak_callback(bound_method)` forwards calls without retaining the method owner and returns `None` after the owner
 is released. Retain the model subscription separately for as long as notifications are needed.

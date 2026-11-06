@@ -32,21 +32,19 @@ class TestLightPrimsFilterPlugin(omni.kit.test.AsyncTestCase):
     async def test_filter_predicate_with_light_states_returns_supported_lights_without_preparation(self):
         """Return supported lights without mutating preparation state."""
         cases = (
-            ("supported_light", True, "SphereLight", True),
-            ("unsupported_light", True, "Capsule", False),
-            ("non_light", False, "SphereLight", False),
+            ("supported_light", True, mock.sentinel.supported_light_type, True),
+            ("unsupported_light", True, None, False),
+            ("non_light", False, None, False),
         )
 
-        for title, has_light_api, type_name, expected_result in cases:
+        for title, has_light_api, light_type, expected_result in cases:
             with self.subTest(title=title):
                 # Arrange
                 plugin = LightPrimsFilterPlugin()
                 prim = mock.Mock()
                 prim.HasAPI.return_value = has_light_api
-                prim.GetTypeName.return_value = type_name
                 item = StageManagerItem(f"/World/{title}", data=prim)
 
-                light_type = mock.sentinel.supported_light_type if type_name == "SphereLight" else None
                 with mock.patch.object(light_prims, "get_light_type", return_value=light_type) as get_light_type:
                     predicate = plugin.build_filter_predicate()
 
@@ -58,27 +56,24 @@ class TestLightPrimsFilterPlugin(omni.kit.test.AsyncTestCase):
                 self.assertFalse(item.is_display_name_candidate)
                 prim.HasAPI.assert_called_once()
                 if has_light_api:
-                    prim.GetTypeName.assert_called_once_with()
-                    get_light_type.assert_called_once_with(type_name)
+                    get_light_type.assert_called_once_with(prim)
                 else:
-                    prim.GetTypeName.assert_not_called()
                     get_light_type.assert_not_called()
 
     async def test_build_filter_predicate_with_inactive_filter_marks_only_supported_lights(self):
         """Prepare only supported lights for an inactive intrinsic configuration."""
         cases = (
-            ("supported_light", True, "SphereLight", mock.sentinel.supported_light_type, True, True),
-            ("unsupported_light", True, "Capsule", None, False, False),
-            ("non_light", False, "SphereLight", None, False, False),
+            ("supported_light", True, mock.sentinel.supported_light_type, True, True),
+            ("unsupported_light", True, None, False, False),
+            ("non_light", False, None, False, False),
         )
 
-        for title, has_light_api, type_name, light_type, expected_result, expected_candidate in cases:
+        for title, has_light_api, light_type, expected_result, expected_candidate in cases:
             with self.subTest(title=title):
                 # Arrange
                 plugin = LightPrimsFilterPlugin(filter_active=False)
                 prim = mock.Mock()
                 prim.HasAPI.return_value = has_light_api
-                prim.GetTypeName.return_value = type_name
                 item = StageManagerItem(f"/World/{title}", data=prim)
 
                 with mock.patch.object(light_prims, "get_light_type", return_value=light_type) as get_light_type:
@@ -92,8 +87,6 @@ class TestLightPrimsFilterPlugin(omni.kit.test.AsyncTestCase):
                 self.assertEqual(expected_candidate, item.is_display_name_candidate)
                 prim.HasAPI.assert_called_once()
                 if has_light_api:
-                    prim.GetTypeName.assert_called_once_with()
-                    get_light_type.assert_called_once_with(type_name)
+                    get_light_type.assert_called_once_with(prim)
                 else:
-                    prim.GetTypeName.assert_not_called()
                     get_light_type.assert_not_called()

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.1]
+### Fixed
+- Used shared schema-aware light classification in the Light filter to recognize supported derived and versioned light schemas.
+
 ## [3.0.0]
 ### Added
 - Added the internal `MaterialBindingsFilterPlugin` to resolve and prepare grouped material memberships once per mesh.

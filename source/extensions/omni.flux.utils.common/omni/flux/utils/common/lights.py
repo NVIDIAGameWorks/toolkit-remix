@@ -15,9 +15,11 @@
 * limitations under the License.
 """
 
-__all__ = ["LightTypes", "get_light_type"]
+__all__ = ["LightTypes", "get_light_type", "get_light_type_from_type_name"]
 
 from enum import Enum
+
+from pxr import Usd
 
 
 class LightTypes(Enum):
@@ -34,7 +36,22 @@ class LightTypes(Enum):
     SphereLight = "Sphere Light"
 
 
-def get_light_type(class_name: str) -> LightTypes | None:
+def get_light_type(prim: Usd.Prim) -> LightTypes | None:
+    """Classify a prim by its light schema family, including derived and versioned schemas.
+
+    Returns:
+        The light type, or None for an invalid prim or an unsupported schema.
+    """
+    if not prim.IsValid():
+        return None
+
+    for light_type in LightTypes:
+        if prim.IsInFamily(light_type.name):
+            return light_type
+    return None
+
+
+def get_light_type_from_type_name(class_name: str) -> LightTypes | None:
     """
     Get the LightTypes enum value for a given USD Lux light class name.
 

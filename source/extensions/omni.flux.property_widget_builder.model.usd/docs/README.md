@@ -30,6 +30,43 @@ You can show custom names for attributes. For example here, `translateY` is just
 
 ![alt text](../data/images/preview.png)
 
+### Light and Emissive Drag Speeds
+
+All named light controls use shared field configurations in
+[the light field builders](../omni/flux/property_widget_builder/model/usd/field_builders/lights.py). Light intensity,
+radius, and material emissive intensity use these defaults for fine adjustments:
+
+| Field | Drag speed | Soft maximum |
+| --- | ---: | ---: |
+| Distant-light intensity | `0.1` | `65000` |
+| Other light intensity | `0.5` | `65000` |
+| Light radius | `0.1` | `65000` |
+| Material emissive intensity | `0.1` | `65504` |
+
+Tune light bounds and steps in `_DEFAULT_LIGHT_FIELD_CONFIG`; add type-specific step overrides in `_LIGHT_FIELD_OVERRIDES`,
+using the existing `LightTypes` enum as the key. Light types are resolved from the prim through
+[`omni.flux.utils.common.lights.get_light_type()`](../../omni.flux.utils.common/docs/README.md#architecture), including
+derived and versioned light schemas. A light field configuration with an explicit `step` enables metadata
+and type-specific step overrides. Omitting `step` preserves automatic range-derived speed and ignores step metadata
+and type-specific overrides, as used by color temperature, exposure, shaping, and volumetric radiance scale.
+
+For intensity and radius, explicit `ui:step` metadata overrides the light-type or shared default. Without a metadata
+override, a row containing multiple light types uses the largest applicable step, independent of selection order.
+For example, distant and sphere lights share an intensity step of `0.5` when edited together. The Toolkit definitions
+control editor sensitivity; light creation defaults remain separate.
+
+These speeds do not scale with the current value. They control dragging without snapping typed values to a step grid.
+Large drag adjustments take longer; direct numeric entry remains available. Soft maxima do not clamp typed input,
+while hard bounds still apply.
+
+One registration loop routes every configured light control through the factory, giving each row a fresh
+`FloatDragFieldGroup`. All light bounds come from the field configurations; intensity and radius retain their hard
+minimum of `0` and soft maximum of `65000`.
+
+Each emissive field receives a fresh `USDFloatDragField`, so one material's metadata cannot change another row's bounds
+or speed. Explicit material `ui:step` metadata overrides the default `0.1`; material bounds retain their existing
+precedence.
+
 ### Numeric Drag Preview
 
 During a numeric batch edit, value models coalesce input into one preview on the next Kit update. Preview commands run

@@ -218,7 +218,7 @@ def is_light(prim: Usd.Prim) -> bool:
     """
     if not prim:
         return False
-    return _get_light_type(prim.GetTypeName()) is not None or "LightAPI" in prim.GetAppliedSchemas()
+    return _get_light_type(prim) is not None or "LightAPI" in prim.GetAppliedSchemas()
 
 
 def is_material_prototype(prim: Usd.Prim) -> bool:

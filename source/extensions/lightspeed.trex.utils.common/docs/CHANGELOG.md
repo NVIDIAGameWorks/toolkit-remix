@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.4]
+### Fixed
+- Used shared schema-aware light classification when identifying light prims, including derived and versioned light schemas.
+
 ## [2.5.3]
 ### Fixed
 - Avoided redundant prim-stack and parent-reference reads during traversal.

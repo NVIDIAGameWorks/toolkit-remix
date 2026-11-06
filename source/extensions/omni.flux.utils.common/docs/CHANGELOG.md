@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.0.0]
+### Changed
+- Changed `get_light_type()` to accept a USD prim and classify derived and versioned light schemas; renamed the existing string lookup to `get_light_type_from_type_name()` without changing its mappings.
+
 ## [4.4.0]
 ### Added
 - Added `weak_callback()` for bound-method subscriptions that do not retain their owner.

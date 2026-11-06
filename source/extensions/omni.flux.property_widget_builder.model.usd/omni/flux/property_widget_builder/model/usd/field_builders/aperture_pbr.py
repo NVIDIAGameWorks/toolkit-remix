@@ -17,9 +17,25 @@
 
 __all__ = ("MATERIAL_FIELD_BUILDERS",)
 
+import omni.ui as ui
+from omni.flux.property_widget_builder.widget import FieldBuilder
 
 from ..item_delegates.drag import USDFloatDragField
-from .base import USDBuilderList
+from .base import USDBuilderList, _generate_identifier
+
+_EMISSIVE_INTENSITY_DRAG_STEP = 0.1
+
+
+def _emissive_intensity_builder(item, *, register_cleanup=None, linked_edit_coordinator=None) -> list[ui.Widget]:
+    """Build an emissive field without sharing material metadata overrides."""
+    builder = USDFloatDragField(
+        hard_min_value=0.0,
+        max_value=65504.0,
+        step=_EMISSIVE_INTENSITY_DRAG_STEP,
+        identifier=_generate_identifier(item),
+    )
+    return builder(item, register_cleanup=register_cleanup, linked_edit_coordinator=linked_edit_coordinator)
+
 
 MATERIAL_FIELD_BUILDERS = USDBuilderList()
 
@@ -40,8 +56,13 @@ MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name(
     "inputs:thin_film_thickness_constant",
     USDFloatDragField(hard_min_value=0.0010000000474974513, max_value=1500.0),
 )
-MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name(
-    "inputs:emissive_intensity", USDFloatDragField(hard_min_value=0.0, max_value=65504.0)
+MATERIAL_FIELD_BUILDERS.append(
+    FieldBuilder(
+        claim_func=MATERIAL_FIELD_BUILDERS.claim_by_name("inputs:emissive_intensity"),
+        build_func=_emissive_intensity_builder,
+        supports_field_cleanup=True,
+        builds_drag_field_group=True,
+    )
 )
 MATERIAL_FIELD_BUILDERS.append_builder_by_attr_name(
     "inputs:displace_in", USDFloatDragField(hard_min_value=0.0, max_value=2.0)

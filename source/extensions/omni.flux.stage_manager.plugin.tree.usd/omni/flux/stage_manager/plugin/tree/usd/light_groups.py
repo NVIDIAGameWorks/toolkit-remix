@@ -145,7 +145,7 @@ class LightGroupsModel(_VirtualGroupsModel):
         for item in items:
             if cancel_event.is_set():
                 return None
-            light_type = _get_light_type(item.data.GetTypeName())
+            light_type = _get_light_type(item.data)
             if light_type not in tree_items:
                 continue
 
