@@ -845,6 +845,7 @@ files.exclude = [
     "PACKAGE-DEPS.yaml",
     "_build/*",
     "_compiler/*",
+    "_local/*",
     "_repo/*",
     "_testoutput/*",
     "backup.teamcity/*",

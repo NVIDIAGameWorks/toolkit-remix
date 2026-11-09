@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed material properties to show the matching Thin Opaque or Diffusion Profile subsurface scattering fields.
 - Fixed Codex review workers on Windows failing to start bundled PowerShell by granting read access to its runtime directory.
 - REMIX-3057: Reduced light intensity, light radius, and material emissive intensity drag speeds, with a finer distant-light intensity default and support for per-type tuning and metadata overrides, while preserving precise typed input.
+- Fixed Windows agent-hook Unicode diagnostics and excluded ignored local scratch packages from repository lint.
 
 ### Removed
 
