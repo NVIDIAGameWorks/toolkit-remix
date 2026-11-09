@@ -60,6 +60,8 @@ and document reason here. Cursor skill discovery version-sensitive.
 - All shared hook commands use one entrypoint: `.agents/scripts/run_packman_python.cmd`. It is a polyglot shim:
   POSIX shells run its first line and exec `tools/packman/python.sh`; Windows `cmd.exe` treats that line as a label
   and runs `tools\packman\python.bat`. Never use system `python`, `python3`, or `py`.
+- The Windows shim enables Python UTF-8 mode and UTF-8 standard streams so redirected Unicode diagnostics do not fail
+  on machines with legacy console encodings.
 - Hook commands avoid temp Git aliases. Codex, Claude, and Cursor all call `.agents/scripts/run_packman_python.cmd`;
   tool-specific config may differ only in path syntax and arg-list syntax.
 - Keep hook arguments as real argv tokens. Do not combine the script path and flags into one `args` item; use

@@ -13,6 +13,9 @@ Non-trivial/risky feature work -> plan tests before impl. Use Plan mode/approval
   Helpers, cleanup, and exception-assertion contexts do not themselves add Acts; each subtest has independent AAA.
 - Expected exceptions use `self.assertRaises`/`self.assertRaisesRegex`, never manual flags.
 - Test run: direct ext BAT -> add `-- --no-window`; visible UI only on ask. `repo.toml` `repo_test` already headless.
+- Unattended tests and coverage runs must save reports without opening browsers or other visible UI. For Python
+  `webbrowser` consumers, use a process-local `BROWSER` command override that exits successfully; preserve normal CI
+  detection and the user's browser settings. Open a report only when the user asks.
 - E2E tests: `tests/e2e/`, real Kit, real data, actual UI or public service/API entry point; verify the workflow outcome
   through UI, API responses, USD, or filesystem state. Headless unless user asks visible UI. UI E2Es use widget IDs and
   narrative workflow comments, not Arrange/Act/Assert sections; service/API tests need no UI gestures. Every E2E

@@ -26,6 +26,14 @@ dispatches to `tools/repoman/repoman.py`).
 unfixable errors remain. Always check the full ruff output for lines like `Found X errors (Y fixed, Z remaining)` —
 the summary line alone is not reliable.
 
+Repository lint excludes the git-ignored `_local/` scratch directory. Temporary environments and copied third-party
+packages belong there rather than under `source/`. The shared Packman hook launcher enables UTF-8 Python streams on
+Windows so redirected Unicode diagnostics remain readable with legacy console encodings.
+
+Coverage tools may open their HTML report automatically through Python's `webbrowser` module. For unattended runs,
+use a process-local `BROWSER` override pointing to a command that returns success, then inspect the saved report
+without launching browser UI. This leaves CI detection and the user's browser configuration unchanged.
+
 ---
 
 ## Common Issues
