@@ -40,6 +40,14 @@ Your resource extension should have this type of architecture:
 
 `data/images/background_images`
 
+## Bounded numeric fields
+
+`FloatBoundedDrag` and `IntBoundedDrag` apply hard limits through the model's existing pre-set callback. The callback
+returns an [`EditResult`](../../omni.flux.utils.common/docs/README.md#edit-outcomes) with rejection details for invalid
+numeric input. Property value models report accepted or clamped values through that same setter path.
+Changing hard limits refreshes the callback; destroying the field clears it. Soft drag ranges
+do not clamp pasted or typed values.
+
 ## Gradient Content
 
 `GradientPreview` holds image providers, time bounds, and full-precision fallback color. `render(keyframes)` updates

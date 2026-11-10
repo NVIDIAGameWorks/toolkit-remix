@@ -29,6 +29,7 @@ from omni.flux.property_widget_builder.model.usd.item_model.metadata_list_model_
 )
 from omni.flux.property_widget_builder.model.usd.logical_row import LogicalGroupDefinition
 from omni.flux.utils.common import interactive_usd_notices
+from omni.flux.utils.common.edit_result import EditResultType
 from pxr import Sdf, Vt
 
 __all__ = ["TestRowValues"]
@@ -36,6 +37,27 @@ __all__ = ["TestRowValues"]
 
 class TestRowValues(omni.kit.test.AsyncTestCase):
     """Exercise logical row dispatch and USD dropdown policy without native writes."""
+
+    async def test_dropdown_setter_rejects_unknown_choices_without_editing(self):
+        """Reject unsupported dropdown inputs before they can reach the label-based writer."""
+        # Arrange
+        with patch.object(UsdListModelAttrValueModel, "init_attributes"):
+            model = UsdListModelAttrValueModel(
+                "",
+                [Sdf.Path("/Target.mode")],
+                "wrap_clamp",
+                ["wrap_clamp", "wrap_repeat"],
+                value_type_name=Sdf.ValueTypeNames.Int,
+            )
+        self.addCleanup(model.destroy)
+        with patch.object(model, "_write_value_to_usd") as write:
+            # Act
+            result = model.set_value(1)
+
+        # Assert
+        self.assertEqual(result.status, EditResultType.REJECTED)
+        self.assertIn("dropdown choice", result.reason)
+        write.assert_not_called()
 
     async def test_logical_outlet_declaration_preserves_group_suffix_and_legacy_order(self):
         """Expand logical groups and legacy companions in their declared order."""

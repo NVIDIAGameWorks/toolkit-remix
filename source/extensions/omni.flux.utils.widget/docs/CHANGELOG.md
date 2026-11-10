@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0]
+
+### Added
+
+- Report bounded numeric fields' clamps and invalid-input reasons through the existing setter callback, refreshed with limit changes and cleared on field destruction.
+
 ## [2.1.0]
 
 ### Fixed

@@ -29,6 +29,7 @@ from collections.abc import Callable
 import omni.kit.app
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common.edit_result import EditResult
 from omni.flux.utils.widget.tree_widget import TreeItemBase as _TreeItemBase
 from omni.flux.utils.widget.tree_widget import TreeModelBase as _TreeModelBase
 
@@ -95,6 +96,11 @@ class Item(AttributeCopyPasteHelper, _TreeItemBase):
         return self._value_models
 
     @property
+    def value_type_name(self) -> str | None:
+        """Return the declared type used for compatible row transfers, when one exists."""
+        return None
+
+    @property
     def can_have_children(self) -> bool:
         return False
 
@@ -152,20 +158,25 @@ class Item(AttributeCopyPasteHelper, _TreeItemBase):
         """Return declared backing attributes for logical rows, or None for ordinary rows."""
         return None
 
-    def set_row_values(self, prepared_values: tuple[object, ...]) -> None:
+    def set_row_values(self, prepared_values: tuple[object, ...]) -> tuple[EditResult, ...]:
         """Apply one prepared input per value model through its existing setter.
 
         Args:
             prepared_values: Values in the row's value-model order.
+
+        Returns:
+            One outcome per model, preserving deferred callbacks and rejected values.
 
         Raises:
             ValueError: If the number of values does not match the row.
         """
         if len(prepared_values) != len(self.value_models):
             raise ValueError("Row value count does not match its models")
+        results = []
         for model, value in zip(self.value_models, prepared_values):
             model.refresh()
-            model.set_value(value)
+            results.append(model.set_value(value))
+        return tuple(results)
 
     def __repr__(self):
         return f"<{self.__class__.__name__}({repr(''.join(str(x) for x in self._name_models))})"

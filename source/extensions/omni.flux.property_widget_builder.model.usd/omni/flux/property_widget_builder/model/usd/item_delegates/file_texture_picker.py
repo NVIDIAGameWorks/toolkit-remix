@@ -514,7 +514,7 @@ class FileTexturePicker(_FilePicker):
         self, widget: ui.AbstractField, value_model: "_UsdAttributeValueModel", element_current_idx: int, path: str
     ):
         """
-        Set the field. For texture from USD, we always set relative paths
+        Pass the selected texture path to the model for destination formatting.
 
         Args:
             widget: the widget field to set
@@ -524,10 +524,7 @@ class FileTexturePicker(_FilePicker):
         value_model.block_set_value(False)
         if not self.__is_field_path_valid(path, widget, value_model, element_current_idx):
             return
-        relative_path = omni.client.normalize_url(
-            omni.usd.make_path_relative_to_current_edit_target(path, stage=value_model.stage)
-        ).replace("\\", "/")
-        super()._set_field(widget, value_model, element_current_idx, relative_path)
+        super()._set_field(widget, value_model, element_current_idx, path)
         self.__field_changed_by_user = False
 
     def _show_copy_menu(self, value_model: "_UsdAttributeValueModel", x: float, y: float, b: int, m: int):

@@ -19,15 +19,81 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import call, patch
+from unittest.mock import Mock, call, patch
 
 import carb
 import omni.kit.test
 from omni.flux.utils.common import path_utils as _path_utils
 from omni.flux.utils.common.omni_url import OmniUrl
+from pxr import Sdf
 
 
 class TestPathUtils(omni.kit.test.AsyncTestCase):
+    async def test_get_asset_path_for_attribute_anchors_to_default_value_layer(self):
+        """Ignore stronger metadata-only overrides when a missing asset has no resolved path."""
+        # Arrange
+        metadata_spec = Mock()
+        metadata_spec.HasInfo.return_value = False
+        value_spec = Mock()
+        value_spec.HasInfo.return_value = True
+        value_spec.layer.identifier = "C:/capture/material.usda"
+        attribute = Mock()
+        attribute.GetPropertyStack.return_value = [metadata_spec, value_spec]
+        value = Sdf.AssetPath("./textures/missing.dds")
+        with patch.object(
+            Sdf, "ComputeAssetPathRelativeToLayer", return_value="C:/capture/textures/missing.dds"
+        ) as anchor:
+            # Act
+            identity = _path_utils.get_asset_path_for_attribute(attribute, value)
+
+        # Assert
+        self.assertEqual(identity, "C:/capture/textures/missing.dds")
+        anchor.assert_called_once_with(value_spec.layer, value.path)
+
+    async def test_get_asset_path_for_attribute_preserves_resolved_asset_identity(self):
+        """Use the composed resolved identity instead of rebasing the authored path."""
+        # Arrange
+        value = Sdf.AssetPath("./textures/albedo.dds", "omniverse://server/capture/textures/albedo.dds")
+
+        # Act
+        identity = _path_utils.get_asset_path_for_attribute(None, value)
+
+        # Assert
+        self.assertEqual(identity, "omniverse://server/capture/textures/albedo.dds")
+
+    async def test_get_asset_path_for_attribute_preserves_absolute_and_resolver_identifiers(self):
+        """Keep nonlocal and opaque asset identifiers out of filesystem conversion."""
+        for path in ("omniverse://server/project/albedo.dds", "asset:material/albedo", "C:/textures/albedo.dds"):
+            with self.subTest(path=path):
+                # Arrange
+                value = Sdf.AssetPath(path)
+
+                # Act
+                identity = _path_utils.get_asset_path_for_attribute(None, value)
+
+                # Assert
+                self.assertEqual(identity, path)
+
+    async def test_get_asset_path_for_attribute_accepts_empty_texture_value(self):
+        """Preserve an empty asset as a request to clear the texture."""
+        # Arrange
+        value = Sdf.AssetPath()
+
+        # Act
+        identity = _path_utils.get_asset_path_for_attribute(None, value)
+
+        # Assert
+        self.assertEqual(identity, "")
+
+    async def test_get_asset_path_for_attribute_rejects_relative_asset_without_source(self):
+        """Reject source-relative paths whose source layer cannot be established."""
+        # Arrange
+        value = Sdf.AssetPath("./textures/albedo.dds")
+
+        # Act / Assert
+        with self.assertRaisesRegex(ValueError, "resolv|anchor"):
+            _path_utils.get_asset_path_for_attribute(None, value)
+
     async def test_is_absolute_path(self):
         # Assert
         self.assertTrue(_path_utils.is_absolute_path(r"C:\path"))

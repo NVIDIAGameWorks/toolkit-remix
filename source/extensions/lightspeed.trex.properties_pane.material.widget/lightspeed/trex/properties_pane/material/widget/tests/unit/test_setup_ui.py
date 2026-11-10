@@ -169,9 +169,9 @@ class TestSetupUI(AsyncTestCase):
             reset_default_attrs.assert_called_once_with(setup)
 
     async def test_clear_material_menu_cancels_without_publishing_or_clearing_replacement_task(self):
-        """Cancelled menu work must not publish or release a newer request's ownership."""
+        """Retire menu work immediately and destroy it outside the callback without affecting its replacement."""
         # Arrange
-        entered, release = asyncio.Event(), asyncio.Event()
+        entered, release, destroyed = asyncio.Event(), asyncio.Event(), asyncio.Event()
 
         async def next_update():
             entered.set()
@@ -179,8 +179,10 @@ class TestSetupUI(AsyncTestCase):
 
         setup = SetupUI.__new__(SetupUI)
         menu = MagicMock(shown=True)
+        menu.destroy.side_effect = destroyed.set
         setup._SetupUI__menu = menu
         replacement = asyncio.get_running_loop().create_future()
+        replacement_menu = MagicMock()
         with patch.object(_setup_ui, "omni") as omni_module:
             omni_module.kit.app.get_app.return_value.next_update_async = next_update
             task = asyncio.create_task(setup._refresh_material_menu(menu, [], (), None))
@@ -190,17 +192,23 @@ class TestSetupUI(AsyncTestCase):
 
                 # Act
                 setup._SetupUI__clear_material_menu()
+                destroyed_during_callback = menu.destroy.called
                 cancellation_count = task.cancelling()
                 setup._material_menu_task = replacement
+                setup._SetupUI__menu = replacement_menu
                 release.set()
                 await task
+                await destroyed.wait()
 
                 # Assert
+                self.assertFalse(destroyed_during_callback)
                 self.assertGreater(cancellation_count, 0)
                 menu.clear.assert_not_called()
                 menu.hide.assert_called_once_with()
                 menu.destroy.assert_called_once_with()
                 self.assertIs(setup._material_menu_task, replacement)
+                self.assertIs(setup._SetupUI__menu, replacement_menu)
+                replacement_menu.destroy.assert_not_called()
             finally:
                 release.set()
                 replacement.cancel()

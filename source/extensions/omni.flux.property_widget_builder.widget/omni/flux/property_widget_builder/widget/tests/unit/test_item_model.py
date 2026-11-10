@@ -17,6 +17,7 @@
 
 import omni.kit.test
 from omni.flux.property_widget_builder.widget import ItemValueModel
+from omni.flux.utils.common.edit_result import EditResult, EditResultType
 
 
 class _TestValueModel(ItemValueModel):
@@ -50,6 +51,49 @@ class _TestValueModel(ItemValueModel):
 
 
 class TestItemValueModel(omni.kit.test.AsyncTestCase):
+    async def test_set_value_reports_existing_callback_outcomes(self):
+        """Report accepted, clamped, rejected, and deferred edits through the existing callbacks."""
+        for status, expected, callback_stage in (
+            (EditResultType.ACCEPTED, 20, "pre"),
+            (EditResultType.CLAMPED, 10, "pre"),
+            (EditResultType.CLAMPED, 10, "post"),
+            (EditResultType.REJECTED, 0, "pre"),
+            (EditResultType.DEFERRED, 0, "pre"),
+        ):
+            with self.subTest(status=status, callback_stage=callback_stage):
+                # Arrange
+                model = _TestValueModel()
+                pending = []
+
+                def clamp(setter, value):
+                    setter(min(value, 10))
+
+                if status == EditResultType.CLAMPED:
+                    if callback_stage == "pre":
+                        model.set_callback_pre_set_value(clamp)
+                    else:
+                        model.set_callback_post_set_value(clamp)
+                elif status == EditResultType.REJECTED:
+                    model.set_callback_pre_set_value(
+                        lambda _setter, value: EditResult(EditResultType.REJECTED, value, "Invalid")
+                    )
+                elif status == EditResultType.DEFERRED:
+                    model.set_callback_pre_set_value(
+                        lambda setter, value, pending=pending: pending.append((setter, value))
+                    )
+
+                # Act
+                result = model.set_value(20)
+
+                # Assert
+                self.assertEqual(result.status, status)
+                self.assertEqual(
+                    result.value, expected if status in (EditResultType.ACCEPTED, EditResultType.CLAMPED) else 20
+                )
+                self.assertEqual(model.get_value(), expected)
+                self.assertEqual(result.reason, "Invalid" if status == EditResultType.REJECTED else "")
+                self.assertEqual(len(pending), int(status == EditResultType.DEFERRED))
+
     async def test_cancel_property_edit_interaction_runs_all_callbacks_before_reraising(self):
         # Arrange
         model = _TestValueModel()

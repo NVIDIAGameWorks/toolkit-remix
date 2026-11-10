@@ -208,14 +208,28 @@ panel. Right-clicking any selected properties will present a context menu with t
   ```
 * `Copy Selected`: Copies the currently selected items to the clipboard. Selecting a group expands the selection to
   encompass all its child items.
-* `Paste All`: If the clipboard contains data compatible with any items in the tree view, this menu item becomes enabled
-  and will paste the matching items from the clipboard.
-* `Paste Selected`: Functions similarly to `Paste All` but restricts pasting values only to the items currently
-  selected.
+* `Paste All`: Pastes properties with matching underlying attribute names into editable items throughout the tree view.
+  When some copied properties cannot be pasted, a notification reports the submitted and skipped counts; select
+  `Details` to see the skipped properties. The action is disabled when no properties can be pasted anywhere in the tree view.
+* `Paste Selected`: Pastes into the currently selected editable items. Copy one attribute to paste its value into
+  differently named attributes with the same USD value type. Copying several properties requires matching underlying
+  attribute names. The action is disabled when no copied properties can be pasted into the selection.
+
+Hover disabled paste actions for an explanation. Opening the context menu and copying properties stay quiet;
+warnings appear only after a paste attempt. Partial `Paste All` notifications offer `Details` listing unmatched
+properties. Path and write errors also offer `Details`, including a traceback when available or a direction to the
+Console. If a destination's hard limits clamp a pasted value, a warning shows the requested and adjusted values.
+Soft slider ranges do not clamp pasted values. Empty or unrelated clipboard contents and successful pastes without
+adjustments stay quiet. A failed paste may leave earlier changes applied.
+
+Texture copy/paste transfers references, not files, preserving their source locations across layers. Unresolved
+source paths and missing or unreadable changed textures are skipped; other matching properties can still be pasted.
+An empty texture reference clears the destination texture.
 
 ```{important}
-This context menu facilitates the replication of the same attribute(s) between different objects, but not between
-different attributes of the same object.
+`Paste All` and pasting several copied properties require matching underlying attribute names, even when displayed
+labels are identical. For differently named attributes, copy one attribute and use `Paste Selected`; the USD value
+types must match exactly. For example, a `float` cannot be pasted into an `int`, `bool`, or `double` this way.
 ```
 
 ***

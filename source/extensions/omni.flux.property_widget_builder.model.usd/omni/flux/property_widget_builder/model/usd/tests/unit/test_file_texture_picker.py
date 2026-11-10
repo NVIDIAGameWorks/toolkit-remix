@@ -265,7 +265,7 @@ class TestFileTexturePicker(omni.kit.test.AsyncTestCase):
         value_model.block_set_value.assert_not_called()
         is_field_path_valid_mock.assert_called_once_with("textures/albedo.dds", widget, value_model, 0)
 
-    async def test_set_field_writes_relative_normalized_path_when_selection_is_valid(self):
+    async def test_set_field_passes_selected_path_to_model_when_selection_is_valid(self):
         # Arrange
         picker = FileTexturePicker()
         widget = MagicMock()
@@ -274,23 +274,13 @@ class TestFileTexturePicker(omni.kit.test.AsyncTestCase):
         with (
             patch.object(picker, "_FileTexturePicker__is_field_path_valid", return_value=True),
             patch.object(_file_texture_picker_module._FilePicker, "_set_field") as set_field_mock,
-            patch.object(
-                _file_texture_picker_module.omni.usd,
-                "make_path_relative_to_current_edit_target",
-                return_value="textures\\albedo.dds",
-            ),
-            patch.object(
-                _file_texture_picker_module.omni.client,
-                "normalize_url",
-                return_value="textures\\albedo.dds",
-            ),
         ):
             # Act
             picker._set_field(widget, value_model, 0, "C:/Project/textures/albedo.dds")
 
         # Assert
         value_model.block_set_value.assert_called_once_with(False)
-        set_field_mock.assert_called_once_with(widget, value_model, 0, "textures/albedo.dds")
+        set_field_mock.assert_called_once_with(widget, value_model, 0, "C:/Project/textures/albedo.dds")
 
     async def test_set_field_does_not_write_when_selection_is_invalid(self):
         # Arrange

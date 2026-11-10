@@ -24,6 +24,7 @@ import uuid
 from typing import Any, cast
 
 import carb.input
+import carb.settings
 import omni.kit.app
 import omni.kit.test
 import omni.kit.test_suite.helpers
@@ -33,7 +34,6 @@ import omni.usd
 from carb.input import MouseEventType
 from omni.flux.material_api import ShaderInfoAPI
 from omni.flux.properties_pane.materials.usd.widget import MaterialPropertyWidget
-from omni.flux.utils.common.omni_url import OmniUrl
 from omni.kit.ui_test import Vec2
 from pxr import UsdShade
 
@@ -105,6 +105,14 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
         return str(result)
 
     async def setUp(self):
+        settings = carb.settings.get_settings()
+        policy = "/persistent/app/material/dragDropMaterialPath"
+        previous = settings.get(policy)
+        if previous is None:
+            self.addCleanup(settings.destroy_item, policy)
+        else:
+            self.addCleanup(settings.set, policy, previous)
+        settings.set_string(policy, "relative")
         await omni.kit.test_suite.helpers.arrange_windows()
         await omni.kit.test_suite.helpers.open_stage(self.get_test_data("scene.usda"))
 
@@ -145,11 +153,14 @@ class TestMaterialPropertyWidget(omni.kit.test.AsyncTestCase):
             )
             await omni.kit.ui_test.emulate_keyboard_press(carb.input.KeyboardInput.DEL)
             asset_path = self.get_test_data("16px_Diffuse2.dds")
-            posix_asset_path = OmniUrl(asset_path).path
-
+            # The field displays the authored relative reference, which still resolves to the entered texture.
             await widget_ref.input(asset_path, end_key=carb.input.KeyboardInput.ENTER)
             await omni.kit.ui_test.human_delay(human_delay_speed=3)
-            self.assertEqual(OmniUrl(widget_ref.widget.model.get_value_as_string()).path, posix_asset_path)
+            attribute = widget_ref.widget.model.attributes[-1]
+            authored = stage.GetEditTarget().GetLayer().GetAttributeAtPath(attribute.GetPath()).default
+            self.assertFalse(pathlib.Path(authored.path).is_absolute())
+            self.assertEqual(widget_ref.widget.model.get_value_as_string(), authored.path)
+            self.assertEqual(pathlib.Path(attribute.Get().resolvedPath), pathlib.Path(asset_path))
 
     async def test_enable_emission_updates_emissive_row_visibility(self):
         mat_path = "/World/Looks/OmniPBR_EnableEmission"

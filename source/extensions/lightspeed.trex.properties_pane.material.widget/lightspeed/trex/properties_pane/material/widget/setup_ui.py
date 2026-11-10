@@ -194,7 +194,13 @@ class SetupUI(_PropertyGroupExpansionMixin):
             task.cancel()
         if menu is not None:
             menu.hide()
-            menu.destroy()
+
+            async def destroy_menu():
+                """Release the retired menu after its current UI event finishes."""
+                await omni.kit.app.get_app().next_update_async()
+                menu.destroy()
+
+            asyncio.ensure_future(destroy_menu())
 
     def get_custom_field_builders(self) -> _USDBuilderList:
         field_builders = _USDBuilderList()

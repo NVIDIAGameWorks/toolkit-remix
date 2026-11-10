@@ -72,14 +72,14 @@ class UsdListModelAttrMetadataValueModel(_UsdListModelBaseValueModel):
                 self.set_value(default_value)
 
     def _set_attribute_value(self, attr: Usd.Attribute, new_value: str, _target_layer: Sdf.Layer | None = None) -> bool:
-        omni.kit.commands.execute(
+        succeeded, result = omni.kit.commands.execute(
             "ChangeMetadata",
             object_paths=[attr.GetPath()],
             key=self._metadata_key,
             value=new_value,
             usd_context_name=self._context_name,
         )
-        return True
+        return succeeded and result is not False
 
     def _get_attribute_value(self, attr) -> str:
         return self.metadata.get(self._metadata_key, self.default_value)

@@ -20,16 +20,18 @@ import asyncio
 import copy
 import traceback
 from collections.abc import Callable
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 from typing import Any
 
 import carb
 import omni.client
+import omni.client.utils as client_utils
 import omni.kit.commands
 import omni.kit.undo
 import omni.usd
 from omni.flux.property_widget_builder.widget import ItemValueModel as _ItemValueModel
 from omni.flux.utils.common import path_utils as _path_utils
+from omni.flux.utils.common.edit_result import EditResult, EditResultType
 from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices as _defer_usd_notices
 from omni.kit.app import get_app
 from omni.kit.usd_undo import UsdLayerUndo
@@ -136,6 +138,7 @@ class UsdAttributeBase(abc.ABC):
         self._is_batch_editing = False
         self._pending_preview_task = None
         self._preview_layer_undos: dict[tuple[str, Sdf.Path], UsdLayerUndo] = {}
+        self._raise_write_errors = False
 
     def init_attributes(self):
         # cache the attributes
@@ -347,7 +350,7 @@ class UsdAttributeBase(abc.ABC):
     def _on_dirty(self):
         pass
 
-    def _get_write_value(self, current_value):
+    def _get_write_value(self, current_value, target_layer: Sdf.Layer | None = None):
         """Return the value to author for one represented attribute."""
         return self._value
 
@@ -372,10 +375,21 @@ class UsdAttributeBase(abc.ABC):
             and self._value_type_name not in {Sdf.ValueTypeNames.String, Sdf.ValueTypeNames.Asset}
         )
 
+    @contextmanager
+    def raise_on_write_failure(self):
+        """Report synchronous row-write failures without changing normal editor failure handling."""
+        previous = self._raise_write_errors
+        self._raise_write_errors = True
+        try:
+            yield
+        finally:
+            self._raise_write_errors = previous
+
     def _set_value(self, value):
         """Override of ui.AbstractValueModel._set_value()"""
         if self._skip_set_value(value):
-            return False
+            reason = "The USD property is read-only." if self.read_only else "No editable value was supplied."
+            return EditResult(EditResultType.REJECTED, value, reason)
 
         self._check_preview_restored()
 
@@ -398,7 +412,7 @@ class UsdAttributeBase(abc.ABC):
             return True
 
         if not self._stage:
-            return False
+            return EditResult(EditResultType.REJECTED, value, "The USD stage is unavailable.")
 
         if self._related_override_paths or len(self._attribute_paths) > 1:
             undo_stack_size = len(omni.kit.undo.get_undo_stack())
@@ -424,7 +438,11 @@ class UsdAttributeBase(abc.ABC):
         if not succeeded:
             self.refresh()
             self._refresh_linked_value_models()
-            return False
+            paths = ", ".join(str(path) for path in self._attribute_paths)
+            reason = f"USD property write failed: {paths}. See the Console for command details."
+            if self._raise_write_errors:
+                raise RuntimeError(reason)
+            return EditResult(EditResultType.REJECTED, new_value, reason)
         # value was not changed, but we do want to refresh the delegate
         self._on_dirty()
         return False
@@ -454,12 +472,12 @@ class UsdAttributeBase(abc.ABC):
                             current_value = self._get_default_value(attr)
                         else:
                             continue
-                        new_value = self._get_write_value(current_value)
+                        target_layer = self._get_target_layer(attr)
+                        new_value = self._get_write_value(current_value, target_layer)
                         if current_value != new_value:
                             if group_undo:
                                 undo_scope.enter_context(omni.kit.undo.group(remove_if_empty=True))
                                 group_undo = False
-                            target_layer = self._get_target_layer(attr)
                             if not target_layer.permissionToEdit:
                                 return False, wrote_any
                             succeeded, wrote_related = self._ensure_related_override_specs(attr, target_layer)
@@ -480,6 +498,8 @@ class UsdAttributeBase(abc.ABC):
 
     def _get_target_layer(self, attr: Usd.Attribute) -> Sdf.Layer:
         """Get the layer that should receive a value write for the attribute."""
+        if attr.IsValid() and attr.GetCustomDataByKey("nonpersistant"):
+            return self._stage.GetSessionLayer()
         # OM-75480: For props inside session layer, it will always change specs
         # in the session layer to avoid shadowing. Why it needs to be def is that
         # session layer is used for several runtime data for now as built-in cameras,
@@ -797,8 +817,10 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
         else:
             self._value = new_value
 
-    def _get_write_value(self, current_value):
+    def _get_write_value(self, current_value, target_layer: Sdf.Layer | None = None):
         """Preserve each selected attribute's untouched channels during a single-axis edit."""
+        if self._value_type_name == Sdf.ValueTypeNames.Asset and target_layer is not None:
+            return self._format_asset_path(self._value, target_layer)
         if self._copy_current_first_channel:
             new_value = _safe_deepcopy(current_value)
             for channel_index in range(len(new_value)):
@@ -928,45 +950,77 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             return _safe_deepcopy(self._default_value)
         return value
 
-    def _prepare_attribute_value(self, new_value) -> tuple[bool, Any]:
-        if self._value_type_name != Sdf.ValueTypeNames.Asset:
-            self._has_wrong_value = False
-            return True, new_value
-        if isinstance(new_value, str):
-            # Force textures to always use forward slashes, and check that the path is valid
-            new_value = new_value.strip()
-            if self.metadata and self.metadata.get("colorSpace"):
-                edit_target_layer = self._stage.GetEditTarget().GetLayer()
-                is_valid = new_value == "" or _path_utils.is_file_path_valid(new_value, layer=edit_target_layer)
-                if not is_valid:
+    def _format_asset_path(self, path: str, layer: Sdf.Layer) -> str:
+        """Apply Kit's material path policy against the layer receiving this value."""
+        if not path or Sdf.Layer.IsAnonymousLayerIdentifier(path):
+            return path
+        if not _path_utils.is_absolute_path(path):
+            path = _path_utils.get_absolute_path_from_relative(path, layer)
+        policy = carb.settings.get_settings().get("/persistent/app/material/dragDropMaterialPath") or "relative"
+        if policy.lower() != "relative" or layer.anonymous or client_utils.equal_urls(path, layer.realPath):
+            return path
+        if client_utils.is_local_url(path) and not client_utils.is_local_url(layer.realPath):
+            return omni.client.normalize_url(client_utils.make_file_url_if_possible(path))
+        return client_utils.make_relative_url_if_possible(layer.realPath, path) or path
+
+    def _prepare_attribute_value(self, value) -> EditResult:
+        """Format and validate one asset edit before changing cached or authored values."""
+        if not isinstance(value, (str, Sdf.AssetPath)):
+            return EditResult(EditResultType.REJECTED, value, f"Unsupported asset value: {type(value).__name__}")
+        if self._stage is None:
+            return EditResult(EditResultType.REJECTED, value, "The USD stage is unavailable.")
+        path = (value.resolvedPath or value.path) if isinstance(value, Sdf.AssetPath) else value.strip()
+        path = path.replace("\\", "/")
+        source_path = path
+        # Copy callbacks express relative input against the current edit target.
+        if path and not _path_utils.is_absolute_path(path):
+            path = _path_utils.get_absolute_path_from_relative(path, self._stage.GetEditTarget().GetLayer())
+        if path and self.metadata and self.metadata.get("colorSpace"):
+            for attribute in self.attributes:
+                layer = self._get_target_layer(attribute)
+                authored_path = self._format_asset_path(path, layer)
+                if attribute.IsValid() and self._get_attribute_value(attribute) in {source_path, path, authored_path}:
+                    continue
+                if not _path_utils.is_file_path_valid(authored_path, layer=layer, log_error=False):
                     self._has_wrong_value = True
-                    return False, new_value
-                absolute_path = omni.client.normalize_url(edit_target_layer.ComputeAbsolutePath(new_value))
-                new_value = Sdf.AssetPath(new_value.replace("\\", "/"), absolute_path.replace("\\", "/"))
-        elif isinstance(new_value, Sdf.AssetPath):
-            if self.metadata and self.metadata.get("colorSpace"):
-                edit_target_layer = self._stage.GetEditTarget().GetLayer()
-                if not _path_utils.is_file_path_valid(new_value.path, layer=edit_target_layer):
-                    self._has_wrong_value = True
-                    return False, new_value
-        else:
-            raise NotImplementedError(f"Unknown type {new_value}")
+                    attempted_path = _path_utils.get_absolute_path_from_relative(authored_path, layer)
+                    return EditResult(
+                        EditResultType.REJECTED,
+                        authored_path,
+                        "Texture file is missing or unreadable. "
+                        f"Authored path: {authored_path}. Destination layer: {layer.identifier}. "
+                        f"Attempted path: {attempted_path}.",
+                    )
         self._has_wrong_value = False
-        return True, new_value
+        return EditResult(value=path)
+
+    def _set_value(self, value):
+        """Apply asset validation in the existing setter and return its outcome."""
+        if self._value_type_name != Sdf.ValueTypeNames.Asset:
+            return super()._set_value(value)
+        if self.read_only:
+            return EditResult(EditResultType.REJECTED, value, "The USD property is read-only.")
+        outcome = self._prepare_attribute_value(value)
+        if outcome.status == EditResultType.REJECTED:
+            return outcome
+        result = super()._set_value(outcome.value)
+        if isinstance(result, EditResult):
+            return result
+        if not self._is_batch_editing:
+            outcome.value = self._get_value_as_string()
+        return outcome
 
     def _set_attribute_value(self, attr: Usd.Attribute, new_value: Any, target_layer: Sdf.Layer | None = None) -> bool:
         if not attr.IsValid():
             return False
         attribute_path = str(attr.GetPath())
-        is_valid, new_value = self._prepare_attribute_value(new_value)
-        if not is_valid:
-            return False
-
         if target_layer is None:
             target_layer = self._get_target_layer(attr)
+        if self._value_type_name == Sdf.ValueTypeNames.Asset:
+            new_value = Sdf.AssetPath(self._format_asset_path(new_value, target_layer))
 
         self._reserve_preview_property(attr, target_layer)
-        succeeded, _result = omni.kit.commands.execute(
+        succeeded, result = omni.kit.commands.execute(
             "ChangeProperty",
             prop_path=attribute_path,
             value=new_value,
@@ -974,7 +1028,7 @@ class UsdAttributeValueModel(UsdAttributeBase, _ItemValueModel):
             prev=None,
             usd_context_name=self._context_name,
         )
-        return succeeded
+        return succeeded and result is not False
 
     def _on_dirty(self):
         self._value_changed()
@@ -1052,13 +1106,16 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         # If virtual attributes don't exist, they take on the default value.
         return self._default_value
 
-    def _create_and_set_attribute_value(self, attr: Usd.Attribute, new_value: Any) -> bool:
+    def _create_and_set_attribute_value(
+        self, attr: Usd.Attribute, new_value: Any, target_layer: Sdf.Layer | None = None
+    ) -> bool:
         # If it's the default value, no need to create anything
         if new_value == self._default_value:
             return False
-        is_valid, new_value = self._prepare_attribute_value(new_value)
-        if not is_valid:
-            return False
+        if target_layer is None:
+            target_layer = self._get_target_layer(attr)
+        if self._value_type_name == Sdf.ValueTypeNames.Asset:
+            new_value = Sdf.AssetPath(self._format_asset_path(new_value, target_layer))
         # If a create_callback is set, use that
         if self._create_callback:
             self._create_callback(attr, new_value)
@@ -1068,15 +1125,28 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
             if not path.IsPropertyPath():
                 raise ValueError(f"Cannot create virtual attribute from invalid property path: {path}")
             prim = self._stage.GetPrimAtPath(path.GetPrimPath())
+            if self._value_type_name == Sdf.ValueTypeNames.Asset:
+                self._reserve_preview_property(attr, target_layer)
+                succeeded, result = omni.kit.commands.execute(
+                    "ChangeProperty",
+                    prop_path=str(path),
+                    value=new_value,
+                    target_layer=target_layer,
+                    type_to_create_if_not_exist=self._value_type_name,
+                    is_custom=True,
+                    prev=None,
+                    usd_context_name=self._context_name,
+                )
+                return succeeded and result is not False
             self._reserve_preview_property(attr)
-            succeeded, _result = omni.kit.commands.execute(
+            succeeded, result = omni.kit.commands.execute(
                 "CreateUsdAttributeCommand",
                 prim=prim,
                 attr_name=path.name,
                 attr_type=self._value_type_name,
                 attr_value=new_value,
             )
-            return succeeded
+            return succeeded and result is not False
         return True
 
     def _set_attribute_value(self, attr: Usd.Attribute, new_value: Any, target_layer: Sdf.Layer | None = None) -> bool:
@@ -1087,4 +1157,4 @@ class VirtualUsdAttributeValueModel(UsdAttributeValueModel):
         """
         if attr.IsValid():
             return super()._set_attribute_value(attr, new_value, target_layer)
-        return self._create_and_set_attribute_value(attr, new_value)
+        return self._create_and_set_attribute_value(attr, new_value, target_layer)

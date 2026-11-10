@@ -41,6 +41,7 @@ def _mock_context(value, *, attribute_valid=True):
     attribute.GetName.return_value = "color"
     attribute.IsHidden.return_value = False
     attribute.IsValid.return_value = attribute_valid
+    attribute.GetCustomDataByKey.return_value = None
     attribute.HasAuthoredValue.return_value = True
     prim = mock.MagicMock()
     prim.IsValid.return_value = True

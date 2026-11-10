@@ -49,3 +49,37 @@ task = _submissions.start(context_name, partial(prepare_and_submit, context_name
 if task is not None:
     task.add_done_callback(lambda _task: refresh_run_button())
 ```
+
+## Responsibilities
+
+- Share reusable utilities and Kit wrappers across Flux extensions.
+- Provide path normalization, asset-source context, and file-readability checks.
+
+## Non-Responsibilities
+
+Callers own clipboard behavior, property authoring, and user feedback. This extension does not copy texture files or
+decide whether a particular property requires an existing asset.
+
+## Architecture
+
+Utilities are organized by purpose in modules such as `path_utils`, `layer_utils`, `event`, and `omni_url`.
+Consumers import the helpers they need; property value models retain their editing and validation policies.
+
+### Edit Outcomes
+
+`EditResult` describes an immediate setter outcome using the `EditResultType` enum: `ACCEPTED` (the default),
+`CLAMPED`, `REJECTED`, or `DEFERRED`, with a value and an optional explanation. Import both from
+`omni.flux.utils.common.edit_result`. Models own validation and authoring;
+callers aggregate the results. A deferred result does not confirm a write or own its later completion.
+
+### Asset Path Context
+
+`path_utils.get_asset_path_for_attribute(attribute, value)` returns the supplied asset value's source identity string.
+It prefers the resolved path, then an existing absolute identity, then an anchor computed from the layer supplying the
+attribute's default value. Metadata-only property overrides do not supply that value and are ignored when choosing the
+anchor. Empty asset values return an empty identity.
+
+Relative values without a resolved identity or usable source layer raise `ValueError`; callers must not reinterpret
+them against an unrelated destination layer. URL and resolver identities retain their source meaning. This helper
+does not require the asset to exist; `is_file_path_valid()` separately checks readability and can anchor a pending
+relative edit against a caller-supplied layer.

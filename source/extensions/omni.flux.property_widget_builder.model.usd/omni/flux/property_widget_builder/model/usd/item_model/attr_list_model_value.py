@@ -34,7 +34,7 @@ class UsdListModelAttrValueModel(_UsdListModelBaseValueModel):
 
         if target_layer is None:
             target_layer = self._get_target_layer(attr)
-        omni.kit.commands.execute(
+        succeeded, result = omni.kit.commands.execute(
             "ChangeProperty",
             prop_path=attribute_path,
             value=new_value,
@@ -42,7 +42,7 @@ class UsdListModelAttrValueModel(_UsdListModelBaseValueModel):
             prev=None,
             usd_context_name=self._context_name,
         )
-        return True
+        return succeeded and result is not False
 
     def _get_attribute_value(self, attr) -> str:
         if self._use_index_in_usd:
@@ -110,13 +110,14 @@ class VirtualUsdListModelAttrValueModel(UsdListModelAttrValueModel):
             if not path.IsPropertyPath():
                 return False
             prim = self._stage.GetPrimAtPath(path.GetPrimPath())
-            omni.kit.commands.execute(
+            succeeded, result = omni.kit.commands.execute(
                 "CreateUsdAttributeCommand",
                 prim=prim,
                 attr_name=path.name,
                 attr_type=self._value_type_name,
                 attr_value=index,
             )
+            return succeeded and result is not False
         return True
 
     def _set_attribute_value(self, attr: Usd.Attribute, new_value: str, target_layer: Sdf.Layer | None = None) -> bool:

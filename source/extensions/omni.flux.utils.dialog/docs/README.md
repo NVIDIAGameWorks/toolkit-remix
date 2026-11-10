@@ -25,3 +25,19 @@ graphs, cancelled = await ProgressPopup.run_cancellable(
 if cancelled:
     return
 ```
+
+## Responsibilities
+
+- Display reusable confirmation, progress, and scrollable detail dialogs.
+- Retain dialog value models and release modal windows and callbacks during destruction.
+
+## Non-Responsibilities
+
+Callers own message content, data validation, and the operations triggered by dialog actions.
+
+## Architecture
+
+`ErrorPopup` displays a message and optional wrapped details with vertical scrolling. `Copy Details` copies the
+original text unchanged. Messages wrap to the details area width and grow vertically to fit.
+Call `destroy()` when the owner releases the dialog to destroy its modal window.
+`ProgressPopup` displays progress and cancellation controls. `show_popup()` builds a simple confirmation popup.

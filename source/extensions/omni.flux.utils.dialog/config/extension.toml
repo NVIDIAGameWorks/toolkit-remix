@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["ptrottier@nvidia.com"]
 keywords = ["kit", "flux", "window", "popup", "dialog"]
 title = "Omni Flux Dialogs"
@@ -15,6 +15,7 @@ preview_image = "data/preview.png"
 [dependencies]
 "omni.ui" = {}
 "omni.flux.utils.common" = {}
+"omni.kit.clipboard" = {}
 
 [[python.module]]
 name = "omni.flux.utils.dialog"

@@ -28,6 +28,7 @@ from collections.abc import Callable
 from typing import Any
 
 import omni.ui as ui
+from omni.flux.utils.common.edit_result import EditResult, EditResultType
 
 
 class _SetValueCallbackManager:
@@ -66,12 +67,13 @@ class _SetValueCallbackManager:
         self._callback_post_set_value = callback
 
     def set_value(self, value: Any, callback: Callable[[Any], Any]):
+        """Run existing edit callbacks and propagate their synchronous outcome."""
         if self._callback_pre_set_value is not None:
-            self._callback_pre_set_value(callback, value)
-            return
-        callback(value)
+            return self._callback_pre_set_value(callback, value)
+        result = callback(value)
         if self._callback_post_set_value is not None:
-            self._callback_post_set_value(callback, value)
+            return self._callback_post_set_value(callback, value)
+        return result
 
 
 class ItemModelBase(abc.ABC):
@@ -82,7 +84,6 @@ class ItemModelBase(abc.ABC):
     def __init__(self):
         super().__init__()
         self._set_value_callback_manager = _SetValueCallbackManager()
-
         self.__block_set_value = False
         self.__cached_blocked_value = None
 
@@ -151,7 +152,7 @@ class ItemModelBase(abc.ABC):
     def _set_value(self, value: Any):
         raise NotImplementedError
 
-    def set_value(self, value: Any):
+    def set_value(self, value: Any) -> EditResult:
         """
         Function to override ui.AbstractValueModel._set_value()
 
@@ -164,15 +165,31 @@ class ItemModelBase(abc.ABC):
             value: the value to set
 
         Returns:
-            None
+            The immediate edit outcome. Blocked writes and callbacks that retain the setter are deferred.
         """
         if self.__block_set_value:
             if value != self.__cached_blocked_value:
                 self.__cached_blocked_value = value
                 self._on_dirty()
-            return
+            return EditResult(EditResultType.DEFERRED, value)
         self.__cached_blocked_value = None
-        self._set_value_callback_manager.set_value(value, self._set_value)
+        result = EditResult(EditResultType.DEFERRED, value)
+
+        def apply(incoming):
+            nonlocal result
+            applied = self._set_value(incoming)
+            if isinstance(applied, EditResult):
+                result = applied
+                if result.status == EditResultType.ACCEPTED and incoming != value:
+                    result = EditResult(EditResultType.CLAMPED, result.value)
+            else:
+                result = (
+                    EditResult(EditResultType.CLAMPED, incoming) if incoming != value else EditResult(value=incoming)
+                )
+            return result
+
+        callback_result = self._set_value_callback_manager.set_value(value, apply)
+        return callback_result if isinstance(callback_result, EditResult) else result
 
     @abc.abstractmethod
     def _on_dirty(self):

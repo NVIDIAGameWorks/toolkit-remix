@@ -135,6 +135,14 @@ class TestComponents(Enum):
 class TestMaterialPropertyWidget(AsyncTestCase):
     # Before running each test
     async def setUp(self):
+        settings = carb.settings.get_settings()
+        policy = "/persistent/app/material/dragDropMaterialPath"
+        previous = settings.get(policy)
+        if previous is None:
+            self.addCleanup(settings.destroy_item, policy)
+        else:
+            self.addCleanup(settings.set, policy, previous)
+        settings.set_string(policy, "relative")
         await arrange_windows()
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
         # be sure that the replacement layer is the target layer
@@ -552,10 +560,14 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             self.assertIsNone(ignore_ingestion_button)
             self.assertIsNone(cancel_ingestion_button)
 
-            # text should be the asset path
-            self.assertEqual(
-                OmniUrl(asset_path).path, OmniUrl(texture_file_fields[0].widget.model.get_value_as_string()).path
+            # The authored relative reference and displayed field still identify the entered texture.
+            attribute = texture_file_fields[0].widget.model.attributes[-1]
+            authored = (
+                usd_context.get_stage().GetEditTarget().GetLayer().GetAttributeAtPath(attribute.GetPath()).default
             )
+            self.assertFalse(Path(authored.path).is_absolute())
+            self.assertEqual(texture_file_fields[0].widget.model.get_value_as_string(), authored.path)
+            self.assertEqual(Path(attribute.Get().resolvedPath), Path(asset_path))
 
         finally:
             await self.__destroy(_window, _material_property_wid)
@@ -639,10 +651,14 @@ class TestMaterialPropertyWidget(AsyncTestCase):
             await ignore_ingestion_button.click()
             await ui_test.human_delay(20)
 
-            # text should be the asset path
-            self.assertEqual(
-                OmniUrl(asset_path).path, OmniUrl(diffuse_texture_file_field.widget.model.get_value_as_string()).path
+            # Ignore permits the edit; formatting preserves the same un-ingested texture's identity.
+            attribute = diffuse_texture_file_field.widget.model.attributes[-1]
+            authored = (
+                usd_context.get_stage().GetEditTarget().GetLayer().GetAttributeAtPath(attribute.GetPath()).default
             )
+            self.assertFalse(Path(authored.path).is_absolute())
+            self.assertEqual(diffuse_texture_file_field.widget.model.get_value_as_string(), authored.path)
+            self.assertEqual(Path(attribute.Get().resolvedPath), Path(asset_path))
 
         finally:
             await self.__destroy(_window, _material_property_wid)
@@ -1408,6 +1424,15 @@ class TestMaterialPropertyWidget(AsyncTestCase):
 
             # Convert through the reopened menu and verify the authored material reference.
             stage = usd_context.get_stage()
+
+            def refresh_material_properties():
+                """Use the app's synchronous material-change refresh wiring during conversion."""
+                selected_paths = usd_context.get_selection().get_selected_prim_paths()
+                _material_property_wid.refresh([stage.GetPrimAtPath(path) for path in selected_paths])
+
+            _material_changed_subscription = _material_property_wid.subscribe_on_material_changed(
+                refresh_material_properties
+            )
             replacement_layer = Sdf.Layer.FindOrOpen(stage.GetRootLayer().ComputeAbsolutePath("./replacements.usda"))
             self.assertIsNotNone(replacement_layer)
             self.assertEqual(stage.GetEditTarget().GetLayer(), replacement_layer)

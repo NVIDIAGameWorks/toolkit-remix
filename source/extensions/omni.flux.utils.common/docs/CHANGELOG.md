@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.1.0]
+### Added
+- Added source-aware asset path resolution using the layer contributing an attribute's default value, preserving resolved identities and reporting unanchored relative paths.
+- Added `EditResult` and the `EditResultType` enum to share accepted (default), clamped, rejected, and deferred outcomes between editor models and their callers.
+
 ## [5.0.0]
 ### Changed
 - Changed `get_light_type()` to accept a USD prim and classify derived and versioned light schemas; renamed the existing string lookup to `get_light_type_from_type_name()` without changing its mappings.
