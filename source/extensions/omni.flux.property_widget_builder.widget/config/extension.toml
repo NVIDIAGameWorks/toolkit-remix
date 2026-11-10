@@ -1,7 +1,7 @@
 [package]
 kit_sdk_version = "110.*"
 # Semantic Versionning is used: https://semver.org/
-version = "3.1.0"
+version = "4.0.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Damien Bataille <dbataille@nvidia.com>"]
@@ -33,7 +33,11 @@ icon = "data/images/icon.png"
 [dependencies]
 "omni.flux.property_widget_builder.delegates" = {}
 "omni.flux.utils.common" = {}
+"omni.flux.utils.dialog" = {}
+"omni.flux.utils.widget" = {version = "2.2.0"}
 "omni.kit.clipboard" = {}
+"omni.kit.commands" = {}
+"omni.kit.notification_manager" = {}
 "omni.ui" = {}
 "omni.usd" = {}
 

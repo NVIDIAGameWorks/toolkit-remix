@@ -21,6 +21,7 @@ from collections.abc import Callable
 import carb
 import omni.ui as ui
 from omni.flux.property_widget_builder.widget import ItemModel as _ItemModel
+from omni.flux.utils.common.edit_result import EditResult, EditResultType
 from pxr import Sdf
 
 from ..utils import get_default_attribute_value as _get_default_attribute_value
@@ -78,6 +79,12 @@ class UsdListModelBaseValueModel(_UsdAttributeBase, _ItemModel, abc.ABC):
 
     def get_value(self):
         return self._value
+
+    def _set_value(self, value):
+        """Reject unsupported dropdown choices before they reach the label-based writer."""
+        if value not in self._list_options:
+            return EditResult(EditResultType.REJECTED, value, f"Unsupported dropdown choice: {value!r}")
+        return super()._set_value(value)
 
     def get_item_children(
         self,

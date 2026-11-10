@@ -20,6 +20,7 @@ __all__ = ["UsdRelationshipValueModel"]
 import omni.kit.commands
 import omni.usd
 from omni.flux.property_widget_builder.widget import ItemValueModel as _ItemValueModel
+from omni.flux.utils.common.edit_result import EditResult, EditResultType
 from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices as _defer_usd_notices
 from pxr import Sdf
 
@@ -132,13 +133,13 @@ class UsdRelationshipValueModel(_ItemValueModel):
     def _set_value(self, value: str):
         """Set relationship target using SetRelationshipTargets command."""
         if self._read_only or not self._stage:
-            return
+            return EditResult(EditResultType.REJECTED, value, "The USD relationship is not editable.")
 
         target_value = value.strip() if value else ""
         if target_value and not Sdf.Path.IsValidPathString(target_value):
             self._read_value_from_usd()
             self._value_changed()
-            return
+            return EditResult(EditResultType.REJECTED, value, f"Invalid relationship target: {target_value!r}")
         wrote_target = False
         target_paths = [Sdf.Path(target_value)] if target_value else []
 
@@ -153,11 +154,15 @@ class UsdRelationshipValueModel(_ItemValueModel):
                     if not rel or not rel.IsValid():
                         continue
 
-                    omni.kit.commands.execute(
+                    succeeded, result = omni.kit.commands.execute(
                         "SetRelationshipTargets",
                         relationship=rel,
                         targets=target_paths,
                     )
+                    if not succeeded or result is False:
+                        raise RuntimeError(
+                            f"USD relationship write failed: {rel_path}. See the Console for command details."
+                        )
                     wrote_target = True
         except Exception:
             if self._read_value_from_usd():
@@ -168,6 +173,8 @@ class UsdRelationshipValueModel(_ItemValueModel):
             value_changed = self._read_value_from_usd()
             if value != target_value or value_changed:
                 self._value_changed()
+            return EditResult(value=target_value)
+        return EditResult(EditResultType.REJECTED, value, "No editable USD relationship was found.")
 
     def get_value(self) -> str:
         """Get current relationship target as string."""

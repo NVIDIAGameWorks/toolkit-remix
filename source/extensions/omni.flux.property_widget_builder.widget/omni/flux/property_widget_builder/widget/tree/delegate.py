@@ -174,6 +174,7 @@ class Delegate(_TreeDelegateBase):
 
         This method is called when the parent widget is hidden.
         """
+        AttributeCopyPasteHelper.destroy_paste_details()
         for cleanup in tuple(self._field_cleanup_callbacks):
             cleanup()
         self._field_cleanup_callbacks.clear()
@@ -184,6 +185,11 @@ class Delegate(_TreeDelegateBase):
         self._subscriptions.clear()
         self._selection.clear()
         self._context_menu = None
+
+    def destroy(self):
+        """Destroy the paste details dialog before releasing delegate resources."""
+        AttributeCopyPasteHelper.destroy_paste_details()
+        super().destroy()
 
     def set_apply_item_expanded_fn(self, callback: Callable[[Item, bool], None] | None) -> None:
         self._apply_item_expanded_fn = callback
@@ -418,6 +424,16 @@ class Delegate(_TreeDelegateBase):
         if not all_items:
             return
 
+        data = AttributeCopyPasteHelper.read()
+        unavailable_reason = AttributeCopyPasteHelper.get_paste_unavailable_reason(target_rows=all_items, data=data)
+        selected_reason = (
+            AttributeCopyPasteHelper.get_paste_unavailable_reason(
+                target_rows=selected_items, data=data, allow_name_mismatch=True
+            )
+            if selected_items
+            else "Select an editable property to paste into."
+        )
+
         # NOTE: The context menu is stored on the object like this to avoid it being garbage collected and
         # prematurely destroyed.
         if self._context_menu is not None:
@@ -447,16 +463,19 @@ class Delegate(_TreeDelegateBase):
             ui.MenuItem(
                 "Paste All",
                 identifier="paste_all",
-                enabled=AttributeCopyPasteHelper.can_paste(target_rows=all_items),
-                triggered_fn=lambda: AttributeCopyPasteHelper.paste(target_rows=all_items),
+                enabled=unavailable_reason is None,
+                tooltip=unavailable_reason or "",
+                triggered_fn=lambda: AttributeCopyPasteHelper.paste(target_rows=all_items, allow_name_mismatch=False),
             )
             ui.MenuItem(
                 "Paste Selected",
                 identifier="paste_selected",
-                enabled=AttributeCopyPasteHelper.can_paste(target_rows=selected_items),
-                triggered_fn=lambda: AttributeCopyPasteHelper.paste(target_rows=selected_items),
+                enabled=selected_reason is None,
+                tooltip=selected_reason or "",
+                triggered_fn=lambda: AttributeCopyPasteHelper.paste(
+                    target_rows=selected_items, allow_name_mismatch=True
+                ),
             )
-
         self._context_menu.show()
         super()._show_context_menu(model, item)
 

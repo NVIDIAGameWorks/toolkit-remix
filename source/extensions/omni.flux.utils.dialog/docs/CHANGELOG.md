@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.0]
+### Added
+- Added Copy Details to copy the original error text.
+
+### Fixed
+- Fixed message and detail wrapping and cleaned up popup resources.
+
 ## [0.3.0]
 ### Added
 - Added `ProgressPopup.run_cancellable()`, which shows a cancellable popup while an async task reports progress, and `ProgressPopup.report_progress()`.

@@ -18,11 +18,13 @@
 from types import SimpleNamespace
 from unittest import mock
 
+import omni.kit.clipboard
 import omni.kit.test
 import omni.kit.undo
 import omni.ui as ui
 from omni.flux.property_widget_builder.delegates import AbstractDragFieldGroup
 from omni.flux.property_widget_builder.widget import Delegate, FieldBuilder, claim_each
+from omni.flux.property_widget_builder.widget.tree import clipboard
 from omni.flux.property_widget_builder.widget.tree.clipboard import AttributeCopyPasteHelper
 from omni.flux.property_widget_builder.widget.tests.ui_components import TestItem
 
@@ -97,6 +99,49 @@ class _BuildingDelegate(_Delegate):
 
 
 class TestDelegate(omni.kit.test.AsyncTestCase):
+    async def test_context_menu_reads_clipboard_once_for_paste_availability(self):
+        """Use one clipboard snapshot for both paste action scopes."""
+        # Arrange
+        delegate = _Delegate()
+        item = TestItem([("Value", 1)])
+        model = mock.Mock()
+        model.get_all_items.return_value = [item]
+        delegate.selection = [item]
+        delegate._builder_map[id(item)] = object()
+        raw = '[{"properties": [{"name": ["Value"], "value": [2]}]}]'
+        with (
+            mock.patch.object(ui, "Menu"),
+            mock.patch.object(ui, "MenuItem"),
+            mock.patch.object(ui, "Separator"),
+            mock.patch.object(ui, "MenuDelegate"),
+            mock.patch.object(omni.kit.clipboard, "paste", return_value=raw) as read,
+        ):
+            # Act
+            delegate._show_context_menu(model, item)
+
+        # Assert
+        read.assert_called_once_with()
+
+    async def test_context_menu_with_no_editable_targets_returns_without_warning(self):
+        """Keep read-only context-menu requests silent regardless of copied properties."""
+        # Arrange
+        delegate = _Delegate()
+        item = mock.Mock(read_only=True)
+        model = mock.Mock()
+        model.get_all_items.return_value = [item]
+        with (
+            mock.patch.object(AttributeCopyPasteHelper, "read") as read,
+            mock.patch.object(clipboard, "post_notification") as notify,
+            mock.patch.object(ui, "Menu") as menu,
+        ):
+            # Act
+            delegate._show_context_menu(model, item)
+
+        # Assert
+        read.assert_not_called()
+        notify.assert_not_called()
+        menu.assert_not_called()
+
     async def test_reset_runs_field_cleanup_without_destroying_shared_builder(self):
         # Arrange
         delegate = _Delegate()
@@ -202,21 +247,27 @@ class TestDelegate(omni.kit.test.AsyncTestCase):
         model.get_all_items.return_value = rows
         delegate.selection = [outlet, restricted, structural, companion]
         delegate._builder_map.update({id(row): object() for row in rows[:-1]})
+        data = [object()]
         with (
             mock.patch.object(ui, "Menu"),
             mock.patch.object(ui, "MenuItem") as menu_item,
             mock.patch.object(ui, "Separator"),
             mock.patch.object(ui, "MenuDelegate"),
-            mock.patch.object(AttributeCopyPasteHelper, "can_paste", return_value=True) as available,
+            mock.patch.object(AttributeCopyPasteHelper, "read", return_value=data) as read,
+            mock.patch.object(AttributeCopyPasteHelper, "get_paste_unavailable_reason", return_value=None) as reason,
         ):
             # Act
             delegate._show_context_menu(model, outlet)
 
         # Assert
         model.get_all_items.assert_called_once_with(include_hidden=True)
+        read.assert_called_once_with()
         self.assertEqual(
-            available.call_args_list,
-            [mock.call(target_rows=[normal, hidden, outlet]), mock.call(target_rows=[outlet])],
+            reason.call_args_list,
+            [
+                mock.call(target_rows=[normal, hidden, outlet], data=data),
+                mock.call(target_rows=[outlet], data=data, allow_name_mismatch=True),
+            ],
         )
         items = {call.kwargs["identifier"]: call.kwargs for call in menu_item.call_args_list}
         self.assertTrue(items["paste_selected"]["enabled"])
@@ -240,7 +291,8 @@ class TestDelegate(omni.kit.test.AsyncTestCase):
                     mock.patch.object(ui, "MenuItem") as menu_item,
                     mock.patch.object(ui, "Separator"),
                     mock.patch.object(ui, "MenuDelegate"),
-                    mock.patch.object(AttributeCopyPasteHelper, "can_paste", return_value=True),
+                    mock.patch.object(AttributeCopyPasteHelper, "read", return_value=[object()]),
+                    mock.patch.object(AttributeCopyPasteHelper, "get_paste_unavailable_reason", return_value=None),
                     mock.patch.object(AttributeCopyPasteHelper, "paste") as paste,
                     mock.patch.object(omni.kit.undo, "group") as group,
                 ):
@@ -256,5 +308,5 @@ class TestDelegate(omni.kit.test.AsyncTestCase):
 
                 # Assert
                 expected = [selected] if identifier == "paste_selected" else [selected, hidden]
-                paste.assert_called_once_with(target_rows=expected)
+                paste.assert_called_once_with(target_rows=expected, allow_name_mismatch=identifier == "paste_selected")
                 group.assert_not_called()

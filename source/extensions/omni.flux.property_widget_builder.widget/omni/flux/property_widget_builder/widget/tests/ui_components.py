@@ -221,7 +221,9 @@ class AsyncTestPropertyWidget:
         self._is_built = True
 
     async def destroy(self):
+        """Release the fixture's widget, delegate, and window."""
         self.property_widget.destroy()
+        self.delegate.destroy()
         self.window.destroy()
         self.scrolling_frame = None
         self._is_built = False

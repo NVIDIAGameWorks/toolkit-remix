@@ -22,6 +22,7 @@ import asyncio
 import collections
 import dataclasses
 from collections.abc import Callable, Iterable, Sequence
+from contextlib import ExitStack
 from functools import partial
 from typing import Any, Protocol, cast
 
@@ -33,6 +34,7 @@ from omni.flux.property_widget_builder.widget import Item as _Item
 from omni.flux.property_widget_builder.widget.tree.item_model import ItemGroupNameModel as _ItemGroupNameModel
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
+from omni.flux.utils.common.edit_result import EditResult
 from omni.flux.utils.common.interactive_usd_notices import defer_usd_notices
 from omni.flux.utils.common.types import ScalarValue as _ScalarValue
 from omni.kit.window.popup_dialog import MessageDialog as _MessageDialog
@@ -94,7 +96,7 @@ class _LogicalRowApiMixin:
             self.logical_group_extra_attribute_names
         )
 
-    def set_row_values(self, prepared_values: tuple[object, ...]) -> None:
+    def set_row_values(self, prepared_values: tuple[object, ...]) -> tuple[EditResult, ...]:
         """Apply ordered row values through existing models or native USD property commands.
 
         The caller owns grouping. A reported command failure stops later writes without restoring earlier writes.
@@ -104,8 +106,11 @@ class _LogicalRowApiMixin:
         """
         names = self.get_logical_row_attribute_names()
         if names is None:
-            super().set_row_values(prepared_values)
-            return
+            with ExitStack() as write_scope:
+                for value_model in self.value_models:
+                    if isinstance(value_model, _UsdAttributeBase):
+                        write_scope.enter_context(value_model.raise_on_write_failure())
+                return super().set_row_values(prepared_values)
         if len(prepared_values) != len(names):
             raise ValueError("Row value count does not match its declaration")
 
@@ -132,6 +137,7 @@ class _LogicalRowApiMixin:
                     )
                     if not succeeded or result is False:
                         raise RuntimeError(f"Logical property write failed: {property_path}")
+        return tuple(EditResult(value=value) for value in prepared_values)
 
     def get_owned_value_models(self) -> list[Any]:
         """Return value models owned by this row and its logical companions."""
@@ -315,6 +321,18 @@ class _BaseUSDAttributeItem(_LogicalRowApiMixin, _Item):
             List of USD property paths
         """
         return self._attribute_paths
+
+    @property
+    def value_type_name(self) -> str | None:
+        """Return the declared type of an ordinary attribute, excluding metadata and logical rows."""
+        if self.metadata_key or self.get_logical_row_attribute_names() is not None or not self.attribute_paths:
+            return None
+        attribute = self._stage.GetAttributeAtPath(self.attribute_paths[-1]) if self._stage else None
+        if attribute:
+            return str(attribute.GetTypeName())
+        if self.value_models and self.value_models[0].is_virtual:
+            return (self.value_models[0].metadata or {}).get(Sdf.PrimSpec.TypeNameKey)
+        return None
 
     def get_all_properties(self) -> list[Usd.Property]:
         """
@@ -989,6 +1007,13 @@ class VirtualUSDAttributeItem(USDAttributeItem):
     @abc.abstractmethod
     def default_attr(self) -> dict[str, None]:
         return super().default_attr
+
+    @property
+    def value_type_name(self) -> str | None:
+        """Retain the declared type for an ordinary virtual attribute before it is authored."""
+        if self.metadata_key or self.get_logical_row_attribute_names() is not None:
+            return None
+        return super().value_type_name or str(self._value_type_name)
 
     def _init_name_models(self, context_name, attribute_paths, display_attr_names, display_attr_names_tooltip):
         self._name_models = [

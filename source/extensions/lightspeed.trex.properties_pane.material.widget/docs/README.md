@@ -28,6 +28,7 @@ The custom field builder hides properties belonging to the other mode.
 
 The material action menu builds on opening and shows a loading entry until ready. Each open reads the current selection.
 Selection changes, dismissal, hiding, and destruction cancel pending menu work.
+Retired menus hide immediately and release their widgets on the next UI update, after active callbacks finish.
 Material labels and MDL paths remain available before the menu opens.
 
 ## Usage

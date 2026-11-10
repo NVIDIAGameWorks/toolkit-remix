@@ -2,6 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.0.0]
+### Added
+- Added type-compatible Paste Selected, shared availability explanations, and per-property setter feedback for rejected or clamped values while keeping copy, menu, and deferred-only actions silent.
+
+### Fixed
+- Released the test fixture's delegate and owned paste dialog during cleanup.
+- Preserved anchored source strings for material validation callbacks and dialog-owned completion for deferred edits.
+
+### Changed
+- Kept clipboard matching, failure logging, and notifications in the existing helper with one returned `PasteSummary`, row-declared types, and setter outcomes; passed anchored asset strings to models that own destination formatting, validation, and authoring, with consolidated real USD workflow coverage.
+
 ## [3.1.0]
 ### Added
 - Added `CallbackValueModel`, a value model for one typed value that its owner reads and writes through callbacks.

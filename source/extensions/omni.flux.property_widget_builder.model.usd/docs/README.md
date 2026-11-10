@@ -198,6 +198,9 @@ Creation callbacks must author their setup through Kit commands.
 
 USD property rows can represent one authored USD attribute or a logical group of companion attributes. The delegate asks each row for owned value models, owned attributes, row state, reset, and override deletion.
 
+`value_type_name` exposes an ordinary attribute's declared USD type for clipboard matching, including virtual rows
+before authoring. Relationships, metadata, and logical rows return `None` and retain identity matching.
+
 - Normal scalar rows use their own value models and USD attributes.
 - Grouped rows, such as particle gradients, use suffix-based logical group definitions so `:times` and `:values` are handled as one row.
 - Logical group outlets, such as particle curves, have no display value models but report their backing curve primvars. Their `read_only` property honors owned-model restrictions without treating an empty display-model list as a restriction.
@@ -217,15 +220,38 @@ deriving completeness from reset/delete ownership, which can omit missing attrib
 value per declared attribute, check cardinality, then use `ChangeProperty(prev=None)` in canonical attribute and target
 order with USD notices deferred. Explicit undo restores prior edit-layer opinions, including inherited values without
 leaving overrides. Unchanged animated values are skipped; legacy companions retain their always-author behavior.
-The setter creates no editor, display models, or undo group. Clipboard paste or another caller owns grouping. Reported
+The setter returns edit outcomes in declared backing-property order and creates no editor, display models, or undo
+group. Clipboard paste or another caller owns grouping. Reported
 command failure stops further writes; previously successful writes can remain applied until undone. Grouped editors
 continue using `SetDataPrimvars` and their existing preview lifecycle.
 
+Ordinary USD row writes scope existing setters with `UsdAttributeBase.raise_on_write_failure()`, so synchronous failures
+raise after the model's refresh and rollback handling. Direct editor writes and callbacks running after that scope retain
+their existing failure and undo policies.
+
 Ordinary setters retain metadata, virtual creation, transform, bounds, and callback policies. USD dropdowns receive
-labels without automatic numeric conversion; integer-backed setters translate labels to USD indices. Native typed
-dropdowns retain their typed inputs. Clipboard-only model serialization, deserialization, and paste hooks are removed.
+labels without automatic numeric conversion; integer-backed setters translate labels to USD indices. The dropdown
+setter rejects values outside its declared choices. Native typed dropdowns retain their typed inputs.
+Clipboard-only model serialization, deserialization, and paste hooks are removed.
 Texture-field change notifications validate the displayed path without blocking writes; manual begin/end editing owns
 that blocking interval, so a programmatic refresh cannot prevent the following paste.
+
+### Texture Path Context
+
+Clipboard copy preserves source texture locations using the asset-path helper in
+[Common Utilities](../../omni.flux.utils.common/docs/README.md#asset-path-context).
+The clipboard helper passes an anchored source location to existing callbacks as a string. The asset value model owns
+destination formatting, validation, and authoring through the normal command path. Relative input from existing
+callbacks is anchored to the current edit target before destination formatting. The model follows
+`/persistent/app/material/dragDropMaterialPath` using each attribute's actual receiving layer, including session-layer
+definitions. Relative policy produces a layer-relative path when possible; absolute policy, anonymous receiving
+layers, and paths that cannot be made relative retain the absolute source location. This preserves texture identity
+after saving and reopening the stage.
+
+Accepted edits return an `EditResult` with the applied path. Rejections explain the authored path, receiving layer,
+and attempted location. Empty references allow clearing; unchanged references and generic assets bypass the
+readability check. Ordinary field edits and clipboard edits share this path. Clipboard operations transfer
+references, not texture files.
 
 ## Usage
 
@@ -267,6 +293,10 @@ USD-backed color-picker tests cover live scene authoring, Undo/Redo, virtual att
 interrupted edits. Generic parsing, normalized controls, selector synchronization and display rounding are tested
 once in the delegates picker E2E suite, without this USD model dependency. Shared floating-window tests cover host
 placement and chrome behavior.
+
+Clipboard tests exercise real USD models through the clipboard helper and menus, verifying stored values, validation
+and clamp feedback, Details dialogs, and undo. The property-widget context-menu tests cover generic menu availability,
+tooltips, and unmatched-property feedback.
 
 The Curve editor named-context workflow reuses one USD context for the Kit process lifetime. Each run opens a fresh
 stage and closes it during teardown, preserving stage isolation. Keep the native context alive because queued

@@ -15,34 +15,19 @@
 * limitations under the License.
 """
 
+import omni.kit.clipboard
 from omni import ui
 from omni.flux.utils.common import Event as _Event
 from omni.flux.utils.common import EventSubscription as _EventSubscription
-from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-
-
-class CustomErrorModel(ui.AbstractValueModel):
-    def __init__(self, value: str = None):
-        self._value = value
-        super().__init__()
-
-    def set_value(self, value):
-        """Reimplemented set"""
-        if value != self._value:
-            # Tell the widget that the model is changed
-            self._value = value
-            self._value_changed()
-
-    def get_value_as_string(self):
-        return self._value
 
 
 class ErrorPopup:
-    """Creates a modal window with a status label and a progress bar inside.
+    """Display an error message and optional wrapped, copyable details.
+
     Args:
         title (str): Title of this window.
         message (str): Error message to display in a label.
-        details (str): Error details to display in a string field.
+        details (str): Error details to display as wrapped text.
         yes_no (bool): Show a Yes/No
     """
 
@@ -56,9 +41,9 @@ class ErrorPopup:
             "_message": None,
             "_details": None,
             "_popup": None,
-            "_buttons": None,
             "_message_label": None,
             "_details_label": None,
+            "_copy_details_button": None,
             "_okay_button": None,
             "_yes_button": None,
             "_no_button": None,
@@ -72,7 +57,6 @@ class ErrorPopup:
         self._yes_no = yes_no
         self._window_size = window_size
         self._popup = None
-        self._buttons = []
 
         self.__build_ui()
 
@@ -134,17 +118,28 @@ class ErrorPopup:
         with self._popup.frame:
             with ui.VStack():
                 ui.Spacer(width=0, height=ui.Pixel(8))
-                with ui.HStack(height=24):
+                with ui.HStack(height=0):
                     ui.Spacer(width=ui.Pixel(8), height=0)
-                    self._message_label = ui.Label(self._message, word_wrap=True, alignment=ui.Alignment.CENTER)
+                    self._message_label = ui.Label(
+                        self._message, width=ui.Fraction(1), height=0, word_wrap=True, alignment=ui.Alignment.CENTER
+                    )
                     ui.Spacer(width=ui.Pixel(8), height=0)
                 if self._details:
                     ui.Spacer(width=0, height=ui.Pixel(8))
                     with ui.HStack():
                         ui.Spacer(width=ui.Pixel(8), height=0)
-                        with ui.ScrollingFrame(height=ui.Percent(100)):
-                            self._details_label = ui.StringField(
-                                CustomErrorModel(self._details), multiline=True, read_only=True
+                        with ui.ScrollingFrame(
+                            height=ui.Percent(100),
+                            horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
+                            identifier="error_popup_details_scroll",
+                        ):
+                            self._details_label = ui.Label(
+                                self._details,
+                                width=ui.Fraction(1),
+                                height=0,
+                                word_wrap=True,
+                                alignment=ui.Alignment.LEFT_TOP,
+                                identifier="error_popup_details",
                             )
                         ui.Spacer(width=ui.Pixel(8), height=0)
                 else:
@@ -152,6 +147,13 @@ class ErrorPopup:
                 ui.Spacer(width=0, height=ui.Pixel(8))
                 with ui.HStack(height=24):
                     ui.Spacer(height=0)
+                    if self._details:
+                        self._copy_details_button = ui.Button(
+                            "Copy Details",
+                            width=0,
+                            identifier="error_popup_copy_details",
+                            clicked_fn=lambda: omni.kit.clipboard.copy(self._details),
+                        )
                     if self._yes_no:
 
                         def yes_clicked():
@@ -169,12 +171,21 @@ class ErrorPopup:
                     else:
                         self._okay_button = ui.Button("Okay", width=ui.Pixel(self.BUTTON_WIDTH))
                         self._okay_button.set_clicked_fn(self.hide)
-                        self._buttons.append(self._okay_button)
                     ui.Spacer(height=0)
                 ui.Spacer(width=0, height=ui.Pixel(8))
 
     def destroy(self):
-        for button in self._buttons:
-            button.set_clicked_fn(None)
-
-        _reset_default_attrs(self)
+        """Destroy the modal window and release its widgets and callbacks."""
+        for button in (self._copy_details_button, self._okay_button, self._yes_button, self._no_button):
+            if button is not None:
+                button.set_clicked_fn(None)
+        if self._popup is not None:
+            self._popup.visible = False
+            self._popup.destroy()
+            self._popup = None
+        self._details_label = None
+        self._copy_details_button = None
+        self._message_label = None
+        self._okay_button = None
+        self._yes_button = None
+        self._no_button = None

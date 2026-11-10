@@ -15,7 +15,7 @@
 * limitations under the License.
 """
 
-__all__ = ("TestClipboard",)
+__all__ = ("TestClipboard", "TestPasteSummary")
 
 import json
 from enum import Enum
@@ -27,11 +27,134 @@ import omni.kit.test
 import omni.kit.undo
 import omni.usd
 from pxr import Sdf
-from omni.flux.property_widget_builder.widget.tree.clipboard import AttributeCopyPasteHelper
+from omni.flux.property_widget_builder.widget.tree import clipboard
+from omni.flux.property_widget_builder.widget.tree.clipboard import AttributeCopyPasteHelper, PasteSummary
+from omni.flux.utils.common.edit_result import EditResult, EditResultType
 from omni.flux.property_widget_builder.widget.tests.ui_components import TestItem, TestItemModel
 
 
 class TestClipboard(omni.kit.test.AsyncTestCase):
+    def setUp(self):
+        """Keep paste feedback at the terminal notification boundary."""
+        patcher = mock.patch.object(clipboard, "post_notification")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    async def test_paste_multiple_destination_errors_preserves_distinct_diagnostics(self):
+        """Count each rejected destination even when its reason matches another destination."""
+        # Arrange
+        rows = [TestItem([("Field", "original")]) for _ in range(3)]
+        for row, message in zip(rows, ("First rejection", "Second rejection", "First rejection")):
+
+            def reject(_setter, value, message=message):
+                return EditResult(EditResultType.REJECTED, value, message)
+
+            row.value_models[0].set_callback_pre_set_value(reject)
+        raw = '[{"properties": [{"name": ["Field"], "value": ["copied"]}]}]'
+        with mock.patch.object(omni.kit.clipboard, "paste", return_value=raw):
+            # Act
+            result = AttributeCopyPasteHelper.paste(target_rows=rows)
+
+        # Assert
+        self.assertEqual(
+            result.diagnostics, ["Field: First rejection", "Field: Second rejection", "Field: First rejection"]
+        )
+        self.assertEqual(result.unmatched, [])
+        self.assertIn("skipped 3 properties", result.message)
+        self.assertEqual([row.get_value() for row in rows], [["original"]] * 3)
+
+    async def test_paste_unresolved_asset_reports_source_error_before_rejecting_row_shape(self):
+        """Keep source diagnostics even when a generic row expects a value sequence."""
+        # Arrange
+        row = TestItem([("Texture", "original.dds")])
+        raw = json.dumps(
+            [
+                {
+                    "properties": [
+                        {
+                            "name": ["Texture"],
+                            "value": {
+                                "_key": "pxr.Sdf.AssetPath",
+                                "_value": "./missing.dds",
+                                "_source_error": "Unknown source layer",
+                            },
+                        }
+                    ]
+                }
+            ]
+        )
+        with (
+            mock.patch.object(omni.kit.clipboard, "paste", return_value=raw),
+            mock.patch.object(omni.kit.undo, "group") as group,
+        ):
+            # Act
+            result = AttributeCopyPasteHelper.paste(target_rows=[row])
+
+        # Assert
+        self.assertEqual(result.diagnostics, ["Texture: Unknown source layer"])
+        self.assertEqual(result.unmatched, [])
+        self.assertEqual(row.get_value(), ["original.dds"])
+        group.assert_not_called()
+
+    async def test_paste_enum_type_error_returns_failure_summary(self):
+        """Preserve unexpected constructor failures instead of treating them as an unmatched value."""
+
+        # Arrange
+        class Choice(Enum):
+            """Represent a model whose native converter fails unexpectedly."""
+
+            FIRST = "first"
+
+            @classmethod
+            def _missing_(cls, value):
+                """Reject missing values with the converter's original failure."""
+                raise TypeError("Choice converter failed")
+
+        row = TestItem([("Choice", Choice.FIRST)])
+        raw = '[{"properties": [{"name": ["Choice"], "value": ["other"]}]}]'
+        with (
+            mock.patch.object(omni.kit.clipboard, "paste", return_value=raw),
+            mock.patch.object(omni.kit.undo, "group"),
+            mock.patch.object(PasteSummary, "show", autospec=True) as show,
+        ):
+            # Act
+            result = AttributeCopyPasteHelper.paste(target_rows=[row])
+
+        # Assert
+        show.assert_called_once()
+        self.assertIs(show.call_args.args[0], result)
+        self.assertIn("TypeError: Choice converter failed", result.error)
+        self.assertEqual(row.get_value(), [Choice.FIRST])
+
+    async def test_parsed_clipboard_is_reused_even_when_empty(self):
+        """Reuse supplied parsed data without reading a newer clipboard value."""
+        operations = {
+            "availability": AttributeCopyPasteHelper.can_paste,
+            "paste": AttributeCopyPasteHelper.paste,
+        }
+        for operation_name, operation in operations.items():
+            for has_data in (False, True):
+                with self.subTest(operation=operation_name, has_data=has_data):
+                    # Arrange
+                    row = TestItem([("Field", "original")])
+                    raw = '[{"properties": [{"name": ["Field"], "value": ["copied"]}]}]' if has_data else "[]"
+                    with mock.patch.object(omni.kit.clipboard, "paste", return_value=raw):
+                        data = AttributeCopyPasteHelper.read()
+                    with (
+                        mock.patch.object(omni.kit.clipboard, "paste") as read,
+                        mock.patch.object(omni.kit.undo, "group"),
+                    ):
+                        # Act
+                        result = operation(target_rows=[row], data=data)
+
+                    # Assert
+                    read.assert_not_called()
+                    if operation_name == "availability":
+                        self.assertEqual(result, has_data)
+                    self.assertEqual(
+                        row.get_value(), ["copied" if operation_name == "paste" and has_data else "original"]
+                    )
+
     async def test_copy_keeps_generic_name_and_value_cardinalities_independent(self):
         """Copy generic rows without requiring equal name and value counts."""
         # Arrange
@@ -60,7 +183,7 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
         self.assertEqual(values, [2, False, "01"])
         self.assertEqual([type(value) for value in values], [int, bool, str])
 
-    async def test_can_paste_checks_matching_identity_without_writing(self):
+    async def test_paste_availability_explains_matching_identity_without_writing(self):
         """Match editable row identities without changing values or undo history."""
         for name, read_only, expected in (("Field", False, True), ("Other", False, False), ("Field", True, False)):
             with self.subTest(title=f"name={name}, read_only={read_only}"):
@@ -74,10 +197,10 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
                     mock.patch.object(omni.kit.undo, "group") as group,
                 ):
                     # Act
-                    result = AttributeCopyPasteHelper.can_paste(target_rows=[row])
+                    reason = AttributeCopyPasteHelper.get_paste_unavailable_reason(target_rows=[row])
 
                 # Assert
-                self.assertEqual(result, expected)
+                self.assertEqual(reason, None if expected else "No matching attributes found.")
                 apply.assert_not_called()
                 group.assert_not_called()
                 self.assertEqual(row.get_value(), ["original"])
@@ -113,12 +236,36 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
             "[]",
             '[{"names": ["Field"], "values": [1]}]',
             '[{"properties": null}]',
+            *(
+                json.dumps([{"properties": [{"name": ["Field"], "value": [1]}], "type_name": type_name}])
+                for type_name in (None, "", "not_a_usd_type", 4, ["float"])
+            ),
             '[{"properties": [null]}]',
             '[{"properties": [{"name": 5, "value": [1]}]}]',
             '[{"properties": [{"name": ["Field"], "value": [1], "extra": true}]}]',
             '[{"properties": [{"name": ["Field"], "metadata_key": 1, "value": [1]}]}]',
             '[{"properties": [{"name": ["Field"], "value": [{"_key": "unknown", "_value": "x"}]}]}]',
             '[{"properties": [{"name": ["Field"], "value": [{"_key": "pxr.Sdf.AssetPath", "_value": 3}]}]}]',
+            *(
+                json.dumps(
+                    [
+                        {
+                            "properties": [
+                                {
+                                    "name": ["Field"],
+                                    "value": [{"_key": "pxr.Sdf.AssetPath", "_value": "./missing.dds", **extra}],
+                                }
+                            ]
+                        }
+                    ]
+                )
+                for extra in (
+                    {"_source_error": None},
+                    {"_source_error": ""},
+                    {"_source_error": 3},
+                    {"_source_error": "unresolved", "extra": True},
+                )
+            ),
             '[{"properties": [{"name": ["Field"]}]}]',
             '[{"properties": [{"name": ["Field"], "value": 1}]}]',
             '[{"properties": [{"name": ["Field"], "value": []}]}]',
@@ -152,9 +299,9 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
         with (
             mock.patch.object(omni.kit.clipboard, "paste", return_value=raw) as read,
             mock.patch.object(omni.kit.undo, "group") as group,
-            mock.patch.object(rows[0], "set_row_values") as first,
-            mock.patch.object(rows[1], "set_row_values") as second,
-            mock.patch.object(rows[2], "set_row_values") as third,
+            mock.patch.object(rows[0], "set_row_values", return_value=None) as first,
+            mock.patch.object(rows[1], "set_row_values", return_value=None) as second,
+            mock.patch.object(rows[2], "set_row_values", return_value=None) as third,
         ):
             calls.attach_mock(group.return_value.__enter__, "enter")
             calls.attach_mock(first, "first")
@@ -171,11 +318,11 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
         self.assertEqual(
             calls.mock_calls,
             [
-                mock.call.enter(),
+                mock.call.enter(mock.ANY),
                 mock.call.first((2,)),
                 mock.call.second((1,)),
                 mock.call.third((1,)),
-                mock.call.exit(None, None, None),
+                mock.call.exit(mock.ANY, None, None, None),
             ],
         )
 
@@ -202,29 +349,6 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
                 self.assertEqual([row.get_value() for row in rows], [["original"], ["copied"]])
                 group.assert_called_once_with(remove_if_empty=True)
 
-    async def test_paste_disables_linking_before_complete_values_are_applied(self):
-        """Disable linking before writing distinct components and leave it disabled."""
-        # Arrange
-        row = TestItem([("X", 5), ("Y", 5), ("Z", 5)])
-        row.set_linked_edit_enabled(True)
-        states = []
-        for model in row.value_models:
-            model.set_callback_pre_set_value(
-                lambda setter, value: (states.append(row.linked_edit_enabled), setter(value))
-            )
-        raw = '[{"properties": [{"name": ["X", "Y", "Z"], "value": [1, 2, 3]}]}]'
-        with (
-            mock.patch.object(omni.kit.clipboard, "paste", return_value=raw),
-            mock.patch.object(omni.kit.undo, "group"),
-        ):
-            # Act
-            AttributeCopyPasteHelper.paste(target_rows=[row])
-
-        # Assert
-        self.assertEqual(row.get_value(), [1, 2, 3])
-        self.assertEqual(states, [False, False, False])
-        self.assertFalse(row.linked_edit_enabled)
-
     async def test_paste_setter_failure_keeps_prior_writes_and_stops_later_rows(self):
         """Stop on setter failure without rolling back earlier writes."""
         # Arrange
@@ -235,14 +359,22 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
             mock.patch.object(omni.kit.undo, "group"),
             mock.patch.object(omni.kit.undo, "undo") as undo,
             mock.patch.object(rows[1].value_models[0], "set_value", side_effect=ValueError("setter rejected value")),
+            mock.patch.object(PasteSummary, "show", autospec=True) as show,
+            mock.patch("carb.log_warn") as log,
         ):
             # Act
-            with self.assertRaisesRegex(ValueError, "setter rejected value"):
-                AttributeCopyPasteHelper.paste(target_rows=rows)
+            result = AttributeCopyPasteHelper.paste(target_rows=rows)
 
         # Assert
         self.assertEqual([row.get_value() for row in rows], [[1], [0], [0]])
         undo.assert_not_called()
+        show.assert_called_once()
+        self.assertIs(show.call_args.args[0], result)
+        log.assert_called_once()
+        self.assertIn(result.error, log.call_args.args[0])
+        self.assertEqual(result.submitted_count, 1)
+        self.assertIn("setter rejected value", result.error)
+        self.assertIn("Traceback", result.error)
 
     async def test_paste_leaves_deferred_callback_write_to_existing_model_owner(self):
         """Leave delayed writes with model callbacks after the paste group closes."""
@@ -260,13 +392,16 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
                     mock.patch.object(omni.kit.undo, "group") as group,
                 ):
                     # Act
-                    AttributeCopyPasteHelper.paste(target_rows=[row])
+                    result = AttributeCopyPasteHelper.paste(target_rows=[row])
 
                 # Assert
                 self.assertEqual(row.get_value(), ["original"])
                 self.assertEqual(len(continuations), 1)
                 self.assertEqual(continuations[0][1], "accepted")
-                group.return_value.__exit__.assert_called_once_with(None, None, None)
+                self.assertEqual(result.deferred, ["Texture"])
+                self.assertEqual(result.submitted_count, 0)
+                clipboard.post_notification.assert_not_called()
+                group.return_value.__exit__.assert_called_once_with(mock.ANY, None, None, None)
 
     async def test_can_paste_logical_outlet_honors_backing_attributes_and_read_only_state(self):
         """Allow empty-display outlets only when their backing properties are editable and complete."""
@@ -275,12 +410,14 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
                 # Arrange
                 row = SimpleNamespace(
                     read_only=read_only,
+                    linked_edit_enabled=False,
                     value_models=[],
+                    value_type_name=None,
                     name_models=[],
                     context_name="outlet_context",
                     get_target_paths=lambda: [Sdf.Path("/A"), Sdf.Path("/B")],
                     get_logical_row_attribute_names=lambda: ["curve:times", "curve:values"],
-                    set_row_values=mock.Mock(),
+                    set_row_values=mock.Mock(return_value=None),
                 )
                 stage = mock.Mock()
                 stage.GetAttributeAtPath.side_effect = lambda path, missing=missing: (
@@ -321,13 +458,15 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
                     properties.append(records[0])
                 row = SimpleNamespace(
                     read_only=False,
+                    linked_edit_enabled=False,
                     value_models=[],
+                    value_type_name=None,
                     name_models=[],
                     context_name="outlet_context",
                     get_target_paths=lambda: [Sdf.Path("/A"), Sdf.Path("/B")],
                     get_logical_row_attribute_names=lambda: ["curve:times", "curve:values", "legacy"],
                     set_linked_edit_enabled=mock.Mock(),
-                    set_row_values=mock.Mock(),
+                    set_row_values=mock.Mock(return_value=None),
                 )
                 with (
                     mock.patch.object(
@@ -348,14 +487,9 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
                     row.set_linked_edit_enabled.assert_not_called()
                     group.assert_not_called()
 
-    async def test_copy_usd_rows_use_last_source_or_existing_model_default(self):
-        """Copy the last USD source or its existing fallback without authoring values."""
+    async def test_copy_usd_metadata_and_fallbacks_preserves_last_source_without_authoring(self):
+        """Copy last-source metadata, model fallbacks, and relationship values without authoring."""
         cases = (
-            ("attribute", None, 9, 9, {"name": "weight", "value": 9}),
-            ("attribute", None, None, 5, {"name": "weight", "value": 5}),
-            ("attribute", None, None, 0, {"name": "weight", "value": 0}),
-            ("attribute", None, None, False, {"name": "weight", "value": False}),
-            ("attribute", None, None, [2, 3, 4], {"name": "weight", "value": [2, 3, 4]}),
             ("schema_fallback", None, 1, 8, {"name": "weight", "value": 8}),
             (
                 "metadata",
@@ -365,69 +499,37 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
                 {"name": "weight", "metadata_key": "colorSpace", "value": "sRGB"},
             ),
             ("metadata", "colorSpace", None, "auto", {"name": "weight", "metadata_key": "colorSpace", "value": "auto"}),
-            ("virtual", None, None, 5, {"name": "weight", "value": 5}),
-            ("virtual", None, None, [2, 3, 4], {"name": "weight", "value": [2, 3, 4]}),
-            ("virtual_existing", None, None, 5, {"name": "weight", "value": 5}),
-            ("virtual_existing", None, None, [2, 3, 4], {"name": "weight", "value": [2, 3, 4]}),
             ("relationship", None, None, "/Target", {"name": ["Display label"], "value": ["/Target"]}),
-            (
-                "asset",
-                None,
-                Sdf.AssetPath("missing.dds"),
-                "",
-                {"name": "weight", "value": {"_key": "pxr.Sdf.AssetPath", "_value": "missing.dds"}},
-            ),
         )
         for kind, metadata_key, native, default, expected in cases:
             with self.subTest(title=f"kind={kind}, native={native}"):
                 # Arrange
-                models = []
-                for component in default if isinstance(default, list) else [default]:
-                    model = mock.Mock(
-                        spec=[
-                            "is_virtual",
-                            "default_value",
-                            "get_value",
-                            "get_attributes_raw_value",
-                            "refresh",
-                            "set_value",
-                        ],
-                        is_virtual=kind in ("virtual", "virtual_existing"),
-                        default_value=default if kind in ("virtual", "virtual_existing") else component,
-                    )
-                    model.get_value.return_value = component if kind == "relationship" else "stale"
-                    if kind not in ("metadata", "asset", "relationship"):
-                        model.refresh.side_effect = lambda model=model, component=component: setattr(
-                            model.get_value, "return_value", component
-                        )
-                    raw_value = component
-                    if kind == "asset":
-                        raw_value = native
-                    elif model.is_virtual:
-                        raw_value = default
-                    model.get_attributes_raw_value.return_value = raw_value
-                    models.append(model)
+                model = mock.Mock(is_virtual=False, default_value=default)
+                model.get_value.return_value = default if kind == "relationship" else "stale"
+                model.refresh.side_effect = lambda model=model, default=default: setattr(
+                    model.get_value, "return_value", default
+                )
                 row = SimpleNamespace(
                     read_only=False,
+                    linked_edit_enabled=False,
                     context_name="source_context",
-                    attribute_paths=[Sdf.Path("/First.weight"), Sdf.Path("/Last.weight")],
+                    attribute_paths=[Sdf.Path("/First.other"), Sdf.Path("/Last.weight")],
                     metadata_key=metadata_key,
                     name_models=[TestItemModel("Display label")],
-                    value_models=models,
+                    value_models=[model],
+                    value_type_name="float" if kind == "schema_fallback" else None,
                     get_logical_row_attribute_names=lambda: None,
                 )
                 stage = mock.Mock()
                 first = mock.Mock()
-                first.Get.return_value = 1
+                first.GetMetadata.return_value = "first source"
                 last = mock.Mock()
                 last.Get.return_value = native
                 last.GetMetadata.return_value = native
-                last.GetTypeName.return_value = (
-                    Sdf.ValueTypeNames.Asset if kind == "asset" else Sdf.ValueTypeNames.Float
-                )
-                attributes = {"/First.weight": first, "/Last.weight": last}
+                last.GetTypeName.return_value = Sdf.ValueTypeNames.Float
+                attributes = {"/First.other": first, "/Last.weight": last}
                 stage.GetAttributeAtPath.side_effect = lambda path, kind=kind, attributes=attributes: (
-                    None if kind in ("virtual", "relationship") else attributes[str(path)]
+                    None if kind == "relationship" else attributes[str(path)]
                 )
                 stage.GetRelationshipAtPath.return_value = mock.Mock() if kind == "relationship" else None
                 with (
@@ -440,11 +542,11 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
                     AttributeCopyPasteHelper.copy(source_rows=[row])
 
                 # Assert
-                self.assertEqual(json.loads(copy.call_args.args[0]), [{"properties": [expected]}])
-                for model in models:
-                    model.set_value.assert_not_called()
-                    if kind == "asset" or (kind in ("virtual", "virtual_existing") and len(models) == 1):
-                        model.get_attributes_raw_value.assert_called_once_with(-1)
+                expected_row = {"properties": [expected]}
+                if kind == "schema_fallback":
+                    expected_row["type_name"] = "float"
+                self.assertEqual(json.loads(copy.call_args.args[0]), [expected_row])
+                model.set_value.assert_not_called()
                 last.Set.assert_not_called()
                 first.Set.assert_not_called()
 
@@ -457,14 +559,16 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
                 model.get_value.return_value = 0
                 row = SimpleNamespace(
                     read_only=False,
+                    linked_edit_enabled=False,
                     context_name="virtual_context",
                     attribute_paths=[Sdf.Path("/First.weight"), Sdf.Path("/Last.weight")],
                     metadata_key=None,
                     name_models=[TestItemModel("Weight")],
                     value_models=[model],
+                    value_type_name=None,
                     get_logical_row_attribute_names=lambda: None,
                     set_linked_edit_enabled=mock.Mock(),
-                    set_row_values=mock.Mock(),
+                    set_row_values=mock.Mock(return_value=None),
                 )
                 raw = '[{"properties": [{"name": "weight", "value": 5}]}]'
                 with (
@@ -496,17 +600,25 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
         # Arrange
         common = {
             "read_only": False,
+            "linked_edit_enabled": False,
             "context_name": "metadata_context",
             "attribute_paths": [Sdf.Path("/Material.inputs:texture")],
             "name_models": [TestItemModel("Texture")],
             "value_models": [TestItemModel("original")],
+            "value_type_name": None,
             "get_logical_row_attribute_names": lambda: None,
         }
         value_row = SimpleNamespace(
-            **common, metadata_key=None, set_row_values=mock.Mock(), set_linked_edit_enabled=mock.Mock()
+            **common,
+            metadata_key=None,
+            set_row_values=mock.Mock(return_value=None),
+            set_linked_edit_enabled=mock.Mock(),
         )
         metadata_row = SimpleNamespace(
-            **common, metadata_key="colorSpace", set_row_values=mock.Mock(), set_linked_edit_enabled=mock.Mock()
+            **common,
+            metadata_key="colorSpace",
+            set_row_values=mock.Mock(return_value=None),
+            set_linked_edit_enabled=mock.Mock(),
         )
         raw = '[{"properties": [{"name": "inputs:texture", "metadata_key": "colorSpace", "value": "sRGB"}]}]'
         with (
@@ -520,3 +632,63 @@ class TestClipboard(omni.kit.test.AsyncTestCase):
         # Assert
         value_row.set_row_values.assert_not_called()
         metadata_row.set_row_values.assert_called_once_with(("sRGB",))
+
+
+class TestPasteSummary(omni.kit.test.AsyncTestCase):
+    """Pin paste feedback independently of notification widgets."""
+
+    def setUp(self):
+        """Keep summary display at the terminal notification boundary."""
+        patcher = mock.patch.object(clipboard, "post_notification")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    async def test_show_deferred_properties_leaves_feedback_to_confirmation_dialog(self):
+        """Keep deferred-only and mixed successful edits quiet while confirmation owns completion."""
+        for submitted_count in (0, 1):
+            with self.subTest(submitted_count=submitted_count):
+                # Arrange
+                summary = PasteSummary(
+                    copied=["Roughness", "Texture"], submitted_count=submitted_count, deferred=["Texture"]
+                )
+
+                # Act
+                summary.show()
+
+                # Assert
+                clipboard.post_notification.assert_not_called()
+                self.assertEqual(summary.deferred, ["Texture"])
+
+    async def test_show_empty_error_takes_precedence_over_empty_clipboard(self):
+        """Report failures even when no copied properties or traceback text are available."""
+        # Arrange
+        summary = PasteSummary(error="")
+
+        # Act
+        summary.show()
+
+        # Assert
+        self.assertEqual(summary.title, "Paste failed")
+        self.assertIn("rolled back", summary.message)
+
+    async def test_show_diagnostics_override_mismatches_and_retain_adjustments(self):
+        """Keep rejected values, unmatched identities, and clamp explanations in one warning."""
+        # Arrange
+        summary = PasteSummary(
+            copied=["Value", "MissingSourceAttribute"],
+            submitted_count=1,
+            diagnostics=["Bad path"],
+            unmatched=["MissingSourceAttribute"],
+            adjustments=["Value: 2 -> 1."],
+            deferred=["Texture"],
+        )
+
+        # Act
+        summary.show()
+
+        # Assert
+        self.assertEqual(summary.title, "Skipped properties")
+        self.assertIn("could not be accepted", summary.message)
+        self.assertNotIn("not been applied yet", summary.message)
+        for detail in ("Bad path", "MissingSourceAttribute", "Value: 2 -> 1."):
+            self.assertIn(detail, summary.details.splitlines())

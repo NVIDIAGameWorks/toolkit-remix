@@ -23,6 +23,7 @@ __all__ = [
     "delete_metadata",
     "elide_path",
     "get_absolute_path_from_relative",
+    "get_asset_path_for_attribute",
     "get_invalid_extensions",
     "get_local_path",
     "get_new_hash",
@@ -52,7 +53,7 @@ import re
 import subprocess
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from urllib.request import url2pathname
 from enum import Enum, auto
 
@@ -60,9 +61,7 @@ import carb
 import carb.tokens
 import omni.client
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
-
-if TYPE_CHECKING:
-    from pxr import Sdf
+from pxr import Sdf, Usd
 
 _REGEX_MATCH_UDIM = re.compile("^.*(<UDIM>|<UVTILE0>|<UVTILE1>).*")
 _REGEX_UDIM_GROUP_UV_TILE = re.compile("^(.*)(<UDIM>|<UVTILE0>|<UVTILE1>)(.*)")
@@ -102,6 +101,44 @@ def get_absolute_path_from_relative(path: str, layer: Sdf.Layer):
         the absolute path
     """
     return omni.client.normalize_url(layer.ComputeAbsolutePath(path)).replace("\\", "/")
+
+
+def get_asset_path_for_attribute(attribute: Usd.Attribute | None, value: Sdf.AssetPath) -> str:
+    """Preserve an asset location using the layer that supplies its default value.
+
+    Args:
+        attribute: Source attribute, including composed references and overrides.
+        value: Source asset value whose location must be preserved.
+
+    Returns:
+        The source asset identity.
+
+    Raises:
+        ValueError: If a relative source asset cannot be resolved or anchored.
+    """
+    if not isinstance(value, Sdf.AssetPath):
+        raise ValueError("The source attribute does not contain an asset path.")
+    source_layer = None
+    if attribute:
+        for specification in attribute.GetPropertyStack(Usd.TimeCode.Default()):
+            if specification.HasInfo("default"):
+                source_layer = specification.layer
+                break
+    layer_identifier = source_layer.identifier if source_layer else None
+    if not value.path:
+        return ""
+    if value.resolvedPath:
+        return value.resolvedPath
+    if is_absolute_path(value.path):
+        return value.path
+    if source_layer is not None:
+        location = Sdf.ComputeAssetPathRelativeToLayer(source_layer, value.path)
+        if location and is_absolute_path(location):
+            return location
+    raise ValueError(
+        "Source asset path could not be resolved or anchored. "
+        f"Authored path: {value.path}. Source layer: {layer_identifier or 'unavailable'}."
+    )
 
 
 def is_file_path_valid(path: str, layer: Sdf.Layer | None = None, log_error: bool = True) -> bool:

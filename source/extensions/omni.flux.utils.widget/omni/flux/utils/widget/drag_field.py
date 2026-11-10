@@ -23,6 +23,7 @@ from typing import Any, Protocol, cast
 
 import carb
 import omni.ui as ui
+from omni.flux.utils.common.edit_result import EditResult, EditResultType
 
 
 class _DragModelProtocol(Protocol):
@@ -152,9 +153,9 @@ class _BoundedNumericDragBase:
                 model.begin_batch_edit()
             try:
                 value = self._coerce_and_clamp_numeric_value(value, hard_min, hard_max)
-            except (OverflowError, TypeError, ValueError):
-                return
-            set_fn(value)
+            except (OverflowError, TypeError, ValueError) as error:
+                return EditResult(EditResultType.REJECTED, value, str(error))
+            return set_fn(value)
 
         model.set_callback_pre_set_value(_clamp)
 

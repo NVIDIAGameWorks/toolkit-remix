@@ -2,6 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.0.0]
+### Added
+- Added row-declared types for clipboard matching and per-property setter outcomes with applied asset paths, model-owned texture formatting and validation using the path policy and actual receiving layer, absolute fallbacks, and explicit synchronous write failure reporting.
+
+### Changed
+- Consolidated paste validation, clamp feedback, scrollable Details, clipboard changes, and texture-name matching around real USD workflows, including saved texture references and session-layer destinations.
+
 ## [4.2.1]
 ### Fixed
 - Improved fine dragging for light intensity/radius and material emissive intensity, including a finer distant-light default. Centralized light configuration uses shared schema-aware classification and honors metadata overrides while preserving typed precision, row isolation, and other controls' drag speeds.
