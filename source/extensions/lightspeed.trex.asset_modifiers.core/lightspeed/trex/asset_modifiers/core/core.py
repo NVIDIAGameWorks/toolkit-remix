@@ -23,11 +23,11 @@ from collections import defaultdict
 from collections.abc import Callable
 
 from lightspeed.common.constants import REMIX_INGESTED_ASSETS_FOLDER
-from lightspeed.trex.asset_pipeline.core.jobs.models import ReferenceTarget
-from lightspeed.trex.asset_pipeline.core.jobs.asset_replace_apply_target import AssetReplaceApplyTarget
-from lightspeed.trex.utils.common.prim_utils import find_prim_with_references, get_prototype
 from lightspeed.trex.asset_modifiers.factory import AssetModifierBase
 from lightspeed.trex.asset_modifiers.factory import get_instance as _get_asset_modifier_factory
+from lightspeed.trex.asset_pipeline.core.jobs.asset_replace_apply_target import AssetReplaceApplyTarget
+from lightspeed.trex.asset_pipeline.core.jobs.models import ReferenceTarget
+from lightspeed.trex.utils.common.prim_utils import find_prim_with_references, get_prototype
 from omni.flux.job_queue.core.job import JobGraph
 from omni.flux.utils.common.omni_url import OmniUrl
 from omni.kit.app import get_app
@@ -155,6 +155,7 @@ class AssetModifiersCore:
         if root_layer is not None and not root_layer.anonymous:
             output_directory = OmniUrl(OmniUrl(root_layer.identifier).parent_url) / REMIX_INGESTED_ASSETS_FOLDER
         graphs = []
+        submitted_path_strings = set()
         for source_url, path_keys in source_paths.items():
             paths = tuple(path_keys)
             job = modifier_type.job_type(
@@ -166,7 +167,8 @@ class AssetModifiersCore:
             )
             # Like AI Tools, each job publishes to its own folder, so runs on one source never overwrite each other.
             if output_directory is not None:
-                job.output_url = str(output_directory / "modifiers" / modifier.name / str(job.job_id))
+                # 12 hex digits are 48 random bits: a name collision needs millions of jobs in one modifier folder.
+                job.output_url = str(output_directory / "modifiers" / modifier.name / job.job_id.hex[:12])
             # Stage sources share the reference Replace, Revert, and Undo with ComfyUI. Constant files have no target.
             target = None
             if source_targets[source_url]:
@@ -185,4 +187,15 @@ class AssetModifiersCore:
                 skipped |= dict.fromkeys(paths or (source_url,), job.skip_reason)
                 continue
             graphs.append(graph)
+            submitted_path_strings.update(paths)
+        if skipped and submitted_path_strings:
+            submitted_paths = {Sdf.Path(path) for path in submitted_path_strings}
+            submitted_prefixes = {prefix for path in submitted_paths for prefix in path.GetPrefixes()}
+            submitted_prefixes.add(Sdf.Path.absoluteRootPath)
+            skipped = {
+                path: reason
+                for path, reason in skipped.items()
+                if (skipped_prim_path := Sdf.Path(path)) not in submitted_prefixes
+                and submitted_paths.isdisjoint(skipped_prim_path.GetPrefixes())
+            }
         return graphs, skipped

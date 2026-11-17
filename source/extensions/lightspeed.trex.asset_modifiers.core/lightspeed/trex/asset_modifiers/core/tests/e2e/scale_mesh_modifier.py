@@ -24,7 +24,7 @@ from lightspeed.trex.asset_pipeline.core.jobs.apply_handler import SaveMeshMetad
 from lightspeed.trex.asset_pipeline.core.jobs.asset_replace_apply_handler import AssetReplaceApplyHandler
 from lightspeed.trex.asset_pipeline.core.jobs.asset_replace_apply_target import AssetReplaceApplyTarget
 from lightspeed.trex.utils.common.prim_utils import is_mesh_asset
-from omni.flux.job_queue.core.job import JobGraph
+from omni.flux.job_queue.core.job import JobGraph, JobOutputs
 from pxr import Usd, UsdGeom, UsdShade
 
 
@@ -34,11 +34,26 @@ class ScaleMeshTestModifier(AssetModifierBase):
     name = "test_scale_mesh"
     display_name = "Scale Mesh (Test)"
     tooltip = "Scale the selected meshes. Test only."
+    description = "Scale every mesh in the source model."
     experimental = True
     inputs = (
-        ModifierInput("scale", "Scale", float, 1.0, tooltip="Multiply the mesh size.", min_value=0.1, max_value=10.0),
+        ModifierInput("show_scale", "Show Scale", bool, True),
+        ModifierInput(
+            "scale",
+            "Scale",
+            float,
+            1.0,
+            tooltip="Multiply the mesh size.",
+            min_value=0.1,
+            max_value=10.0,
+            visible_if=lambda values: values["show_scale"],
+        ),
     )
     job_type = ScaleMeshTestJob
+
+    def summarize_result(self, outputs: JobOutputs) -> str | None:
+        """Report the real exported model."""
+        return f"Scaled model: {outputs[ScaleMeshTestJob.MESH_REQUEST].source_path.name}"
 
     def is_compatible(self, prim: Usd.Prim) -> bool:
         """Accept geometry meshes and Remix mesh asset rows."""

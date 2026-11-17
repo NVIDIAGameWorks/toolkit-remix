@@ -381,6 +381,14 @@ class Job(abc.ABC):
             if self.apply_binding.output_port not in job_type.output_ports:
                 raise ValueError("apply_binding output port must be declared by the job")
 
+    def get_owned_output_urls(self) -> tuple[str, ...]:
+        """Return output folders owned exclusively by this job."""
+        return ()
+
+    def get_input_urls(self, inputs: JobInputs) -> tuple[str, ...]:
+        """Return files needed by this job from its payload and currently available typed inputs."""
+        return ()
+
     def get_schedule_block_reason(self) -> str | None:
         """Return why this queued job is not runnable yet.
 

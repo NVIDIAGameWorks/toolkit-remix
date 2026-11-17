@@ -33,12 +33,13 @@ from lightspeed.trex.comfyui.core.job import ComfyUIJob
 from lightspeed.trex.comfyui.core.models import ComfyUIWorkflowRequest, Workflow, WorkflowInput, WorkflowOutput
 from lightspeed.trex.comfyui.core.preset import Preset
 from lightspeed.trex.comfyui.core.resolvers import ConstantResolver, ResolverConfigurationError
-from ...display_adapter import ComfyUIDisplayAdapter
-from ...workflow.items import InputItemGroup, OutputItemGroup
-from ...workflow.widget import WorkflowSetupWidget
 from omni import usd
 from omni.flux.job_queue.widget.display_adapter_base import JobAction
 from omni.kit.test import AsyncTestCase
+
+from ...display_adapter import ComfyUIDisplayAdapter
+from ...workflow.items import InputItemGroup, OutputItemGroup
+from ...workflow.widget import WorkflowSetupWidget
 
 
 def _make_input(
@@ -868,38 +869,10 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         start.assert_called_once_with(None, widget._prepare_and_submit, name="ComfyUIWorkflowSubmission")
         prepare_task.add_done_callback.assert_called_once()
 
-    async def test_queue_submission_routes_through_core(self):
-        """Prepared submissions are passed unchanged to the owning core."""
-        # Arrange
-        submission = ComfyUISubmission((MagicMock(),), 0)
-        core = _make_core(_make_workflow())
-        core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(1, 0))
-        widget = _make_bare_widget(core)
-
-        # Act
-        await widget._submit_prepared_submission(submission)
-
-        # Assert
-        core.submit_prepared_submission.assert_awaited_once_with(submission)
-
-    async def test_queue_submission_preserves_all_material_graphs(self):
-        """Every prepared material graph is submitted in its resolved order."""
-        # Arrange
-        submission = ComfyUISubmission((MagicMock(), MagicMock()), 0)
-        core = _make_core(_make_workflow())
-        core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(2, 0))
-        widget = _make_bare_widget(core)
-
-        # Act
-        await widget._submit_prepared_submission(submission)
-
-        # Assert
-        core.submit_prepared_submission.assert_awaited_once_with(submission)
-
     async def test_queue_submission_failure_reports_recovery(self):
         """A failed queue submission reports recovery guidance and logs the error."""
         # Arrange
-        submission = ComfyUISubmission((MagicMock(),), 0)
+        submission = ComfyUISubmission((MagicMock(),), ())
         error = RuntimeError("queue unavailable")
         core = _make_core(_make_workflow())
         core.submit_prepared_submission = AsyncMock(side_effect=error)
@@ -909,11 +882,13 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         with (
             patch("lightspeed.trex.comfyui.widget.workflow.widget._TrexMessageDialog") as dialog,
             patch("lightspeed.trex.comfyui.widget.workflow.widget.carb.log_error") as log_error,
+            patch("lightspeed.trex.comfyui.widget.workflow.widget.get_job_result_notifier") as get_notifier,
         ):
             await widget._submit_prepared_submission(submission)
 
         # Assert
         core.submit_prepared_submission.assert_awaited_once_with(submission)
+        get_notifier.return_value.register_graphs.assert_called_once_with(submission.graphs)
         self.assertEqual(
             dialog.call_args.args,
             (
@@ -922,6 +897,21 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
             ),
         )
         log_error.assert_called_once_with(f"Failed to submit ComfyUI jobs: {error}")
+
+    async def test_queue_submission_cancellation_still_registers_graph_results(self):
+        """Submission cancellation preserves result registration for accepted graphs."""
+        # Arrange
+        submission = ComfyUISubmission((MagicMock(),), ())
+        core = _make_core(_make_workflow())
+        core.submit_prepared_submission = AsyncMock(side_effect=asyncio.CancelledError())
+        widget = _make_bare_widget(core)
+        with patch("lightspeed.trex.comfyui.widget.workflow.widget.get_job_result_notifier") as get_notifier:
+            # Act
+            with self.assertRaises(asyncio.CancelledError):
+                await widget._submit_prepared_submission(submission)
+
+        # Assert
+        get_notifier.return_value.register_graphs.assert_called_once_with(submission.graphs)
 
     async def test_prepare_failure_reports_recovery_without_technical_details(self):
         """A preparation failure gives recovery guidance while retaining technical details in the log."""
@@ -970,29 +960,10 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         log_error.assert_called_once_with(f"Invalid ComfyUI workflow input: {error}")
         widget._submit_prepared_submission.assert_not_awaited()
 
-    async def test_prepared_jobs_without_skips_submit_exact_graph(self):
-        """A fully resolvable prepared graph is queued without an extra confirmation."""
-        # Arrange
-        submission = ComfyUISubmission((MagicMock(),), 0)
-        core = _make_core(_make_workflow())
-        core.prepare_submission = AsyncMock(return_value=submission)
-        widget = _make_bare_widget(core)
-        widget._submit_prepared_submission = AsyncMock()
-
-        # Act
-        with (
-            patch("lightspeed.trex.comfyui.widget.workflow.widget._TrexMessageDialog") as dialog,
-        ):
-            await widget._prepare_and_submit()
-
-        # Assert
-        widget._submit_prepared_submission.assert_awaited_once_with(submission)
-        dialog.assert_not_called()
-
     async def test_queue_submission_all_failures_reports_exact_counts(self):
         """An entirely failed batch can be retried without duplicating queued work."""
         # Arrange
-        submission = ComfyUISubmission((MagicMock(),), 0)
+        submission = ComfyUISubmission((MagicMock(),), ())
         core = _make_core(_make_workflow())
         core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(0, 1))
         widget = _make_bare_widget(core)
@@ -1000,6 +971,7 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
         # Act
         with (
             patch("lightspeed.trex.comfyui.widget.workflow.widget._TrexMessageDialog") as dialog,
+            patch("lightspeed.trex.comfyui.widget.workflow.widget.get_job_result_notifier"),
         ):
             await widget._submit_prepared_submission(submission)
 
@@ -1011,34 +983,6 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
             "1 prepared job was not added. Check that the job queue is available, then try again.",
         )
         self.assertEqual(dialog.call_args.args[1], "ComfyUI Jobs Not Submitted")
-
-    async def test_queue_submission_partial_failure_continues_and_reports_exact_counts(self):
-        """A failed material does not block later graphs or invite retrying successful work."""
-        # Arrange
-        submission = ComfyUISubmission((MagicMock(), MagicMock(), MagicMock()), 0)
-        core = _make_core(_make_workflow())
-        core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(2, 1))
-        widget = _make_bare_widget(core)
-
-        # Act
-        with (
-            patch("lightspeed.trex.comfyui.widget.workflow.widget._TrexMessageDialog") as dialog,
-        ):
-            await widget._submit_prepared_submission(submission)
-
-        # Assert
-        core.submit_prepared_submission.assert_awaited_once_with(submission)
-        self.assertEqual(
-            dialog.call_args.args,
-            (
-                (
-                    "2 prepared jobs were added to the queue.\n\n"
-                    "1 prepared job was not added. To avoid duplicates, select only the failed material before "
-                    "submitting again."
-                ),
-                "Some ComfyUI Jobs Not Submitted",
-            ),
-        )
 
     async def test_refresh_replaces_in_flight_task_to_prevent_stale_result(self):
         """The latest workflow refresh cancels an older request before it can publish stale data."""

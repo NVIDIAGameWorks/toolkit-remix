@@ -350,12 +350,16 @@ server confirms the cancellation, so a timed-out prompt cannot slow the jobs aft
    connected, no workflow is selected, or no project is open.
 4. The **Preparing ComfyUI Jobs** window shows the progress while the Toolkit reads the stage. Click **Cancel** to stop
    without adding jobs.
-5. If some items do not provide the inputs that the workflow requires, the Toolkit does not add jobs for them. The
-   other jobs go to the queue. If no item is valid, the **No ComfyUI Jobs Created** dialog tells you that no jobs were
-   added.
+5. A notification shows how many jobs entered the queue. If items do not provide the required inputs, it also shows
+   their count and the first reason, as a warning. The other jobs enter the queue. If no item is valid, the
+   **No Jobs Created** error dialog shows the reason, and no job enters the queue.
 
 The jobs start as soon as the [Job Queue](../toolkitinterface/remix-toolkitinterface-jobqueue.md) scheduler runs, which
 it does by default. If the toolbar shows **Stopped**, click **Start** (▶️).
+
+AI Tools and Asset Modifiers use the same notifications. See [Job Queue](../toolkitinterface/remix-toolkitinterface-jobqueue.md#notifications).
+Each submitted graph produces one result notification when its **ComfyUI generation** stage finishes.
+The notification shows the workflow name and stage state. The optimization stages can still run.
 
 ### Applying Results
 
@@ -460,9 +464,8 @@ You can also right-click a prim and select **Remix AI Tools...**:
 
 ![Stage Manager context menu with the Remix AI Tools submenu](../data/images/remix-aitexturetools-stagemanager-menu.png)
 
-After a submission, a notification confirms that the selection was added to the job queue. Select
-**Open AI Tools layout** in the notification to see the jobs. Selected prims that do not provide the required inputs do
-not create jobs. If no selected prim provides them, the Toolkit shows a dialog and adds no jobs.
+The [submission notifications](#submitting-a-job) also apply to Stage Manager submissions.
+Select **Open AI Tools layout** in the notification to see the jobs.
 
 ```{tip}
 Submit from the **Materials** tab in the Stage Manager to apply results at the Material prim level. This creates an

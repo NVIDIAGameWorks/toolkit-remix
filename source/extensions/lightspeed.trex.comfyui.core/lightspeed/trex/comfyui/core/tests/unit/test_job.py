@@ -1425,7 +1425,9 @@ class TestComfyUIAssetApplyHandler(AsyncTestCase):
         undo = MagicMock()
         with (
             patch.object(
-                apply_handler_module, "_get_apply_stage", return_value=(stage, MagicMock())
+                apply_handler_module,
+                "_get_apply_stage",
+                return_value=(stage, MagicMock(identifier=target.project_path)),
             ) as get_apply_stage,
             patch.object(reference_apply_module, "get_apply_stage", get_apply_stage),
             patch.object(apply_handler_module, "_reference_state", return_value=("original", {})),
@@ -1451,7 +1453,7 @@ class TestComfyUIAssetApplyHandler(AsyncTestCase):
             prim=stage.GetPrimAtPath("/World/AssetA/ref"),
             attr_name=reference_apply_module._GENERATED_FOR_ATTR,
             attr_type=Sdf.ValueTypeNames.String,
-            attr_value=reference_apply_module._generated_marker("/World/AssetA", value.asset_url),
+            attr_value=reference_apply_module._generated_marker("/World/AssetA", "../published/generated.glb"),
         )
         undo.assert_called_once_with()
 

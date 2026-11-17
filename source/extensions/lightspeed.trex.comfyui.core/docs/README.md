@@ -41,8 +41,10 @@ ComfyUICore
 
 - `ComfyUICore` resolves candidates and builds output-driven graphs for one USD context.
 - `ComfyUICore.prepare_submission(prim_paths)` returns a `ComfyUISubmission` with only valid graphs.
-  `skipped_count` counts excluded items. It does not count graphs in the returned collection.
+  `skip_reasons` preserves the exact reason from each excluded graph's first job, in preparation order.
   `submit_prepared_submission` adds the valid batch in one queue transaction and returns a `ComfyUISubmissionResult`.
+  The first graph job generates the ComfyUI output. UI callers register that job with the shared result notifier.
+  UI callers use `post_submission_notification` from `omni.flux.job_queue.widget.notifications` to report accepted graphs and skip reasons.
   `get_retarget_state` returns a `ComfyUIRetargetState` for the Retarget action.
 - `ComfyUIAPI` uploads inputs, submits prompts, reads history, downloads declared files, and cancels prompts.
   Cancellation retries requests and queue checks until a valid response confirms removal, without a time limit.

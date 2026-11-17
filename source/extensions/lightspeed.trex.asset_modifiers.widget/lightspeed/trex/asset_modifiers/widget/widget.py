@@ -18,14 +18,16 @@
 __all__ = ["AssetModifiersWidget"]
 
 from carb.eventdispatcher import get_eventdispatcher
-from lightspeed.trex.asset_modifiers.factory import get_instance as _get_asset_modifier_factory
-from lightspeed.trex.asset_modifiers.core.constants import FILE_INPUT, SOURCE_INPUT
 from lightspeed.trex.asset_modifiers.core import AssetModifiersCore
+from lightspeed.trex.asset_modifiers.core.constants import FILE_INPUT, SOURCE_INPUT
 from lightspeed.trex.asset_modifiers.core.enums import SourceGetter
 from lightspeed.trex.asset_modifiers.core.settings import AssetModifierSettings
+from lightspeed.trex.asset_modifiers.factory import get_instance as _get_asset_modifier_factory
 from lightspeed.trex.utils.widget.workspace import WorkspaceWidget
 from omni import ui, usd
+from omni.flux.info_icon.widget import InfoIconWidget
 from omni.flux.property_widget_builder.widget import ItemGroup, Model, PropertyWidget
+from omni.flux.utils.common import weak_callback
 from omni.flux.utils.widget.collapsable_frame import PropertyCollapsableFrameWithInfoPopup
 from omni.flux.utils.widget.combo_box import SectionedComboBox, SectionedComboItem
 
@@ -42,6 +44,7 @@ class AssetModifiersWidget(WorkspaceWidget):
     _FORM_SPACING = ui.Pixel(8)
     _NAME_COLUMN_PERCENT = 40
     _NO_MODIFIERS_TEXT = "No asset modifiers available"
+    _PICKER_TOOLTIP = "Select the asset modifier to run on the source prims."
 
     def __init__(self, context_name: str):
         """Build the controls for one USD context."""
@@ -51,6 +54,7 @@ class AssetModifiersWidget(WorkspaceWidget):
         self._settings = AssetModifierSettings()
         self._layout_key = None
         self._property_widget: PropertyWidget | None = None
+        self._input_items: list[ModifierValueItem] = []
         self._root = ui.ZStack()
         with self._root:
             ui.Rectangle(name="WorkspaceBackground")
@@ -59,24 +63,29 @@ class AssetModifiersWidget(WorkspaceWidget):
                     ui.Spacer(width=self._CONTENT_PADDING)
                     with ui.VStack(spacing=self._SECTION_SPACING):
                         ui.Spacer(height=self._CONTENT_PADDING)
-                        with PropertyCollapsableFrameWithInfoPopup(
-                            "ASSET MODIFIER", info_text="Select the asset modifier to run on the source prims."
-                        ):
+                        with PropertyCollapsableFrameWithInfoPopup("ASSET MODIFIER", info_text=self._PICKER_TOOLTIP):
                             with ui.HStack(spacing=self._FORM_SPACING, height=0):
                                 ui.Label(
                                     "Modifier",
                                     width=ui.Percent(self._NAME_COLUMN_PERCENT),
                                     word_wrap=False,
-                                    tooltip="Select the asset modifier to run",
+                                    tooltip=self._PICKER_TOOLTIP,
                                 )
                                 self._picker = SectionedComboBox(
                                     identifier="AssetModifierPicker",
-                                    tooltip="Select the asset modifier to run",
+                                    tooltip=self._PICKER_TOOLTIP,
                                     on_selection_changed_fn=lambda _index, item: (
                                         self._settings.set_active_modifier_name(item.data.name)
                                     ),
                                     width=ui.Fraction(1),
                                 )
+                                self._description_icon: InfoIconWidget | None = None
+                                self._description_stack = ui.VStack(width=0)
+                        with ui.VStack(height=0, visible=False) as self._last_run:
+                            ui.Label("Last Run", height=0)
+                            self._last_run_label = ui.Label(
+                                "", height=0, word_wrap=True, identifier="AssetModifierLastRun"
+                            )
                     ui.Spacer(width=self._CONTENT_PADDING)
                 ui.Spacer(height=self._SECTION_SPACING)
                 with ui.HStack():
@@ -93,7 +102,7 @@ class AssetModifiersWidget(WorkspaceWidget):
                     self._run_button = ui.Button(
                         "Run Modifier",
                         identifier="AssetModifierRun",
-                        clicked_fn=lambda: AssetModifierSubmitter.submit(self._context_name),
+                        clicked_fn=self._submit,
                     )
                     ui.Spacer(width=self._CONTENT_PADDING)
                 ui.Spacer(height=self._CONTENT_PADDING)
@@ -109,17 +118,25 @@ class AssetModifiersWidget(WorkspaceWidget):
             for event_type in (usd.StageEventType.OPENED, usd.StageEventType.CLOSED)
         ]
         self._on_changed()
+        AssetModifierSubmitter.set_result_listener(context_name, weak_callback(self._on_job_result))
 
     def destroy(self) -> None:
         """Release the subscriptions and widgets."""
         if self.destroyed:
             return
         self._mark_destroyed()
+        AssetModifierSubmitter.set_result_listener(self._context_name, None)
         self._changed_subscription = None
         self._stage_subscription = None
         if self._property_widget is not None:
             self._property_widget.destroy()
+            self._property_widget = None
+        for row in self._input_items:
+            row.destroy()
+        self._input_items.clear()
         self._picker.destroy()
+        if self._description_icon is not None:
+            self._description_icon.destroy()
         self._root.clear()
 
     def _on_changed(self) -> None:
@@ -152,14 +169,31 @@ class AssetModifiersWidget(WorkspaceWidget):
                 modifiers.index(modifier) if modifier else 0,
             )
             self._picker.enabled = bool(items)
+            # The picker tooltip and the (i) icon beside it describe the selected modifier, like the AI Tools picker.
+            self._picker.tooltip = (modifier and modifier.description) or self._PICKER_TOOLTIP
+            self._build_description_icon()
             self._inputs_frame.rebuild()
+        self._update_visibility()
         self._update_run_button()
+
+    def _build_description_icon(self) -> None:
+        """Build the (i) icon that shows the picker tooltip, vertically centered on the picker."""
+        if self._description_icon is not None:
+            self._description_icon.destroy()
+        self._description_stack.clear()
+        with self._description_stack:
+            ui.Spacer()
+            self._description_icon = InfoIconWidget(self._picker.tooltip)
+            ui.Spacer()
 
     def _build_inputs(self) -> None:
         """Build the Source group and one collapsible group per parameter group."""
         if self._property_widget is not None:
             self._property_widget.destroy()
             self._property_widget = None
+        for row in self._input_items:
+            row.destroy()
+        self._input_items.clear()
         modifier = self._core.active_modifier
         if modifier is None:
             return
@@ -167,9 +201,10 @@ class AssetModifiersWidget(WorkspaceWidget):
         constant = self._settings.get_value(modifier, SOURCE_INPUT) is SourceGetter.CONSTANT
         source_inputs = (SOURCE_INPUT, *((FILE_INPUT,) if constant else ()))
         for item in (*source_inputs, *modifier.inputs):
-            ModifierValueItem(modifier, item).parent = groups.setdefault(
-                item.group, ItemGroup(item.group, expanded=True)
-            )
+            row = ModifierValueItem(modifier, item)
+            row.parent = groups.setdefault(item.group, ItemGroup(item.group, expanded=True))
+            self._input_items.append(row)
+        self._update_visibility()
         model = Model()
         model.set_items(list(groups.values()))
         delegate = ModifierDelegate()
@@ -185,6 +220,29 @@ class AssetModifiersWidget(WorkspaceWidget):
                 tree_min_column_widths=[ui.Pixel(0), ui.Pixel(0)],
             )
         self._property_widget.tree_view.identifier = "AssetModifierInputs"
+
+    def _update_visibility(self) -> None:
+        """Hide conditional rows without removing their values."""
+        modifier = self._core.active_modifier
+        if modifier is None:
+            return
+        values = {
+            item.name: self._settings.get_value(modifier, item) for item in (SOURCE_INPUT, FILE_INPUT, *modifier.inputs)
+        }
+        for row in self._input_items:
+            predicate = row.modifier_input.visible_if
+            row.hidden = predicate is not None and not predicate(values)
+
+    def _submit(self) -> None:
+        """Submit the active modifier and show its result in Last Run."""
+        AssetModifierSubmitter.submit(self._context_name)
+
+    def _on_job_result(self, message: str) -> None:
+        """Show the result unless this widget was destroyed."""
+        if self.destroyed:
+            return
+        self._last_run_label.text = message
+        self._last_run.visible = True
 
     def _update_run_button(self) -> None:
         """Disable Run and show the reason when the settings cannot run."""

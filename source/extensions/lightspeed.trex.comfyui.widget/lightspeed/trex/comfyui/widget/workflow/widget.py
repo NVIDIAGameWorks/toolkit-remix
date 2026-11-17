@@ -37,6 +37,8 @@ from lightspeed.trex.comfyui.core.resolvers import ConstantResolver, ResolverCon
 from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget.workspace import WorkspaceWidget
 from omni import ui, usd
+from omni.flux.job_queue.widget import get_job_result_notifier
+from omni.flux.job_queue.widget.notifications import post_submission_notification
 from omni.flux.property_widget_builder.model.native import NativeDelegate
 from omni.flux.property_widget_builder.widget import Model, PropertyWidget
 from omni.flux.utils.common.decorators import ignore_function_decorator
@@ -971,12 +973,7 @@ class WorkflowSetupWidget(WorkspaceWidget):
             if cancelled:
                 return
             if not submission.graphs:
-                _TrexMessageDialog(
-                    "The selected items do not provide the inputs required by the active workflow.\n\n"
-                    "No jobs were added to the queue.",
-                    "No ComfyUI Jobs Created",
-                    disable_cancel_button=True,
-                )
+                post_submission_notification(0, submission.skip_reasons)
             else:
                 await self._submit_prepared_submission(submission)
         except ResolverConfigurationError as error:
@@ -1011,24 +1008,21 @@ class WorkflowSetupWidget(WorkspaceWidget):
                 disable_cancel_button=True,
             )
             return
-        if result.failed_count:
-            submitted_suffix = "" if result.submitted_count == 1 else "s"
-            submitted_verb = "was" if result.submitted_count == 1 else "were"
+        finally:
+            get_job_result_notifier().register_graphs(submission.graphs)
+        if not result.failed_count:
+            post_submission_notification(result.submitted_count, submission.skip_reasons)
+        else:
             failed_suffix = "" if result.failed_count == 1 else "s"
             failed_verb = "was" if result.failed_count == 1 else "were"
             message = (
-                f"{result.submitted_count} prepared job{submitted_suffix} {submitted_verb} added to the queue.\n\n"
-                f"{result.failed_count} prepared job{failed_suffix} {failed_verb} not added."
+                "0 prepared jobs were added to the queue.\n\n"
+                f"{result.failed_count} prepared job{failed_suffix} {failed_verb} not added. "
+                "Check that the job queue is available, then try again."
             )
-            if result.submitted_count:
-                message += (
-                    f" To avoid duplicates, select only the failed material{failed_suffix} before submitting again."
-                )
-            else:
-                message += " Check that the job queue is available, then try again."
             _TrexMessageDialog(
                 message,
-                "Some ComfyUI Jobs Not Submitted" if result.submitted_count else "ComfyUI Jobs Not Submitted",
+                "ComfyUI Jobs Not Submitted",
                 disable_cancel_button=True,
             )
 

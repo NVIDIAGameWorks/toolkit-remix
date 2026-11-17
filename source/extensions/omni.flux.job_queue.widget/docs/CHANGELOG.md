@@ -2,6 +2,15 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.6.0]
+### Fixed
+- Used product usage snapshots for graph deletion and file counts, and clarified that deletion keeps files in use.
+- Centralized submission counts, skip reasons, and one result notification per registered job for Asset Modifiers and AI Tools. A submission with no valid item shows the No Jobs Created error dialog.
+- Replaced the mocked notification unit tests with E2E checks in the queue widget test.
+- Registered accepted graphs through `register_graphs()`, read pending states in one snapshot pass, and released callbacks after completion, deletion, or notifier destruction.
+- Kept notification implementation helpers in the notifications submodule.
+- Awaited a fresh product usage snapshot before each file count and confirmed graph deletion.
+
 ## [3.5.0]
 ### Added
 - Added a Target column that shows what each job changes, from `JobDisplayAdapter.get_targets()`.

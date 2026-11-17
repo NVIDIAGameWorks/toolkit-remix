@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.5]
+### Changed
+- Kept the tool bar at the size of its buttons when workspace windows get a default size.
+
 ## [1.2.4]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

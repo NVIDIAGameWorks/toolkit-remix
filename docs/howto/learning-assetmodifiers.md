@@ -24,6 +24,7 @@ one, the **Asset Modifiers** window shows **No asset modifiers available**.
 
 1. In **Asset Modifier**, select a modifier in the **Modifier** dropdown. Hover over a modifier to see what it does.
    A modifier marked **(Experimental)** may change in future versions. Check its output before you keep it.
+   If the modifier provides a description, hold the pointer on the **Modifier** dropdown or on the info icon (**i**) next to it to read it.
 2. In **Modifier Inputs**, set **Prims** in the **Source** group to choose the models to modify:
 
    | Prims | Models that the modifier changes | Result |
@@ -35,6 +36,7 @@ one, the **Asset Modifiers** window shows **No asset modifiers available**.
 3. Set the other inputs of the modifier. Hover over an input to see what it does.
 
 The Toolkit remembers the selected modifier and the value of each input, also after a restart.
+Some inputs appear only when another input has a specific value. Hidden inputs keep their values and reach the job.
 
 Each modifier decides which prims it accepts, for example meshes or materials. A prim must also come from an external
 model, for example a captured mesh or a replacement that references a model file. Prims inside a referenced model are
@@ -49,13 +51,18 @@ skipped.
    the **File** does not exist.
 3. The **Preparing Asset Modifier Jobs** window shows the progress while the Toolkit reads the project. Click
    **Cancel** to stop without adding jobs.
-4. A notification tells you how many jobs were added to the Job Queue. If some prims were skipped, it gives the
-   reason, for example **Not supported by** the modifier. Select **Open Job Queue** in the notification to see the
-   jobs.
+4. A notification tells you how many jobs entered the Job Queue. If prims were skipped, it shows their count and the
+   first reason as a warning, for example **Not supported by** the modifier. If no prim is valid, the
+   **No Jobs Created** error dialog shows the reason, and no job enters the queue.
+   Select **Open Job Queue** in the notification to see the jobs.
 
    ![Notification that one job was added to the job queue, with the Open Job Queue button](../data/images/remix-assetmodifiers-notification.png)
 
 Prims that use the same model share one job, so each model is modified once.
+A selected ancestor or descendant of a submitted prim is not reported as skipped.
+After the **Asset Modifier** stage finishes, **Last Run** shows its summary, or the graph name and stage state.
+The Toolkit posts one notification with the same text. The optimization stages can still run.
+Asset Modifiers and AI Tools use the same notifications. See [Job Queue](../toolkitinterface/remix-toolkitinterface-jobqueue.md#notifications).
 
 ## Following the Jobs in the Job Queue
 

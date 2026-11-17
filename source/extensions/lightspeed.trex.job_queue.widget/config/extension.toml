@@ -1,5 +1,5 @@
 [package]
-version = "1.1.2"
+version = "1.2.0"
 authors = ["Sam Bourne <sbourne@nvidia.com>"]
 title = "NVIDIA RTX Remix Job Queue Widget"
 description = "Job Queue workspace windows for NVIDIA RTX Remix"
@@ -20,13 +20,21 @@ preview_image = "data/preview.png"
 "omni.flux.job_queue.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.ui" = {}
+"omni.usd" = {}
 
 [[python.module]]
 name = "lightspeed.trex.job_queue.widget"
 
 [[test]]
 dependencies = [
+    "lightspeed.trex.asset_modifiers.core",
+    "lightspeed.trex.asset_modifiers.factory",
+    "lightspeed.trex.comfyui.core",
     "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    "--/renderer/mdl/searchPaths/templates=${kit}/../exts/lightspeed.trex.app.resources/deps/omni_core_materials/Base;${kit}/mdl/core/Base;${kit}/mdl/core/Volume;${kit}/mdl/core/mdl",
 ]
 
 [[test]]

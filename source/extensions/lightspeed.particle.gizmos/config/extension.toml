@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.0.6"
+version = "1.0.7"
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Particle System gizmos extension"
 description = "Render particle system gizmos using omni.ui.scene"
@@ -30,14 +30,13 @@ name = "lightspeed.particle.gizmos"
 particlesGizmoVisible = true
 
 [[test]]
-# TODO: Verify if this is still needed after fixing golden tests.
-args = [
-    "--/app/window/dpiScaleOverride=1.0",
-    "--/app/window/scaleToMonitor=false",
-]
-
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    # The stock viewport would use the only PXR texture before the test creates its viewport.
+    "--/exts/omni.kit.viewport.window/startup/disableWindowOnLoad=true",
 ]
 
 stdoutFailPatterns.exclude = [

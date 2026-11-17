@@ -8,6 +8,7 @@ Lightspeed workspace extension that exposes `omni.flux.job_queue.widget` through
 - Wire the Flux `QueueWidget` to the shared queue and `ApplyExecutor`.
 - Register generic presentation for the reusable `TextureOptimizationJob`; product-specific producer details remain in
   their owning extensions.
+- Collect open-stage and closed-project USD dependencies for safe graph deletion.
 
 ## Non-Responsibilities
 
@@ -27,3 +28,7 @@ Lightspeed workspace extension that exposes `omni.flux.job_queue.widget` through
   file actions to the graph row.
 - **Apply routing** uses the single runtime owned by `omni.flux.job_queue.core.handlers`; product extensions register
   exact handler classes for concrete jobs.
+- **`get_usage_snapshot`** collects open-stage root folders on the UI loop, then scans project files on a worker thread.
+  After the worker returns, it captures current open-stage dependencies on the UI loop and returns without another await.
+  A failed project scan prevents all published-output deletion because unread files can reference outputs in other projects.
+  The extension registers this async provider on the shared queue.

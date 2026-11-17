@@ -101,6 +101,13 @@ def _decode_workflow(payload: object) -> Workflow:
     return decode_positional_payload(Workflow, payload, 14)
 
 
+def _decode_generation_job(job_type: type[ComfyUIJob], payload: object) -> ComfyUIJob:
+    """Decode current generation jobs and old jobs without an output folder."""
+    if type(payload) is tuple and len(payload) == 10:
+        payload = (*payload, None)
+    return decode_positional_payload(job_type, payload, 11)
+
+
 COMFYUI_CODECS = (
     PersistenceCodec(ComfyUIJobApplyHandler.name, ComfyUIJobApplyHandler),
     PersistenceCodec(ComfyUITextureApplyHandler.name, ComfyUITextureApplyHandler),
@@ -246,8 +253,9 @@ COMFYUI_CODECS = (
             value.scheme,
             value.host,
             value.port,
+            value.output_url,
         ),
-        lambda payload: decode_positional_payload(ComfyUIJob, payload, 10),
+        lambda payload: _decode_generation_job(ComfyUIJob, payload),
     ),
     PersistenceCodec(
         type_key(ComfyUIAssetJob),
@@ -263,8 +271,9 @@ COMFYUI_CODECS = (
             value.scheme,
             value.host,
             value.port,
+            value.output_url,
         ),
-        lambda payload: decode_positional_payload(ComfyUIAssetJob, payload, 10),
+        lambda payload: _decode_generation_job(ComfyUIAssetJob, payload),
     ),
     PersistenceCodec(
         type_key(ComfyUIWorkflowRequest),

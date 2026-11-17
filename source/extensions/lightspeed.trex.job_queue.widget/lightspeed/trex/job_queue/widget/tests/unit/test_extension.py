@@ -15,129 +15,109 @@
 * limitations under the License.
 """
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, call, patch
 
-from lightspeed.trex.asset_pipeline.core.jobs import MeshOptimizationJob, PrepareOptimizationJob, TextureOptimizationJob
+from lightspeed.trex.job_queue.widget import extension
 from lightspeed.trex.job_queue.widget.display_adapter import DISPLAY_ADAPTERS
 from lightspeed.trex.job_queue.widget.extension import JobQueueWidgetExtension
+from lightspeed.trex.job_queue.widget.usage_provider import get_usage_snapshot
 from omni.kit.test import AsyncTestCase
-
-from ... import extension as extension_module
 
 
 class TestJobQueueWidgetExtension(AsyncTestCase):
-    """Test shared adapter registration through the product queue lifecycle."""
+    """Check provider ownership and resource cleanup after partial startup."""
 
-    async def test_registers_an_adapter_for_every_asset_optimization_job(self):
-        """Startup registers one adapter per asset optimization job, so no stage shows an Unknown source."""
+    async def test_secondary_shutdown_preserves_active_usage_provider(self):
+        """Shutdown of a secondary instance preserves the active provider."""
         # Arrange
-        extension = JobQueueWidgetExtension()
-        registry = MagicMock()
-
+        queue = SimpleNamespace(usage_snapshot_provider=get_usage_snapshot)
+        secondary = JobQueueWidgetExtension()
         with (
-            patch(
-                "lightspeed.trex.job_queue.widget.extension.get_display_adapter_registry",
-                return_value=registry,
-            ),
-            patch("lightspeed.trex.job_queue.widget.extension.JobDetailsWindow"),
-            patch("lightspeed.trex.job_queue.widget.extension.JobQueueWorkspace"),
-            patch("lightspeed.trex.job_queue.widget.extension.omni.ui.Workspace.set_show_window_fn"),
+            patch.object(extension, "get_job_queue", return_value=queue),
+            patch.object(extension, "get_display_adapter_registry") as registry,
         ):
             # Act
-            extension.on_startup("lightspeed.trex.job_queue.widget")
+            secondary.on_shutdown()
 
         # Assert
-        registered = [registered_call.args[0] for registered_call in registry.register.call_args_list]
-        self.assertEqual(
-            {adapter.job_type for adapter in registered},
-            {PrepareOptimizationJob, TextureOptimizationJob, MeshOptimizationJob},
-        )
+        self.assertIs(queue.usage_snapshot_provider, get_usage_snapshot)
+        registry.return_value.unregister.assert_not_called()
 
-    async def test_repeated_lifecycle_owns_one_adapter_and_workspace_pair(self):
-        """Repeated lifecycle calls create and release one exact set of resources."""
+    async def test_secondary_startup_is_rejected_and_preserves_active_usage_provider(self):
+        """Rejected startup of a secondary instance preserves the active provider."""
         # Arrange
-        extension = JobQueueWidgetExtension()
-        registry = MagicMock()
-        details_workspace = MagicMock(title="Job Details")
-        queue_workspace = MagicMock(title="Job Queue")
-
+        queue = SimpleNamespace(usage_snapshot_provider=get_usage_snapshot)
+        secondary = JobQueueWidgetExtension()
         with (
-            patch(
-                "lightspeed.trex.job_queue.widget.extension.get_display_adapter_registry",
-                return_value=registry,
-            ),
-            patch(
-                "lightspeed.trex.job_queue.widget.extension.JobDetailsWindow",
-                return_value=details_workspace,
-            ),
-            patch(
-                "lightspeed.trex.job_queue.widget.extension.JobQueueWorkspace",
-                return_value=queue_workspace,
-            ),
-            patch("lightspeed.trex.job_queue.widget.extension.omni.ui.Workspace.set_show_window_fn"),
+            patch.object(extension, "get_job_queue", return_value=queue),
+            patch.object(extension, "get_display_adapter_registry") as registry,
         ):
-            # Act
-            extension.on_startup("lightspeed.trex.job_queue.widget")
-            extension.on_startup("lightspeed.trex.job_queue.widget")
-            extension.on_shutdown()
-            extension.on_shutdown()
+            try:
+                # Act
+                with self.assertRaisesRegex(RuntimeError, "already has a usage snapshot provider"):
+                    secondary.on_startup("lightspeed.trex.job_queue.widget")
+            finally:
+                secondary.on_shutdown()
 
         # Assert
-        self.assertEqual(registry.register.call_args_list, [call(adapter) for adapter in DISPLAY_ADAPTERS])
-        self.assertCountEqual(registry.unregister.call_args_list, [call(adapter) for adapter in DISPLAY_ADAPTERS])
-        details_workspace.create_window.assert_called_once_with()
-        queue_workspace.create_window.assert_called_once_with()
-        details_workspace.cleanup.assert_called_once_with()
-        queue_workspace.cleanup.assert_called_once_with()
+        self.assertIs(queue.usage_snapshot_provider, get_usage_snapshot)
+        registry.return_value.register.assert_not_called()
+        registry.return_value.unregister.assert_not_called()
 
     async def test_second_registration_failure_releases_only_acquired_adapter(self):
-        """Release the first adapter without removing the conflicting registration."""
+        """An adapter conflict releases only the adapter that this instance registered."""
         # Arrange
-        extension = JobQueueWidgetExtension()
+        queue = SimpleNamespace(usage_snapshot_provider=None)
+        widget_extension = JobQueueWidgetExtension()
         registry = MagicMock()
         registry.register.side_effect = [None, ValueError("adapter conflict")]
+        with (
+            patch.object(extension, "get_job_queue", return_value=queue),
+            patch.object(extension, "get_display_adapter_registry", return_value=registry),
+        ):
+            try:
+                # Act
+                with self.assertRaisesRegex(ValueError, "adapter conflict"):
+                    widget_extension.on_startup("lightspeed.trex.job_queue.widget")
 
-        with patch.object(extension_module, "get_display_adapter_registry", return_value=registry):
-            # Act
-            with self.assertRaisesRegex(ValueError, "adapter conflict"):
-                extension.on_startup("lightspeed.trex.job_queue.widget")
-            # Assert
-            self.assertEqual(registry.register.call_args_list, [call(adapter) for adapter in DISPLAY_ADAPTERS[:2]])
-            registry.unregister.assert_called_once_with(DISPLAY_ADAPTERS[0])
-            extension.on_shutdown()
-            registry.unregister.assert_called_once_with(DISPLAY_ADAPTERS[0])
+                # Assert
+                self.assertEqual(registry.register.call_args_list, [call(adapter) for adapter in DISPLAY_ADAPTERS[:2]])
+                registry.unregister.assert_called_once_with(DISPLAY_ADAPTERS[0])
+                self.assertIsNone(queue.usage_snapshot_provider)
+            finally:
+                widget_extension.on_shutdown()
 
-    async def test_startup_failure_rolls_back_adapter_and_created_workspaces(self):
-        """A queue window failure cannot leave stale adapter or workspace state."""
+    async def test_queue_window_failure_releases_adapters_and_created_workspaces(self):
+        """A queue window failure releases all acquired adapters and both workspaces."""
         # Arrange
-        extension = JobQueueWidgetExtension()
+        queue = SimpleNamespace(usage_snapshot_provider=None)
+        widget_extension = JobQueueWidgetExtension()
         registry = MagicMock()
         details_workspace = MagicMock(title="Job Details")
         queue_workspace = MagicMock(title="Job Queue")
         queue_workspace.create_window.side_effect = RuntimeError("queue window failed")
-
-        # Act
         with (
-            patch(
-                "lightspeed.trex.job_queue.widget.extension.get_display_adapter_registry",
-                return_value=registry,
-            ),
-            patch(
-                "lightspeed.trex.job_queue.widget.extension.JobDetailsWindow",
-                return_value=details_workspace,
-            ),
-            patch(
-                "lightspeed.trex.job_queue.widget.extension.JobQueueWorkspace",
-                return_value=queue_workspace,
-            ),
-            patch("lightspeed.trex.job_queue.widget.extension.omni.ui.Workspace.set_show_window_fn"),
+            patch.object(extension, "get_job_queue", return_value=queue),
+            patch.object(extension, "get_display_adapter_registry", return_value=registry),
+            patch.object(extension, "JobDetailsWindow", return_value=details_workspace),
+            patch.object(extension, "JobQueueWorkspace", return_value=queue_workspace),
+            patch.object(extension.omni.ui.Workspace, "set_show_window_fn"),
         ):
-            with self.assertRaisesRegex(RuntimeError, "queue window failed"):
-                extension.on_startup("lightspeed.trex.job_queue.widget")
+            try:
+                # Act
+                with self.assertRaisesRegex(RuntimeError, "queue window failed"):
+                    widget_extension.on_startup("lightspeed.trex.job_queue.widget")
 
-        # Assert
-        self.assertCountEqual(registry.unregister.call_args_list, [call(adapter) for adapter in DISPLAY_ADAPTERS])
-        details_workspace.cleanup.assert_called_once_with()
-        queue_workspace.cleanup.assert_called_once_with()
-        self.assertIsNone(extension._job_details_workspace)
-        self.assertIsNone(extension._job_queue_workspace)
+                # Assert
+                self.assertEqual(registry.register.call_args_list, [call(adapter) for adapter in DISPLAY_ADAPTERS])
+                self.assertCountEqual(
+                    registry.unregister.call_args_list, [call(adapter) for adapter in DISPLAY_ADAPTERS]
+                )
+                details_workspace.cleanup.assert_called_once_with()
+                queue_workspace.cleanup.assert_called_once_with()
+                self.assertIsNone(widget_extension._job_details_workspace)
+                self.assertIsNone(widget_extension._job_queue_workspace)
+                self.assertIsNone(queue.usage_snapshot_provider)
+            finally:
+                widget_extension.on_shutdown()

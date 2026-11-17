@@ -27,10 +27,11 @@ from typing import ClassVar, NamedTuple
 
 import carb.input
 import carb.settings
+import omni.flux.job_queue.core.persistence as persistence
 import omni.kit.clipboard
 import omni.kit.ui_test as ui_test
 from omni import ui
-import omni.flux.job_queue.core.persistence as persistence
+from omni.flux.job_queue.core import get_job_queue
 from omni.flux.job_queue.core.apply_executor import ApplyExecutor
 from omni.flux.job_queue.core.apply_handler_base import ApplyHandler
 from omni.flux.job_queue.core.apply_handler_registry import ApplyHandlerRegistry
@@ -49,6 +50,7 @@ from omni.flux.job_queue.core.job import (
     JobProgress,
     JobProgressCallback,
 )
+from omni.flux.job_queue.core.models import UsageSnapshot
 from omni.flux.job_queue.core.persistence import PersistenceCodec
 from omni.flux.job_queue.core.settings import (
     AUTO_APPLY_SETTING_PATH,
@@ -75,10 +77,11 @@ from omni.flux.job_queue.widget.display_adapter_base import (
 )
 from omni.flux.job_queue.widget.enums import DisplayState, JobDetailSectionPlacement
 from omni.flux.job_queue.widget.extension import get_display_adapter_registry
+from omni.flux.job_queue.widget.notifications import JobResultNotifier, post_submission_notification
 from omni.flux.job_queue.widget.row import Row
 from omni.flux.job_queue.widget.target_label import TargetLabel
 from omni.flux.job_queue.widget.widget import QueueWidget
-from omni.kit.notification_manager import destroy_all_notifications, get_all_notifications
+from omni.kit.notification_manager import NotificationStatus, destroy_all_notifications, get_all_notifications
 from omni.kit.test import AsyncTestCase
 
 __all__ = ("TestQueueWidget",)
@@ -221,6 +224,14 @@ class _WidgetJob(Job):
                     await self.cancellation_release.wait()
                 raise
         return JobOutputs({RESULT: self.value, DETAILS: self.details})
+
+
+class _FailedNotificationJob(Job):
+    """Fail a real queue execution before it produces outputs."""
+
+    async def execute(self, _job_directory, _inputs, _progress_callback):
+        """Report a generation failure through the real executor."""
+        raise RuntimeError("Generation failed")
 
 
 class _FittedTarget(NamedTuple):
@@ -2207,6 +2218,39 @@ class TestQueueWidget(AsyncTestCase):
         self.assertEqual(self._find_all("Label[*].text=='Delete Material'"), [])
         self.assertTrue(all(not directory.exists() for directory in directories))
 
+    async def test_delete_graph_awaits_fresh_usage_after_confirmation(self):
+        """Await a new usage snapshot after confirmation and keep files that became used."""
+        # Prepare an unused output so the first prompt includes its file in the deletion count.
+        job = _WidgetJob(name="Generation")
+        graph = self._submit_graph("Fresh usage", job)
+        directory = self._interface.get_job_directory(job.job_id)
+        directory.mkdir(parents=True)
+        output = directory / "result.bin"
+        output.write_bytes(b"result")
+        used, snapshots = [], []
+
+        async def provide_usage():
+            await asyncio.sleep(0)
+            snapshot = UsageSnapshot.from_urls(used)
+            snapshots.append(snapshot)
+            return snapshot
+
+        self._interface.usage_snapshot_provider = provide_usage
+        await ui_test.human_delay()
+        await self._find(f"Image[*].identifier=='delete_graph_{graph.graph_id}'").click()
+        labels = await self._wait_for_prompt("Delete Job Graph")
+        self.assertTrue(any("1 output file" in label.widget.text for label in labels))
+        self.assertEqual(snapshots, [UsageSnapshot()])
+
+        # Mark the output as used while the prompt stays open so confirmation must read a new usage snapshot.
+        used.append(str(output))
+        await ui_test.find("Delete Job Graph//Frame/**/Button[*].name=='confirm_button'").click()
+        await self._widget.model.wait_for_background_tasks()
+        # Confirmation removes the graph but preserves the output that became used.
+        self.assertEqual(snapshots, [UsageSnapshot(), UsageSnapshot.from_urls(used)])
+        self.assertEqual(self._interface.get_graph_snapshots(), [])
+        self.assertTrue(output.is_file())
+
     async def test_delete_selected_graphs_uses_one_confirmation_and_removes_every_root(self):
         """Deleting a selected root applies one exact confirmation to every selected graph."""
         # Select two rendered roots, invoke one Delete action, and verify both graphs and folders disappear.
@@ -2307,6 +2351,135 @@ class TestQueueWidget(AsyncTestCase):
         self.assertIsNotNone(child_label)
         self.assertIsNotNone(child_details)
         self.assertEqual(child_details.widget.text, "Asset processing")
+
+    async def test_result_notifications_execute_delete_and_destroy(self):
+        """Report submission and execution results, then release callbacks after deletion or destruction."""
+        queue, settings, notifier = get_job_queue(), JobQueueSettings(), JobResultNotifier()
+        scheduler_enabled = settings.scheduler_enabled
+        settings.set_scheduler_enabled(False)
+        callbacks, graphs = [], []
+        claimed_jobs = []
+        result_reported = asyncio.Event()
+        known_graphs = {graph.graph_id for graph in queue.get_graph_snapshots()}
+        failure_codec = PersistenceCodec(
+            "tests.e2e.FailedNotificationJob",
+            _FailedNotificationJob,
+            lambda job: (job.job_id, job.name),
+            lambda values: _FailedNotificationJob(*values),
+        )
+        persistence.get_registry().register_codecs((failure_codec,))
+
+        def record_result(message: str) -> None:
+            """Record the consumer-visible result and release its completion wait."""
+            callbacks.append(message)
+            result_reported.set()
+
+        try:
+            # A partial submission posts one warning and leaves only the submitted graph in the queue.
+            skipped = ("This material has no albedo texture.",) * 2
+            binding = ApplyBinding(RESULT, _TestApplyHandler, _ApplyTarget("result"))
+            job = _WidgetJob(value=7, apply_binding=binding)
+            graph = JobGraph(name="Notification workflow", jobs=[job])
+            graph.bind(job, REQUEST, job.request)
+            graphs.append(graph.graph_id)
+            queue.submit(graph)
+            post_submission_notification(1, skipped)
+            (notification,) = get_all_notifications()
+            self.assertEqual(
+                notification.info.text,
+                "Submitted 1 job(s) to the job queue. 2 item(s) were skipped: This material has no albedo texture.",
+            )
+            self.assertEqual(notification.info.status, NotificationStatus.WARNING)
+            self.assertEqual({graph.graph_id for graph in queue.get_graph_snapshots()}, known_graphs | set(graphs))
+            self.assertFalse(ui.Workspace.get_window("No Jobs Created"))
+            destroy_all_notifications()
+            notifier.register_graphs(
+                (graph,),
+                summarize=lambda job_id: f"Generated value {queue.get_job_outputs(job_id)[RESULT]}",
+                on_result=record_result,
+            )
+            claimed = queue.claim_runnable_jobs()
+            claimed_jobs.extend(claimed)
+            self.assertIn(job.job_id, claimed)
+            await JobExecutor(queue).execute(job.job_id)
+            await asyncio.wait_for(result_reported.wait(), 2)
+            self.assertEqual(get_all_notifications()[0].info.status, NotificationStatus.INFO)
+            self.assertTrue(queue.decline_apply(job.job_id))
+            notifier.register(job.job_id, "Already complete")
+
+            # A failed generation reports once. It must not call a successful-result summary.
+            failed = _FailedNotificationJob()
+            graph = JobGraph(name="Failed generation", jobs=[failed])
+            graphs.append(graph.graph_id)
+            queue.submit(graph)
+            result_reported.clear()
+            notifier.register_graphs((graph,), summarize=callbacks.append, on_result=record_result)
+            claimed = queue.claim_runnable_jobs()
+            claimed_jobs.extend(claimed)
+            self.assertIn(failed.job_id, claimed)
+            await JobExecutor(queue).execute(failed.job_id)
+            await asyncio.wait_for(result_reported.wait(), 2)
+            self.assertIs(queue.get_job_snapshot(failed.job_id).state, JobState.FAILED)
+            self.assertEqual(get_all_notifications()[-1].info.status, NotificationStatus.WARNING)
+
+            # Deletion releases a pending registration without a result callback or notification.
+            pending = _WidgetJob()
+            graph = JobGraph(jobs=[pending])
+            graph.bind(pending, REQUEST, pending.request)
+            graphs.append(graph.graph_id)
+            queue.submit(graph)
+            notifier.register(pending.job_id, graph.name, summarize=callbacks.append, on_result=callbacks.append)
+            self.assertIn(pending.job_id, notifier._jobs)
+            await asyncio.to_thread(queue.delete_graphs, (graph.graph_id,), UsageSnapshot())
+            graphs.remove(graph.graph_id)
+            await ui_test.human_delay()
+            self.assertNotIn(pending.job_id, notifier._jobs)
+            self.assertEqual(
+                [item.info.text for item in get_all_notifications()],
+                ["Generated value 7", "Already complete: DONE", "Failed generation: FAILED"],
+            )
+            self.assertEqual(callbacks, ["Generated value 7", "Failed generation: FAILED"])
+            destroy_all_notifications()
+            # Destroy the notifier before another pending job completes so no callback or notification survives.
+            pending = _WidgetJob()
+            graph = JobGraph(jobs=[pending])
+            graph.bind(pending, REQUEST, pending.request)
+            graphs.append(graph.graph_id)
+            queue.submit(graph)
+            notifier.register_graphs((graph,), summarize=callbacks.append, on_result=record_result)
+            self.assertIn(pending.job_id, notifier._jobs)
+            notifier.destroy()
+            self.assertEqual(notifier._jobs, {})
+            claimed = queue.claim_runnable_jobs()
+            claimed_jobs.extend(claimed)
+            self.assertIn(pending.job_id, claimed)
+            await JobExecutor(queue).execute(pending.job_id)
+            await ui_test.human_delay()
+            notifier.register(job.job_id, "After shutdown", on_result=callbacks.append)
+            self.assertEqual(
+                (get_all_notifications(), callbacks), ([], ["Generated value 7", "Failed generation: FAILED"])
+            )
+
+            # No jobs opens a modal prompt with the skip reason and adds no graph or notification.
+            for reasons in ((), skipped):
+                post_submission_notification(0, reasons)
+                labels = await self._wait_for_prompt("No Jobs Created")
+                suffix = f"\n\n2 item(s) were skipped: {skipped[0]}" if reasons else ""
+                self.assertIn(f"No jobs were added to the job queue.{suffix}", [label.widget.text for label in labels])
+                self.assertTrue(ui.Workspace.get_window("No Jobs Created").flags & ui.WINDOW_FLAGS_MODAL)
+                self.assertEqual(
+                    (get_all_notifications(), {graph.graph_id for graph in queue.get_graph_snapshots()}),
+                    ([], known_graphs | set(graphs)),
+                )
+                await ui_test.find("No Jobs Created//Frame/**/Button[*].text=='Okay'").click()
+        finally:
+            notifier.destroy()
+            try:
+                queue.release_scheduled_jobs(claimed_jobs)
+                queue.delete_graphs(graphs, UsageSnapshot())
+            finally:
+                persistence.get_registry().unregister_codecs((failure_codec,))
+                settings.set_scheduler_enabled(scheduler_enabled)
 
     async def test_successful_execution_log_is_visible_in_job_details_at_completion(self):
         """Real execution publishes a readable success log before its terminal notification."""

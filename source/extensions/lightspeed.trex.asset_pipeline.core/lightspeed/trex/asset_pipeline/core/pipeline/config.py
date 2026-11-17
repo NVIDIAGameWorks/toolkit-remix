@@ -24,6 +24,8 @@ from dataclasses import dataclass
 
 from omni.flux.asset_importer.core.data_models import TextureTypes
 
+from .enums import MetaStepOperation
+
 
 @dataclass(frozen=True)
 class RemixAssetPipelineConfig:
@@ -36,7 +38,9 @@ class RemixAssetPipelineConfig:
     Attributes:
         output_dir: Local directory receiving final pipeline outputs.
         texture_type: Semantic used only when synthesizing a missing texture record.
+        skip_operations: Optional operations that the caller supplies or does not require.
     """
 
     output_dir: pathlib.Path
     texture_type: TextureTypes | None
+    skip_operations: tuple[MetaStepOperation, ...] = ()

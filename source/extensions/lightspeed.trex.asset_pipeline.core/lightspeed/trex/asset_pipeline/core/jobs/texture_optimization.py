@@ -74,6 +74,12 @@ class TextureOptimizationJob(Job):
     input_ports: ClassVar[tuple[JobInputPort[Any], ...]] = (SOURCE_TEXTURES,)
     output_ports: ClassVar[tuple[JobOutputPort[Any], ...]] = (PROCESSED_TEXTURES,)
 
+    def get_input_urls(self, inputs: JobInputs) -> tuple[str, ...]:
+        """Return source files from the available texture request."""
+        if self.SOURCE_TEXTURES not in inputs:
+            return ()
+        return tuple(str(item.path) for item in inputs[self.SOURCE_TEXTURES].items)
+
     async def execute(
         self,
         job_directory: pathlib.Path,

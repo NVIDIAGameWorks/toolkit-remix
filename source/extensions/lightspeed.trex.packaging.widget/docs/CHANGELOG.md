@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.7]
+### Removed
+- Removed screenshot capture from packaging test diagnostics and the unused app-window dependency.
+
 ## [1.5.6]
 ### Changed
 - Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).

@@ -1,6 +1,11 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.7]
+### Fixed
+- Apply the 400x600 default workspace size only on the first show when floating. Subclasses override `_DEFAULT_WIDTH` and `_DEFAULT_HEIGHT`.
+- Cancel deferred default sizing when a workspace closes before its first frame.
+
 ## [1.8.6]
 ### Changed
 - Migrated deprecated event subscriptions to Events 2.0 and the window menu callbacks to actions that are removed when their windows are destroyed.

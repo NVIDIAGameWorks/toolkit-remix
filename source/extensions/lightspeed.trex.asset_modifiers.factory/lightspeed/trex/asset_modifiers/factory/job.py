@@ -22,7 +22,7 @@ __all__ = ["AssetModifierJob"]
 import dataclasses
 from typing import Any
 
-from omni.flux.job_queue.core.job import Job
+from omni.flux.job_queue.core.job import Job, JobInputs
 
 
 @dataclasses.dataclass
@@ -38,3 +38,11 @@ class AssetModifierJob(Job):
     prim_paths: tuple[str, ...] = ()
     values: dict[str, Any] = dataclasses.field(default_factory=dict)
     output_url: str | None = None
+
+    def get_owned_output_urls(self) -> tuple[str, ...]:
+        """Return the published folder that this job owns."""
+        return (self.output_url,) if self.output_url else ()
+
+    def get_input_urls(self, _inputs: JobInputs) -> tuple[str, ...]:
+        """Return the source model that this job uses."""
+        return (self.source_url,)

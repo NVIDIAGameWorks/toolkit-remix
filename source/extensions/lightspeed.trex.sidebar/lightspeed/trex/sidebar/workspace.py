@@ -27,6 +27,10 @@ from .setup_ui import SetupUI as _SideBarSetupUI
 class SideBarWindow(_WorkspaceWindowBase):
     """Side Bar window manager"""
 
+    # The tool bar sizes itself to its buttons and docks itself to the left.
+    _DEFAULT_WIDTH = None
+    _DEFAULT_HEIGHT = None
+
     @property
     def title(self) -> str:
         return _WindowNames.SIDEBAR

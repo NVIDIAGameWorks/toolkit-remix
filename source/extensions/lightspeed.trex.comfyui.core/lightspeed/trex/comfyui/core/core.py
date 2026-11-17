@@ -113,11 +113,11 @@ class ComfyUISubmission:
 
     Attributes:
         graphs: Independently submitted graphs in deterministic order. Skipped items are not included.
-        skipped_count: Selected items left out because they do not provide the workflow inputs.
+        skip_reasons: Exact first-job reasons for excluded graphs, in preparation order.
     """
 
     graphs: tuple[JobGraph, ...]
-    skipped_count: int
+    skip_reasons: tuple[str, ...]
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -208,7 +208,8 @@ def _get_processed_output_url(stage: Usd.Stage, job_id: uuid.UUID) -> str | None
         return None
     project_path = str(root_layer.identifier)
     project_directory = OmniUrl(OmniUrl(project_path).parent_url)
-    return str(project_directory / REMIX_INGESTED_ASSETS_FOLDER / COMFYUI_PROCESSED_FOLDER / str(job_id))
+    # 12 hex digits are 48 random bits: a name collision needs millions of jobs in one project.
+    return str(project_directory / REMIX_INGESTED_ASSETS_FOLDER / COMFYUI_PROCESSED_FOLDER / job_id.hex[:12])
 
 
 def _get_workflow_status_message(error: BaseException) -> str:
@@ -724,7 +725,7 @@ class ComfyUICore:
         progress: Callable[[int, int, Any], Any] | None = None,
         is_cancelled: Callable[[], bool] | None = None,
     ) -> ComfyUISubmission:
-        """Prepare valid material graphs and count excluded selections.
+        """Prepare valid graphs and preserve the reasons for excluded selections.
 
         Args:
             prim_paths: Explicit selection snapshot, or the current USD selection when omitted.
@@ -732,12 +733,12 @@ class ComfyUICore:
             is_cancelled: Optional callback returning whether the caller requested cancellation.
 
         Returns:
-            Valid graphs and the excluded item count. Empty when cancelled.
+            Valid graphs and the exact reasons for excluded graphs. Empty when cancelled.
         """
         graphs = tuple(await self.prepare_jobs(prim_paths=prim_paths, progress=progress, is_cancelled=is_cancelled))
-        # Items without the workflow inputs never enter the queue. Only their count reaches the UI.
         valid_graphs = tuple(graph for graph in graphs if graph.jobs[0].skip_reason is None)
-        return ComfyUISubmission(valid_graphs, len(graphs) - len(valid_graphs))
+        skip_reasons = tuple(graph.jobs[0].skip_reason for graph in graphs if graph.jobs[0].skip_reason is not None)
+        return ComfyUISubmission(valid_graphs, skip_reasons)
 
     async def submit_prepared_submission(
         self,
@@ -1940,12 +1941,13 @@ class ComfyUICore:
                 port=endpoint[2],
                 skip_reason=skip_reason,
             )
+            generation_job.output_url = _get_processed_output_url(stage, generation_job.job_id)
             request = ComfyUIWorkflowRequest(
                 prompt=prompt,
                 input_bindings=input_bindings if skip_reason is None else (),
                 client_id=client_id,
                 timeout=job_timeout,
-                output_url=_get_processed_output_url(stage, generation_job.job_id),
+                output_url=generation_job.output_url,
                 workflow=deepcopy(workflow),
             )
             graph = JobGraph(name=workflow.display_name)

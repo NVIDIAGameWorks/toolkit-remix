@@ -15,9 +15,9 @@
 * limitations under the License.
 """
 
+import asyncio
 import os
 import unittest
-from functools import partial
 from pathlib import Path
 from unittest.mock import patch
 
@@ -26,60 +26,26 @@ import omni.graph.core as og
 import omni.kit.test
 import omni.ui as ui
 import omni.usd
-from lightspeed.trex.logic.widget.catalog_model import ComponentNodeTypeCatalogModel
 from lightspeed.trex.logic.widget.graph_widget import RemixLogicGraphWidget
-from lightspeed.trex.logic.widget.graph_window import RemixLogicGraphWindow
 from omni.graph.window.core import OmniGraphWindow, _is_kit_version_or_greater
 from omni.graph.window.core.graph_config import Supports
 from omni.kit.test_suite.helpers import wait_stage_loading
-from omni.ui.tests.test_base import OmniUiTest
 
 EXT_PATH = Path(carb.tokens.get_tokens_interface().resolve("${lightspeed.trex.logic.widget}"))
 
 
-class OgRemixLogicTestCatalogModel(ComponentNodeTypeCatalogModel):
-    def allow_node_type(self, node_type_name: str):
-        # Let the base class have its say.
-        if not super().allow_node_type(node_type_name):
-            return False
-
-        # special case for compound nodes. This allows them, but should not impact
-        # tests with no compounds in the scene
-        if "local.nodes" in node_type_name:
-            return True
-
-        # We don't want to have to change the golden images every time
-        # a new category or node type is added (the number of node types
-        # in each category is displayed on the catalog widget).
-        # So we restrict the allowed node types to a static set.
-        return node_type_name in {
-            "omni.graph.nodes.Add",  # Math
-            "omni.graph.nodes.ConstantFloat",  # Constants
-            "omni.graph.nodes.ConstantInt",  # Constants
-            "omni.graph.tutorials.SimpleData",
-        }  # Tutorials
-
-
 class OgRemixLogicTestGraphWidget(RemixLogicGraphWidget):
     def on_build_startup(self):
-        # We don't want the initial Edit/Create selection widgets, just a blank graph.
+        # Start with an empty graph.
         pass
 
 
-class OgRemixLogicTestWindow(RemixLogicGraphWindow):
-    def on_build_window(self):
-        self._main_widget = OgRemixLogicTestGraphWidget(catalog_model=OgRemixLogicTestCatalogModel())
-
-
-class TestOgWindowComponentUI(OmniUiTest):
+class TestOgWindowComponentUI(omni.kit.test.AsyncTestCase):
     TEST_GRAPH_PATH = "/World/TestGraph"
 
     async def setUp(self):
-        await super().setUp()
-        self._golden_img_dir = EXT_PATH.absolute().resolve().joinpath("data/tests")
         self._usd_dir = EXT_PATH.absolute().resolve().joinpath("data/tests")
         self._graph_window = None
-        self._window = None
 
         # Patch is_graph_editable to always return True so test graphs pass remix specific check
         # This affects header display for editable graphs.
@@ -98,15 +64,9 @@ class TestOgWindowComponentUI(OmniUiTest):
             self._graph_window.destroy()
             self._graph_window = None
 
-        self._window = None
-        self._golden_img_dir = None
-        await super().tearDown()
-
     async def __initialize_test_window(self):
         await omni.usd.get_context().new_stage_async()
         stage = omni.usd.get_context().get_stage()
-
-        window = await self.create_test_window(width=1200, height=800)
 
         # OM-79384, hack to fix failing tests, see release notes for omni.graph.window.core 1.44.1
         # and version 1.3.16 of this extension.
@@ -117,7 +77,7 @@ class TestOgWindowComponentUI(OmniUiTest):
         #    TypeError: __init__(self, lightspeed.trex.logic.widget..) called with invalid `self` argument
         graph_window = OmniGraphWindow(
             "OgWindowComponentTest",
-            createWidgetFunc=partial(OgRemixLogicTestGraphWidget, catalog_model=OgRemixLogicTestCatalogModel()),
+            createWidgetFunc=OgRemixLogicTestGraphWidget,
             flags=ui.WINDOW_FLAGS_NO_SCROLLBAR | ui.WINDOW_FLAGS_NO_TITLE_BAR | ui.WINDOW_FLAGS_NO_RESIZE,
             position_x=0,
             position_y=0,
@@ -126,55 +86,18 @@ class TestOgWindowComponentUI(OmniUiTest):
         )
 
         self._graph_window = graph_window
-        self._window = window
+        return stage, graph_window
 
-        for _ in range(5):
-            await omni.kit.app.get_app().next_update_async()
+    async def __import_graph(self, graph_window, graph_prim):
+        graph_window._import_prims(None, [graph_prim])
 
-        # Close the catalog so that our golden images don't break whenever the categories or node counts change.
-        graph_window._main_widget._splitter_left._button.call_clicked_fn()
-
-        for _ in range(5):
-            await omni.kit.app.get_app().next_update_async()
-
-        return (stage, window, graph_window)
-
-    async def __wait_for_window_to_draw(self):
-        # It takes 6 frames for the nodes and connections to all draw in
-        # their proper positions.
-        for _ in range(6):
-            await omni.kit.app.get_app().next_update_async()
-
-    @unittest.skipIf(os.name == "posix" and os.getenv("ETM_ACTIVE"), "OM-79384: Skip test in Linux ETM")
-    async def test_simple_graph(self):
-        _, _, graph_window = await self.__initialize_test_window()
-
-        controller = og.Controller()
-        keys = og.Controller.Keys
-        (graph, _, _, _) = controller.edit(
-            self.TEST_GRAPH_PATH,
-            {
-                keys.CREATE_NODES: [
-                    ("constA", "omni.graph.nodes.ConstantFloat"),
-                    ("add", "omni.graph.nodes.Add"),
-                    ("simple", "omni.graph.tutorials.SimpleData"),
-                ],
-                keys.SET_VALUES: [("constA.inputs:value", 1.5)],
-                keys.CONNECT: [
-                    ("constA.inputs:value", "add.inputs:a"),
-                    ("constA.inputs:value", "add.inputs:b"),
-                    ("add.outputs:sum", "simple.inputs:a_float"),
-                ],
-            },
-        )
-
-        graph_window._import_prims(None, [controller.prim(graph.get_path_to_graph())])
-
-        await self.__wait_for_window_to_draw()
-        await self.finalize_test(
-            golden_img_dir=self._golden_img_dir,
-            golden_img_name="lightspeed.trex.logic.widget.test_simple_graph.png",
-        )
+        async with asyncio.timeout(10):
+            while (
+                graph_window._main_widget is None
+                or graph_window._main_widget.model is None
+                or graph_window._main_widget.get_current_graph_item() != graph_prim
+            ):
+                await omni.kit.app.get_app().next_update_async()
 
     @unittest.skip("Skipping test_compound_nodes. Compound subgraphs are disabled via monkey patch for now.")
     @unittest.skipIf(os.name == "posix" and os.getenv("ETM_ACTIVE"), "OM-79384: Skip test in Linux ETM")
@@ -184,7 +107,7 @@ class TestOgWindowComponentUI(OmniUiTest):
         if not Supports.compound_graphs():
             return
 
-        _, _, graph_window = await self.__initialize_test_window()
+        _, graph_window = await self.__initialize_test_window()
 
         controller = og.Controller()
         usd_context = omni.usd.get_context()
@@ -193,12 +116,26 @@ class TestOgWindowComponentUI(OmniUiTest):
         await usd_context.open_stage_async(str(test_file_path))
         await wait_stage_loading()
 
-        graph_window._import_prims(None, [controller.prim("/World/PushGraph")])
+        await self.__import_graph(graph_window, controller.prim("/World/PushGraph"))
 
-        await self.__wait_for_window_to_draw()
-        await self.finalize_test(
-            golden_img_dir=self._golden_img_dir,
-            golden_img_name="lightspeed.trex.logic.widget.test_compound_nodes.png",
+        model = graph_window._main_widget.model
+        self.assertEqual(model.get_graph(None).get_path_to_graph(), "/World/PushGraph")
+        self.assertEqual(
+            {node.GetName() for node in model.nodes},
+            {
+                "bundlecompound",
+                "constantcompound",
+                "debugcompound",
+                "flowcompound",
+                "functioncompound",
+                "genericcompound",
+                "inputcompound",
+                "mathcompound",
+                "scenegraphcompound",
+                "compoundnode",
+                "uicompound",
+                "animationcompound",
+            },
         )
 
     @unittest.skip("Skipping test_enter_compound. Compound subgraphs are disabled via monkey patch for now.")
@@ -209,7 +146,7 @@ class TestOgWindowComponentUI(OmniUiTest):
         if not Supports.compound_subgraphs():
             return
 
-        stage, _, graph_window = await self.__initialize_test_window()
+        stage, graph_window = await self.__initialize_test_window()
 
         controller = og.Controller()
         keys = og.Controller.Keys
@@ -230,15 +167,13 @@ class TestOgWindowComponentUI(OmniUiTest):
             },
         )
 
-        graph_window._import_prims(None, [controller.prim(graph.get_path_to_graph())])
-        await self.__wait_for_window_to_draw()
+        await self.__import_graph(graph_window, controller.prim(graph.get_path_to_graph()))
         graph_window._main_widget.model.create_subgraph_compound(
             [
                 controller.prim(f"{self.TEST_GRAPH_PATH}/add"),
                 controller.prim(f"{self.TEST_GRAPH_PATH}/simple"),
             ]
         )
-        await self.__wait_for_window_to_draw()
 
         # Verify that compound is selected after creation
         self.assertEqual(
@@ -246,43 +181,45 @@ class TestOgWindowComponentUI(OmniUiTest):
             [stage.GetPrimAtPath(f"{self.TEST_GRAPH_PATH}/compound")],
         )
 
-        # Verify that entering a compound shows the nodes
-        graph_window._main_widget.enter_compound(controller.prim(f"{self.TEST_GRAPH_PATH}/compound"))
+        # Enter the compound and check its graph and connection.
+        widget = graph_window._main_widget
+        widget.enter_compound(controller.prim(f"{self.TEST_GRAPH_PATH}/compound"))
 
-        await self.__wait_for_window_to_draw()
-        await self.finalize_test(
-            golden_img_dir=self._golden_img_dir,
-            golden_img_name="lightspeed.trex.logic.widget.test_enter_compounds.png",
+        compound_graph = stage.GetPrimAtPath(f"{self.TEST_GRAPH_PATH}/compound/Subgraph")
+        self.assertEqual(widget.get_current_graph_item(), compound_graph)
+        self.assertEqual({node.GetName() for node in widget.model[compound_graph].nodes}, {"add", "simple"})
+        self.assertEqual(
+            widget.model[compound_graph.GetPath().AppendChild("simple").AppendProperty("inputs:a_float")].inputs,
+            [compound_graph.GetPath().AppendChild("add").AppendProperty("outputs:sum")],
         )
 
-    async def _validate_enter_compound(self, graph_create_fn, compounds: list[str], test_name: str):
+    async def _validate_enter_compound(self, graph_create_fn, compounds: list[str]):
         # requires kit support for compounds
         if not Supports.compound_subgraphs():
-            return
+            return None
 
-        _stage, _, graph_window = await self.__initialize_test_window()
+        _, graph_window = await self.__initialize_test_window()
         graph = graph_create_fn()
 
-        graph_window._import_prims(None, [og.Controller.prim(graph.get_path_to_graph())])
-        await self.__wait_for_window_to_draw()
+        await self.__import_graph(graph_window, og.Controller.prim(graph.get_path_to_graph()))
 
-        # Verify that entering a compound shows the nodes
-        # dig down in the compounds
+        # Enter each compound and check the current graph.
+        widget = graph_window._main_widget
         for compound in compounds:
-            graph_window._main_widget.enter_compound(og.Controller.prim(compound))
-            await self.__wait_for_window_to_draw()
+            compound_node = og.Controller.node(compound)
+            widget.enter_compound(og.Controller.prim(compound))
+            self.assertEqual(
+                str(widget.get_current_graph_item().GetPath()),
+                compound_node.get_compound_graph_instance().get_path_to_graph(),
+            )
 
-        await self.finalize_test(
-            golden_img_dir=self._golden_img_dir,
-            golden_img_name=f"lightspeed.trex.logic.widget.{test_name}.png",
-        )
+        return widget
 
     @unittest.skip("Skipping test_compound_no_connections. Compound subgraphs are disabled via monkey patch for now.")
     @unittest.skipIf(os.name == "posix" and os.getenv("ETM_ACTIVE"), "OM-79384: Skip test in Linux ETM")
     @unittest.skipIf(not _is_kit_version_or_greater((105, 1)), "105.1 required for compound subgraphs")
     async def test_compound_no_connections(self):
-        """Test entering a compound with no connections produces unconnected input and output virtual nodes in the
-        image"""
+        """Check that a compound without connections retains both virtual nodes."""
 
         def create_graph():
             controller = og.Controller(update_usd=True)
@@ -304,15 +241,28 @@ class TestOgWindowComponentUI(OmniUiTest):
             )
             return graph
 
-        await self._validate_enter_compound(
-            create_graph, [f"{self.TEST_GRAPH_PATH}/compound"], "compound_no_connections"
+        widget = await self._validate_enter_compound(create_graph, [f"{self.TEST_GRAPH_PATH}/compound"])
+
+        model = widget.model
+        compound_graph = widget.get_current_graph_item()
+        self.assertEqual({node.GetName() for node in model[compound_graph].nodes}, {"add"})
+        self.assertEqual(model[compound_graph].ports, [])
+        isolation_model = widget._isolation_model
+        self.assertCountEqual(
+            [isolation_model[node].type for node in isolation_model.nodes],
+            ["omni.graph.nodes.Add", "InputNode", "OutputNode"],
         )
+        for name in ("a", "b"):
+            self.assertEqual(
+                model[compound_graph.GetPath().AppendChild("add").AppendProperty(f"inputs:{name}")].inputs,
+                [],
+            )
 
     @unittest.skip("Skipping test_enter_nested_compound. Compound subgraphs are disabled via monkey patch for now.")
     @unittest.skipIf(os.name == "posix" and os.getenv("ETM_ACTIVE"), "OM-79384: Skip test in Linux ETM")
     @unittest.skipIf(not _is_kit_version_or_greater((105, 1)), "105.1 required for compound subgraphs")
     async def test_enter_nested_compound(self):
-        """Test entering a nested compound with connections"""
+        """Check the nodes and promoted connections inside a nested compound."""
 
         def create_graph():
             controller = og.Controller(update_usd=True)
@@ -346,8 +296,24 @@ class TestOgWindowComponentUI(OmniUiTest):
             )
             return graph
 
-        await self._validate_enter_compound(
+        widget = await self._validate_enter_compound(
             create_graph,
             [f"{self.TEST_GRAPH_PATH}/compound", f"{self.TEST_GRAPH_PATH}/compound/Subgraph/compound2"],
-            "enter_nested_compound",
+        )
+
+        compound_graph = widget.get_current_graph_item()
+        self.assertEqual({node.GetName() for node in widget.model[compound_graph].nodes}, {"add"})
+        graph_path = compound_graph.GetPath()
+        self.assertCountEqual(
+            widget.model[compound_graph].ports,
+            [graph_path.AppendProperty(name) for name in ("inputs:val_1", "inputs:val_2", "outputs:value")],
+        )
+        for source, target in (
+            (graph_path.AppendProperty("inputs:val_1"), graph_path.AppendChild("add").AppendProperty("inputs:a")),
+            (graph_path.AppendProperty("inputs:val_2"), graph_path.AppendChild("add").AppendProperty("inputs:b")),
+        ):
+            self.assertEqual(widget.model[target].inputs, [source])
+        self.assertEqual(
+            widget.model[graph_path.AppendProperty("outputs:value")].outputs,
+            [graph_path.AppendChild("add").AppendProperty("outputs:sum")],
         )

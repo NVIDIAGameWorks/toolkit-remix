@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.4.0]
+### Changed
+- Updated the Job Queue visibility test cleanup to supply a usage snapshot before graph deletion.
+- Used shared Job Queue notifications for submission counts, skip reasons, and accepted ComfyUI results, even when submission is cancelled.
+- Replaced mocked notification unit tests with E2E checks in the Job Queue visibility and typed product workflow tests.
+- Imported the shared submission notification helper from its notifications submodule.
+
 ## [2.3.1]
 ### Changed
 - Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).

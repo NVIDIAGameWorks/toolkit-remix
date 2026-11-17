@@ -15,8 +15,8 @@
 * limitations under the License.
 """
 
-from .e2e.test_info import TestInfo
+from .e2e.test_info import TestLightGizmosViewport
 from .unit.test_clicked_gesture import TestClickedGesture
 from .unit.test_model import TestLightGizmosModel
 
-__all__ = ["TestClickedGesture", "TestInfo", "TestLightGizmosModel"]
+__all__ = ["TestClickedGesture", "TestLightGizmosModel", "TestLightGizmosViewport"]

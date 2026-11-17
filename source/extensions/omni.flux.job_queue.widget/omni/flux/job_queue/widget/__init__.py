@@ -15,7 +15,12 @@
 * limitations under the License.
 """
 
-__all__ = ("FluxJobQueueWidgetExtension", "QueueWidget", "get_display_adapter_registry")
+__all__ = (
+    "FluxJobQueueWidgetExtension",
+    "QueueWidget",
+    "get_display_adapter_registry",
+    "get_job_result_notifier",
+)
 
-from .extension import FluxJobQueueWidgetExtension, get_display_adapter_registry
+from .extension import FluxJobQueueWidgetExtension, get_display_adapter_registry, get_job_result_notifier
 from .widget import QueueWidget

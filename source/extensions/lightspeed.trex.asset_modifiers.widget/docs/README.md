@@ -20,6 +20,12 @@ The **Asset Modifiers** window edits modifier settings and runs the active modif
 numeric bounds on drag fields. One Job Queue display adapter serves every `AssetModifierJob` subclass. The
 extension depends on no ComfyUI extension.
 
+`AssetModifierSubmitter` owns preparation and deferred focus tasks. Extension shutdown cancels both task groups.
+The panel sets a per-context result listener on construction and clears it on destruction.
+Completed jobs use the current listener, so panel and Stage Manager submissions update **Last Run** without retaining a closed panel.
+Accepted graphs retain their result notifications even when submission is cancelled after persistence.
+The widget destroys its input rows after it stops property callbacks, both during a rebuild and during destruction.
+
 ## Use
 
 1. Open **Window > Modifiers > Asset Modifiers**.

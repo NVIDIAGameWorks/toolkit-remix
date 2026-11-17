@@ -144,9 +144,22 @@ Retry recognizes propagation by the full generated reason. An explicit skip that
 Retry retains the job directory. The executor resets both log files when the next execution starts.
 
 The queue owns each job directory and writes timestamped lifecycle and failure entries to `logs/stdout.log` and
-`logs/stderr.log`. `QueueInterface.delete_graph()` stages those directories on the same volume inside the graph-deletion
-transaction, restores them if the database write fails, and cleans committed staging afterward. Startup restores staged
-directories when their graph still exists and finishes cleanup when the graph was already deleted.
+`logs/stderr.log`. `QueueInterface.delete_graphs(graph_ids, snapshot)` stages unused queue folders inside its transaction
+and restores them if the database write fails. Applied queue folders stay. Published output folders are removed only
+under verified project roots, if the usage snapshot and surviving job inputs do not use them. Remote outputs stay.
+`Job.get_input_urls(inputs)` reports files from the job payload and currently available persisted typed inputs.
+The queue supplies partial inputs when a connected producer has no result yet. Product jobs must report their file inputs.
+If a surviving input cannot be inspected, all selected output folders stay. An unavailable selected job keeps its
+published folders, but its idle graph records and safe queue folders can be removed. Linked queue folders reject deletion.
+The product registers `usage_snapshot_provider: Callable[[], Awaitable[UsageSnapshot]]` on the queue.
+The widget awaits a fresh snapshot for each count and deletion. Collect open-stage root folders on the UI loop.
+Run project scans on a worker thread, then capture current open-stage dependencies on the UI loop before return.
+Providers must return no verified roots when any project scan fails because references can cross project boundaries.
+`UsageSnapshot.from_urls` normalizes each distinct URL once per call and removes remote URLs.
+Files in use stay with their whole folder.
+Each `FileReference(path, referrer)` keeps a folder only when its referring file is outside that folder.
+An output that refers to its own files can still be removed. Startup restores staged folders for existing graphs
+and finishes cleanup for deleted graphs.
 
 ## Apply lifecycle
 

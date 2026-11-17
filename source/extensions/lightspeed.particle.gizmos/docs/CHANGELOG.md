@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.7]
+### Removed
+- Removed screenshot-based particle gizmo tests, reference images, and their test configuration.
+
+### Added
+- Added real viewport tests for particle icon transforms, colors, visibility, and selection.
+
 ## [1.0.6]
 ### Changed
 - Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).

@@ -25,8 +25,8 @@ from collections.abc import Callable
 from typing import ClassVar
 from unittest import mock
 
-import omni.kit.test
 import omni.flux.job_queue.core.persistence as persistence
+import omni.kit.test
 from omni.flux.job_queue.core import handlers
 from omni.flux.job_queue.core.apply_executor import ApplyExecutor
 from omni.flux.job_queue.core.apply_handler_base import ApplyHandler
@@ -34,7 +34,6 @@ from omni.flux.job_queue.core.apply_handler_registry import ApplyHandlerRegistry
 from omni.flux.job_queue.core.enums import ApplyDisposition, ApplyOperation, ApplyPolicy, JobState
 from omni.flux.job_queue.core.errors import ApplyExecutionError, QueueSubmissionError
 from omni.flux.job_queue.core.interface import QueueInterface
-from omni.flux.job_queue.core.models import QueueJobSnapshot
 from omni.flux.job_queue.core.job import (
     ApplyBinding,
     Job,
@@ -43,6 +42,7 @@ from omni.flux.job_queue.core.job import (
     JobOutputs,
     JobProgressCallback,
 )
+from omni.flux.job_queue.core.models import QueueJobSnapshot
 from omni.flux.job_queue.core.persistence import PersistenceCodec
 from omni.flux.job_queue.core.serializer import serialize
 
@@ -1394,6 +1394,23 @@ class TestApplyRuntime(omni.kit.test.AsyncTestCase):
             # Assert
             self.assertEqual(_ApplyHandler.calls, [("apply", _Receipt(100, 7))])
             self.assertIs(interface.get_job_snapshot(job.job_id).apply_disposition, ApplyDisposition.APPLIED)
+
+    async def test_reconciliation_of_deleted_job_settles_without_error(self):
+        """A reconciliation queued before graph deletion settles silently after its job is removed."""
+        # Arrange
+        async with self._temp_db_path() as db_path:
+            interface = QueueInterface(db_path)
+            executor = ApplyExecutor(interface, ApplyHandlerRegistry())
+            self.executor = executor
+
+            # Act
+            with mock.patch("omni.flux.job_queue.core.apply_executor.carb.log_error") as log_error:
+                executor.request_reconcile(uuid.uuid4())
+                await asyncio.sleep(0)
+                await executor.wait_idle()
+
+            # Assert
+            log_error.assert_not_called()
 
     async def test_decline_cancels_queued_reconciliation_shared_with_explicit_apply(self):
         """Decline cancels one shared pre-claim request before either caller can Apply."""

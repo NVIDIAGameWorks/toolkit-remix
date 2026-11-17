@@ -37,6 +37,9 @@ from .graph_window import RemixLogicGraphWindow
 class RemixLogicGraphWorkspaceWindow(_WorkspaceWindowBase):
     """Remix Logic Graph window manager"""
 
+    _DEFAULT_WIDTH = 1000
+    _DEFAULT_HEIGHT = 800
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__sub_sidebar_items = None
@@ -56,7 +59,7 @@ class RemixLogicGraphWorkspaceWindow(_WorkspaceWindowBase):
         return ui.WINDOW_FLAGS_NO_SCROLLBAR | ui.WINDOW_FLAGS_NO_SCROLL_WITH_MOUSE
 
     def _create_window(self) -> ui.Window:
-        return RemixLogicGraphWindow(title=self.title, width=1000, height=800)
+        return RemixLogicGraphWindow(title=self.title, width=self._DEFAULT_WIDTH, height=self._DEFAULT_HEIGHT)
 
     # overrides for updating content, leave that to omni graph window
     def _update_ui(self):
