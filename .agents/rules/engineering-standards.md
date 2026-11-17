@@ -12,3 +12,5 @@ symptom.
 - Keep components single-purpose.
 - Do not use `getattr()`; use direct access, named constants, protocols, or explicit adapter/version branches.
 - Avoid `hasattr()` on types you control; narrow the type or define a protocol.
+- Do not commit `# ponytail:` comments or other agent-plugin tags. Write a plain comment that keeps the known limit
+  and when to revisit it, or write no comment.

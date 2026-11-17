@@ -953,8 +953,8 @@ class QueueInterface:
         )
         with self.connection() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            # ponytail: An explicit skip that copies the full generated reason, including the failure text,
-            # is still restored. Persist the skip origin if that distinction matters.
+            # An explicit skip that copies the full generated reason, including the failure text, is also restored.
+            # Persist the skip origin if that difference matters.
             descendants = connection.execute(
                 """
                 WITH RECURSIVE edges(prerequisite_job_id, target_job_id) AS (

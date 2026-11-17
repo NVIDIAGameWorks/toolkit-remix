@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.1]
+### Changed
+- Removed agent-plugin tags from code comments.
+
 ## [1.6.0]
 ### Added
 - Added `MetaStepOperation` and `skip_operations` so a caller can skip scale normalization or root wrapping.

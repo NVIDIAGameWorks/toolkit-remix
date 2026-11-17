@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.0.1]
+### Changed
+- Removed agent-plugin tags from code comments.
+
 ## [5.0.0]
 ### Changed
 - Required a `UsageSnapshot` for graph deletion and file counts to preserve files in use and remove unused published output folders. A file that refers to an output keeps it only from outside the output folder.

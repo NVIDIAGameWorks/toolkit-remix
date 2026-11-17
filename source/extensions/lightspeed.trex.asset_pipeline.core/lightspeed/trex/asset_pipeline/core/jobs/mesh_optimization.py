@@ -125,7 +125,7 @@ class MeshOptimizationJob(Job):
             # The prepare job found a valid .meta sidecar on the source. Publish it in place with no step and
             # settle as skipped with outputs, so the Apply handler still consumes it (ComfyUI Replace today,
             # asset library later).
-            # ponytail: lineage lists the model only; add its layers and textures when the asset library moves files.
+            # The lineage lists the model only. Add its layers and textures when the asset library moves files.
             model_hash = await run_in_worker_thread(hash_file, str(prepared.source_path))
             if model_hash is None:
                 raise RuntimeError(f"Cannot hash model lineage entry: {prepared.source_path}")

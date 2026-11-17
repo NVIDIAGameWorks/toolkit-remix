@@ -134,7 +134,7 @@ class AssetModifiersCore:
                     skipped[path] = f"Not supported by {modifier.display_name}."
                     continue
                 _owner, references = find_prim_with_references(prim)
-                # ponytail: nested model references are skipped until an ancestor-reference search is required.
+                # Nested model references are skipped. Add an ancestor-reference search when a modifier needs them.
                 targets = [
                     (
                         Sdf.ComputeAssetPathRelativeToLayer(layer, reference.assetPath),
