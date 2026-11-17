@@ -7,6 +7,10 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
 
+## [1.7.6]
+### Changed
+- Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).
+
 ## [1.7.5]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

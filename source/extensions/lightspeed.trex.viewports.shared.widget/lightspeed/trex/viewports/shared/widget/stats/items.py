@@ -33,7 +33,9 @@ import weakref
 from collections.abc import Callable, Sequence
 
 import carb
+import omni.kit.app
 import omni.ui as ui
+from carb.eventdispatcher import Event, get_eventdispatcher
 from omni.gpu_foundation_factory import get_memory_info
 
 from .settings import (
@@ -480,11 +482,11 @@ class ViewportStatisticFading(ViewportStatistic):
         return alpha
 
     def _begin_animation(self):
-        # Add the updtae subscription so that messages / updates are received even when not rendering
+        """Animate statistics while the viewport does not render."""
         if self.__update_sub:
             return
 
-        def on_update(event: carb.events.IEvent):
+        def on_update(event: Event):
             # Build a dict close enough to the render-update info
             update_info = {
                 "elapsed_time": event.payload["dt"],
@@ -496,17 +498,13 @@ class ViewportStatisticFading(ViewportStatistic):
             # Cache the updated alpha to be applied later, but kill the subscription if 0
             self.__alpha = update_info.get("alpha")
 
-        import omni.kit.app  # noqa: PLC0415
-
         # A render-frame update can arrive before this update subscription runs. Prime the
         # cached alpha so the render update does not cancel the newly started animation.
         self.__alpha = 1
-        self.__update_sub = (
-            omni.kit.app.get_app()
-            .get_update_event_stream()
-            .create_subscription_to_pop(
-                on_update, name=f"omni.kit.viewport.window.stats.ViewportStatisticFading[{self.name}]"
-            )
+        self.__update_sub = get_eventdispatcher().observe_event(
+            event_name=omni.kit.app.GLOBAL_EVENT_UPDATE,
+            on_event=on_update,
+            observer_name="lightspeed.trex.viewports.shared.widget:ViewportStatisticFading._begin_animation",
         )
 
     def _end_animation(self, alpha: float = 0):

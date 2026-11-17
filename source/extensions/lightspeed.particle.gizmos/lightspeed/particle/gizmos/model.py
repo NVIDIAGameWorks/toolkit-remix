@@ -19,6 +19,7 @@ __all__ = ["ParticleGizmoModel"]
 
 import omni.kit.commands
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.common.constants import PARTICLE_HIDE_EMITTER_ATTR
 from omni.ui import scene as sc
 from pxr import Gf, Sdf, Tf, Usd, UsdGeom
@@ -60,9 +61,10 @@ class ParticleGizmoModel(sc.AbstractManipulatorModel):
         self.set_gizmo_scale(scale)
 
         # Track selection change
-        self._events = self._usd_context.get_stage_event_stream()
-        self._stage_event_sub = self._events.create_subscription_to_pop(
-            self._on_stage_event, name="Particle Manipulator Selection Change"
+        self._stage_event_sub = get_eventdispatcher().observe_event(
+            event_name=self._usd_context.stage_event_name(omni.usd.StageEventType.SELECTION_CHANGED),
+            on_event=lambda _: self._on_kit_selection_changed(),
+            observer_name="lightspeed.particle.gizmos:ParticleGizmoModel._on_kit_selection_changed",
         )
 
         self._stage_listener: Tf.Listener | None = None
@@ -75,7 +77,7 @@ class ParticleGizmoModel(sc.AbstractManipulatorModel):
         if self._stage_listener is not None:
             self._stage_listener.Revoke()
             self._stage_listener = None
-        self._stage_event_sub.unsubscribe()
+        self._stage_event_sub = None
 
     def _get_context(self) -> Usd.Stage:
         # Get the UsdContext we are attached to
@@ -170,11 +172,6 @@ class ParticleGizmoModel(sc.AbstractManipulatorModel):
 
         # Send a changed signal that will invalidate manipulator and redraw it.
         self._item_changed(self.visible)
-
-    def _on_stage_event(self, event):
-        """Called by stage_event_stream"""
-        if event.type == int(omni.usd.StageEventType.SELECTION_CHANGED):
-            self._on_kit_selection_changed()
 
     def _is_selected(self):
         """Returns whether the particle system is selected in the scene"""

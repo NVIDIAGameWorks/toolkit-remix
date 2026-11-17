@@ -19,7 +19,7 @@ import asyncio
 import importlib
 import sys
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, call, patch
 
 import omni.kit.test
 
@@ -123,22 +123,28 @@ class TestIngestCraftLoader(omni.kit.test.AsyncTestCase):
         # Arrange
         app, _, context = _make_runtime()
         callbacks = []
-        context.get_stage_event_stream.return_value.create_subscription_to_pop.side_effect = (
-            lambda callback, **_kwargs: callbacks.append(callback) or MagicMock()
-        )
+        dispatcher = MagicMock()
+        dispatcher.observe_event.side_effect = lambda **kwargs: callbacks.append(kwargs["on_event"]) or MagicMock()
 
         with (
             patch.object(_loader.omni.kit.app, "get_app", return_value=app),
             patch.object(_loader.omni.usd, "get_context", return_value=context),
+            patch.object(_loader, "get_eventdispatcher", return_value=dispatcher),
         ):
             # Act
             load_task = asyncio.create_task(_loader.ensure_ingestcraft_loaded())
             await asyncio.sleep(0)
-            callbacks[0](SimpleNamespace(type=int(_loader.omni.usd.StageEventType.OPENED)))
+            callbacks[0](SimpleNamespace(event_name=context.stage_event_name.return_value))
             result = await load_task
 
         # Assert
         self.assertTrue(result)
+        context.stage_event_name.assert_called_once_with(_loader.omni.usd.StageEventType.OPENED)
+        dispatcher.observe_event.assert_called_once_with(
+            event_name=context.stage_event_name.return_value,
+            on_event=callbacks[0],
+            observer_name=ANY,
+        )
 
     async def test_ensure_ingestcraft_loaded_when_stage_never_ready_logs_timeout(self) -> None:
         """Log a timeout when the IngestCraft stage never opens."""
@@ -148,6 +154,7 @@ class TestIngestCraftLoader(omni.kit.test.AsyncTestCase):
         with (
             patch.object(_loader.omni.kit.app, "get_app", return_value=app),
             patch.object(_loader.omni.usd, "get_context", return_value=context),
+            patch.object(_loader, "get_eventdispatcher"),
             patch.object(_loader.carb, "log_error") as mock_log_error,
         ):
             # Act

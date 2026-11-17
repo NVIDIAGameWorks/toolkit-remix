@@ -18,6 +18,7 @@
 import carb
 import omni.kit.usd.layers as _layers
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -48,19 +49,19 @@ class EventSaveRootModCore(_ILSSEvent):
         """Function that will create the behavior"""
         self._uninstall()
         layers = _layers.get_layers()
-        self._layer_event_sub = layers.get_event_stream().create_subscription_to_pop(
-            self.__on_layer_event, name="LayerEvent"
+        self._layer_event_sub = get_eventdispatcher().observe_event(
+            event_name=_layers.layer_event_name(_layers.LayerEventType.DIRTY_STATE_CHANGED),
+            on_event=self.__on_dirty_state_changed,
+            filter=layers.get_event_key(),
+            observer_name="lightspeed.event.save_root_mod:EventSaveRootModCore.__on_dirty_state_changed",
         )
 
     def _uninstall(self):
         """Function that will delete the behavior"""
         self._layer_event_sub = None
 
-    def __on_layer_event(self, event):
+    def __on_dirty_state_changed(self, event):
         payload = _layers.get_layer_event_payload(event)
-
-        if payload.event_type != _layers.LayerEventType.DIRTY_STATE_CHANGED:
-            return
 
         replacement_layer = self.__layer_manager.get_layer_of_type(LayerType.replacement)
         # If there is no replacement layer there's nothing to save

@@ -15,8 +15,8 @@
 * limitations under the License.
 """
 
-import carb
 import omni.kit.usd.layers as _layers
+from carb.eventdispatcher import Event, ObserverGuard, get_eventdispatcher
 from pydantic import Field, PrivateAttr
 
 from .base import StageManagerUSDListenerPlugin as _StageManagerUSDListenerPlugin
@@ -29,7 +29,7 @@ class StageManagerUSDLayersListenerPlugin(_StageManagerUSDListenerPlugin[_layers
 
     event_type: type[_layers.LayerEventType] = Field(default_factory=lambda: _layers.LayerEventType, exclude=True)
 
-    _layer_event_sub: carb.events.ISubscription | None = PrivateAttr(default=None)
+    _layer_event_sub: list[ObserverGuard] | None = PrivateAttr(default=None)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -37,24 +37,29 @@ class StageManagerUSDLayersListenerPlugin(_StageManagerUSDListenerPlugin[_layers
         self._layer_event_sub = None
 
     def setup(self):
+        """Observe every layer event for the default layers instance."""
         super().setup()
         layers = _layers.get_layers()
-        self._layer_event_sub = layers.get_event_stream().create_subscription_to_pop(
-            self._on_layer_event, name="StageManagerLayerEventListener"
-        )
+        # Subscribers receive every layer event, not only the types that current plugins use.
+        self._layer_event_sub = [
+            get_eventdispatcher().observe_event(
+                event_name=_layers.layer_event_name(event_type),
+                on_event=self._on_layer_event,
+                filter=layers.get_event_key(),
+                observer_name="omni.flux.stage_manager.plugin.listener.usd:StageManagerUSDLayersListenerPlugin._on_layer_event",
+            )
+            for event_type in _layers.LayerEventType
+        ]
 
     def cleanup(self):
+        """Release the layer event observers."""
         super().cleanup()
         self._layer_event_sub = None
 
-    def _on_layer_event(self, event: "carb.events.IEvent"):
-        """
-        Callback executed whenever a layer event is triggered
+    def _on_layer_event(self, event: Event):
+        """Forward the layer event type to subscribers.
 
         Args:
-            event: The triggered layer event
+            event: The layer event.
         """
-        payload = _layers.get_layer_event_payload(event)
-        if not payload:
-            return
-        self._event_occurred(payload.event_type)
+        self._event_occurred(_layers.layer_event_type(event.event_name))

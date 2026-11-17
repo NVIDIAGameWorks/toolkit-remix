@@ -21,7 +21,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import omni.kit.test
 
@@ -51,15 +51,14 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
     async def test_init_registers_preferences_menu_hook(self):
         settings = MagicMock()
         settings.get.return_value = False
-        startup_event_stream = MagicMock()
         app = MagicMock()
         app.is_app_ready.return_value = False
-        app.get_startup_event_stream.return_value = startup_event_stream
 
         with (
             patch("lightspeed.trex.app.setup.setup_ui.carb.settings.get_settings", return_value=settings),
             patch("lightspeed.trex.app.setup.setup_ui.omni.kit.menu.utils.add_hook") as add_hook_mock,
             patch("lightspeed.trex.app.setup.setup_ui.omni.kit.app.get_app", return_value=app),
+            patch.object(_setup_ui, "get_eventdispatcher"),
         ):
             setup_ui = SetupUI()
 
@@ -69,23 +68,23 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
     async def test_init_defers_app_ready_setup_until_app_ready(self):
         settings = MagicMock()
         settings.get.return_value = True
-        startup_event_stream = MagicMock()
-        startup_event_stream.create_subscription_to_pop_by_type.return_value = "subscription"
+        event_dispatcher = MagicMock()
+        event_dispatcher.observe_event.return_value = "subscription"
         app = MagicMock()
         app.is_app_ready.return_value = False
-        app.get_startup_event_stream.return_value = startup_event_stream
 
         with (
             patch("lightspeed.trex.app.setup.setup_ui.carb.settings.get_settings", return_value=settings),
             patch("lightspeed.trex.app.setup.setup_ui.omni.kit.menu.utils.add_hook"),
             patch("lightspeed.trex.app.setup.setup_ui.omni.kit.app.get_app", return_value=app),
+            patch.object(_setup_ui, "get_eventdispatcher", return_value=event_dispatcher),
         ):
             setup_ui = SetupUI()
 
-        startup_event_stream.create_subscription_to_pop_by_type.assert_called_once_with(
-            omni.kit.app.EVENT_APP_READY,
-            setup_ui._on_app_ready,
-            name="Lightspeed App Ready Setup",
+        event_dispatcher.observe_event.assert_called_once_with(
+            event_name=omni.kit.app.GLOBAL_EVENT_APP_READY,
+            on_event=setup_ui._on_app_ready,
+            observer_name=ANY,
         )
         self.assertEqual(setup_ui._SetupUI__sub_app_ready, "subscription")
 

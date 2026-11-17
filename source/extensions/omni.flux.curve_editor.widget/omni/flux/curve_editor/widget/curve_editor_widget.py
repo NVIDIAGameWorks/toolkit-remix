@@ -32,6 +32,7 @@ from contextlib import AbstractContextManager, ExitStack, nullcontext
 from dataclasses import replace
 from functools import partial
 
+from carb.eventdispatcher import get_eventdispatcher
 from carb.input import (
     KEYBOARD_MODIFIER_FLAG_ALT,
     KEYBOARD_MODIFIER_FLAG_CONTROL,
@@ -53,7 +54,7 @@ from omni.flux.fcurve.widget import (
     SelectionInfo,
 )
 from omni.flux.utils.widget import GroupedKeysModel
-from omni.kit.app import get_app
+from omni.kit.app import GLOBAL_EVENT_UPDATE
 from omni.kit.undo import get_undo_stack, undo
 
 from .canvas import CurveEditorCanvas, FrameType
@@ -377,8 +378,10 @@ class CurveEditorWidget:
         if self._position_axis is not None:
             self._position_edit_invalidated = True
             if self._deferred_reload_sub is None:
-                self._deferred_reload_sub = (
-                    get_app().get_update_event_stream().create_subscription_to_pop(self._finish_external_reload)
+                self._deferred_reload_sub = get_eventdispatcher().observe_event(
+                    event_name=GLOBAL_EVENT_UPDATE,
+                    on_event=self._finish_external_reload,
+                    observer_name="omni.flux.curve_editor.widget:CurveEditorWidget._finish_external_reload",
                 )
             self._refresh_position_fields()
             return

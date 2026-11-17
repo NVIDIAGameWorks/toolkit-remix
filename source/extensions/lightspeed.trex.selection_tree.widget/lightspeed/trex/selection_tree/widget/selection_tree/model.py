@@ -24,10 +24,10 @@ import re
 from contextlib import contextmanager
 from typing import TypeAlias
 
-import carb.events
 import omni.kit.commands
 import omni.ui as ui
 import omni.usd
+from carb.eventdispatcher import Event, get_eventdispatcher
 from lightspeed.common import constants
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.utils.common.prim_utils import get_prototype as _get_prototype
@@ -36,7 +36,7 @@ from lightspeed.trex.utils.common.prim_utils import is_light as _is_light
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.flux.utils.common.decorators import ignore_function_decorator as _ignore_function_decorator
 from omni.flux.utils.widget.usd.prims.string_field import UsdPrimNameField as _UsdPrimNameField
-from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
+from omni.kit.usd.layers import LayerEventType, get_layers, layer_event_name
 from pxr import Sdf, Usd, UsdGeom, UsdShade
 
 from .listener import USDListener as _USDListener
@@ -524,37 +524,61 @@ class ListModel(ui.AbstractItemModel):
     def enable_listeners(self, value):
         if value:
             self._usd_listener.add_model(self)
-            self._stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
-                self._on_stage_event, name="StageEvent"
-            )
-            event_stream = get_layers().get_event_stream()
-            self._layer_event = event_stream.create_subscription_to_pop(self._on_layer_event, name="layer events")
+            self._stage_event = [
+                get_eventdispatcher().observe_event(
+                    event_name=self._context.stage_event_name(omni.usd.StageEventType.OPENED),
+                    on_event=self._on_stage_opened,
+                    observer_name="lightspeed.trex.selection_tree.widget:ListModel._on_stage_opened",
+                ),
+                get_eventdispatcher().observe_event(
+                    event_name=self._context.stage_event_name(omni.usd.StageEventType.SELECTION_CHANGED),
+                    on_event=self._on_selection_changed,
+                    observer_name="lightspeed.trex.selection_tree.widget:ListModel._on_selection_changed",
+                ),
+            ]
+            layers = get_layers()
+            self._layer_event = [
+                get_eventdispatcher().observe_event(
+                    event_name=layer_event_name(event_type),
+                    on_event=self._on_layer_event,
+                    filter=layers.get_event_key(),
+                    observer_name="lightspeed.trex.selection_tree.widget:ListModel._on_layer_event",
+                )
+                for event_type in (
+                    LayerEventType.SUBLAYERS_CHANGED,
+                    LayerEventType.MUTENESS_STATE_CHANGED,
+                    LayerEventType.MUTENESS_SCOPE_CHANGED,
+                )
+            ]
         else:
             self._usd_listener.remove_model(self)
             self._stage_event = None
 
-    def _on_layer_event(self, event: carb.events.IEvent):
-        temp = get_layer_event_payload(event)
-        if temp.event_type in {
-            LayerEventType.SUBLAYERS_CHANGED,
-            LayerEventType.MUTENESS_STATE_CHANGED,
-            LayerEventType.MUTENESS_SCOPE_CHANGED,
-        }:
-            self.refresh()
-            if self._ignore_refresh:
-                self._ignore_refresh = False
+    def _on_layer_event(self, _event: Event):
+        self.refresh()
+        if self._ignore_refresh:
+            self._ignore_refresh = False
 
-    def _on_stage_event(self, event):
-        # Re-register USD listener when a new stage is opened
-        if event.type == int(omni.usd.StageEventType.OPENED):
-            self._usd_listener.remove_model(self)
-            if self.stage:
-                self._usd_listener.add_model(self)
+    def _on_stage_opened(self, _event):
+        """Register the model with the USD listener again when a stage exists.
 
-        if event.type == int(omni.usd.StageEventType.SELECTION_CHANGED):
-            self.refresh()
-            if self._ignore_refresh:
-                self._ignore_refresh = False
+        Args:
+            _event: Unused stage open event.
+        """
+        # Register the USD listener again when a new stage opens.
+        self._usd_listener.remove_model(self)
+        if self.stage:
+            self._usd_listener.add_model(self)
+
+    def _on_selection_changed(self, _event):
+        """Refresh the model and clear the refresh suppression flag after a selection change.
+
+        Args:
+            _event: Unused selection change event.
+        """
+        self.refresh()
+        if self._ignore_refresh:
+            self._ignore_refresh = False
 
     def __get_prototype_from_path(self, path) -> str | None:
         if path.startswith(constants.MESH_PATH) or path.startswith(constants.LIGHT_PATH):

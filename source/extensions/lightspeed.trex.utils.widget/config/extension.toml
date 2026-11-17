@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.8.5"
+version = "1.8.6"
 authors =["Damien Bataille <dbataille@nvidia.com>"]
 title = "NVIDIA RTX Remix widget utils"
 description = "Utils helper for Lightspeed widgets"
@@ -22,6 +22,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/-/tr
 "omni.flux.info_icon.widget" = {}
 "omni.flux.utils.common" = {}
 "omni.flux.utils.widget" = {}
+"omni.kit.actions.core" = {}
 "omni.kit.commands" = {}
 "omni.ui" = {}
 "omni.usd" = {}

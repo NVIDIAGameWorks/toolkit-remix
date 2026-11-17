@@ -715,13 +715,22 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
             with self.subTest(title=event_type.name):
                 # Arrange
                 setup = _setup_ui.SetupUI.__new__(_setup_ui.SetupUI)
+                usd_context = MagicMock()
+                usd_context.stage_event_name.side_effect = lambda stage_event_type: stage_event_type
+                setup._viewport_layers = SimpleNamespace(viewport_api=SimpleNamespace(usd_context=usd_context))
+                dispatcher = MagicMock()
+                with patch.object(_setup_ui, "get_eventdispatcher", return_value=dispatcher):
+                    setup._subscribe_stage_events()
+                callbacks = {
+                    call.kwargs["event_name"]: call.kwargs["on_event"]
+                    for call in dispatcher.observe_event.call_args_list
+                }
                 activation = asyncio.get_running_loop().create_future()
                 self.addCleanup(activation.cancel)
                 setup._remix_renderer_activation_task = activation
-                event = SimpleNamespace(type=int(event_type))
 
                 # Act
-                setup._on_stage_event(event)
+                callbacks[event_type](None)
 
                 # Assert
                 self.assertTrue(activation.cancelled())
@@ -760,14 +769,14 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         setup._viewport_layers = SimpleNamespace(viewport_api=viewport_api)
         activation = asyncio.get_running_loop().create_future()
         self.addCleanup(activation.cancel)
-        stage_opened = SimpleNamespace(type=int(_setup_ui.omni.usd.StageEventType.OPENED))
+        stage_opened = SimpleNamespace()
 
         with (
             patch.object(_setup_ui, "_get_event_manager_instance"),
             patch.object(setup, "_activate_remix_renderer_async", new=MagicMock(return_value=activation)),
         ):
             # Act
-            setup._on_stage_event(stage_opened)
+            setup._on_stage_opened(stage_opened)
 
         # Assert
         self.assertIs(activation, setup._remix_renderer_activation_task)
@@ -787,11 +796,11 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
         viewport_api = SimpleNamespace(stage=object(), updates_enabled=False)
         setup._viewport_layers = SimpleNamespace(viewport_api=viewport_api)
         setup._activate_remix_renderer_async = AsyncMock()
-        stage_opened = SimpleNamespace(type=int(_setup_ui.omni.usd.StageEventType.OPENED))
+        stage_opened = SimpleNamespace()
 
         with patch.object(_setup_ui, "_get_event_manager_instance"):
             # Act
-            setup._on_stage_event(stage_opened)
+            setup._on_stage_opened(stage_opened)
 
         # Assert
         self.assertIsNone(setup._remix_renderer_activation_task)

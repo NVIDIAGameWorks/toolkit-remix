@@ -24,6 +24,7 @@ from asyncio import ensure_future
 import carb
 import omni.client
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.trex.viewports.shared.widget import get_viewport_api
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -57,19 +58,15 @@ class EventGenerateThumbnailCore(_ILSSEvent):
         self._uninstall()
 
         self._context = omni.usd.get_context(self._context_name)
-        self._stage_event_sub = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_stage_event, name="StageEventListener"
+        self._stage_event_sub = get_eventdispatcher().observe_event(
+            event_name=self._context.stage_event_name(omni.usd.StageEventType.SAVED),
+            on_event=lambda _: ensure_future(self.__generate_thumbnail()),
+            observer_name="lightspeed.event.generate_thumbnail:EventGenerateThumbnailCore.__generate_thumbnail",
         )
 
     def _uninstall(self):
         """Function that will delete the behavior"""
         self._layer_event_sub = None
-
-    def __on_stage_event(self, event):
-        if event.type != int(omni.usd.StageEventType.SAVED):
-            return
-
-        ensure_future(self.__generate_thumbnail())
 
     @omni.usd.handle_exception
     async def __generate_thumbnail(self):

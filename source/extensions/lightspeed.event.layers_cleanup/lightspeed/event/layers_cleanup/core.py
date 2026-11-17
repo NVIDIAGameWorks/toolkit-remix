@@ -23,12 +23,14 @@ import omni.kit.app
 import omni.kit.notification_manager as _nm
 import omni.kit.usd.layers as _layers
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.common import constants as _constants
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
 _CONTEXT = "/exts/lightspeed.event.layers_cleanup/context"
+_CLEANUP_LAYERS_OBSERVER_NAME = "lightspeed.event.layers_cleanup:EventLayersCleanupCore.__cleanup_layers"
 
 
 class EventLayersCleanupCore(_ILSSEvent):
@@ -63,28 +65,24 @@ class EventLayersCleanupCore(_ILSSEvent):
         """Function that will create the behavior"""
         self._uninstall()
 
-        self._stage_event_sub = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_stage_event, name="StageEventListener"
+        self._stage_event_sub = get_eventdispatcher().observe_event(
+            event_name=self._context.stage_event_name(omni.usd.StageEventType.OPENED),
+            on_event=lambda _: self.__cleanup_layers(),
+            observer_name=_CLEANUP_LAYERS_OBSERVER_NAME,
         )
 
         layers = _layers.get_layers()
-        self._layer_event_sub = layers.get_event_stream().create_subscription_to_pop(
-            self.__on_layer_event, name="LayerEventListener"
+        self._layer_event_sub = get_eventdispatcher().observe_event(
+            event_name=_layers.layer_event_name(_layers.LayerEventType.SUBLAYERS_CHANGED),
+            on_event=lambda _: self.__cleanup_layers(),
+            filter=layers.get_event_key(),
+            observer_name=_CLEANUP_LAYERS_OBSERVER_NAME,
         )
 
     def _uninstall(self):
         """Function that will delete the behavior"""
         self._stage_event_sub = None
         self._layer_event_sub = None
-
-    def __on_stage_event(self, event):
-        if event.type == int(omni.usd.StageEventType.OPENED):
-            self.__cleanup_layers()
-
-    def __on_layer_event(self, event):
-        payload = _layers.get_layer_event_payload(event)
-        if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
-            self.__cleanup_layers()
 
     def __cleanup_layers(self):
         broken_stack = self._layer_manager.broken_layers_stack()

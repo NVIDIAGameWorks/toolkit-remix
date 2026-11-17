@@ -27,7 +27,8 @@ EVENT_NAME = "Shutdown Test"
 
 
 class MockEvent:
-    type = omni.kit.app.POST_QUIT_EVENT_TYPE
+    event_name = omni.kit.app.GLOBAL_EVENT_POST_QUIT
+    payload = {}
 
 
 class MockInterrupter(_InterrupterBase):
@@ -82,7 +83,7 @@ class TestEventOnShutdownBase(AsyncTestCase):
         interrupter = event.interrupter
         interrupter.interruptable = False
         with patch.object(interrupter, "interrupt_shutdown") as mock_interrupt_shutdown:
-            event._EventOnShutdownBase__on_shutdown_event(MockEvent)
+            event._EventOnShutdownBase__on_post_quit(MockEvent)
             mock_interrupt_shutdown.assert_not_called()
 
     async def test_interrupter_on(self):

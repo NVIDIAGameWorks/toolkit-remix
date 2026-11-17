@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.2]
+### Changed
+- Use Events 2.0 to observe application readiness before the MCP server starts.
+
 ## [1.4.1]
 ### Changed
 - Name `lightspeed.trex.service.core` as the owner of the REST routes this server adapts

@@ -216,14 +216,16 @@ class TestEventCameraClipRangeOverride(AsyncTestCase):
         Subsequent calls while pending must not queue duplicate tasks."""
 
         # Arrange
+        self._event._context.get_stage.return_value = _make_stage()
+
         def _close_scheduled(coroutine):
             coroutine.close()
 
         # Act
         with patch.object(_core.asyncio, "ensure_future", side_effect=_close_scheduled) as mock_ensure_future:
-            self._event._schedule_apply()
-            self._event._schedule_apply()
-            self._event._schedule_apply()
+            self._event._on_stage_hierarchy_changed(None)
+            self._event._on_stage_hierarchy_changed(None)
+            self._event._on_stage_hierarchy_changed(None)
 
         # Assert
         self.assertTrue(self._event._apply_pending)

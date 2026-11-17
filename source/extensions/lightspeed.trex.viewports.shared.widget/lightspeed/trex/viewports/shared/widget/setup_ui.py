@@ -26,6 +26,7 @@ import omni.appwindow
 import omni.kit.app
 import omni.ui as ui
 import omni.usd
+from carb.eventdispatcher import Event, get_eventdispatcher
 from lightspeed.common.constants import GlobalEventNames
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.hydra.remix.core import REMIX_HYDRA_ENGINE_NAME as _HDREMIX_HYDRA_ENGINE_NAME
@@ -150,8 +151,11 @@ class SetupUI(_WorkspaceWidget):
         )
 
         app_window = omni.appwindow.get_default_app_window()
-        self._minimize_window_subscription = app_window.get_window_minimize_event_stream().create_subscription_to_push(
-            self._on_minimized, name=f"lightspeed.trex.viewports.shared.widget.minimize_window_subscription.{self}"
+        self._minimize_window_subscription = get_eventdispatcher().observe_event(
+            event_name=omni.appwindow.GLOBAL_EVENT_WINDOW_MINIMIZE_IMMEDIATE,
+            on_event=self._on_minimized,
+            filter=app_window.get_event_key(),
+            observer_name="lightspeed.trex.viewports.shared.widget:SetupUI._on_minimized",
         )
 
         # connect viewport to active viewport event
@@ -164,12 +168,7 @@ class SetupUI(_WorkspaceWidget):
         self.__create_ui()
         update_viewport_menu_style()
 
-        # connect viewport to stage events
-        self._stage_event_subscription = (
-            self.viewport_api.usd_context.get_stage_event_stream().create_subscription_to_pop(
-                self._on_stage_event, name="StageEvent"
-            )
-        )
+        self._subscribe_stage_events()
 
     @classmethod
     def next_unique_viewport_name(cls, context_name: str) -> str:
@@ -259,7 +258,8 @@ class SetupUI(_WorkspaceWidget):
         elif not was_enabled and self.viewport_api.stage is not None:
             self._schedule_remix_renderer_activation("viewport-active")
 
-    def _on_minimized(self, event: carb.events.IEvent, *args, **kwargs):
+    def _on_minimized(self, event: Event, *args, **kwargs):
+        """Apply the window minimize state to viewport updates."""
         self._docked = event.payload.get("isMinimized", False)
         self._set_viewport_api_updates_enabled()
 
@@ -290,17 +290,39 @@ class SetupUI(_WorkspaceWidget):
     def _on_viewport_frame_mouse_pressed(self, x: float, y: float, button: int, modifier: int):
         self.set_active(True)
 
-    def _on_stage_event(self, event):
-        """Keep renderer activation scoped to the lifetime of the current stage."""
-        if event.type in (int(omni.usd.StageEventType.CLOSING), int(omni.usd.StageEventType.OPENING)):
-            if self._remix_renderer_activation_task is not None:
-                self._remix_renderer_activation_task.cancel()
-                self._remix_renderer_activation_task = None
-        elif event.type == int(omni.usd.StageEventType.OPENED):
-            # If a new stage is opened on the associated usd_context, we want to activate
-            # the viewport in order to make sure we always show the current stage.
-            self.set_active(True)
-            self._schedule_remix_renderer_activation("stage-opened")
+    def _subscribe_stage_events(self):
+        """Activate the viewport when its stage opens, and cancel renderer activation when the stage changes."""
+        usd_context = self.viewport_api.usd_context
+        self._stage_event_subscription = [
+            get_eventdispatcher().observe_event(
+                event_name=usd_context.stage_event_name(omni.usd.StageEventType.OPENED),
+                on_event=self._on_stage_opened,
+                observer_name="lightspeed.trex.viewports.shared.widget:SetupUI._on_stage_opened",
+            ),
+            *(
+                get_eventdispatcher().observe_event(
+                    event_name=usd_context.stage_event_name(event_type),
+                    on_event=lambda _: self._cancel_remix_renderer_activation(),
+                    observer_name="lightspeed.trex.viewports.shared.widget:SetupUI._cancel_remix_renderer_activation",
+                )
+                for event_type in (omni.usd.StageEventType.CLOSING, omni.usd.StageEventType.OPENING)
+            ),
+        ]
+
+    def _on_stage_opened(self, _event):
+        """Activate the viewport and schedule renderer activation when its stage opens.
+
+        Args:
+            _event: Unused stage open event.
+        """
+        self.set_active(True)
+        self._schedule_remix_renderer_activation("stage-opened")
+
+    def _cancel_remix_renderer_activation(self):
+        """Cancel renderer activation that belongs to the stage that closes or is replaced."""
+        if self._remix_renderer_activation_task is not None:
+            self._remix_renderer_activation_task.cancel()
+            self._remix_renderer_activation_task = None
 
     def _schedule_remix_renderer_activation(self, reason: str, retry_support: bool = True):
         """Schedule renderer initialization for a visible, updating viewport with a stage."""

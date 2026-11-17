@@ -23,6 +23,7 @@ from datetime import datetime, UTC
 
 import carb
 import omni.kit.app
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.events_manager import ILSSEvent
 from lightspeed.trex.app.setup.lifecycle import subscribe_user_ready
 from omni.flux.telemetry.core import get_telemetry_instance
@@ -61,10 +62,12 @@ class EventAppStartCore(ILSSEvent):
         """Subscribe to application readiness and capture the startup start time."""
         self._app_start_time = time.time() - self._app.get_time_since_start_s()
         if self._app.is_app_ready():
-            self.__on_app_started(None)
+            self.__on_app_ready(None)
         else:
-            self._subscription = self._app.get_startup_event_stream().create_subscription_to_pop_by_type(
-                omni.kit.app.EVENT_APP_READY, self.__on_app_started, name="App Ready"
+            self._subscription = get_eventdispatcher().observe_event(
+                event_name=omni.kit.app.GLOBAL_EVENT_APP_READY,
+                on_event=self.__on_app_ready,
+                observer_name="lightspeed.event.app_start:EventAppStartCore.__on_app_ready",
             )
 
     def _uninstall(self):
@@ -75,7 +78,7 @@ class EventAppStartCore(ILSSEvent):
             self._telemetry_task.cancel()
         self._telemetry_task = None
 
-    def __on_app_started(self, payload):
+    def __on_app_ready(self, payload):
         # Make sure to only execute once (in case of hot reload)
         if self._executed:
             return

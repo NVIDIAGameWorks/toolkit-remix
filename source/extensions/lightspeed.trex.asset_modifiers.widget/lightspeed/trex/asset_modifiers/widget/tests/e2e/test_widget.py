@@ -125,6 +125,8 @@ class TestAssetModifiersWidgetE2E(AsyncTestCase):
             context_name=Contexts.STAGE_CRAFT.value,
         ) as project_url:
             await ui_test.human_delay(3)
+            run_button = ui_test.find(f"{_TITLE}//Frame/**/Button[*].identifier=='AssetModifierRun'")
+            self.assertTrue(run_button.widget.enabled)
 
             # 2. The picker lists the modifier with its Experimental label. Selecting it builds its inputs.
             picker = ui_test.find(f"{_TITLE}//Frame/**/SectionedComboBox[*].identifier=='AssetModifierPicker'")
@@ -160,11 +162,15 @@ class TestAssetModifiersWidgetE2E(AsyncTestCase):
             await ui_test.human_delay(2)
             self.assertEqual(settings.get_value(ScaleMeshTestModifier, ScaleMeshTestModifier.inputs[0]), 2.0)
 
-            # 4. A File Path Constant source runs without a project. The File row appears once the source changes.
-            settings.set_value(ScaleMeshTestModifier, SOURCE_INPUT, SourceGetter.CONSTANT)
-            settings.set_value(ScaleMeshTestModifier, FILE_INPUT, project_url.path)
+            # 4. A stage source needs a project, but a File Path Constant source does not.
             await usd.get_context(Contexts.STAGE_CRAFT.value).close_stage_async()
             await ui_test.human_delay(3)
+            self.assertFalse(run_button.widget.enabled)
+            self.assertEqual(run_button.widget.tooltip, "Open a project to run an asset modifier.")
+            settings.set_value(ScaleMeshTestModifier, SOURCE_INPUT, SourceGetter.CONSTANT)
+            settings.set_value(ScaleMeshTestModifier, FILE_INPUT, project_url.path)
+            await ui_test.human_delay(3)
+            self.assertTrue(run_button.widget.enabled)
             self.assertIsNotNone(ui_test.find(f"{_TITLE}//Frame/**/StringField[*].identifier=='NativePropertyValue'"))
 
             # 5. Run queues one graph whose modifier job has the file source and the edited Scale.

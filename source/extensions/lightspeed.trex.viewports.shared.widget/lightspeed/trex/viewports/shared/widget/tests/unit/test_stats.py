@@ -24,10 +24,8 @@ from lightspeed.trex.viewports.shared.widget.stats import items as _items
 class TestViewportStatisticFading(omni.kit.test.AsyncTestCase):
     async def test_begin_animation_preserves_alpha_until_external_update(self):
         # Arrange
-        update_stream = MagicMock()
-        update_stream.create_subscription_to_pop.return_value = MagicMock(name="subscription")
-        app = MagicMock()
-        app.get_update_event_stream.return_value = update_stream
+        event_dispatcher = MagicMock()
+        event_dispatcher.observe_event.return_value = MagicMock(name="subscription")
         statistic = _items.ViewportStatisticFading(
             "/exts/test/cameraSpeedMessage",
             stat_name="Camera Speed",
@@ -36,7 +34,7 @@ class TestViewportStatisticFading(omni.kit.test.AsyncTestCase):
         update_info = {}
 
         try:
-            with patch("omni.kit.app.get_app", return_value=app):
+            with patch.object(_items, "get_eventdispatcher", return_value=event_dispatcher):
                 statistic._begin_animation()
 
             # Act

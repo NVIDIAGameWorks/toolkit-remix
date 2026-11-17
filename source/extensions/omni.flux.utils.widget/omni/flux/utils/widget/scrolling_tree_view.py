@@ -26,7 +26,7 @@ from contextlib import asynccontextmanager
 
 import omni.kit.app
 import omni.usd
-from carb.events import IEvent
+from carb.eventdispatcher import Event, get_eventdispatcher
 from omni import appwindow, ui
 from omni.flux.utils.widget.tree_widget import (
     AlternatingRowWidget,
@@ -145,17 +145,17 @@ class ScrollingTreeWidget:
 
         self._item_changed_sub = self._model.subscribe_item_changed_fn(self._on_model_item_changed)
 
-        # NOTE: this event subscription makes sure that the number of alternating rows always matches
-        # the size of the tree view window regardless of the count of visible items on the tree
-        # I tried using the tree_frame and scroll frame but the main app window
-        # is the required window_resize_event_stream
-        self._app_window_size_changed_sub = (
-            appwindow.get_default_app_window()
-            .get_window_resize_event_stream()
-            .create_subscription_to_pop(self._on_window_resized, name="AppWindowResized")
+        # Alternating rows must follow the main app window, not only the tree frames.
+        app_window = appwindow.get_default_app_window()
+        self._app_window_size_changed_sub = get_eventdispatcher().observe_event(
+            event_name=appwindow.GLOBAL_EVENT_WINDOW_RESIZE,
+            on_event=self._on_window_resized,
+            observer_name="omni.flux.utils.widget:ScrollingTreeWidget._on_window_resized",
+            filter=app_window.get_event_key(),
         )
 
-    def _on_window_resized(self, _: IEvent) -> None:
+    def _on_window_resized(self, _: Event) -> None:
+        """Refresh tree widgets after the main app window changes size."""
         if not self._tree_widget:
             return
         self._tree_widget.dirty_widgets()

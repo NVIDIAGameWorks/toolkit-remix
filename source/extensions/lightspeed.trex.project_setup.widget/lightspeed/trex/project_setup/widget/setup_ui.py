@@ -22,6 +22,7 @@ import omni.client
 import omni.kit.usd.layers as _layers
 import omni.ui as ui
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER
 from lightspeed.common.constants import READ_USD_FILE_EXTENSIONS_OPTIONS as _READ_USD_FILE_EXTENSIONS_OPTIONS
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER as _REMIX_CAPTURE_FOLDER
@@ -103,22 +104,6 @@ class ProjectSetupPane(WorkspaceWidget):
         self._validation_error_msg = ""
 
         self.__create_ui()
-
-    def __on_layer_event(self, event):
-        """Layer event callback - subscription destroyed when window invisible."""
-        payload = _layers.get_layer_event_payload(event)
-        if not payload:
-            return
-        if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
-            self.__on_event()
-
-    def __on_stage_event(self, event):
-        """Stage event callback - subscription destroyed when window invisible."""
-        if event.type in {
-            int(omni.usd.StageEventType.CLOSED),
-            int(omni.usd.StageEventType.OPENED),
-        }:
-            self.__on_event()
 
     def __on_event(self):
         self._update_mod_name_field()
@@ -384,12 +369,20 @@ class ProjectSetupPane(WorkspaceWidget):
         if visible:
             # Create subscriptions when window becomes visible
             if not self._sub_stage_event:
-                self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
-                    self.__on_stage_event, name="StageChanged"
-                )
+                self._sub_stage_event = [
+                    get_eventdispatcher().observe_event(
+                        event_name=self._context.stage_event_name(event_type),
+                        on_event=lambda _: self.__on_event(),
+                        observer_name="lightspeed.trex.project_setup.widget:ProjectSetupPane.__on_event",
+                    )
+                    for event_type in (omni.usd.StageEventType.CLOSED, omni.usd.StageEventType.OPENED)
+                ]
             if not self._sub_layer_event:
-                self._sub_layer_event = self._layers.get_event_stream().create_subscription_to_pop(
-                    self.__on_layer_event, name="LayerChange"
+                self._sub_layer_event = get_eventdispatcher().observe_event(
+                    event_name=_layers.layer_event_name(_layers.LayerEventType.SUBLAYERS_CHANGED),
+                    on_event=lambda _: self.__on_event(),
+                    filter=self._layers.get_event_key(),
+                    observer_name="lightspeed.trex.project_setup.widget:ProjectSetupPane.__on_event",
                 )
             self._update_mod_name_field()
             self.refresh_mod_detail_panel()

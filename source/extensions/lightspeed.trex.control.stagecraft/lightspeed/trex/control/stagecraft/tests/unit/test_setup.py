@@ -293,7 +293,7 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         # Act
         with patch("lightspeed.trex.control.stagecraft.setup.omni.kit.app.get_app") as mock_get_app:
             mock_get_app.return_value.next_update_async = next_update_async
-            await setup._update_modding_button_state_deferred(int(omni.usd.StageEventType.OPENED))
+            await setup._on_stage_opened_deferred()
 
         # Assert
         next_update_async.assert_awaited_once()
@@ -301,7 +301,7 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         setup._check_capture_on_open.assert_called_once_with()
         self.assertFalse(Setup._DISABLE_STAGE_OPEN_LIGHTING_UNDO)
 
-    async def test_non_open_stage_event_does_not_check_capture(self):
+    async def test_stage_closing_event_does_not_check_capture(self):
         # Arrange
         setup = Setup.__new__(Setup)
         setup._context_name = "stagecraft"
@@ -313,30 +313,13 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         # Act
         with patch("lightspeed.trex.control.stagecraft.setup.omni.kit.app.get_app") as mock_get_app:
             mock_get_app.return_value.next_update_async = next_update_async
-            await setup._update_modding_button_state_deferred(int(omni.usd.StageEventType.CLOSING))
+            await setup._update_modding_button_state_deferred()
 
         # Assert
         next_update_async.assert_awaited_once()
         setup._update_modding_button_state.assert_called_once_with()
         setup._check_capture_on_open.assert_not_called()
         self.assertTrue(Setup._DISABLE_STAGE_OPEN_LIGHTING_UNDO)
-
-    async def test_stage_event_owns_deferred_update_task(self):
-        """Retain the deferred update scheduled for a StageCraft stage event."""
-        # Arrange
-        setup = Setup.__new__(Setup)
-        setup._deferred_tasks = set()
-        deferred_task = MagicMock()
-
-        with (
-            patch.object(setup, "_update_modding_button_state_deferred", new=MagicMock(return_value="deferred-work")),
-            patch.object(_setup_module.asyncio, "ensure_future", return_value=deferred_task),
-        ):
-            # Act
-            setup._on_stage_event(SimpleNamespace(type=int(omni.usd.StageEventType.OPENED)))
-
-        # Assert
-        self.assertIn(deferred_task, setup._deferred_tasks)
 
     async def test_completed_deferred_task_releases_ownership(self):
         """Release a StageCraft task after it completes."""
@@ -345,12 +328,14 @@ class TestSetup(omni.kit.test.AsyncTestCase):
         setup._deferred_tasks = set()
         deferred_task = MagicMock()
         setup._Setup__own_deferred_task(deferred_task)
+        retained_before_completion = deferred_task in setup._deferred_tasks
         completion_callback = deferred_task.add_done_callback.call_args.args[0]
 
         # Act
         completion_callback(deferred_task)
 
         # Assert
+        self.assertTrue(retained_before_completion)
         self.assertNotIn(deferred_task, setup._deferred_tasks)
 
     async def test_confirm_unsaved_project_without_pending_edits_proceeds_without_prompt(self):
@@ -853,6 +838,7 @@ class TestSetup(omni.kit.test.AsyncTestCase):
             patch.object(_setup_module, "_CaptureCoreSetup"),
             patch.object(_setup_module, "_ReplacementCoreSetup"),
             patch.object(_setup_module, "_get_event_manager_instance", return_value=event_manager),
+            patch.object(_setup_module, "get_eventdispatcher"),
             patch.object(_setup_module, "_get_global_hotkey_manager"),
             patch.object(_setup_module.carb.settings, "get_settings", return_value=settings),
             patch.object(Setup, "_Setup__install_light_rig_reference_validation_patch"),

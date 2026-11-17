@@ -22,6 +22,7 @@ import asyncio
 import carb
 import omni.kit.app
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 
 __all__ = ["ensure_ingestcraft_loaded"]
 
@@ -59,13 +60,15 @@ async def ensure_ingestcraft_loaded(timeout_seconds: float = _LOAD_TIMEOUT_SECON
 
             stage_opened = asyncio.get_running_loop().create_future()
 
-            def on_stage_event(event) -> None:
+            def on_stage_opened(_event) -> None:
                 """Complete activation when the IngestCraft stage opens."""
-                if event.type == int(omni.usd.StageEventType.OPENED) and not stage_opened.done():
+                if not stage_opened.done():
                     stage_opened.set_result(None)
 
-            _stage_event_subscription = context.get_stage_event_stream().create_subscription_to_pop(
-                on_stage_event, name="Wait for IngestCraft Stage"
+            _stage_event_subscription = get_eventdispatcher().observe_event(
+                event_name=context.stage_event_name(omni.usd.StageEventType.OPENED),
+                on_event=on_stage_opened,
+                observer_name="lightspeed.trex.utils.widget:ensure_ingestcraft_loaded",
             )
             if context.get_stage():
                 return True

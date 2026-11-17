@@ -15,8 +15,8 @@
 * limitations under the License.
 """
 
-import carb
 import omni.usd
+from carb.eventdispatcher import Event, ObserverGuard, get_eventdispatcher
 from pydantic import Field, PrivateAttr
 
 from .base import StageManagerUSDListenerPlugin as _StageManagerUSDListenerPlugin
@@ -29,7 +29,7 @@ class StageManagerUSDStageListenerPlugin(_StageManagerUSDListenerPlugin[omni.usd
 
     event_type: type[omni.usd.StageEventType] = Field(default_factory=lambda: omni.usd.StageEventType, exclude=True)
 
-    _stage_event_sub: carb.events.ISubscription | None = PrivateAttr(default=None)
+    _stage_event_sub: list[ObserverGuard] | None = PrivateAttr(default=None)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -37,26 +37,28 @@ class StageManagerUSDStageListenerPlugin(_StageManagerUSDListenerPlugin[omni.usd
         self._stage_event_sub = None
 
     def setup(self):
+        """Observe every stage event for the configured USD context."""
         super().setup()
         context = omni.usd.get_context(self._context_name)
-        self._stage_event_sub = context.get_stage_event_stream().create_subscription_to_pop(
-            self._on_stage_event, name="StageManagerStageEventListener"
-        )
+        # Subscribers receive every stage event, not only the types that current plugins use.
+        self._stage_event_sub = [
+            get_eventdispatcher().observe_event(
+                event_name=context.stage_event_name(omni.usd.StageEventType(event_type)),
+                on_event=self._on_stage_event,
+                observer_name="omni.flux.stage_manager.plugin.listener.usd:StageManagerUSDStageListenerPlugin._on_stage_event",
+            )
+            for event_type in range(int(omni.usd.StageEventType.COUNT))
+        ]
 
     def cleanup(self):
+        """Release the stage event observers."""
         super().cleanup()
         self._stage_event_sub = None
 
-    def _on_stage_event(self, event: "carb.events.IEvent"):
-        """
-        Callback executed whenever a stage event is triggered
+    def _on_stage_event(self, event: Event):
+        """Forward the stage event type to subscribers.
 
         Args:
-            event: The triggered stage event
+            event: The stage event.
         """
-        try:
-            # Convert the integer to the corresponding Enum entry
-            self._event_occurred(omni.usd.StageEventType(event.type))
-        except ValueError:
-            # Unknown event, ignore it
-            carb.log_error(f"An unknown stage event occurred: {event.type}")
+        self._event_occurred(omni.usd.stage_event_type(event.event_name))

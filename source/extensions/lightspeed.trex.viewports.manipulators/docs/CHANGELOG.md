@@ -1,6 +1,10 @@
 ï»¿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.7.4]
+### Changed
+- Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).
+
 ## [1.7.3]
 ### Fixed
 - Released owned transform manipulators and models when viewport layers are removed.

@@ -1,6 +1,10 @@
 ï»¿# Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.7]
+### Changed
+- Use Events 2.0 to observe application readiness before the final UI setup.
+
 ## [1.2.6]
 ### Added
 - Added supported `HOME_INTERACTIVE` and `USER_READY` lifecycle milestones for application startup consumers.

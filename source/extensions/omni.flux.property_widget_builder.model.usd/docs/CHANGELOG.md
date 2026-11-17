@@ -2,6 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.0.1]
+
+### Changed
+- Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).
+
 ## [5.0.0]
 ### Added
 - Added row-declared types for clipboard matching and per-property setter outcomes with applied asset paths, model-owned texture formatting and validation using the path policy and actual receiving layer, absolute fallbacks, and explicit synchronous write failure reporting.

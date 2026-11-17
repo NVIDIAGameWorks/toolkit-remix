@@ -22,6 +22,7 @@ import omni.client
 import omni.kit.app
 import omni.kit.test
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
 from lightspeed.layer_manager.core import LayerType as _LayerType
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
@@ -54,8 +55,8 @@ class TestOnLoadEvent(omni.kit.test.AsyncTestCase):
         stage.GetRootLayer().subLayerPaths.insert(1, layer_capture.identifier)
 
         core = _CaptureCoreSetup("")
-        # Fire a simulated OPENED event so __on_load_event runs
-        context.get_stage_event_stream().push(int(omni.usd.StageEventType.OPENED))
+        # Fire a simulated OPENED event so __on_stage_opened runs
+        get_eventdispatcher().dispatch_event(context.stage_event_name(omni.usd.StageEventType.OPENED), payload={})
         await omni.kit.app.get_app().next_update_async()
 
         expected_dir = omni.client.normalize_url(layer_capture.identifier).rsplit("/", 1)[0]
@@ -81,7 +82,7 @@ class TestOnLoadEvent(omni.kit.test.AsyncTestCase):
             await omni.kit.app.get_app().next_update_async()
 
             core = _CaptureCoreSetup("")
-            context.get_stage_event_stream().push(int(omni.usd.StageEventType.OPENED))
+            get_eventdispatcher().dispatch_event(context.stage_event_name(omni.usd.StageEventType.OPENED), payload={})
             await omni.kit.app.get_app().next_update_async()
 
             self.assertIsNotNone(core.get_directory())

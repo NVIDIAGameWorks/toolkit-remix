@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.4]
+### Changed
+- Migrate the shutdown event subscription to Events 2.0.
+
 ## [2.1.3]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

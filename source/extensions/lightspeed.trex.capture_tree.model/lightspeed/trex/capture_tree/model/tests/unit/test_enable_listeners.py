@@ -15,8 +15,12 @@
 * limitations under the License.
 """
 
+from unittest.mock import patch
+
 from lightspeed.trex.capture_tree.model import CaptureTreeModel
+from lightspeed.trex.capture_tree.model import model
 from omni.kit.test import AsyncTestCase
+from omni.usd import StageEventType
 
 
 class TestCaptureTreeModelEnableListeners(AsyncTestCase):
@@ -84,3 +88,76 @@ class TestCaptureTreeModelEnableListeners(AsyncTestCase):
         self.assertIsNone(model._layer_event_sub)
 
         model.destroy()
+
+    async def test_stage_opened_notifies_without_cancelling_tasks(self):
+        """Notify a stage change without cancellation when the stage opens."""
+        # Arrange
+        capture_model, callbacks = self._create_model_with_stage_callbacks()
+        with (
+            patch.object(capture_model, "cancel_tasks") as cancel_tasks,
+            patch.object(capture_model, "_CaptureTreeModel__on_stage_opened_or_closed") as stage_changed,
+        ):
+            # Act
+            callbacks["opened"](None)
+
+            # Assert
+            self.assertEqual(cancel_tasks.call_count, 0)
+            self.assertEqual(stage_changed.call_count, 1)
+
+    async def test_stage_closing_cancels_tasks_without_notifying(self):
+        """Cancel tasks without a stage notification before the stage closes."""
+        # Arrange
+        capture_model, callbacks = self._create_model_with_stage_callbacks()
+        with (
+            patch.object(capture_model, "cancel_tasks") as cancel_tasks,
+            patch.object(capture_model, "_CaptureTreeModel__on_stage_opened_or_closed") as stage_changed,
+        ):
+            # Act
+            callbacks["closing"](None)
+
+            # Assert
+            self.assertEqual(cancel_tasks.call_count, 1)
+            self.assertEqual(stage_changed.call_count, 0)
+
+    async def test_stage_closed_cancels_tasks_and_notifies(self):
+        """Cancel tasks and notify a stage change after the stage closes."""
+        # Arrange
+        capture_model, callbacks = self._create_model_with_stage_callbacks()
+        with (
+            patch.object(capture_model, "cancel_tasks") as cancel_tasks,
+            patch.object(capture_model, "_CaptureTreeModel__on_stage_opened_or_closed") as stage_changed,
+        ):
+            # Act
+            callbacks["closed"](None)
+
+            # Assert
+            self.assertEqual(cancel_tasks.call_count, 1)
+            self.assertEqual(stage_changed.call_count, 1)
+
+    def _create_model_with_stage_callbacks(self):
+        """Create an isolated model and its registered event callbacks.
+
+        Returns:
+            tuple: The model and callbacks indexed by event name.
+        """
+        with (
+            patch.object(model, "_CaptureCoreSetup"),
+            patch.object(model, "_ReplacementCoreSetup"),
+            patch.object(model.usd, "get_context") as get_context,
+            patch.object(model._layers, "get_layers"),
+            patch.object(model._layers, "layer_event_name", return_value="sublayers_changed"),
+            patch.object(model, "get_eventdispatcher") as get_dispatcher,
+        ):
+            get_context.return_value.stage_event_name.side_effect = {
+                StageEventType.OPENED: "opened",
+                StageEventType.CLOSING: "closing",
+                StageEventType.CLOSED: "closed",
+            }.__getitem__
+            capture_model = CaptureTreeModel("")
+            self.addCleanup(capture_model.destroy)
+            capture_model.enable_listeners(True)
+            callbacks = {
+                call.kwargs["event_name"]: call.kwargs["on_event"]
+                for call in get_dispatcher.return_value.observe_event.call_args_list
+            }
+        return capture_model, callbacks

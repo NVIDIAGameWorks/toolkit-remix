@@ -16,7 +16,7 @@
 """
 
 from contextlib import ExitStack, contextmanager
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 
 import omni.kit.test
 from carb.input import KEYBOARD_MODIFIER_FLAG_CONTROL, KeyboardInput
@@ -94,7 +94,9 @@ class TestCurveEditorWidget(omni.kit.test.AsyncTestCase):
             )
         )
         self._patches.enter_context(patch.object(curve_editor_widget, "get_default_app_window"))
-        self._patches.enter_context(patch.object(curve_editor_widget, "get_app"))
+        self._dispatcher = self._patches.enter_context(
+            patch.object(curve_editor_widget, "get_eventdispatcher")
+        ).return_value
 
     async def test_change_after_key_replacement_leaves_replacement_untouched(self):
         """Stale index references cannot write into replacement key objects."""
@@ -126,7 +128,30 @@ class TestCurveEditorWidget(omni.kit.test.AsyncTestCase):
         self.assertTrue(editor._position_edit_invalidated)
         self.assertFalse(editor._position_fields["value"].enabled)
         self.assertEqual(events, [("curves begin", ("x",)), "write"])
-        self.assertIsNotNone(editor._deferred_reload_sub)
+        self.assertIs(editor._deferred_reload_sub, self._dispatcher.observe_event.return_value)
+        self._dispatcher.observe_event.assert_called_once_with(
+            event_name=curve_editor_widget.GLOBAL_EVENT_UPDATE,
+            on_event=editor._finish_external_reload,
+            observer_name=ANY,
+        )
+
+    async def test_model_notice_with_pending_reload_reuses_update_observer(self):
+        """Repeated model notices retain the same pending update observer."""
+        # Arrange
+        editor, _, _, _ = self._active_editor()
+        editor._on_model_changed("x")
+        subscription = editor._deferred_reload_sub
+
+        # Act
+        editor._on_model_changed("x")
+
+        # Assert
+        self.assertIs(editor._deferred_reload_sub, subscription)
+        self._dispatcher.observe_event.assert_called_once_with(
+            event_name=curve_editor_widget.GLOBAL_EVENT_UPDATE,
+            on_event=editor._finish_external_reload,
+            observer_name=ANY,
+        )
 
     async def test_value_change_after_model_notice_does_not_write(self):
         """Pending external reload rejects subsequent native value callbacks."""
@@ -154,7 +179,7 @@ class TestCurveEditorWidget(omni.kit.test.AsyncTestCase):
         editor._canvas.reload_from_storage.side_effect = lambda: events.append("reload")
 
         # Act
-        editor._finish_external_reload(None)
+        self._dispatcher.observe_event.call_args.kwargs["on_event"](None)
 
         # Assert
         self.assertEqual(

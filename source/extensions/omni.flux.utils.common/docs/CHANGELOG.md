@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.1.1]
+### Changed
+- Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).
+
 ## [5.1.0]
 ### Added
 - Added source-aware asset path resolution using the layer contributing an attribute's default value, preserving resolved identities and reporting unanchored relative paths.

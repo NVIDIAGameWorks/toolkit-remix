@@ -20,6 +20,7 @@ __all__ = ["ParticleGizmosLayer"]
 import carb
 import lightspeed.trex.utils.common.prim_utils as _prim_utils
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.common.constants import PARTICLE_SCHEMA_NAME, VIEWPORT_MENU_SHOW_BY_TYPE
 from lightspeed.trex.viewports.manipulators.global_selection import GlobalSelection
 from omni.kit.scene_view.opengl import ViewportOpenGLSceneView
@@ -48,10 +49,24 @@ class ParticleGizmosLayer:
         self._usd_context_name = self._viewport_api.usd_context_name
 
         # Track selection
-        self._events = omni.usd.get_context(self._usd_context_name).get_stage_event_stream()
-        self._stage_event_sub = self._events.create_subscription_to_pop(
-            self._on_stage_event, name="Particle Gizmos Stage Update"
-        )
+        usd_context = omni.usd.get_context(self._usd_context_name)
+        self._stage_event_sub = [
+            get_eventdispatcher().observe_event(
+                event_name=usd_context.stage_event_name(omni.usd.StageEventType.OPENED),
+                on_event=self._on_stage_opened,
+                observer_name="lightspeed.particle.gizmos:ParticleGizmosLayer._on_stage_opened",
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=usd_context.stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED),
+                on_event=self._on_hierarchy_changed,
+                observer_name="lightspeed.particle.gizmos:ParticleGizmosLayer._on_hierarchy_changed",
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=usd_context.stage_event_name(omni.usd.StageEventType.CLOSED),
+                on_event=self._on_stage_closed,
+                observer_name="lightspeed.particle.gizmos:ParticleGizmosLayer._on_stage_closed",
+            ),
+        ]
         self._stage_listener = None
         self._current_stage = None
         self._ignore_update = False
@@ -162,21 +177,40 @@ class ParticleGizmosLayer:
             self._stage_listener.Revoke()
             self._stage_listener = None
 
-    def _on_stage_event(self, event):
-        """Called by stage_event_stream"""
+    def _on_stage_opened(self, _event):
+        """Store the open stage and create its listener when the scene view exists.
+
+        Args:
+            _event: Unused stage event.
+        """
         if not self._scene_view:
             return
-        if event.type == int(omni.usd.StageEventType.OPENED):
-            self._current_stage = omni.usd.get_context(self._usd_context_name).get_stage()
-            self._create_listener(self._current_stage)
-        elif event.type == int(omni.usd.StageEventType.HIERARCHY_CHANGED):
-            # TODO: This is called meny times during set up, when only an anon stage is open, so it would be
-            #  good to limit the number of times this is called.
-            # Create the manipulators
-            self._create_manipulators(self._current_stage)
-        elif event.type == int(omni.usd.StageEventType.CLOSED):
-            self._revoke_listeners()
-            self._destroy_manipulators()
+        self._current_stage = omni.usd.get_context(self._usd_context_name).get_stage()
+        self._create_listener(self._current_stage)
+
+    def _on_hierarchy_changed(self, _event):
+        """Recreate particle manipulators for the stored stage when the scene view exists.
+
+        Args:
+            _event: Unused hierarchy event.
+        """
+        if not self._scene_view:
+            return
+        # TODO: This is called meny times during set up, when only an anon stage is open, so it would be
+        #  good to limit the number of times this is called.
+        # Create the manipulators
+        self._create_manipulators(self._current_stage)
+
+    def _on_stage_closed(self, _event):
+        """Revoke listeners and destroy manipulators when the scene view exists.
+
+        Args:
+            _event: Unused stage event.
+        """
+        if not self._scene_view:
+            return
+        self._revoke_listeners()
+        self._destroy_manipulators()
 
     def _create_listener(self, stage):
         # Do no work if there is no stage

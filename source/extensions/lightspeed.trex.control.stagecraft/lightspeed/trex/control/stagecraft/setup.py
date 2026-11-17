@@ -30,6 +30,7 @@ import omni.kit.undo
 import omni.kit.window.file
 import omni.ui
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from omni.kit.viewport.menubar.lighting import actions as _viewport_lighting_actions
 from omni.kit.viewport.menubar.lighting.menu_container import MenuContainer as _ViewportLightingMenuContainer
 from pxr import Sdf, Tf
@@ -139,9 +140,20 @@ class Setup:
         self._sub_menu_workfile_new_workfile = self._menu_workfile_instance.subscribe_create_new_workfile(
             self._on_new_workfile
         )
-        self._sub_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self._on_stage_event, name="StagecraftStageEvent"
-        )
+        self._sub_stage_event = [
+            get_eventdispatcher().observe_event(
+                event_name=self._context.stage_event_name(omni.usd.StageEventType.OPENED),
+                on_event=lambda _: self.__own_deferred_task(asyncio.ensure_future(self._on_stage_opened_deferred())),
+                observer_name="lightspeed.trex.control.stagecraft:Setup._on_stage_opened_deferred",
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=self._context.stage_event_name(omni.usd.StageEventType.CLOSING),
+                on_event=lambda _: self.__own_deferred_task(
+                    asyncio.ensure_future(self._update_modding_button_state_deferred())
+                ),
+                observer_name="lightspeed.trex.control.stagecraft:Setup._update_modding_button_state_deferred",
+            ),
+        ]
         self.__sub_sidebar_items = None
         self.__sub_ingestion_sidebar_item = None
 
@@ -496,16 +508,15 @@ class Setup:
         finally:
             self._ingest_activation_task = None
 
-    def _on_stage_event(self, event):
-        if event.type in {int(omni.usd.StageEventType.OPENED), int(omni.usd.StageEventType.CLOSING)}:
-            self.__own_deferred_task(asyncio.ensure_future(self._update_modding_button_state_deferred(event.type)))
+    async def _on_stage_opened_deferred(self):
+        """Wait one update, refresh the modding button, restore lighting undo, and check the capture."""
+        await self._update_modding_button_state_deferred()
+        self.__set_stage_open_lighting_undo_disabled(False)
+        self._check_capture_on_open()
 
-    async def _update_modding_button_state_deferred(self, event_type: int):
+    async def _update_modding_button_state_deferred(self):
         await omni.kit.app.get_app().next_update_async()
         self._update_modding_button_state()
-        if event_type == int(omni.usd.StageEventType.OPENED):
-            self.__set_stage_open_lighting_undo_disabled(False)
-            self._check_capture_on_open()
 
     def _check_capture_on_open(self):
         """Open the project wizard when a project is loaded with a missing capture layer."""

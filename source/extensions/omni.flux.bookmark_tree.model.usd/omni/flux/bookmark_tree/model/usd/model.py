@@ -19,6 +19,7 @@ import asyncio
 from contextlib import nullcontext
 
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from omni.flux.bookmark_tree.widget import (
     BookmarkCollectionItem,
     BookmarkCollectionModel,
@@ -77,8 +78,10 @@ class UsdBookmarkCollectionModel(BookmarkCollectionModel):
         """
         if value:
             self._usd_listener.add_model(self)
-            self._stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
-                self.__on_stage_event, name="StageEvent"
+            self._stage_event = get_eventdispatcher().observe_event(
+                event_name=self._context.stage_event_name(omni.usd.StageEventType.SELECTION_CHANGED),
+                on_event=lambda _: self._on_active_items_changed(self.get_active_items()),
+                observer_name="omni.flux.bookmark_tree.model.usd:UsdBookmarkCollectionModel.get_active_items",
             )
             self._stage = self._context.get_stage()
             self.refresh()
@@ -322,11 +325,6 @@ class UsdBookmarkCollectionModel(BookmarkCollectionModel):
             if found is not None:
                 break
         return found
-
-    def __on_stage_event(self, event):
-        if event.type != int(omni.usd.StageEventType.SELECTION_CHANGED):
-            return
-        self._on_active_items_changed(self.get_active_items())
 
     def destroy(self):
         if self._usd_listener is not None:

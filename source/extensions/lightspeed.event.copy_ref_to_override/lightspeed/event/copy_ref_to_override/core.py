@@ -23,6 +23,7 @@ import omni.client
 import omni.kit.undo
 import omni.kit.usd.layers as _layers
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.common import constants as _constants
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
@@ -63,9 +64,20 @@ class CopyRefToPrimCore(_ILSSEvent):
     def _install_layer_listener(self):
         self._uninstall_layer_listener()
         layers = _layers.get_layers()
-        self._subscription_layer = layers.get_event_stream().create_subscription_to_pop(
-            self.__on_layer_event, name="LayerChange"
-        )
+        self._subscription_layer = [
+            get_eventdispatcher().observe_event(
+                event_name=_layers.layer_event_name(_layers.LayerEventType.DIRTY_STATE_CHANGED),
+                on_event=self.__on_layer_dirty_state_changed,
+                filter=layers.get_event_key(),
+                observer_name="lightspeed.event.copy_ref_to_override:CopyRefToPrimCore.__on_layer_dirty_state_changed",
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=_layers.layer_event_name(_layers.LayerEventType.SUBLAYERS_CHANGED),
+                on_event=self.__on_layer_sublayers_changed,
+                filter=layers.get_event_key(),
+                observer_name="lightspeed.event.copy_ref_to_override:CopyRefToPrimCore.__on_layer_sublayers_changed",
+            ),
+        ]
 
     def __create_capture_package_layer(self):
         replacement_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
@@ -432,35 +444,35 @@ class CopyRefToPrimCore(_ILSSEvent):
         self.__do_process_layer(stage, replacements_layer=replacements_layer)
 
     @_ignore_function_decorator(attrs=["_ignore_on_event"])
-    def __on_layer_event(self, event):
+    def __on_layer_dirty_state_changed(self, event):
         payload = _layers.get_layer_event_payload(event)
         if not payload:
             return
-        if payload.event_type == _layers.LayerEventType.DIRTY_STATE_CHANGED:
-            dirty_sublayers = _layers.get_layers_state().get_dirty_layer_identifiers()
+        dirty_sublayers = _layers.get_layers_state().get_dirty_layer_identifiers()
 
-            replacements_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
-            if not replacements_layer:
-                return
-            # get all replacement layers that the user works on.
-            all_replacements_layers = self.__get_all_replacement_layers(replacements_layer)
-            all_replacements_layers.insert(0, replacements_layer)
-            # check if the dirty layer is one of the replacement layer
-            intersection = set(payload.identifiers_or_spec_paths).intersection(
-                [layer.identifier for layer in all_replacements_layers]
-            )
-            if not intersection:
-                return
-            # now check is the dirty layer is still dirty. If no, it means it was just saved
-            intersection = set(dirty_sublayers).intersection(payload.identifiers_or_spec_paths)
-            if not intersection:
-                with omni.kit.undo.group():
-                    # Pass the already-resolved replacement layer to avoid a redundant get_layer() call
-                    # inside __do_process_layer.
-                    self.__process_layer(replacements_layer=replacements_layer)
+        replacements_layer = self._layer_manager.get_layer_of_type(_LayerType.replacement)
+        if not replacements_layer:
+            return
+        # get all replacement layers that the user works on.
+        all_replacements_layers = self.__get_all_replacement_layers(replacements_layer)
+        all_replacements_layers.insert(0, replacements_layer)
+        # check if the dirty layer is one of the replacement layer
+        intersection = set(payload.identifiers_or_spec_paths).intersection(
+            [layer.identifier for layer in all_replacements_layers]
+        )
+        if not intersection:
+            return
+        # now check is the dirty layer is still dirty. If no, it means it was just saved
+        intersection = set(dirty_sublayers).intersection(payload.identifiers_or_spec_paths)
+        if not intersection:
+            with omni.kit.undo.group():
+                # Pass the already-resolved replacement layer to avoid a redundant get_layer() call
+                # inside __do_process_layer.
+                self.__process_layer(replacements_layer=replacements_layer)
 
-        if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
-            self.__move_capture_baker_at_bottom()
+    @_ignore_function_decorator(attrs=["_ignore_on_event"])
+    def __on_layer_sublayers_changed(self, _event):
+        self.__move_capture_baker_at_bottom()
 
     def _uninstall(self):
         """Function that will delete the behavior"""

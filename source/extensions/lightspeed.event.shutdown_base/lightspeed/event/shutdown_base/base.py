@@ -20,6 +20,7 @@ from typing import Protocol
 from collections.abc import Callable
 
 import omni.kit.app
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 from omni.kit.window.file import get_instance as get_window_ext_instance
@@ -60,8 +61,11 @@ class EventOnShutdownBase(_ILSSEvent):
         """Function that will create the behavior"""
         self._uninstall()
 
-        self._shutdown_event_sub = self._app.get_shutdown_event_stream().create_subscription_to_pop(
-            self.__on_shutdown_event, name="lightspeed.event.shutdown_base hook", order=0
+        self._shutdown_event_sub = get_eventdispatcher().observe_event(
+            event_name=omni.kit.app.GLOBAL_EVENT_POST_QUIT,
+            on_event=self.__on_post_quit,
+            observer_name="lightspeed.event.shutdown_base:EventOnShutdownBase.__on_post_quit",
+            order=0,
         )
 
     def _uninstall(self):
@@ -86,10 +90,7 @@ class EventOnShutdownBase(_ILSSEvent):
             self.__shutdown()
 
     # Note: This method adapted from omni.kit.window.file.FileWindowExtension().close()
-    def __on_shutdown_event(self, event):
-        if event.type != omni.kit.app.POST_QUIT_EVENT_TYPE:
-            return
-
+    def __on_post_quit(self, event):
         if self.__skip_interrupters:
             return
 

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.17.9]
+### Changed
+- Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).
+
 ## [1.17.8]
 ### Fixed
 - Replaced fixed frame waits in end-to-end tests with waits for the expected UI state, so that slow CI runners no longer exceed the test timeout.

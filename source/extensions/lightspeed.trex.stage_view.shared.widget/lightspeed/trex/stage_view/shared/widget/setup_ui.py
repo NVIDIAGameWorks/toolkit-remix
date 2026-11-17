@@ -15,9 +15,9 @@
 * limitations under the License.
 """
 
-import carb.events
 import carb.settings
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from omni.kit.widget.stage import DefaultSelectionWatch as _SelectionWatch
 from omni.kit.widget.stage import StageWidget as _StageWidget
 from omni.kit.widget.stage.stage_style import Styles as _StageStyles
@@ -64,9 +64,18 @@ class SetupUI:
 
         # The Open/Close Stage logic
         self.__enable_context_event = True
-        self._stage_subscription = self._usd_context.get_stage_event_stream().create_subscription_to_pop(
-            self._on_usd_context_event, name="Stage Widget USD Stage Open/Closing Listening"
-        )
+        self._stage_subscription = [
+            get_eventdispatcher().observe_event(
+                event_name=self._usd_context.stage_event_name(omni.usd.StageEventType.OPENED),
+                on_event=lambda _: self._on_stage_opened(),
+                observer_name="lightspeed.trex.stage_view.shared.widget:SetupUI._on_stage_opened",
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=self._usd_context.stage_event_name(omni.usd.StageEventType.CLOSING),
+                on_event=lambda _: self._on_stage_closing(),
+                observer_name="lightspeed.trex.stage_view.shared.widget:SetupUI._on_stage_closing",
+            ),
+        ]
 
         self._on_stage_opened()
 
@@ -89,17 +98,10 @@ class SetupUI:
     def enable_context_event(self, value):
         self.__enable_context_event = value
 
-    def _on_usd_context_event(self, event: carb.events.IEvent):
-        """Called on USD Context event"""
-        if not self.__enable_context_event:
-            return
-        if event.type == int(omni.usd.StageEventType.OPENED):
-            self._on_stage_opened()
-        elif event.type == int(omni.usd.StageEventType.CLOSING):
-            self._on_stage_closing()
-
     def _on_stage_opened(self):
         """Called when opening a new stage"""
+        if not self.__enable_context_event:
+            return
         stage = self._usd_context.get_stage()
         if not stage:
             return
@@ -108,4 +110,6 @@ class SetupUI:
 
     def _on_stage_closing(self):
         """Called when close the stage"""
+        if not self.__enable_context_event:
+            return
         self._stage_widget.open_stage(None)

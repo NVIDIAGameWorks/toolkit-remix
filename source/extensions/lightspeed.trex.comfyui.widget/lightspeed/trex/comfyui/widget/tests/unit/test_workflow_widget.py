@@ -124,11 +124,13 @@ def _make_core(workflow=None):
     return core
 
 
-def _make_bare_widget(core=None) -> WorkflowSetupWidget:
+def _make_bare_widget(core=None, context=None, dispatcher=None) -> WorkflowSetupWidget:
     """Create a workflow widget without constructing its UI tree.
 
     Args:
         core: Mocked core bound to the widget, or a default running core when omitted.
+        context: Mocked USD context, or a default mock when omitted.
+        dispatcher: Mocked event dispatcher, or a default mock when omitted.
 
     Returns:
         The workflow widget configured for the texturecraft context.
@@ -139,7 +141,11 @@ def _make_bare_widget(core=None) -> WorkflowSetupWidget:
             return_value=core or _make_core(),
         ),
         patch("lightspeed.trex.comfyui.widget.workflow.widget.subscribe_comfyui_event", return_value=MagicMock()),
-        patch("lightspeed.trex.comfyui.widget.workflow.widget.usd.get_context", return_value=MagicMock()),
+        patch("lightspeed.trex.comfyui.widget.workflow.widget.usd.get_context", return_value=context or MagicMock()),
+        patch(
+            "lightspeed.trex.comfyui.widget.workflow.widget.get_eventdispatcher",
+            return_value=dispatcher or MagicMock(),
+        ),
         patch.object(WorkflowSetupWidget, "_build_ui"),
         patch.object(WorkflowSetupWidget, "_on_workflow_changed"),
     ):
@@ -213,38 +219,46 @@ class TestWorkflowSetupWidgetUnit(AsyncTestCase):
             "Open a project to select materials for new ComfyUI jobs. Existing queued jobs can continue.",
         )
 
-    async def test_closed_stage_refreshes_submission_availability(self) -> None:
-        """A fully closed project refreshes Run from the core submission requirement."""
+    async def test_stage_closed_refreshes_submission_availability(self) -> None:
+        """Observe stage close and refresh Run once when it fires."""
         # Arrange
-        core = _make_core(_make_workflow())
-        core.get_submission_block_reason.return_value = (
-            "Open a project to select materials for new ComfyUI jobs. Existing queued jobs can continue."
-        )
-        widget = _make_bare_widget(core)
-        widget._submit_button = MagicMock()
+        widget, callbacks = self._make_widget_with_stage_callbacks()
 
-        # Act
-        widget._on_stage_event(MagicMock(type=int(usd.StageEventType.CLOSED)))
+        with patch.object(widget, "_update_submit_button_state") as update_submit_button_state:
+            # Act
+            callbacks[usd.StageEventType.CLOSED](None)
 
         # Assert
-        self.assertFalse(widget._submit_button.enabled)
-        self.assertEqual(
-            widget._submit_button.tooltip,
-            "Open a project to select materials for new ComfyUI jobs. Existing queued jobs can continue.",
-        )
+        self.assertEqual(set(callbacks), {usd.StageEventType.CLOSED, usd.StageEventType.OPENED})
+        update_submit_button_state.assert_called_once_with()
 
-    async def test_opened_stage_refreshes_submission_availability(self) -> None:
-        """A fully opened project refreshes Run from the current live stage."""
+    async def test_stage_opened_refreshes_submission_availability(self) -> None:
+        """Observe stage open and refresh Run once when it fires."""
         # Arrange
-        core = _make_core(_make_workflow())
-        widget = _make_bare_widget(core)
-        widget._submit_button = MagicMock()
+        widget, callbacks = self._make_widget_with_stage_callbacks()
 
-        # Act
-        widget._on_stage_event(MagicMock(type=int(usd.StageEventType.OPENED)))
+        with patch.object(widget, "_update_submit_button_state") as update_submit_button_state:
+            # Act
+            callbacks[usd.StageEventType.OPENED](None)
 
         # Assert
-        self.assertTrue(widget._submit_button.enabled)
+        self.assertEqual(set(callbacks), {usd.StageEventType.CLOSED, usd.StageEventType.OPENED})
+        update_submit_button_state.assert_called_once_with()
+
+    def _make_widget_with_stage_callbacks(self):
+        """Create a bare widget and its stage observers indexed by stage event type.
+
+        Returns:
+            tuple: The widget and its registered callbacks.
+        """
+        context = MagicMock()
+        context.stage_event_name.side_effect = lambda event_type: event_type
+        dispatcher = MagicMock()
+        widget = _make_bare_widget(_make_core(_make_workflow()), context=context, dispatcher=dispatcher)
+        callbacks = {
+            call.kwargs["event_name"]: call.kwargs["on_event"] for call in dispatcher.observe_event.call_args_list
+        }
+        return widget, callbacks
 
     async def test_edit_preserves_saved_job_snapshot_missing_from_server_catalog(self):
         """Queue Edit keeps the persisted workflow until the user explicitly selects another one."""

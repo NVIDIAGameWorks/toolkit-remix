@@ -19,9 +19,9 @@ import asyncio
 from typing import Any
 from collections.abc import Callable
 
-import carb.events
 import omni.appwindow
 import omni.ui as ui
+from carb.eventdispatcher import Event, get_eventdispatcher
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.kit.browser.asset.delegate import AssetDetailDelegate as _AssetDetailDelegate
 from omni.kit.browser.asset.model import AssetBrowserModel as _AssetBrowserModel
@@ -63,9 +63,13 @@ class AssetBrowserWindow:
         self.__close_on_add_checkbox = None
         self.__add_callback_fn = add_callback_fn
 
-        appwindow_stream = omni.appwindow.get_default_app_window().get_window_resize_event_stream()
-        self.__subcription_app_window_size_changed = appwindow_stream.create_subscription_to_pop(
-            self._on_app_window_size_changed, name="On app window resized", order=0
+        app_window = omni.appwindow.get_default_app_window()
+        self.__subcription_app_window_size_changed = get_eventdispatcher().observe_event(
+            event_name=omni.appwindow.GLOBAL_EVENT_WINDOW_RESIZE,
+            on_event=self._on_app_window_size_changed,
+            filter=app_window.get_event_key(),
+            observer_name="omni.flux.asset_importer.widget:AssetBrowserWindow._on_app_window_size_changed",
+            order=0,
         )
 
     def __create_ui(self):
@@ -97,7 +101,7 @@ class AssetBrowserWindow:
                             ui.Spacer()
                         ui.Spacer(width=ui.Pixel(24))
 
-    def _on_app_window_size_changed(self, event: carb.events.IEvent):
+    def _on_app_window_size_changed(self, event: Event):
         asyncio.ensure_future(self._deferred_on_app_window_size_changed())
 
     @omni.usd.handle_exception

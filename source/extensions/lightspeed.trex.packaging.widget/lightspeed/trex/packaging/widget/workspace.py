@@ -20,6 +20,7 @@ import asyncio
 import lightspeed.trex.sidebar as sidebar
 import omni.kit.app
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.common.constants import LayoutFiles as _LayoutFiles
 from lightspeed.common.constants import WindowNames as _WindowNames
 from lightspeed.trex.utils.widget.quicklayout import load_layout
@@ -72,21 +73,21 @@ class PackagingWindow(_WorkspaceWindowBase):
 
     def __subscribe_stage_events(self):
         context = omni.usd.get_context(self._usd_context_name)
-        self.__sub_stage_event = context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_stage_event, name="ModPackagingStageEvent"
-        )
+        self.__sub_stage_event = [
+            get_eventdispatcher().observe_event(
+                event_name=context.stage_event_name(event_type),
+                on_event=lambda _: asyncio.ensure_future(self.__update_packaging_button_state_deferred()),
+                observer_name=(
+                    "lightspeed.trex.packaging.widget:PackagingWindow.__update_packaging_button_state_deferred"
+                ),
+            )
+            for event_type in (omni.usd.StageEventType.OPENED, omni.usd.StageEventType.CLOSING)
+        ]
 
     def __open_layout(self, x, y, b, m):
         if b != 0:
             return
         load_layout(_get_quicklayout_config(_LayoutFiles.PACKAGING))
-
-    def __on_stage_event(self, event):
-        if event.type in {
-            int(omni.usd.StageEventType.OPENED),
-            int(omni.usd.StageEventType.CLOSING),
-        }:
-            asyncio.ensure_future(self.__update_packaging_button_state_deferred())
 
     async def __update_packaging_button_state_deferred(self):
         await omni.kit.app.get_app().next_update_async()

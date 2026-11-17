@@ -18,6 +18,7 @@
 import carb
 import omni.kit.test
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from omni.flux.utils.common.interactive_usd_notices import begin_interaction as _begin_interaction
 from omni.flux.utils.common.interactive_usd_notices import end_interaction as _end_interaction
 from omni.kit.app import get_app
@@ -60,12 +61,9 @@ class TestLightLayer(OmniUiTest):
             light = self.stage.DefinePrim(f"/TestLight{i}")
             light.SetTypeName(light_type)
 
-        # simulate a hierarchy change
-        class MockEvent:
-            type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-        # trigger change
-        layer._on_stage_event(MockEvent())
+        get_eventdispatcher().dispatch_event(
+            omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+        )
 
         # make sure a manipulator object was created for each light in the stage
         self.assertEqual(len(layer.manipulators), len(lights))
@@ -171,10 +169,9 @@ class TestLightLayer(OmniUiTest):
                 light = self.stage.DefinePrim(f"/SpotTest{i}")
                 light.SetTypeName(light_type)
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
             self.assertEqual(len(layer.manipulators), 2)
 
             settings.set(SETTING_SPOTLIGHT_CONE_VISIBLE, False)
@@ -207,10 +204,9 @@ class TestLightLayer(OmniUiTest):
                 light = self.stage.DefinePrim(f"/ThreshTest{i}")
                 light.SetTypeName(light_type)
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
             self.assertEqual(len(layer.manipulators), 2)
 
             # A positive override propagates unchanged.
@@ -241,10 +237,9 @@ class TestLightLayer(OmniUiTest):
             light = self.stage.DefinePrim("/ColorValidationDisk")
             light.SetTypeName("DiskLight")
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
             manipulator = layer.manipulators["/ColorValidationDisk"]
 
             for value in ((1.0, 0.0), (1.0, 0.0, 0.0, 1.0)):
@@ -263,10 +258,9 @@ class TestLightLayer(OmniUiTest):
             light = self.stage.DefinePrim("/ConeSidesDisk")
             light.SetTypeName("DiskLight")
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
             manipulator = layer.manipulators["/ConeSidesDisk"]
 
             manipulator.cone_sides = 2
@@ -292,10 +286,9 @@ class TestLightLayer(OmniUiTest):
             light.SetTypeName("DiskLight")
             UsdLux.ShapingAPI.Apply(light).CreateShapingConeAngleAttr(30.0)
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
             manipulator = self._wire_model_light(layer, "/ShapedDisk")
             base = manipulator._base_intensity_scale
 
@@ -319,10 +312,9 @@ class TestLightLayer(OmniUiTest):
                 light = self.stage.DefinePrim(path)
                 light.SetTypeName(light_type)
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
 
             for path in ("/ScaledDisk", "/ScaledSphere"):
                 manipulator = self._wire_model_light(layer, path)
@@ -339,10 +331,9 @@ class TestLightLayer(OmniUiTest):
             light = self.stage.DefinePrim("/PlainDisk")
             light.SetTypeName("DiskLight")
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
             manipulator = self._wire_model_light(layer, "/PlainDisk")
             base = manipulator._base_intensity_scale
             for threshold in (0.01, CONE_THRESHOLD_DEFAULT, 1.0, 10.0):
@@ -359,10 +350,9 @@ class TestLightLayer(OmniUiTest):
             light = self.stage.DefinePrim("/ARect")
             light.SetTypeName("RectLight")
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
             manipulator = self._wire_model_light(layer, "/ARect")
             base = manipulator._base_intensity_scale
             manipulator.cone_threshold = 5.0 * CONE_THRESHOLD_DEFAULT
@@ -380,10 +370,9 @@ class TestLightLayer(OmniUiTest):
             light.SetTypeName("DiskLight")
             UsdLux.ShapingAPI.Apply(light).CreateShapingConeAngleAttr(30.0)
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
             manipulator = self._wire_model_light(layer, "/ShapedDiskForCache")
             self.assertIsNone(manipulator._shaping_authored_cache)
             manipulator.mark_drag_began()
@@ -409,10 +398,9 @@ class TestLightLayer(OmniUiTest):
                 if cone_angle is not None:
                     UsdLux.ShapingAPI.Apply(light).CreateShapingConeAngleAttr(cone_angle)
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
 
             invalidated: list[str] = []
             for path, manipulator in layer.manipulators.items():
@@ -441,10 +429,9 @@ class TestLightLayer(OmniUiTest):
             for prim in (disk, sphere):
                 UsdLux.ShapingAPI.Apply(prim).CreateShapingConeAngleAttr(30.0)
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
             self.assertEqual(len(layer.manipulators), 2)
 
             # The Tf.Notice listener is normally registered on selection; this harness
@@ -485,10 +472,9 @@ class TestLightLayer(OmniUiTest):
             for prim in (disk, sphere):
                 UsdLux.ShapingAPI.Apply(prim).CreateShapingConeAngleAttr(30.0)
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
             self.assertEqual(len(layer.manipulators), 2)
 
             for path, manipulator in layer.manipulators.items():
@@ -532,10 +518,9 @@ class TestLightLayer(OmniUiTest):
             disk.SetTypeName("DiskLight")
             UsdLux.ShapingAPI.Apply(disk).CreateShapingConeAngleAttr(30.0)
 
-            class MockEvent:
-                type = omni.usd.StageEventType.HIERARCHY_CHANGED.value
-
-            layer._on_stage_event(MockEvent())
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
             self.assertEqual(len(layer.manipulators), 1)
 
             manipulator = self._wire_model_light(layer, "/DeferredDestroyDisk")

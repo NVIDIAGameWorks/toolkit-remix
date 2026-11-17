@@ -21,6 +21,7 @@ import carb
 import omni.kit.app
 import omni.kit.usd.layers as _layers
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
@@ -50,20 +51,15 @@ class EventLoadEditTargetCore(_ILSSEvent):
         """Function that will create the behavior"""
         self._uninstall()
 
-        self._stage_event_sub = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_stage_event, name="StageEventListener"
+        self._stage_event_sub = get_eventdispatcher().observe_event(
+            event_name=self._context.stage_event_name(omni.usd.StageEventType.OPENED),
+            on_event=lambda _: asyncio.ensure_future(self.__load_edit_target_deferred()),
+            observer_name="lightspeed.event.load_edit_target:EventLoadEditTargetCore.__load_edit_target_deferred",
         )
 
     def _uninstall(self):
         """Function that will delete the behavior"""
         self._stage_event_sub = None
-
-    def __on_stage_event(self, event):
-        # Only restore when opening the project
-        if event.type != int(omni.usd.StageEventType.OPENED):
-            return
-
-        asyncio.ensure_future(self.__load_edit_target_deferred())
 
     async def __load_edit_target_deferred(self):
         # If we don't wait 1 frame the edit target gets overridden

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.6]
+### Changed
+- Migrated deprecated event subscriptions to Events 2.0 and the window menu callbacks to actions that are removed when their windows are destroyed.
+
 ## [1.8.5]
 ### Fixed
 - Wait for deferred IngestCraft context creation before checking stage readiness.

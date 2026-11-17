@@ -39,14 +39,9 @@ _INSTANCE_PATH = "/RootNode/instances/inst_6CA2F12444DEBE09_0"
 _MESH_PATH = "/RootNode/meshes/mesh_6CA2F12444DEBE09"
 
 
-class _NoopLayerEventStream:
-    def create_subscription_to_pop(self, *_args, **_kwargs):
-        return object()
-
-
 class _NoopLayers:
-    def get_event_stream(self):
-        return _NoopLayerEventStream()
+    def get_event_key(self):
+        return {"test_noop_layer_events": True}
 
 
 def _layer_name(identifier: str) -> str:
