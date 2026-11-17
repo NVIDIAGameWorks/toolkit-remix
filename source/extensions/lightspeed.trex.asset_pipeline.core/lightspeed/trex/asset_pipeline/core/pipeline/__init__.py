@@ -17,6 +17,7 @@
 
 __all__ = [
     "AssetKind",
+    "MetaStepOperation",
     "PipelineOutputPath",
     "RemixAssetItem",
     "RemixAssetPipelineConfig",
@@ -29,12 +30,13 @@ __all__ = [
     "run_remix_asset_pipeline",
 ]
 
-from .config import RemixAssetPipelineConfig
-from .context import PipelineOutputPath, RemixAssetPipelineContext
-from .item import AssetKind, RemixAssetItem, TextureAsset, TextureBinding
-from .runner import run_remix_asset_pipeline
 from .builder import (
     build_prepare_optimization_steps,
     build_remix_mesh_pipeline,
     build_remix_texture_pipeline,
 )
+from .config import RemixAssetPipelineConfig
+from .context import PipelineOutputPath, RemixAssetPipelineContext
+from .enums import MetaStepOperation
+from .item import AssetKind, RemixAssetItem, TextureAsset, TextureBinding
+from .runner import run_remix_asset_pipeline

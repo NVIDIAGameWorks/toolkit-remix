@@ -786,7 +786,7 @@ class QueueWidget:
         PromptManager.post_simple_prompt(
             title,
             prompt + f"and {file_count} output file{'s' if file_count != 1 else ''}?\n\n"
-            "Any changes already applied to the project will remain.",
+            "Files in use are kept. Any changes already applied to the project will remain.",
             ok_button_info=PromptButtonInfo(
                 "Delete Graph" if graph_count == 1 else "Delete Graphs",
                 lambda: self._delete_graphs_if_available(graphs),

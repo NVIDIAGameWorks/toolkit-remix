@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.4.2"
+version = "1.4.3"
 authors = ["Alex Dunn <adunn@nvidia.com>", "Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Light gizmos extension"
 description = "Render light gizmos using omni.ui.scene"
@@ -25,14 +25,13 @@ icon = "data/icon.png"
 name = "lightspeed.light.gizmos"
 
 [[test]]
-# TODO: Verify if this is still needed after fixing golden tests.
-args = [
-    "--/app/window/dpiScaleOverride=1.0",
-    "--/app/window/scaleToMonitor=false",
-]
-
 dependencies = [
     "lightspeed.trex.tests.dependencies",
+]
+
+args = [
+    # The stock viewport would use the only PXR texture before the test creates its viewport.
+    "--/exts/omni.kit.viewport.window/startup/disableWindowOnLoad=true",
 ]
 
 stdoutFailPatterns.exclude = [

@@ -24,12 +24,14 @@ import functools
 from typing import TYPE_CHECKING, ClassVar
 
 import carb
-from lightspeed.common.constants import LayoutFiles
+from lightspeed.common.constants import LayoutFiles, WindowNames
+from lightspeed.trex.asset_modifiers.widget.submitter import AssetModifierSubmitter
 from lightspeed.trex.comfyui.core.core import ComfyUICore, ComfyUISubmission
 from lightspeed.trex.comfyui.core.extension import get_comfyui_core_instance
 from lightspeed.trex.comfyui.core.resolvers import SelectedMeshResolver, SelectedTextureResolver, StageExpandingResolver
-from lightspeed.trex.utils.widget import TrexMessageDialog as _TrexMessageDialog
 from lightspeed.trex.utils.widget.quicklayout import load_layout
+from omni.flux.job_queue.widget import get_job_result_notifier
+from omni.flux.job_queue.widget.notifications import post_submission_notification
 from omni.flux.stage_manager.factory.plugins import StageManagerMenuMixin as _StageManagerMenuMixin
 from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
@@ -222,12 +224,7 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
             if cancelled:
                 return
             if not submission.graphs:
-                _TrexMessageDialog(
-                    "The selected items do not provide the inputs required by the active workflow.\n\n"
-                    "No jobs were added to the queue.",
-                    "No ComfyUI Jobs Created",
-                    disable_cancel_button=True,
-                )
+                post_submission_notification(0, submission.skip_reasons)
                 return
             await cls._submit_submission(context_name, submission)
         except (OSError, RuntimeError, ValueError) as error:
@@ -245,37 +242,34 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
         Raises:
             asyncio.CancelledError: If submission is cancelled.
         """
-        result = await get_comfyui_core_instance(context_name).submit_prepared_submission(submission)
-        if result.failed_count:
-            submitted_suffix = "" if result.submitted_count == 1 else "s"
-            submitted_verb = "was" if result.submitted_count == 1 else "were"
+        try:
+            result = await get_comfyui_core_instance(context_name).submit_prepared_submission(submission)
+        finally:
+            get_job_result_notifier().register_graphs(submission.graphs)
+        if not result.failed_count:
+            post_submission_notification(
+                result.submitted_count,
+                submission.skip_reasons,
+                button_infos=[NotificationButtonInfo("Open AI Tools layout", on_complete=cls._open_ai_tools_layout)],
+            )
+        else:
             failed_suffix = "" if result.failed_count == 1 else "s"
             failed_verb = "was" if result.failed_count == 1 else "were"
             message = (
-                f"{result.submitted_count} selected material{submitted_suffix} {submitted_verb} added to the AI Tools "
-                f"job queue. {result.failed_count} selected material{failed_suffix} {failed_verb} not added."
+                "0 selected materials were added to the AI Tools job queue. "
+                f"{result.failed_count} selected material{failed_suffix} {failed_verb} not added. "
+                "Check the workflow inputs and ComfyUI connection, then try again."
             )
-            if result.submitted_count:
-                message += f" To avoid duplicates, select only the failed material{failed_suffix} before trying again."
-            else:
-                message += " Check the workflow inputs and ComfyUI connection, then try again."
-            button_infos = None
-            if result.submitted_count:
-                button_infos = [NotificationButtonInfo("Open AI Tools layout", on_complete=cls._open_ai_tools_layout)]
-            post_notification(message, status=NotificationStatus.WARNING, button_infos=button_infos)
-            return
-
-        post_notification(
-            "The selection was added to the AI Tools job queue. Open the AI Tools layout to view the job queue.",
-            button_infos=[NotificationButtonInfo("Open AI Tools layout", on_complete=cls._open_ai_tools_layout)],
-        )
+            post_notification(message, status=NotificationStatus.WARNING)
 
     @classmethod
     def cancel_pending_submissions(cls) -> None:
         """Cancel pending ComfyUI submissions and AI Tools layout loads."""
         cls._submissions.cancel_all()
-        if cls._layout_task and not cls._layout_task.done():
+        AssetModifierSubmitter.cancel_pending_window_focus()
+        if cls._layout_task is not None:
             cls._layout_task.cancel()
+            cls._layout_task = None
 
     @classmethod
     def _open_ai_tools_layout(cls, _=None):
@@ -304,12 +298,12 @@ class SubmitComfyUIJobActionWidgetPlugin(_StageManagerStateWidgetPlugin, _StageM
         Args:
             task: Shared quick-layout task that completed.
         """
-        if cls._layout_task is task:
-            cls._layout_task = None
-        if task.cancelled():
+        if cls._layout_task is not task or task.cancelled():
             return
+        cls._layout_task = None
         try:
             task.result()
+            AssetModifierSubmitter.show_window(WindowNames.COMFYUI_WORKFLOW.value)
         except (OSError, RuntimeError, ValueError) as error:
             carb.log_warn(f"Failed to open the AI Tools layout: {error}")
 

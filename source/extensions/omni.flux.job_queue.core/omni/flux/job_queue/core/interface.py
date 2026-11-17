@@ -25,11 +25,12 @@ import shutil
 import sqlite3
 import threading
 import uuid
-from collections.abc import Callable, Container, Iterator, Sequence
+from collections.abc import Awaitable, Callable, Container, Iterator, Sequence
 from typing import Any
 
 import carb
 from omni.flux.utils.common import Event, EventSubscription
+from omni.flux.utils.common.path_utils import get_local_path
 
 from . import persistence
 from .constants import QUEUE_SCHEMA_VERSION
@@ -48,6 +49,7 @@ from .models import (
     QueueJobDetailsSnapshot,
     QueueJobSnapshot,
     QueueLiteralInputSnapshot,
+    UsageSnapshot,
 )
 from .serializer import deserialize, serialize
 
@@ -88,6 +90,7 @@ class QueueInterface:
                 intended only for an application-owned queue path.
         """
         self.db_path = db_path
+        self.usage_snapshot_provider: Callable[[], Awaitable[UsageSnapshot]] | None = None
         self._clear_incompatible_database = clear_incompatible_database
         self._job_changed_event = Event(copy=True)
         self._job_progress_changed_event = Event(copy=True)
@@ -431,6 +434,10 @@ class QueueInterface:
             row = connection.execute("SELECT job_type, job_data FROM jobs WHERE job_id = ?", (str(job_id),)).fetchone()
         if row is None:
             raise KeyError(f"Unknown job {job_id}")
+        return self.__deserialize_job(row)
+
+    @staticmethod
+    def __deserialize_job(row: sqlite3.Row) -> Job:
         job = deserialize(row["job_data"])
         registered_type = persistence.get_registry().get_type(row["job_type"])
         if registered_type is None or type(job) is not registered_type:
@@ -1292,35 +1299,32 @@ class QueueInterface:
         """
         return pathlib.Path(self.db_path).parent / "jobs" / str(job_id)
 
-    def get_graphs_artifact_file_count(self, graph_ids: Sequence[uuid.UUID]) -> int:
-        """Count regular files owned by all jobs in selected graphs.
-
-        Args:
-            graph_ids: Unique graph identifiers.
-
-        Returns:
-            Exact recursive regular-file count.
-
-        Raises:
-            KeyError: If a graph is absent.
-            OSError: If an owned path cannot be inventoried safely.
-            ValueError: If no graph is provided or identifiers repeat.
-        """
+    def get_graphs_artifact_file_count(self, graph_ids: Sequence[uuid.UUID], snapshot: UsageSnapshot) -> int:
+        """Count files in selected graph folders that the snapshot permits deletion of."""
         selected_graph_ids = self._require_unique_graph_ids(graph_ids)
         with self.connection() as connection:
-            job_ids = tuple(
-                job_id for graph_id in selected_graph_ids for job_id in self._get_graph_job_ids(connection, graph_id)
-            )
-        return self._inventory_job_directories(job_ids)[1]
+            queue_directories, owned_directories = self._plan_graph_deletion(connection, selected_graph_ids, snapshot)
+        directories = [*owned_directories, *(path for paths in queue_directories.values() for path in paths)]
 
-    def delete_graphs(self, graph_ids: Sequence[uuid.UUID]) -> tuple[pathlib.Path, ...]:
+        def raise_walk_error(error: OSError) -> None:
+            """Report a folder that cannot be counted."""
+            raise error
+
+        return sum(
+            len(files)
+            for directory in directories
+            for _root, _children, files in os.walk(directory, onerror=raise_walk_error)
+        )
+
+    def delete_graphs(self, graph_ids: Sequence[uuid.UUID], snapshot: UsageSnapshot) -> tuple[pathlib.Path, ...]:
         """Delete selected idle graphs in one transaction, then remove staged directories.
 
         Args:
             graph_ids: Unique graph identifiers.
+            snapshot: Paths in use and project folders with inspected dependencies.
 
         Returns:
-            Inactive paths whose postcommit cleanup failed.
+            Paths whose postcommit cleanup failed.
 
         Raises:
             KeyError: If a graph is absent.
@@ -1337,9 +1341,6 @@ class QueueInterface:
         staged_graphs: list[tuple[pathlib.Path, list[tuple[pathlib.Path, pathlib.Path]]]] = []
         with self.connection() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            graph_jobs = tuple(
-                (graph_id, self._get_graph_job_ids(connection, graph_id)) for graph_id in selected_graph_ids
-            )
             placeholders = ", ".join("?" for _graph_id in selected_graph_ids)
             active = connection.execute(
                 f"""
@@ -1358,12 +1359,10 @@ class QueueInterface:
             if active is not None:
                 connection.rollback()
                 raise RuntimeError("Cannot delete a graph with active work")
-            graph_directories = tuple(
-                (graph_id, self._inventory_job_directories(job_ids)[0]) for graph_id, job_ids in graph_jobs
-            )
+            graph_directories, owned_directories = self._plan_graph_deletion(connection, selected_graph_ids, snapshot)
             committed = False
             try:
-                for graph_id, directories in graph_directories:
+                for graph_id, directories in graph_directories.items():
                     if not directories:
                         continue
                     staging_directory = self._graph_staging_directory(graph_id)
@@ -1404,11 +1403,18 @@ class QueueInterface:
                     if restoration_errors:
                         raise restoration_errors[0]
         self._notify_mutation()
-        return tuple(
+        retained_paths = [
             retained_path
             for staging_directory, _staged in staged_graphs
             if (retained_path := self._remove_staged_graph_directory(staging_directory)) is not None
-        )
+        ]
+        for directory in owned_directories:
+            try:
+                shutil.rmtree(directory)
+            except OSError as error:
+                carb.log_warn(f"Could not remove unused job output directory {directory}: {error}")
+                retained_paths.append(directory)
+        return tuple(retained_paths)
 
     @staticmethod
     def _require_unique_graph_ids(graph_ids: Sequence[uuid.UUID]) -> tuple[uuid.UUID, ...]:
@@ -1452,45 +1458,85 @@ class QueueInterface:
         )
         return tuple(uuid.UUID(row["job_id"]) for row in rows)
 
-    def _inventory_job_directories(
-        self,
-        job_ids: Sequence[uuid.UUID],
-    ) -> tuple[tuple[pathlib.Path, ...], int]:
-        """Inventory existing queue-owned job directories and regular files.
+    def _plan_graph_deletion(
+        self, connection: sqlite3.Connection, graph_ids: tuple[uuid.UUID, ...], snapshot: UsageSnapshot
+    ) -> tuple[dict[uuid.UUID, list[pathlib.Path]], set[pathlib.Path]]:
+        """Select unused queue folders and verified local output folders."""
+        graph_jobs = {graph_id: self._get_graph_job_ids(connection, graph_id) for graph_id in graph_ids}
+        job_rows = {
+            row["job_id"]: row
+            for row in connection.execute("SELECT job_id, graph_id, apply_disposition, job_type, job_data FROM jobs")
+        }
+        selected = {str(graph_id) for graph_id in graph_ids}
+        used = set(snapshot.used)
+        try:
+            for row in job_rows.values():
+                if row["graph_id"] in selected:
+                    continue
+                job_id = uuid.UUID(row["job_id"])
+                job = self.__deserialize_job(row)
+                inputs = self._resolve_available_inputs(connection, job_id, type(job).input_ports)
+                used.update(UsageSnapshot.from_urls(job.get_input_urls(inputs)).used)
+        except Exception as error:  # noqa: BLE001 - arbitrary product codecs and input hooks must preserve files.
+            carb.log_warn(f"Cannot inspect surviving job inputs. Keeping output folders: {error}")
+            return {graph_id: [] for graph_id in graph_ids}, set()
+        verified_roots = tuple(pathlib.Path(path) for path in snapshot.verified_roots)
+        applied = {
+            row["job_id"] for row in job_rows.values() if row["apply_disposition"] == ApplyDisposition.APPLIED.value
+        }
+        queue_directories: dict[uuid.UUID, list[pathlib.Path]] = {graph_id: [] for graph_id in graph_ids}
+        owned_directories: set[pathlib.Path] = set()
+        comparison_paths: dict[pathlib.Path, pathlib.Path] = {}
+        for graph_id, job_ids in graph_jobs.items():
+            for job_id in job_ids:
+                directory = self.get_job_directory(job_id)
+                if str(job_id) not in applied:
+                    if directory.is_symlink() or directory.is_junction():
+                        raise OSError(f'Cannot delete linked queue job directory "{directory}"')
+                    if directory.exists():
+                        if not directory.is_dir():
+                            raise OSError(f'Expected queue job directory at "{directory}"')
+                        queue_directories[graph_id].append(directory)
+                        comparison_paths[directory] = pathlib.Path(os.path.normcase(os.path.realpath(directory)))
+                if not verified_roots:
+                    continue
+                try:
+                    output_urls = tuple(self.__deserialize_job(job_rows[str(job_id)]).get_owned_output_urls())
+                except Exception as error:  # noqa: BLE001 - an unavailable product job cannot authorize output removal.
+                    carb.log_warn(f"Cannot inspect outputs of job {job_id}. Keeping its published folders: {error}")
+                    continue
+                for url in output_urls:
+                    if (directory := get_local_path(url)) is None:
+                        continue
+                    normalized = pathlib.Path(os.path.normcase(os.path.realpath(directory)))
+                    if (
+                        directory.exists()
+                        and not directory.is_symlink()
+                        and not directory.is_junction()
+                        and any(normalized.is_relative_to(root) for root in verified_roots)
+                    ):
+                        owned_directories.add(directory)
+                        comparison_paths[directory] = normalized
+        candidates = set(comparison_paths.values())
+        protected: set[pathlib.Path] = set()
 
-        Args:
-            job_ids: Ordered job identifiers owned by one graph.
+        def protect_ancestors(path: pathlib.Path, referrer: pathlib.Path | None = None) -> None:
+            """Protect candidate ancestors unless their own files supply the reference."""
+            for ancestor in (path, *path.parents):
+                if ancestor in candidates and (referrer is None or not referrer.is_relative_to(ancestor)):
+                    protected.add(ancestor)
 
-        Returns:
-            Existing job directories and their recursive regular-file count.
-
-        Raises:
-            OSError: If any existing path cannot be inventoried safely.
-        """
-        directories: list[pathlib.Path] = []
-        file_count = 0
-
-        def raise_walk_error(error: OSError) -> None:
-            """Propagate a recursive inventory failure.
-
-            Args:
-                error: Filesystem error raised while walking a job directory.
-
-            Raises:
-                OSError: Always, preserving the original failure.
-            """
-            raise error
-
-        for job_id in job_ids:
-            directory = self.get_job_directory(job_id)
-            if not directory.exists():
-                continue
-            if not directory.is_dir():
-                raise OSError(f'Expected queue job directory at "{directory}"')
-            directories.append(directory)
-            for _root, _child_directories, files in os.walk(directory, onerror=raise_walk_error):
-                file_count += len(files)
-        return tuple(directories), file_count
+        for path in used:
+            protect_ancestors(pathlib.Path(path))
+        for reference in snapshot.references:
+            protect_ancestors(pathlib.Path(reference.path), pathlib.Path(reference.referrer))
+        return (
+            {
+                graph_id: [path for path in directories if comparison_paths[path] not in protected]
+                for graph_id, directories in queue_directories.items()
+            },
+            {path for path in owned_directories if comparison_paths[path] not in protected},
+        )
 
     def _graph_staging_directory(self, graph_id: uuid.UUID) -> pathlib.Path:
         """Return the same-volume inactive directory for one graph deletion.

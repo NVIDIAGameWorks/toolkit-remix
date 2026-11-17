@@ -23,9 +23,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import carb.settings
-import omni.appwindow
 import omni.kit.app
-import omni.kit.renderer_capture
 import omni.ui as ui
 import omni.usd
 from carb.input import KeyboardInput
@@ -620,8 +618,7 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
         task_state = "none" if package_task is None else f"done={package_task.done()}"
         self.fail(
             "Timed out waiting for the real packaging error window "
-            f"(package task: {task_state}, visible windows: {self._visible_window_titles()}, "
-            f"screenshot: {await self._capture_debug_screenshot('packaging_error_window_timeout')})"
+            f"(package task: {task_state}, visible windows: {self._visible_window_titles()})"
         )
 
     async def _wait_for_packaging_error_window_hidden(self, widget: PackagingPane):
@@ -633,8 +630,7 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
             await omni.kit.app.get_app().next_update_async()
         self.fail(
             "Timed out waiting for the real packaging error window to close "
-            f"(visible windows: {self._visible_window_titles()}, "
-            f"screenshot: {await self._capture_debug_screenshot('packaging_error_window_close_timeout')})"
+            f"(visible windows: {self._visible_window_titles()})"
         )
 
     async def _wait_for_packaging_error_window_visible(self, widget: PackagingPane):
@@ -646,8 +642,7 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
             await omni.kit.app.get_app().next_update_async()
         self.fail(
             "Timed out waiting for the real packaging error window to become visible "
-            f"(visible windows: {self._visible_window_titles()}, "
-            f"screenshot: {await self._capture_debug_screenshot('packaging_error_window_visible_timeout')})"
+            f"(visible windows: {self._visible_window_titles()})"
         )
 
     @staticmethod
@@ -692,8 +687,7 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
 
         self.fail(
             f"Timed out waiting for packaging repair actions to update. Last state: {last_error} "
-            f"(visible windows: {self._visible_window_titles()}, "
-            f"screenshot: {await self._capture_debug_screenshot('repair_action_update_timeout')})"
+            f"(visible windows: {self._visible_window_titles()})"
         )
 
     async def _select_row_action(self, asset_name: str, action: PackagingActions):
@@ -702,9 +696,7 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
         )
         if action_combo is None:
             self.fail(
-                f"Unable to find action ComboBox for {asset_name} "
-                f"(visible windows: {self._visible_window_titles()}, "
-                f"screenshot: {await self._capture_debug_screenshot(f'action_combo_missing_{Path(asset_name).stem}')})"
+                f"Unable to find action ComboBox for {asset_name} (visible windows: {self._visible_window_titles()})"
             )
 
         # Select the row action through the real ComboBox model; Kit ui_test cannot click popup items reliably.
@@ -753,9 +745,7 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
                     return
                 await omni.kit.app.get_app().next_update_async()
         self.fail(
-            f"Timed out waiting for replacement file picker to close "
-            f"(visible windows: {self._visible_window_titles()}, "
-            f"screenshot: {await self._capture_debug_screenshot(f'replacement_picker_timeout_{Path(missing_asset_name).stem}')})"
+            f"Timed out waiting for replacement file picker to close (visible windows: {self._visible_window_titles()})"
         )
 
     async def _select_invalid_replacement_asset(
@@ -792,8 +782,7 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
         if select_button is None or directory_field is None or file_name_field is None:
             self.fail(
                 f"Unable to find replacement file picker controls for {missing_asset_name} "
-                f"(visible windows: {self._visible_window_titles()}, "
-                f"screenshot: {await self._capture_debug_screenshot(f'replacement_picker_missing_{Path(missing_asset_name).stem}')})"
+                f"(visible windows: {self._visible_window_titles()})"
             )
         return select_button, directory_field, file_name_field
 
@@ -806,8 +795,7 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
             await omni.kit.app.get_app().next_update_async()
         self.fail(
             f"Timed out waiting for invalid replacement dialog containing {expected_message!r} "
-            f"(visible windows: {self._visible_window_titles()}, "
-            f"screenshot: {await self._capture_debug_screenshot('invalid_replacement_message_timeout')})"
+            f"(visible windows: {self._visible_window_titles()})"
         )
 
     async def _select_scan_directory(self, directory: Path):
@@ -832,8 +820,7 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
             await omni.kit.app.get_app().next_update_async()
         self.fail(
             "Timed out waiting for scan-directory file picker to close "
-            f"(visible windows: {self._visible_window_titles()}, "
-            f"screenshot: {await self._capture_debug_screenshot('scan_directory_picker_timeout')})"
+            f"(visible windows: {self._visible_window_titles()})"
         )
 
     async def _select_file_picker_directory(self, directory_field, directory: Path):
@@ -849,8 +836,7 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
 
         self.fail(
             f"File picker did not navigate to {expected_directory}. "
-            f"Current path: {self._normalize_file_picker_path(directory_field)} "
-            f"(screenshot: {await self._capture_debug_screenshot('file_picker_navigation')})"
+            f"Current path: {self._normalize_file_picker_path(directory_field)}"
         )
 
     async def _wait_for_file_picker_directory(self, directory_field, expected_directory: str) -> bool:
@@ -921,11 +907,8 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
             if not self._is_window_visible(window_title):
                 return
             await omni.kit.app.get_app().next_update_async()
-        screenshot_label = f"{window_title.lower().replace(' ', '_')}_close_timeout"
         self.fail(
-            f"Timed out waiting for dialog '{window_title}' to close "
-            f"(visible windows: {self._visible_window_titles()}, "
-            f"screenshot: {await self._capture_debug_screenshot(screenshot_label)})"
+            f"Timed out waiting for dialog '{window_title}' to close (visible windows: {self._visible_window_titles()})"
         )
 
     async def _wait_for_packaging_retry_started(self, widget: PackagingPane | None = None) -> list[str]:
@@ -938,8 +921,7 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
 
         self.fail(
             "Timed out waiting for packaging retry to enter packaging progress "
-            f"(visible windows: {self._visible_window_titles()}, "
-            f"screenshot: {await self._capture_debug_screenshot('retry_packaging_timeout')})"
+            f"(visible windows: {self._visible_window_titles()})"
         )
         return repair_statuses
 
@@ -989,14 +971,12 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
                         await omni.kit.app.get_app().next_update_async()
                     self.fail(
                         "Timed out waiting for packaging cleanup and the success dialog to close "
-                        f"(visible windows: {self._visible_window_titles()}, "
-                        f"screenshot: {await self._capture_debug_screenshot('package_cleanup_timeout')})"
+                        f"(visible windows: {self._visible_window_titles()})"
                     )
             await omni.kit.app.get_app().next_update_async()
         self.fail(
             f"Timed out waiting for packaged output file: {output_file} "
-            f"(visible windows: {self._visible_window_titles()}, "
-            f"screenshot: {await self._capture_debug_screenshot('package_output_timeout')})"
+            f"(visible windows: {self._visible_window_titles()})"
         )
 
     def _assert_output_directory_opened(self, output_directory: Path):
@@ -1070,19 +1050,6 @@ class TestPackagingPaneReferenceRepairE2E(AsyncTestCase):
             or title.startswith("test_retry_")
             or title.startswith("Select a replacement asset for:")
         )
-
-    async def _capture_debug_screenshot(self, label: str) -> str:
-        screenshot_path = Path.cwd() / "_testoutput" / "packaging_widget_reference_repair" / f"{label}.png"
-        screenshot_path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            app_window = omni.appwindow.get_default_app_window()
-            renderer_capture = omni.kit.renderer_capture.acquire_renderer_capture_interface()
-            renderer_capture.capture_next_frame_swapchain(str(screenshot_path), app_window)
-            await omni.kit.app.get_app().next_update_async()
-            renderer_capture.wait_async_capture(app_window)
-        except (AttributeError, ImportError, RuntimeError) as exc:
-            return f"screenshot capture failed: {exc}"
-        return str(screenshot_path)
 
     @staticmethod
     def _get_reference_assets(layer: Sdf.Layer, prim_path: str) -> list[str]:

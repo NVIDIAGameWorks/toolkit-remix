@@ -68,6 +68,19 @@ The scheduler runs and the Apply mode is **AUTO** by default. The Toolkit rememb
 | **Apply Failed**, **Reapply Failed**, **Revert Failed** | The Toolkit could not change the project. Select the same button again to retry. |
 | **Unavailable** | The feature that the job needs is not loaded. |
 
+## Notifications
+
+Asset Modifiers and AI Tools use the same notifications for jobs that you submit from their windows or the Stage Manager.
+The submission notification shows how many jobs entered the queue.
+If items were skipped, it also shows their count and the first reason.
+Skipped items produce a warning.
+A submission with no valid item is an error: the **No Jobs Created** dialog shows the reason, and no job enters the queue.
+
+The Toolkit posts one result notification when the **Asset Modifier** or **ComfyUI generation** stage finishes.
+It shows the modifier summary when available, or the graph name and stage state.
+A failed stage produces a warning. Other results produce an information notification.
+The optimization stages can still run after this notification.
+
 ## Applying Results
 
 A finished job that changes the project shows **Apply** (✔️) and **Decline** (✖️):
@@ -87,8 +100,12 @@ closed.
 
 A graph row has these actions:
 
-- **Delete** removes the graph, its jobs, and their output files after you confirm. Changes already applied to the
-  project stay. You can also select graphs and press **Delete**.
+- **Delete** removes the graph and its jobs after you confirm. Files in use stay with their whole folder.
+  Open projects and surviving jobs protect their input files. A closed USD file protects an output folder only
+  when the referring file is outside that folder. The Toolkit inspects USD files throughout each open project's
+  folder, except linked folders such as `deps`. Unused output folders are removed only in inspected open projects.
+  Applied queue files and remote outputs stay.
+  Project changes stay, but deleted jobs no longer offer **Revert**. You can also select graphs and press **Delete**.
 - **Stop** replaces **Delete** while a stage of the graph runs. It stops the running stage, which then shows
   **Stopped**.
 - The actions of the job type, for example **Focus in Viewport**, **Open Workflow**, and **Retarget** for

@@ -27,9 +27,6 @@ from .widget import AssetModifiersWidget
 class AssetModifiersWorkspace(WorkspaceWindowBase):
     """Host the Asset Modifiers controls in the StageCraft workspace."""
 
-    _DEFAULT_WIDTH = 400
-    _DEFAULT_HEIGHT = 600
-
     @property
     def title(self) -> str:
         """Return the Asset Modifiers window title."""

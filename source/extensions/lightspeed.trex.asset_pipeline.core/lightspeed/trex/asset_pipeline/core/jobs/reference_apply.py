@@ -67,6 +67,7 @@ APPLIED = "applied"
 _RESTORED_BY_ATTR = "remix_restored_by"
 # The owner and output URL distinguish jobs and detect external reference edits.
 _GENERATED_FOR_ATTR = "remix_generated_for"
+_IN_PLACE_MARKER_PREFIX = f"{_GENERATED_FOR_ATTR}:asset_"
 
 
 def _generated_marker(owner_prim_path: str, asset_url: str) -> str:
@@ -76,7 +77,33 @@ def _generated_marker(owner_prim_path: str, asset_url: str) -> str:
 
 def _in_place_marker_attr(asset_url: str) -> str:
     """Return a separate marker attribute for each generated asset on one owner."""
-    return f"{_GENERATED_FOR_ATTR}:asset_{sha256(_normalize_url(asset_url).encode()).hexdigest()}"
+    return f"{_IN_PLACE_MARKER_PREFIX}{sha256(_normalize_url(asset_url).encode()).hexdigest()}"
+
+
+def _resolved_generated_marker(attribute: Usd.Attribute) -> str | None:
+    """Resolve a marker against the layer that authored its value."""
+    if not attribute or not (value := attribute.Get()):
+        return None
+    owner, separator, asset_path = value.partition(" ")
+    if separator and asset_path:
+        for spec in attribute.GetPropertyStack():
+            if spec.HasInfo("default"):
+                return _generated_marker(owner, Sdf.ComputeAssetPathRelativeToLayer(spec.layer, asset_path))
+    return None
+
+
+def _find_in_place_marker(owner: Usd.Prim, asset_url: str) -> Usd.Attribute | None:
+    """Find the asset marker independent of its original path hash."""
+    expected = _generated_marker(str(owner.GetPath()), asset_url)
+    return next(
+        (
+            attribute
+            for attribute in owner.GetAttributes()
+            if (attribute.GetName() == _GENERATED_FOR_ATTR or attribute.GetName().startswith(_IN_PLACE_MARKER_PREFIX))
+            and _resolved_generated_marker(attribute) == expected
+        ),
+        None,
+    )
 
 
 def get_apply_stage(target: ApplyStageTarget) -> tuple[Usd.Stage, Sdf.Layer]:
@@ -258,6 +285,7 @@ def _in_place_state(
     layers: dict[str, Sdf.Layer],
     reference_target: ReferenceTarget,
     asset_url: str,
+    marked: bool,
     source_index: dict[str, dict[tuple[str, str], list[tuple[Sdf.Reference, Sdf.Layer]]]] | None = None,
 ) -> str:
     """Classify one Remix reference owner that Replace swaps in place.
@@ -270,11 +298,6 @@ def _in_place_state(
         ApplyExecutionError: The owner is missing or in any other state.
     """
     owner = _owner_prim(stage, reference_target.owner_prim_path)
-    marker = _generated_marker(reference_target.owner_prim_path, asset_url)
-    marked = any(
-        owner.GetAttribute(attr_name).Get() == marker
-        for attr_name in (_in_place_marker_attr(asset_url), _GENERATED_FOR_ATTR)
-    )
     source = _find_source_reference(owner, layers, reference_target, source_index) is not None
     generated = _find_generated_reference(owner, asset_url) is not None
     if marked and generated and not source:
@@ -328,7 +351,7 @@ def _generated_children(
     if anchor_path not in children_by_anchor:
         indexed_children: dict[str, list[Usd.Prim]] = {}
         for child in anchor.GetChildren():
-            child_marker = child.GetAttribute(_GENERATED_FOR_ATTR).Get()
+            child_marker = _resolved_generated_marker(child.GetAttribute(_GENERATED_FOR_ATTR))
             if child_marker:
                 indexed_children.setdefault(child_marker, []).append(child)
         children_by_anchor[anchor_path] = indexed_children
@@ -445,9 +468,17 @@ def reference_state(
     restored_source_index: dict[str, dict[tuple[str, str], list[tuple[Sdf.Reference, Sdf.Layer]]]] = {}
     expected_counts: dict[str, int] = {}
     replace_sources: list[ReferenceTarget] = []
+    in_place_markers: dict[str, bool] = {}
     for reference_target in reference_targets:
         if _replaces_in_place(stage, reference_target, replace=replace):
-            states.add(_in_place_state(stage, layers, reference_target, asset_url, source_index))
+            owner_path = reference_target.owner_prim_path
+            if owner_path not in in_place_markers:
+                in_place_markers[owner_path] = (
+                    _find_in_place_marker(_owner_prim(stage, owner_path), asset_url) is not None
+                )
+            states.add(
+                _in_place_state(stage, layers, reference_target, asset_url, in_place_markers[owner_path], source_index)
+            )
             continue
         if replace:
             expected_counts[reference_target.owner_prim_path] = 1
@@ -588,11 +619,7 @@ def _revert_in_place(
         )
     omni.kit.commands.execute(
         "RemoveProperty",
-        prop_path=owner.GetPath().AppendProperty(
-            _in_place_marker_attr(asset_url)
-            if owner.HasAttribute(_in_place_marker_attr(asset_url))
-            else _GENERATED_FOR_ATTR
-        ),
+        prop_path=_find_in_place_marker(owner, asset_url).GetPath(),
         usd_context_name=stage,
         remove_from_layers=[target_layer],
     )
@@ -753,7 +780,7 @@ def apply_references(
         _mark_child(
             stage.GetPrimAtPath(child_path),
             _in_place_marker_attr(asset_url) if child_path == owner_path else _GENERATED_FOR_ATTR,
-            _generated_marker(reference_target.owner_prim_path, asset_url),
+            _generated_marker(reference_target.owner_prim_path, _relative_reference(target_layer, asset_url).assetPath),
         )
 
 

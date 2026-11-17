@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0]
+### Added
+- Added `MetaStepOperation` and `skip_operations` so a caller can skip scale normalization or root wrapping.
+- Stored generated reference markers relative to their author layer. Queued Apply and Revert still require the original project paths.
+- Added persisted Apply/Revert coverage and reused in-place marker lookup for targets with the same owner.
+- Protected persisted file inputs of queued jobs during graph cleanup.
+
 ## [1.5.0]
 ### Added
 - Added shared reference Apply, Revert, and capture-owner Undo for asset modifiers and ComfyUI, with private ingestion timelines.

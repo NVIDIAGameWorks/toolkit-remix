@@ -2,6 +2,19 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.0.0]
+### Changed
+- Required a `UsageSnapshot` for graph deletion and file counts to preserve files in use and remove unused published output folders. A file that refers to an output keeps it only from outside the output folder.
+- Added `UsageSnapshot.from_urls`, which normalizes each distinct local URL once per call and removes remote URLs.
+- Changed `usage_snapshot_provider` to return an awaitable snapshot with current open-stage usage after project scans and no verified roots after any scan failure.
+
+### Fixed
+- Protected persisted job inputs during graph cleanup, rejected linked queue folders, and retained uninspectable published outputs without blocking idle graph deletion.
+- Indexed candidate folder ancestors once for usage checks and gave file references named fields.
+- Preserved inputs from every remaining graph during deletion, including declined results that still permit Apply.
+- Loaded deletion-planner job payloads in one query.
+- Stopped automatic Apply from logging an error when graph deletion removes a job before its queued reconciliation runs.
+
 ## [4.2.0]
 ### Added
 - Added `JobError.timed_out`, failed-job Retry, and dispatch pause/resume without waiting for active executions.

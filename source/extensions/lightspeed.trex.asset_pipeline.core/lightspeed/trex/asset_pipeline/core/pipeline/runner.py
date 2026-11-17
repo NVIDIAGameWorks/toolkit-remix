@@ -69,6 +69,7 @@ async def run_remix_asset_pipeline(
             await run_in_worker_thread(temp_dir.mkdir)
             context.work_dir = temp_dir
             context.output_dir = config.output_dir
+            context.skip_operations = config.skip_operations
             context.clear_output_paths()
             configured_steps = list(steps)
             validate_pipeline(configured_steps, context)

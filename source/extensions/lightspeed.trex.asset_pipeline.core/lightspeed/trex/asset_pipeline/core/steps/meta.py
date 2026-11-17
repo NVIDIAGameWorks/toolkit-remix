@@ -26,6 +26,7 @@ from omni.flux.utils.common.prims import get_omni_prims
 from pxr import Gf, Kind, Sdf, Usd, UsdGeom
 
 from ..pipeline.context import RemixAssetPipelineContext
+from ..pipeline.enums import MetaStepOperation
 from ..pipeline.item import AssetKind, RemixAssetItem
 
 _METERS_PER_UNIT_KEY = "metersPerUnit"
@@ -64,12 +65,18 @@ class MetaStep(PipelineStep):
 
             stage = await context.open_stage(item.value)
 
-            _wrap_root_prims(stage, "XForms")
-            _apply_unit_scale(stage)
-            _wrap_root_prims(stage, "ReferenceTarget")
+            wrap_roots = MetaStepOperation.ROOT_WRAPPING not in context.skip_operations
+            if wrap_roots:
+                _wrap_root_prims(stage, "XForms")
+            if MetaStepOperation.SCALE_NORMALIZATION in context.skip_operations:
+                stage.SetMetadata(_METERS_PER_UNIT_KEY, 1 / _UNIT_SCALE_TARGET)
+            else:
+                _apply_unit_scale(stage)
+            if wrap_roots:
+                _wrap_root_prims(stage, "ReferenceTarget")
 
             await context.save_stage()
-            carb.log_info(f"[Meta] Wrapped roots and normalized unit scale for {item.value}")
+            carb.log_info(f"[Meta] Applied requested root and unit operations for {item.value}")
 
 
 def _get_root_prims(stage: Usd.Stage) -> list[Usd.Prim]:
@@ -166,11 +173,7 @@ def _wrap_root_prims(stage: Usd.Stage, wrap_prim_name: str) -> None:
 
 
 def _apply_unit_scale(stage: Usd.Stage) -> None:
-    """Normalize the stage unit scale, proportionally scaling current root prim xformOps.
-
-    Args:
-        stage: Model stage whose root prims and unit metadata are normalized.
-    """
+    """Normalize root scale operations and set meter units."""
     meters_per_unit = stage.GetMetadata(_METERS_PER_UNIT_KEY)
     if not meters_per_unit:
         return

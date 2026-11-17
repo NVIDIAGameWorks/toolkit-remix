@@ -18,14 +18,19 @@
 __all__ = ["ModifierInput"]
 
 import dataclasses
-from typing import Generic, TypeVar
+from collections.abc import Callable, Mapping
+from typing import Any, Generic, TypeVar
 
 InputValueT = TypeVar("InputValueT")
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class ModifierInput(Generic[InputValueT]):
-    """Describe one typed modifier parameter and its default value."""
+    """Describe one typed modifier parameter and its default value.
+
+    The widget shows the inputs in declaration order. Declare an input with ``visible_if`` after the inputs that it
+    reads, so that the row appears below the control that shows it.
+    """
 
     name: str
     label: str
@@ -35,3 +40,4 @@ class ModifierInput(Generic[InputValueT]):
     tooltip: str = ""
     min_value: float | None = None
     max_value: float | None = None
+    visible_if: Callable[[Mapping[str, Any]], bool] | None = None

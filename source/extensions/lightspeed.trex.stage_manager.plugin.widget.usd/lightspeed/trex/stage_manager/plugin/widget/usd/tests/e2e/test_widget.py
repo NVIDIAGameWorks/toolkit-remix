@@ -16,31 +16,31 @@
 """
 
 import asyncio
+import json
 import os
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import omni.kit.commands
 import omni.kit.test
 from carb.settings import get_settings
 from lightspeed.common import constants
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
-from lightspeed.trex.comfyui.core.api import ComfyUIAPI
-from lightspeed.trex.asset_modifiers.factory import get_instance as _get_asset_modifier_factory
 from lightspeed.trex.asset_modifiers.core import AssetModifiersCore
 from lightspeed.trex.asset_modifiers.core.settings import AssetModifierSettings
 from lightspeed.trex.asset_modifiers.core.tests.e2e.scale_mesh_job import ScaleMeshTestJob
 from lightspeed.trex.asset_modifiers.core.tests.e2e.scale_mesh_modifier import ScaleMeshTestModifier
+from lightspeed.trex.asset_modifiers.factory import get_instance as _get_asset_modifier_factory
 from lightspeed.trex.asset_modifiers.widget.submitter import AssetModifierSubmitter
 from lightspeed.trex.asset_pipeline.core.jobs import MeshOptimizationJob, PrepareOptimizationJob, TextureOptimizationJob
 from lightspeed.trex.asset_pipeline.core.jobs.asset_replace_apply_handler import AssetReplaceApplyHandler
-from lightspeed.trex.comfyui.core.core import ComfyUISubmission, ComfyUISubmissionResult
+from lightspeed.trex.comfyui.core.api import ComfyUIAPI
 from lightspeed.trex.comfyui.core.enums import RemixType
 from lightspeed.trex.comfyui.core.extension import get_comfyui_core_instance
-from lightspeed.trex.comfyui.core.models import Workflow, WorkflowInput
+from lightspeed.trex.comfyui.core.models import Workflow, WorkflowInput, WorkflowOutput
 from lightspeed.trex.comfyui.core.resolvers import (
     AllStageMeshesResolver,
     AllStageTexturesResolver,
@@ -73,8 +73,9 @@ from lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job import (
 from omni import ui, usd
 from omni.flux.job_queue.core import get_job_queue
 from omni.flux.job_queue.core.enums import ApplyDisposition, JobState
+from omni.flux.job_queue.core.execute import JobExecutor
 from omni.flux.job_queue.core.handlers import get_apply_executor
-from omni.flux.job_queue.core.models import QueueJob
+from omni.flux.job_queue.core.models import QueueJob, UsageSnapshot
 from omni.flux.job_queue.core.settings import JobQueueSettings
 from omni.flux.job_queue.widget import get_display_adapter_registry
 from omni.flux.stage_manager.factory.plugins.tree_plugin import StageManagerTreeItem as _StageManagerTreeItem
@@ -85,9 +86,12 @@ from omni.flux.stage_manager.plugin.widget.usd.base import (
     StageManagerStateWidgetPlugin as _StageManagerStateWidgetPlugin,
 )
 from omni.flux.utils.tests.context_managers import open_test_project
+from omni.flux.utils.widget.resources import get_test_data
 from omni.kit import ui_test
+from omni.kit.notification_manager import destroy_all_notifications, get_all_notifications
 from omni.kit.test_suite.helpers import arrange_windows, get_test_data_path
-from pxr import Gf, Sdf, Usd, UsdGeom
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
+from requests import Response
 
 
 class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
@@ -236,32 +240,83 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
             await ui_test.human_delay()
         return open_layout
 
-    async def test_comfyui_action_icon_shows_setup_state_and_opens_ai_tools(self):
-        """A real click on the disconnected action opens AI Tools for setup."""
-        # Render the Stage Manager action for a real prim while ComfyUI is unavailable.
-        window, widget = await self.__setup_widget(widget_plugin_type=_SubmitComfyUIJobActionWidgetPlugin)
+    async def test_comfyui_action_from_another_tab_focuses_workflow_and_asset_modifiers(self):
+        """Open inactive tool tabs through their disabled actions without adding jobs to the queue."""
+        # Disable both submit actions so each click must select its tool tab instead of creating jobs.
+        workspace = ui.Workspace.dump_workspace()
+        await get_comfyui_core_instance("").shutdown()
+        settings = AssetModifierSettings()
+        active_modifier = settings.active_modifier_name
+        settings.set_active_modifier_name("")
+        graph_ids = {graph.graph_id for graph in get_job_queue().get_graph_snapshots()}
+        window, _ = await self.__setup_widget(_SubmitComfyUIJobActionWidgetPlugin)
+        window.flags = ui.WINDOW_FLAGS_NO_DOCKING
         model = _StageManagerTreeModel()
-        item = _StageManagerTreeItem(
-            display_name="Material", tooltip="Material", data=self.stage.DefinePrim("/Material")
-        )
-        core = MagicMock(is_ready=False)
+        item = _StageManagerTreeItem(display_name="Material", data=self.stage.DefinePrim("/Material"))
+        workflow_title = constants.WindowNames.COMFYUI_WORKFLOW.value
+        modifier_title = constants.WindowNames.ASSET_MODIFIERS.value
         try:
-            with patch(
-                "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
-                return_value=core,
+            for title, plugin, identifier, tooltip in (
+                (
+                    workflow_title,
+                    _SubmitComfyUIJobActionWidgetPlugin,
+                    "submit_comfyui_job_widget_image",
+                    "ComfyUI is not connected",
+                ),
+                (
+                    modifier_title,
+                    SubmitAssetModifierJobActionWidgetPlugin,
+                    "submit_asset_modifier_job_widget_image",
+                    "Select to open Asset Modifiers",
+                ),
             ):
-                open_layout = await self.__click_disabled_comfyui_action(
-                    widget,
-                    window,
-                    model,
-                    item,
-                    "ComfyUI is not connected, or no workflow is selected. Select to open AI Tools.",
-                )
-
-            open_layout.assert_called_once_with()
-            core.prepare_submission.assert_not_called()
+                with self.subTest(title=title):
+                    # Dock both tools together and select the other tab so the target starts inactive.
+                    for name in (workflow_title, modifier_title):
+                        ui.Workspace.show_window(name, True)
+                    await ui_test.human_delay()
+                    workflow = ui.Workspace.get_window(workflow_title)
+                    modifier = ui.Workspace.get_window(modifier_title)
+                    workflow.dock_in(ui.Workspace.get_window("DockSpace"), ui.DockPosition.SAME)
+                    async with asyncio.timeout(30):
+                        while not workflow.docked:
+                            await ui_test.human_delay()
+                        modifier.dock_in(workflow, ui.DockPosition.SAME)
+                        while not (modifier.docked and modifier.dock_id == workflow.dock_id):
+                            await ui_test.human_delay()
+                        other = modifier if title == workflow_title else workflow
+                        other.focus()
+                        while not other.is_selected_in_dock():
+                            await ui_test.human_delay()
+                    self.assertFalse(ui.Workspace.get_window(title).is_selected_in_dock())
+                    with window.frame:
+                        plugin().build_icon_ui(model, item, 0, False)
+                    window.visible = True
+                    window.focus()
+                    await ui_test.human_delay()
+                    action = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='{identifier}'")
+                    self.assertIn("Disabled", action.widget.name)
+                    self.assertIn(tooltip, action.widget.tooltip)
+                    # Click the disabled action and expect its tool to become the selected dock tab.
+                    await action.click()
+                    async with asyncio.timeout(30):
+                        if task := _SubmitComfyUIJobActionWidgetPlugin._layout_task:
+                            await task
+                        while not (
+                            (target := ui.Workspace.get_window(title)).visible
+                            and target.docked
+                            and target.is_selected_in_dock()
+                        ):
+                            await ui_test.human_delay()
+                    # Focus recovery must not add a graph to the shared queue.
+                    self.assertEqual({graph.graph_id for graph in get_job_queue().get_graph_snapshots()}, graph_ids)
         finally:
+            _SubmitComfyUIJobActionWidgetPlugin.cancel_pending_submissions()
+            settings.set_active_modifier_name(active_modifier or "")
+            model.destroy()
             await self.__destroy(window)
+            ui.Workspace.restore_workspace(workspace)
+            await ui_test.human_delay()
 
     async def test_comfyui_action_is_disabled_for_active_workflow_without_selection_input(self):
         """The real context core with Constant and whole-stage inputs disables the action and submits nothing."""
@@ -328,73 +383,158 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
             core.set_workflow(None)
 
     async def test_comfyui_action_icon_preserves_multi_selection_for_active_workflow(self):
-        """A real click on the ready action submits every selected Stage Manager prim."""
-        # Render the ready Stage Manager action for two selected live-stage prims.
-        window, widget = await self.__setup_widget(widget_plugin_type=_SubmitComfyUIJobActionWidgetPlugin)
-        model = _StageManagerTreeModel()
-        first_prim = self.stage.DefinePrim("/FirstMaterial")
-        second_prim = self.stage.DefinePrim("/SecondMaterial")
-        item = _StageManagerTreeItem(display_name="First Material", tooltip="First Material", data=first_prim)
-        second_item = _StageManagerTreeItem(
-            display_name="Second Material",
-            tooltip="Second Material",
-            data=second_prim,
-        )
-        proxies = [_StageManagerTreeItemProxy(item), _StageManagerTreeItemProxy(second_item)]
-        model.publish_refresh_result(
-            TreeRefreshResult(
-                canonical_root_items=[item, second_item],
-                root_items=proxies,
-                items_by_path={"/FirstMaterial": [proxies[0]], "/SecondMaterial": [proxies[1]]},
-                item_by_hash={hash(proxy): proxy for proxy in proxies},
-                path_by_hash={hash(proxies[0]): "/FirstMaterial", hash(proxies[1]): "/SecondMaterial"},
-                visible_items_count=2,
-                visible_non_virtual_items_count=2,
-                input_items_count=2,
-                output_items_count=2,
-            )
-        )
-        model.selection = proxies
-        core = MagicMock(is_ready=True)
-        core.workflow.name = "upscale_4x"
-        core.workflow.display_name = "Upscale"
-        core.workflow.inputs = [MagicMock(value=SelectedTextureResolver())]
-        submission = ComfyUISubmission((MagicMock(),), 0)
-        core.prepare_submission = AsyncMock(return_value=submission)
-        core.submit_prepared_submission = AsyncMock(return_value=ComfyUISubmissionResult(1, 0))
-        usd.get_context().get_selection().set_selected_prim_paths(
-            [str(first_prim.GetPath()), str(second_prim.GetPath())],
-            True,
-        )
+        """Submit the Stage Manager selection and report its local results with captured ComfyUI HTTP responses."""
+        queue = get_job_queue()
+        settings = JobQueueSettings()
+        original_settings = (settings.scheduler_enabled, settings.auto_apply)
+        window = model = core = None
+        known_graphs = None
+        claimed_jobs = []
+        # This test checks submission and result notifications. Apply of the generated textures is out of its scope.
+        settings.set_scheduler_enabled(False)
+        settings.set_auto_apply(False)
         try:
-            with patch(
-                "lightspeed.trex.stage_manager.plugin.widget.usd.submit_comfyui_job.get_comfyui_core_instance",
-                return_value=core,
-            ):
-                with window.frame:
-                    widget.build_icon_ui(model, item, 0, False)
-                window.focus()
-                await ui_test.human_delay(2)
+            # Prepare the shared queue and external image fixture with scheduler restoration already protected.
+            known_graphs = {graph.graph_id for graph in queue.get_graph_snapshots()}
+            core = get_comfyui_core_instance("")
+            window, widget = await self.__setup_widget(widget_plugin_type=_SubmitComfyUIJobActionWidgetPlugin)
+            model = _StageManagerTreeModel()
+            image = Path(
+                get_test_data("textures/Normal_Map_Test_DirectX.png", ext_name="omni.flux.utils.octahedral_converter")
+            ).read_bytes()
 
-                action = ui_test.find(f"{window.title}//Frame/Image[*].identifier=='submit_comfyui_job_widget_image'")
-                self.assertIsNotNone(action)
-                self.assertEqual(action.widget.name, "AITools")
-                self.assertEqual(
-                    action.widget.tooltip,
-                    "Run 'Upscale' for this selection using the current AI Tools settings.",
-                )
+            async def serve_response(_api, _method, endpoint, **kwargs):
+                """Return captured HTTP responses through the real client."""
+                payload = {
+                    "/prompt": {"prompt_id": "stage-manager-submission"},
+                    "/history/stage-manager-submission": {
+                        "stage-manager-submission": {
+                            "status": {"completed": True},
+                            "outputs": {"2": {"images": [{"filename": "albedo.png", "type": "output"}]}},
+                        }
+                    },
+                }.get(endpoint, {})
+                if endpoint == "/upload/image":
+                    payload = {"name": kwargs["files"]["image"][0], **kwargs["data"]}
+                response = Response()
+                response.status_code = 200
+                response._content_consumed = True
+                response._content = image if endpoint == "/view" else json.dumps(payload).encode("utf-8")
+                return response
 
-                # Click the visible action and let the production widget prepare and submit the selection.
-                await action.click()
-                await ui_test.human_delay(5)
+            with patch.object(ComfyUIAPI, "_request", new=serve_response):
+                async with open_test_project("usd/project_example/combined.usda") as project_url:
+                    stage = self.context.get_stage()
+                    paths = [f"/RootNode/Looks/Submission{index}" for index in range(3)]
+                    items = []
+                    for index, path in enumerate(paths):
+                        material = UsdShade.Material.Define(stage, path)
+                        shader = UsdShade.Shader.Define(stage, f"{path}/Shader")
+                        shader.CreateOutput("surface", Sdf.ValueTypeNames.Token)
+                        material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
+                        shader.CreateInput("diffuse_texture", Sdf.ValueTypeNames.Asset).Set(
+                            Sdf.AssetPath(f"{project_url.parent_url}/sources/textures/ingested/16px_Diffuse.dds")
+                        )
+                        items.append(_StageManagerTreeItem(display_name=f"Material {index}", data=material.GetPrim()))
+                    # The action must use the two selected rows, not every compatible material.
+                    proxies = [_StageManagerTreeItemProxy(item) for item in items]
+                    model.publish_refresh_result(
+                        TreeRefreshResult(
+                            canonical_root_items=items,
+                            root_items=proxies,
+                            items_by_path={path: [proxy] for path, proxy in zip(paths, proxies)},
+                            item_by_hash={hash(proxy): proxy for proxy in proxies},
+                            path_by_hash={hash(proxy): path for path, proxy in zip(paths, proxies)},
+                            visible_items_count=len(items),
+                            visible_non_virtual_items_count=len(items),
+                            input_items_count=len(items),
+                            output_items_count=len(items),
+                        )
+                    )
+                    model.selection = proxies[:2]
+                    self.context.get_selection().set_selected_prim_paths(paths[:2], True)
+                    await core.connect()
+                    core.set_workflow(
+                        Workflow(
+                            name="upscale_4x",
+                            display_name="Upscale",
+                            api={
+                                "1": {"class_type": "LoadImage", "inputs": {"image": ""}},
+                                "2": {
+                                    "class_type": "SaveImage",
+                                    "inputs": {"images": ["1", 0], "filename_prefix": "stage_manager"},
+                                },
+                            },
+                            inputs=[
+                                WorkflowInput(
+                                    "1.inputs.image",
+                                    "Texture",
+                                    Path,
+                                    Path(),
+                                    SelectedTextureResolver(context_name=""),
+                                    remix_type=RemixType.TEXTURE_FILE_PATH,
+                                )
+                            ],
+                            output_specs=[WorkflowOutput("2", RemixType.TEXTURE_FILE_PATH, texture_type="albedo")],
+                        )
+                    )
+                    with window.frame:
+                        widget.build_icon_ui(model, items[0], 0, False)
+                    window.focus()
+                    await ui_test.human_delay()
+                    action = ui_test.find(
+                        f"{window.title}//Frame/Image[*].identifier=='submit_comfyui_job_widget_image'"
+                    )
+                    self.assertEqual(action.widget.name, "AITools")
+                    destroy_all_notifications()
+                    await action.click()
+                    async with asyncio.timeout(30):
+                        while not get_all_notifications():
+                            await ui_test.human_delay()
+                    graphs = [graph for graph in queue.get_graph_snapshots() if graph.graph_id not in known_graphs]
+                    self.assertEqual(len(graphs), 2)
+                    self.assertEqual([queue.get_job(graph.jobs[0].job_id).material_path for graph in graphs], paths[:2])
+                    (notification,) = get_all_notifications()
+                    self.assertEqual(notification.info.text, "Submitted 2 job(s) to the job queue.")
+                    self.assertEqual(
+                        [button.text for button in notification.info.button_infos], ["Open AI Tools layout"]
+                    )
 
-                core.prepare_submission.assert_awaited_once_with(
-                    prim_paths=["/FirstMaterial", "/SecondMaterial"], progress=ANY, is_cancelled=ANY
-                )
-                core.submit_prepared_submission.assert_awaited_once_with(submission)
+                    # Await dispatch and both completion notifications within one timeout, even when no job is ready.
+                    destroy_all_notifications()
+                    generation_jobs = {graph.jobs[0].job_id for graph in graphs}
+                    async with asyncio.timeout(30):
+                        while len(get_all_notifications()) < len(graphs):
+                            claimed = queue.claim_runnable_jobs()
+                            claimed_jobs.extend(claimed)
+                            for job_id in claimed:
+                                if job_id in generation_jobs:
+                                    await JobExecutor(queue).execute(job_id)
+                            await ui_test.human_delay()
+                    self.assertEqual([item.info.text for item in get_all_notifications()], ["Upscale: DONE"] * 2)
         finally:
-            _SubmitComfyUIJobActionWidgetPlugin.cancel_pending_submissions()
-            await self.__destroy(window)
+            try:
+                queue.release_scheduled_jobs(claimed_jobs)
+                _SubmitComfyUIJobActionWidgetPlugin.cancel_pending_submissions()
+                await asyncio.gather(
+                    *_SubmitComfyUIJobActionWidgetPlugin._submissions._tasks.values(), return_exceptions=True
+                )
+                if core is not None:
+                    await core.shutdown()
+                if known_graphs is not None and (
+                    submitted := [
+                        graph.graph_id for graph in queue.get_graph_snapshots() if graph.graph_id not in known_graphs
+                    ]
+                ):
+                    queue.delete_graphs(submitted, UsageSnapshot())
+            finally:
+                if model is not None:
+                    model.destroy()
+                destroy_all_notifications()
+                settings.set_scheduler_enabled(original_settings[0])
+                settings.set_auto_apply(original_settings[1])
+                if window is not None:
+                    await self.__destroy(window)
 
     async def test_asset_modifier_action_selected_capture_mesh_scales_processes_and_replaces_reference(self):
         """Run the selected capture mesh through the modifier, real asset pipeline, Apply, and Revert."""
@@ -405,8 +545,9 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         settings = AssetModifierSettings()
         _get_asset_modifier_factory().register_plugins([ScaleMeshTestModifier])
         settings.set_active_modifier_name(ScaleMeshTestModifier.name)
-        settings.set_value(ScaleMeshTestModifier, ScaleMeshTestModifier.inputs[0], 2.0)
+        settings.set_value(ScaleMeshTestModifier, ScaleMeshTestModifier.inputs[1], 2.0)
         queue_settings.set_scheduler_enabled(True)
+        ui.Workspace.show_window(constants.WindowNames.ASSET_MODIFIERS.value, True)
         queue_settings.set_auto_apply(True)
         mesh_path = "/RootNode/meshes/mesh_0AB745B8BEE1F16B/mesh"
         model = _StageManagerTreeModel()
@@ -478,7 +619,8 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
                     (mesh,) = [job for job in jobs if isinstance(job, MeshOptimizationJob)]
                     self.assertEqual(modifier.prim_paths, (mesh_path,))
                     self.assertEqual(
-                        modifier.values, {"scale": 2.0, "material": "/RootNode/Looks/mat_BC868CE5A075ABB1"}
+                        modifier.values,
+                        {"scale": 2.0, "show_scale": True, "material": "/RootNode/Looks/mat_BC868CE5A075ABB1"},
                     )
                     # The Job Queue Target column shows the selected prim, not the model file that the job reads.
                     self.assertTrue(modifier.source_url)
@@ -513,6 +655,18 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
                     for job in jobs:
                         snapshot = queue.get_job_snapshot(job.job_id)
                         self.assertIs(snapshot.state, JobState.DONE, snapshot.error or snapshot.state_reason)
+                    # A Stage Manager submission must update the current Asset Modifiers panel's Last Run field.
+                    async with asyncio.timeout(30):
+                        while (
+                            not (
+                                last_run := ui_test.find(
+                                    f"{constants.WindowNames.ASSET_MODIFIERS.value}//Frame/**/"
+                                    "Label[*].identifier=='AssetModifierLastRun'"
+                                )
+                            )
+                            or last_run.widget.text != "Scaled model: scaled.usda"
+                        ):
+                            await ui_test.human_delay()
                     applied = queue.get_job_snapshot(mesh.job_id)
                     self.assertIs(applied.apply_disposition, ApplyDisposition.APPLIED, applied.apply_error)
 
@@ -539,6 +693,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
         finally:
             # Restore the shared state first, so a failed graph deletion cannot leak it into later tests.
             model.destroy()
+            ui.Workspace.show_window(constants.WindowNames.ASSET_MODIFIERS.value, False)
             _get_asset_modifier_factory().unregister_plugins([ScaleMeshTestModifier])
             get_settings().destroy_item(AssetModifierSettings.get_modifier_key(ScaleMeshTestModifier))
             settings.set_active_modifier_name("")
@@ -547,7 +702,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
                 if added := [
                     snapshot.graph_id for snapshot in snapshots if snapshot.graph_id not in original_graph_ids
                 ]:
-                    queue.delete_graphs(added)
+                    queue.delete_graphs(added, UsageSnapshot())
             finally:
                 queue_settings.set_scheduler_enabled(original_queue_settings[0])
                 queue_settings.set_auto_apply(original_queue_settings[1])
@@ -607,7 +762,7 @@ class TestStageManagerPluginWidget(omni.kit.test.AsyncTestCase):
                     for snapshot in queue.get_graph_snapshots()
                     if snapshot.graph_id not in original_graph_ids
                 ]:
-                    queue.delete_graphs(added)
+                    queue.delete_graphs(added, UsageSnapshot())
             finally:
                 queue_settings.set_scheduler_enabled(original_queue_settings[0])
                 queue_settings.set_auto_apply(original_queue_settings[1])

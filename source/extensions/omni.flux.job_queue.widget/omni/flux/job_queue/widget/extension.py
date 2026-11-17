@@ -19,10 +19,14 @@ import carb
 import omni.ext
 
 from .display_adapter_registry import DisplayAdapterRegistry
+from .notifications import JobResultNotifier
 
-__all__ = ("FluxJobQueueWidgetExtension", "get_display_adapter_registry")
+__all__ = ("FluxJobQueueWidgetExtension", "get_display_adapter_registry", "get_job_result_notifier")
+
+_EXTENSION_NOT_STARTED_MESSAGE = "Job queue widget extension is not started"
 
 _registry: DisplayAdapterRegistry | None = None
+_result_notifier: JobResultNotifier | None = None
 
 
 def get_display_adapter_registry() -> DisplayAdapterRegistry:
@@ -35,27 +39,42 @@ def get_display_adapter_registry() -> DisplayAdapterRegistry:
         RuntimeError: If the extension has not started.
     """
     if _registry is None:
-        raise RuntimeError("Job queue widget extension is not started")
+        raise RuntimeError(_EXTENSION_NOT_STARTED_MESSAGE)
     return _registry
 
 
+def get_job_result_notifier() -> JobResultNotifier:
+    """Return the shared result notifier.
+
+    Raises:
+        RuntimeError: If the extension has not started or has shut down.
+    """
+    if _result_notifier is None:
+        raise RuntimeError(_EXTENSION_NOT_STARTED_MESSAGE)
+    return _result_notifier
+
+
 class FluxJobQueueWidgetExtension(omni.ext.IExt):
-    """Owns process-wide job queue widget registries."""
+    """Own the shared job queue widget registry and result notifier."""
 
     def on_startup(self, _ext_id: str) -> None:
-        """Create the shared display-adapter registry.
+        """Create the shared registry and result notifier.
 
         Args:
             _ext_id: Kit extension identifier.
         """
-        global _registry
+        global _registry, _result_notifier
         carb.log_info("[omni.flux.job_queue.widget] Startup")
         _registry = DisplayAdapterRegistry()
+        _result_notifier = JobResultNotifier()
 
     def on_shutdown(self) -> None:
-        """Destroy the shared display-adapter registry."""
-        global _registry
+        """Destroy the shared registry and result notifier."""
+        global _registry, _result_notifier
         carb.log_info("[omni.flux.job_queue.widget] Shutdown")
+        if _result_notifier:
+            _result_notifier.destroy()
+        _result_notifier = None
         if _registry:
             _registry.destroy()
         _registry = None

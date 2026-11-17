@@ -16,16 +16,151 @@
 """
 
 import pathlib
+import shutil
 import tempfile
 
 import omni.kit.test
+import omni.kit.undo
 import omni.usd
+from lightspeed.common import constants
 from lightspeed.trex.asset_pipeline.core import RemixAssetItem, RemixAssetPipelineContext
+from lightspeed.trex.asset_pipeline.core.jobs import build_asset_optimization_graph
+from lightspeed.trex.asset_pipeline.core.jobs.asset_replace_apply_handler import AssetReplaceApplyHandler
+from lightspeed.trex.asset_pipeline.core.jobs.asset_replace_apply_target import AssetReplaceApplyTarget
+from lightspeed.trex.asset_pipeline.core.jobs.models import MeshOptimizationRequest, ReferenceTarget
+from lightspeed.trex.asset_pipeline.core.jobs.reference_apply import (
+    reference_state,
+    revert_references,
+)
 from lightspeed.trex.asset_pipeline.core.steps import ReferenceStep
+from lightspeed.trex.asset_pipeline.core.tests.e2e.test_job import _run_until_outputs
+from lightspeed.trex.asset_replacements.core.shared import Setup
+from omni.flux.job_queue.core import handlers
+from omni.flux.job_queue.core.apply_executor import ApplyExecutor
+from omni.flux.job_queue.core.enums import ApplyDisposition, ApplyOperation
+from omni.flux.job_queue.core.errors import ApplyExecutionError
+from omni.flux.job_queue.core.interface import QueueInterface
 from pxr import Sdf, Usd, UsdGeom
 
 
 class TestReferenceE2E(omni.kit.test.AsyncTestCase):
+    async def test_generated_markers_revert_after_relocation_and_accept_legacy_paths(self):
+        """Restore both reference-owner forms from saved jobs, legacy markers, and relocated projects."""
+        # Create source and generated assets with both owner forms to exercise both reference restoration paths.
+        context = omni.usd.get_context()
+        setup = Setup("")
+        self.addCleanup(setup.destroy)
+        with tempfile.TemporaryDirectory() as directory:
+            project_directory = pathlib.Path(directory) / "project"
+            (project_directory / "layers").mkdir(parents=True)
+            for name in ("source", "generated"):
+                asset = Usd.Stage.CreateNew(str(project_directory / f"{name}.usda"))
+                asset.SetDefaultPrim(UsdGeom.Xform.Define(asset, "/Asset").GetPrim())
+                UsdGeom.Xform.Define(asset, f"/Asset/{name}")
+                asset.GetRootLayer().Save()
+            edit = Usd.Stage.CreateNew(str(project_directory / "layers/mod.usda"))
+            layer = edit.GetRootLayer()
+            owners = (
+                f"{constants.ROOTNODE_MESHES}/mesh_0123456789ABCDEF",
+                f"{constants.ROOTNODE_MESHES}/mesh_0123456789ABCDE0/ref_source",
+            )
+            for in_place, path in enumerate(owners):
+                owner = UsdGeom.Xform.Define(edit, path).GetPrim()
+                owner.GetReferences().AddReference("../source.usda")
+                if in_place:
+                    owner.CreateAttribute(constants.IS_REMIX_REF_ATTR, Sdf.ValueTypeNames.Bool).Set(True)
+            layer.Save()
+            project = Usd.Stage.CreateNew(str(project_directory / "project.usda"))
+            project.GetRootLayer().subLayerPaths = ["layers/mod.usda"]
+            project.GetRootLayer().Save()
+            executor = None
+            try:
+                # Open the project and process its generated asset so Apply can replace both original references.
+                await context.open_stage_async(str(project_directory / "project.usda"))
+                stage = context.get_stage()
+                targets = tuple(
+                    ReferenceTarget(path, Sdf.Reference("../source.usda"), layer.identifier) for path in owners
+                )
+                target = AssetReplaceApplyTarget("", stage.GetRootLayer().identifier, layer.identifier, targets)
+                graph, job = build_asset_optimization_graph(
+                    MeshOptimizationRequest(
+                        project_directory / "generated.usda",
+                        project_directory,
+                        output_url=(project_directory / "processed").as_posix(),
+                    ),
+                    handler_type=AssetReplaceApplyHandler,
+                    target=target,
+                )
+                interface = QueueInterface(str(pathlib.Path(directory) / "queue.sqlite"))
+                jobs = {item.job_id: item for item in interface.submit(graph)}
+                output = (await _run_until_outputs(jobs[job.job_id], interface))[job.OPTIMIZED_MESH].asset_url
+                executor = ApplyExecutor(interface, handlers.get_registry())
+                for relocated in (False, True):
+                    with self.subTest(relocated=relocated):
+                        # Apply the output and expect markers relative to the layer that owns each reference.
+                        await executor.apply(job.job_id)
+                        for path in owners:
+                            marker = next(
+                                attribute
+                                for prim in Usd.PrimRange(stage.GetPrimAtPath(path))
+                                for attribute in prim.GetAttributes()
+                                if attribute.GetName().startswith("remix_generated_for")
+                            )
+                            self.assertEqual(
+                                marker.Get(),
+                                f"{path} ../{pathlib.Path(output).relative_to(project_directory).as_posix()}",
+                            )
+                            if not relocated:
+                                # Write the legacy absolute marker so the saved job must restore that form.
+                                with Usd.EditContext(stage, layer):
+                                    marker.Set(f"{path} {output}")
+                        # Save the markers and reload the queue so the restored job retains its original Apply target.
+                        layer.Save()
+                        await executor.shutdown()
+                        restored = QueueInterface(interface.db_path)
+                        self.assertEqual(restored.get_job(job.job_id).apply_binding.target, target)
+                        executor = ApplyExecutor(restored, handlers.get_registry())
+                        if relocated:
+                            # Move the project and expect queued Revert to reject its different project identity.
+                            await context.close_stage_async()
+                            moved = pathlib.Path(directory) / "moved"
+                            shutil.move(str(project_directory), str(moved))
+                            await context.open_stage_async(str(moved / "project.usda"))
+                            with self.assertRaisesRegex(ApplyExecutionError, "different project"):
+                                await executor.revert(job.job_id)
+                            self.assertIn(
+                                "different project",
+                                executor.get_apply_block_reason(job.job_id, ApplyOperation.REVERTING),
+                            )
+                            # Resolve relative markers at the new location so direct restoration finds both owners.
+                            stage = context.get_stage()
+                            layer = Sdf.Layer.FindOrOpen(str(moved / "layers/mod.usda"))
+                            output = (moved / pathlib.Path(output).relative_to(project_directory)).as_posix()
+                            targets = tuple(
+                                ReferenceTarget(path, Sdf.Reference("../source.usda"), layer.identifier)
+                                for path in owners
+                            )
+                            state, children = reference_state(stage, targets, output, replace=True)
+                            self.assertEqual(state, "applied")
+                            with Usd.EditContext(stage, layer), omni.kit.undo.group():
+                                revert_references(
+                                    stage, setup, layer, targets, output, children, context_name="", replace=True
+                                )
+                        else:
+                            # Revert the saved job and expect its legacy markers to restore both original references.
+                            await executor.revert(job.job_id)
+                            self.assertIs(
+                                restored.get_job_snapshot(job.job_id).apply_disposition, ApplyDisposition.DECLINED
+                            )
+                        # Expect both restoration paths to remove the generated asset and restore every source.
+                        self.assertEqual(reference_state(stage, targets, output, replace=True)[0], "original")
+                        self.assertEqual(sum(prim.GetName() == "source" for prim in stage.Traverse()), len(owners))
+            finally:
+                # Release the executor and stage before temporary project files are removed.
+                if executor is not None:
+                    await executor.shutdown()
+                await context.close_stage_async()
+
     async def test_run_makes_asset_paths_and_references_relative(self):
         """The reference step rewrites absolute asset-path attributes and reference arcs to relative paths."""
         with tempfile.TemporaryDirectory() as temp_dir:

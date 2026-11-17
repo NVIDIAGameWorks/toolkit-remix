@@ -2093,30 +2093,12 @@ class TestComfyUICore(AsyncTestCase):
         settings_changed.assert_not_called()
         self.assertIsNotNone(subscription)
 
-    async def test_prepare_submission_leaves_skipped_graphs_out_of_the_queue(self) -> None:
-        """Only graphs with every workflow input reach the queue. Skipped items are only counted."""
-        # Arrange
-        core = ComfyUICore("texturecraft")
-        accepted_graph = mock.MagicMock()
-        accepted_graph.jobs = [mock.MagicMock(skip_reason=None)]
-        skipped_graph = mock.MagicMock()
-        skipped_graph.jobs = [mock.MagicMock(skip_reason="missing input")]
-        core.prepare_jobs = mock.AsyncMock(return_value=[accepted_graph, skipped_graph])
-
-        # Act
-        submission = await core.prepare_submission(["/World/Material"])
-
-        # Assert
-        self.assertEqual(submission.graphs, (accepted_graph,))
-        self.assertEqual(submission.skipped_count, 1)
-        core.prepare_jobs.assert_awaited_once_with(prim_paths=["/World/Material"], progress=None, is_cancelled=None)
-
     async def test_destroyed_core_cannot_submit_prepared_jobs(self) -> None:
         """A stale core cannot mutate the queue after extension shutdown."""
         # Arrange
         core = ComfyUICore("texturecraft")
         core.destroy()
-        submission = ComfyUISubmission((), skipped_count=0)
+        submission = ComfyUISubmission((), skip_reasons=())
 
         with mock.patch("lightspeed.trex.comfyui.core.core.get_job_queue") as get_queue:
             # Act
@@ -2176,7 +2158,7 @@ class TestComfyUICore(AsyncTestCase):
         # Arrange
         core = ComfyUICore("texturecraft")
         graphs = (mock.MagicMock(), mock.MagicMock())
-        submission = ComfyUISubmission(graphs, skipped_count=0)
+        submission = ComfyUISubmission(graphs, skip_reasons=())
         queue = mock.MagicMock()
 
         with mock.patch("lightspeed.trex.comfyui.core.core.get_job_queue", return_value=queue):
@@ -2193,7 +2175,7 @@ class TestComfyUICore(AsyncTestCase):
         # Arrange
         core = ComfyUICore("texturecraft")
         graphs = (mock.MagicMock(), mock.MagicMock(), mock.MagicMock())
-        submission = ComfyUISubmission(graphs, skipped_count=0)
+        submission = ComfyUISubmission(graphs, skip_reasons=())
         queue = mock.MagicMock()
         queue.submit_graphs.side_effect = QueueSubmissionError("duplicate")
 
@@ -2211,7 +2193,7 @@ class TestComfyUICore(AsyncTestCase):
         # Arrange
         core = ComfyUICore("texturecraft")
         graph = mock.MagicMock()
-        submission = ComfyUISubmission((graph,), skipped_count=0)
+        submission = ComfyUISubmission((graph,), skip_reasons=())
         submit_started = threading.Event()
         release_submit = threading.Event()
         queue = mock.MagicMock()
@@ -2241,7 +2223,7 @@ class TestComfyUICore(AsyncTestCase):
         # Arrange
         core = ComfyUICore("texturecraft")
         graph = mock.MagicMock()
-        submission = ComfyUISubmission((graph,), skipped_count=0)
+        submission = ComfyUISubmission((graph,), skip_reasons=())
         submit_started = threading.Event()
         release_submit = threading.Event()
         queue = mock.MagicMock()

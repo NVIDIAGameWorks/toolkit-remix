@@ -455,6 +455,8 @@ class ParticleGizmoManipulator(sc.Manipulator):
         self._gizmo_root = sc.Transform()
         self._icon_url = None
         self._polygon_mesh = ParticleIcon()
+        self._icon_mesh = None
+        self._billboard = None
         self._emitter_poly_mesh: EmitterMesh | None = None
         self._wireframe_thicknesses = [2.0]
         self._is_visible = True
@@ -462,6 +464,8 @@ class ParticleGizmoManipulator(sc.Manipulator):
     def destroy(self):
         self._root = None
         self._gizmo_root = None
+        self._icon_mesh = None
+        self._billboard = None
         self._viewport_api = None
         self.model.destroy()
 
@@ -475,7 +479,7 @@ class ParticleGizmoManipulator(sc.Manipulator):
         # note:need to recreate transform to release previously drawn scene items
         self._gizmo_root = sc.Transform(self.model.get_as_floats(self.model.gizmo_transform))
         with self._gizmo_root:
-            with sc.Transform(look_at=sc.Transform.LookAt.CAMERA, scale_to=sc.Space.SCREEN):
+            with sc.Transform(look_at=sc.Transform.LookAt.CAMERA, scale_to=sc.Space.SCREEN) as self._billboard:
                 with sc.Transform(transform=sc.Matrix44.get_scale_matrix(64.0, 64.0, 1.0)):
                     if self._icon_url:
                         # Use image-based gizmo
@@ -490,7 +494,7 @@ class ParticleGizmoManipulator(sc.Manipulator):
                         colors = self._polygon_mesh.colors
                         if self.model.selected.value:
                             colors = self._polygon_mesh.colors_selected
-                        sc.PolygonMesh(
+                        self._icon_mesh = sc.PolygonMesh(
                             self._polygon_mesh.points,
                             colors,
                             self._polygon_mesh.poly_counts,

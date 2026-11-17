@@ -28,8 +28,10 @@ the Stage Manager and Run block reasons, and prepares the graphs for its USD con
 `prepare_submission()` builds the job of each source model and a graph named after the modifier that holds it. It
 passes both to the modifier's `build_graph()` with the source references as an `AssetReplaceApplyTarget`, and returns
 the graphs and the reason for each skipped prim path.
+Skipped prim reports exclude submitted prims, their ancestors, and their descendants.
 File Path Constant sources have no target. Saved
-projects publish to `assets/ingested/modifiers/<name>/<job id>/`, so runs never overwrite each other, as in AI Tools.
+projects publish to `assets/ingested/modifiers/<name>/<first 12 characters of the job id>/`, so runs never overwrite
+each other, as in AI Tools.
 
 ## Add a modifier
 

@@ -49,7 +49,6 @@ from omni.flux.job_queue.core.job import (
     JobProgress,
     JobProgressCallback,
 )
-
 from pxr import Ar, Sdf, UsdUtils
 
 from .api import ComfyUIAPI, ComfyUIExecutionError
@@ -59,6 +58,7 @@ from .enums import RemixType
 from .maps import OUTPUT_TEXTURE_TYPE_MAP
 from .models import (
     ComfyUIFileResult,
+    ComfyUIInputBinding,
     ComfyUIWorkflowRequest,
     Workflow,
 )
@@ -181,11 +181,30 @@ class ComfyUIJob(Job):
     scheme: str = "http"
     host: str = "127.0.0.1"
     port: int = 8188
+    output_url: str | None = None
 
     @property
     def _server_root(self) -> pathlib.PurePosixPath:
         """Return this job's subfolder on the ComfyUI server."""
         return pathlib.PurePosixPath(REMIX_FOLDER, str(self.job_id))
+
+    def get_input_urls(self, inputs: JobInputs) -> tuple[str, ...]:
+        """Return source files and native USD mesh dependencies from the available workflow request."""
+        if self.WORKFLOW_REQUEST not in inputs:
+            return ()
+        urls = []
+        for binding in inputs[self.WORKFLOW_REQUEST].input_bindings:
+            urls.append(binding.source)
+            if not self._is_native_mesh(binding):
+                continue
+            layers, assets = self._mesh_dependencies(binding.source)
+            urls.extend(path for layer in layers for path in (layer.identifier, layer.realPath) if path)
+            urls.extend(path for path in assets if pathlib.PurePosixPath(path).suffix.lower() != ".mdl")
+        return tuple(urls)
+
+    def get_owned_output_urls(self) -> tuple[str, ...]:
+        """Return the published folder that this job owns."""
+        return (self.output_url,) if self.output_url else ()
 
     def get_schedule_block_reason(self) -> str | None:
         """Return why this job must wait for its saved ComfyUI server."""
@@ -226,6 +245,22 @@ class ComfyUIJob(Job):
                 ),
             }
         )
+
+    @staticmethod
+    def _is_native_mesh(binding: ComfyUIInputBinding) -> bool:
+        """Return whether the binding uploads a USD mesh and its dependencies."""
+        return binding.remix_type is RemixType.MESH_FILE_PATH and pathlib.PurePosixPath(
+            binding.source
+        ).suffix.lower() in (".usd", ".usda", ".usdc")
+
+    @staticmethod
+    def _mesh_dependencies(source: str) -> tuple[list[Sdf.Layer], list[str]]:
+        """Return mesh dependencies, or raise when a non-MDL dependency is unresolved."""
+        layers, assets, unresolved = UsdUtils.ComputeAllDependencies(source)
+        unresolved = [path for path in unresolved if pathlib.PurePosixPath(path).suffix.lower() != ".mdl"]
+        if not layers or unresolved:
+            raise RuntimeError(f"Cannot resolve ComfyUI mesh dependencies: {source}: {unresolved}")
+        return layers, assets
 
     async def _generate_files(
         self,
@@ -364,11 +399,6 @@ class ComfyUIJob(Job):
         def resolved_source(path):
             return (str(Ar.GetResolver().Resolve(path)) or path).replace("\\", "/")
 
-        def native_mesh(binding):
-            return binding.remix_type is RemixType.MESH_FILE_PATH and pathlib.PurePosixPath(
-                binding.source
-            ).suffix.lower() in (".usd", ".usda", ".usdc")
-
         async def upload_source(path, convert_dds):
             resolved = resolved_source(path)
             if resolved not in uploaded_sources:
@@ -381,18 +411,15 @@ class ComfyUIJob(Job):
             return uploaded_sources[resolved]
 
         # Direct textures determine conversion and the shared server path before mesh copies are authored.
-        for binding in sorted(request.input_bindings, key=native_mesh):
+        for binding in sorted(request.input_bindings, key=self._is_native_mesh):
             key = (binding.remix_type, binding.source)
             if key in uploaded:
                 continue
             if binding.remix_type not in (RemixType.TEXTURE_FILE_PATH, RemixType.MESH_FILE_PATH):
                 raise ValueError(f"Unsupported ComfyUI file input semantic: {binding.remix_type}")
             resolved = resolved_source(binding.source)
-            if native_mesh(binding) and resolved not in uploaded_sources:
-                layers, assets, unresolved = await run_in_worker_thread(UsdUtils.ComputeAllDependencies, binding.source)
-                unresolved = [path for path in unresolved if pathlib.PurePosixPath(path).suffix.lower() != ".mdl"]
-                if not layers or unresolved:
-                    raise RuntimeError(f"Cannot resolve ComfyUI mesh dependencies: {binding.source}: {unresolved}")
+            if self._is_native_mesh(binding) and resolved not in uploaded_sources:
+                layers, assets = await run_in_worker_thread(self._mesh_dependencies, binding.source)
                 root = Sdf.Layer.Find(binding.source)
                 layers = [root, *(layer for layer in layers if layer != root)]
                 source_key = hashlib.sha256(resolved.encode("utf-8")).hexdigest()[:12]

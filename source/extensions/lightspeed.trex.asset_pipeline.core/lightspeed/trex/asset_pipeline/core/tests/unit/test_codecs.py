@@ -35,6 +35,7 @@ from lightspeed.trex.asset_pipeline.core.jobs.models import (
     TextureOptimizationResult,
 )
 from lightspeed.trex.asset_pipeline.core.metadata import MetadataApplyReceipt
+from lightspeed.trex.asset_pipeline.core.pipeline.enums import MetaStepOperation
 from omni.flux.asset_importer.core.data_models import TextureTypes
 from omni.flux.job_queue.core.serializer import deserialize, serialize
 
@@ -87,6 +88,7 @@ class TestCodecAssemblies(omni.kit.test.AsyncTestCase):
             output_url="omniverse://server/project/assets/ingested",
             replace_udim_textures_by_empty=False,
             extra_textures=(texture_item,),
+            skip_operations=(MetaStepOperation.SCALE_NORMALIZATION, MetaStepOperation.ROOT_WRAPPING),
         )
         prepare_result = PrepareOptimizationResult(
             model_work_path=pathlib.Path("processed/model.usd"),
@@ -97,6 +99,7 @@ class TestCodecAssemblies(omni.kit.test.AsyncTestCase):
             source_root=pathlib.Path("."),
             output_url="omniverse://server/project/assets/ingested",
             replace_udim_textures_by_empty=False,
+            skip_operations=(MetaStepOperation.SCALE_NORMALIZATION, MetaStepOperation.ROOT_WRAPPING),
         )
         mesh_result = MeshOptimizationResult(
             asset_url="/out/model.usd",
@@ -183,33 +186,64 @@ class TestCodecAssemblies(omni.kit.test.AsyncTestCase):
         )
         self.assertIsNone(legacy_item.channel)
 
-    async def test_released_mesh_request_payload_decodes_without_extra_textures(self):
-        """A released four-field MeshOptimizationRequest payload decodes with no extra textures."""
-        # Arrange
-        request = MeshOptimizationRequest(pathlib.Path("model.usd"), pathlib.Path("."))
-        request_envelope = json.loads(serialize(request))
-        request_envelope["value"]["value"] = request_envelope["value"]["value"][:4]
-
-        # Act
-        restored = deserialize(json.dumps(request_envelope))
-
-        # Assert
-        self.assertEqual(restored, request)
-
-    async def test_released_prepare_result_payload_decodes_without_already_optimized_flag(self):
-        """A released eight-field PrepareOptimizationResult payload decodes with already_optimized False."""
-        # Arrange
-        result = PrepareOptimizationResult(
-            pathlib.Path("processed/model.usd"), (), pathlib.Path("model.usd"), pathlib.Path("."), (), ()
+    async def test_mesh_operation_codecs_reject_values_outside_pipeline_operation(self):
+        """Reject saved operation skips with invalid container or member types."""
+        root = pathlib.Path("source")
+        values = (
+            MeshOptimizationRequest(root / "model.usda", root),
+            PrepareOptimizationResult(root / "prepared.usda", (), root / "model.usda", root, (), ()),
         )
-        result_envelope = json.loads(serialize(result))
-        result_envelope["value"]["value"] = result_envelope["value"]["value"][:8]
+        for value in values:
+            for invalid in (True, 1, "scale_normalization", [], (True,), (1,), ("scale_normalization",)):
+                with self.subTest(title=f"{type(value).__name__}: skip_operations={invalid!r}"):
+                    # Arrange
+                    envelope = json.loads(serialize(value))
+                    envelope["value"]["value"][-1] = json.loads(serialize(invalid))
+                    payload = json.dumps(envelope)
 
-        # Act
-        restored = deserialize(json.dumps(result_envelope))
+                    # Act
+                    with self.assertRaises(ValueError) as error:
+                        deserialize(payload)
 
-        # Assert
-        self.assertEqual(restored, result)
+                    # Assert
+                    self.assertIn("skip_operations must be a tuple of MetaStepOperation", str(error.exception))
+
+    async def test_released_mesh_payloads_decode_without_operation_skips(self):
+        """Supply defaults for both released request shapes and both released prepared-result shapes."""
+        item = TextureOptimizationItem("extra", pathlib.Path("extra.png"), TextureTypes.DIFFUSE)
+        cases = (
+            (4, "four-field mesh request defaults to no operation skips"),
+            (5, "five-field mesh request retains extra textures with no operation skips"),
+            (8, "eight-field prepared result defaults to no operation skips"),
+            (9, "nine-field prepared result retains optimization state with no operation skips"),
+        )
+        for length, title in cases:
+            with self.subTest(title=title):
+                # Arrange
+                value = (
+                    MeshOptimizationRequest(
+                        pathlib.Path("model.usd"), pathlib.Path("."), extra_textures=(item,) if length == 5 else ()
+                    )
+                    if length < 8
+                    else PrepareOptimizationResult(
+                        pathlib.Path("processed/model.usd"),
+                        (),
+                        pathlib.Path("model.usd"),
+                        pathlib.Path("."),
+                        (),
+                        (),
+                        already_optimized=length == 9,
+                    )
+                )
+                envelope = json.loads(serialize(value))
+                envelope["value"]["value"] = envelope["value"]["value"][:length]
+                payload = json.dumps(envelope)
+
+                # Act
+                restored = deserialize(payload)
+
+                # Assert
+                self.assertEqual(restored, value)
 
     async def test_texture_payload_arity_outside_released_and_current_shapes_raises(self):
         """A ProcessedTexture or TextureOptimizationResult payload of any other length raises ValueError."""

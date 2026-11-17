@@ -1,6 +1,15 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0]
+### Added
+- Added USD dependency snapshots for graph cleanup that preserves project assets in use, including references from closed USD files in project subfolders. Job Details uses the shared workspace default window size.
+
+### Fixed
+- Kept all published output folders when any project scan fails and limited usage-provider cleanup to its owning extension instance.
+- Added real Delete confirmation, persisted ComfyUI input, and lifecycle coverage, and removed all test-owned queue folders after Apply.
+- Captured current open-stage dependencies on the UI loop after project scans complete on a worker thread.
+
 ## [1.1.2]
 ### Changed
 - Renamed `TextureProcessingDisplayAdapter` to `TextureOptimizationDisplayAdapter` (registry name `texture_optimization`) to match the asset pipeline's `TextureOptimizationJob`.

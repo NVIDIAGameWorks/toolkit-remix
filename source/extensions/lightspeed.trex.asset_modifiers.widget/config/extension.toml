@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.1.1"
+version = "1.2.0"
 authors = ["Pierre-Olivier Trottier <ptrottier@nvidia.com>"]
 title = "NVIDIA RTX Remix Asset Modifiers Widget"
 description = "Asset Modifiers controls and Job Queue display adapters for NVIDIA RTX Remix"
@@ -17,6 +17,7 @@ repository = "https://gitlab-master.nvidia.com/lightspeedrtx/lightspeed-kit/"
 "lightspeed.trex.contexts" = {}
 "lightspeed.trex.asset_pipeline.core" = {}  # Submits graphs off the main thread
 "lightspeed.trex.utils.widget" = {}
+"omni.flux.info_icon.widget" = {}
 "omni.flux.job_queue.core" = {}
 "omni.flux.job_queue.widget" = {}
 "omni.flux.property_widget_builder.delegates" = {}

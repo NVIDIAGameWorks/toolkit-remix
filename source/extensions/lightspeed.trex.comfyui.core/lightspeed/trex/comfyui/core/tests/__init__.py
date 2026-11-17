@@ -18,6 +18,7 @@
 from .e2e.test_job_apply import TestComfyUIJobApplyE2E
 from .e2e.test_job_candidates import TestComfyUIJobCandidatesE2E
 from .e2e.test_material_candidates import TestUsdMaterialCandidatesE2E
+from .e2e.test_persistence_codecs import TestComfyUIPersistenceE2E
 from .e2e.test_texture import TestTextureE2E
 from .unit.test_api import TestComfyUIAPI, TestComfyUIExecutionError
 from .unit.test_core import TestComfyUICore
@@ -45,6 +46,7 @@ __all__ = (
     "TestComfyUIJob",
     "TestComfyUIJobApplyE2E",
     "TestComfyUIJobCandidatesE2E",
+    "TestComfyUIPersistenceE2E",
     "TestComfyUISettings",
     "TestComfyUIWorkflowRequest",
     "TestPersistenceCodecs",

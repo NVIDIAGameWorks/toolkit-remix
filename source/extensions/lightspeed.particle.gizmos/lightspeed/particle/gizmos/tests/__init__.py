@@ -15,6 +15,6 @@
 * limitations under the License.
 """
 
-from .e2e.test_info import TestInfo
+from .e2e.test_info import TestParticleGizmosViewport
 
-__all__ = ["TestInfo"]
+__all__ = ["TestParticleGizmosViewport"]

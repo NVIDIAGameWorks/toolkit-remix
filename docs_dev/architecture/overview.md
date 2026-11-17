@@ -221,6 +221,12 @@ See [Adding Pip Package Dependencies](../patterns/pip-packages.md) for the full 
 `omni.flux.job_queue.core` provides a generic priority-based job queue with dependency tracking. Use `JobGraph` for
 multi-step jobs with dependencies. AI tool integrations (ComfyUI, etc.) use this for background processing.
 
+Asset Modifiers and AI Tools share the notification API in `omni.flux.job_queue.widget`.
+Call `post_submission_notification()` with the accepted count and skip reasons.
+Register the first job of each accepted graph with the extension-owned `get_job_result_notifier()`.
+The notifier moves queue events to the main loop and posts one result per registered job.
+See [omni.flux.job_queue.widget](../../source/extensions/omni.flux.job_queue.widget/docs/README.md#notifications) for the notification API and callback contracts.
+
 ---
 
 ## App Files vs. Extension Dependencies

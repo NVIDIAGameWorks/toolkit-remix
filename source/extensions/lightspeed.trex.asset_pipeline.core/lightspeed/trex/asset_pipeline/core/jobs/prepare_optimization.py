@@ -80,6 +80,13 @@ class PrepareOptimizationJob(Job):
     input_ports: ClassVar[tuple[JobInputPort[Any], ...]] = (SOURCE_MODEL,)
     output_ports: ClassVar[tuple[JobOutputPort[Any], ...]] = (TEXTURE_REQUEST, PREPARED_MESH)
 
+    def get_input_urls(self, inputs: JobInputs) -> tuple[str, ...]:
+        """Return model and texture sources from the available preparation request."""
+        if self.SOURCE_MODEL not in inputs:
+            return ()
+        request = inputs[self.SOURCE_MODEL]
+        return (str(request.source_path), *(str(texture.path) for texture in request.extra_textures))
+
     async def execute(
         self,
         job_directory: pathlib.Path,
@@ -125,6 +132,7 @@ class PrepareOptimizationJob(Job):
                         source_root=request.source_root,
                         output_url=request.output_url,
                         already_optimized=True,
+                        skip_operations=request.skip_operations,
                     ),
                 },
                 skip_reason=ALREADY_OPTIMIZED_REASON,
@@ -155,7 +163,9 @@ class PrepareOptimizationJob(Job):
 
         remix_item = RemixAssetItem.from_model(request.source_path)
         local_output_dir = job_directory / PROCESSED_OUTPUT_DIR_NAME
-        config = RemixAssetPipelineConfig(output_dir=local_output_dir, texture_type=None)
+        config = RemixAssetPipelineConfig(
+            output_dir=local_output_dir, texture_type=None, skip_operations=request.skip_operations
+        )
         context = RemixAssetPipelineContext(items=[remix_item], source_root=request.source_root)
         # DiscoverTexturesStep records the composed layer identifiers on the context; read them
         # after the pipeline completes.
@@ -195,6 +205,7 @@ class PrepareOptimizationJob(Job):
             source_path=remix_item.source_path,
             source_root=request.source_root,
             output_url=request.output_url,
+            skip_operations=request.skip_operations,
         )
         # Keep intermediate textures local. The mesh job publishes the complete asset.
         texture_request = TextureOptimizationRequest(

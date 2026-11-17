@@ -24,7 +24,7 @@ from typing import ClassVar
 
 from lightspeed.trex.asset_pipeline.core.jobs.asset_replace_apply_target import AssetReplaceApplyTarget
 from omni.flux.factory.base import PluginBase
-from omni.flux.job_queue.core.job import JobGraph
+from omni.flux.job_queue.core.job import JobGraph, JobOutputs
 from pxr import Usd
 
 from ..job import AssetModifierJob
@@ -37,9 +37,14 @@ class AssetModifierBase(PluginBase):
     name: ClassVar[str]
     display_name: ClassVar[str]
     tooltip: ClassVar[str]
+    description: ClassVar[str] = ""
     experimental: ClassVar[bool] = False
     inputs: ClassVar[tuple[ModifierInput, ...]] = ()
     job_type: ClassVar[type[AssetModifierJob]]
+
+    def summarize_result(self, outputs: JobOutputs) -> str | None:
+        """Return a short result message, or None to use the job name and state."""
+        return None
 
     @abc.abstractmethod
     def is_compatible(self, prim: Usd.Prim) -> bool:

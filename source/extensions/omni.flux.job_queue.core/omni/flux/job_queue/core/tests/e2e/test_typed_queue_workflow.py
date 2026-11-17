@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import os
 import pathlib
 import tempfile
 import uuid
@@ -26,14 +27,18 @@ from typing import ClassVar
 from unittest import mock
 
 import carb.settings
-import omni.kit.test
 import omni.flux.job_queue.core.persistence as persistence
+import omni.kit.test
 from omni.flux.job_queue.core import handlers
+from omni.flux.job_queue.core.apply_executor import ApplyExecutor
+from omni.flux.job_queue.core.apply_handler_base import ApplyHandler
+from omni.flux.job_queue.core.apply_handler_registry import ApplyHandlerRegistry
 from omni.flux.job_queue.core.enums import ApplyDisposition, JobState
 from omni.flux.job_queue.core.errors import JobExecutionError
 from omni.flux.job_queue.core.execute import JobExecutor, JobScheduler
 from omni.flux.job_queue.core.interface import QueueInterface
 from omni.flux.job_queue.core.job import (
+    ApplyBinding,
     Job,
     JobGraph,
     JobInputPort,
@@ -43,14 +48,30 @@ from omni.flux.job_queue.core.job import (
     JobProgress,
     JobProgressCallback,
 )
+from omni.flux.job_queue.core.models import FileReference, QueueJob, UsageSnapshot
 from omni.flux.job_queue.core.persistence import PersistenceCodec
 from omni.flux.job_queue.core.settings import SCHEDULER_ENABLED_SETTING_PATH, JobQueueSettings
+
+if os.name == "nt":
+    import _winapi
 
 __all__ = ("TestTypedQueueWorkflow",)
 
 NUMBER = JobOutputPort("number", int)
 NUMBER_INPUT = JobInputPort("number", int)
 TEXT = JobOutputPort("text", str)
+PUBLISHED_TEXT = "Published text from the producer."
+
+
+@dataclasses.dataclass(frozen=True)
+class _FileRequest:
+    """Persist the file that a consumer must read."""
+
+    path: str
+
+
+FILE_REQUEST_OUTPUT = JobOutputPort("file", _FileRequest)
+FILE_REQUEST_INPUT = JobInputPort("file", _FileRequest)
 
 
 @dataclasses.dataclass
@@ -143,6 +164,65 @@ class _ConsumerJob(Job):
 
 
 @dataclasses.dataclass
+class _PublishedFileJob(Job):
+    """Publish text and metadata in one exclusively owned folder."""
+
+    output_directory: str = ""
+    output_ports = (FILE_REQUEST_OUTPUT,)
+
+    def get_owned_output_urls(self) -> tuple[str, ...]:
+        """Return the published folder, including its metadata."""
+        return (self.output_directory,)
+
+    async def execute(self, _directory, _inputs, _progress) -> JobOutputs:
+        """Publish a file and its metadata."""
+        directory = pathlib.Path(self.output_directory)
+        directory.mkdir(parents=True, exist_ok=True)
+        source = directory / "result.txt"
+        source.write_text(PUBLISHED_TEXT, encoding="utf-8")
+        (directory / "result.txt.meta").write_text(source.name, encoding="utf-8")
+        return JobOutputs({FILE_REQUEST_OUTPUT: _FileRequest(str(source))})
+
+
+class _ApplyFileHandler(ApplyHandler[_FileRequest, str, str]):
+    """Apply a persisted file to a real target file."""
+
+    name = "tests.e2e.ApplyFileHandler"
+    input_type = _FileRequest
+    target_type = str
+    receipt_type = str
+
+    async def capture_receipt(self, value: _FileRequest, target: str) -> str:
+        """Read the target before Apply changes it."""
+        return pathlib.Path(target).read_text(encoding="utf-8")
+
+    async def apply(self, value: _FileRequest, target: str, receipt: str) -> None:
+        """Copy the source text to the target."""
+        pathlib.Path(target).write_text(pathlib.Path(value.path).read_text(encoding="utf-8"), encoding="utf-8")
+
+    async def revert(self, value: _FileRequest, target: str, receipt: str) -> None:
+        """Restore the target text from its receipt."""
+        pathlib.Path(target).write_text(receipt, encoding="utf-8")
+
+
+@dataclasses.dataclass
+class _ReadFileJob(Job):
+    """Read the source from a persisted typed request."""
+
+    input_ports = (FILE_REQUEST_INPUT,)
+    output_ports = (TEXT, FILE_REQUEST_OUTPUT)
+
+    def get_input_urls(self, inputs: JobInputs) -> tuple[str, ...]:
+        """Report the source only when its typed request is available."""
+        return (inputs[FILE_REQUEST_INPUT].path,) if FILE_REQUEST_INPUT in inputs else ()
+
+    async def execute(self, _directory, inputs, _progress) -> JobOutputs:
+        """Read the persisted file request."""
+        source = pathlib.Path(inputs[FILE_REQUEST_INPUT].path)
+        return JobOutputs({TEXT: source.read_text(encoding="utf-8"), FILE_REQUEST_OUTPUT: inputs[FILE_REQUEST_INPUT]})
+
+
+@dataclasses.dataclass
 class _FailingJob(Job):
     """Fail deterministically inside the real executor."""
 
@@ -219,6 +299,14 @@ def _decode_dependent(value: tuple[uuid.UUID, str, str | None]) -> _DependentJob
     return _DependentJob(job_id=value[0], name=value[1], skip_reason=value[2])
 
 
+_FILE_REQUEST_CODEC = PersistenceCodec("tests.e2e.FileRequest", _FileRequest, lambda value: value.path, _FileRequest)
+_PUBLISHED_FILE_JOB_CODEC = PersistenceCodec(
+    "tests.e2e.PublishedFileJob",
+    _PublishedFileJob,
+    lambda job: (job.job_id, job.name, job.skip_reason, job.apply_binding, job.output_directory),
+    lambda value: _PublishedFileJob(*value),
+)
+
 _PERSISTENCE_CODECS = (
     PersistenceCodec("tests.e2e.GatedJobTypeA", _GatedJobTypeA, _encode_job, _decode_gated_a),
     PersistenceCodec("tests.e2e.GatedJobTypeB", _GatedJobTypeB, _encode_job, _decode_gated_b),
@@ -227,6 +315,15 @@ _PERSISTENCE_CODECS = (
     PersistenceCodec("tests.e2e.ConsumerJob", _ConsumerJob, _encode_plain_job, _decode_consumer),
     PersistenceCodec("tests.e2e.FailingJob", _FailingJob, _encode_plain_job, _decode_failing),
     PersistenceCodec("tests.e2e.DependentJob", _DependentJob, _encode_plain_job, _decode_dependent),
+    _FILE_REQUEST_CODEC,
+    _PUBLISHED_FILE_JOB_CODEC,
+    PersistenceCodec(
+        "tests.e2e.ReadFileJob",
+        _ReadFileJob,
+        lambda job: (*_encode_plain_job(job), job.apply_binding),
+        lambda value: _ReadFileJob(*value),
+    ),
+    PersistenceCodec("tests.e2e.ApplyFileHandler", _ApplyFileHandler),
 )
 
 
@@ -270,6 +367,15 @@ class TestTypedQueueWorkflow(omni.kit.test.AsyncTestCase):
             if scheduler.is_running() is enabled and (reconcile_task is None or reconcile_task.done()):
                 return
             await asyncio.sleep(0)
+
+    async def _publish_text(self, directory: pathlib.Path) -> tuple[QueueJob, _FileRequest]:
+        """Publish a typed file through real queue claims and execution."""
+        job = _PublishedFileJob(name="Publish text", output_directory=str(directory))
+        handle = self._interface.submit(job)[0]
+        self.assertEqual(self._interface.claim_runnable_jobs(), [job.job_id])
+        await JobExecutor(self._interface).execute(job.job_id)
+        request = (await handle.outputs(2))[FILE_REQUEST_OUTPUT]
+        return handle, request
 
     async def test_scheduler_serializes_same_type_while_different_types_overlap(self):
         """Exact job classes own independent one-worker execution lanes."""
@@ -515,3 +621,149 @@ class TestTypedQueueWorkflow(omni.kit.test.AsyncTestCase):
         self.assertIs(snapshot.state, JobState.FAILED)
         self.assertIsNotNone(snapshot.error)
         self.assertEqual(snapshot.error.exception_type, "FileExistsError")
+
+    async def test_delete_published_files_respects_consumers_codecs_and_file_references(self):
+        """Keep protected outputs and queue files while deleting selected records."""
+        registry = persistence.get_registry()
+        for case, codecs in (
+            ("consumer", ()),
+            ("unavailable_job", (_PUBLISHED_FILE_JOB_CODEC,)),
+            ("unavailable_input", (_FILE_REQUEST_CODEC,)),
+            ("internal_reference", ()),
+            ("external_reference", ()),
+        ):
+            with self.subTest(case=case):
+                # Publish a real file and retain its queue-file list for the deletion checks.
+                project = pathlib.Path(self._temporary_directory.name) / case
+                self._interface = QueueInterface(str(project.with_suffix(".sqlite")))
+                producer, request = await self._publish_text(project / "published")
+                source = pathlib.Path(request.path)
+                metadata = source.with_suffix(".txt.meta")
+                queue_directory = self._interface.get_job_directory(producer.job_id)
+                queue_files = tuple(queue_directory.rglob("*"))
+                queue_count = sum(path.is_file() for path in queue_files)
+                survivors, references = [], ()
+                # Bind a queued consumer or record an internal or external file reference to test each protection rule.
+                if case in ("consumer", "unavailable_input"):
+                    consumer = _ReadFileJob(name="Read published text")
+                    graph = JobGraph(jobs=[consumer])
+                    graph.bind(consumer, FILE_REQUEST_INPUT, request)
+                    consumer_handle = self._interface.submit(graph)[0]
+                    survivors.append(graph.graph_id)
+                elif case.endswith("reference"):
+                    referrer = project / "keep.txt" if case == "external_reference" else metadata
+                    referrer.write_text(source.name, encoding="utf-8")
+                    references = (FileReference(path=request.path, referrer=str(referrer)),)
+                snapshot = UsageSnapshot.from_urls(verified_roots=(str(project),), references=references)
+                if case == "unavailable_job":
+                    self.assertEqual(
+                        self._interface.get_graphs_artifact_file_count((producer.graph_id,), snapshot), queue_count + 2
+                    )
+                # Remove the selected codecs and reopen the queue to exercise persisted unavailable types.
+                registry.unregister_codecs(codecs)
+                try:
+                    self._interface = QueueInterface(str(project.with_suffix(".sqlite")))
+                    self.assertEqual(
+                        self._interface.get_graphs_artifact_file_count((producer.graph_id,), snapshot),
+                        0 if case == "unavailable_input" else queue_count + (2 if case == "internal_reference" else 0),
+                    )
+                    # Delete the producer records and expect the consumer and codec rules to control folder removal.
+                    self.assertEqual(self._interface.delete_graphs((producer.graph_id,), snapshot), ())
+                    self.assertEqual([item.graph_id for item in self._interface.get_graph_snapshots()], survivors)
+                    self.assertEqual(queue_directory.exists(), case == "unavailable_input")
+                    if case == "unavailable_input":
+                        self.assertTrue(all(path.exists() for path in queue_files))
+                    # Internal references permit folder removal, but external references and unavailable types preserve it.
+                    if case == "internal_reference":
+                        self.assertFalse(source.parent.exists())
+                    else:
+                        self.assertEqual(source.read_text(encoding="utf-8"), PUBLISHED_TEXT)
+                        self.assertEqual(metadata.read_text(encoding="utf-8"), source.name)
+                    if case == "external_reference":
+                        self.assertEqual(referrer.read_text(encoding="utf-8"), source.name)
+                finally:
+                    registry.register_codecs(codecs)
+                if survivors:
+                    # Restore codec access and expect each surviving queued consumer to read the preserved source.
+                    self.assertEqual(self._interface.resolve_job_inputs(consumer.job_id)[FILE_REQUEST_INPUT], request)
+                    self.assertIs(self._interface.get_job_snapshot(consumer.job_id).state, JobState.QUEUED)
+                    self.assertEqual(self._interface.claim_runnable_jobs(), [consumer.job_id])
+                    await JobExecutor(self._interface).execute(consumer.job_id)
+                    self.assertEqual((await consumer_handle.outputs(2))[TEXT], PUBLISHED_TEXT)
+
+    async def test_delete_producer_preserves_declined_consumer_result_for_apply(self):
+        """A declined consumer can Apply its shared file after producer deletion."""
+        # Publish a source and execute a consumer whose Apply target still contains its original text.
+        project = pathlib.Path(self._temporary_directory.name) / "project"
+        producer, request = await self._publish_text(project / "published")
+        target = project / "target.txt"
+        target.write_text("Original target.", encoding="utf-8")
+        consumer = _ReadFileJob(
+            name="Reuse published text",
+            apply_binding=ApplyBinding(FILE_REQUEST_OUTPUT, _ApplyFileHandler, str(target)),
+        )
+        graph = JobGraph(jobs=[consumer])
+        graph.bind(consumer, FILE_REQUEST_INPUT, request)
+        consumer_handle = self._interface.submit(graph)[0]
+        self.assertEqual(self._interface.claim_runnable_jobs(), [consumer.job_id])
+        await JobExecutor(self._interface).execute(consumer.job_id)
+        self.assertEqual((await consumer_handle.outputs(2))[FILE_REQUEST_OUTPUT], request)
+        registry = ApplyHandlerRegistry()
+        registry.register_plugins([_ApplyFileHandler])
+        executor = ApplyExecutor(self._interface, registry)
+        try:
+            # Decline the result and expect its completed output to remain available for a later Apply.
+            await executor.decline(consumer.job_id)
+            declined = self._interface.get_job_snapshot(consumer.job_id)
+            self.assertIs(declined.state, JobState.DONE)
+            self.assertIs(declined.apply_disposition, ApplyDisposition.DECLINED)
+
+            # Delete the producer and expect its file to remain because the declined consumer still uses it.
+            snapshot = UsageSnapshot.from_urls(verified_roots=(str(project),))
+            self.assertEqual(self._interface.delete_graphs((producer.graph_id,), snapshot), ())
+            self.assertEqual([item.graph_id for item in self._interface.get_graph_snapshots()], [graph.graph_id])
+            self.assertEqual(pathlib.Path(request.path).read_text(encoding="utf-8"), PUBLISHED_TEXT)
+            # Apply the declined consumer and expect the preserved file to replace the target text.
+            await executor.apply(consumer.job_id)
+
+            self.assertEqual(target.read_text(encoding="utf-8"), PUBLISHED_TEXT)
+            self.assertIs(self._interface.get_job_snapshot(consumer.job_id).apply_disposition, ApplyDisposition.APPLIED)
+        finally:
+            await executor.shutdown()
+            registry.destroy()
+
+    async def test_delete_graph_with_linked_queue_directory_rejects_link_and_preserves_target(self):
+        """A real queue link must not redirect artifact deletion to its target."""
+        # Prepare a queued graph and an external folder whose contents must survive deletion.
+        handle = self._interface.submit(_ProducerJob(name="Linked queue directory", value=17))[0]
+        queue_directory = self._interface.get_job_directory(handle.job_id)
+        queue_directory.parent.mkdir(parents=True)
+        project = pathlib.Path(self._temporary_directory.name) / "project"
+        target = project / "external-target"
+        target_file = target / "nested" / "keep.txt"
+        target_file.parent.mkdir(parents=True)
+        target_file.write_text("Keep the target unchanged.", encoding="utf-8")
+        graphs_before = self._interface.get_graph_snapshots()
+        snapshot = UsageSnapshot.from_urls(verified_roots=(str(project),))
+        # Link the queue folder to the external target so both cleanup entry points must reject it.
+        try:
+            try:
+                queue_directory.symlink_to(target, target_is_directory=True)
+            except OSError:
+                if os.name != "nt":
+                    raise
+                # Windows can create a junction without the privilege required for a symbolic link.
+                _winapi.CreateJunction(str(target), str(queue_directory))
+            # Count and delete must reject the link without changing graph records or the external file.
+            for operation in (self._interface.get_graphs_artifact_file_count, self._interface.delete_graphs):
+                with self.assertRaises(OSError):
+                    operation((handle.graph_id,), snapshot)
+            self.assertEqual(self._interface.get_graph_snapshots(), graphs_before)
+            self.assertTrue(queue_directory.samefile(target))
+            self.assertEqual(target_file.read_text(encoding="utf-8"), "Keep the target unchanged.")
+        finally:
+            # Remove only the link so fixture cleanup cannot traverse its target.
+            if queue_directory.is_symlink():
+                queue_directory.unlink()
+            elif os.path.lexists(queue_directory):
+                queue_directory.rmdir()

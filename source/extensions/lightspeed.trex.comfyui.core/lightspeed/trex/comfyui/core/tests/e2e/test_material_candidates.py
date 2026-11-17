@@ -20,15 +20,15 @@ import tempfile
 from unittest.mock import AsyncMock, patch
 
 import omni.usd
+from lightspeed.trex.comfyui.core.api import ComfyUIAPI
+from lightspeed.trex.comfyui.core.core import ComfyUICore
+from lightspeed.trex.comfyui.core.enums import RemixType
+from lightspeed.trex.comfyui.core.job import ComfyUIJob
+from lightspeed.trex.comfyui.core.models import ComfyUIWorkflowRequest, Workflow, WorkflowInput, WorkflowOutput
+from lightspeed.trex.comfyui.core.resolvers import SelectedPrimPathResolver, SelectedTextureResolver
+from omni.flux.utils.tests.context_managers import get_test_data_path
 from omni.kit.test import AsyncTestCase
 from pxr import Sdf, UsdGeom, UsdShade
-
-from ...api import ComfyUIAPI
-from ...core import ComfyUICore
-from ...enums import RemixType
-from ...job import ComfyUIJob
-from ...models import ComfyUIWorkflowRequest, Workflow, WorkflowInput, WorkflowOutput
-from ...resolvers import SelectedPrimPathResolver
 
 
 class TestUsdMaterialCandidatesE2E(AsyncTestCase):
@@ -64,10 +64,8 @@ class TestUsdMaterialCandidatesE2E(AsyncTestCase):
         stage.GetRootLayer().Save()
 
         self._core = ComfyUICore("")
-        with (
-            patch.object(ComfyUIAPI, "ping", new=AsyncMock()),
-            patch.object(ComfyUIAPI, "get_workflow_list", new=AsyncMock(return_value=[])),
-        ):
+        # Only external HTTP responses change. Health checks and catalog parsing use the real API.
+        with patch.object(ComfyUIAPI, "_send_request", new=AsyncMock(return_value={})):
             await self._core.connect()
         self._core.set_workflow(
             Workflow(
@@ -195,3 +193,31 @@ class TestUsdMaterialCandidatesE2E(AsyncTestCase):
 
         self.assertEqual(generation_job.material_path, "/Instances/Instance/Looks/InstanceMaterial")
         self.assertEqual(generation_job.prim_paths, ["/Instances/Instance/Mesh"])
+
+    async def test_prepare_submission_mixed_materials_preserves_exact_skip_reasons(self) -> None:
+        """Preparation preserves excluded material reasons and accepts only complete inputs."""
+        # One real material supplies albedo. Two other materials lack that input.
+        stage = self._context.get_stage()
+        shader = UsdShade.Shader.Get(stage, "/Asset/Looks/Shared/Shader")
+        texture = get_test_data_path(
+            "textures/Normal_Map_Test_DirectX.png", "omni.flux.utils.octahedral_converter"
+        ).path
+        shader.CreateInput("diffuse_texture", Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath(texture))
+        shader.CreateOutput("surface", Sdf.ValueTypeNames.Token)
+        UsdShade.Material.Get(stage, "/Asset/Looks/Shared").CreateSurfaceOutput().ConnectToSource(
+            shader.ConnectableAPI(), "surface"
+        )
+        paths = ["/Asset/Looks/MissingFirst", "/Asset/Looks/Shared", "/Asset/Looks/MissingLast"]
+        for path in (paths[0], paths[2]):
+            UsdShade.Material.Define(stage, path)
+        workflow = self._core.workflow
+        workflow.inputs[0].native_type = pathlib.Path
+        workflow.inputs[0].default_value = pathlib.Path()
+        workflow.inputs[0].value = SelectedTextureResolver(context_name="")
+        workflow.inputs[0].remix_type = RemixType.TEXTURE_FILE_PATH
+        self._core.set_workflow(workflow)
+
+        # The real public preparation path retains both excluded reasons around the accepted material.
+        submission = await self._core.prepare_submission(paths)
+        self.assertEqual([graph.jobs[0].material_path for graph in submission.graphs], [paths[1]])
+        self.assertEqual(submission.skip_reasons, ("This material has no albedo texture.",) * 2)

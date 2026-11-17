@@ -7,6 +7,16 @@ This document records all notable changes to the **lightspeed.trex.logic.widget*
 The format is based on [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
 
+## [1.7.7]
+### Changed
+- Replaced screenshot-based graph editor tests with assertions on graph nodes and connections, and removed reference images and capture-specific test configuration.
+
+### Fixed
+- Opened the floating Logic Graph window at 1000x800 instead of at the size of its content.
+
+### Added
+- Added real graph window tests for displayed nodes, connections, selection, and deletion.
+
 ## [1.7.6]
 ### Changed
 - Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).

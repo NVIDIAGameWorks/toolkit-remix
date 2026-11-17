@@ -497,6 +497,8 @@ class LightGizmosManipulator(sc.Manipulator):
         self._viewport_api = viewport_api
         self._root = sc.Transform()
         self._polygon_mesh = None
+        self._icon_mesh = None
+        self._billboard = None
         self._is_visible = True
 
         # image based gizmos crash omniverse just now (105.1.2)
@@ -508,6 +510,8 @@ class LightGizmosManipulator(sc.Manipulator):
 
     def destroy(self):
         self._root = None
+        self._icon_mesh = None
+        self._billboard = None
         self._viewport_api = None
 
     def on_build(self):
@@ -524,10 +528,10 @@ class LightGizmosManipulator(sc.Manipulator):
 
         # build UI
         with self._root:
-            with sc.Transform(look_at=sc.Transform.LookAt.CAMERA, scale_to=sc.Space.SCREEN):
+            with sc.Transform(look_at=sc.Transform.LookAt.CAMERA, scale_to=sc.Space.SCREEN) as self._billboard:
                 with sc.Transform(transform=sc.Matrix44.get_scale_matrix(64.0, 64.0, 1.0)):
                     # using a polygon mesh here because image icons seem to crash OV
-                    sc.PolygonMesh(
+                    self._icon_mesh = sc.PolygonMesh(
                         self._polygon_mesh.points,
                         self._polygon_mesh.colors,
                         self._polygon_mesh.poly_counts,

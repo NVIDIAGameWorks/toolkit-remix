@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.31.1]
+### Removed
+- Removed Job Details from the StageCraft layout. It opens floating at its default size from the Window menu.
+
 ## [1.31.0]
 ### Added
 - Added Asset Modifiers and a docked Job Queue to the StageCraft layout, and the MDI `vector-square-edit` icon.

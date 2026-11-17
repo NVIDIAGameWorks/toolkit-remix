@@ -1,6 +1,14 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.1.0]
+### Fixed
+
+- Fixed the AI Tools action to focus the workflow tab after the layout opens.
+- Reported Stage Manager submission counts, skip reasons, and accepted ComfyUI results after cancellation, and modifier results in Last Run.
+- Replaced mocked tab focus and notification unit tests with E2E checks in the widget test.
+- Cancelled layout callbacks and deferred tab focus on shutdown and tested AI Tools and Asset Modifiers tab focus after layout completion.
+
 ## [4.0.0]
 ### Changed
 - Standardized row-action item queries, including Asset Modifiers, simplified Category callbacks, retained explicit Delete/Restore targets, and tightened regression coverage.

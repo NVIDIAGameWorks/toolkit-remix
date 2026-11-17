@@ -20,10 +20,13 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import datetime
+import os
 import uuid
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 import carb
+from omni.flux.utils.common.path_utils import get_local_path
 
 from .enums import ApplyDisposition, ApplyOperation, JobState
 from .errors import JobError
@@ -33,6 +36,7 @@ if TYPE_CHECKING:
     from .interface import QueueInterface
 
 __all__ = (
+    "FileReference",
     "QueueControlEdgeSnapshot",
     "QueueDataConnectionSnapshot",
     "QueueGraphSnapshot",
@@ -40,7 +44,64 @@ __all__ = (
     "QueueJobDetailsSnapshot",
     "QueueJobSnapshot",
     "QueueLiteralInputSnapshot",
+    "UsageSnapshot",
 )
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class FileReference:
+    """Identify a referenced file and the file that refers to it."""
+
+    path: str
+    referrer: str
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class UsageSnapshot:
+    """Keep local paths in use and project folders whose dependencies were inspected.
+
+    `used` paths are always kept. A `FileReference` comes from a closed file, so it keeps a folder only when its
+    referrer is outside that folder. An output that refers to its own files can still be removed.
+    Use `from_urls` to build a snapshot: the fields contain normalized local paths only.
+    """
+
+    used: frozenset[str] = frozenset()
+    verified_roots: frozenset[str] = frozenset()
+    references: frozenset[FileReference] = frozenset()
+
+    @classmethod
+    def from_urls(
+        cls,
+        used: Iterable[str] = (),
+        verified_roots: Iterable[str] = (),
+        references: Iterable[FileReference] = (),
+    ) -> UsageSnapshot:
+        """Normalize local paths and remove remote URLs."""
+        normalized_paths: dict[str, str | None] = {}
+
+        def normalize(url: str) -> str | None:
+            """Normalize each URL once within this snapshot."""
+            if url not in normalized_paths:
+                normalized_paths[url] = cls._local_path(url)
+            return normalized_paths[url]
+
+        normalized_references = (
+            FileReference(path=path, referrer=referrer)
+            for reference in references
+            if (path := normalize(reference.path)) is not None
+            and (referrer := normalize(reference.referrer)) is not None
+        )
+        return cls(
+            frozenset(filter(None, map(normalize, used))),
+            frozenset(filter(None, map(normalize, verified_roots))),
+            frozenset(normalized_references),
+        )
+
+    @staticmethod
+    def _local_path(url: str) -> str | None:
+        """Return the normalized local path of a URL, or None for a remote URL."""
+        path = get_local_path(url) if url else None
+        return None if path is None else os.path.normcase(os.path.realpath(path))
 
 
 @dataclasses.dataclass(frozen=True, slots=True)

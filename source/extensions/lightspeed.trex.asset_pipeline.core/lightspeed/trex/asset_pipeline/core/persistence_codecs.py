@@ -26,6 +26,8 @@ from pxr import Sdf
 
 from .jobs import MeshOptimizationJob, PrepareOptimizationJob, TextureOptimizationJob
 from .jobs.apply_handler import SaveMeshMetadataHandler, SaveTextureMetadataHandler
+from .jobs.asset_replace_apply_handler import AssetReplaceApplyHandler
+from .jobs.asset_replace_apply_target import AssetReplaceApplyTarget
 from .jobs.models import (
     MeshOptimizationRequest,
     MeshOptimizationResult,
@@ -37,9 +39,8 @@ from .jobs.models import (
     TextureOptimizationRequest,
     TextureOptimizationResult,
 )
-from .jobs.asset_replace_apply_handler import AssetReplaceApplyHandler
-from .jobs.asset_replace_apply_target import AssetReplaceApplyTarget
 from .metadata import MetadataApplyReceipt
+from .pipeline.enums import MetaStepOperation
 
 __all__ = ("MESH_OPTIMIZATION_CODECS", "REFERENCE_APPLY_CODECS", "TEXTURE_PROCESSING_CODECS")
 
@@ -71,17 +72,21 @@ def _dataclass_codec(name: str, value_type: type, decoder: Callable[[Any], Any] 
 
 
 def _decode_mesh_optimization_request(payload: Any) -> MeshOptimizationRequest:
-    """Decode current requests and released requests without extra textures."""
+    """Decode released requests with default extra textures and no operation skips."""
     if type(payload) is tuple and len(payload) == 4:
         payload = (*payload, ())
-    return decode_positional_payload(MeshOptimizationRequest, payload, 5)
+    if type(payload) is tuple and len(payload) == 5:
+        payload = (*payload, ())
+    return decode_positional_payload(MeshOptimizationRequest, payload, 6)
 
 
 def _decode_prepare_optimization_result(payload: Any) -> PrepareOptimizationResult:
-    """Decode current results and released results without the already-optimized flag."""
+    """Decode released results with default optimization status and no operation skips."""
     if type(payload) is tuple and len(payload) == 8:
         payload = (*payload, False)
-    return decode_positional_payload(PrepareOptimizationResult, payload, 9)
+    if type(payload) is tuple and len(payload) == 9:
+        payload = (*payload, ())
+    return decode_positional_payload(PrepareOptimizationResult, payload, 10)
 
 
 def _decode_texture_optimization_item(payload: Any) -> TextureOptimizationItem:
@@ -165,6 +170,7 @@ TEXTURE_PROCESSING_CODECS = (
 
 MESH_OPTIMIZATION_CODECS = (
     PersistenceCodec("NoneType", type(None)),
+    PersistenceCodec("remix_mesh.MetaStepOperation", MetaStepOperation),
     _dataclass_codec("remix_mesh.MetadataApplyReceipt", MetadataApplyReceipt),
     _dataclass_codec("remix_mesh.TextureLedgerEntry", TextureLedgerEntry),
     _dataclass_codec(

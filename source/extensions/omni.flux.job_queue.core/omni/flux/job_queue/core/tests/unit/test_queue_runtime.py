@@ -46,7 +46,7 @@ from omni.flux.job_queue.core.job import (
     JobProgressCallback,
 )
 from omni.flux.job_queue.core.persistence import PersistenceCodec
-from omni.flux.job_queue.core.models import QueueJob
+from omni.flux.job_queue.core.models import QueueJob, UsageSnapshot
 from omni.flux.job_queue.core.serializer import serialize
 from omni.flux.utils.common import EventSubscription
 
@@ -1629,7 +1629,7 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
             queue_job = interface.submit(_LaneA())[0]
 
             # Act
-            interface.delete_graphs((queue_job.graph_id,))
+            interface.delete_graphs((queue_job.graph_id,), UsageSnapshot())
 
             # Assert
             self.assertEqual(list(interface.iter_snapshot()), [])
@@ -1647,7 +1647,7 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
                 (directory / "result.txt").write_text("result", encoding="utf-8")
 
             # Act
-            retained_cleanup_paths = interface.delete_graphs((first.graph_id, second.graph_id))
+            retained_cleanup_paths = interface.delete_graphs((first.graph_id, second.graph_id), UsageSnapshot())
 
             # Assert
             self.assertEqual(retained_cleanup_paths, ())
@@ -1666,7 +1666,7 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
                 (directory / f"result-{index}.txt").write_text(str(index), encoding="utf-8")
 
             # Act
-            retained_cleanup_paths = interface.delete_graphs((jobs[1].graph_id, jobs[2].graph_id))
+            retained_cleanup_paths = interface.delete_graphs((jobs[1].graph_id, jobs[2].graph_id), UsageSnapshot())
 
             # Assert
             snapshots = interface.get_graph_snapshots()
@@ -1692,7 +1692,7 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
 
             # Act
             with self.assertRaisesRegex(RuntimeError, "active work"):
-                interface.delete_graphs((first.graph_id, second.graph_id))
+                interface.delete_graphs((first.graph_id, second.graph_id), UsageSnapshot())
 
             # Assert
             self.assertEqual(len(list(interface.iter_snapshot())), 2)
@@ -1717,7 +1717,7 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
             (nested_directory / "result.txt").write_text("second", encoding="utf-8")
 
             # Act
-            retained_cleanup_paths = interface.delete_graphs((graph.graph_id,))
+            retained_cleanup_paths = interface.delete_graphs((graph.graph_id,), UsageSnapshot())
 
             # Assert
             self.assertEqual(retained_cleanup_paths, ())
@@ -1738,7 +1738,7 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
             (nested_directory / "second.txt").write_text("second", encoding="utf-8")
 
             # Act
-            file_count = interface.get_graphs_artifact_file_count((queue_job.graph_id,))
+            file_count = interface.get_graphs_artifact_file_count((queue_job.graph_id,), UsageSnapshot())
 
             # Assert
             self.assertEqual(file_count, 2)
@@ -1765,7 +1765,7 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
 
             # Act
             with self.assertRaises(sqlite3.IntegrityError):
-                interface.delete_graphs((queue_job.graph_id,))
+                interface.delete_graphs((queue_job.graph_id,), UsageSnapshot())
 
             # Assert
             self.assertTrue(artifact.exists())
@@ -1822,7 +1822,7 @@ class TestQueuePersistence(omni.kit.test.AsyncTestCase):
             await asyncio.wait_for(interface.subscribed.wait(), 2)
 
             # Act
-            interface.delete_graphs((queue_job.graph_id,))
+            interface.delete_graphs((queue_job.graph_id,), UsageSnapshot())
 
             # Assert
             with self.assertRaisesRegex(KeyError, "Unknown job"):

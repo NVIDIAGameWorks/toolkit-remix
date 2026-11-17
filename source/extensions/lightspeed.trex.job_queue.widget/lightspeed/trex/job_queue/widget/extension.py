@@ -23,11 +23,14 @@ import carb
 import omni.ext
 import omni.ui
 from lightspeed.trex.contexts.setup import Contexts
+from omni.flux.job_queue.core import get_job_queue
+from omni.flux.job_queue.core.interface import QueueInterface
 from omni.flux.job_queue.widget import get_display_adapter_registry
 from omni.flux.job_queue.widget.model import QueueModel
 
 from .details_workspace import JobDetailsWindow
 from .display_adapter import DISPLAY_ADAPTERS
+from .usage_provider import get_usage_snapshot
 from .workspace import JobQueueWorkspace
 
 
@@ -41,6 +44,7 @@ class JobQueueWidgetExtension(omni.ext.IExt):
         self._job_details_workspace: JobDetailsWindow | None = None
         self._registered_adapters = []
         self._started = False
+        self._usage_queue: QueueInterface | None = None
 
     def on_startup(self, _ext_id: str) -> None:
         """Create the workspace windows.
@@ -51,6 +55,9 @@ class JobQueueWidgetExtension(omni.ext.IExt):
         carb.log_info("[lightspeed.trex.job_queue.widget] Startup")
         if self._started:
             return
+        queue = get_job_queue()
+        if queue.usage_snapshot_provider is not None:
+            raise RuntimeError("The job queue already has a usage snapshot provider")
         registry = get_display_adapter_registry()
         try:
             for adapter in DISPLAY_ADAPTERS:
@@ -71,6 +78,8 @@ class JobQueueWidgetExtension(omni.ext.IExt):
             omni.ui.Workspace.set_show_window_fn(
                 self._job_queue_workspace.title, self._job_queue_workspace.show_window_fn
             )
+            queue.usage_snapshot_provider = get_usage_snapshot
+            self._usage_queue = queue
             self._started = True
         except Exception:
             self._cleanup()
@@ -93,6 +102,10 @@ class JobQueueWidgetExtension(omni.ext.IExt):
     def _cleanup(self) -> None:
         """Unregister the adapters and release any workspace objects created during startup."""
 
+        if self._usage_queue is not None:
+            if self._usage_queue.usage_snapshot_provider is get_usage_snapshot:
+                self._usage_queue.usage_snapshot_provider = None
+            self._usage_queue = None
         registry = get_display_adapter_registry()
         details_workspace = self._job_details_workspace
         queue_workspace = self._job_queue_workspace

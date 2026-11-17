@@ -54,14 +54,18 @@ class TestAssetModifierSubmissionE2E(AsyncTestCase):
 
     async def test_stage_values_reach_the_job_and_skip_a_source_without_material(self) -> None:
         """Pass the material read at Run to the job, group All Compatible Prims, then skip a source with no material."""
-        async with open_test_project("usd/project_example/combined.usda", ext_name="lightspeed.trex.app.resources"):
+        async with open_test_project(
+            "usd/project_example/combined.usda", ext_name="lightspeed.trex.app.resources", context_name=""
+        ):
             # 1. The selected capture mesh gets one graph, and its job receives the material read from the stage.
             graphs, skipped = await self._core.prepare_submission([_MESH])
             (job,) = [job for job in graphs[0].jobs if isinstance(job, ScaleMeshTestJob)]
             self.assertEqual(skipped, {})
             # Like AI Tools, the graph has the modifier name only, so Job Queue filters stay short.
             self.assertEqual(graphs[0].name, ScaleMeshTestModifier.display_name)
-            self.assertEqual(job.values, {"scale": 1.0, "material": "/RootNode/Looks/mat_BC868CE5A075ABB1"})
+            self.assertEqual(
+                job.values, {"scale": 1.0, "show_scale": True, "material": "/RootNode/Looks/mat_BC868CE5A075ABB1"}
+            )
 
             # 2. All Compatible Prims finds the same mesh without a selection and builds one graph per source model.
             AssetModifierSettings().set_value(ScaleMeshTestModifier, SOURCE_INPUT, SourceGetter.ALL)
@@ -72,10 +76,27 @@ class TestAssetModifierSubmissionE2E(AsyncTestCase):
 
             # 3. Without a bound material, build_graph() sets the job's skip reason, so the source is left out.
             AssetModifierSettings().set_value(ScaleMeshTestModifier, SOURCE_INPUT, SourceGetter.SELECTED)
-            UsdShade.MaterialBindingAPI(get_context().get_stage().GetPrimAtPath(_OWNER)).UnbindAllBindings()
+            UsdShade.MaterialBindingAPI(get_context("").get_stage().GetPrimAtPath(_OWNER)).UnbindAllBindings()
             self.assertEqual(
                 await self._core.prepare_submission([_MESH]), ([], {_MESH: "The mesh has no bound material."})
             )
+
+    async def test_submitted_mesh_does_not_report_its_ancestor_or_descendant_as_skipped(self) -> None:
+        """Exclude related prims from the skip report in either selection order."""
+        async with open_test_project(
+            "usd/project_example/combined.usda", ext_name="lightspeed.trex.app.resources", context_name=""
+        ):
+            stage = get_context("").get_stage()
+            unrelated = ["/RootNode/Looks", f"{_MESH}Extra"]
+            for path in (f"{_MESH}/Detail", unrelated[1]):
+                stage.DefinePrim(path, "Xform")
+            # Related prims produce no skips. A shared name prefix does not make a sibling related.
+            selection = [_MESH, "/", "/RootNode/meshes", f"{_MESH}/Detail", *unrelated]
+            for paths in (selection, selection[::-1]):
+                graphs, skipped = await self._core.prepare_submission(paths)
+                (graph,) = graphs
+                self.assertEqual(graph.jobs[0].prim_paths, (_MESH,))
+                self.assertEqual(skipped, dict.fromkeys(unrelated, "Not supported by Scale Mesh (Test)."))
 
     async def test_plain_enum_input_round_trips_through_settings(self) -> None:
         """Store a plain Enum member as its value and read the same member back."""

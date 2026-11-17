@@ -1,6 +1,13 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.5]
+### Removed
+- Removed screenshot-based light manipulator tests, reference images, and test display overrides.
+
+### Added
+- Added tests for light handles and spotlight cones through real viewport actions.
+
 ## [1.3.4]
 ### Changed
 - Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).

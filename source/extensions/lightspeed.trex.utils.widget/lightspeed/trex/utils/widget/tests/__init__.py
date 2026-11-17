@@ -16,6 +16,7 @@
 """
 
 from .e2e.test_invalid_deps_dialog import TestInvalidDepsDialog
+from .e2e.test_workspace import TestWorkspaceLifecycle
 from .unit.test_categories_dialog import TestRemixCategoriesDialog
 from .unit.test_ingestcraft_loader import TestIngestCraftLoader
 from .unit.test_message_dialog import TestMessageDialog
@@ -28,5 +29,6 @@ __all__ = [
     "TestMessageDialog",
     "TestQuickLayout",
     "TestRemixCategoriesDialog",
+    "TestWorkspaceLifecycle",
     "TestWorkspaceWindowBase",
 ]

@@ -15,11 +15,13 @@
 * limitations under the License.
 """
 
+from .e2e.test_graph_cleanup import TestJobQueueGraphCleanupE2E
 from .e2e.test_workspace import TestJobQueueWorkspace
 from .unit.test_display_adapter import TestTextureOptimizationDisplayAdapter
 from .unit.test_extension import TestJobQueueWidgetExtension
 
 __all__ = (
+    "TestJobQueueGraphCleanupE2E",
     "TestJobQueueWidgetExtension",
     "TestJobQueueWorkspace",
     "TestTextureOptimizationDisplayAdapter",

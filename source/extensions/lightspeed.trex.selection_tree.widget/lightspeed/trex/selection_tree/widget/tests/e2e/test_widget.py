@@ -45,7 +45,7 @@ from omni.flux.validator.factory import BASE_HASH_KEY
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
 from omni.kit.test_suite.helpers import arrange_windows, open_stage
-from pxr import Gf, Sdf, UsdGeom
+from pxr import Gf, Sdf, Usd, UsdGeom
 
 
 class TestSelectionTreeWidget(AsyncTestCase):
@@ -63,6 +63,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self._window_title = f"{self._WINDOW_TITLE_PREFIX}_{self._testMethodName}"
         self._window = None
         self._wid = None
+        self._selection_subscription = None
         await self.__cleanup_windows()
         await arrange_windows()
         await open_stage(_get_test_data("usd/project_example/combined.usda"))
@@ -72,6 +73,7 @@ class TestSelectionTreeWidget(AsyncTestCase):
 
     # After running each test
     async def tearDown(self):
+        self._selection_subscription = None
         if self._wid is not None:
             self._wid.destroy()
             self._wid = None
@@ -149,6 +151,33 @@ class TestSelectionTreeWidget(AsyncTestCase):
         self.assertEqual(len(item_instances), 0)  # we didn't expand the instance group
 
         await self.__destroy(_window, _wid)
+
+    async def test_nested_mesh_name_keeps_its_owner_item(self):
+        """Keep the owning mesh selected for hash-shaped child names in prototypes and instances."""
+        # Add both hash-shaped child names to the source mesh so neither becomes a separate asset owner.
+        await self.__open_temp_project()
+        context = omni.usd.get_context("")
+        owner_path = "/RootNode/meshes/mesh_BAC90CAA733B0859"
+        mesh_names = ("mesh_0123456789ABCDEF", "mesh_0123456789ABCDEF_1_2")
+        source_stage = Usd.Stage.Open(context.get_stage().GetRootLayer().ComputeAbsolutePath("./sources/cube.usda"))
+        for name in mesh_names:
+            UsdGeom.Mesh.Define(source_stage, source_stage.GetDefaultPrim().GetPath().AppendChild(name))
+        source_stage.GetRootLayer().Save()
+        # Open the tree and retain its selection callback to observe each completed update.
+        _, widget = await self.__setup_widget()
+        selection_changed = asyncio.Event()
+        self._selection_subscription = widget.subscribe_tree_selection_changed(lambda _items: selection_changed.set())
+        for name in mesh_names:
+            for prefix in (owner_path, "/RootNode/instances/inst_BAC90CAA733B0859_0"):
+                selected_path = f"{prefix}/ref_c89e0497f4ff4dc4a7b70b79c85692da/{name}"
+                with self.subTest(selected_path=selected_path):
+                    # Select each child through its prototype and instance and expect the same owning mesh.
+                    selection_changed.clear()
+                    context.get_selection().set_selected_prim_paths([selected_path], False)
+                    await asyncio.wait_for(selection_changed.wait(), timeout=10)
+                    self.assertEqual(
+                        [item.path for item in widget._tree_model.get_item_children_type(_ItemAsset)], [owner_path]
+                    )
 
     async def test_select_one_prim_light(self):
         # setup

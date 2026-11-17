@@ -15,6 +15,7 @@
 * limitations under the License.
 """
 
+from lightspeed.trex.logic.widget.tests.e2e.test_graph_editor_window import TestLogicGraphViewport
 from .unit.test_graph_editor_window import TestOgWindowComponentUI
 
-__all__ = ["TestOgWindowComponentUI"]
+__all__ = ["TestLogicGraphViewport", "TestOgWindowComponentUI"]

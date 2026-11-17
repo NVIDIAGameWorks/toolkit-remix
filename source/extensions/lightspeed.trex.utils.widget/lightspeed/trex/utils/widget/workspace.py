@@ -76,12 +76,13 @@ class WorkspaceWidget(abc.ABC):
 class WorkspaceWindowBase(abc.ABC):
     """Base class with common functionalities for all workspace windows.
 
-    A subclass that needs one size while its window floats sets `_DEFAULT_WIDTH` and `_DEFAULT_HEIGHT`. A dock
-    gives the window the size of its column instead, so a window that a layout always docks needs neither.
+    On its first show, a floating window uses `_DEFAULT_WIDTH` x `_DEFAULT_HEIGHT` after its first frame.
+    If the window is docked then, it keeps the dock size and does not retry the default size on later shows.
+    A subclass can override the defaults or set them to None to keep the content size.
     """
 
-    _DEFAULT_WIDTH: int | None = None
-    _DEFAULT_HEIGHT: int | None = None
+    _DEFAULT_WIDTH: int | None = 400
+    _DEFAULT_HEIGHT: int | None = 600
 
     def __init__(
         self,
@@ -109,6 +110,8 @@ class WorkspaceWindowBase(abc.ABC):
         self._show_dock_tab_bars = show_dock_tab_bars
 
         self.__sub_app_ready = None
+        self.__default_size: tuple[int | None, int | None] | None = None
+        self.__default_size_task: asyncio.Task | None = None
         self.__menu_action_id: str | None = None
 
     @property
@@ -142,19 +145,18 @@ class WorkspaceWindowBase(abc.ABC):
     def create_window(self, width: int | None = None, height: int | None = None):
         """Creates the ui.Window instance and sets up the "Window" menu item.
 
-        A caller that passes no size gets the default size of the class, when the class declares one.
+        A caller that passes no size gets the default size of the class.
         """
         if self._window:
             return
 
         self._window = self._create_window()
 
-        width = self._DEFAULT_WIDTH if width is None else width
-        height = self._DEFAULT_HEIGHT if height is None else height
-        if width is not None:
-            self._window.width = width
-        if height is not None:
-            self._window.height = height
+        # ImGui drops a size set before the first frame of a window, so the first show applies it.
+        self.__default_size = (
+            self._DEFAULT_WIDTH if width is None else width,
+            self._DEFAULT_HEIGHT if height is None else height,
+        )
 
         self._window.padding_x = 0
         self._window.padding_y = 0
@@ -203,6 +205,11 @@ class WorkspaceWindowBase(abc.ABC):
         Clean up all window resources.
         Properly destroys the content widget before cleanup.
         """
+        if self.__default_size_task:
+            self.__default_size_task.cancel()
+            self.__default_size_task = None
+        self.__default_size = None
+
         # Clean up app ready subscription
         if self.__sub_app_ready:
             self.__sub_app_ready = None
@@ -299,9 +306,25 @@ class WorkspaceWindowBase(abc.ABC):
     def _on_visibility_changed(self, visible: bool):
         if visible:
             self._update_ui()
+            if self.__default_size:
+                self.__default_size_task = asyncio.ensure_future(self.__apply_default_size(*self.__default_size))
+                self.__default_size = None
         elif self._content:
             self._content.show(False)
         self.update_menu_item(visible)
+
+    async def __apply_default_size(self, width: int | None, height: int | None):
+        """Size a floating window after its first frame. A dock gives the window the size of its column."""
+        try:
+            await omni.kit.app.get_app().next_update_async()
+            if not self._window or self._window.docked:
+                return
+            if width is not None:
+                self._window.width = width
+            if height is not None:
+                self._window.height = height
+        finally:
+            self.__default_size_task = None
 
     def _on_dock_changed(self, docked: bool):
         async def _refresh_tab_bars():

@@ -15,9 +15,9 @@
 * limitations under the License.
 """
 
+from .e2e.test_light_manipulator import TestLightManipulatorViewport
 from .e2e.test_layer import TestLightLayer
-from .e2e.test_light_manipulator import TestLightManipulator
 from .e2e.test_light_model import TestLightModel
 from .e2e.test_photometric import TestPhotometricHelpers
 
-__all__ = ["TestLightLayer", "TestLightManipulator", "TestLightModel", "TestPhotometricHelpers"]
+__all__ = ["TestLightLayer", "TestLightManipulatorViewport", "TestLightModel", "TestPhotometricHelpers"]

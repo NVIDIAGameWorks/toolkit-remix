@@ -20,7 +20,16 @@ import tempfile
 
 import omni.kit.test
 from lightspeed.trex.asset_pipeline.core import RemixAssetItem, RemixAssetPipelineContext
+from lightspeed.trex.asset_pipeline.core.jobs import (
+    MeshOptimizationJob,
+    PrepareOptimizationJob,
+    build_asset_optimization_graph,
+)
+from lightspeed.trex.asset_pipeline.core.jobs.models import MeshOptimizationRequest
+from lightspeed.trex.asset_pipeline.core.pipeline.enums import MetaStepOperation
 from lightspeed.trex.asset_pipeline.core.steps import MetaStep
+from lightspeed.trex.asset_pipeline.core.tests.e2e.test_job import _run_until_outputs
+from omni.flux.job_queue.core.interface import QueueInterface
 from pxr import Gf, Usd, UsdGeom
 
 
@@ -87,3 +96,55 @@ class TestMetaE2E(omni.kit.test.AsyncTestCase):
                 ]
                 self.assertEqual(len(deco_scale_ops), 1)
                 self.assertEqual(tuple(deco_scale_ops[0].Get()), (2.0, 2.0, 2.0))
+
+    async def test_mesh_request_skipped_operations_preserve_requested_geometry_and_roots(self):
+        """Persist operation skips through the graph and publish the requested geometry and roots."""
+        cases = (
+            (),
+            (MetaStepOperation.SCALE_NORMALIZATION,),
+            (MetaStepOperation.ROOT_WRAPPING,),
+            (MetaStepOperation.SCALE_NORMALIZATION, MetaStepOperation.ROOT_WRAPPING),
+        )
+        for skip_operations in cases:
+            with self.subTest(skip_operations=skip_operations), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                source = root / "model.usda"
+                stage = Usd.Stage.CreateNew(str(source))
+                model = UsdGeom.Xform.Define(stage, "/Model")
+                model.AddScaleOp().Set(Gf.Vec3f(2))
+                stage.SetDefaultPrim(model.GetPrim())
+                mesh = UsdGeom.Mesh.Define(stage, "/Model/Mesh")
+                mesh.CreatePointsAttr([Gf.Vec3f(1, 0, 0), Gf.Vec3f(0, 1, 0), Gf.Vec3f(0, 0, 1)])
+                mesh.CreateFaceVertexCountsAttr([3])
+                mesh.CreateFaceVertexIndicesAttr([0, 1, 2])
+                stage.SetMetadata("metersPerUnit", 0.01)
+                stage.GetRootLayer().Save()
+
+                request = MeshOptimizationRequest(source, root, skip_operations=skip_operations)
+                interface = QueueInterface(str(root / "queue.sqlite"))
+                graph, job = build_asset_optimization_graph(request)
+                prepare_job = next(item for item in graph.jobs if isinstance(item, PrepareOptimizationJob))
+                jobs = {item.job_id: item for item in interface.submit(graph)}
+                output = (await _run_until_outputs(jobs[job.job_id], interface))[MeshOptimizationJob.OPTIMIZED_MESH]
+
+                restored = QueueInterface(interface.db_path)
+                restored_request = restored.resolve_job_inputs(prepare_job.job_id)[PrepareOptimizationJob.SOURCE_MODEL]
+                prepared = restored.get_job_outputs(prepare_job.job_id)[PrepareOptimizationJob.PREPARED_MESH]
+                self.assertEqual(restored_request.skip_operations, skip_operations)
+                self.assertEqual(prepared.skip_operations, skip_operations)
+
+                result = Usd.Stage.Open(output.asset_url)
+                mesh = UsdGeom.Mesh(next(prim for prim in result.Traverse() if prim.IsA(UsdGeom.Mesh)))
+                transform = mesh.ComputeLocalToWorldTransform(Usd.TimeCode.Default())
+                expected_scale = 2 if MetaStepOperation.SCALE_NORMALIZATION in skip_operations else 200
+                self.assertEqual(
+                    [tuple(transform.Transform(point)) for point in mesh.GetPointsAttr().Get()],
+                    [(expected_scale, 0, 0), (0, expected_scale, 0), (0, 0, expected_scale)],
+                )
+                self.assertEqual(result.GetMetadata("metersPerUnit"), 1.0)
+
+                wrapped = MetaStepOperation.ROOT_WRAPPING not in skip_operations
+                self.assertEqual(str(result.GetDefaultPrim().GetPath()), "/ReferenceTarget" if wrapped else "/Model")
+                self.assertEqual(
+                    str(mesh.GetPath()), "/ReferenceTarget/XForms/Model/Mesh" if wrapped else "/Model/Mesh"
+                )

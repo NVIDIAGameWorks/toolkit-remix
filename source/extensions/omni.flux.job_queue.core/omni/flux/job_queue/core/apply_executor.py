@@ -538,7 +538,14 @@ class ApplyExecutor:
             request: Shared exact-job request being reconciled.
         """
         job_id = request.job_id
-        snapshot = await asyncio.to_thread(self.interface.get_job_snapshot, job_id)
+        try:
+            snapshot = await asyncio.to_thread(self.interface.get_job_snapshot, job_id)
+        except KeyError:
+            # Graph deletion can remove a job after its change queued a reconciliation. Nothing remains to Apply, but
+            # an explicit Apply that promoted this request must still receive the failure.
+            if request.command is ApplyCommand.APPLY:
+                raise
+            return
         if request.cancelled_by_decline:
             raise RuntimeError(f"Apply request for job {job_id} was cancelled by Decline")
         if request.command is ApplyCommand.APPLY:

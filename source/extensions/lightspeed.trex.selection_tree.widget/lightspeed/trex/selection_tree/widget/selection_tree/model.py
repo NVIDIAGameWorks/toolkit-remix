@@ -637,7 +637,7 @@ class ListModel(ui.AbstractItemModel):
                 break
 
             regex_pattern = re.compile(constants.REGEX_MESH_PATH)
-            if regex_pattern.match(prim.GetName()):
+            if regex_pattern.match(path) and str(prim.GetPath().GetParentPath()) == constants.ROOTNODE_MESHES:
                 root = path
                 break
             regex_pattern = re.compile(constants.REGEX_LIGHT_PATH)
