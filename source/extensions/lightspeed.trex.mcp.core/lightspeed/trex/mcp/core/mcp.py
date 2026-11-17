@@ -101,7 +101,7 @@ def _describe_tool(route: HTTPRoute, tool: fastmcp_openapi.OpenAPITool) -> None:
     """
     # Body-wide guidance is not part of the input schema; property guidance already is.
     body = route.request_body.model_copy(update={"content_schema": {}}) if route.request_body else None
-    # ponytail: reuse FastMCP's response formatting instead of parsing or summarizing Markdown.
+    # Reuse the FastMCP response format. Do not parse or summarize Markdown.
     tool.description = format_description_with_responses(
         route.description or route.summary or f"Executes {route.method} {route.path}",
         route.responses,

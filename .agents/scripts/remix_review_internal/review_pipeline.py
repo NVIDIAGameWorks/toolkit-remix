@@ -2938,8 +2938,8 @@ def _compaction_packets(context: RunContext) -> list[ReviewPacket] | None:
     """Greedily pack one canonical candidate stream by exact rendered prompt bytes."""
     packets = []
     current: list[dict] = []
-    # ponytail: exact greedy rendering is O(n²); keep it until measured packing time, rather
-    # than provider execution, becomes material for a real review.
+    # Exact greedy rendering is O(n²). Keep it until the measured packing time, not the provider run,
+    # becomes a large part of a real review.
     for candidate in _synthesis_candidates(context):
         trial = [*current, candidate]
         trial_packet = _shard_packet(context, SYNTHESIS_LANE, "synthesis-compaction", trial)

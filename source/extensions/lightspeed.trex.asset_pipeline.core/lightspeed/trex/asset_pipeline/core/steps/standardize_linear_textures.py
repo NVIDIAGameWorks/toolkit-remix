@@ -77,8 +77,8 @@ def _standardize_pixels(pixels: np.ndarray, texture_type: TextureTypes, srgb: bo
     signed = False
     for rows in chunks:
         np.nan_to_num(rows, copy=False, nan=0.0, posinf=maximum, neginf=0.0)
-        # ponytail: one negative component marks the whole file as signed, and each UDIM tile decides alone.
-        # A declared encoding per texture is the upgrade path.
+        # One negative component marks the whole file as signed, and each UDIM tile decides alone.
+        # To remove this limit, declare the encoding of each texture.
         signed = signed or (texture_type in _NORMAL_TYPES and bool((rows[:, :, 0:3] < 0.0).any()))
     for rows in chunks:
         color = rows[:, :, 0:3]
@@ -87,7 +87,7 @@ def _standardize_pixels(pixels: np.ndarray, texture_type: TextureTypes, srgb: bo
         if signed:
             color *= 0.5
             color += 0.5
-        # ponytail: out-of-range values clamp, so a height map in scene units loses its scale. Normalize if needed.
+        # Out-of-range values clamp, so a height map in scene units loses its scale. Normalize it first if needed.
         np.clip(rows, 0.0, maximum, out=rows)
 
 
