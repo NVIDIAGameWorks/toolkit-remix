@@ -17,6 +17,7 @@
 
 __all__ = ["AssetModifiersWidget"]
 
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.trex.asset_modifiers.factory import get_instance as _get_asset_modifier_factory
 from lightspeed.trex.asset_modifiers.core.constants import FILE_INPUT, SOURCE_INPUT
 from lightspeed.trex.asset_modifiers.core import AssetModifiersCore
@@ -97,11 +98,16 @@ class AssetModifiersWidget(WorkspaceWidget):
                     ui.Spacer(width=self._CONTENT_PADDING)
                 ui.Spacer(height=self._CONTENT_PADDING)
         self._changed_subscription = _get_asset_modifier_factory().subscribe_changed(self._on_changed)
-        self._stage_subscription = (
-            usd.get_context(context_name)
-            .get_stage_event_stream()
-            .create_subscription_to_pop(lambda _event: self._update_run_button(), name="AssetModifiersRun")
-        )
+        context = usd.get_context(context_name)
+        # Run depends on stage presence, not selection or stage contents.
+        self._stage_subscription = [
+            get_eventdispatcher().observe_event(
+                event_name=context.stage_event_name(event_type),
+                on_event=lambda _event: self._update_run_button(),
+                observer_name="lightspeed.trex.asset_modifiers.widget:AssetModifiersWidget._update_run_button",
+            )
+            for event_type in (usd.StageEventType.OPENED, usd.StageEventType.CLOSED)
+        ]
         self._on_changed()
 
     def destroy(self) -> None:

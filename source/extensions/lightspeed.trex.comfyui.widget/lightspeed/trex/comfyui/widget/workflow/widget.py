@@ -22,6 +22,7 @@ import functools
 
 import carb
 import omni.kit.undo
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.trex.comfyui.core.core import ComfyUISubmission
 from lightspeed.trex.comfyui.core.enums import (
     ComfyUIEventType,
@@ -150,10 +151,14 @@ class WorkflowSetupWidget(WorkspaceWidget):
         self._build_ui()
         self._event_subscription = subscribe_comfyui_event(context_name, self._on_core_event)
         context = usd.get_context(context_name)
-        self._stage_event_subscription = context.get_stage_event_stream().create_subscription_to_pop(
-            self._on_stage_event,
-            name="ComfyUIWorkflowProjectState",
-        )
+        self._stage_event_subscription = [
+            get_eventdispatcher().observe_event(
+                event_name=context.stage_event_name(event_type),
+                on_event=lambda _: self._update_submit_button_state(),
+                observer_name="lightspeed.trex.comfyui.widget:WorkflowSetupWidget._update_submit_button_state",
+            )
+            for event_type in (usd.StageEventType.CLOSED, usd.StageEventType.OPENED)
+        ]
         self._on_workflow_changed()
 
     def _build_ui(self):
@@ -1090,15 +1095,6 @@ class WorkflowSetupWidget(WorkspaceWidget):
             self._on_workflow_changed()
         elif event.event_type == ComfyUIEventType.WORKFLOWS_LOADED:
             self._update_workflow_combo()
-
-    def _on_stage_event(self, event) -> None:
-        """Refresh submission availability after a project closes or finishes opening.
-
-        Args:
-            event: USD stage event from the widget's configured context.
-        """
-        if event.type in {int(usd.StageEventType.CLOSED), int(usd.StageEventType.OPENED)}:
-            self._update_submit_button_state()
 
     def _on_workflow_changed(self):
         """Respond to a workflow change by rebuilding all dynamic sections."""

@@ -27,6 +27,7 @@ import omni.client
 import omni.kit.app
 import omni.ui as ui
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from omni.flux.utils.common.omni_url import OmniUrl as _OmniUrl
 from omni.flux.validator.factory import SetupDataTypeVar as _SetupDataTypeVar
 from omni.kit.viewport.utility import capture_viewport_to_buffer, frame_viewport_selection, get_active_viewport
@@ -170,9 +171,9 @@ class GenerateThumbnail(_CheckBaseUSD):
         im.save(buffer, "png")
         return buffer.getvalue()
 
-    def _on_stage_event(self, event) -> None:
-        # This pin is setup when we are waiting for an MDL file to load
-        if event.type == int(omni.usd.StageEventType.ASSETS_LOADED) and self._waiting_for_asset_loaded:
+    def _on_stage_assets_loaded(self, _event) -> None:
+        """Clear the wait flag after the stage assets load."""
+        if self._waiting_for_asset_loaded:
             self._waiting_for_asset_loaded = False
 
     def __get_thumbnail_path(self, stage_url: str, schema_data: Data) -> _OmniUrl:
@@ -373,8 +374,10 @@ class GenerateThumbnail(_CheckBaseUSD):
                     return False, "Can't reset the camera", None
                 await omni.kit.app.get_app().next_update_async()
 
-            self._stage_event_sub = context.get_stage_event_stream().create_subscription_to_pop(
-                self._on_stage_event, name="thumbnail_generation stage update"
+            self._stage_event_sub = get_eventdispatcher().observe_event(
+                event_name=context.stage_event_name(omni.usd.StageEventType.ASSETS_LOADED),
+                on_event=self._on_stage_assets_loaded,
+                observer_name="omni.flux.validator.plugin.check.usd:GenerateThumbnail._on_stage_assets_loaded",
             )
 
             # import the template as a layer and lock it

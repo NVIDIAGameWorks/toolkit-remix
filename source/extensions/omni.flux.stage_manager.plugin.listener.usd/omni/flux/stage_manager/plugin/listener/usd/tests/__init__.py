@@ -15,6 +15,14 @@
 * limitations under the License.
 """
 
-from .unit.test_usd_listener import TestStageManagerUSDNoticeListenerPlugin
+from .unit.test_usd_listener import (
+    TestStageManagerUSDLayersListenerPlugin,
+    TestStageManagerUSDNoticeListenerPlugin,
+    TestStageManagerUSDStageListenerPlugin,
+)
 
-__all__ = ["TestStageManagerUSDNoticeListenerPlugin"]
+__all__ = [
+    "TestStageManagerUSDLayersListenerPlugin",
+    "TestStageManagerUSDNoticeListenerPlugin",
+    "TestStageManagerUSDStageListenerPlugin",
+]

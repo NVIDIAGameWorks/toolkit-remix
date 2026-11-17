@@ -17,6 +17,7 @@
 
 import asyncio
 
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.trex.capture.core.shared import Setup as _CaptureCoreSetup
 from lightspeed.trex.replacement.core.shared import Setup as _ReplacementCoreSetup
 from omni import ui, usd
@@ -106,16 +107,32 @@ class CaptureTreeModel(ui.AbstractItemModel):
             self._fetch_task = None
 
     def enable_listeners(self, value: bool):
+        """Enable or release the stage and layer event observers."""
         if value:
-            self._stage_event_sub = (
-                usd.get_context(self._context_name)
-                .get_stage_event_stream()
-                .create_subscription_to_pop(self.__on_stage_event, name="STAGE_CHANGED_SUB")
-            )
-            self._layer_event_sub = (
-                _layers.get_layers()
-                .get_event_stream()
-                .create_subscription_to_pop(self.__on_layer_event, name="LAYER_CHANGED_SUB")
+            context = usd.get_context(self._context_name)
+            self._stage_event_sub = [
+                get_eventdispatcher().observe_event(
+                    event_name=context.stage_event_name(usd.StageEventType.CLOSING),
+                    on_event=lambda _: self.cancel_tasks(),
+                    observer_name="lightspeed.trex.capture_tree.model:CaptureTreeModel.cancel_tasks",
+                ),
+                get_eventdispatcher().observe_event(
+                    event_name=context.stage_event_name(usd.StageEventType.CLOSED),
+                    on_event=self.__on_stage_closed,
+                    observer_name="lightspeed.trex.capture_tree.model:CaptureTreeModel.__on_stage_closed",
+                ),
+                get_eventdispatcher().observe_event(
+                    event_name=context.stage_event_name(usd.StageEventType.OPENED),
+                    on_event=lambda _: self.__on_stage_opened_or_closed(),
+                    observer_name="lightspeed.trex.capture_tree.model:CaptureTreeModel.__on_stage_opened_or_closed",
+                ),
+            ]
+            layers = _layers.get_layers()
+            self._layer_event_sub = get_eventdispatcher().observe_event(
+                event_name=_layers.layer_event_name(_layers.LayerEventType.SUBLAYERS_CHANGED),
+                on_event=lambda _: self.__on_sublayers_changed(),
+                filter=layers.get_event_key(),
+                observer_name="lightspeed.trex.capture_tree.model:CaptureTreeModel.__on_sublayers_changed",
             )
         else:
             self._stage_event_sub = None
@@ -125,18 +142,9 @@ class CaptureTreeModel(ui.AbstractItemModel):
         self.cancel_tasks()
         self._fetch_task = asyncio.ensure_future(self.__fetch_progress(items))
 
-    def __on_stage_event(self, event):
-        if event.type in {int(usd.StageEventType.CLOSING), int(usd.StageEventType.CLOSED)}:
-            self.cancel_tasks()
-        if event.type in {int(usd.StageEventType.OPENED), int(usd.StageEventType.CLOSED)}:
-            self.__on_stage_opened_or_closed()
-
-    def __on_layer_event(self, event):
-        payload = _layers.get_layer_event_payload(event)
-        if not payload:
-            return
-        if payload.event_type == _layers.LayerEventType.SUBLAYERS_CHANGED:
-            self.__on_sublayers_changed()
+    def __on_stage_closed(self, _event):
+        self.cancel_tasks()
+        self.__on_stage_opened_or_closed()
 
     def __task_completed(self):
         if self._fetch_task is not None:

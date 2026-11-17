@@ -19,10 +19,11 @@ import carb
 import omni.client
 import omni.kit.notification_manager as nm
 import omni.usd
+from carb.eventdispatcher import Event, get_eventdispatcher
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
-from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
+from omni.kit.usd.layers import LayerEventType, get_layers, layer_event_name
 from pxr import Sdf
 
 from .edit_context import should_disable_switch as _should_disable_switch
@@ -60,36 +61,40 @@ class SwitchToReplacementCore(_ILSSEvent):
     def _install(self):
         """Function that will create the behavior"""
         layers = get_layers()
-        event_stream = layers.get_event_stream()
-        self._stage_event_subscription = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_stage_event, name="StageEventSubscription"
-        )
-        self._layer_event_subscription = event_stream.create_subscription_to_pop(
-            self.__on_layer_event, name="LayerEventSubscription"
-        )
+        self._stage_event_subscription = [
+            get_eventdispatcher().observe_event(
+                event_name=self._context.stage_event_name(event_type),
+                on_event=lambda _: self.__check_current_edit_layer(),
+                observer_name="lightspeed.event.switch_to_replacement:SwitchToReplacementCore.__check_current_edit_layer",
+            )
+            for event_type in (omni.usd.StageEventType.SAVING, omni.usd.StageEventType.OPENED)
+        ]
+        self._layer_event_subscription = [
+            get_eventdispatcher().observe_event(
+                event_name=layer_event_name(event_type),
+                on_event=self.__on_layer_event,
+                filter=layers.get_event_key(),
+                observer_name="lightspeed.event.switch_to_replacement:SwitchToReplacementCore.__on_layer_event",
+            )
+            for event_type in (
+                LayerEventType.EDIT_MODE_CHANGED,
+                LayerEventType.EDIT_TARGET_CHANGED,
+                LayerEventType.LOCK_STATE_CHANGED,
+                LayerEventType.MUTENESS_SCOPE_CHANGED,
+                LayerEventType.MUTENESS_STATE_CHANGED,
+                LayerEventType.SUBLAYERS_CHANGED,
+            )
+        ]
 
     def _uninstall(self):
         """Function that will delete the behavior"""
         self._stage_event_subscription = None
         self._layer_event_subscription = None
 
-    def __on_layer_event(self, event: carb.events.IEvent):
+    def __on_layer_event(self, _event: Event):
         if _should_disable_switch():
             return
-        payload = get_layer_event_payload(event)
-        if payload.event_type in {
-            LayerEventType.EDIT_MODE_CHANGED,
-            LayerEventType.EDIT_TARGET_CHANGED,
-            LayerEventType.LOCK_STATE_CHANGED,
-            LayerEventType.MUTENESS_SCOPE_CHANGED,
-            LayerEventType.MUTENESS_STATE_CHANGED,
-            LayerEventType.SUBLAYERS_CHANGED,
-        }:
-            self.__check_current_edit_layer()
-
-    def __on_stage_event(self, event):
-        if event.type in {int(omni.usd.StageEventType.SAVING), int(omni.usd.StageEventType.OPENED)}:
-            self.__check_current_edit_layer()
+        self.__check_current_edit_layer()
 
     def __show_message(self, message):
         if self._current_notification:

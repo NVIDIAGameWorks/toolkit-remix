@@ -23,6 +23,7 @@ import omni.kit.notification_manager as nm
 import omni.kit.undo
 import omni.kit.usd.layers as _layers
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.common.constants import REMIX_CAPTURE_FOLDER, REMIX_DEPENDENCIES_FOLDER, REMIX_FOLDER
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LayerManagerCore, LayerType
@@ -32,6 +33,7 @@ from omni.kit import commands
 from pxr import Sdf
 
 _CONTEXT = "/exts/lightspeed.event.validate_project/context"
+_SCHEDULE_VALIDATION_OBSERVER_NAME = "lightspeed.event.validate_project:EventValidateProjectCore.__schedule_validation"
 
 
 class EventValidateProjectCore(_ILSSEvent):
@@ -69,14 +71,30 @@ class EventValidateProjectCore(_ILSSEvent):
         """Function that will create the behavior"""
         self._uninstall()
 
-        self._stage_event_sub = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_stage_event, name="StageEventListener"
-        )
+        self._stage_event_sub = [
+            get_eventdispatcher().observe_event(
+                event_name=self._context.stage_event_name(event_type),
+                on_event=lambda _: self.__schedule_validation(),
+                observer_name=_SCHEDULE_VALIDATION_OBSERVER_NAME,
+            )
+            for event_type in (omni.usd.StageEventType.OPENED, omni.usd.StageEventType.SAVED)
+        ]
 
         layers = _layers.get_layers()
-        self._layer_event_sub = layers.get_event_stream().create_subscription_to_pop(
-            self.__on_layer_event, name="LayerEventListener"
-        )
+        self._layer_event_sub = [
+            get_eventdispatcher().observe_event(
+                event_name=_layers.layer_event_name(event_type),
+                on_event=lambda _: self.__schedule_validation(),
+                filter=layers.get_event_key(),
+                observer_name=_SCHEDULE_VALIDATION_OBSERVER_NAME,
+            )
+            for event_type in (
+                _layers.LayerEventType.LOCK_STATE_CHANGED,
+                _layers.LayerEventType.MUTENESS_SCOPE_CHANGED,
+                _layers.LayerEventType.MUTENESS_STATE_CHANGED,
+                _layers.LayerEventType.SUBLAYERS_CHANGED,
+            )
+        ]
 
     def _uninstall(self):
         """Release validation subscriptions and cancel pending validation."""
@@ -85,20 +103,6 @@ class EventValidateProjectCore(_ILSSEvent):
         if self._validation_task:
             self._validation_task.cancel()
         self._validation_task = None
-
-    def __on_stage_event(self, event):
-        if event.type in {int(omni.usd.StageEventType.OPENED), int(omni.usd.StageEventType.SAVED)}:
-            self.__schedule_validation()
-
-    def __on_layer_event(self, event):
-        payload = _layers.get_layer_event_payload(event)
-        if payload.event_type in {
-            _layers.LayerEventType.LOCK_STATE_CHANGED,
-            _layers.LayerEventType.MUTENESS_SCOPE_CHANGED,
-            _layers.LayerEventType.MUTENESS_STATE_CHANGED,
-            _layers.LayerEventType.SUBLAYERS_CHANGED,
-        }:
-            self.__schedule_validation()
 
     def __schedule_validation(self):
         if self._validation_task:

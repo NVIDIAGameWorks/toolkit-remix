@@ -32,6 +32,7 @@ import omni.kit.clipboard
 import omni.kit.undo
 import omni.ui as ui
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from carb.input import KeyboardInput
 from lightspeed.common import constants as _constants
 from lightspeed.hdremix.renderer_settings.dlss_settings import SETTINGS_DLSS_NEURAL_RENDERING_AVAILABLE
@@ -172,20 +173,19 @@ class TestMaterialPropertyWidget(AsyncTestCase):
         usd_context = omni.usd.get_context()
 
         # Create Material Property refresher for USD selection changed events
-        def on_stage_event(event):
-            if event.type == int(omni.usd.StageEventType.SELECTION_CHANGED):
-                # Grab the USD selected prims
-                prim_paths = list(set(usd_context.get_selection().get_selected_prim_paths()))
-                items = [usd_context.get_stage().GetPrimAtPath(prim_path) for prim_path in prim_paths]
+        def on_stage_event(_event):
+            # Grab the USD selected prims
+            prim_paths = list(set(usd_context.get_selection().get_selected_prim_paths()))
+            items = [usd_context.get_stage().GetPrimAtPath(prim_path) for prim_path in prim_paths]
 
-                # Grab prims and refresh the material properties
-                mat_property_wid.refresh(items)  # NOTE: This occurs from AssetReplacementsPane in app
+            # Grab prims and refresh the material properties
+            mat_property_wid.refresh(items)  # NOTE: This occurs from AssetReplacementsPane in app
 
         # Subscribe to USD selection changes
-        self._events = usd_context.get_stage_event_stream()
-        self._stage_event_delegate = self._events.create_subscription_to_pop(
-            on_stage_event,
-            name="Selection Change Subscription",
+        self._stage_event_delegate = get_eventdispatcher().observe_event(
+            event_name=usd_context.stage_event_name(omni.usd.StageEventType.SELECTION_CHANGED),
+            on_event=on_stage_event,
+            observer_name="lightspeed.trex.properties_pane.material.widget:TestMaterialPropertyWidget.__setup_widget",
         )
 
         await ui_test.human_delay(human_delay_speed=1)
@@ -227,8 +227,6 @@ class TestMaterialPropertyWidget(AsyncTestCase):
         return False
 
     async def __destroy(self, window, material_property_wid):
-        self._events = None
-        self._stage_event_delegate.unsubscribe()
         self._stage_event_delegate = None
 
         material_property_wid.destroy()

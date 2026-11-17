@@ -25,6 +25,7 @@ import carb
 import omni.client
 import omni.kit.undo
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.common import constants
 from lightspeed.events_manager import get_instance as _get_event_manager_instance
 from lightspeed.layer_manager.core import LayerManagerCore as _LayerManagerCore
@@ -49,8 +50,10 @@ class Setup:
         self._context = omni.usd.get_context(context_name)
         self._layer_manager = _LayerManagerCore(context_name=context_name)
 
-        self._subscription_stage_event = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_load_event, name="Recent file loaded"
+        self._subscription_stage_event = get_eventdispatcher().observe_event(
+            event_name=self._context.stage_event_name(omni.usd.StageEventType.OPENED),
+            on_event=self.__on_stage_opened,
+            observer_name="lightspeed.trex.capture.core.shared:Setup.__on_stage_opened",
         )
 
     def get_layer(self):
@@ -157,10 +160,7 @@ class Setup:
         result = await wrapped_fn()
         callback(result)
 
-    def __on_load_event(self, event):
-        if event.type != int(omni.usd.StageEventType.OPENED):
-            return
-
+    def __on_stage_opened(self, _event):
         capture_layer = self._layer_manager.get_layer_of_type(LayerType.capture)
         if capture_layer:
             # Preserve the capture directory from the active capture layer so it remains available

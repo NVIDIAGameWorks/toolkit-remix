@@ -25,6 +25,7 @@ import omni.kit.app
 import omni.kit.widget.toolbar as _toolbar_module
 import omni.ui as ui
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.trex.contexts.extension import get_instance as _get_context_manager
 from lightspeed.trex.contexts.setup import Contexts as _TrexContext
 from lightspeed.trex.viewports.shared.widget import create_instance as _create_viewport_instance
@@ -313,7 +314,7 @@ class TestSharedViewportWidget(OmniUiTest):
         carb.settings.get_settings().set("/app/renderer/skipWhileMinimized", True)
         _window, _widgets = await self.__setup_widget()  # Keep in memory during test
         app_window = omni.appwindow.get_default_app_window()
-        minimize_event_stream = app_window.get_window_minimize_event_stream()
+        minimize_event_payload = dict(app_window.get_event_key())
         viewports = ui_test.find_all(f"{_window.title}//Frame/**/.identifier == 'viewport'")
         try:
             # after clicking on viewport 1, it should be enabled
@@ -323,13 +324,19 @@ class TestSharedViewportWidget(OmniUiTest):
             await self.__wait_widget_stage_loading(_widgets[0])
 
             # while minimized, viewports should pause
-            minimize_event_stream.push(payload={"isMinimized": True})
+            get_eventdispatcher().dispatch_event(
+                omni.appwindow.GLOBAL_EVENT_WINDOW_MINIMIZE_IMMEDIATE,
+                payload={**minimize_event_payload, "isMinimized": True},
+            )
             await ui_test.wait_n_updates()
             self.assertTrue(_widgets[0].viewport_api.updates_enabled is False)
             self.assertTrue(_widgets[1].viewport_api.updates_enabled is False)
 
             # while restoring, last active viewport should unpause
-            minimize_event_stream.push(payload={"isMinimized": False})
+            get_eventdispatcher().dispatch_event(
+                omni.appwindow.GLOBAL_EVENT_WINDOW_MINIMIZE_IMMEDIATE,
+                payload={**minimize_event_payload, "isMinimized": False},
+            )
             await ui_test.wait_n_updates()
             self.assertTrue(_widgets[0].viewport_api.updates_enabled is True)
             self.assertTrue(_widgets[1].viewport_api.updates_enabled is False)
@@ -337,13 +344,19 @@ class TestSharedViewportWidget(OmniUiTest):
 
             # check that it will respect this preference and keep updating viewport 1
             carb.settings.get_settings().set("/app/renderer/skipWhileMinimized", False)
-            minimize_event_stream.push(payload={"isMinimized": True})
+            get_eventdispatcher().dispatch_event(
+                omni.appwindow.GLOBAL_EVENT_WINDOW_MINIMIZE_IMMEDIATE,
+                payload={**minimize_event_payload, "isMinimized": True},
+            )
             await ui_test.wait_n_updates()
             self.assertTrue(_widgets[0].viewport_api.updates_enabled is True)
             self.assertTrue(_widgets[1].viewport_api.updates_enabled is False)
 
             # while restoring, last active viewport should unpause
-            minimize_event_stream.push(payload={"isMinimized": False})
+            get_eventdispatcher().dispatch_event(
+                omni.appwindow.GLOBAL_EVENT_WINDOW_MINIMIZE_IMMEDIATE,
+                payload={**minimize_event_payload, "isMinimized": False},
+            )
             await ui_test.wait_n_updates()
             self.assertTrue(_widgets[0].viewport_api.updates_enabled is True)
             self.assertTrue(_widgets[1].viewport_api.updates_enabled is False)
@@ -355,11 +368,17 @@ class TestSharedViewportWidget(OmniUiTest):
             self.assertTrue(_widgets[0].viewport_api.updates_enabled is False)
             self.assertTrue(_widgets[1].viewport_api.updates_enabled is True)
             await self.__wait_widget_stage_loading(_widgets[1])
-            minimize_event_stream.push(payload={"isMinimized": True})
+            get_eventdispatcher().dispatch_event(
+                omni.appwindow.GLOBAL_EVENT_WINDOW_MINIMIZE_IMMEDIATE,
+                payload={**minimize_event_payload, "isMinimized": True},
+            )
             await ui_test.wait_n_updates()
             self.assertTrue(_widgets[0].viewport_api.updates_enabled is False)
             self.assertTrue(_widgets[1].viewport_api.updates_enabled is False)
-            minimize_event_stream.push(payload={"isMinimized": False})
+            get_eventdispatcher().dispatch_event(
+                omni.appwindow.GLOBAL_EVENT_WINDOW_MINIMIZE_IMMEDIATE,
+                payload={**minimize_event_payload, "isMinimized": False},
+            )
             await ui_test.wait_n_updates()
             self.assertTrue(_widgets[0].viewport_api.updates_enabled is False)
             self.assertTrue(_widgets[1].viewport_api.updates_enabled is True)

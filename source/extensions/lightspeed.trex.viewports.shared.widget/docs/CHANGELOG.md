@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.8.8]
+### Changed
+- Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).
+
 ## [1.8.7]
 
 ### Fixed

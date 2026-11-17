@@ -15,24 +15,22 @@
 * limitations under the License.
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import omni.kit.test
 from lightspeed.trex.menu.workfile.setup_ui import SetupUI
+from omni.kit.menu.utils import MenuActionControl
 
 
 class TestSetupUI(omni.kit.test.AsyncTestCase):
     async def test_register_menu_items_undo_and_redo_do_not_declare_hotkeys(self):
-        """Undo/Redo are already registered globally, so the menu entries must stay unbound."""
+        """Undo and Redo use global hotkeys, so their menu entries must not register duplicate shortcuts."""
         # Arrange
         captured_menu_items = []
-        startup_stream = Mock()
-        startup_stream.create_subscription_to_pop_by_type.return_value = object()
-        app = Mock()
-        app.get_startup_event_stream.return_value = startup_stream
 
         with (
-            patch("lightspeed.trex.menu.workfile.setup_ui.omni.kit.app.get_app", return_value=app),
+            patch("lightspeed.trex.menu.workfile.setup_ui.get_eventdispatcher"),
+            patch("lightspeed.trex.menu.workfile.setup_ui.get_action_registry"),
             patch(
                 "lightspeed.trex.menu.workfile.setup_ui._build_submenu_dict",
                 side_effect=lambda menu_items: captured_menu_items.extend(menu_items) or {},
@@ -41,12 +39,16 @@ class TestSetupUI(omni.kit.test.AsyncTestCase):
             patch("lightspeed.trex.menu.workfile.setup_ui._menu_utils.set_default_menu_priority"),
         ):
             setup_ui = SetupUI()
-
-            # Act
-            setup_ui._SetupUI__register_menu_items()
+            try:
+                # Act
+                setup_ui._SetupUI__on_app_ready(None)
+            finally:
+                setup_ui.destroy()
 
         # Assert
         undo_item = next(item for item in captured_menu_items if item.name == "Edit/Undo")
         redo_item = next(item for item in captured_menu_items if item.name == "Edit/Redo")
         self.assertIsNone(undo_item.hotkey)
         self.assertIsNone(redo_item.hotkey)
+        self.assertEqual(undo_item.onclick_action, ("lightspeed.trex.menu.workfile", "undo", MenuActionControl.NODELAY))
+        self.assertEqual(redo_item.onclick_action, ("lightspeed.trex.menu.workfile", "redo", MenuActionControl.NODELAY))

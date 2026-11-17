@@ -18,6 +18,7 @@
 from pathlib import Path
 
 import omni.usd
+from carb.eventdispatcher import Event, get_eventdispatcher
 from omni.flux.selection_history_tree.widget import SelectionHistoryModel as _SelectionHistoryModel
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
 
@@ -54,17 +55,25 @@ class UsdSelectionHistoryModel(_SelectionHistoryModel):
         return do
 
     def enable_listeners(self, value):
-        """
-        Enable USD listeners
+        """Enable or disable USD listeners.
 
         Args:
             value: True to enable, False to disable
         """
         if value:
             self._usd_listener.add_model(self)
-            self._stage_event = self._usd_context.get_stage_event_stream().create_subscription_to_pop(
-                self._on_stage_event, name="StageEvent"
-            )
+            self._stage_event = [
+                get_eventdispatcher().observe_event(
+                    event_name=self._usd_context.stage_event_name(omni.usd.StageEventType.SELECTION_CHANGED),
+                    on_event=self._on_selection_changed,
+                    observer_name="omni.flux.selection_history_tree.model.usd:UsdSelectionHistoryModel._on_selection_changed",
+                ),
+                get_eventdispatcher().observe_event(
+                    event_name=self._usd_context.stage_event_name(omni.usd.StageEventType.OPENED),
+                    on_event=lambda _: self.reset(),
+                    observer_name="omni.flux.selection_history_tree.model.usd:UsdSelectionHistoryModel.reset",
+                ),
+            ]
             self.__load_items_from_custom_layer_metadata()
         else:
             self._usd_listener.remove_model(self)
@@ -79,12 +88,9 @@ class UsdSelectionHistoryModel(_SelectionHistoryModel):
     def _get_active_items(self) -> list[str]:
         return list(set(self._usd_context.get_selection().get_selected_prim_paths()))
 
-    def _on_stage_event(self, event):
-        if event.type == int(omni.usd.StageEventType.SELECTION_CHANGED):
-            selection = self.get_active_items()
-            self._on_stage_selection_changed(selection)
-        elif event.type == int(omni.usd.StageEventType.OPENED):
-            self.reset()
+    def _on_selection_changed(self, _event: Event):
+        selection = self.get_active_items()
+        self._on_stage_selection_changed(selection)
 
     def reset(self):
         """Reset the model"""

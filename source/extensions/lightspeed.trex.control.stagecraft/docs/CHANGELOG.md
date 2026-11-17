@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.9.2]
+### Changed
+- Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).
+
 ## [1.9.1]
 ### Fixed
 - Opened the workspace panels before querying lazy viewport content in the capture-swap and viewport hotkey E2E workflows.

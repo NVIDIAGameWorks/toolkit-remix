@@ -20,6 +20,7 @@ from __future__ import annotations
 import carb
 import omni.ext
 import omni.kit.app
+from carb.eventdispatcher import Event, ObserverGuard, get_eventdispatcher
 from fastmcp import FastMCP
 
 from .mcp import MCPCore
@@ -40,7 +41,7 @@ class MCPCoreExtension(omni.ext.IExt):
     def __init__(self) -> None:
         """Initialize the extension lifecycle state."""
         super().__init__()
-        self._app_ready_subscription: carb.events.ISubscription | None = None
+        self._app_ready_subscription: ObserverGuard | None = None
         self._is_shutdown: bool = False
 
     def on_startup(self, _ext_id: str) -> None:
@@ -53,10 +54,10 @@ class MCPCoreExtension(omni.ext.IExt):
             self._start_mcp_server()
             return
 
-        self._app_ready_subscription = app.get_startup_event_stream().create_subscription_to_pop_by_type(
-            omni.kit.app.EVENT_APP_READY,
-            self._on_app_ready,
-            name="MCP Server App Ready",
+        self._app_ready_subscription = get_eventdispatcher().observe_event(
+            event_name=omni.kit.app.GLOBAL_EVENT_APP_READY,
+            on_event=self._on_app_ready,
+            observer_name="lightspeed.trex.mcp.core:MCPCoreExtension._on_app_ready",
         )
 
     def on_shutdown(self) -> None:
@@ -69,7 +70,7 @@ class MCPCoreExtension(omni.ext.IExt):
         global _instance
         _instance = None
 
-    def _on_app_ready(self, _event: carb.events.IEvent) -> None:
+    def _on_app_ready(self, _event: Event) -> None:
         """Initialize the MCP server after Kit dispatches its ready event."""
         self._app_ready_subscription = None
         if self._is_shutdown:

@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0]
+### Changed
+- Replaced the deprecated app-ready event subscription and menu callbacks with Events 2.0 and actions.
+
 ## [1.5.4]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

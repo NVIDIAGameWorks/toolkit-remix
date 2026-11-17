@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING
 
 import carb.input
 import omni.kit.app
+from carb.eventdispatcher import get_eventdispatcher
 from omni import ui
 
 from .handle_widget import HandleWidget
@@ -155,10 +156,10 @@ class CurveWidgetsManager:
         self._stack = stack
         self._segment_stack = segment_stack or stack
         process_curve(self._curve, self._bounds, self.x_flip_threshold)
-        self._update_sub = (
-            omni.kit.app.get_app()
-            .get_update_event_stream()
-            .create_subscription_to_pop(self._on_update, name="CurveWidgetsManager")
+        self._update_sub = get_eventdispatcher().observe_event(
+            event_name=omni.kit.app.GLOBAL_EVENT_UPDATE,
+            on_event=self._on_update,
+            observer_name="omni.flux.fcurve.widget:CurveWidgetsManager._on_update",
         )
         self._sync()
 

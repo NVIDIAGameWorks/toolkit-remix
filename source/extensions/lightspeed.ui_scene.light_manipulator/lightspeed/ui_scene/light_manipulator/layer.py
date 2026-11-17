@@ -23,6 +23,7 @@ from contextlib import suppress
 
 import carb
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.trex.asset_replacements.core.shared import Setup as _AssetReplacementsCore
 from lightspeed.trex.contexts.setup import Contexts as _TrexContexts
 from omni.flux.utils.common import reset_default_attrs as _reset_default_attrs
@@ -66,7 +67,6 @@ class LightManipulatorLayer:
             # do this one manually since we don't want to propagate destroy because we don't own it.
             # "_viewport_layers": None,
             "_usd_context_name": None,
-            "_events": None,
             "_stage_event_sub": None,
             "_manipulator_scale": None,
             "_intensity_controls_visible": False,
@@ -86,10 +86,24 @@ class LightManipulatorLayer:
         usd_context = self._get_context()
 
         # Track selection
-        self._events = usd_context.get_stage_event_stream()
-        self._stage_event_sub = self._events.create_subscription_to_pop(
-            self._on_stage_event, name="Light Manipulators Stage Update"
-        )
+        self._stage_event_sub = [
+            *(
+                get_eventdispatcher().observe_event(
+                    event_name=usd_context.stage_event_name(event_type),
+                    on_event=self._on_hierarchy_changed,
+                    observer_name="lightspeed.ui_scene.light_manipulator:LightManipulatorLayer._on_hierarchy_changed",
+                )
+                for event_type in (
+                    omni.usd.StageEventType.HIERARCHY_CHANGED,
+                    omni.usd.StageEventType.ACTIVE_LIGHT_COUNTS_CHANGED,
+                )
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=usd_context.stage_event_name(omni.usd.StageEventType.CLOSED),
+                on_event=self._on_stage_closed,
+                observer_name="lightspeed.ui_scene.light_manipulator:LightManipulatorLayer._on_stage_closed",
+            ),
+        ]
 
         self._manipulator_scale = carb.settings.get_settings().get(SETTING_MANIPULATOR_SCALE)
 
@@ -367,21 +381,29 @@ class LightManipulatorLayer:
         # Release stale manipulators
         self._manipulators = {}
 
-    def _on_stage_event(self, event):
-        """Called by stage_event_stream"""
+    def _on_hierarchy_changed(self, _event):
+        """Create light manipulators for the current stage when a scene view exists.
+
+        Args:
+            _event: Unused hierarchy change event.
+        """
         if not self._scene_view:
             return
 
-        match event.type:
-            case (
-                omni.usd.StageEventType.HIERARCHY_CHANGED.value
-                | omni.usd.StageEventType.ACTIVE_LIGHT_COUNTS_CHANGED.value
-            ):
-                stage = self._get_context().get_stage()
-                # Create the manipulators
-                self._create_manipulators(stage)
-            case omni.usd.StageEventType.CLOSED.value:
-                self._destroy_manipulators()
+        stage = self._get_context().get_stage()
+        # Create the manipulators
+        self._create_manipulators(stage)
+
+    def _on_stage_closed(self, _event):
+        """Destroy light manipulators when the stage closes and a scene view exists.
+
+        Args:
+            _event: Unused stage close event.
+        """
+        if not self._scene_view:
+            return
+
+        self._destroy_manipulators()
 
     def destroy(self):
         settings = carb.settings.get_settings()

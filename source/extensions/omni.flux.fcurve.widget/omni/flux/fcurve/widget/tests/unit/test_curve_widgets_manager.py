@@ -46,13 +46,19 @@ class TestCurveWidgetsManager(omni.kit.test.AsyncTestCase):
         self._manager._curve.keys = [FCurveKey(time=time, value=1.0) for time in times]
         keys = tuple(self._manager._curve.keys)
         with (
-            mock.patch.object(curve_widgets_manager.omni.kit.app, "get_app"),
+            mock.patch.object(curve_widgets_manager, "get_eventdispatcher") as get_eventdispatcher,
             mock.patch.object(self._manager, "_sync"),
         ):
             # Act
             self._manager.build(mock.Mock())
 
         # Assert
+        get_eventdispatcher.return_value.observe_event.assert_called_once_with(
+            event_name=curve_widgets_manager.omni.kit.app.GLOBAL_EVENT_UPDATE,
+            on_event=self._manager._on_update,
+            observer_name=mock.ANY,
+        )
+        self.assertIs(self._manager._update_sub, get_eventdispatcher.return_value.observe_event.return_value)
         self.assertEqual(tuple(key.time for key in self._manager._curve.keys), times)
         for index, key in enumerate(keys):
             self.assertIs(self._manager._curve.keys[index], key)

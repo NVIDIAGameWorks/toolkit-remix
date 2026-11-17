@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.14]
+### Changed
+- Migrated the end-to-end test selection subscription to Events 2.0 (`carb.eventdispatcher`).
+
 ## [2.3.13]
 ### Fixed
 - Deferred material-menu destruction until callbacks finish and verified texture references after ingestion decisions.

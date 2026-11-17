@@ -32,6 +32,7 @@ from enum import Enum
 import carb.input
 import omni.appwindow
 import omni.kit.app
+from carb.eventdispatcher import get_eventdispatcher
 from omni import ui
 from omni.flux.fcurve.widget import CurveBounds, FCurve, FCurveWidget, SelectionInfo
 from omni.flux.utils.widget import GroupedKeysModel
@@ -322,10 +323,10 @@ class CurveEditorCanvas:
         self._mouse_over_canvas = hovered
         if hovered:
             if self._mouse_tracking_sub is None:
-                self._mouse_tracking_sub = (
-                    omni.kit.app.get_app()
-                    .get_update_event_stream()
-                    .create_subscription_to_pop(self._poll_mouse_position)
+                self._mouse_tracking_sub = get_eventdispatcher().observe_event(
+                    event_name=omni.kit.app.GLOBAL_EVENT_UPDATE,
+                    on_event=self._poll_mouse_position,
+                    observer_name="omni.flux.curve_editor.widget:CurveEditorCanvas._poll_mouse_position",
                 )
         else:
             if not self._fcurve_widget or not self._fcurve_widget.is_inserting_key:

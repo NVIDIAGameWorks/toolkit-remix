@@ -19,6 +19,7 @@ __all__ = ["LightGizmosLayer"]
 
 import carb
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.common.constants import VIEWPORT_MENU_SHOW_BY_TYPE
 from lightspeed.trex.viewports.manipulators.global_selection import GlobalSelection
 from omni.kit.scene_view.opengl import ViewportOpenGLSceneView
@@ -49,10 +50,33 @@ class LightGizmosLayer:
         usd_context = self._get_context()
 
         # Track selection
-        self._events = usd_context.get_stage_event_stream()
-        self._stage_event_sub = self._events.create_subscription_to_pop(
-            self._on_stage_event, name="Light Gizmos Stage Update"
-        )
+        self._stage_event_sub = [
+            get_eventdispatcher().observe_event(
+                event_name=usd_context.stage_event_name(omni.usd.StageEventType.SELECTION_CHANGED),
+                on_event=self._on_selection_changed,
+                observer_name="lightspeed.light.gizmos:LightGizmosLayer._on_selection_changed",
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=usd_context.stage_event_name(omni.usd.StageEventType.OPENED),
+                on_event=self._on_stage_opened,
+                observer_name="lightspeed.light.gizmos:LightGizmosLayer._on_stage_opened",
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=usd_context.stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED),
+                on_event=self._on_hierarchy_changed,
+                observer_name="lightspeed.light.gizmos:LightGizmosLayer._on_hierarchy_changed",
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=usd_context.stage_event_name(omni.usd.StageEventType.ACTIVE_LIGHT_COUNTS_CHANGED),
+                on_event=self._on_hierarchy_changed,
+                observer_name="lightspeed.light.gizmos:LightGizmosLayer._on_hierarchy_changed",
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=usd_context.stage_event_name(omni.usd.StageEventType.CLOSED),
+                on_event=self._on_stage_closed,
+                observer_name="lightspeed.light.gizmos:LightGizmosLayer._on_stage_closed",
+            ),
+        ]
         self._stage_listener = None
         self._current_stage = None
         self._ignore_update = False
@@ -177,27 +201,52 @@ class LightGizmosLayer:
             self._stage_listener.Revoke()
             self._stage_listener = None
 
-    def _on_stage_event(self, event):
-        """Called by stage_event_stream"""
+    def _on_selection_changed(self, _event):
+        """Update global selection when the scene view exists.
+
+        Args:
+            _event: Unused selection event.
+        """
         if not self._scene_view:
             return
-        if event.type == int(omni.usd.StageEventType.SELECTION_CHANGED):
-            # TODO: There may be a better place to wire up this event. The list of manipulators is not used.
-            GlobalSelection.get_instance().on_selection_changed(
-                self._get_context(), self._viewport_api, list(self._manipulators.values())
-            )
-        elif event.type == int(omni.usd.StageEventType.OPENED):
-            self._current_stage = self._get_context().get_stage()
-            self._create_listener(self._current_stage)
-        elif event.type == int(omni.usd.StageEventType.HIERARCHY_CHANGED) or event.type == int(
-            omni.usd.StageEventType.ACTIVE_LIGHT_COUNTS_CHANGED
-        ):
-            stage = self._get_context().get_stage()
-            # Create the manipulators
-            self._create_manipulators(stage)
-        elif event.type == int(omni.usd.StageEventType.CLOSED):
-            self._revoke_listeners()
-            self._destroy_manipulators()
+        # TODO: There may be a better place to wire up this event. The list of manipulators is not used.
+        GlobalSelection.get_instance().on_selection_changed(
+            self._get_context(), self._viewport_api, list(self._manipulators.values())
+        )
+
+    def _on_stage_opened(self, _event):
+        """Store the open stage and create its listener when the scene view exists.
+
+        Args:
+            _event: Unused stage event.
+        """
+        if not self._scene_view:
+            return
+        self._current_stage = self._get_context().get_stage()
+        self._create_listener(self._current_stage)
+
+    def _on_hierarchy_changed(self, _event):
+        """Recreate light manipulators for the context stage when the scene view exists.
+
+        Args:
+            _event: Unused hierarchy event.
+        """
+        if not self._scene_view:
+            return
+        stage = self._get_context().get_stage()
+        # Create the manipulators
+        self._create_manipulators(stage)
+
+    def _on_stage_closed(self, _event):
+        """Revoke listeners and destroy manipulators when the scene view exists.
+
+        Args:
+            _event: Unused stage event.
+        """
+        if not self._scene_view:
+            return
+        self._revoke_listeners()
+        self._destroy_manipulators()
 
     def _create_listener(self, stage):
         # Do no work if there is no stage

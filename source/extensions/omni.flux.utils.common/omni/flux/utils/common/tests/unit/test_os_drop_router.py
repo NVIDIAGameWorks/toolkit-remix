@@ -15,10 +15,13 @@
 * limitations under the License.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import omni.kit.test
+from omni import appwindow
+from omni.appwindow import GLOBAL_EVENT_WINDOW_DROP
 
+from omni.flux.utils.common import os_drop_router
 from omni.flux.utils.common.os_drop_router import WidgetDropRouter
 
 
@@ -69,20 +72,29 @@ class TestWidgetDropRouter(omni.kit.test.AsyncTestCase):
         self.assertIn("visible", str(ctx.exception))
 
     async def test_register_succeeds_when_widget_satisfies_drop_contract(self):
+        """Register the widget for drop events from the default app window."""
         # Arrange
         widget = _make_widget()
 
-        with patch("omni.appwindow.get_default_app_window") as mock_get_app_window:
-            mock_stream = MagicMock()
-            mock_get_app_window.return_value.get_window_drop_event_stream.return_value = mock_stream
-            mock_stream.create_subscription_to_pop.return_value = MagicMock()
-
+        with (
+            patch.object(appwindow, "get_default_app_window") as mock_get_default_app_window,
+            patch.object(os_drop_router, "get_eventdispatcher") as mock_get_eventdispatcher,
+        ):
             # Act
             WidgetDropRouter.register_widget(widget)
 
             # Assert
             self.assertIn(widget, WidgetDropRouter._registered_widgets)
-            mock_stream.create_subscription_to_pop.assert_called_once()
+            self.assertIs(
+                WidgetDropRouter._drop_subscription, mock_get_eventdispatcher.return_value.observe_event.return_value
+            )
+            mock_get_eventdispatcher.return_value.observe_event.assert_called_once_with(
+                event_name=GLOBAL_EVENT_WINDOW_DROP,
+                on_event=WidgetDropRouter._global_drop_widget_router_callback,
+                filter=mock_get_default_app_window.return_value.get_event_key.return_value,
+                observer_name=ANY,
+                order=0,
+            )
 
             WidgetDropRouter.unregister_widget(widget)
 
@@ -90,10 +102,10 @@ class TestWidgetDropRouter(omni.kit.test.AsyncTestCase):
         # Arrange
         widget = _make_widget()
 
-        with patch("omni.appwindow.get_default_app_window") as mock_get_app_window:
-            mock_stream = MagicMock()
-            mock_get_app_window.return_value.get_window_drop_event_stream.return_value = mock_stream
-            mock_stream.create_subscription_to_pop.return_value = MagicMock()
+        with (
+            patch("omni.appwindow.get_default_app_window"),
+            patch("omni.flux.utils.common.os_drop_router.get_eventdispatcher"),
+        ):
             WidgetDropRouter.register_widget(widget)
 
         # Act / Assert
@@ -104,32 +116,35 @@ class TestWidgetDropRouter(omni.kit.test.AsyncTestCase):
 
         WidgetDropRouter.unregister_widget(widget)
 
-    async def test_first_register_creates_drop_event_subscription(self):
+    async def test_register_multiple_widgets_reuses_drop_event_subscription(self):
         # Arrange
         widget = _make_widget()
+        second_widget = _make_widget()
 
-        with patch("omni.appwindow.get_default_app_window") as mock_get_app_window:
-            mock_stream = MagicMock()
-            mock_get_app_window.return_value.get_window_drop_event_stream.return_value = mock_stream
-            mock_stream.create_subscription_to_pop.return_value = MagicMock()
-
+        with (
+            patch("omni.appwindow.get_default_app_window"),
+            patch("omni.flux.utils.common.os_drop_router.get_eventdispatcher") as mock_get_eventdispatcher,
+        ):
             # Act
             WidgetDropRouter.register_widget(widget)
+            WidgetDropRouter.register_widget(second_widget)
 
             # Assert
             self.assertIn(widget, WidgetDropRouter._registered_widgets)
-            mock_stream.create_subscription_to_pop.assert_called_once()
+            self.assertIn(second_widget, WidgetDropRouter._registered_widgets)
+            mock_get_eventdispatcher.return_value.observe_event.assert_called_once()
 
             WidgetDropRouter.unregister_widget(widget)
+            WidgetDropRouter.unregister_widget(second_widget)
 
     async def test_unregister_removes_widget_from_registry(self):
         # Arrange
         widget = _make_widget()
 
-        with patch("omni.appwindow.get_default_app_window") as mock_get_app_window:
-            mock_stream = MagicMock()
-            mock_get_app_window.return_value.get_window_drop_event_stream.return_value = mock_stream
-            mock_stream.create_subscription_to_pop.return_value = MagicMock()
+        with (
+            patch("omni.appwindow.get_default_app_window"),
+            patch("omni.flux.utils.common.os_drop_router.get_eventdispatcher"),
+        ):
             WidgetDropRouter.register_widget(widget)
             self.assertIn(widget, WidgetDropRouter._registered_widgets)
 

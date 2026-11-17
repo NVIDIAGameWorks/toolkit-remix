@@ -18,6 +18,7 @@
 import carb
 import omni.client
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.layer_manager.core import LSS_LAYER_GAME_NAME, LayerManagerCore, LayerType
 from lightspeed.trex.recent_projects.core import RecentProjectsCore
@@ -46,36 +47,40 @@ class EventSaveRecentCore(_ILSSEvent):
 
     def _install(self):
         """Function that will create the behavior"""
-        self._subscription = self._context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_save_event, name="Recent file saved"
-        )
+        self._subscription = [
+            get_eventdispatcher().observe_event(
+                event_name=self._context.stage_event_name(event_type),
+                on_event=self.__on_save_event,
+                observer_name="lightspeed.event.save_recent:EventSaveRecentCore.__on_save_event",
+            )
+            for event_type in (omni.usd.StageEventType.SAVED, omni.usd.StageEventType.OPENED)
+        ]
 
     def _uninstall(self):
         """Function that will delete the behavior"""
         self._subscription = None
 
     def __on_save_event(self, event):
-        if event.type in {int(omni.usd.StageEventType.SAVED), int(omni.usd.StageEventType.OPENED)}:
-            layer_capture = self.__layer_manager.get_layer_of_type(LayerType.capture)
-            # we only save stage that have a capture layer
-            if not layer_capture:
-                carb.log_verbose("Can't find the capture layer in the current stage")
-                return
-            layer_replacement = self.__layer_manager.get_layer_of_type(LayerType.replacement)
-            # we only save stage that have a replacement layer
-            if not layer_replacement:
-                carb.log_verbose("Can't find the replacement layer in the current stage")
-                return
-            stage = self._context.get_stage()
-            if layer_replacement.anonymous or layer_capture.anonymous or (stage and stage.GetRootLayer().anonymous):
-                carb.log_verbose("Anonymous layer(s) can't be in the recent list")
-                return
-            path = self._context.get_stage_url()
-            self.__project_core.append_path_to_recent_file(
-                omni.client.normalize_url(path),
-                layer_replacement.customLayerData.get(LSS_LAYER_GAME_NAME),
-                omni.client.normalize_url(layer_capture.realPath),
-            )
+        layer_capture = self.__layer_manager.get_layer_of_type(LayerType.capture)
+        # we only save stage that have a capture layer
+        if not layer_capture:
+            carb.log_verbose("Can't find the capture layer in the current stage")
+            return
+        layer_replacement = self.__layer_manager.get_layer_of_type(LayerType.replacement)
+        # we only save stage that have a replacement layer
+        if not layer_replacement:
+            carb.log_verbose("Can't find the replacement layer in the current stage")
+            return
+        stage = self._context.get_stage()
+        if layer_replacement.anonymous or layer_capture.anonymous or (stage and stage.GetRootLayer().anonymous):
+            carb.log_verbose("Anonymous layer(s) can't be in the recent list")
+            return
+        path = self._context.get_stage_url()
+        self.__project_core.append_path_to_recent_file(
+            omni.client.normalize_url(path),
+            layer_replacement.customLayerData.get(LSS_LAYER_GAME_NAME),
+            omni.client.normalize_url(layer_capture.realPath),
+        )
 
     def destroy(self):
         _reset_default_attrs(self)

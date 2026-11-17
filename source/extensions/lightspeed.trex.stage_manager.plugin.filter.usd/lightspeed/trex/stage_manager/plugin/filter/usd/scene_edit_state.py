@@ -21,14 +21,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import ClassVar
 
-import carb
+from carb.eventdispatcher import ObserverGuard, get_eventdispatcher
 from lightspeed.layer_manager.core import LayerManagerCore
 from lightspeed.trex.source_layer_picker.window import SourceLayerPicker
 from omni import ui, usd
 from omni.flux.stage_manager.factory import StageManagerItem
 from omni.flux.stage_manager.plugin.filter.usd.base import StageManagerUSDFilterPlugin
 from omni.flux.utils.common import EventSubscription
-from omni.kit.usd.layers import LayerEventType, get_layer_event_payload, get_layers
+from omni.kit.usd.layers import LayerEventType, get_layers, layer_event_name
 from pydantic import Field, PrivateAttr
 
 
@@ -90,8 +90,8 @@ class SceneEditFilterPlugin(StageManagerUSDFilterPlugin):
     _picker_label: ui.Label | None = PrivateAttr(default=None)
     _picker: SourceLayerPicker | None = PrivateAttr(default=None)
     _picker_selected_ids_sub: EventSubscription | None = PrivateAttr(default=None)
-    _stage_event_sub: carb.events.ISubscription | None = PrivateAttr(default=None)
-    _layer_event_sub: carb.events.ISubscription | None = PrivateAttr(default=None)
+    _stage_event_sub: ObserverGuard | None = PrivateAttr(default=None)
+    _layer_event_sub: ObserverGuard | None = PrivateAttr(default=None)
     _bound_context_name: str | None = PrivateAttr(default=None)
     # None = no explicit subset (treat as "all selected"). set[str] = explicit identifier subset.
     _selected_layer_ids: set[str] | None = PrivateAttr(default=None)
@@ -110,13 +110,17 @@ class SceneEditFilterPlugin(StageManagerUSDFilterPlugin):
         super().set_context_name(name)
         usd_context = usd.get_context(name)
         self._layer_manager = LayerManagerCore(name)
-        self._stage_event_sub = usd_context.get_stage_event_stream().create_subscription_to_pop(
-            self._on_stage_event, name="SceneEditFilter-StageEvents"
+        self._stage_event_sub = get_eventdispatcher().observe_event(
+            event_name=usd_context.stage_event_name(usd.StageEventType.OPENED),
+            on_event=lambda _: self._sync_to_stage_open(),
+            observer_name="lightspeed.trex.stage_manager.plugin.filter.usd:SceneEditFilterPlugin._sync_to_stage_open",
         )
-        self._layer_event_sub = (
-            get_layers(usd_context)
-            .get_event_stream()
-            .create_subscription_to_pop(self._on_layer_event, name="SceneEditFilter-LayerEvents")
+        layers = get_layers(usd_context)
+        self._layer_event_sub = get_eventdispatcher().observe_event(
+            event_name=layer_event_name(LayerEventType.SUBLAYERS_CHANGED),
+            on_event=lambda _: self.sync_to_layer_changes(),
+            filter=layers.get_event_key(),
+            observer_name="lightspeed.trex.stage_manager.plugin.filter.usd:SceneEditFilterPlugin.sync_to_layer_changes",
         )
         self._bound_context_name = name
 
@@ -302,17 +306,6 @@ class SceneEditFilterPlugin(StageManagerUSDFilterPlugin):
         self._active_set_cache = None
         self._predicate_state_cache = None
         self._filter_items_changed()
-
-    def _on_stage_event(self, event):
-        if event.type == int(usd.StageEventType.OPENED):
-            self._sync_to_stage_open()
-
-    def _on_layer_event(self, event):
-        payload = get_layer_event_payload(event)
-        if payload is None:
-            return
-        if payload.event_type == LayerEventType.SUBLAYERS_CHANGED:
-            self.sync_to_layer_changes()
 
     def _sync_to_stage_open(self):
         # A new stage can open in the same USD context, so set_context_name() will not always

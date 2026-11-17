@@ -23,6 +23,7 @@ import carb
 import carb.settings
 import omni.kit.app
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.events_manager import ILSSEvent as _ILSSEvent
 from lightspeed.trex.project_settings.core import (
     CAMERA_CLIPPING_OVERRIDE_PATH,
@@ -73,10 +74,23 @@ class EventCameraClipRangeOverride(_ILSSEvent):
     def _install(self):
         """Subscribe to stage events. If a stage is already open, apply immediately."""
         self._uninstall()
-        events = self._context.get_stage_event_stream()
-        self._stage_event_sub = events.create_subscription_to_pop(
-            self._on_stage_event, name="Camera Clip Range Override"
-        )
+        self._stage_event_sub = [
+            get_eventdispatcher().observe_event(
+                event_name=self._context.stage_event_name(omni.usd.StageEventType.OPENED),
+                on_event=self._on_stage_opened,
+                observer_name="lightspeed.event.camera_clip_range_override:EventCameraClipRangeOverride._on_stage_opened",
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=self._context.stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED),
+                on_event=self._on_stage_hierarchy_changed,
+                observer_name="lightspeed.event.camera_clip_range_override:EventCameraClipRangeOverride._on_stage_hierarchy_changed",
+            ),
+            get_eventdispatcher().observe_event(
+                event_name=self._context.stage_event_name(omni.usd.StageEventType.CLOSED),
+                on_event=self._on_stage_closed,
+                observer_name="lightspeed.event.camera_clip_range_override:EventCameraClipRangeOverride._on_stage_closed",
+            ),
+        ]
         stage = self._context.get_stage()
         if stage:
             self._on_opened(stage)
@@ -91,20 +105,31 @@ class EventCameraClipRangeOverride(_ILSSEvent):
         # from short-circuiting the first schedule call.
         self._apply_pending = False
 
-    def _on_stage_event(self, event):
+    def _on_stage_opened(self, _event):
         stage = self._context.get_stage()
-        if event.type == int(omni.usd.StageEventType.OPENED):
-            if stage:
-                self._on_opened(stage)
-        elif event.type == int(omni.usd.StageEventType.HIERARCHY_CHANGED):
-            if stage:
-                self._schedule_apply()
-        elif event.type == int(omni.usd.StageEventType.CLOSED):
-            self._teardown_settings_listener()
-            # Cache entries are keyed by Sdf.Path only, so they would leak
-            # across stages if a new project happens to have a camera at the
-            # same path. Drop the cache when the current stage closes.
-            self._restoration_cache.clear()
+        if stage:
+            self._on_opened(stage)
+
+    def _on_stage_hierarchy_changed(self, _event):
+        """Schedule the clip range override when a stage exists.
+
+        Args:
+            _event: Unused hierarchy change event.
+        """
+        if self._context.get_stage():
+            self._schedule_apply()
+
+    def _on_stage_closed(self, _event):
+        """Remove the settings listener and clear cached camera state when the stage closes.
+
+        Args:
+            _event: Unused stage close event.
+        """
+        self._teardown_settings_listener()
+        # Cache entries are keyed by Sdf.Path only, so they would leak
+        # across stages if a new project happens to have a camera at the
+        # same path. Drop the cache when the current stage closes.
+        self._restoration_cache.clear()
 
     def _schedule_apply(self):
         """Queue a single deferred _apply_override pass on the next frame.

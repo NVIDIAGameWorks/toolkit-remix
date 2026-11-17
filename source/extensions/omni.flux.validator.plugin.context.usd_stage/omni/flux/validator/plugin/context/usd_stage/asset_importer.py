@@ -29,6 +29,7 @@ import omni.kit.app
 import omni.kit.asset_converter as _kit_asset_converter
 import omni.ui as ui
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from omni.flux.asset_importer.core import AssetImporterModel as _AssetImporterModel
 from omni.flux.asset_importer.core import ImporterCore as _ImporterCore
 from omni.flux.asset_importer.core.data_models import SUPPORTED_ASSET_EXTENSIONS as _SUPPORTED_ASSET_EXTENSIONS
@@ -610,12 +611,10 @@ class AssetImporter(_ContextBaseUSD):
                 _InfoIconWidget("The directory to import the converted input files to.")
 
             self._project_stage_event_sub = None
-            self._project_stage_event_sub = (
-                omni.usd.get_context("")
-                .get_stage_event_stream()
-                .create_subscription_to_pop(
-                    partial(self.__on_project_stage_event, schema_data), name="Asset Importer Project Open"
-                )
+            self._project_stage_event_sub = get_eventdispatcher().observe_event(
+                event_name=omni.usd.get_context("").stage_event_name(omni.usd.StageEventType.OPENED),
+                on_event=partial(self.__on_project_stage_opened, schema_data),
+                observer_name="omni.flux.validator.plugin.context.usd_stage:AssetImporter.__on_project_stage_opened",
             )
 
             await self._update_default_output_directory(schema_data)
@@ -677,9 +676,7 @@ class AssetImporter(_ContextBaseUSD):
                 carb.tokens.get_tokens_interface().resolve(str(schema_data.output_directory))
             )
 
-    def __on_project_stage_event(self, schema_data: Data, event) -> None:
-        if event.type != int(omni.usd.StageEventType.OPENED):
-            return
+    def __on_project_stage_opened(self, schema_data: Data, _event) -> None:
         self._output_directory_user_modified = False
         ensure_future(self._update_default_output_directory(schema_data))
 

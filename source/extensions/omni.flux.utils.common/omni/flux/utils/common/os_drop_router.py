@@ -19,11 +19,10 @@ from __future__ import annotations
 
 __all__ = ["WidgetDropRouter"]
 
-from typing import Any
-
 import carb
 import omni.appwindow
 import omni.ui as ui
+from carb.eventdispatcher import ObserverGuard, get_eventdispatcher
 
 from omni.flux.utils.common.mouse import get_mouse_position, is_point_inside_widget
 
@@ -41,7 +40,7 @@ class WidgetDropRouter:
     """
 
     _registered_widgets: set[ui.Frame] = set()
-    _drop_subscription: Any = None
+    _drop_subscription: ObserverGuard | None = None
 
     @classmethod
     def _global_drop_widget_router_callback(cls, event) -> None:
@@ -98,9 +97,11 @@ class WidgetDropRouter:
 
         if not cls._drop_subscription:
             app_window = omni.appwindow.get_default_app_window()
-            cls._drop_subscription = app_window.get_window_drop_event_stream().create_subscription_to_pop(
-                cls._global_drop_widget_router_callback,
-                name="WidgetDropRouter",
+            cls._drop_subscription = get_eventdispatcher().observe_event(
+                event_name=omni.appwindow.GLOBAL_EVENT_WINDOW_DROP,
+                on_event=cls._global_drop_widget_router_callback,
+                filter=app_window.get_event_key(),
+                observer_name="omni.flux.utils.common:WidgetDropRouter._global_drop_widget_router_callback",
                 order=0,
             )
 

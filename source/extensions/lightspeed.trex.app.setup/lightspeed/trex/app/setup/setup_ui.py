@@ -28,6 +28,7 @@ import omni.appwindow
 import omni.kit
 import omni.splash
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from omni.flux.utils.widget.resources import get_menubar_ignore_file as _get_menubar_ignore_file
 from omni.kit.menu.utils import MenuLayout
 
@@ -112,11 +113,10 @@ class SetupUI:
             self._on_app_ready()
         else:
             # Editor Menu API must be used when the app is ready.
-            startup_event_stream = app.get_startup_event_stream()
-            self.__sub_app_ready = startup_event_stream.create_subscription_to_pop_by_type(
-                omni.kit.app.EVENT_APP_READY,
-                self._on_app_ready,
-                name="Lightspeed App Ready Setup",
+            self.__sub_app_ready = get_eventdispatcher().observe_event(
+                event_name=omni.kit.app.GLOBAL_EVENT_APP_READY,
+                on_event=self._on_app_ready,
+                observer_name="lightspeed.trex.app.setup:SetupUI._on_app_ready",
             )
 
     def _on_app_ready(self, *args):

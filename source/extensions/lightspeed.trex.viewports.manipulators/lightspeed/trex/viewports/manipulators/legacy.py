@@ -19,6 +19,7 @@ from typing import Any
 
 import carb
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from pxr import UsdGeom
 
 from .interface.i_manipulator import IManipulator
@@ -30,9 +31,11 @@ class LegacyGridScene(IManipulator):
         self.__usd_context_name = viewport_api.usd_context_name
         self.__persp_grid = "XZ"
         self.__last_grid = None
-        self.__on_stage_opened(self.stage)
-        self.__stage_sub = self.usd_context.get_stage_event_stream().create_subscription_to_pop(
-            self.__on_usd_context_event, name="LegacyGridScene StageUp watcher"
+        self.__update_perspective_grid(self.stage)
+        self.__stage_sub = get_eventdispatcher().observe_event(
+            event_name=self.usd_context.stage_event_name(omni.usd.StageEventType.OPENED),
+            on_event=lambda _: self.__update_perspective_grid(self.stage),
+            observer_name="lightspeed.trex.viewports.manipulators:LegacyGridScene.__update_perspective_grid",
         )
 
         self.__vc_change = None
@@ -54,16 +57,12 @@ class LegacyGridScene(IManipulator):
     def stage(self):
         return self.usd_context.get_stage()
 
-    def __on_usd_context_event(self, event: carb.events.IEvent):
-        if event.type == int(omni.usd.StageEventType.OPENED):
-            self.__on_stage_opened(self.stage)
-
     def __set_grid(self, grid: str):
         if self.__last_grid != grid:
             self.__last_grid = grid
             carb.settings.get_settings().set("/app/viewport/grid/plane", grid)
 
-    def __on_stage_opened(self, stage):
+    def __update_perspective_grid(self, stage):
         up = UsdGeom.GetStageUpAxis(stage) if stage else None
         if up == UsdGeom.Tokens.x:
             self.__persp_grid = "YZ"
@@ -84,7 +83,7 @@ class LegacyGridScene(IManipulator):
             else:
                 self.__set_grid("YZ")
         else:
-            self.__on_stage_opened(viewport_api.stage)
+            self.__update_perspective_grid(viewport_api.stage)
             self.__set_grid(self.__persp_grid)
 
     @property

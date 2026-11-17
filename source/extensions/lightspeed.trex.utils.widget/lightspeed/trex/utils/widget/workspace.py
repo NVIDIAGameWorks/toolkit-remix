@@ -19,9 +19,13 @@ import abc
 import asyncio
 
 import omni.kit
+from carb.eventdispatcher import get_eventdispatcher
 from omni import ui
+from omni.kit.actions.core import get_action_registry
 from omni.kit.menu import utils as _menu_utils
 from omni.kit.menu.utils import build_submenu_dict
+
+_EXTENSION_ID = "lightspeed.trex.utils.widget"
 
 
 class WorkspaceWidget(abc.ABC):
@@ -105,6 +109,7 @@ class WorkspaceWindowBase(abc.ABC):
         self._show_dock_tab_bars = show_dock_tab_bars
 
         self.__sub_app_ready = None
+        self.__menu_action_id: str | None = None
 
     @property
     @abc.abstractmethod
@@ -161,13 +166,14 @@ class WorkspaceWindowBase(abc.ABC):
 
         if self.menu_path():
             # Editor Menu API must be used when the app is ready.
-            def add_window_menu_item(*args):
+            def on_app_ready(*args):
                 self.update_menu_item(False)
                 self.__sub_app_ready = None
 
-            startup_event_stream = omni.kit.app.get_app().get_startup_event_stream()
-            self.__sub_app_ready = startup_event_stream.create_subscription_to_pop_by_type(
-                omni.kit.app.EVENT_APP_READY, add_window_menu_item, name="Window Menu Item - App Ready"
+            self.__sub_app_ready = get_eventdispatcher().observe_event(
+                event_name=omni.kit.app.GLOBAL_EVENT_APP_READY,
+                on_event=on_app_ready,
+                observer_name="lightspeed.trex.utils.widget:WorkspaceWindowBase.create_window",
             )
 
     def get_window(self) -> ui.Window | ui.ToolBar:
@@ -214,6 +220,10 @@ class WorkspaceWindowBase(abc.ABC):
                 _menu_utils.remove_menu_items(self._menu_dict[group], group)
         self._menu_dict = None
 
+        if self.__menu_action_id is not None:
+            get_action_registry().deregister_action(_EXTENSION_ID, self.__menu_action_id)
+        self.__menu_action_id = None
+
     def update_menu_item(self, visible: bool):
         menu_path = self.menu_path()
         if not menu_path:
@@ -224,13 +234,20 @@ class WorkspaceWindowBase(abc.ABC):
             ui.Workspace.show_window(self.title, not is_visible)
 
         if not self._menu_dict:
-            # path, item_name = menu_path.rsplit("/", 1) if "/" in menu_path else ("", menu_path)
+            self.__menu_action_id = f"toggle_window:{self.title}"
+            get_action_registry().register_action(
+                _EXTENSION_ID,
+                self.__menu_action_id,
+                toggle_callback,
+                display_name=f"Toggle {self.title}",
+                tag="Window",
+            )
             menus = [
                 _menu_utils.MenuItemDescription(
                     name=f"Window/{menu_path}",
                     ticked=visible,
                     ticked_fn=lambda: self._window.visible,
-                    onclick_fn=toggle_callback,
+                    onclick_action=(_EXTENSION_ID, self.__menu_action_id, _menu_utils.MenuActionControl.NODELAY),
                 )
             ]
             self._menu_dict = build_submenu_dict(menus)

@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.12]
+### Changed
+- Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).
+
 ## [3.1.11]
 ### Fixed
 - Accepted uppercase USD extensions during model ingestion drag-and-drop.

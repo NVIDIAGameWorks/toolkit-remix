@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.4.2]
+
+### Changed
+
+- Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).
+
 ## [2.4.1]
 
 ### Changed

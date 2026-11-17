@@ -1,6 +1,6 @@
 [package]
 kit_sdk_version = "110.*"
-version = "1.0.5"
+version = "1.0.6"
 authors = ["Nicolas Kendall-Bar <nkendallbar@nvidia.com>"]
 title = "Particle System gizmos extension"
 description = "Render particle system gizmos using omni.ui.scene"

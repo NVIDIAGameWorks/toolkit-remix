@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, Any
 
 import omni.client
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from lightspeed.common.constants import GAME_READY_ASSETS_FOLDER as _GAME_READY_ASSETS_FOLDER
 from lightspeed.common.constants import OMNI_GRAPH_NODE_TYPE
 from lightspeed.common.constants import PARTICLE_SCHEMA_NAME as _PARTICLE_SCHEMA_NAME
@@ -201,10 +202,10 @@ class AssetReplacementsPane(_WorkspaceWidget):
         self._collapsible_frame_states = {}
 
         self.__create_ui()
-        self._sub_stage_event = self._usd_context.get_stage_event_stream().create_subscription_to_pop_by_type(
-            int(omni.usd.StageEventType.CLOSED),
-            self._on_stage_closed,
-            name="PropertiesPaneStageClosed",
+        self._sub_stage_event = get_eventdispatcher().observe_event(
+            event_name=self._usd_context.stage_event_name(omni.usd.StageEventType.CLOSED),
+            on_event=self._on_stage_closed,
+            observer_name="lightspeed.trex.properties_pane.widget:AssetReplacementsPane._on_stage_closed",
         )
 
         self.__on_go_to_ingest_tab = _Event()

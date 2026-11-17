@@ -16,5 +16,6 @@
 """
 
 from .test_categories_dialog import TestRemixCategoriesDialog
+from .test_workspace import TestWorkspaceWindowBase
 
-__all__ = ["TestRemixCategoriesDialog"]
+__all__ = ["TestRemixCategoriesDialog", "TestWorkspaceWindowBase"]

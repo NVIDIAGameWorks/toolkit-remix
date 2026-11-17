@@ -38,11 +38,6 @@ _TEST_PROJECT = "usd/full_project/full_project.usda"
 _LAYER_MODEL_GET_LAYERS_PATCH = "omni.kit.usd.layers.get_layers"
 
 
-class _NoopLayerEventStream:
-    def create_subscription_to_pop(self, *_args, **_kwargs):
-        return object()
-
-
 class _NoopLayersState:
     def is_layer_locked(self, _identifier: str) -> bool:
         return False
@@ -55,8 +50,9 @@ class _NoopLayersState:
 
 
 class _NoopLayers:
-    def get_event_stream(self):
-        return _NoopLayerEventStream()
+    def get_event_key(self):
+        """Return a filter that excludes live layer events."""
+        return {"source_layer_picker_test": True}
 
     def get_layers_state(self):
         return _NoopLayersState()

@@ -31,6 +31,7 @@ __all__ = [
 from typing import TYPE_CHECKING
 
 import omni.usd
+from carb.eventdispatcher import get_eventdispatcher
 from omni.ui import scene as sc
 from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdLux
 
@@ -154,9 +155,10 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
         self._stage_listener: Tf.Listener | None = None
 
         # Track selection change
-        self._events = self._usd_context.get_stage_event_stream()
-        self._stage_event_sub = self._events.create_subscription_to_pop(
-            self._on_stage_event, name="Light Manipulator Selection Change"
+        self._stage_event_sub = get_eventdispatcher().observe_event(
+            event_name=self._usd_context.stage_event_name(omni.usd.StageEventType.SELECTION_CHANGED),
+            on_event=lambda _: self._on_kit_selection_changed(),
+            observer_name="lightspeed.ui_scene.light_manipulator:AbstractLightModel._on_kit_selection_changed",
         )
 
     def __del__(self):
@@ -165,7 +167,7 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
     def destroy(self):
         """Release the stage event subscription and the USD listener.
 
-        The subscription holds a bound method of this model. Without this call the model never
+        The subscription holds a callback that references this model. Without this call the model never
         becomes unreachable, and it handles every stage event for the rest of the session.
         """
         self._stage_event_sub = None
@@ -339,11 +341,6 @@ class AbstractLightModel(sc.AbstractManipulatorModel):
             self._set_intensity(self._time, value[0])
         else:
             self._set_floats(item, value)
-
-    def _on_stage_event(self, event):
-        """Called by stage_event_stream"""
-        if event.type == int(omni.usd.StageEventType.SELECTION_CHANGED):
-            self._on_kit_selection_changed()
 
     def _invalidate_object(self):
         # Revoke the Tf.Notice listener, we don't need to update anything

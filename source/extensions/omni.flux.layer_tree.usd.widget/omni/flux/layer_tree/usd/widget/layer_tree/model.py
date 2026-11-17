@@ -29,6 +29,7 @@ from collections.abc import Callable
 import carb
 import omni.kit.undo
 import omni.kit.usd.layers as _layers
+from carb.eventdispatcher import get_eventdispatcher
 from omni import usd
 from omni.flux.layer_tree.usd.core import LayerCustomData as _LayerCustomData
 from omni.flux.utils.common import Event as _Event
@@ -189,14 +190,46 @@ class LayerModel(_TreeModelBase[ItemBase]):
             value: whether the listeners should be enabled or disabled
         """
         if value:
-            self._layer_events = (
-                _layers.get_layers(self._context)
-                .get_event_stream()
-                .create_subscription_to_pop(self.__on_layer_events, name="LayerEvent")
-            )
-            self._stage_events = self._context.get_stage_event_stream().create_subscription_to_pop(
-                self.__on_stage_events, name="StageEvent"
-            )
+            layers = _layers.get_layers(self._context)
+            self._layer_events = [
+                *(
+                    get_eventdispatcher().observe_event(
+                        event_name=_layers.layer_event_name(event_type),
+                        on_event=lambda _: self.refresh(),
+                        filter=layers.get_event_key(),
+                        observer_name="omni.flux.layer_tree.usd.widget:LayerModel.refresh",
+                    )
+                    for event_type in (
+                        _layers.LayerEventType.DIRTY_STATE_CHANGED,
+                        _layers.LayerEventType.LOCK_STATE_CHANGED,
+                        _layers.LayerEventType.MUTENESS_STATE_CHANGED,
+                        _layers.LayerEventType.SUBLAYERS_CHANGED,
+                    )
+                ),
+                get_eventdispatcher().observe_event(
+                    event_name=_layers.layer_event_name(_layers.LayerEventType.EDIT_TARGET_CHANGED),
+                    on_event=self.__on_layer_edit_target_changed,
+                    filter=layers.get_event_key(),
+                    observer_name="omni.flux.layer_tree.usd.widget:LayerModel.__on_layer_edit_target_changed",
+                ),
+            ]
+            self._stage_events = [
+                get_eventdispatcher().observe_event(
+                    event_name=self._context.stage_event_name(usd.StageEventType.OPENED),
+                    on_event=self.__on_stage_opened_event,
+                    observer_name="omni.flux.layer_tree.usd.widget:LayerModel.__on_stage_opened_event",
+                ),
+                get_eventdispatcher().observe_event(
+                    event_name=self._context.stage_event_name(usd.StageEventType.OPEN_FAILED),
+                    on_event=self.__on_stage_events,
+                    observer_name="omni.flux.layer_tree.usd.widget:LayerModel.__on_stage_events",
+                ),
+                get_eventdispatcher().observe_event(
+                    event_name=self._context.stage_event_name(usd.StageEventType.CLOSED),
+                    on_event=self.__on_stage_events,
+                    observer_name="omni.flux.layer_tree.usd.widget:LayerModel.__on_stage_events",
+                ),
+            ]
             self._context = usd.get_context(self._context_name)
             self.stage = self._context.get_stage()
 
@@ -1025,32 +1058,22 @@ class LayerModel(_TreeModelBase[ItemBase]):
                     usd_context=self._context_name,
                 )
 
-    def __on_layer_events(self, event):
-        payload = _layers.get_layer_event_payload(event)
-        if payload.event_type not in {
-            _layers.LayerEventType.DIRTY_STATE_CHANGED,
-            _layers.LayerEventType.LOCK_STATE_CHANGED,
-            _layers.LayerEventType.MUTENESS_STATE_CHANGED,
-            _layers.LayerEventType.SUBLAYERS_CHANGED,
-            _layers.LayerEventType.EDIT_TARGET_CHANGED,
-        }:
-            return
-        if payload.event_type == _layers.LayerEventType.EDIT_TARGET_CHANGED:
-            # Notify before scheduling refresh so listeners can mark the next model rebuild as edit-target driven.
-            self.__on_edit_target_changed()
+    def __on_layer_edit_target_changed(self, _event):
+        # Notify listeners before the refresh so they can identify the edit-target change.
+        self.__on_edit_target_changed()
         self.refresh()
 
-    def __on_stage_events(self, event):
-        if usd.StageEventType(event.type) not in {
-            usd.StageEventType.OPENED,
-            usd.StageEventType.OPEN_FAILED,
-            usd.StageEventType.CLOSED,
-        }:
-            return
+    def __update_stage(self):
         self._context = usd.get_context(self._context_name)
         self.stage = self._context.get_stage()
-        if usd.StageEventType(event.type) == usd.StageEventType.OPENED:
-            self.__on_stage_opened()
+
+    def __on_stage_opened_event(self, _event):
+        self.__update_stage()
+        self.__on_stage_opened()
+        self.refresh()
+
+    def __on_stage_events(self, _event):
+        self.__update_stage()
         self.refresh()
 
     def subscribe_refresh_started(self, function):

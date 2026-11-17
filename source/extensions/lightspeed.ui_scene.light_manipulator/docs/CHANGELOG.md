@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.4]
+### Changed
+- Migrated deprecated event stream subscriptions to Events 2.0 (`carb.eventdispatcher`).
+
 ## [1.3.3]
 ### Fixed
 - Released the stage event subscription and USD listener of each light model when its manipulator is destroyed. Before, each manipulator rebuild leaked models that handled every stage event for the rest of the session.

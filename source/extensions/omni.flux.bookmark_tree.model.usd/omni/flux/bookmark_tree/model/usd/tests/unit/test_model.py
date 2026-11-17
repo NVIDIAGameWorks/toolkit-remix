@@ -15,13 +15,14 @@
 * limitations under the License.
 """
 
-from unittest.mock import Mock, call, patch
+from unittest.mock import ANY, Mock, call, patch
 
 import omni.kit
 import omni.kit.test
 import omni.usd
 from omni.flux.bookmark_tree.model.usd import UsdBookmarkCollectionModel as BookmarkModel
 from omni.flux.bookmark_tree.model.usd import USDListener
+from omni.flux.bookmark_tree.model.usd import model
 from omni.flux.bookmark_tree.widget import BookmarkCollectionItem, BookmarkItem, ComponentTypes, CreateBookmarkItem
 from omni.kit import commands
 from pxr import Usd
@@ -82,6 +83,30 @@ class TestModel(omni.kit.test.AsyncTestCase):
 
     async def test_enable_listeners_disable_removes_model(self):
         await self.__run_test_enable_listeners(False)
+
+    async def test_selection_changed_notifies_active_items(self):
+        """Forward the current active items to the selection notification handler."""
+        # Arrange
+        bookmark_model = BookmarkModel()
+        self.addCleanup(bookmark_model.destroy)
+        active_items = ["/TestPrim"]
+
+        with (
+            patch.object(model, "get_eventdispatcher") as dispatcher_mock,
+            patch.object(USDListener, "add_model"),
+            patch.object(BookmarkModel, "refresh"),
+            patch.object(BookmarkModel, "get_active_items", return_value=active_items) as get_active_items_mock,
+            patch.object(BookmarkModel, "_on_active_items_changed") as active_items_changed_mock,
+        ):
+            bookmark_model.enable_listeners(True)
+            on_event = dispatcher_mock.return_value.observe_event.call_args.kwargs["on_event"]
+
+            # Act
+            on_event(object())
+
+        # Assert
+        get_active_items_mock.assert_called_once_with()
+        active_items_changed_mock.assert_called_once_with(active_items)
 
     async def test_create_collection_no_stage_quick_return(self):
         # Arrange
@@ -312,31 +337,40 @@ class TestModel(omni.kit.test.AsyncTestCase):
 
     async def __run_test_enable_listeners(self, enable: bool):
         # Arrange
-        model = BookmarkModel()
+        bookmark_model = BookmarkModel()
+        self.addCleanup(bookmark_model.destroy)
+        if not enable:
+            bookmark_model._stage_event = Mock()
 
         with (
             patch.object(USDListener, "add_model") as add_model_mock,
             patch.object(USDListener, "remove_model") as remove_model_mock,
-            patch.object(omni.usd.UsdContext, "get_stage_event_stream") as event_stream_mock,
+            patch.object(model, "get_eventdispatcher") as dispatcher_mock,
             patch.object(omni.usd.UsdContext, "get_stage") as get_stage_mock,
             patch.object(BookmarkModel, "refresh") as refresh_mock,
         ):
-            create_sub_mock = event_stream_mock.return_value.create_subscription_to_pop
+            observe_event_mock = dispatcher_mock.return_value.observe_event
 
             # Act
-            model.enable_listeners(enable)
+            bookmark_model.enable_listeners(enable)
 
         # Assert
         self.assertEqual(1 if enable else 0, add_model_mock.call_count)
-        self.assertEqual(1 if enable else 0, create_sub_mock.call_count)
+        self.assertEqual(1 if enable else 0, observe_event_mock.call_count)
         self.assertEqual(1 if enable else 0, get_stage_mock.call_count)
         self.assertEqual(1 if enable else 0, refresh_mock.call_count)
 
         self.assertEqual(0 if enable else 1, remove_model_mock.call_count)
 
         if enable:
-            _, kwargs = create_sub_mock.call_args
-            self.assertDictEqual({"name": "StageEvent"}, kwargs)
+            observe_event_mock.assert_called_once_with(
+                event_name=omni.usd.get_context().stage_event_name(omni.usd.StageEventType.SELECTION_CHANGED),
+                on_event=ANY,
+                observer_name=ANY,
+            )
+            self.assertIs(bookmark_model._stage_event, observe_event_mock.return_value)
+        else:
+            self.assertIsNone(bookmark_model._stage_event)
 
     async def __run_test_create_collection(self, existing_prim: bool, use_parent: bool):
         # Arrange

@@ -24,6 +24,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import omni.kit.app
 from omni import ui
+from omni.flux.utils.widget import scrolling_tree_view
 from omni.flux.utils.widget.scrolling_tree_view import ScrollingTreeWidget
 from omni.kit import ui_test
 from omni.kit.test import AsyncTestCase
@@ -154,6 +155,33 @@ class TestScrollingTreeWidget(AsyncTestCase):
         # Cleanup
         del widget
         window.destroy()
+
+    async def test_window_resize_with_default_app_window_filter_refreshes_tree(self):
+        """Register the default window filter and refresh the tree on resize."""
+        # Arrange
+        app_window = Mock()
+        app_window.get_event_key.return_value = {"window": "default"}
+        dispatcher = Mock()
+        with (
+            patch.object(ScrollingTreeWidget, "_build_ui"),
+            patch.object(scrolling_tree_view, "get_eventdispatcher", return_value=dispatcher),
+            patch.object(scrolling_tree_view.appwindow, "get_default_app_window", return_value=app_window),
+        ):
+            widget = ScrollingTreeWidget(Mock(), Mock())
+        tree_widget = Mock()
+        widget._tree_widget = tree_widget
+        registration = dispatcher.observe_event.call_args.kwargs
+        try:
+            # Act
+            registration["on_event"](Mock())
+
+            # Assert
+            dispatcher.observe_event.assert_called_once()
+            self.assertEqual(registration["event_name"], scrolling_tree_view.appwindow.GLOBAL_EVENT_WINDOW_RESIZE)
+            self.assertEqual(registration["filter"], app_window.get_event_key.return_value)
+            tree_widget.dirty_widgets.assert_called_once_with()
+        finally:
+            widget.destroy()
 
     async def test_destroy_releases_tasks_subscriptions_and_owned_widgets(self):
         """Explicit destruction releases resources without waiting for garbage collection."""

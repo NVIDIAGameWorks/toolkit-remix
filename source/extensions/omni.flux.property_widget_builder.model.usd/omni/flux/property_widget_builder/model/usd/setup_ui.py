@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 from collections.abc import Awaitable, Callable
 
 import omni.kit.usd.layers as _layers
+from carb.eventdispatcher import get_eventdispatcher
 from omni import ui, usd
 from omni.flux.property_widget_builder.widget import PropertyWidget as _PropertyWidget
 
@@ -78,12 +79,21 @@ class USDPropertyWidget(_PropertyWidget):
         self.enable_listeners(True)
 
     def enable_listeners(self, value: bool) -> None:
+        """Enable or disable layer event observers."""
         if value:
-            self._layer_events = (
-                _layers.get_layers(usd.get_context(self._context_name))
-                .get_event_stream()
-                .create_subscription_to_pop(self.__on_layer_event_listener, name="LayerEvent")
-            )
+            layers = _layers.get_layers(usd.get_context(self._context_name))
+            self._layer_events = [
+                get_eventdispatcher().observe_event(
+                    event_name=_layers.layer_event_name(event_type),
+                    on_event=lambda _: self._on_refresh_widget(),
+                    filter=layers.get_event_key(),
+                    observer_name="omni.flux.property_widget_builder.model.usd:USDPropertyWidget._on_refresh_widget",
+                )
+                for event_type in (
+                    _layers.LayerEventType.MUTENESS_STATE_CHANGED,
+                    _layers.LayerEventType.SUBLAYERS_CHANGED,
+                )
+            ]
         else:
             self._layer_events = None
 
@@ -91,15 +101,6 @@ class USDPropertyWidget(_PropertyWidget):
         if self.__refresh_task is not None:
             self.__refresh_task.cancel()
         self.__refresh_task = asyncio.ensure_future(self.__refresh_async())
-
-    def __on_layer_event_listener(self, event):
-        payload = _layers.get_layer_event_payload(event)
-        if payload.event_type not in {
-            _layers.LayerEventType.MUTENESS_STATE_CHANGED,
-            _layers.LayerEventType.SUBLAYERS_CHANGED,
-        }:
-            return
-        self._on_refresh_widget()
 
     @usd.handle_exception
     async def __refresh_async(self):

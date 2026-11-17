@@ -66,21 +66,23 @@ class TestMCPCoreExtension(omni.kit.test.AsyncTestCase):
         # Arrange
         app = mock.Mock()
         app.is_app_ready.return_value = False
-        startup_event_stream = mock.Mock()
+        event_dispatcher = mock.Mock()
         subscription = mock.Mock()
-        app.get_startup_event_stream.return_value = startup_event_stream
-        startup_event_stream.create_subscription_to_pop_by_type.return_value = subscription
+        event_dispatcher.observe_event.return_value = subscription
         extension = extension_module.MCPCoreExtension()
 
-        with mock.patch.object(extension_module.omni.kit.app, "get_app", return_value=app):
+        with (
+            mock.patch.object(extension_module.omni.kit.app, "get_app", return_value=app),
+            mock.patch.object(extension_module, "get_eventdispatcher", return_value=event_dispatcher),
+        ):
             # Act
             extension.on_startup("lightspeed.trex.mcp.core")
 
         # Assert
-        startup_event_stream.create_subscription_to_pop_by_type.assert_called_once_with(
-            omni.kit.app.EVENT_APP_READY,
-            extension._on_app_ready,
-            name="MCP Server App Ready",
+        event_dispatcher.observe_event.assert_called_once_with(
+            event_name=omni.kit.app.GLOBAL_EVENT_APP_READY,
+            on_event=extension._on_app_ready,
+            observer_name=mock.ANY,
         )
         self.assertIs(extension._app_ready_subscription, subscription)
 
