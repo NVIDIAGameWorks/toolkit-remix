@@ -1,6 +1,12 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.3.6]
+### Fixed
+- Stopped each light model's stage event observer explicitly on destroy and cleared its cached xform prim, instead of relying on the subscription handle being dropped.
+- Made manipulator and model teardown release every handle even when an earlier step raises, so one failing handle can no longer strand a live stage event subscription.
+- Logged light manipulator teardown failures instead of silently suppressing them.
+
 ## [1.3.5]
 ### Removed
 - Removed screenshot-based light manipulator tests, reference images, and test display overrides.

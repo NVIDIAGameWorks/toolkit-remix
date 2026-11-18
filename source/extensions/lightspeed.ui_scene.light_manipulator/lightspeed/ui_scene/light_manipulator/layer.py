@@ -19,7 +19,7 @@ from __future__ import annotations
 
 __all__ = ["LightManipulatorLayer"]
 
-from contextlib import suppress
+import traceback
 
 import carb
 import omni.usd
@@ -371,9 +371,12 @@ class LightManipulatorLayer:
                 self._manipulators[str(light.GetPrimPath())] = manipulator
 
     def _destroy_manipulators(self):
-        for manipulator in self._manipulators.values():
-            with suppress(Exception):
+        for path, manipulator in self._manipulators.items():
+            try:
                 manipulator.destroy()
+            except Exception:  # noqa: BLE001
+                # Keep going: bailing out would leak the remaining manipulators' subscriptions.
+                carb.log_error(f"Failed to destroy light manipulator for {path}: {traceback.format_exc()}")
 
         if self._scene_view:
             self._scene_view.scene.clear()

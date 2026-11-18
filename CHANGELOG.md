@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-3057: Reduced light intensity, light radius, and material emissive intensity drag speeds, with a finer distant-light intensity default and support for per-type tuning and metadata overrides, while preserving precise typed input.
 - Fixed Windows agent-hook Unicode diagnostics and excluded ignored local scratch packages from repository lint.
 - REMIX-6266: Fixed Job Queue output cleanup, Asset Modifier feedback, and workspace window behavior.
+- Hardened light manipulator teardown: each light model now unsubscribes from stage events explicitly, every handle is released even when an earlier teardown step fails, and teardown failures are logged instead of silently suppressed.
 
 ### Removed
 

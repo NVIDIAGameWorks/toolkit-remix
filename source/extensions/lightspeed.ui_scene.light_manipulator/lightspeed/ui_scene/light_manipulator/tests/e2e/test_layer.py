@@ -15,6 +15,8 @@
 * limitations under the License.
 """
 
+from unittest.mock import MagicMock
+
 import carb
 import omni.kit.test
 import omni.usd
@@ -553,4 +555,104 @@ class TestLightLayer(OmniUiTest):
         finally:
             if token is not None:
                 _end_interaction(token)
+            layer.destroy()
+
+    async def test_manipulator_teardown_releases_model_stage_event_subscription(self):
+        """Layer teardown should release each model's stage event subscription and USD listener, and stay idempotent."""
+        vp_api = ViewportAPI("", 0, lambda: 0)
+        layer = LightManipulatorLayer({"viewport_api": vp_api})
+        try:
+            light = self.stage.DefinePrim("/TeardownDisk")
+            light.SetTypeName("DiskLight")
+
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
+            self.assertEqual(len(layer.manipulators), 1)
+
+            model = self._wire_model_light(layer, "/TeardownDisk").model
+            model._stage_listener = Tf.Notice.Register(Usd.Notice.ObjectsChanged, model._notice_changed, self.stage)
+
+            model._xform_prim = self.stage.GetPrimAtPath("/TeardownDisk")
+
+            self.assertIsNotNone(model._stage_event_sub)
+            self.assertIsNotNone(model._stage_listener)
+
+            layer._destroy_manipulators()
+
+            self.assertIsNone(model._stage_event_sub)
+            self.assertIsNone(model._stage_listener)
+            self.assertIsNone(model._xform_prim)
+
+            model.destroy()
+        finally:
+            layer.destroy()
+
+    async def test_model_teardown_keeps_failed_handles_and_releases_the_rest(self):
+        """A failing release must not strand the others, must keep its own handle, and must stay retryable."""
+        vp_api = ViewportAPI("", 0, lambda: 0)
+        layer = LightManipulatorLayer({"viewport_api": vp_api})
+        try:
+            light = self.stage.DefinePrim("/FailingTeardownDisk")
+            light.SetTypeName("DiskLight")
+
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
+            model = self._wire_model_light(layer, "/FailingTeardownDisk").model
+
+            failing_sub = MagicMock()
+            failing_sub.reset.side_effect = RuntimeError("reset failed")
+            failing_listener = MagicMock()
+            failing_listener.Revoke.side_effect = RuntimeError("revoke failed")
+
+            model._stage_event_sub.reset()
+            model._stage_event_sub = failing_sub
+            model._stage_listener = failing_listener
+            model._xform_prim = self.stage.GetPrimAtPath("/FailingTeardownDisk")
+
+            with self.assertRaises(RuntimeError):
+                model.destroy()
+
+            failing_sub.reset.assert_called_once()
+            failing_listener.Revoke.assert_called_once()
+            self.assertIs(model._stage_event_sub, failing_sub)
+            self.assertIs(model._stage_listener, failing_listener)
+            self.assertIsNone(model._light)
+            self.assertIsNone(model._xform_prim)
+
+            retry_sub, retry_listener = MagicMock(), MagicMock()
+            model._stage_event_sub = retry_sub
+            model._stage_listener = retry_listener
+            model.destroy()
+
+            retry_sub.reset.assert_called_once()
+            retry_listener.Revoke.assert_called_once()
+            self.assertIsNone(model._stage_event_sub)
+            self.assertIsNone(model._stage_listener)
+        finally:
+            layer.destroy()
+
+    async def test_layer_teardown_releases_model_when_manipulator_cleanup_fails(self):
+        """A manipulator whose own teardown raises must still release its model's stage event subscription."""
+        vp_api = ViewportAPI("", 0, lambda: 0)
+        layer = LightManipulatorLayer({"viewport_api": vp_api})
+        try:
+            light = self.stage.DefinePrim("/FailingManipulatorDisk")
+            light.SetTypeName("DiskLight")
+
+            get_eventdispatcher().dispatch_event(
+                omni.usd.get_context().stage_event_name(omni.usd.StageEventType.HIERARCHY_CHANGED), payload={}
+            )
+            manipulator = self._wire_model_light(layer, "/FailingManipulatorDisk")
+            model = manipulator.model
+            manipulator._interaction_end_subscription = MagicMock()
+            manipulator._interaction_end_subscription.revoke.side_effect = RuntimeError("revoke failed")
+
+            self.assertIsNotNone(model._stage_event_sub)
+
+            layer._destroy_manipulators()
+
+            self.assertIsNone(model._stage_event_sub)
+        finally:
             layer.destroy()

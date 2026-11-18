@@ -356,15 +356,17 @@ class AbstractLightManipulator(sc.Manipulator):
             self.destroy()
 
     def destroy(self) -> None:
-        self._revoke_interaction_end_subscription()
-        self._cone_refresh_deferred = False
-        self._cone_xform = None
-        self._cone_lines.clear()
-        self._cone_arcs.clear()
-        self._intensity_arrows = None
-        self._shaping_authored_cache = None
-        if self.model:
-            self.model.destroy()
+        try:
+            self._revoke_interaction_end_subscription()
+        finally:
+            self._cone_refresh_deferred = False
+            self._cone_xform = None
+            self._cone_lines.clear()
+            self._cone_arcs.clear()
+            self._intensity_arrows = None
+            self._shaping_authored_cache = None
+            if self.model:
+                self.model.destroy()
 
     def _revoke_interaction_end_subscription(self):
         if self._interaction_end_subscription is None:
