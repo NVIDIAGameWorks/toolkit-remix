@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-6266: Fixed Job Queue output cleanup, Asset Modifier feedback, and workspace window behavior.
 - Hardened light manipulator teardown: each light model now unsubscribes from stage events explicitly, every handle is released even when an earlier teardown step fails, and teardown failures are logged instead of silently suppressed.
 - Fixed flaky CI tests: a `SyntaxWarning` in the content viewer thumbnail core failed the content library tests on first load, the Job Queue widget released value trees that native rows still drew and posted bulk action notifications that Kit dropped, and the property clipboard tests waited a frame count for notifications that Kit shows on a wall-clock timer.
+- Fixed Windows Codex canary failures and concurrent review fetches, and automated setup repairs that do not require installation, login, or a new model choice.
 
 ### Removed
 

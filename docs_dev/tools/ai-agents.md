@@ -146,10 +146,21 @@ mirror removes the wrappers with the procedures.
 
 ### Codex Reviews on Windows
 
-Codex review workers grant read access to the installation directory of `pwsh` found on `PATH`, falling back to
-`powershell`. Self-contained PowerShell needs adjacent runtime files to start; without this access, the canary can
-fail with `Failed to resolve full path of the current executable`. The grant remains read-only, and shell network
-access remains disabled.
+On Windows, Codex review workers use the built-in `:read-only` permission profile: shell commands can read the file
+system, but cannot write, and have no network access. Codex has no separate file-read tool, so the shell stays enabled
+for reads. The workers keep the shell, the built-in web search tool, and the read-only image viewer. Apps, hooks,
+plugins, memories, subagents, goals, image generation, the sleep tool, tool suggestions, skill search, and skill
+dependency installation are disabled. With Codex 0.169, a custom profile that limits reads to the review workspace
+does not work on Windows: the elevated sandbox requires `:root` read access and fails every canary with
+`elevated Windows sandbox requires effective :root read access`. On other platforms, workers keep the custom
+`remix_reviewer` profile, which reads only the review workspace and the declared read paths.
+
+The elevated sandbox runs commands as separate local accounts. It grants them read access only on the Codex working
+folder. On Windows, Python 3.12.4 and later give each `tempfile.mkdtemp` folder an owner-only ACL. Codex workers on
+Windows therefore start in the temporary run root, not in its `project/` folder, so that the Codex grant also covers
+the review checkout beside `project/`. The run root is not a Git repository, so workers pass `--skip-git-repo-check`,
+and the review tool stages the worker `AGENTS.md` in the run root as well. The review tool changes no ACL. Claude
+keeps `project/` as its working folder, so it never loads instructions from the reviewed checkout.
 
 ### Review Scheduling
 

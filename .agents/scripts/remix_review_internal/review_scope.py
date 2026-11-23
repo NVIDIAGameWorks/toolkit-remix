@@ -86,7 +86,6 @@ class ReviewTarget:
     target_branch: str
     base: str
     head: str
-    fetch_ref: str
     forge_evidence: ForgeEvidence
 
 
@@ -602,7 +601,6 @@ def _gitlab_target(payload: dict, requested: str, evidence: ForgeEvidence) -> Re
         target_branch=str(payload["target_branch"]),
         base=str(diff_refs["base_sha"]),
         head=str(diff_refs["head_sha"]),
-        fetch_ref=f"refs/merge-requests/{number}/head",
         forge_evidence=evidence,
     )
 
@@ -619,7 +617,6 @@ def _github_target(payload: dict, requested: str) -> ReviewTarget:
         target_branch=str(payload["baseRefName"]),
         base=str(payload["baseRefOid"]),
         head=str(payload["headRefOid"]),
-        fetch_ref=f"refs/pull/{number}/head",
         forge_evidence=_github_evidence(payload),
     )
 
@@ -721,40 +718,30 @@ def _fetch_review(
     *,
     deadline_mono: float | None = None,
 ) -> ReviewTarget:
-    """Fetch and verify one exact remote review range within a deadline."""
-    environment = clean_environment()
-    environment["GIT_TERMINAL_PROMPT"] = "0"
-    fetch = run_git(
-        repository,
-        "fetch",
-        "--no-tags",
-        "origin",
-        target.fetch_ref,
-        check=False,
-        environment=environment,
-        timeout=_remaining_timeout(deadline_mono, 60.0),
-    )
-    if fetch.returncode:
-        raise RuntimeError("Git could not fetch the exact review head from origin. Verify repository access.")
-    fetched_head = run_git(repository, "rev-parse", "FETCH_HEAD").stdout.decode("utf-8").strip()
-    if fetched_head != target.head:
-        raise RuntimeError("The fetched review head does not match the forge metadata. Retry the review.")
-    if run_git(repository, "cat-file", "-e", f"{target.base}^{{commit}}", check=False).returncode:
-        base_fetch = run_git(
+    """Fetch the exact review commits by SHA when they are missing locally."""
+    missing = [
+        sha
+        for sha in (target.head, target.base)
+        if run_git(repository, "cat-file", "-e", f"{sha}^{{commit}}", check=False).returncode
+    ]
+    if missing:
+        environment = clean_environment()
+        environment["GIT_TERMINAL_PROMPT"] = "0"
+        fetch = run_git(
             repository,
             "fetch",
             "--no-tags",
             "origin",
-            target.target_branch,
+            *missing,
             check=False,
             environment=environment,
             timeout=_remaining_timeout(deadline_mono, 60.0),
         )
-        if (
-            base_fetch.returncode
-            or run_git(repository, "cat-file", "-e", f"{target.base}^{{commit}}", check=False).returncode
-        ):
-            raise RuntimeError("Git could not resolve the exact review base from origin.")
+        if fetch.returncode:
+            raise RuntimeError(
+                "Git could not fetch the exact review commits from origin. "
+                "Verify repository access, and that origin is the reviewed repository."
+            )
     if target.kind == "github_pr":
         merge_base = run_git(repository, "merge-base", target.base, target.head, check=False)
         base = merge_base.stdout.decode("utf-8", errors="replace").strip()

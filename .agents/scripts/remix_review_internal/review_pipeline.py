@@ -401,8 +401,6 @@ class ProbeResult:
     evidence: str
 
 
-_PROBE_MARKER = "## Code Style"
-
 _WORKER_PROJECT_INSTRUCTIONS = (
     "# Remix Review Worker\n\n"
     "Follow the host-issued packet instructions and receipt contract.\n"
@@ -437,7 +435,12 @@ def _sandbox_probes(
 
 
 def _run_probe_worker(
-    provider: Provider, readiness: ProviderReadiness, probe_dir: Path, prompt: str, selection: ProviderSelection
+    provider: Provider,
+    readiness: ProviderReadiness,
+    probe_dir: Path,
+    prompt: str,
+    selection: ProviderSelection,
+    repository: Path = REPO_ROOT,
 ) -> dict:
     """Run one provider worker probe and return its decoded output."""
     probe_dir.mkdir(parents=True, exist_ok=True)
@@ -457,7 +460,7 @@ def _run_probe_worker(
         prompt_path=prompt_path,
         stdout_path=stdout_path,
         stderr_path=stderr_path,
-        read_paths=_worker_read_paths(REPO_ROOT, prompt_path),
+        read_paths=_worker_read_paths(repository, prompt_path),
         selection=selection,
     )
     provider.prepare_workspace(request)
@@ -490,16 +493,20 @@ def _probe_prompt(action: str) -> str:
 def _read_probe(
     provider: Provider, readiness: ProviderReadiness, probe_dir: Path, selection: ProviderSelection
 ) -> ProbeResult:
-    """Prove the worker can read one workspace rule document."""
-    target = REPO_ROOT / ".agents" / "rules" / "code-style.md"
-    prompt = _probe_prompt(f"Read the file {target} and set notes to the exact first line of that file.")
+    """Prove the worker can read a checkout beside its staged project in the temporary run folder, as dispatch does."""
+    challenge = f"remix-review-read-{secrets.token_hex(16)}"
+    checkout = probe_dir / "read" / "checkout"
+    target = checkout / "challenge.txt"
     try:
-        receipt = _run_probe_worker(provider, readiness, probe_dir / "read", prompt, selection)
+        checkout.mkdir(parents=True, exist_ok=True)
+        target.write_text(challenge + "\n", encoding="utf-8")
+        prompt = _probe_prompt(f"Read the file {target} and set notes to the exact first line of that file.")
+        receipt = _run_probe_worker(provider, readiness, probe_dir / "read", prompt, selection, checkout)
     except (OSError, ValueError, ProbeTimeout) as error:
         return ProbeResult(False, f"read probe could not run: {error}")
-    if _PROBE_MARKER in str(receipt.get("notes") or ""):
-        return ProbeResult(True, "pass [runtime]: worker read a workspace document")
-    return ProbeResult(False, f"worker did not report the first line of {target.name}")
+    if str(receipt.get("notes") or "").strip() == challenge:
+        return ProbeResult(True, "pass [runtime]: worker read a checkout file in its temporary run folder")
+    return ProbeResult(False, f"worker did not report the challenge in {target}")
 
 
 def _write_probe(
@@ -533,9 +540,11 @@ def _write_capability_assertions(
 
     Every provider's review worker is read-only by construction, so this structural proof is the
     write gate for all three providers. Claude: the `--tools` list has no write-capable tool.
-    Codex: the named permission profile grants no write root or network. Cursor: the generated
-    `.cursor/cli.json` denies `Write(**)` and `Shell(*)`. A malformed spec is a gate failure, never
-    an exception: a missing flag or value returns a failed result with the reason.
+    Codex: the worker selects the built-in `:read-only` profile on Windows, and elsewhere a custom
+    `remix_reviewer` profile with no write root and no network.
+    Cursor: the generated `.cursor/cli.json` denies `Write(**)` and `Shell(*)`. A
+    malformed spec is a gate failure, never an exception: a missing flag or value returns a
+    failed result with the reason.
     """
     probe_dir = (
         REPO_ROOT / "_build" / "remix-review" / "doctor-probes" / f"{provider.name}-struct-{uuid.uuid4().hex[:8]}"
@@ -579,31 +588,23 @@ def _write_capability_assertions(
         if provider.name == "codex":
             spec = provider.build_worker(readiness, request)
             if "--sandbox" in spec.argv:
-                return ProbeResult(False, "codex worker spec overrides the named permission profile")
-            default_permissions = next(
-                (
-                    spec.argv[i + 1]
-                    for i, token in enumerate(spec.argv)
-                    if token == "-c" and i + 1 < len(spec.argv) and spec.argv[i + 1].startswith("default_permissions=")
-                ),
-                None,
-            )
-            if default_permissions != 'default_permissions="remix_reviewer"':
-                return ProbeResult(False, "codex worker spec does not select the remix_reviewer permission profile")
-            permissions = next(
-                (
-                    spec.argv[i + 1]
-                    for i, token in enumerate(spec.argv)
-                    if token == "-c" and i + 1 < len(spec.argv) and spec.argv[i + 1].startswith("permissions=")
-                ),
-                None,
-            )
-            if permissions is None:
-                return ProbeResult(False, "worker spec has no permissions configuration to inspect")
-            if '"write"' in permissions:
-                return ProbeResult(False, "codex permissions grant a write root")
-            if "network={enabled=false}" not in permissions:
-                return ProbeResult(False, "codex permissions do not disable the network")
+                return ProbeResult(False, "codex worker spec overrides the permission profile")
+            config = [spec.argv[i + 1] for i, token in enumerate(spec.argv[:-1]) if token == "-c"]
+            permissions = [value for value in config if value.startswith("permissions=")]
+            selectors = [value for value in config if value.startswith("default_permissions=")]
+            expected = 'default_permissions=":read-only"' if os.name == "nt" else 'default_permissions="remix_reviewer"'
+            if selectors != [expected]:
+                return ProbeResult(False, f"codex worker spec must select exactly {expected}, not {selectors}")
+            if os.name == "nt":
+                if permissions:
+                    return ProbeResult(False, "codex worker spec defines a custom permission profile")
+            else:
+                if len(permissions) != 1:
+                    return ProbeResult(False, "worker spec has no permissions configuration to inspect")
+                if '"write"' in permissions[0]:
+                    return ProbeResult(False, "codex permissions grant a write root")
+                if "network={enabled=false}" not in permissions[0]:
+                    return ProbeResult(False, "codex permissions do not disable the network")
             return ProbeResult(True, "pass [structural]: no write capability in the worker specification")
         return ProbeResult(False, f"no write-capability assertion configured for provider {provider.name}")
     finally:
@@ -1307,7 +1308,6 @@ def review(
             if target
             else {"kind": "workspace", "review": arguments.review, "base": snapshot.base_sha, "head": snapshot.head_sha}
         )
-        scope.pop("fetch_ref", None)
         forge_evidence = scope.pop(
             "forge_evidence",
             {"description_state": "not_applicable", "checks_state": "not_applicable", "checks": []},
@@ -1433,7 +1433,6 @@ def scope(arguments) -> dict:
         if target
         else {"kind": "workspace", "review": arguments.review, "base": snapshot.base_sha, "head": snapshot.head_sha}
     )
-    result.pop("fetch_ref", None)
     result.pop("forge_evidence", None)
     result.update(
         {
@@ -5318,6 +5317,8 @@ def _stage_invoking_context(root: Path, destination: Path, rules: list[Rule]) ->
     destination = destination.resolve()
     for name in ("AGENTS.md", "CLAUDE.md"):
         (destination / name).write_text(_WORKER_PROJECT_INSTRUCTIONS, encoding="utf-8")
+    # Codex on Windows starts in the folder above, so that its sandbox read grant covers the checkout.
+    (destination.parent / "AGENTS.md").write_text(_WORKER_PROJECT_INSTRUCTIONS, encoding="utf-8")
     for rule in rules:
         for source_record in rule.sources:
             relative = Path(str(source_record.get("path") or ""))
@@ -5347,11 +5348,9 @@ def _create_external_run_root(root: Path) -> Path:
     try:
         staging_root.relative_to(root)
     except ValueError:
-        pass
-    else:
-        shutil.rmtree(staging_root)
-        raise RuntimeError("The temporary review workspace was created inside the caller repository.")
-    return staging_root
+        return staging_root
+    shutil.rmtree(staging_root)
+    raise RuntimeError("The temporary review workspace was created inside the caller repository.")
 
 
 def _change_path(change: ChangeEntry) -> str:

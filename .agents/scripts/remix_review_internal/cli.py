@@ -64,8 +64,11 @@ _DEFAULT_REASONING = "medium"
 _DEFAULT_HIGH_LEVEL_REASONING = "high"
 
 # Setup codes that only the user can repair, by remedy. See `_setup_required_payload`.
-_INSTALL_SETUP_CODES = frozenset({"CLI_NOT_FOUND", "CLI_UNEXECUTABLE", "FORGE_CLI_NOT_FOUND", "FORGE_CLI_UNEXECUTABLE"})
+_INSTALL_SETUP_CODES = frozenset(
+    {"CLI_NOT_FOUND", "CLI_UNEXECUTABLE", "CLI_INCOMPATIBLE", "FORGE_CLI_NOT_FOUND", "FORGE_CLI_UNEXECUTABLE"}
+)
 _LOGIN_SETUP_CODES = frozenset({"AUTH_REQUIRED", "FORGE_AUTH_REQUIRED"})
+_SELECTION_SETUP_CODES = frozenset({"INVALID_MODEL", "INVALID_REASONING"})
 
 
 class UsageError(ValueError):
@@ -267,20 +270,23 @@ def _setup_required_payload(issues: tuple[SetupIssue, ...]) -> dict:
     )
     forge_only = all(issue.affected_lanes == ("scope",) for issue in ordered)
     codes = {issue.code for issue in ordered}
-    # An install or a login is the user's action: the login is interactive, and a CLI installed
-    # during the session is not on the running shell's PATH. Every other code (a model, a
-    # reasoning value, a configuration file, an unreadable auth status) is a repair the caller
-    # can attempt itself.
+    # An install, a login, or a new model or reasoning choice is the user's action: the login is
+    # interactive, a CLI installed during the session is not on the running shell's PATH, and a
+    # substituted selection would change the approved review. Every other code (a configuration
+    # file, an unreadable auth status) is a repair the caller makes without asking, so the
+    # payload carries no question for it.
     if codes & _INSTALL_SETUP_CODES:
         question = (
-            "Install or reinstall the named CLI, open a new terminal so PATH includes it, run its login command "
-            "there, then ask me to retry. Do you want to do that now?"
+            "Install, reinstall, or update the named CLI, open a new terminal so PATH includes it, run its login "
+            "command there, then ask me to retry. Do you want to do that now?"
         )
     elif codes & _LOGIN_SETUP_CODES:
         question = "Run the login command from the error in your own terminal, then ask me to retry. Do you want to do that now?"
+    elif codes & _SELECTION_SETUP_CODES:
+        question = "The selected model or reasoning value is not available. Which supported value do you want to use?"
     else:
-        question = "Do you want me to fix the listed setup issues and retry?"
-    return {
+        question = None
+    payload = {
         "schema_version": 1,
         "status": "setup_required",
         "stage": "forge_preflight" if forge_only else "provider_preflight",
@@ -290,8 +296,11 @@ def _setup_required_payload(issues: tuple[SetupIssue, ...]) -> dict:
             else "Selected provider setup is incomplete, so the review did not start."
         ),
         "errors": [asdict(issue) for issue in ordered],
-        "question": question,
+        "action": "user" if question else "repair",
     }
+    if question:
+        payload["question"] = question
+    return payload
 
 
 def main(argv: list[str] | None = None) -> int:
