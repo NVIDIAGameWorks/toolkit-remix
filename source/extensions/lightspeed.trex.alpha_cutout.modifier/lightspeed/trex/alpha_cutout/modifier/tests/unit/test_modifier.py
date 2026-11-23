@@ -325,6 +325,39 @@ class TestAlphaCardToMesh(AsyncTestCase):
         self.assertEqual(entry[MATERIAL_PRIM_KEY], MATERIAL_PATH)
         self.assertIsNotNone(entry[MATERIAL_KEY])
 
+    async def test_build_graph_on_a_cutout_file_reads_the_original_model_again(self):
+        # Arrange: a cutout of a capture mesh is given as a model file, without a project.
+        stage = build_capture_stage(self._texture)
+        capture = Usd.Stage.CreateNew(str(self._root / "mesh.usda"))
+        capture.SetDefaultPrim(UsdGeom.Xform.Define(capture, "/mesh_AAAAAAAAAAAAAAAA").GetPrim())
+        Sdf.CopySpec(
+            stage.GetRootLayer(), Sdf.Path(MESH_PRIM_PATH), capture.GetRootLayer(), Sdf.Path(_CAPTURE_MESH_FILE_PATH)
+        )
+        capture.GetRootLayer().Save()
+        capture_file = str(self._root / "mesh.usda")
+        snapshot = snapshot_material(UsdShade.Material(stage.GetPrimAtPath(MATERIAL_PATH)))
+        (self._root / "out").mkdir()
+        cutout_file = str(
+            write_cutout_file(
+                capture_file,
+                self._root / "out" / "cutout.usda",
+                [MeshConversion(_CAPTURE_MESH_FILE_PATH, quad_cut_mesh(), snapshot, MATERIAL_PATH)],
+                True,
+            )
+        )
+
+        # Act
+        _, job = self._build(None, cutout_file, (), None)
+
+        # Assert
+        self.assertIsNone(job.skip_reason)
+        self.assertEqual(job.source_url, omni.client.normalize_url(capture_file))
+        (entry,) = job.values[MESHES_KEY]
+        self.assertEqual(entry[PRIM_PATH_KEY], _CAPTURE_MESH_FILE_PATH)
+        self.assertEqual(entry[MATERIAL_PRIM_KEY], MATERIAL_PATH)
+        names = {attribute["name"] for attribute in entry[MATERIAL_KEY]["attributes"]}
+        self.assertIn("inputs:diffuse_texture", names)
+
     async def test_build_graph_without_textured_mesh_sets_skip_reason(self):
         # Arrange
         source = write_replacement_file(self._root / "fern01.usda", None)

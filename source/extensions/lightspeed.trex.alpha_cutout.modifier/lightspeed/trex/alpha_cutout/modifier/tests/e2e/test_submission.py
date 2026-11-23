@@ -82,7 +82,7 @@ class TestAlphaCardToMeshSubmissionE2E(AsyncTestCase):
     @staticmethod
     def _prepare_project(project_url: OmniUrl) -> Usd.Stage:
         """Give the fixture material a texture with transparency and target the replacement layer."""
-        stage = omni.usd.get_context().get_stage()
+        stage = omni.usd.get_context("").get_stage()
         project_dir = OmniUrl(project_url.parent_url)
         texture = _write_disc_texture(Path(project_dir.path) / "disc.png")
         replacement_layer = Sdf.Layer.FindOrOpen(str(project_dir / "replacements.usda"))
@@ -181,13 +181,15 @@ class TestAlphaCardToMeshSubmissionE2E(AsyncTestCase):
                 await asyncio.wait_for(get_apply_executor().revert(mesh_job.job_id), 10)
                 self.assertNotEqual(_remix_reference_urls(owner), [output])
         finally:
-            await asyncio.wait_for(get_apply_executor().wait_idle(), 30)
-            added = [
-                snapshot.graph_id
-                for snapshot in queue.get_graph_snapshots()
-                if snapshot.graph_id not in original_graph_ids
-            ]
-            if added:
-                queue.delete_graphs(added, UsageSnapshot())
-            queue_settings.set_scheduler_enabled(original_queue_settings[0])
-            queue_settings.set_auto_apply(original_queue_settings[1])
+            try:
+                await asyncio.wait_for(get_apply_executor().wait_idle(), 30)
+                added = [
+                    snapshot.graph_id
+                    for snapshot in queue.get_graph_snapshots()
+                    if snapshot.graph_id not in original_graph_ids
+                ]
+                if added:
+                    queue.delete_graphs(added, UsageSnapshot())
+            finally:
+                queue_settings.set_scheduler_enabled(original_queue_settings[0])
+                queue_settings.set_auto_apply(original_queue_settings[1])

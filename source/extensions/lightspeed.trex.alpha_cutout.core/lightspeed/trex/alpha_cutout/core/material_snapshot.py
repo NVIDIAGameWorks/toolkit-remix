@@ -153,7 +153,10 @@ def snapshot_material(material: UsdShade.Material) -> dict | None:
         )
     outputs = []
     for output in material.GetOutputs():
-        source, source_name, _ = output.GetConnectedSource()
+        connection = output.GetConnectedSource()
+        if connection is None:
+            continue
+        source, source_name, _ = connection
         if source and source.GetPrim() == shader_prim:
             outputs.append({"name": output.GetBaseName(), "type": str(output.GetTypeName()), "source": source_name})
     return {"attributes": attributes, "outputs": outputs}

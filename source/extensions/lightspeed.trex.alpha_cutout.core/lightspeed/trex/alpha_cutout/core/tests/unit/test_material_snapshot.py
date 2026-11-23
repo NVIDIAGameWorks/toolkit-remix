@@ -64,6 +64,16 @@ class TestMaterialSnapshot(AsyncTestCase):
         self.assertEqual(by_name["inputs:diffuse_color_constant"]["value"], [0.5, 0.25, 1.0])
         self.assertEqual(snapshot["outputs"], [{"name": "mdl:surface", "type": "token", "source": "out"}])
 
+    async def test_snapshot_material_skips_outputs_without_a_connection(self):
+        # Arrange
+        self._material.CreateOutput("mdl:displacement", Sdf.ValueTypeNames.Token)
+
+        # Act
+        snapshot = snapshot_material(self._material)
+
+        # Assert
+        self.assertEqual(snapshot["outputs"], [{"name": "mdl:surface", "type": "token", "source": "out"}])
+
     async def test_snapshot_material_without_surface_shader_returns_none(self):
         # Arrange
         material = UsdShade.Material.Define(self._stage, "/RootNode/Looks/empty")

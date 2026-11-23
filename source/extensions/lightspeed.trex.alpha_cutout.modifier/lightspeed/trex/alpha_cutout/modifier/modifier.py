@@ -255,7 +255,7 @@ class AlphaCardToMesh(AssetModifierBase):
         if job.prim_paths and stage is not None:
             meshes, origin_url = _collect_selected_meshes(stage, file_stage, job.prim_paths, target)
         else:
-            meshes = _collect_file_meshes(file_stage)
+            meshes, origin_url = _collect_file_meshes(file_stage, stage)
         if not meshes:
             job.skip_reason = _NO_MESH_REASON
             return
@@ -269,6 +269,67 @@ class AlphaCardToMesh(AssetModifierBase):
             handler_type=AssetReplaceApplyHandler if target is not None else SaveMeshMetadataHandler,
             target=target,
         )
+
+
+class _OriginModel:
+    """Hold the original model that the cutouts of one job were made from, opened on first use."""
+
+    def __init__(self) -> None:
+        self.url: str | None = None
+        self._stage: Usd.Stage | None = None
+
+    def open(self, source_file: str) -> Usd.Stage | None:
+        """Return the stage of an original model.
+
+        Args:
+            source_file: Model file that a cutout records as its origin.
+
+        Returns:
+            The stage, or ``None`` when the file does not open or is not the origin the job already reads.
+        """
+        if self._stage is None:
+            self._stage = Usd.Stage.Open(source_file) or None
+            self.url = source_file if self._stage else None
+        return self._stage if source_file == self.url else None
+
+
+def _origin_entry(
+    origin_stage: Usd.Stage, source_prim: str, material_prim: str | None, cutout_prim: Usd.Prim, stage: Usd.Stage | None
+) -> dict[str, Any] | None:
+    """Build the job entry that converts the original mesh of a cutout again.
+
+    A cutout of a model without materials records the project material it was made with. That material is read
+    from the project again when it still exists, else from the cutout, which carries a copy of it. A model that
+    owns its materials keeps them.
+
+    Args:
+        origin_stage: Stage of the original model.
+        source_prim: Path of the original mesh inside that model.
+        material_prim: Project path of the recorded material, or ``None`` when the model owns its materials.
+        cutout_prim: Mesh prim of the cutout.
+        stage: Project stage, or ``None``.
+
+    Returns:
+        The serializable mesh entry, or ``None`` when the original mesh cannot be converted.
+    """
+    mesh_prim = origin_stage.GetPrimAtPath(source_prim)
+    if not is_convertible_mesh(mesh_prim):
+        return None
+    material_owner = stage.GetPrimAtPath(material_prim) if stage is not None and material_prim else None
+    material = (
+        UsdShade.Material(material_owner)
+        if material_owner and material_owner.IsA(UsdShade.Material)
+        else get_bound_material(cutout_prim if material_prim else mesh_prim)
+    )
+    texture = get_diffuse_texture_path(material) if material else None
+    if not texture:
+        return None
+    return {
+        PRIM_PATH_KEY: source_prim,
+        TEXTURE_KEY: texture,
+        MATERIAL_KEY: snapshot_material(material) if material_prim else None,
+        MATERIAL_PRIM_KEY: material_prim,
+    }
 
 
 def _file_prim_path(
@@ -329,8 +390,7 @@ def _collect_selected_meshes(
         cutouts.
     """
     entries = []
-    origin_url = None
-    origin_stage = None
+    origin_model = _OriginModel()
     for prim in _selected_meshes(stage, prim_paths):
         mapped = _file_prim_path(prim.GetPath(), target, file_stage)
         if mapped is None:
@@ -356,32 +416,11 @@ def _collect_selected_meshes(
             )
             continue
         source_file, source_prim, material_prim = origin
-        if origin_stage is None:
-            origin_stage = Usd.Stage.Open(source_file)
-            origin_url = source_file if origin_stage else None
-        if origin_stage is None or source_file != origin_url:
-            continue
-        mesh_prim = origin_stage.GetPrimAtPath(source_prim)
-        if not is_convertible_mesh(mesh_prim):
-            continue
-        material_owner = stage.GetPrimAtPath(material_prim) if material_prim else None
-        material = (
-            UsdShade.Material(material_owner)
-            if material_owner and material_owner.IsA(UsdShade.Material)
-            else get_bound_material(prim if material_prim else mesh_prim)
-        )
-        texture = get_diffuse_texture_path(material) if material else None
-        if not texture:
-            continue
-        entries.append(
-            {
-                PRIM_PATH_KEY: source_prim,
-                TEXTURE_KEY: texture,
-                MATERIAL_KEY: snapshot_material(material) if material_prim else None,
-                MATERIAL_PRIM_KEY: str(material.GetPath()) if material_prim else None,
-            }
-        )
-    return entries, origin_url
+        origin_stage = origin_model.open(source_file)
+        entry = _origin_entry(origin_stage, source_prim, material_prim, prim, stage) if origin_stage else None
+        if entry:
+            entries.append(entry)
+    return entries, origin_model.url
 
 
 def _selected_meshes(stage: Usd.Stage, prim_paths: tuple[str, ...]) -> list[Usd.Prim]:
@@ -420,21 +459,33 @@ def _is_remix_reference(stage: Usd.Stage, prim_path: Sdf.Path) -> bool:
     return bool(prim) and prim.GetAttribute(constants.IS_REMIX_REF_ATTR).Get() is True
 
 
-def _collect_file_meshes(file_stage: Usd.Stage) -> list[dict[str, Any]]:
+def _collect_file_meshes(file_stage: Usd.Stage, stage: Usd.Stage | None) -> tuple[list[dict[str, Any]], str | None]:
     """Build the job entries for every textured mesh of a model file.
+
+    A mesh that is already a cutout is converted from the model it was made from, like a selected cutout.
 
     Args:
         file_stage: Stage of the model file.
+        stage: Project stage, or ``None``.
 
     Returns:
-        Serializable mesh entries.
+        Serializable mesh entries, and the original model to read them from when the file holds cutouts.
     """
     entries = []
+    origin_model = _OriginModel()
     for prim in file_stage.Traverse():
         if not is_convertible_mesh(prim):
             continue
-        material = get_bound_material(prim)
-        texture = get_diffuse_texture_path(material) if material else None
-        if texture:
-            entries.append({PRIM_PATH_KEY: str(prim.GetPath()), TEXTURE_KEY: texture, MATERIAL_KEY: None})
-    return entries
+        origin = read_origin(prim)
+        if origin is None:
+            material = get_bound_material(prim)
+            texture = get_diffuse_texture_path(material) if material else None
+            if texture:
+                entries.append({PRIM_PATH_KEY: str(prim.GetPath()), TEXTURE_KEY: texture, MATERIAL_KEY: None})
+            continue
+        source_file, source_prim, material_prim = origin
+        origin_stage = origin_model.open(source_file)
+        entry = _origin_entry(origin_stage, source_prim, material_prim, prim, stage) if origin_stage else None
+        if entry:
+            entries.append(entry)
+    return entries, origin_model.url

@@ -29,11 +29,12 @@ from lightspeed.trex.alpha_cutout.core.cutout_file import (
     SOURCE_FILE_ATTR,
     SOURCE_PRIM_ATTR,
     MeshConversion,
+    author_geometry,
     read_origin,
     write_cutout_file,
 )
 from lightspeed.trex.alpha_cutout.core.material_snapshot import ALPHA_TEST_ALWAYS, snapshot_material
-from lightspeed.trex.alpha_cutout.core.usd_reader import get_bound_material
+from lightspeed.trex.alpha_cutout.core.usd_reader import get_bound_material, get_surface_shader
 from omni.kit.test import AsyncTestCase
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
@@ -132,6 +133,104 @@ class TestWriteCutoutFile(AsyncTestCase):
         self.assertEqual(card.GetAttribute(MATERIAL_PRIM_ATTR).Get(), "")
         self.assertIsNone(read_origin(trunk))
         self.assertEqual(card.GetAttribute(SOURCE_PRIM_ATTR).Get(), REPLACEMENT_CARD_FILE_PATH)
+
+    async def test_write_cutout_file_copies_a_material_that_an_unconverted_mesh_shares(self):
+        # Arrange
+        source = write_replacement_file(self._root / "fern01.usda", self._texture)
+        source_stage = Usd.Stage.Open(source)
+        shared = UsdShade.Material(source_stage.GetPrimAtPath("/ReferenceTarget/Looks/card_mat"))
+        UsdShade.MaterialBindingAPI(source_stage.GetPrimAtPath(REPLACEMENT_TRUNK_FILE_PATH)).Bind(shared)
+        source_stage.GetRootLayer().Save()
+        output = self._root / "cutout.usda"
+
+        # Act
+        write_cutout_file(source, output, [MeshConversion(REPLACEMENT_CARD_FILE_PATH, _single_triangle())], True)
+
+        # Assert
+        stage = Usd.Stage.Open(str(output))
+        card_material = get_bound_material(stage.GetPrimAtPath(REPLACEMENT_CARD_FILE_PATH))
+        trunk_material = get_bound_material(stage.GetPrimAtPath(REPLACEMENT_TRUNK_FILE_PATH))
+        card_shader = get_surface_shader(card_material)
+        trunk_shader = get_surface_shader(trunk_material)
+        self.assertEqual(trunk_material.GetPath(), Sdf.Path("/ReferenceTarget/Looks/card_mat"))
+        self.assertNotEqual(card_material.GetPath(), trunk_material.GetPath())
+        self.assertTrue(card_shader.GetPath().HasPrefix(card_material.GetPath()))
+        self.assertEqual(card_shader.GetInput("alpha_test_type").Get(), ALPHA_TEST_ALWAYS)
+        self.assertIsNone(trunk_shader.GetInput("alpha_test_type").Get())
+        self.assertEqual(
+            card_shader.GetInput("diffuse_texture").Get().path, trunk_shader.GetInput("diffuse_texture").Get().path
+        )
+
+    async def test_write_cutout_file_keeps_textures_that_share_a_file_name_apart(self):
+        # Arrange
+        for folder in ("first", "second"):
+            (self._root / folder).mkdir()
+        first = write_alpha_texture(self._root / "first" / "leaf.png", np.full((4, 4), 255, np.uint8))
+        second = write_alpha_texture(self._root / "second" / "leaf.png", np.full((8, 8), 0, np.uint8))
+        source = write_replacement_file(self._root / "fern01.usda", first)
+        source_stage = Usd.Stage.Open(source)
+        trunk_shader = UsdShade.Shader(source_stage.GetPrimAtPath("/ReferenceTarget/Looks/trunk_mat/Shader"))
+        trunk_shader.CreateInput("diffuse_texture", Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath(second))
+        source_stage.GetRootLayer().Save()
+        output = self._root / "out" / "cutout.usda"
+        output.parent.mkdir()
+
+        # Act
+        write_cutout_file(source, output, [], False)
+
+        # Assert
+        stage = Usd.Stage.Open(str(output))
+        staged = [
+            Path(
+                UsdShade.Shader(stage.GetPrimAtPath(f"/ReferenceTarget/Looks/{name}/Shader"))
+                .GetInput("diffuse_texture")
+                .Get()
+                .path
+            )
+            for name in ("card_mat", "trunk_mat")
+        ]
+        self.assertNotEqual(staged[0], staged[1])
+        self.assertEqual([path.read_bytes() for path in staged], [Path(first).read_bytes(), Path(second).read_bytes()])
+
+    async def test_write_cutout_file_gives_every_snapshot_material_its_own_path(self):
+        # Arrange: three meshes of one capture-like file share their prim name.
+        source, snapshot = self._write_capture_mesh_file()
+        source_stage = Usd.Stage.Open(source)
+        layer = source_stage.GetRootLayer()
+        paths = [_CAPTURE_MESH_FILE_PATH]
+        for name in ("second", "third"):
+            UsdGeom.Xform.Define(source_stage, f"/mesh_AAAAAAAAAAAAAAAA/{name}")
+            paths.append(f"/mesh_AAAAAAAAAAAAAAAA/{name}/mesh")
+            Sdf.CopySpec(layer, Sdf.Path(_CAPTURE_MESH_FILE_PATH), layer, Sdf.Path(paths[-1]))
+        layer.Save()
+        output = self._root / "out" / "cutout.usda"
+        output.parent.mkdir()
+
+        # Act
+        write_cutout_file(source, output, [MeshConversion(path, _single_triangle(), snapshot) for path in paths], False)
+
+        # Assert
+        stage = Usd.Stage.Open(str(output))
+        materials = {get_bound_material(stage.GetPrimAtPath(path)).GetPath() for path in paths}
+        self.assertEqual(len(materials), 3)
+
+    async def test_author_geometry_removes_a_normals_primvar_of_the_source_topology(self):
+        # Arrange
+        stage = build_capture_stage(self._texture)
+        mesh = UsdGeom.Mesh(stage.GetPrimAtPath(MESH_PRIM_PATH))
+        primvar = UsdGeom.PrimvarsAPI(mesh).CreatePrimvar(
+            "normals", Sdf.ValueTypeNames.Normal3fArray, UsdGeom.Tokens.faceVarying
+        )
+        primvar.Set([Gf.Vec3f(0, 0, 1)])
+        primvar.SetIndices([0] * 6)
+
+        # Act
+        author_geometry(mesh, _single_triangle())
+
+        # Assert
+        self.assertFalse(UsdGeom.PrimvarsAPI(mesh).HasPrimvar("normals"))
+        self.assertFalse(mesh.GetPrim().HasAttribute("primvars:normals:indices"))
+        self.assertEqual(len(mesh.GetNormalsAttr().Get()), 4)
 
     async def test_write_cutout_file_with_missing_mesh_raises_value_error(self):
         # Arrange

@@ -195,8 +195,8 @@ def _read_st(
     if values is None:
         return None, "The mesh has no texture coordinates."
     values = np.asarray(values, dtype=np.float32).reshape(-1, 2)
-    indices = primvar.GetIndices()
-    if indices:
+    indices = reader.read(primvar.GetIndicesAttr())
+    if indices is not None and len(indices):
         values = values[np.asarray(indices, dtype=np.int64)]
     interpolation = primvar.GetInterpolation()
     if interpolation in (UsdGeom.Tokens.vertex, UsdGeom.Tokens.varying):

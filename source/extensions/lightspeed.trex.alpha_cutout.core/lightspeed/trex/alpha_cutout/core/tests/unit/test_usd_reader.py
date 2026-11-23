@@ -98,6 +98,21 @@ class TestReadMeshSource(AsyncTestCase):
         # Assert
         np.testing.assert_allclose(source.st[0], [[0, 0], [1, 1], [1, 1]])
 
+    async def test_read_mesh_source_with_time_sampled_indexed_st_flattens_indices(self):
+        # Arrange
+        stage = build_capture_stage(self._texture)
+        primvar = UsdGeom.PrimvarsAPI(stage.GetPrimAtPath(MESH_PRIM_PATH)).GetPrimvar("st")
+        primvar.GetAttr().Clear()
+        primvar.Set([(0, 0), (1, 1)], Usd.TimeCode(0))
+        primvar.SetIndices([0, 1, 1, 0], Usd.TimeCode(0))
+
+        # Act
+        source = read_mesh_source(stage, MESH_PRIM_PATH, _TEXTURE)
+
+        # Assert
+        np.testing.assert_allclose(source.st[0], [[0, 0], [1, 1], [1, 1]])
+        self.assertTrue(source.time_sampled)
+
     async def test_read_mesh_source_with_constant_st_reports_skip_reason(self):
         # Arrange
         stage = build_capture_stage(self._texture, st_interpolation=UsdGeom.Tokens.constant)

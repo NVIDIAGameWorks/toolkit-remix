@@ -19,7 +19,7 @@ geometry. The `Alpha Card to Mesh` asset modifier in `lightspeed.trex.alpha_cuto
 - Does not decide which meshes to convert, where the output goes, or how it is published and referenced. The
   Asset Modifiers framework resolves the selection, runs the job in the Job Queue, optimizes and publishes the
   output through the asset pipeline and replaces the reference.
-- Does not copy or convert textures and does not write `.meta` sidecars; the asset pipeline does.
+- Does not convert textures and does not write `.meta` sidecars; the asset pipeline does.
 - Owns no UI and no settings.
 
 ## Architecture
@@ -54,6 +54,7 @@ geometry. The `Alpha Card to Mesh` asset modifier in `lightspeed.trex.alpha_cuto
   "always pass".
 - `write_cutout_file` — flattens the model file, rewrites the converted meshes, defines a material from the
   snapshot for capture meshes and authors the opaque alpha state on the file's own Aperture material otherwise.
+  When unconverted geometry shares that material, the converted meshes get a copy of it instead.
   Textures are copied into a `textures` folder next to the output and referenced by absolute path, so the
   pipeline publishes them beside the mesh instead of under an external hash folder. Every converted mesh gets
   custom string attributes naming the model file, the prim and the project material it was made from

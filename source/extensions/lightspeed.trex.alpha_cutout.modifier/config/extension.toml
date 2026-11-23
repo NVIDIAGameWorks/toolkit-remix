@@ -19,6 +19,7 @@ icon = "data/icon.png"
 "lightspeed.trex.asset_pipeline.core" = {}
 "lightspeed.trex.utils.common" = {}
 "omni.flux.job_queue.core" = {}
+"omni.flux.pip_archive" = {}
 "omni.usd" = {}
 
 [[python.module]]
