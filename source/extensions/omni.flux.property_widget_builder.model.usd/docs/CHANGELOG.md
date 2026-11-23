@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.0.2]
+### Fixed
+- Fixed flaky clipboard tests that open notification Details: the tests now run the notification manager once per frame, not once each 0.5 s of wall-clock time.
+
 ## [5.0.1]
 
 ### Changed

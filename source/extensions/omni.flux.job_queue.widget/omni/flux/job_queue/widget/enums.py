@@ -16,7 +16,6 @@
 """
 
 __all__ = [
-    "BulkOperationPhase",
     "ColumnKey",
     "DisplayState",
     "JobDetailSectionPlacement",
@@ -24,13 +23,6 @@ __all__ = [
 ]
 
 from enum import Enum, StrEnum, auto
-
-
-class BulkOperationPhase(Enum):
-    """Identify whether a bulk-operation notification starts or finishes work."""
-
-    STARTING = auto()
-    FINISHED = auto()
 
 
 class JobDetailSectionPlacement(Enum):

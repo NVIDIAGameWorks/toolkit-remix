@@ -88,6 +88,7 @@ class JobDetailsPanel(ui.Frame):
         self._collapsed_sections: dict[str, bool] = {}
         self._sections: list[PropertyCollapsableFrame] = []
         self._value_trees: list[DetailValueTree] = []
+        self._replaced_value_trees: list[DetailValueTree] = []
         self._header_summary_label: ui.Label | None = None
         self._overview_status_label: ui.Label | None = None
         self._overview_progress_label: ui.Label | None = None
@@ -238,6 +239,10 @@ class JobDetailsPanel(ui.Frame):
     def _build_content(self) -> None:
         """Build the current empty, graph, or job state."""
         self._destroy_sections()
+        # ui.Frame draws the content that this build replaces once more and releases it at its next layout. Keep the
+        # trees of that content, which own the Python delegates of its native TreeViews, until the next build.
+        self._replaced_value_trees = self._value_trees
+        self._value_trees = []
         self._log_text = ""
         self._header_summary_label = None
         self._overview_status_label = None
@@ -558,7 +563,7 @@ class JobDetailsPanel(ui.Frame):
             identifier: Stable E2E identifier for the tree and its cells.
             values: Port name, declared type name, and persisted value tuples.
         """
-        # The tree owns its model and delegate, so the panel must outlive the native widget it mounts.
+        # The tree owns its model and delegate, so the panel keeps it while its native widget can draw.
         self._value_trees.append(DetailValueTree(values, identifier, self._KEY_WIDTH))
 
     def _build_job_topology(self, details: QueueJobDetailsSnapshot, graph: QueueGraphItem | None) -> None:
@@ -1106,7 +1111,6 @@ class JobDetailsPanel(ui.Frame):
             section.root.set_collapsed_changed_fn(None)
             section.destroy()
         self._sections.clear()
-        self._value_trees.clear()
 
     def _field(
         self,
@@ -1202,3 +1206,6 @@ class JobDetailsPanel(ui.Frame):
         self._model = None
         self._selected_item = None
         super().destroy()
+        # The native frame no longer holds the trees, so their Python delegates can go.
+        self._value_trees.clear()
+        self._replaced_value_trees.clear()

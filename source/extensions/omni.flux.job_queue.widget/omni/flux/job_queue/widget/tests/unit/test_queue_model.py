@@ -842,8 +842,7 @@ class TestQueueModel(AsyncTestCase):
             model.apply_executor.apply.await_args_list,
             [call(pending.job_id), call(applied.job_id)],
         )
-        self.assertIn("applying 1", notify.call_args_list[0].args[0])
-        self.assertIn("reapplying 1", notify.call_args_list[0].args[0])
+        self.assertEqual(notify.call_count, 1)
         self.assertIn("applied 1", notify.call_args_list[-1].args[0])
         self.assertIn("reapplied 1", notify.call_args_list[-1].args[0])
         self.assertIn("skipped 0", notify.call_args_list[-1].args[0])

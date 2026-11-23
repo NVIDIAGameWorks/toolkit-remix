@@ -51,7 +51,7 @@ from .constants import (
     TERMINAL_JOB_STATES,
     UUID_TEXT_PATTERN,
 )
-from .enums import BulkOperationPhase, DisplayState
+from .enums import DisplayState
 from .queue_item import QueueGraphItem, QueueItem
 from .row import Row
 
@@ -1408,7 +1408,7 @@ class QueueModel(TreeModelBase):
             post_notification(f"{action} failed for {item.row.name}.", status=NotificationStatus.WARNING)
 
     async def _run_bulk_check(self, candidates: tuple[QueueItem, ...], scope: str, skipped: int) -> None:
-        """Apply or Reapply eligible captured items sequentially with exact summaries.
+        """Apply or Reapply eligible captured items sequentially and report one exact summary.
 
         Args:
             candidates: Synchronously reserved children.
@@ -1417,9 +1417,6 @@ class QueueModel(TreeModelBase):
         """
         reapply_count = sum(item.row.apply_disposition is ApplyDisposition.APPLIED for item in candidates)
         apply_count = len(candidates) - reapply_count
-        post_notification(
-            self._check_summary(BulkOperationPhase.STARTING, scope, apply_count, reapply_count, skipped, 0)
-        )
         apply_failed = 0
         reapply_failed = 0
         for item in candidates:
@@ -1430,9 +1427,10 @@ class QueueModel(TreeModelBase):
                     reapply_failed += 1
                 else:
                     apply_failed += 1
+        # Post only the result. omni.kit.notification_manager drops a notification that arrives while an earlier
+        # notification is still preparing its window, so a start notification can hide this summary.
         post_notification(
             self._check_summary(
-                BulkOperationPhase.FINISHED,
                 scope,
                 apply_count - apply_failed,
                 reapply_count - reapply_failed,
@@ -1449,7 +1447,7 @@ class QueueModel(TreeModelBase):
         scope: str,
         skipped: int,
     ) -> None:
-        """Decline/Revert eligible captured items with exact summaries.
+        """Decline/Revert eligible captured items and report one exact summary.
 
         Args:
             declines: Synchronously reserved children to decline.
@@ -1457,7 +1455,6 @@ class QueueModel(TreeModelBase):
             scope: User-facing capture scope.
             skipped: Ineligible captured count.
         """
-        post_notification(self._x_summary(BulkOperationPhase.STARTING, scope, len(declines), len(reverts), skipped, 0))
         decline_failed = 0
         revert_failed = 0
         for item in declines:
@@ -1466,9 +1463,9 @@ class QueueModel(TreeModelBase):
         for item in reverts:
             if not await self._run_item_operation("Revert", item, self.apply_executor.revert):
                 revert_failed += 1
+        # Post only the result, for the same notification_manager limit as _run_bulk_check.
         post_notification(
             self._x_summary(
-                BulkOperationPhase.FINISHED,
                 scope,
                 len(declines) - decline_failed,
                 len(reverts) - revert_failed,
@@ -1504,31 +1501,24 @@ class QueueModel(TreeModelBase):
 
     @staticmethod
     def _check_summary(
-        phase: BulkOperationPhase,
         scope: str,
         applied: int,
         reapplied: int,
         skipped: int,
         failed: int,
     ) -> str:
-        """Format natural-language bulk Check counts for a native notification.
+        """Format natural-language bulk Check result counts for a native notification.
 
         Args:
-            phase: Whether the notification starts or finishes the operation.
             scope: User-facing capture scope.
-            applied: Apply count for the phase.
-            reapplied: Reapply count for the phase.
+            applied: Completed Apply count.
+            reapplied: Completed Reapply count.
             skipped: Ineligible captured count.
             failed: Handled failure count.
 
         Returns:
             Exact native notification text.
         """
-        if phase is BulkOperationPhase.STARTING:
-            return (
-                f"Starting result updates for {scope}: applying {applied}, reapplying {reapplied}, "
-                f"and skipping {skipped}."
-            )
         return (
             f"Finished result updates for {scope}: applied {applied}, reapplied {reapplied}, "
             f"skipped {skipped}, and failed {failed}."
@@ -1536,31 +1526,24 @@ class QueueModel(TreeModelBase):
 
     @staticmethod
     def _x_summary(
-        phase: BulkOperationPhase,
         scope: str,
         declined: int,
         reverted: int,
         skipped: int,
         failed: int,
     ) -> str:
-        """Format natural-language bulk X counts for a native notification.
+        """Format natural-language bulk X result counts for a native notification.
 
         Args:
-            phase: Whether the notification starts or finishes the operation.
             scope: User-facing capture scope.
-            declined: Decline count for the phase.
-            reverted: Revert count for the phase.
+            declined: Completed Decline count.
+            reverted: Completed Revert count.
             skipped: Ineligible captured count.
             failed: Handled failure count.
 
         Returns:
             Exact native notification text.
         """
-        if phase is BulkOperationPhase.STARTING:
-            return (
-                f"Starting result choices for {scope}: declining {declined}, reverting {reverted}, "
-                f"and skipping {skipped}."
-            )
         return (
             f"Finished result choices for {scope}: declined {declined}, reverted {reverted}, "
             f"skipped {skipped}, and failed {failed}."
