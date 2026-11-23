@@ -120,8 +120,7 @@ class CodexProvider(Provider):
             "check_for_update_on_startup=false",
             # The built-in web search tool is read-only and stays separate from shell network access.
             'web_search="live"',
-            self._permissions(request),
-            'default_permissions="remix_reviewer"',
+            *self._permissions(request),
             "allow_login_shell=false",
             'shell_environment_policy.inherit="core"',
             "shell_environment_policy.ignore_default_excludes=false",
@@ -130,26 +129,31 @@ class CodexProvider(Provider):
         )
         config_args = tuple(item for value in config_values for item in ("-c", value))
         # Project rules and agent documents load from the request's bounded invoking-context
-        # snapshot. A reviewed checkout never supplies instructions. Hooks, plugins, memories,
-        # apps, shell snapshot, and nested subagents stay disabled for determinism.
+        # snapshot. A reviewed checkout never supplies instructions. Tools and features that a review
+        # does not need stay disabled. The shell, web search, and the read-only image viewer stay.
+        disabled = (
+            "apps",
+            "hooks",
+            "plugins",
+            "memories",
+            "multi_agent",
+            "shell_snapshot",
+            "goals",
+            "image_generation",
+            "sleep_tool",
+            "tool_suggest",
+            "skill_search",
+            "skill_mcp_dependency_install",
+        )
         argv = (
             *readiness.command,
             "exec",
             *selection,
             "--ephemeral",
             "--strict-config",
-            "--disable",
-            "apps",
-            "--disable",
-            "hooks",
-            "--disable",
-            "plugins",
-            "--disable",
-            "memories",
-            "--disable",
-            "multi_agent",
-            "--disable",
-            "shell_snapshot",
+            # On Windows the working folder is the run root, which is not a Git repository.
+            "--skip-git-repo-check",
+            *(item for feature in disabled for item in ("--disable", feature)),
             *config_args,
             "--output-schema",
             str(request.schema_path),
@@ -158,7 +162,9 @@ class CodexProvider(Provider):
         return WorkerSpec(
             request.worker_id,
             argv,
-            request.project_root,
+            # The elevated Windows sandbox grants its users read access only on the working folder.
+            # Start in the run root, so that the grant also covers the review checkout beside `project/`.
+            request.project_root.parent if os.name == "nt" else request.project_root,
             clean_environment(),
             request.prompt_path,
             request.stdout_path,
@@ -207,29 +213,30 @@ class CodexProvider(Provider):
         return any(marker in line for line in error_lines for marker in markers)
 
     @staticmethod
-    def _permissions(request: WorkerRequest) -> str:
-        """Build the read-only permission profile for a review worker."""
+    def _permissions(request: WorkerRequest) -> tuple[str, ...]:
+        """Select the read-only permission profile for a review worker."""
         paths = {request.worker_cwd, request.project_root, *request.read_paths}
         resolved = [path.resolve(strict=True) for path in paths]
         roots = sorted(str(path) for path in resolved if path.is_dir())
         files = sorted(str(path) for path in resolved if path.is_file())
         if len(roots) + len(files) != len(resolved):
             raise RuntimeError("Codex permission path is not a regular file or directory")
+        if os.name == "nt":
+            # Codex 0.169 on Windows rejects restricted read profiles (`elevated Windows sandbox
+            # requires effective :root read access`). The built-in profile reads the file system,
+            # but cannot write and has no network. Codex reads files only through the shell.
+            return ('default_permissions=":read-only"',)
         workspace_roots = ",".join(f"{json.dumps(path)}=true" for path in roots)
         filesystem = [
             f"{json.dumps(':minimal')}={json.dumps('read')}",
             f"{json.dumps(':workspace_roots')}={{{json.dumps('.')}={json.dumps('read')}}}",
             *(f"{json.dumps(path)}={json.dumps('read')}" for path in files),
         ]
-        if os.name == "nt":
-            shell = resolve_executable("pwsh") or resolve_executable("powershell")
-            if shell is not None:
-                # Self-contained PowerShell needs its adjacent runtime files inside the Windows sandbox.
-                filesystem.append(f"{json.dumps(str(shell.parent))}={json.dumps('read')}")
         return (
             "permissions={remix_reviewer={workspace_roots={"
             + workspace_roots
             + "},filesystem={"
             + ",".join(filesystem)
-            + "},network={enabled=false}}}"
+            + "},network={enabled=false}}}",
+            'default_permissions="remix_reviewer"',
         )
