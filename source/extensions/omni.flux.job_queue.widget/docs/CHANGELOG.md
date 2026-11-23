@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.6.1]
+### Fixed
+- Kept the replaced job details value trees until the next build, so their native rows no longer call a released delegate, and posted only the result notification for bulk actions, so Kit no longer drops it.
+
 ## [3.6.0]
 ### Fixed
 - Used product usage snapshots for graph deletion and file counts, and clarified that deletion keeps files in use.

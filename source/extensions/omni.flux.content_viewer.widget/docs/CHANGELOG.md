@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.7]
+### Fixed
+- Fixed an invalid regex escape that logged a `SyntaxWarning` error the first time the module was compiled
+
 ## [2.0.6]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.
