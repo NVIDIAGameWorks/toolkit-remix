@@ -15,12 +15,14 @@
 * limitations under the License.
 """
 
-__all__ = ["AlphaCardToMeshJob", "output_file_name"]
+__all__ = ["AlphaCardToMeshJob", "cutout_root_name", "output_file_name"]
 
 import dataclasses
 import pathlib
+import re
 from typing import Any, ClassVar
 
+from lightspeed.common import constants
 from lightspeed.trex.alpha_cutout.core import (
     MeshConversion,
     MeshSource,
@@ -55,6 +57,26 @@ def output_file_name(source_url: str) -> str:
     """
     stem = pathlib.PurePath(source_url).stem
     return f"{_OUTPUT_PREFIX}{stem.removeprefix(_CAPTURE_MESH_PREFIX)}{_OUTPUT_SUFFIX}"
+
+
+def cutout_root_name(stage: Usd.Stage, output_stem: str) -> str | None:
+    """Name the root prim of a capture mesh cutout after the output file.
+
+    The toolkit maps a prim of a mesh asset to its instances by the last prim in its path that is named like a
+    capture mesh. A cutout that kept the capture root name would map to a path that does not exist, so its prims
+    could not be selected.
+
+    Args:
+        stage: Model stage.
+        output_stem: Stem of the output file.
+
+    Returns:
+        The output stem for a capture mesh file, ``None`` when the model keeps its root name.
+    """
+    root = stage.GetDefaultPrim()
+    if root and root.IsValid() and re.match(constants.REGEX_MESH_PATH, root.GetName()):
+        return output_stem
+    return None
 
 
 def _open_model(source_url: str) -> Usd.Stage:
@@ -145,7 +167,12 @@ class AlphaCardToMeshJob(AssetModifierJob):
             )
         output = job_directory / output_file_name(self.source_url)
         await run_in_worker_thread(
-            write_cutout_file, self.source_url, output, conversions, parameters.disable_alpha_test
+            write_cutout_file,
+            self.source_url,
+            output,
+            conversions,
+            parameters.disable_alpha_test,
+            cutout_root_name(stage, output.stem),
         )
         await progress_callback(JobProgress(completed=total, total=total, detail="Cutout written"))
         outputs = {

@@ -43,7 +43,7 @@ from lightspeed.trex.alpha_cutout.core.tests.unit.fixtures import (
     write_alpha_texture,
     write_replacement_file,
 )
-from lightspeed.trex.alpha_cutout.modifier.job import AlphaCardToMeshJob, output_file_name
+from lightspeed.trex.alpha_cutout.modifier.job import AlphaCardToMeshJob, cutout_root_name, output_file_name
 from lightspeed.trex.alpha_cutout.modifier.modifier import AlphaCardToMesh
 from lightspeed.trex.alpha_cutout.modifier.report import ConversionReport, MeshReport
 from lightspeed.trex.alpha_cutout.modifier.values import (
@@ -158,6 +158,20 @@ class TestAlphaCardToMesh(AsyncTestCase):
                 "and 2 more meshes",
             ],
         )
+
+    async def test_cutout_root_name_renames_capture_mesh_roots_only(self):
+        # Arrange
+        capture = Usd.Stage.CreateInMemory()
+        capture.SetDefaultPrim(UsdGeom.Xform.Define(capture, "/mesh_AAAAAAAAAAAAAAAA").GetPrim())
+        replacement = Usd.Stage.Open(write_replacement_file(self._root / "fern01.usda", self._texture))
+
+        # Act
+        capture_name = cutout_root_name(capture, "cutout_AAAAAAAAAAAAAAAA")
+        replacement_name = cutout_root_name(replacement, "cutout_fern01")
+
+        # Assert
+        self.assertEqual(capture_name, "cutout_AAAAAAAAAAAAAAAA")
+        self.assertIsNone(replacement_name)
 
     async def test_is_compatible_accepts_meshes_asset_rows_and_reference_prims(self):
         # Arrange

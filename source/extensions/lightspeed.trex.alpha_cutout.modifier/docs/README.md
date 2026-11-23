@@ -40,7 +40,10 @@ disables alpha testing on the result so the runtime treats it as opaque.
   Meshes are skipped when they are skinned, carry geometry subsets or have no diffuse texture; a source without
   any convertible mesh gets `job.skip_reason`. A File Path Constant source lists every textured mesh of the file.
 - The job writes `cutout_<HASH>.usda` (or `cutout_<name>.usda` for other models) into its job directory with the
-  textures staged beside it, absolute texture paths and bare MDL module names. The job returns a
+  textures staged beside it, absolute texture paths and bare MDL module names. A capture mesh file also gets its
+  root prim renamed to that stem, because the toolkit maps a prim of a mesh asset to its instances by the last
+  prim in its path that is named like a capture mesh, and a cutout that kept the capture root name could not be
+  selected. The job returns a
   `MeshOptimizationRequest` that skips the unit scale normalization of the pipeline, because the cutout replaces
   its source in place and keeps its scale; `add_asset_optimization_jobs` appends the prepare, texture and mesh
   optimization jobs with `AssetReplaceApplyHandler` (or `SaveMeshMetadataHandler` without a target).

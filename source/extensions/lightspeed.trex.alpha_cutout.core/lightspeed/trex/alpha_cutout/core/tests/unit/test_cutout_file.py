@@ -108,6 +108,30 @@ class TestWriteCutoutFile(AsyncTestCase):
         self.assertEqual(shader.GetInput("alpha_test_type").Get(), ALPHA_TEST_ALWAYS)
         self.assertTrue(stage.GetDefaultPrim().GetName().startswith("mesh_"))
 
+    async def test_write_cutout_file_renames_the_root_prim_when_asked(self):
+        # Arrange
+        source, snapshot = self._write_capture_mesh_file()
+        output = self._root / "out" / "cutout_AAAAAAAAAAAAAAAA.usda"
+        output.parent.mkdir()
+
+        # Act
+        write_cutout_file(
+            source,
+            output,
+            [MeshConversion(_CAPTURE_MESH_FILE_PATH, _single_triangle(), snapshot, MATERIAL_PATH)],
+            True,
+            root_prim_name=output.stem,
+        )
+
+        # Assert
+        stage = Usd.Stage.Open(str(output))
+        self.assertEqual(stage.GetDefaultPrim().GetName(), output.stem)
+        self.assertFalse(stage.GetPrimAtPath(_CAPTURE_MESH_FILE_PATH).IsValid())
+        mesh = stage.GetPrimAtPath(f"/{output.stem}/mesh")
+        self.assertEqual(len(UsdGeom.Mesh(mesh).GetFaceVertexCountsAttr().Get()), 1)
+        self.assertEqual(get_bound_material(mesh).GetPath(), Sdf.Path(f"/{output.stem}/Looks/{MATERIAL_PRIM_NAME}"))
+        self.assertEqual(read_origin(mesh), (omni.client.normalize_url(source), _CAPTURE_MESH_FILE_PATH, MATERIAL_PATH))
+
     async def test_write_cutout_file_for_replacement_keeps_materials_and_untouched_meshes(self):
         # Arrange
         source = write_replacement_file(self._root / "fern01.usda", self._texture)

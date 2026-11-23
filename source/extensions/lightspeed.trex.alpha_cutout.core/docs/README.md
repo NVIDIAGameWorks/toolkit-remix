@@ -52,9 +52,10 @@ geometry. The `Alpha Card to Mesh` asset modifier in `lightspeed.trex.alpha_cuto
   so the asset pipeline recognizes the Aperture shader and keeps its inputs, and optionally authors
   `use_legacy_alpha_state = false`, `blend_enabled = false` and `alpha_test_type = 7`, which the runtime reads as
   "always pass".
-- `write_cutout_file` — flattens the model file, rewrites the converted meshes, defines a material from the
-  snapshot for capture meshes and authors the opaque alpha state on the file's own Aperture material otherwise.
-  When unconverted geometry shares that material, the converted meshes get a copy of it instead.
+- `write_cutout_file` — flattens the model file, optionally renames its root prim, rewrites the converted
+  meshes, defines a material from the snapshot for capture meshes and authors the opaque alpha state on the
+  file's own Aperture material otherwise. When unconverted geometry shares that material, the converted meshes
+  get a copy of it instead.
   Textures are copied into a `textures` folder next to the output and referenced by absolute path, so the
   pipeline publishes them beside the mesh instead of under an external hash folder. Every converted mesh gets
   custom string attributes naming the model file, the prim and the project material it was made from

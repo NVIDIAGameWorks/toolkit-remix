@@ -36,6 +36,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import omni.client
+import omni.usd
 from omni.flux.utils.common.path_utils import get_absolute_path_from_relative
 from pxr import Sdf, Usd, UsdGeom, UsdShade, UsdUtils, Vt
 
@@ -181,6 +182,32 @@ def read_origin(prim: Usd.Prim) -> tuple[str, str, str | None] | None:
     return source_file, source_prim, prim.GetAttribute(MATERIAL_PRIM_ATTR).Get() or None
 
 
+def _rename_root_prim(layer: Sdf.Layer, name: str) -> tuple[Sdf.Path, Sdf.Path] | None:
+    """Rename the default prim of a flattened layer and fix the paths that pointed into it.
+
+    Args:
+        layer: Flattened layer of the model.
+        name: New name of the default prim.
+
+    Returns:
+        The old and new root paths, or ``None`` when the layer has no default prim or already uses the name.
+
+    Raises:
+        ValueError: If the layer already holds a prim with that name.
+    """
+    if not layer.defaultPrim or layer.defaultPrim == name:
+        return None
+    old_path = Sdf.Path.absoluteRootPath.AppendChild(layer.defaultPrim)
+    new_path = Sdf.Path.absoluteRootPath.AppendChild(name)
+    edit = Sdf.BatchNamespaceEdit()
+    edit.Add(old_path, new_path)
+    if not layer.Apply(edit):
+        raise ValueError(f"The root prim {old_path} could not be renamed to {name}.")
+    omni.usd.resolve_prim_path_references(layer.identifier, str(old_path), str(new_path))
+    layer.defaultPrim = name
+    return old_path, new_path
+
+
 def _free_child_path(stage: Usd.Stage, parent: Sdf.Path, name: str) -> Sdf.Path:
     """Return a child path of a prim that no prim uses yet.
 
@@ -275,6 +302,7 @@ def write_cutout_file(
     output_path: pathlib.Path,
     conversions: Sequence[MeshConversion],
     disable_alpha_test: bool,
+    root_prim_name: str | None = None,
 ) -> pathlib.Path:
     """Write a flattened copy of a model file with cut geometry on the converted meshes.
 
@@ -289,13 +317,15 @@ def write_cutout_file(
         output_path: Path of the file to write.
         conversions: Meshes to rewrite; the other prims are copied unchanged.
         disable_alpha_test: Whether the materials of the converted meshes get the opaque alpha state.
+        root_prim_name: New name of the default prim when the model's own name must not survive in the cutout.
+            The conversions still name the prims as the model does.
 
     Returns:
         The written path.
 
     Raises:
         RuntimeError: If the model file cannot be opened.
-        ValueError: If a conversion names a prim that is not a mesh of the file.
+        ValueError: If a conversion names a prim that is not a mesh of the file, or the root prim cannot be renamed.
     """
     stage = Usd.Stage.Open(source_url)
     if not stage:
@@ -310,13 +340,15 @@ def write_cutout_file(
             else get_absolute_path_from_relative(path, source_layer)
         ),
     )
+    renamed = _rename_root_prim(flattened, root_prim_name) if root_prim_name else None
     output_stage = Usd.Stage.Open(flattened)
-    kept_materials = _unconverted_material_paths(
-        output_stage, {Sdf.Path(conversion.prim_path) for conversion in conversions}
-    )
+    output_paths = [Sdf.Path(conversion.prim_path) for conversion in conversions]
+    if renamed:
+        output_paths = [path.ReplacePrefix(*renamed) for path in output_paths]
+    kept_materials = _unconverted_material_paths(output_stage, set(output_paths))
     opaque_copies: dict[Sdf.Path, Sdf.Path] = {}
-    for conversion in conversions:
-        prim = output_stage.GetPrimAtPath(conversion.prim_path)
+    for conversion, output_prim_path in zip(conversions, output_paths, strict=True):
+        prim = output_stage.GetPrimAtPath(output_prim_path)
         if not prim or not prim.IsA(UsdGeom.Mesh):
             raise ValueError(f"The model file has no mesh at {conversion.prim_path}.")
         author_geometry(UsdGeom.Mesh(prim), conversion.cut_mesh)

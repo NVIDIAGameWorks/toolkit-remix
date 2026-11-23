@@ -18,6 +18,7 @@
 __all__ = ["TestAlphaCardToMeshSubmissionE2E"]
 
 import asyncio
+import re
 from pathlib import Path
 
 import numpy as np
@@ -160,6 +161,11 @@ class TestAlphaCardToMeshSubmissionE2E(AsyncTestCase):
                 output_stage = Usd.Stage.Open(str(output))
                 (output_mesh,) = [prim for prim in output_stage.Traverse() if prim.IsA(UsdGeom.Mesh)]
                 self.assertGreater(len(UsdGeom.Mesh(output_mesh).GetFaceVertexCountsAttr().Get()), 2)
+                # A prim named like a capture mesh inside the cutout would break the mapping to its instances.
+                self.assertFalse(
+                    [prim for prim in output_stage.Traverse() if re.match(constants.REGEX_MESH_PATH, prim.GetName())]
+                )
+                self.assertEqual(output_mesh.GetParent().GetName(), "cutout_0AB745B8BEE1F16B")
                 # The published cutout keeps the scale of the capture mesh it replaces.
                 source_stage = Usd.Stage.Open(cutout_job.source_url)
                 source_mesh = source_stage.GetPrimAtPath(cutout_job.values[MESHES_KEY][0][PRIM_PATH_KEY])
