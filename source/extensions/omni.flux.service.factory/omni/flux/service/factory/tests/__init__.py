@@ -16,5 +16,6 @@
 """
 
 from .unit.test_service_base import TestServiceBase
+from .unit.test_versioning import TestVersioning
 
-__all__ = ["TestServiceBase"]
+__all__ = ["TestServiceBase", "TestVersioning"]

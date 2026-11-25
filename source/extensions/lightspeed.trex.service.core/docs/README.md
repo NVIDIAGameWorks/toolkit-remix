@@ -11,7 +11,7 @@ defines no route of its own.
 - Register `ROUTE_SERVICES` with the service factory at startup.
 - Instantiate each service named in `exts/lightspeed.trex.service.core/services` from the factory and register its
   router, tags and OpenAPI description.
-- Initialize FastAPI endpoint versioning against the configured vendor media type, once per app.
+- Install endpoint versioning from `omni.flux.service.factory` once per app. Use the vendor media type from the settings.
 - When the extension shuts down, deregister the mounted routers, remove their OpenAPI tags and unregister the route
   services. Disabling then stops serving the REST API, and re-enabling or hot-reloading mounts each route exactly once.
 
@@ -32,12 +32,13 @@ defines no route of its own.
 **`TrexCoreServiceExtension`** (`extension.py`) — owns the startup and shutdown lifecycle. It registers the route
 services before constructing `CoreService`, so the configured names resolve, and unregisters them after destroying it.
 
-**`CoreService`** (`service.py`) — reads the `services` setting, pulls each named service from the
-service factory, and calls `main.register_router` for each one. `_instantiate_services` logs an
-error and skips any configured name the factory does not know. Endpoint versioning (its middleware, OpenAPI
-generator and vendor media type) outlives the extension, because Starlette refuses new middleware once the app has
-served a request, so a later `CoreService` reuses what the first one installed. `destroy` deregisters the mounted
-routers and removes the OpenAPI tags it added.
+**`CoreService`** (`service.py`) reads the `services` setting. It gets each named service from the factory and calls
+`main.register_router` for each one. `_instantiate_services` logs an error for each unknown name and skips it.
+Starlette does not accept new middleware after the app serves its first request. A new `CoreService` instance uses
+the app's existing version middleware, OpenAPI generator and vendor media type. `destroy` removes the routers
+and OpenAPI tags that this instance added.
+
+OpenAPI uses the latest operation for each endpoint. It lists the media types for the latest version first.
 
 **`routes/`** — the route services, one package per area:
 
@@ -66,9 +67,9 @@ their core extensions, so those packages are empty.
 
 ## Settings
 
-- `exts/lightspeed.trex.service.core/header`: vendor media type for endpoint versioning,
-  default `application/lightspeed.remix.service+json`. Applied once per app, by the first `CoreService` to start, so a
-  change takes effect at the next app start, not on a hot reload.
+- `exts/lightspeed.trex.service.core/header`: the vendor media type for endpoint versions. The default is
+  `application/lightspeed.remix.service+json`. The first `CoreService` instance sets this value for the app.
+  Restart the app to apply a change.
 - `exts/lightspeed.trex.service.core/services`: the list of services to mount. Each entry needs
   `name` (the class registered with the service factory), `context`, `title` and `description`.
   An entry naming a class the factory does not hold is skipped, not fatal.

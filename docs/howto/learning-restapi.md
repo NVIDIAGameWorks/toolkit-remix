@@ -49,13 +49,16 @@ query parameters, request body, etc.
 
 ### Endpoint Versioning
 
-The Remix Toolkit REST API uses a versioning header to version every endpoint available individually. A dropdown with
-the list of available endpoint version headers can be found in the endpoint details within the `Successful Response`
-sub-section of the `Responses` section. The header should have the following format:
+Each endpoint has its own set of versions. If you do not specify a version in `Accept`, the API uses the latest
+version for that endpoint. To select a specific version, send an `Accept` header in this format:
 
 ```text
 application/lightspeed.remix.service+json; version=1.0
 ```
+
+If the endpoint does not support the requested version, the API returns HTTP 406 and lists the available versions.
+In Swagger UI, expand **Responses** and find the media type dropdown under **Successful Response**.
+The dropdown lists the available versions for that endpoint.
 
 ## Testing the Endpoints
 

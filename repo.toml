@@ -627,12 +627,12 @@ autodoc.default_options.exclude_members = [
 ]
 
 autodoc.mock_imports = [
-    "fast_version",
     "fastapi",
     "fastmcp",
     "pydantic",
     "pygit2",
     "pyperclip",
+    "starlette",
     "omni.graph.tools", # uses carb.tokens.get_tokens_interface() at module level
     "omni.graph.ui", # uses carb.tokens.get_tokens_interface() at module level
     "omni.graph.widget", # uses carb.tokens.get_tokens_interface() at module level

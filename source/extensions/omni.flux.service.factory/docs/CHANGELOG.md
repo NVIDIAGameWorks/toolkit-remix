@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Changed
+- Replaced `fast-version` with the `versioning` module. Select the latest endpoint version when the request specifies no version. Return HTTP 406 for an unavailable version.
+
 ## [2.0.4]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.
