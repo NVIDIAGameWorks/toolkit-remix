@@ -408,7 +408,9 @@ after_pull_commands = [
 files_to_pull = [
     "${root}/deps/pip_flux.toml",
 ]
-# MR pipelines have no credentials to push the pip cache package. A failed push must not fail the build.
+# Publish the pip cache package to the public remote. `cloudfront` has no upload transport since the move to Vault.
+packman_remote = "rtx-remix-external"
+# A job without Vault credentials cannot publish the cache. The build then installs the packages without the cache.
 ignore_pip_cache_failure = true
 
 [repo_build.build]
