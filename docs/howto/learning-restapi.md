@@ -57,6 +57,8 @@ application/lightspeed.remix.service+json; version=1.0
 ```
 
 If the endpoint does not support the requested version, the API returns HTTP 406 and lists the available versions.
+A new version of an endpoint deprecates its older versions. The older versions continue to work, but their responses
+have the `Deprecation: true` header. The endpoint description in Swagger UI lists the deprecated versions.
 In Swagger UI, expand **Responses** and find the media type dropdown under **Successful Response**.
 The dropdown lists the available versions for that endpoint.
 

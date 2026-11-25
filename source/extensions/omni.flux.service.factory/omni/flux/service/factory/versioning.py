@@ -41,6 +41,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 _Version = tuple[int, int]
 _VERSION_FORMAT = re.compile(r"([0-9]+)\.([0-9]+)")
 _REQUEST_VERSION = "flux.request_version"
+_LATEST_VERSION = "flux.latest_version"
 _VERSION_ERROR = "flux.version_error"
 _VENDOR_MEDIA_TYPE = "flux.vendor_media_type"
 _JSON_MEDIA_TYPE = "application/json"
@@ -69,13 +70,10 @@ class VersionedAPIRoute(APIRoute):
             return match, child_scope
 
         requested = scope.get(_REQUEST_VERSION)
-        if requested == self.version:
-            return match, child_scope
-
         # FastAPI keeps the full path in the context for each router inclusion.
         context = _get_scope_effective_route_context(scope)
         path = context.path_format if context is not None and context.original_route is self else self.path_format
-        # ponytail: Scan the live app routes in O(n) per match. Add an index if the scan becomes slow.
+        # Scan the live app routes in O(n) per match. Add an index if the scan becomes slow.
         versions = {
             route.version
             for route, included in _iter_routes_with_context(scope["app"].routes)
@@ -83,13 +81,18 @@ class VersionedAPIRoute(APIRoute):
             and (route if included is None else included).path_format == path
             and route.methods == self.methods
         }
-        if requested in versions or self.version != max(versions):
+        latest = max(versions)
+        if requested in versions:
+            if requested != self.version:
+                return Match.NONE, {}
+        elif self.version != latest:
             return Match.NONE, {}
-        if requested is not None:
+        elif requested is not None:
             available = ", ".join(_version_label(version) for version in sorted(versions))
             child_scope[_VERSION_ERROR] = (
                 f"Version {_version_label(requested)} is not available for this endpoint. Available versions: {available}"
             )
+        child_scope[_LATEST_VERSION] = latest
         return match, child_scope
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -100,11 +103,14 @@ class VersionedAPIRoute(APIRoute):
             await super().handle(scope, receive, send)
 
     def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
-        """Set the vendor media type on JSON responses from this endpoint."""
+        """Set the vendor media type on JSON responses and mark responses from an older version as deprecated."""
         handler = super().get_route_handler()
 
         async def versioned_handler(request: Request) -> Response:
             response = await handler(request)
+            if self.version != request.scope.get(_LATEST_VERSION, self.version):
+                # RFC 9745 wants a deprecation date. Add a date to `set_api_version` when a sunset policy exists.
+                response.headers["deprecation"] = "true"
             vendor = request.scope.get(_VENDOR_MEDIA_TYPE)
             if vendor and response.headers.get("content-type") == _JSON_MEDIA_TYPE:
                 response.headers["content-type"] = _media_type(vendor, self.version)
@@ -239,6 +245,10 @@ def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
                     _append_content(latest["responses"][status], response)
                 else:
                     latest["responses"][status] = response
+        if len(versions) > 1:
+            deprecated = ", ".join(_version_label(version) for version, _ in versions[1:])
+            note = f"**Deprecated versions:** {deprecated}. Their responses have the `Deprecation: true` header."
+            latest["description"] = f"{latest['description']}\n\n{note}" if latest.get("description") else note
 
     schema["paths"] = paths
     return schema

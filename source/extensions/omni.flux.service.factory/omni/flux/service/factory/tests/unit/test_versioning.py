@@ -88,6 +88,7 @@ class TestVersioning(AsyncTestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.json(), {"version": version})
                 self.assertEqual(response.headers["content-type"], media_type)
+                self.assertNotIn("deprecation", response.headers)
 
     async def test_get_with_available_version_uses_that_version(self) -> None:
         # Act
@@ -97,6 +98,7 @@ class TestVersioning(AsyncTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"version": "1.0"})
         self.assertEqual(response.headers["content-type"], _V1)
+        self.assertEqual(response.headers["deprecation"], "true")
 
     async def test_get_with_unavailable_version_lists_available_versions(self) -> None:
         # Act
@@ -149,6 +151,7 @@ class TestVersioning(AsyncTestCase):
         operation = schema["paths"]["/x"]["get"]
         self.assertEqual(operation["operationId"], "get_x_v2")
         self.assertEqual(operation["summary"], "Read X version 2")
+        self.assertIn("**Deprecated versions:** 1.0.", operation["description"])
         self.assertEqual(list(operation["responses"]["200"]["content"]), [_V2, _V1])
         body_content = schema["paths"]["/y"]["post"]["requestBody"]["content"]
         self.assertEqual(list(body_content), [_V2, _V1])
