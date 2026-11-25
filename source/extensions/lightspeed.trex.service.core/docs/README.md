@@ -35,8 +35,8 @@ services before constructing `CoreService`, so the configured names resolve, and
 **`CoreService`** (`service.py`) reads the `services` setting. It gets each named service from the factory and calls
 `main.register_router` for each one. `_instantiate_services` logs an error for each unknown name and skips it.
 Starlette does not accept new middleware after the app serves its first request. A new `CoreService` instance uses
-the app's existing version middleware, OpenAPI generator and vendor media type. `destroy` removes the routers
-and OpenAPI tags that this instance added.
+the app's existing version middleware and vendor media type, and installs the OpenAPI generator again. `destroy`
+removes the routers and OpenAPI tags that this instance added.
 
 OpenAPI uses the latest operation for each endpoint. It lists the media types for the latest version first.
 

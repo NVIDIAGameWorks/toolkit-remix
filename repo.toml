@@ -408,6 +408,8 @@ after_pull_commands = [
 files_to_pull = [
     "${root}/deps/pip_flux.toml",
 ]
+# MR pipelines have no credentials to push the pip cache package. A failed push must not fail the build.
+ignore_pip_cache_failure = true
 
 [repo_build.build]
 enabled = false

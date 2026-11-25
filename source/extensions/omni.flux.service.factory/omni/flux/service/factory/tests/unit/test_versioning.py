@@ -25,7 +25,7 @@ from omni.flux.service.factory.services.base import APIRouter
 from omni.kit.test import AsyncTestCase
 from pydantic import BaseModel
 
-_VENDOR = "application/lightspeed.remix.service+json"
+_VENDOR = "application/flux.service+json"
 _V1 = f"{_VENDOR}; version=1.0"
 _V2 = f"{_VENDOR}; version=2.0"
 _V3 = f"{_VENDOR}; version=3.0"
