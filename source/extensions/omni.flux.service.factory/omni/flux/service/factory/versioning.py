@@ -74,29 +74,32 @@ class VersionedAPIRoute(APIRoute):
         context = _get_scope_effective_route_context(scope)
         path = context.path_format if context is not None and context.original_route is self else self.path_format
         # Scan the live app routes in O(n) per match. Add an index if the scan becomes slow.
-        key = _endpoint_key(self, path)
-        version_paths = {}
+        keys = {}
+        entries = []
         for route, included in _iter_routes_with_context(scope["app"].routes):
             if isinstance(route, VersionedAPIRoute) and route.methods == self.methods:
                 route_path = (route if included is None else included).path_format
-                if _endpoint_key(route, route_path) == key:
-                    version_paths[route.version] = route_path
-        if version_paths.get(requested) == path:
+                entries.append(
+                    (keys.setdefault(route_path, _endpoint_key(route, route_path)), route.version, route_path)
+                )
+        versions = {(version, route_path) for key, version, route_path in entries if key == keys[path]}
+        local = {version for version, route_path in versions if route_path == path}
+        if requested in local:
             if requested != self.version:
                 return Match.NONE, {}
         # Without a version that this path has, the latest version on this path answers.
-        elif self.version != max(version for version, route_path in version_paths.items() if route_path == path):
+        elif self.version != max(local):
             return Match.NONE, {}
-        elif requested in version_paths:
+        elif other_paths := sorted(route_path for version, route_path in versions if version == requested):
             child_scope[_VERSION_ERROR] = (
-                f"Version {_version_label(requested)} of this endpoint uses the path {version_paths[requested]}"
+                f"Version {_version_label(requested)} of this endpoint uses the path {other_paths[0]}"
             )
         elif requested is not None:
-            available = ", ".join(_version_label(version) for version in sorted(version_paths))
+            available = ", ".join(_version_label(version) for version in sorted({version for version, _ in versions}))
             child_scope[_VERSION_ERROR] = (
                 f"Version {_version_label(requested)} is not available for this endpoint. Available versions: {available}"
             )
-        child_scope[_LATEST_VERSION] = max(version_paths)
+        child_scope[_LATEST_VERSION] = max(version for version, _ in versions)
         return match, child_scope
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -185,10 +188,10 @@ def _parse_accept(header: str, vendor: str) -> _Version | None:
 
 def _endpoint_key(route: APIRoute, path: str) -> tuple[str, str]:
     """
-    Identify the endpoint that a route is a version of.
+    Identify the endpoint that a route is a version of. Call it for the first route on each path and method.
 
-    Versions of one endpoint share the method and the operation ID under one router prefix. A version can use another
-    path, for example to move a path parameter into the body. Without an operation ID, the versions share the path.
+    Versions of one endpoint share the method and the path, or the operation ID under one router prefix. A version can
+    use another path, for example to move a path parameter into the body.
     """
     if route.operation_id:
         return route.operation_id, path.removesuffix(route.path_format)
@@ -198,6 +201,7 @@ def _endpoint_key(route: APIRoute, path: str) -> tuple[str, str]:
 def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
     routes = []
     versioned_paths = {}
+    endpoint_keys = {}
     for original, context in _iter_routes_with_context(app.routes):
         if not isinstance(original, VersionedAPIRoute):
             routes.append(RouteContext(original, context))
@@ -208,7 +212,9 @@ def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
         key = f"versioned-route:{len(versioned_paths)}"
         media_type = _media_type(vendor, original.version)
         operation_id = route.operation_id or route.unique_id
-        endpoint = _endpoint_key(original, route.path_format)
+        endpoint = endpoint_keys.setdefault(
+            (route.path_format, frozenset(original.methods)), _endpoint_key(original, route.path_format)
+        )
         versioned_paths[key] = (route.path_format, original.version, media_type, operation_id, endpoint)
         route.path_format = key
         route.operation_id = key
@@ -263,7 +269,7 @@ def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
                 continue
             # The latest version on each path gives the operation for that path.
             shown[path] = paths[path][method] = operation
-            if path != latest_path:
+            if version < latest_version:
                 operation["operationId"] = f"{operation['operationId']}_v{version[0]}_{version[1]}"
                 operation["deprecated"] = True
                 _append_note(
@@ -273,7 +279,8 @@ def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
                 )
         if older := [
             _version_label(version) + ("" if path == latest_path else f" (`{method.upper()} {path}`)")
-            for version, path, _ in versions[1:]
+            for version, path, _ in versions
+            if version < latest_version
         ]:
             _append_note(
                 latest,

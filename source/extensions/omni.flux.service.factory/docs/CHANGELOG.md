@@ -4,7 +4,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.0.0]
 ### Changed
 - Replaced `fast-version` with the `versioning` module. Select the latest endpoint version when the request specifies no version. Return HTTP 406 for an unavailable version. Mark the older versions of an endpoint as deprecated: their responses have the `Deprecation: true` header, and the OpenAPI description lists them.
-- Group the versions of an endpoint by operation ID under one router prefix, so that a new version can use another path. Each path uses its own latest version when the request specifies no version. A request for a version on another path returns HTTP 406 with that path. The OpenAPI schema marks the older path as deprecated.
+- Group the versions of an endpoint by path, and link paths that share an operation ID under one router prefix, so that a new version can use another path. Each path uses its own latest version when the request specifies no version. A request for a version on another path returns HTTP 406 with that path. The OpenAPI schema marks an older path as deprecated.
 
 ## [2.0.4]
 ### Changed

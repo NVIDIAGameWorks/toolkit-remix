@@ -45,7 +45,7 @@ class TestVersioning(AsyncTestCase):
         self._app = FastAPI()
         router = APIRouter()
 
-        @router.get("/x", operation_id="get_x", summary="Read X version 1")
+        @router.get("/x", operation_id="get_x_v1", summary="Read X version 1")
         async def get_x_v1() -> dict[str, str]:
             return {"version": "1.0"}
 
@@ -53,7 +53,7 @@ class TestVersioning(AsyncTestCase):
         async def get_y() -> dict[str, str]:
             return {"version": "1.0"}
 
-        @router.get("/x", operation_id="get_x", summary="Read X version 2")
+        @router.get("/x", operation_id="get_x_v2", summary="Read X version 2")
         @router.set_api_version((2, 0))
         async def get_x_v2() -> dict[str, str]:
             return {"version": "2.0"}
@@ -76,6 +76,15 @@ class TestVersioning(AsyncTestCase):
         @router.set_api_version((2, 0))
         async def put_z_v2(body: _CurrentBody) -> _CurrentBody:
             return body
+
+        # One version on two paths, for example from a copied operation ID.
+        @router.get("/w/a", operation_id="get_w")
+        async def get_w_a() -> dict[str, str]:
+            return {"path": "a"}
+
+        @router.get("/w/b", operation_id="get_w")
+        async def get_w_b() -> dict[str, str]:
+            return {"path": "b"}
 
         self._app.include_router(router)
         init_versioning(self._app, _VENDOR)
@@ -161,9 +170,9 @@ class TestVersioning(AsyncTestCase):
 
         # Assert
         self.assertEqual([str(warning.message) for warning in caught], [])
-        self.assertEqual(list(schema["paths"]), ["/x", "/y", "/z/{name}", "/z"])
+        self.assertEqual(list(schema["paths"]), ["/x", "/y", "/z/{name}", "/z", "/w/a", "/w/b"])
         operation = schema["paths"]["/x"]["get"]
-        self.assertEqual(operation["operationId"], "get_x")
+        self.assertEqual(operation["operationId"], "get_x_v2")
         self.assertEqual(operation["summary"], "Read X version 2")
         self.assertIn("**Deprecated versions:** 1.0.", operation["description"])
         self.assertEqual(list(operation["responses"]["200"]["content"]), [_V2, _V1])
@@ -206,6 +215,21 @@ class TestVersioning(AsyncTestCase):
         self.assertEqual(older["operationId"], "put_z_v1_0")
         self.assertTrue(older["deprecated"])
         self.assertIn("**Deprecated:** version 2.0 of this endpoint uses `PUT /z`.", older["description"])
+
+    async def test_same_version_on_two_paths_answers_on_each_path(self) -> None:
+        for path in ("a", "b"):
+            with self.subTest(path=path):
+                # Act
+                response = self._client.get(f"/w/{path}", headers={"Accept": _V1})
+
+                # Assert
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json(), {"path": path})
+                self.assertNotIn("deprecation", response.headers)
+
+        schema = self._app.openapi()
+        for path in ("/w/a", "/w/b"):
+            self.assertNotIn("deprecated", schema["paths"][path]["get"])
 
     async def test_mcp_tool_uses_latest_schema_and_route(self) -> None:
         # Arrange
