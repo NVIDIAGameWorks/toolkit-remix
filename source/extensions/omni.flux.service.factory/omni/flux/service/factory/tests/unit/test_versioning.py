@@ -272,6 +272,51 @@ class TestVersioning(AsyncTestCase):
                 )
                 self.assertEqual(schema["paths"][f"{prefix}/z/{{name}}"]["put"]["operationId"], "put_z_v1_0")
 
+    async def test_version_for_one_method_leaves_other_methods_on_older_version(self) -> None:
+        # Arrange
+        app = FastAPI()
+        router = APIRouter()
+
+        @router.api_route("/m", methods=["GET", "POST"], operation_id="read_or_write_m")
+        async def m_v1() -> dict[str, str]:
+            return {"version": "1.0"}
+
+        @router.get("/m", operation_id="read_m")
+        @router.set_api_version((2, 0))
+        async def get_m_v2() -> dict[str, str]:
+            return {"version": "2.0"}
+
+        app.include_router(router)
+        init_versioning(app, _VENDOR)
+        client = TestClient(app)
+        client.headers.pop("accept", None)
+        self.addCleanup(client.close)
+
+        for method, headers, version in (
+            ("GET", {}, "2.0"),
+            ("GET", {"Accept": _V2}, "2.0"),
+            ("GET", {"Accept": _V1}, "1.0"),
+            ("POST", {}, "1.0"),
+        ):
+            with self.subTest(method=method, headers=headers):
+                # Act
+                response = client.request(method, "/m", headers=headers)
+
+                # Assert
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json(), {"version": version})
+                deprecated = "true" if method == "GET" and version == "1.0" else None
+                self.assertEqual(response.headers.get("deprecation"), deprecated)
+
+        # FastAPI gives each method of one route the same operation ID and warns about it.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            operations = app.openapi()["paths"]["/m"]
+        self.assertEqual(operations["get"]["operationId"], "read_m")
+        self.assertIn("**Deprecated versions:** 1.0.", operations["get"]["description"])
+        self.assertEqual(operations["post"]["operationId"], "read_or_write_m")
+        self.assertNotIn("deprecated", operations["post"])
+
     async def test_mcp_tool_uses_latest_schema_and_route(self) -> None:
         # Arrange
         mcp = fastmcp.FastMCP.from_fastapi(self._app)

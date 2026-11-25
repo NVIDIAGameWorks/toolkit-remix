@@ -77,7 +77,7 @@ class VersionedAPIRoute(APIRoute):
         keys = {}
         entries = []
         for route, included in _iter_routes_with_context(scope["app"].routes):
-            if isinstance(route, VersionedAPIRoute) and route.methods == self.methods:
+            if isinstance(route, VersionedAPIRoute) and scope["method"] in route.methods:
                 route_path = (route if included is None else included).path_format
                 entries.append(
                     (keys.setdefault(route_path, _endpoint_key(route, route_path)), route.version, route_path)
@@ -188,7 +188,7 @@ def _parse_accept(header: str, vendor: str) -> _Version | None:
 
 def _endpoint_key(route: APIRoute, path: str) -> tuple[str, str]:
     """
-    Identify the endpoint that a route is a version of. Call it for the first route on each path and method.
+    Identify the endpoint that a route is a version of. Call it for the first route on each path for one method.
 
     Versions of one endpoint share the method and the path, or the operation ID under one router prefix. A version can
     use another path, for example to move a path parameter into the body.
@@ -212,10 +212,7 @@ def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
         key = f"versioned-route:{len(versioned_paths)}"
         media_type = _media_type(vendor, original.version)
         operation_id = route.operation_id or route.unique_id
-        endpoint = endpoint_keys.setdefault(
-            (route.path_format, frozenset(original.methods)), _endpoint_key(original, route.path_format)
-        )
-        versioned_paths[key] = (route.path_format, original.version, media_type, operation_id, endpoint)
+        versioned_paths[key] = (route.path_format, original.version, media_type, operation_id, original)
         route.path_format = key
         route.operation_id = key
         response_class = route.response_class
@@ -249,7 +246,7 @@ def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
         if key not in versioned_paths:
             paths.setdefault(key, {}).update(methods)
             continue
-        path, version, media_type, operation_id, endpoint = versioned_paths[key]
+        path, version, media_type, operation_id, original = versioned_paths[key]
         paths.setdefault(path, {})
         for method, operation in methods.items():
             operation["operationId"] = operation_id
@@ -257,6 +254,7 @@ def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
                 content = body.get("content", {})
                 if _JSON_MEDIA_TYPE in content:
                     body["content"] = {media_type: content.pop(_JSON_MEDIA_TYPE), **content}
+            endpoint = endpoint_keys.setdefault((path, method), _endpoint_key(original, path))
             endpoints.setdefault((endpoint, method), []).append((version, path, operation))
 
     for (_, method), versions in endpoints.items():
