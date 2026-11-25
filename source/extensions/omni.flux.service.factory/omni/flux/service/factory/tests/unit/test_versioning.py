@@ -231,6 +231,47 @@ class TestVersioning(AsyncTestCase):
         for path in ("/w/a", "/w/b"):
             self.assertNotIn("deprecated", schema["paths"][path]["get"])
 
+    async def test_version_on_another_path_stays_under_its_router_prefix(self) -> None:
+        # Arrange
+        app = FastAPI()
+        router = APIRouter()
+
+        @router.put("/z/{name}", operation_id="put_z")
+        async def put_z_v1(name: str) -> dict[str, str]:
+            return {"name": name}
+
+        @router.put("/z", operation_id="put_z")
+        @router.set_api_version((2, 0))
+        async def put_z_v2(body: _CurrentBody) -> _CurrentBody:
+            return body
+
+        for prefix in ("/a", "/b"):
+            app.include_router(router, prefix=prefix)
+        init_versioning(app, _VENDOR)
+        client = TestClient(app)
+        client.headers.pop("accept", None)
+        self.addCleanup(client.close)
+        schema = app.openapi()
+
+        for prefix in ("/a", "/b"):
+            with self.subTest(prefix=prefix):
+                # Act
+                older = client.put(f"{prefix}/z/n")
+                moved = client.put(f"{prefix}/z/n", headers={"Accept": _V2})
+
+                # Assert
+                self.assertEqual(older.json(), {"name": "n"})
+                self.assertEqual(older.headers["deprecation"], "true")
+                self.assertEqual(moved.status_code, 406)
+                self.assertEqual(moved.json(), {"detail": f"Version 2.0 of this endpoint uses the path {prefix}/z"})
+                latest = schema["paths"][f"{prefix}/z"]["put"]
+                self.assertEqual(latest["operationId"], "put_z")
+                self.assertNotIn("deprecated", latest)
+                self.assertIn(
+                    f"**Deprecated versions:** 1.0 (`PUT {prefix}/z/{{name}}`). Their responses", latest["description"]
+                )
+                self.assertEqual(schema["paths"][f"{prefix}/z/{{name}}"]["put"]["operationId"], "put_z_v1_0")
+
     async def test_mcp_tool_uses_latest_schema_and_route(self) -> None:
         # Arrange
         mcp = fastmcp.FastMCP.from_fastapi(self._app)
