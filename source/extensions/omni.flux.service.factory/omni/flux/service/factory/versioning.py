@@ -74,25 +74,29 @@ class VersionedAPIRoute(APIRoute):
         context = _get_scope_effective_route_context(scope)
         path = context.path_format if context is not None and context.original_route is self else self.path_format
         # Scan the live app routes in O(n) per match. Add an index if the scan becomes slow.
-        versions = {
-            route.version
-            for route, included in _iter_routes_with_context(scope["app"].routes)
-            if isinstance(route, VersionedAPIRoute)
-            and (route if included is None else included).path_format == path
-            and route.methods == self.methods
-        }
-        latest = max(versions)
-        if requested in versions:
+        key = _endpoint_key(self, path)
+        version_paths = {}
+        for route, included in _iter_routes_with_context(scope["app"].routes):
+            if isinstance(route, VersionedAPIRoute) and route.methods == self.methods:
+                route_path = (route if included is None else included).path_format
+                if _endpoint_key(route, route_path) == key:
+                    version_paths[route.version] = route_path
+        if version_paths.get(requested) == path:
             if requested != self.version:
                 return Match.NONE, {}
-        elif self.version != latest:
+        # Without a version that this path has, the latest version on this path answers.
+        elif self.version != max(version for version, route_path in version_paths.items() if route_path == path):
             return Match.NONE, {}
+        elif requested in version_paths:
+            child_scope[_VERSION_ERROR] = (
+                f"Version {_version_label(requested)} of this endpoint uses the path {version_paths[requested]}"
+            )
         elif requested is not None:
-            available = ", ".join(_version_label(version) for version in sorted(versions))
+            available = ", ".join(_version_label(version) for version in sorted(version_paths))
             child_scope[_VERSION_ERROR] = (
                 f"Version {_version_label(requested)} is not available for this endpoint. Available versions: {available}"
             )
-        child_scope[_LATEST_VERSION] = latest
+        child_scope[_LATEST_VERSION] = max(version_paths)
         return match, child_scope
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -179,6 +183,18 @@ def _parse_accept(header: str, vendor: str) -> _Version | None:
         raise ValueError(error) from exc
 
 
+def _endpoint_key(route: APIRoute, path: str) -> tuple[str, str]:
+    """
+    Identify the endpoint that a route is a version of.
+
+    Versions of one endpoint share the method and the operation ID under one router prefix. A version can use another
+    path, for example to move a path parameter into the body. Without an operation ID, the versions share the path.
+    """
+    if route.operation_id:
+        return route.operation_id, path.removesuffix(route.path_format)
+    return "", path
+
+
 def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
     routes = []
     versioned_paths = {}
@@ -187,12 +203,15 @@ def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
             routes.append(RouteContext(original, context))
             continue
 
-        # Use a unique path key so FastAPI generates a schema for every version.
+        # Use a unique path key and operation ID so FastAPI generates a schema for every version without a warning.
         route = copy(original if context is None else context)
         key = f"versioned-route:{len(versioned_paths)}"
         media_type = _media_type(vendor, original.version)
-        versioned_paths[key] = (route.path_format, original.version, media_type)
+        operation_id = route.operation_id or route.unique_id
+        endpoint = _endpoint_key(original, route.path_format)
+        versioned_paths[key] = (route.path_format, original.version, media_type, operation_id, endpoint)
         route.path_format = key
+        route.operation_id = key
         response_class = route.response_class
         if isinstance(response_class, DefaultPlaceholder):
             response_class = response_class.value
@@ -219,39 +238,64 @@ def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
         external_docs=app.openapi_external_docs,
     )
     paths = {}
-    operations = {}
+    endpoints = {}
     for key, methods in schema["paths"].items():
         if key not in versioned_paths:
             paths.setdefault(key, {}).update(methods)
             continue
-        path, version, media_type = versioned_paths[key]
+        path, version, media_type, operation_id, endpoint = versioned_paths[key]
         paths.setdefault(path, {})
         for method, operation in methods.items():
+            operation["operationId"] = operation_id
             if body := operation.get("requestBody"):
                 content = body.get("content", {})
                 if _JSON_MEDIA_TYPE in content:
                     body["content"] = {media_type: content.pop(_JSON_MEDIA_TYPE), **content}
-            operations.setdefault((path, method), []).append((version, operation))
+            endpoints.setdefault((endpoint, method), []).append((version, path, operation))
 
-    for (path, method), versions in operations.items():
+    for (_, method), versions in endpoints.items():
         versions.sort(key=lambda item: item[0], reverse=True)
-        latest = versions[0][1]
-        paths[path][method] = latest
-        for _, older in versions[1:]:
-            if "requestBody" in latest and "requestBody" in older:
-                _append_content(latest["requestBody"], older["requestBody"])
-            for status, response in older["responses"].items():
-                if status in latest["responses"]:
-                    _append_content(latest["responses"][status], response)
-                else:
-                    latest["responses"][status] = response
-        if len(versions) > 1:
-            deprecated = ", ".join(_version_label(version) for version, _ in versions[1:])
-            note = f"**Deprecated versions:** {deprecated}. Their responses have the `Deprecation: true` header."
-            latest["description"] = f"{latest['description']}\n\n{note}" if latest.get("description") else note
+        latest_version, latest_path, latest = versions[0]
+        shown = {}
+        for version, path, operation in versions:
+            if path in shown:
+                _append_version(shown[path], operation)
+                continue
+            # The latest version on each path gives the operation for that path.
+            shown[path] = paths[path][method] = operation
+            if path != latest_path:
+                operation["operationId"] = f"{operation['operationId']}_v{version[0]}_{version[1]}"
+                operation["deprecated"] = True
+                _append_note(
+                    operation,
+                    f"**Deprecated:** version {_version_label(latest_version)} of this endpoint uses "
+                    f"`{method.upper()} {latest_path}`.",
+                )
+        if older := [
+            _version_label(version) + ("" if path == latest_path else f" (`{method.upper()} {path}`)")
+            for version, path, _ in versions[1:]
+        ]:
+            _append_note(
+                latest,
+                f"**Deprecated versions:** {', '.join(older)}. Their responses have the `Deprecation: true` header.",
+            )
 
     schema["paths"] = paths
     return schema
+
+
+def _append_version(latest: dict[str, Any], older: dict[str, Any]) -> None:
+    if "requestBody" in latest and "requestBody" in older:
+        _append_content(latest["requestBody"], older["requestBody"])
+    for status, response in older["responses"].items():
+        if status in latest["responses"]:
+            _append_content(latest["responses"][status], response)
+        else:
+            latest["responses"][status] = response
+
+
+def _append_note(operation: dict[str, Any], note: str) -> None:
+    operation["description"] = f"{operation['description']}\n\n{note}" if operation.get("description") else note
 
 
 def _append_content(latest: dict[str, Any], older: dict[str, Any]) -> None:

@@ -16,6 +16,7 @@
 """
 
 import importlib.util
+import warnings
 
 import fastmcp
 from fastapi import FastAPI
@@ -44,7 +45,7 @@ class TestVersioning(AsyncTestCase):
         self._app = FastAPI()
         router = APIRouter()
 
-        @router.get("/x", operation_id="get_x_v1", summary="Read X version 1")
+        @router.get("/x", operation_id="get_x", summary="Read X version 1")
         async def get_x_v1() -> dict[str, str]:
             return {"version": "1.0"}
 
@@ -52,18 +53,28 @@ class TestVersioning(AsyncTestCase):
         async def get_y() -> dict[str, str]:
             return {"version": "1.0"}
 
-        @router.get("/x", operation_id="get_x_v2", summary="Read X version 2")
+        @router.get("/x", operation_id="get_x", summary="Read X version 2")
         @router.set_api_version((2, 0))
         async def get_x_v2() -> dict[str, str]:
             return {"version": "2.0"}
 
-        @router.post("/y")
+        @router.post("/y", operation_id="post_y")
         async def post_y_v1(body: _LegacyBody) -> _LegacyBody:
             return body
 
         @router.post("/y", operation_id="post_y")
         @router.set_api_version((2, 0))
         async def post_y_v2(body: _CurrentBody) -> _CurrentBody:
+            return body
+
+        # Version 2.0 moves the path parameter into the body.
+        @router.put("/z/{name}", operation_id="put_z")
+        async def put_z_v1(name: str) -> dict[str, str]:
+            return {"name": name}
+
+        @router.put("/z", operation_id="put_z")
+        @router.set_api_version((2, 0))
+        async def put_z_v2(body: _CurrentBody) -> _CurrentBody:
             return body
 
         self._app.include_router(router)
@@ -144,12 +155,15 @@ class TestVersioning(AsyncTestCase):
 
     async def test_openapi_uses_latest_operation_and_orders_versioned_content(self) -> None:
         # Act
-        schema = self._app.openapi()
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            schema = self._app.openapi()
 
         # Assert
-        self.assertEqual(list(schema["paths"]), ["/x", "/y"])
+        self.assertEqual([str(warning.message) for warning in caught], [])
+        self.assertEqual(list(schema["paths"]), ["/x", "/y", "/z/{name}", "/z"])
         operation = schema["paths"]["/x"]["get"]
-        self.assertEqual(operation["operationId"], "get_x_v2")
+        self.assertEqual(operation["operationId"], "get_x")
         self.assertEqual(operation["summary"], "Read X version 2")
         self.assertIn("**Deprecated versions:** 1.0.", operation["description"])
         self.assertEqual(list(operation["responses"]["200"]["content"]), [_V2, _V1])
@@ -158,6 +172,40 @@ class TestVersioning(AsyncTestCase):
         for media_type, field in ((_V2, "current"), (_V1, "legacy")):
             model = body_content[media_type]["schema"]["$ref"].rsplit("/", 1)[-1]
             self.assertEqual(list(schema["components"]["schemas"][model]["properties"]), [field])
+
+    async def test_version_on_another_path_selects_by_path_and_deprecates_the_older_path(self) -> None:
+        for method_path, headers, json, status, body, media_type in (
+            ("/z/a", {}, None, 200, {"name": "a"}, _V1),
+            ("/z", {}, {"current": 2}, 200, {"current": 2}, _V2),
+            ("/z/a", {"Accept": _V2}, None, 406, {"detail": "Version 2.0 of this endpoint uses the path /z"}, None),
+            (
+                "/z",
+                {"Accept": _V1},
+                None,
+                406,
+                {"detail": "Version 1.0 of this endpoint uses the path /z/{name}"},
+                None,
+            ),
+        ):
+            with self.subTest(path=method_path, headers=headers):
+                # Act
+                response = self._client.put(method_path, headers=headers, json=json)
+
+                # Assert
+                self.assertEqual(response.status_code, status)
+                self.assertEqual(response.json(), body)
+                if media_type:
+                    self.assertEqual(response.headers["content-type"], media_type)
+                    self.assertEqual(response.headers.get("deprecation"), "true" if media_type == _V1 else None)
+
+        schema = self._app.openapi()
+        latest = schema["paths"]["/z"]["put"]
+        older = schema["paths"]["/z/{name}"]["put"]
+        self.assertEqual(latest["operationId"], "put_z")
+        self.assertIn("**Deprecated versions:** 1.0 (`PUT /z/{name}`).", latest["description"])
+        self.assertEqual(older["operationId"], "put_z_v1_0")
+        self.assertTrue(older["deprecated"])
+        self.assertIn("**Deprecated:** version 2.0 of this endpoint uses `PUT /z`.", older["description"])
 
     async def test_mcp_tool_uses_latest_schema_and_route(self) -> None:
         # Arrange

@@ -62,6 +62,10 @@ have the `Deprecation: true` header. The endpoint description in Swagger UI list
 In Swagger UI, expand **Responses** and find the media type dropdown under **Successful Response**.
 The dropdown lists the available versions for that endpoint.
 
+A new version can use a different path, for example to move a path parameter into the body. Each path then uses its
+own latest version. If you request a version that another path implements, the API returns HTTP 406 with that path.
+In Swagger UI, the older path shows as deprecated, and its description gives the path of the latest version.
+
 ## Testing the Endpoints
 
 Endpoints can be easily tested directly in the documentation. To do so, follow these instructions:
