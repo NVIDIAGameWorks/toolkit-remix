@@ -252,13 +252,22 @@ def _append_content(latest: dict[str, Any], older: dict[str, Any]) -> None:
 
 
 def init_versioning(app: FastAPI, vendor_media_type: str) -> None:
-    """Install version selection and the versioned OpenAPI schema on this app."""
-    app.add_middleware(VersioningMiddleware, vendor_media_type=vendor_media_type)
+    """
+    Install version selection and the versioned OpenAPI schema on this app.
+
+    The middleware is added only on the first call, because Starlette refuses new middleware after the app starts.
+    The flag is kept on `app.state`, not on the middleware class, because a reload of this extension makes a new class.
+    Each call installs the OpenAPI generator again, so it uses the route classes of the current module.
+    """
+    if not hasattr(app.state, "flux_vendor_media_type"):
+        app.add_middleware(VersioningMiddleware, vendor_media_type=vendor_media_type)
+        app.state.flux_vendor_media_type = vendor_media_type
+    vendor = app.state.flux_vendor_media_type
     app.openapi_schema = None
 
     def openapi() -> dict[str, Any]:
         if app.openapi_schema is None:
-            app.openapi_schema = _versioned_openapi(app, vendor_media_type)
+            app.openapi_schema = _versioned_openapi(app, vendor)
         return app.openapi_schema
 
     app.openapi = openapi

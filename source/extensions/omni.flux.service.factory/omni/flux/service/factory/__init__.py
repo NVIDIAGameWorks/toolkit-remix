@@ -15,8 +15,8 @@
 * limitations under the License.
 """
 
-__all__ = ["ServiceBase", "TrexServiceFactoryExtension", "VersioningMiddleware", "get_instance", "init_versioning"]
+__all__ = ["ServiceBase", "TrexServiceFactoryExtension", "get_instance", "init_versioning"]
 
 from .extension import TrexServiceFactoryExtension, get_instance
 from .services import ServiceBase
-from .versioning import VersioningMiddleware, init_versioning
+from .versioning import init_versioning

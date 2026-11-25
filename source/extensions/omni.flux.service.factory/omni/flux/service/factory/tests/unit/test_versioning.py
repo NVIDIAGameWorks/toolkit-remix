@@ -15,10 +15,12 @@
 * limitations under the License.
 """
 
+import importlib.util
+
 import fastmcp
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from omni.flux.service.factory import init_versioning
+from omni.flux.service.factory import init_versioning, versioning
 from omni.flux.service.factory.services.base import APIRouter
 from omni.kit.test import AsyncTestCase
 from pydantic import BaseModel
@@ -166,3 +168,19 @@ class TestVersioning(AsyncTestCase):
         # Assert
         self.assertEqual(list(tool.input_schema["properties"]), ["current"])
         self.assertEqual(result.structured_content, {"current": 2})
+
+    async def test_init_versioning_after_extension_reload_keeps_started_app(self) -> None:
+        # Arrange
+        self.assertEqual(self._client.get("/x").status_code, 200)
+        spec = importlib.util.spec_from_file_location("reloaded_versioning", versioning.__file__)
+        reloaded = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(reloaded)
+
+        # Act
+        reloaded.init_versioning(self._app, _VENDOR)
+        response = self._client.get("/x", headers={"Accept": _V1})
+
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"version": "1.0"})
+        self.assertEqual(len(self._app.user_middleware), 1)
