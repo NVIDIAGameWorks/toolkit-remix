@@ -49,13 +49,22 @@ query parameters, request body, etc.
 
 ### Endpoint Versioning
 
-The Remix Toolkit REST API uses a versioning header to version every endpoint available individually. A dropdown with
-the list of available endpoint version headers can be found in the endpoint details within the `Successful Response`
-sub-section of the `Responses` section. The header should have the following format:
+Each RTX Remix endpoint has its own set of versions. If `Accept` does not specify a version, the API uses the latest
+version for that endpoint. To select a specific version, send an `Accept` header in this format:
 
 ```text
 application/lightspeed.remix.service+json; version=1.0
 ```
+
+If the endpoint does not support the requested version, the API returns HTTP 406 and lists the available versions.
+A new version of an endpoint deprecates its older versions. The older versions continue to work, but their successful
+responses have the `Deprecation: true` header. In Swagger UI, expand **Responses** and find the media type dropdown under
+**Successful Response**. The dropdown lists the available versions for that endpoint. These rules do not apply to the
+built-in `omni.services` endpoints, which use plain JSON.
+
+A new version can use a different path, for example to change the request model. Each path then uses its own latest
+version. If you request a version that only another path implements, the API returns HTTP 406 with that path.
+In Swagger UI, the older path shows as deprecated, and its description gives the path of the latest version.
 
 ## Testing the Endpoints
 

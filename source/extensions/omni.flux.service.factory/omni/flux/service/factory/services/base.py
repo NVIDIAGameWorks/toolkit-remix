@@ -18,7 +18,6 @@
 import abc
 from typing import Any, ClassVar
 
-from fast_version import VersionedAPIRouter
 from fastapi import Depends, Path, Query
 from omni.flux.factory.base import PluginBase
 from omni.flux.service.shared import BaseServiceModel
@@ -26,6 +25,8 @@ from omni.services.core import exceptions
 from omni.services.core.routers import ServiceAPIRouter
 from pydantic import Field, ValidationError, create_model
 from pydantic.json_schema import SkipJsonSchema
+
+from ..versioning import VersionedAPIRouter
 
 
 class APIRouter(VersionedAPIRouter, ServiceAPIRouter):
@@ -60,18 +61,7 @@ class ServiceBase(PluginBase, abc.ABC):
 
     @property
     def router(self) -> APIRouter:
-        """
-        The router inherits from VersionedAPIRouter from fast_version and from ServiceAPIRouter from
-        omni.services.core.routers.
-
-        The VersionedAPIRouter base class will have priority over the ServiceAPIRouter class when the same attribute
-        is defined in both base classes.
-
-        Both of these routers are based on the FastAPI Router.
-
-        Returns:
-            The router
-        """
+        """Return the router that supports endpoint versions and Kit service facilities."""
         return self._router
 
     @staticmethod

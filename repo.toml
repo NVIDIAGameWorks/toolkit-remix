@@ -408,6 +408,8 @@ after_pull_commands = [
 files_to_pull = [
     "${root}/deps/pip_flux.toml",
 ]
+# Remote CI uploads new repo_pip_cache packages to; repo_build's default (cloudfront) is download-only here.
+packman_remote = "rtx-remix-external"
 
 [repo_build.build]
 enabled = false
@@ -627,12 +629,12 @@ autodoc.default_options.exclude_members = [
 ]
 
 autodoc.mock_imports = [
-    "fast_version",
     "fastapi",
     "fastmcp",
     "pydantic",
     "pygit2",
     "pyperclip",
+    "starlette",
     "omni.graph.tools", # uses carb.tokens.get_tokens_interface() at module level
     "omni.graph.ui", # uses carb.tokens.get_tokens_interface() at module level
     "omni.graph.widget", # uses carb.tokens.get_tokens_interface() at module level

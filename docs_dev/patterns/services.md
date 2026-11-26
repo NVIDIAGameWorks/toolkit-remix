@@ -28,6 +28,19 @@ before implementing a new service.
 - `prefix` must be unique among the services mounted on the same router.
 - `operation_id` names the MCP tool and `description` is what a model reads; renaming an `operation_id` is a breaking
   API change.
+- To add a new version of an endpoint, keep the old route and add the new one with `set_api_version`. To give the new
+  version another path, use the same `operation_id` on the same router:
+
+  ```python
+  @self.router.put("/items/{name}", operation_id="set_item")
+  async def set_item_v1(name: str) -> ItemModel: ...
+
+  @self.router.put("/items", operation_id="set_item")
+  @self.router.set_api_version((2, 0))
+  async def set_item_v2(body: ItemModel) -> ItemModel: ...
+  ```
+
+  With different operation IDs, the two paths are separate endpoints, and the old path is not deprecated.
 
 ---
 

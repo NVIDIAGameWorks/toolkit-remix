@@ -1,6 +1,10 @@
 # Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0]
+### Changed
+- Replaced `fast-version` with the `versioning` module: requests default to the latest endpoint version, and older versions are deprecated.
+
 ## [2.0.4]
 ### Changed
 - Updated extension metadata for Kit SDK 110 compatibility.

@@ -20,10 +20,8 @@ from __future__ import annotations
 __all__ = ["CoreService"]
 
 import carb
-from fast_version import init_fastapi_versioning
-from fast_version.app import FastAPIVersioningMiddleware
 from omni.flux.factory.base import FactoryBase
-from omni.flux.service.factory import ServiceBase
+from omni.flux.service.factory import ServiceBase, init_versioning
 from omni.flux.service.factory import get_instance as _get_service_factory_instance
 from omni.services.core import main
 
@@ -61,11 +59,9 @@ class CoreService:
             app.openapi_tags.append(tag)
             self._openapi_tags.append(tag)
 
-        # Initialize FastAPI endpoint versioning once per app. The app outlives this extension, so a disable or hot
-        # reload builds the next CoreService against an app that already has the middleware, and Starlette refuses
-        # new middleware once the app has served a request.
-        if not any(middleware.cls is FastAPIVersioningMiddleware for middleware in app.user_middleware):
-            init_fastapi_versioning(app=app, vendor_media_type=header)
+        # The app outlives this extension. `init_versioning` adds the middleware only once for each app, because
+        # Starlette refuses new middleware once the app has served a request.
+        init_versioning(app=app, vendor_media_type=header)
 
     def destroy(self):
         for service_instance in self._service_instances:

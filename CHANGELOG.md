@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-6354: Replaced the deprecated Kit event streams (stage, layer, app startup/shutdown/update, and app window streams) with Events 2.0 (`carb.eventdispatcher`), and replaced the deprecated menu `onclick_fn` callbacks with `omni.kit.actions.core` actions, to remove the deprecation messages from the Kit log.
 - Replaced agent-plugin tags in code comments with plain comments that keep each known limit and when to revisit it.
 - Update Remix target dependencies: hdremix and omni_core_materials to `ext-fec5d13-main`
+- REMIX-6583: Replaced the `fast-version` pip package with in-repo endpoint versioning. REST requests without a version use the latest endpoint version.
 
 ### Fixed
 
