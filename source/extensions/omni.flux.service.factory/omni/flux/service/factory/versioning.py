@@ -46,6 +46,8 @@ __all__ = ["VersionedAPIRouter", "init_versioning"]
 
 _Version = tuple[int, int]
 _VERSION_ATTRIBUTE = "version"
+# Name-based marker, so routes from a module before a reload still count as versioned.
+_ROUTE_MARKER = "flux_versioned_route"
 _VERSION_FORMAT = re.compile(r"([0-9]+)\.([0-9]+)")
 _REQUEST_VERSION = "flux.request_version"
 _LATEST_VERSION = "flux.latest_version"
@@ -74,6 +76,8 @@ def _media_type(vendor: str, version: _Version) -> str:
 class VersionedAPIRoute(APIRoute):
     """Select a version after the path and method match."""
 
+    flux_versioned_route = True
+
     def __init__(self, path: str, endpoint: Callable[..., Any], **kwargs: Any) -> None:
         self.version: _Version = getattr(endpoint, _VERSION_ATTRIBUTE, (1, 0))
         super().__init__(path, endpoint, **kwargs)
@@ -92,7 +96,7 @@ class VersionedAPIRoute(APIRoute):
         keys = {}
         entries = []
         for original, included in _iter_routes_with_context(scope["app"].routes):
-            if not hasattr(original, _VERSION_ATTRIBUTE):
+            if not hasattr(original, _ROUTE_MARKER):
                 continue
             route = cast(VersionedAPIRoute, original)
             if scope["method"] in route.methods:
@@ -154,8 +158,8 @@ class VersionedAPIRouter(APIRouter):
     """Register routes that support API versions."""
 
     def add_api_route(self, path: str, endpoint: Callable[..., Any], **kwargs: Any) -> None:
-        """Register a versioned route, also when called without a decorator."""
-        kwargs["route_class_override"] = VersionedAPIRoute
+        """Register a versioned route, also without a decorator, unless the caller gives a route class."""
+        kwargs["route_class_override"] = kwargs.get("route_class_override") or VersionedAPIRoute
         super().add_api_route(path, endpoint, **kwargs)
 
     @staticmethod
@@ -244,7 +248,7 @@ def _versioned_openapi(app: FastAPI, vendor: str) -> dict[str, Any]:
     versioned_paths: dict[str, _VersionedPath] = {}
     endpoint_keys = {}
     for original, context in _iter_routes_with_context(app.routes):
-        if not hasattr(original, _VERSION_ATTRIBUTE):
+        if not hasattr(original, _ROUTE_MARKER):
             routes.append(RouteContext(original, context))
             continue
 

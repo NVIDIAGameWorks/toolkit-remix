@@ -20,6 +20,7 @@ import warnings
 
 import fastmcp
 from fastapi import FastAPI, Response
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from omni.flux.service.factory import init_versioning, versioning
 from omni.flux.service.factory.services.base import APIRouter
@@ -432,6 +433,46 @@ class TestVersioning(AsyncTestCase):
         # Assert
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["content-type"], _V2)
+
+    async def test_explicit_route_class_and_unversioned_route_with_version_attribute(self) -> None:
+        """A versioned route subclass stays in use, and a plain route with a `version` attribute stays unversioned."""
+
+        # Arrange
+        class CustomRoute(versioning.VersionedAPIRoute):
+            def get_route_handler(self):
+                handler = super().get_route_handler()
+
+                async def custom_handler(request):
+                    response = await handler(request)
+                    response.headers["x-custom"] = "true"
+                    return response
+
+                return custom_handler
+
+        class PlainRoute(APIRoute):
+            version = 2
+
+        async def read_custom() -> dict[str, str]:
+            return {"route": "custom"}
+
+        async def read_plain() -> dict[str, str]:
+            return {"route": "plain"}
+
+        router = APIRouter()
+        router.add_api_route("/custom", read_custom, methods=["GET"], route_class_override=CustomRoute)
+        self._app.include_router(router)
+        self._app.router.routes.append(PlainRoute("/plain", read_plain, methods=["GET"]))
+
+        # Act
+        custom = self._client.get("/custom")
+        plain = self._client.get("/plain")
+        schema = self._app.openapi()
+
+        # Assert
+        self.assertEqual(custom.headers["x-custom"], "true")
+        self.assertEqual(custom.headers["content-type"], _V1)
+        self.assertEqual(plain.json(), {"route": "plain"})
+        self.assertEqual(list(schema["paths"]["/plain"]["get"]["responses"]["200"]["content"]), ["application/json"])
 
     async def test_set_api_version_rejects_invalid_versions(self) -> None:
         for invalid_version in ([1, 0], (1,), (1, 0, 0), (1, -1), (1, 0.0), (True, 0)):
