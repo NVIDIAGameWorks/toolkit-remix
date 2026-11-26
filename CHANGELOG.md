@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REMIX-6266: Added an Asset Modifiers framework for local model transforms, with persistent inputs, Stage Manager actions, Job Queue integration, and reversible replacement.
 - REMIX-6266: Added a Job Queue Target column that shows the prims or model file of each job, and Job Queue and Asset Modifiers user guides, and updated the AI Tools guide and its screenshots.
 - REMIX-4954: Added paste diagnostics and warnings for skipped, failed, or clamped values, Paste Selected between differently named attributes of the same USD type, and source-aware texture references across layers.
+- Added the experimental Alpha Card to Mesh asset modifier, which cuts alpha-tested meshes along their texture alpha into opaque geometry.
 
 ### Changed
 

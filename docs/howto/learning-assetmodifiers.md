@@ -6,8 +6,9 @@ textures. It needs no AI and no ComfyUI. The Toolkit runs the modifier in the
 replaces the model in your project. You can revert the change at any time.
 
 ```{note}
-The Toolkit does not include a modifier. Modifiers come from extensions that you install. Until an extension provides
-one, the **Asset Modifiers** window shows **No asset modifiers available**.
+The Toolkit includes one experimental modifier, [Alpha Card to Mesh](#alpha-card-to-mesh-experimental). Other
+modifiers come from extensions that you install. When no extension provides a modifier, the **Asset Modifiers**
+window shows **No asset modifiers available**.
 ```
 
 ![Asset Modifiers window with no modifier installed](../data/images/remix-assetmodifiers-empty.png)
@@ -102,6 +103,38 @@ You can also right-click a prim and select **Remix Asset Modifiers...**:
 - **Open Asset Modifiers** opens the **Asset Modifiers** window.
 
 ![Stage Manager context menu with the Remix Asset Modifiers submenu](../data/images/remix-assetmodifiers-stagemanager-menu.png)
+
+## Alpha Card to Mesh (Experimental)
+
+Alpha-tested foliage cards are expensive to path trace because every ray that crosses the transparent part of a card
+still runs the alpha test. The experimental **Alpha Card to Mesh** modifier cuts the card geometry along the alpha
+channel of its diffuse texture so only the opaque area remains, and disables alpha testing on the result.
+
+Select capture or replacement meshes and run the modifier like any other. The Job Queue cuts the meshes, publishes
+the result with its textures into the project, and replaces the source reference. **Last Run** and the notification
+list each mesh with its face and vertex counts before and after the cut, or the reason it was left unchanged.
+Selecting a mesh through the Selection panel also selects its reference prim. The modifier accepts it and converts
+the meshes below it.
+
+- **Alpha Threshold** is the alpha value at or above which a texel counts as opaque.
+- **Trace Resolution** is the size of the mask that is traced. Higher values follow the texture more closely and
+  produce more triangles.
+- **Simplify Tolerance** and **Minimum Island Area** reduce the triangle count by smoothing the outline and dropping
+  specks. **Minimal Vertex Outline** connects the traced cutoff with the fewest points within the tolerance.
+- **Edge Margin** grows the outline. Keep `0` when alpha testing is disabled, because the cut edge then is the
+  visible silhouette. Raise it when alpha testing stays on, so bilinear filtering at the edge is not clipped.
+- **Disable Alpha Test** authors the opaque alpha state on the material so the runtime renders the cut mesh as fully
+  opaque geometry.
+- **Thicken Mesh** extrudes the cut mesh backwards and shows its inputs. **Thickness** is the distance in mesh
+  units. **Back Face** closes the extrusion; turning it off keeps only the sides, which gives the illusion of
+  thickness at a fraction of the polygons. **UV Anti-Stretch** textures the sides with the band of the texture just
+  inside the outline. **Smooth Normals** rounds the rim by **Smoothing**.
+- **Up-Facing Normals** blends every normal towards the stage up axis by **Up Amount**, so a canopy of cards shades
+  like one lit volume instead of a pile of differently tilted planes.
+
+Skinned meshes, meshes with geometry subsets and meshes without a diffuse texture are left out. Animated meshes convert
+their first time sample. Running the modifier on a mesh that is already a cutout converts the original model again
+with the current inputs. The original file is never modified.
 
 ## Troubleshooting
 
