@@ -3,7 +3,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [3.0.0]
 ### Changed
-- Use the latest endpoint version when the REST request specifies no version. Return HTTP 406 and list the available versions if the API does not support the requested version.
+- REST requests default to the latest endpoint version and return HTTP 406 for unavailable versions.
 
 ## [2.0.2]
 ### Fixed

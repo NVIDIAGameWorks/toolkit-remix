@@ -87,6 +87,7 @@ Import the package in a test or the extension itself and run it to confirm it lo
 
 ## Step 5 — After Merging to Main
 
-Merging a new package to `main` triggers a CI build that publishes a new `pip_repo_cache`. **This cache is private by
-default.** After the merge completes, the cache must be manually set to public so that users and downstream CI pipelines
-can download the archive. Check with the team on where to do this if you're unsure.
+A CI build that misses the `pip_repo_cache` package installs the packages and uploads a new cache package to the
+`rtx-remix-external` Packman remote (`packman_remote` in `repo.toml`). A failed upload fails the build. After you merge
+to `main`, make sure that users and downstream CI pipelines can download the new package. Check with the team if
+you are not sure how to do this.

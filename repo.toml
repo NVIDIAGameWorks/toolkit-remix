@@ -408,10 +408,8 @@ after_pull_commands = [
 files_to_pull = [
     "${root}/deps/pip_flux.toml",
 ]
-# Publish the pip cache package to the public remote. `cloudfront` has no upload transport since the move to Vault.
+# Remote CI uploads new repo_pip_cache packages to; repo_build's default (cloudfront) is download-only here.
 packman_remote = "rtx-remix-external"
-# A job without Vault credentials cannot publish the cache. The build then installs the packages without the cache.
-ignore_pip_cache_failure = true
 
 [repo_build.build]
 enabled = false

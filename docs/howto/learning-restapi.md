@@ -49,7 +49,7 @@ query parameters, request body, etc.
 
 ### Endpoint Versioning
 
-Each endpoint has its own set of versions. If you do not specify a version in `Accept`, the API uses the latest
+Each RTX Remix endpoint has its own set of versions. If `Accept` does not specify a version, the API uses the latest
 version for that endpoint. To select a specific version, send an `Accept` header in this format:
 
 ```text
@@ -57,13 +57,13 @@ application/lightspeed.remix.service+json; version=1.0
 ```
 
 If the endpoint does not support the requested version, the API returns HTTP 406 and lists the available versions.
-A new version of an endpoint deprecates its older versions. The older versions continue to work, but their responses
-have the `Deprecation: true` header. The endpoint description in Swagger UI lists the deprecated versions.
-In Swagger UI, expand **Responses** and find the media type dropdown under **Successful Response**.
-The dropdown lists the available versions for that endpoint.
+A new version of an endpoint deprecates its older versions. The older versions continue to work, but their successful
+responses have the `Deprecation: true` header. In Swagger UI, expand **Responses** and find the media type dropdown under
+**Successful Response**. The dropdown lists the available versions for that endpoint. These rules do not apply to the
+built-in `omni.services` endpoints, which use plain JSON.
 
-A new version can use a different path, for example to move a path parameter into the body. Each path then uses its
-own latest version. If you request a version that another path implements, the API returns HTTP 406 with that path.
+A new version can use a different path, for example to change the request model. Each path then uses its own latest
+version. If you request a version that only another path implements, the API returns HTTP 406 with that path.
 In Swagger UI, the older path shows as deprecated, and its description gives the path of the latest version.
 
 ## Testing the Endpoints

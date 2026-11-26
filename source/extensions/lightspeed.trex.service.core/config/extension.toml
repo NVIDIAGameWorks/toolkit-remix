@@ -18,8 +18,8 @@ preview_image = "data/preview.png"
 "lightspeed.trex.texture_replacements.core.shared" = {}
 "omni.flux.asset_importer.core" = {}
 "omni.flux.factory.base" = {}
-"omni.flux.pip_archive" = {}  # Required for Pydantic and FastAPI.
-"omni.flux.service.factory" = {}
+"omni.flux.pip_archive" = {}  # Required for Pydantic.
+"omni.flux.service.factory" = {version = "3.0"}
 "omni.flux.validator.factory" = {}
 "omni.flux.validator.manager.core" = {}
 "omni.flux.validator.mass.core" = {}
